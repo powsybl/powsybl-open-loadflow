@@ -41,19 +41,21 @@ abstract class AbstractAsymmetricalLoad extends AbstractElementEquationTerm<LfBu
 
     protected final Fortescue.SequenceType sequenceType;
 
-    private final LegConnectionType loadConnectionType; // how 3 phase loads are connected between each other
+    protected final LegConnectionType loadConnectionType; // how 3 phase loads are connected between each other
 
     private final AsymBusVariableType busVariableType; // variables available at bus (Wye variables, Va, Vb, Vc or Delta variables : Vab, Vbc and Vca = -Vab - Vbc)
 
     private final LfAsymBus asymBus;
 
-    public AbstractAsymmetricalLoad(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType) {
+    protected ComplexMatrix sabc;
+
+    public AbstractAsymmetricalLoad(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
         super(bus);
         Objects.requireNonNull(variableSet);
         this.complexPart = Objects.requireNonNull(complexPart);
         this.sequenceType = Objects.requireNonNull(sequenceType);
         this.asymBus = bus.getAsym();
-        this.loadConnectionType = Objects.requireNonNull(asymBus.getLoadConnectionType());
+        this.loadConnectionType = Objects.requireNonNull(loadConnectionType);
         this.busVariableType = Objects.requireNonNull(asymBus.getAsymBusVariableType());
 
         int nbPhases = 3 - asymBus.getNbExistingPhases();

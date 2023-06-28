@@ -95,7 +95,7 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
         return yabc;
     }
 
-    public static ComplexMatrix getAdmittanceMatrixFromImpedanceAndBmatrix(ComplexMatrix zabc, ComplexMatrix babc, boolean hasPhaseA, boolean hasPhaseB, boolean hasPhaseC) {
+    public static ComplexMatrix getAdmittanceMatrixFromImpedanceAndBmatrix(ComplexMatrix zabc, ComplexMatrix babc, boolean hasPhaseA, boolean hasPhaseB, boolean hasPhaseC, double length) {
 
         // The lines are sometimes specified as impedance and susceptance matrices.
         // This function helps to build the Yabc from those in input of the constructor
@@ -150,20 +150,25 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
         DenseMatrix minusB3 = b3.times(minusId3);
         DenseMatrix realYabc = AsymThreePhaseTransfo.buildFromBlocs(b3, minusB3, minusB3, b3);
         ComplexMatrix yabc = ComplexMatrix.getComplexMatrixFromRealCartesian(realYabc);
+        yabc = ComplexMatrix.getMatrixScaled(yabc, 1. / length);
 
         // taking into account susceptance matrix babc
-        yabc.set(4, 4, babc.getTerm(1, 1).add(yabc.getTerm(4, 4)));
-        yabc.set(4, 5, babc.getTerm(1, 2).add(yabc.getTerm(4, 5)));
-        yabc.set(4, 6, babc.getTerm(1, 3).add(yabc.getTerm(4, 6)));
+        yabc.set(4, 4, yabc.getTerm(4, 4).add(babc.getTerm(1, 1).multiply(length)));
+        yabc.set(4, 5, yabc.getTerm(4, 5).add(babc.getTerm(1, 2).multiply(length)));
+        yabc.set(4, 6, yabc.getTerm(4, 6).add(babc.getTerm(1, 3).multiply(length)));
 
-        yabc.set(5, 4, babc.getTerm(2, 1).add(yabc.getTerm(5, 4)));
-        yabc.set(5, 5, babc.getTerm(2, 2).add(yabc.getTerm(5, 5)));
-        yabc.set(5, 6, babc.getTerm(2, 3).add(yabc.getTerm(5, 6)));
+        yabc.set(5, 4, yabc.getTerm(5, 4).add(babc.getTerm(2, 1).multiply(length)));
+        yabc.set(5, 5, yabc.getTerm(5, 5).add(babc.getTerm(2, 2).multiply(length)));
+        yabc.set(5, 6, yabc.getTerm(5, 6).add(babc.getTerm(2, 3).multiply(length)));
 
-        yabc.set(6, 4, babc.getTerm(3, 1).add(yabc.getTerm(6, 4)));
-        yabc.set(6, 5, babc.getTerm(3, 2).add(yabc.getTerm(6, 5)));
-        yabc.set(6, 6, babc.getTerm(3, 3).add(yabc.getTerm(6, 6)));
+        yabc.set(6, 4, yabc.getTerm(6, 4).add(babc.getTerm(3, 1).multiply(length)));
+        yabc.set(6, 5, yabc.getTerm(6, 5).add(babc.getTerm(3, 2).multiply(length)));
+        yabc.set(6, 6, yabc.getTerm(6, 6).add(babc.getTerm(3, 3).multiply(length)));
 
         return yabc;
+    }
+
+    public static ComplexMatrix getAdmittanceMatrixFromImpedanceAndBmatrix(ComplexMatrix zabc, ComplexMatrix babc, boolean hasPhaseA, boolean hasPhaseB, boolean hasPhaseC) {
+        return getAdmittanceMatrixFromImpedanceAndBmatrix(zabc, babc, hasPhaseA, hasPhaseB, hasPhaseC, 1.);
     }
 }

@@ -8,7 +8,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.network.extensions.AsymBusLoadType;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -32,14 +31,13 @@ public class LfAsymBus {
     private final boolean hasPhaseB;
     private final boolean hasPhaseC;
 
-    private final LegConnectionType loadConnectionType; // how loads are connected between each other
-    private final AsymBusLoadType loadType;
-    private final double totalDeltaPa;
-    private final double totalDeltaQa;
-    private final double totalDeltaPb;
-    private final double totalDeltaQb;
-    private final double totalDeltaPc;
-    private final double totalDeltaQc;
+    // load can be expressed as S = S0 * (V/V0)^k
+    private final LfAsymLoad loadDelta0; // k = 0 : Constant power Delta load S = S0 = P0+j.Q0
+    private final LfAsymLoad loadDelta1; // k = 1 : Constant current Delta load S = S0 * (V/V0)
+    private final LfAsymLoad loadDelta2; // k = 2 : Constant impedance Delta load S = S0 * (V/V0)^2
+    private final LfAsymLoad loadWye0; // k = 0 : Constant power Wye load S = S0 = P0+j.Q0
+    private final LfAsymLoad loadWye1; // k = 1 : Constant current Wye load S = S0 * (V/V0)
+    private final LfAsymLoad loadWye2; // k = 2 : Constant impedance Wye load S = S0 * (V/V0)^2
 
     private double vz = 0;
     private double angleZ = 0;
@@ -58,17 +56,16 @@ public class LfAsymBus {
     private Evaluable ixN = EvaluableConstants.NAN;
     private Evaluable iyN = EvaluableConstants.NAN;
 
-    public LfAsymBus(AsymBusVariableType asymBusVariableType, boolean hasPhaseA, Boolean hasPhaseB, boolean hasPhaseC, LegConnectionType loadConnectionType, double totalDeltaPa, double totalDeltaQa, double totalDeltaPb, double totalDeltaQb, double totalDeltaPc, double totalDeltaQc,
-                     boolean isFortescueRepresentation, boolean isPositiveSequenceAsCurrent, AsymBusLoadType loadType) {
+    public LfAsymBus(AsymBusVariableType asymBusVariableType, boolean hasPhaseA, boolean hasPhaseB, boolean hasPhaseC,
+                     boolean isFortescueRepresentation, boolean isPositiveSequenceAsCurrent,
+                     LfAsymLoad loadDelta0, LfAsymLoad loadDelta1, LfAsymLoad loadDelta2, LfAsymLoad loadWye0, LfAsymLoad loadWye1, LfAsymLoad loadWye2) {
         // Load info
-        this.loadType = loadType;
-        this.loadConnectionType = loadConnectionType;
-        this.totalDeltaPa = totalDeltaPa;
-        this.totalDeltaQa = totalDeltaQa;
-        this.totalDeltaPb = totalDeltaPb;
-        this.totalDeltaQb = totalDeltaQb;
-        this.totalDeltaPc = totalDeltaPc;
-        this.totalDeltaQc = totalDeltaQc;
+        this.loadDelta0 = loadDelta0;
+        this.loadDelta1 = loadDelta1;
+        this.loadDelta2 = loadDelta2;
+        this.loadWye0 = loadWye0;
+        this.loadWye1 = loadWye1;
+        this.loadWye2 = loadWye2;
 
         // bus representation info
         this.asymBusVariableType = asymBusVariableType;
@@ -83,28 +80,28 @@ public class LfAsymBus {
         this.bus = Objects.requireNonNull(bus);
     }
 
-    public double getPa() {
-        return bus.getLoadTargetP() + totalDeltaPa;
+    public LfAsymLoad getLoadDelta0() {
+        return loadDelta0;
     }
 
-    public double getPb() {
-        return bus.getLoadTargetP() + totalDeltaPb;
+    public LfAsymLoad getLoadDelta1() {
+        return loadDelta1;
     }
 
-    public double getPc() {
-        return bus.getLoadTargetP() + totalDeltaPc;
+    public LfAsymLoad getLoadDelta2() {
+        return loadDelta2;
     }
 
-    public double getQa() {
-        return bus.getLoadTargetQ() + totalDeltaQa;
+    public LfAsymLoad getLoadWye0() {
+        return loadWye0;
     }
 
-    public double getQb() {
-        return bus.getLoadTargetQ() + totalDeltaQb;
+    public LfAsymLoad getLoadWye1() {
+        return loadWye1;
     }
 
-    public double getQc() {
-        return bus.getLoadTargetQ() + totalDeltaQc;
+    public LfAsymLoad getLoadWye2() {
+        return loadWye2;
     }
 
     public double getAngleZ() {
@@ -203,10 +200,6 @@ public class LfAsymBus {
         this.gnEquiv = gnEquiv;
     }
 
-    public LegConnectionType getLoadConnectionType() {
-        return loadConnectionType;
-    }
-
     public AsymBusVariableType getAsymBusVariableType() {
         return asymBusVariableType;
     }
@@ -229,10 +222,6 @@ public class LfAsymBus {
 
     public boolean isPositiveSequenceAsCurrent() {
         return isPositiveSequenceAsCurrent;
-    }
-
-    public AsymBusLoadType getLoadType() {
-        return loadType;
     }
 
     public int getNbExistingPhases() {
@@ -274,88 +263,70 @@ public class LfAsymBus {
         return getVc0().add(getVa0().multiply(-1.));
     }
 
-    public Complex getSa() {
-        if (!hasPhaseA) {
-            return new Complex(0., 0.);
-        }
-        return new Complex(getPa(), getQa());
-    }
-
-    public Complex getSb() {
-        if (!hasPhaseB) {
-            return new Complex(0., 0.);
-        }
-        return new Complex(getPb(), getQb());
-    }
-
-    public Complex getSc() {
-        if (!hasPhaseC) {
-            return new Complex(0., 0.);
-        }
-        return new Complex(getPc(), getQc());
-    }
-
-    /*public static AsymBus getAsymBus(LfBus bus) {
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-        return asymBus;
-    }*/
-
-    public Complex getIaTarget() {
+    public Complex getIaTarget(LegConnectionType loadConnectionType) {
         Complex sA = new Complex(0., 0.);
         Complex sC = new Complex(0., 0.);
-        if (loadType == AsymBusLoadType.CONSTANT_CURRENT) {
-            sA = getSa();
-            sC = getSc();
-        }
         if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
+            if (loadWye1 != null) {
+                sA = new Complex(loadWye1.getPa(), loadWye1.getQa());
+            }
             return (sA.multiply(getVa0().reciprocal())).conjugate();
         } else {
             // We suppose sA = sAB and sC = sCA
+            if (loadDelta1 != null) {
+                sA = new Complex(loadDelta1.getPa(), loadDelta1.getQa());
+                sC = new Complex(loadDelta1.getPc(), loadDelta1.getQc());
+            }
             return (sA.multiply(getVab0().reciprocal()).add(sC.multiply(getVca0().reciprocal().multiply(-1.)))).conjugate();
         }
     }
 
-    public Complex getIbTarget() {
+    public Complex getIbTarget(LegConnectionType loadConnectionType) {
         Complex sA = new Complex(0., 0.);
         Complex sB = new Complex(0., 0.);
-        if (loadType == AsymBusLoadType.CONSTANT_CURRENT) {
-            sA = getSa();
-            sB = getSb();
-        }
         if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
+            if (loadWye1 != null) {
+                sB = new Complex(loadWye1.getPb(), loadWye1.getQb());
+            }
             return (sB.multiply(getVb0().reciprocal())).conjugate();
         } else {
+            if (loadDelta1 != null) {
+                sA = new Complex(loadDelta1.getPa(), loadDelta1.getQa());
+                sB = new Complex(loadDelta1.getPb(), loadDelta1.getQb());
+            }
             return (sB.multiply(getVbc0().reciprocal()).add(sA.multiply(getVab0().reciprocal().multiply(-1.)))).conjugate();
         }
     }
 
-    public Complex getIcTarget() {
+    public Complex getIcTarget(LegConnectionType loadConnectionType) {
         Complex sB = new Complex(0., 0.);
         Complex sC = new Complex(0., 0.);
-        if (loadType == AsymBusLoadType.CONSTANT_CURRENT) {
-            sB = getSb();
-            sC = getSc();
-        }
         if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
+            if (loadWye1 != null) {
+                sC = new Complex(loadWye1.getPc(), loadWye1.getQc());
+            }
             return (sC.multiply(getVc0().reciprocal())).conjugate();
         } else {
+            if (loadDelta1 != null) {
+                sC = new Complex(loadDelta1.getPc(), loadDelta1.getQc());
+                sB = new Complex(loadDelta1.getPb(), loadDelta1.getQb());
+            }
             return (sC.multiply(getVca0().reciprocal()).add(sB.multiply(getVbc0().reciprocal().multiply(-1.)))).conjugate();
         }
     }
 
-    public Complex getIzeroTarget() {
+    public Complex getIzeroTarget(LegConnectionType loadConnectionType) {
         if (isFortescueRepresentation) {
-            return new Complex(0., 0.);
-            //throw new IllegalStateException("constant current loads in Fortescue representation not yet handled at bus : " + bus.getId());
+            throw new IllegalStateException("Load with constant current and fortescue representation not yet handled : " + bus.getId());
         }
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
-            return getIaTarget();
+            return getIaTarget(loadConnectionType);
         } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
-            return getIbTarget();
+            return getIbTarget(loadConnectionType);
         } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
-            return getIaTarget();
+            return getIaTarget(loadConnectionType);
         } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
-            return getIaTarget();
+            return getIaTarget(loadConnectionType);
         } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
             return new Complex(0., 0.);
         } else if (!hasPhaseA && hasPhaseB && !hasPhaseC) {
@@ -367,49 +338,38 @@ public class LfAsymBus {
         }
     }
 
-    public Complex getIpositiveTarget() {
+    public Complex getIpositiveTarget(LegConnectionType loadConnectionType) {
         if (isFortescueRepresentation) {
-            return new Complex(0., 0.);
-            //throw new IllegalStateException("constant current loads in Fortescue representation not yet handled at bus : " + bus.getId());
+            throw new IllegalStateException("Load with constant current and fortescue representation not yet handled : " + bus.getId());
         }
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
-            return getIbTarget();
+            System.out.println(" Ipositive Target = " + getIbTarget(loadConnectionType));
+            return getIbTarget(loadConnectionType);
         } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
-            return getIcTarget();
+            return getIcTarget(loadConnectionType);
         } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
-            return getIcTarget();
+            return getIcTarget(loadConnectionType);
         } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
-            return getIbTarget();
+            return getIbTarget(loadConnectionType);
         } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
-            return getIcTarget();
+            return getIcTarget(loadConnectionType);
         } else if (!hasPhaseA && hasPhaseB && !hasPhaseC) {
-            return getIbTarget();
+            return getIbTarget(loadConnectionType);
         } else if (hasPhaseA && !hasPhaseB && !hasPhaseC) {
-            return getIaTarget();
+            return getIaTarget(loadConnectionType);
         } else {
             throw new IllegalStateException("unknow abc target load config : " + bus.getId());
         }
     }
 
-    public Complex getInegativeTarget() {
+    public Complex getInegativeTarget(LegConnectionType loadConnectionType) {
         if (isFortescueRepresentation) {
-            return new Complex(0., 0.);
-            //throw new IllegalStateException("constant current loads in Fortescue representation not yet handled at bus : " + bus.getId());
+            throw new IllegalStateException("Load with constant current and fortescue representation not yet handled : " + bus.getId());
         }
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
-            return getIcTarget();
+            return getIcTarget(loadConnectionType);
         } else {
             return new Complex(0., 0.);
         }
-    }
-
-    public boolean asymLoadExist() {
-        double absAsymLoad = Math.abs(totalDeltaPa) + Math.abs(totalDeltaQa)
-                + Math.abs(totalDeltaPb) + Math.abs(totalDeltaQb)
-                + Math.abs(totalDeltaPc) + Math.abs(totalDeltaQc);
-        if (absAsymLoad > 0.0000001) {
-            return true;
-        }
-        return false;
     }
 }

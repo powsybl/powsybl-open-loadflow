@@ -19,14 +19,42 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
 
     public static final double EPSILON = 0.000000001;
 
-    public LoadAbcPowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType) {
-        super(bus, variableSet, complexPart, sequenceType);
+    public LoadAbcPowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
+        super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         Objects.requireNonNull(variableSet);
+
+        Complex sa = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
+        Complex sb = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
+        Complex sc = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
+
+        LfAsymBus asymBus = bus.getAsym();
+        if (asymBus == null) {
+            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
+        }
+
+        if (loadConnectionType == LegConnectionType.DELTA) {
+            if (asymBus.getLoadDelta0() != null) {
+                sa = sa.add(new Complex(asymBus.getLoadDelta0().getPa(), asymBus.getLoadDelta0().getQa()));
+                sb = sb.add(new Complex(asymBus.getLoadDelta0().getPb(), asymBus.getLoadDelta0().getQb()));
+                sc = sc.add(new Complex(asymBus.getLoadDelta0().getPc(), asymBus.getLoadDelta0().getQc()));
+            }
+        } else {
+            if (asymBus.getLoadWye0() != null) {
+                sa = sa.add(new Complex(asymBus.getLoadWye0().getPa(), asymBus.getLoadWye0().getQa()));
+                sb = sb.add(new Complex(asymBus.getLoadWye0().getPb(), asymBus.getLoadWye0().getQb()));
+                sc = sc.add(new Complex(asymBus.getLoadWye0().getPc(), asymBus.getLoadWye0().getQc()));
+            }
+        }
+
+        this.sabc = new ComplexMatrix(3, 1);
+        sabc.set(1, 1, sa);
+        sabc.set(2, 1, sb);
+        sabc.set(3, 1, sc);
     }
 
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType,
                             double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative,
-                            Variable<AcVariableType> vVarZero, Variable<AcVariableType> vVarNegative) {
+                            Variable<AcVariableType> vVarZero, Variable<AcVariableType> vVarNegative, ComplexMatrix sabc, LegConnectionType loadConnectionType) {
 
         // We suppose that input for power load is constant S
         // For each phase we have :
@@ -52,7 +80,6 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
 
-        LegConnectionType loadConnectionType = asymBus.getLoadConnectionType();
         if (loadConnectionType == LegConnectionType.DELTA) {
             throw new IllegalStateException("ABC Power load with delta load connection not yet handled at bus " + bus.getId());
         }
@@ -62,9 +89,9 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
             throw new IllegalStateException("ABC Power load with delta variables  not yet handled at bus " + bus.getId());
         }
 
-        Complex sA = new Complex(asymBus.getPa(), asymBus.getQa());
-        Complex sB = new Complex(asymBus.getPb(), asymBus.getQb());
-        Complex sC = new Complex(asymBus.getPc(), asymBus.getQc());
+        Complex sA = sabc.getTerm(1, 1);
+        Complex sB = sabc.getTerm(2, 1);
+        Complex sC = sabc.getTerm(3, 1);
 
         Vector2D positiveSequence = Fortescue.getCartesianFromPolar(vPositive, phPositive);
         Vector2D zeroSequence = Fortescue.getCartesianFromPolar(vZero, phZero);
@@ -144,7 +171,7 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
     }
 
     public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi,
-                             Variable<AcVariableType> vVarZero, Variable<AcVariableType> vVarNegative) {
+                             Variable<AcVariableType> vVarZero, Variable<AcVariableType> vVarNegative, ComplexMatrix sabc, LegConnectionType loadConnectionType) {
         // We suppose that input for power load is constant S
         // For each phase we have :
         // S is also S = I* * V  which gives I* = S / V
@@ -177,7 +204,6 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
         Complex dV1 = v0V1V2.getTerm(2, 1);
         Complex dV2 = v0V1V2.getTerm(3, 1);
 
-        LegConnectionType loadConnectionType = asymBus.getLoadConnectionType();
         if (loadConnectionType == LegConnectionType.DELTA) {
             throw new IllegalStateException("ABC load with delta load connection not yet handled at bus " + bus.getId());
         }
@@ -186,9 +212,9 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
             throw new IllegalStateException("ABC load with delta variables  not yet handled at bus " + bus.getId());
         }
 
-        Complex sA = new Complex(asymBus.getPa(), asymBus.getQa());
-        Complex sB = new Complex(asymBus.getPb(), asymBus.getQb());
-        Complex sC = new Complex(asymBus.getPc(), asymBus.getQc());
+        Complex sA = sabc.getTerm(1, 1);
+        Complex sB = sabc.getTerm(2, 1);
+        Complex sC = sabc.getTerm(3, 1);
 
         Vector2D positiveSequence = Fortescue.getCartesianFromPolar(vd, phd);
         Vector2D zeroSequence = Fortescue.getCartesianFromPolar(vo, pho);
@@ -279,7 +305,7 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
         pq = pq(element, complexPart, sequenceType,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
-                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), vVarZero, vVarNegative);
+                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), vVarZero, vVarNegative, sabc, loadConnectionType);
         return pq;
     }
 
@@ -289,7 +315,7 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
         double deriv = dpq(element, complexPart, sequenceType, variable,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
-                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), vVarZero, vVarNegative);
+                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), vVarZero, vVarNegative, sabc, loadConnectionType);
         return deriv;
     }
 

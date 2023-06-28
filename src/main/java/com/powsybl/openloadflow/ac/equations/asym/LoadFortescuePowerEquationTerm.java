@@ -26,12 +26,39 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
 public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
-    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType) {
-        super(bus, variableSet, complexPart, sequenceType);
+    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
+        super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
+        Complex sa = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
+        Complex sb = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
+        Complex sc = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
+
+        LfAsymBus asymBus = bus.getAsym();
+        if (asymBus == null) {
+            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
+        }
+
+        if (loadConnectionType == LegConnectionType.DELTA) {
+            if (asymBus.getLoadDelta0() != null) {
+                sa = sa.add(new Complex(asymBus.getLoadDelta0().getPa(), asymBus.getLoadDelta0().getQa()));
+                sb = sb.add(new Complex(asymBus.getLoadDelta0().getPb(), asymBus.getLoadDelta0().getQb()));
+                sc = sc.add(new Complex(asymBus.getLoadDelta0().getPc(), asymBus.getLoadDelta0().getQc()));
+            }
+        } else {
+            if (asymBus.getLoadWye0() != null) {
+                sa = sa.add(new Complex(asymBus.getLoadWye0().getPa(), asymBus.getLoadWye0().getQa()));
+                sb = sb.add(new Complex(asymBus.getLoadWye0().getPb(), asymBus.getLoadWye0().getQb()));
+                sc = sc.add(new Complex(asymBus.getLoadWye0().getPc(), asymBus.getLoadWye0().getQc()));
+            }
+        }
+
+        this.sabc = new ComplexMatrix(3, 1);
+        sabc.set(1, 1, sa);
+        sabc.set(2, 1, sb);
+        sabc.set(3, 1, sc);
     }
 
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType,
-                            double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative) {
+                            double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative, LegConnectionType loadConnectionType, ComplexMatrix sabc) {
         // We use the formula with complex matrices:
         //
         // Case of a Wye load connected to a Wye bus :
@@ -75,11 +102,10 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
 
-        LegConnectionType loadConnectionType = asymBus.getLoadConnectionType();
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
         // Build of Sabc/3 vector
-        DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
+        DenseMatrix mSabc3 = getCartesianMatrix(sabc.getTerm(1, 1).getReal() / 3, sabc.getTerm(1, 1).getImaginary() / 3, sabc.getTerm(2, 1).getReal() / 3, sabc.getTerm(2, 1).getImaginary() / 3, sabc.getTerm(3, 1).getReal() / 3, sabc.getTerm(3, 1).getImaginary() / 3, true);
 
         Vector2D positiveSequence = Fortescue.getCartesianFromPolar(vPositive, phPositive);
         Vector2D zeroSequence = Fortescue.getCartesianFromPolar(vZero, phZero);
@@ -129,7 +155,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
         }
     }
 
-    public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
+    public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi, LegConnectionType loadConnectionType, ComplexMatrix sabc) {
         // We derivate the PQ formula with complex matrices:
 
         // Wye Load with Wye variables at bus
@@ -166,7 +192,6 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
 
-        LegConnectionType loadConnectionType = asymBus.getLoadConnectionType();
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
         ComplexMatrix v0V1V2 = AbstractAsymmetricalLoad.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
@@ -184,7 +209,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
         DenseMatrix mVabc = Fortescue.createMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build of Sabc vector
-        DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
+        DenseMatrix mSabc3 = getCartesianMatrix(sabc.getTerm(1, 1).getReal() / 3, sabc.getTerm(1, 1).getImaginary() / 3, sabc.getTerm(2, 1).getReal() / 3, sabc.getTerm(2, 1).getImaginary() / 3, sabc.getTerm(3, 1).getReal() / 3, sabc.getTerm(3, 1).getImaginary() / 3, true);
 
         // build of 1/Vabc square matrix
         DenseMatrix mInvVabc = getInvVabcSquare(bus, asymBus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
@@ -212,7 +237,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
         DenseMatrix mSquareVFortescue = getCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
 
         // build of -1/3.Sabc square matrix
-        DenseMatrix mMinusSabc3Square = getCartesianMatrix(-asymBus.getPa() / 3, -asymBus.getQa() / 3, -asymBus.getPb() / 3, -asymBus.getQb() / 3, -asymBus.getPc() / 3, -asymBus.getQc() / 3, false);
+        DenseMatrix mMinusSabc3Square = getCartesianMatrix(-sabc.getTerm(1, 1).getReal() / 3, -sabc.getTerm(1, 1).getImaginary() / 3, -sabc.getTerm(2, 1).getReal() / 3, -sabc.getTerm(2, 1).getImaginary() / 3, -sabc.getTerm(3, 1).getReal() / 3, -sabc.getTerm(3, 1).getImaginary() / 3, false);
 
         // buils of fortescue derivative vector
         DenseMatrix mdV = getCartesianMatrix(dV0.getReal(), dV0.getImaginary(), dV1.getReal(), dV1.getImaginary(), dV2.getReal(), dV2.getImaginary(), true);
@@ -255,7 +280,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
         pq = pq(element, complexPart, sequenceType,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
-                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
+                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), loadConnectionType, sabc);
         return pq;
     }
 
@@ -265,7 +290,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
         double deriv = dpq(element, complexPart, sequenceType, variable,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
-                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
+                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), loadConnectionType, sabc);
         return deriv;
     }
 
@@ -358,7 +383,6 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
         return mCartesian;
     }
 
-    // Test
     public static ComplexMatrix complexMatrixP(StepType stepLegConnectionType) {
         ComplexMatrix complexMatrix = ComplexMatrix.complexMatrixIdentity(3);
 

@@ -121,7 +121,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return lfBranchImpl;
     }
 
-    private static void createTransfoToAsymExt(TwoWindingsTransformer t2w, double zb, LfBranchImpl lfBranchImpl) {
+    private static void createTransfoToAsymExt(TwoWindingsTransformer t2w, double zb, LfBranchImpl lfBranch) {
         var extension = t2w.getExtension(TwoWindingsTransformerFortescue.class);
         if (extension != null) {
             var extension2 = t2w.getExtension(Tfo3Phases.class);
@@ -167,8 +167,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 AsymBusVariableType side1VariableType = AsymBusVariableType.WYE;
                 AsymBusVariableType side2VariableType = AsymBusVariableType.WYE;
 
-                LfAsymBus asymBus1 = lfBranchImpl.getBus1().getAsym();
-                LfAsymBus asymBus2 = lfBranchImpl.getBus2().getAsym();
+                LfAsymBus asymBus1 = lfBranch.getBus1().getAsym();
+                LfAsymBus asymBus2 = lfBranch.getBus2().getAsym();
 
                 if (asymBus1 != null) {
                     side1VariableType = asymBus1.getAsymBusVariableType();
@@ -212,7 +212,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 LfAsymLine asymBranch = new LfAsymLine(yabcPu, extension2.getOpenPhaseA1(), extension2.getOpenPhaseB1(), extension2.getOpenPhaseC1(),
                         true, true, true, true, true, true, true, true, side1VariableType, side2VariableType); // TODO: rework line opening for a line
 
-                lfBranchImpl.setAsymLine(asymBranch);
+                lfBranch.setAsymLine(asymBranch);
 
             } else {
                 AsymTransfo2W asymTransfo2W;
@@ -224,9 +224,9 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                             extension.getGroundingR1() / zb, extension.getGroundingX1() / zb, // TODO : check pu of z1g since it is on the left of rho
                             extension.getGroundingR2() / zb, extension.getGroundingX2() / zb);
                 } else {
-                    throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' has no assymmetrical Pi values input data defined");
+                    throw new PowsyblException("Asymmetrical branch '" + lfBranch.getId() + "' has no assymmetrical Pi values input data defined");
                 }
-                lfBranchImpl.setProperty(AsymTransfo2W.PROPERTY_ASYMMETRICAL, asymTransfo2W);
+                lfBranch.setProperty(AsymTransfo2W.PROPERTY_ASYMMETRICAL, asymTransfo2W);
             }
 
         }

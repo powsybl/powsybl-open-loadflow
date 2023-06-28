@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 
 import java.util.Objects;
 
@@ -68,7 +69,12 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 if (asymBusP != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
-                    targets[equation.getColumn()] = targets[equation.getColumn()] - asymBusP.getIpositiveTarget().getReal();
+                    if (asymBusP.getLoadWye1() != null) {
+                        targets[equation.getColumn()] = targets[equation.getColumn()] - asymBusP.getIpositiveTarget(LegConnectionType.Y_GROUNDED).getReal();
+                    } else if (asymBusP.getLoadDelta1() != null) {
+                        targets[equation.getColumn()] = targets[equation.getColumn()] - asymBusP.getIpositiveTarget(LegConnectionType.DELTA).getReal();
+                    }
+
                     // TODO : handled cases where positive sequence is P or Ix
                 }
                 break;
@@ -82,7 +88,11 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 if (asymBusQ != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
-                    targets[equation.getColumn()] = targets[equation.getColumn()] - asymBusQ.getIpositiveTarget().getImaginary();
+                    if (asymBusQ.getLoadWye1() != null) {
+                        targets[equation.getColumn()] = targets[equation.getColumn()] - asymBusQ.getIpositiveTarget(LegConnectionType.Y_GROUNDED).getImaginary();
+                    } else if (asymBusQ.getLoadDelta1() != null) {
+                        targets[equation.getColumn()] = targets[equation.getColumn()] - asymBusQ.getIpositiveTarget(LegConnectionType.DELTA).getImaginary();
+                    }
                     // TODO : handled cases where positive sequence is P or Ix
                 }
                 break;
@@ -135,7 +145,11 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 if (asymBusIxzero != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
-                    targets[equation.getColumn()] = -asymBusIxzero.getIzeroTarget().getReal();
+                    if (asymBusIxzero.getLoadWye1() != null) {
+                        targets[equation.getColumn()] = -asymBusIxzero.getIzeroTarget(LegConnectionType.Y_GROUNDED).getReal();
+                    } else if (asymBusIxzero.getLoadDelta1() != null) {
+                        targets[equation.getColumn()] = -asymBusIxzero.getIzeroTarget(LegConnectionType.DELTA).getReal();
+                    }
                 }
                 break;
 
@@ -147,7 +161,11 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 if (asymBusIyzero != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
-                    targets[equation.getColumn()] = -asymBusIyzero.getIzeroTarget().getImaginary();
+                    if (asymBusIyzero.getLoadWye1() != null) {
+                        targets[equation.getColumn()] = -asymBusIyzero.getIzeroTarget(LegConnectionType.Y_GROUNDED).getImaginary();
+                    } else if (asymBusIyzero.getLoadDelta1() != null) {
+                        targets[equation.getColumn()] = -asymBusIyzero.getIzeroTarget(LegConnectionType.DELTA).getImaginary();
+                    }
                 }
                 break;
 
@@ -159,7 +177,11 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 if (asymBusIxNegative != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
-                    targets[equation.getColumn()] = -asymBusIxNegative.getInegativeTarget().getReal();
+                    if (asymBusIxNegative.getLoadWye1() != null) {
+                        targets[equation.getColumn()] = -asymBusIxNegative.getInegativeTarget(LegConnectionType.Y_GROUNDED).getReal();
+                    } else if (asymBusIxNegative.getLoadDelta1() != null) {
+                        targets[equation.getColumn()] = -asymBusIxNegative.getInegativeTarget(LegConnectionType.DELTA).getReal();
+                    }
                 }
                 break;
 
@@ -172,7 +194,11 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 if (asymBusIyNegative != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
-                    targets[equation.getColumn()] = -asymBusIyNegative.getInegativeTarget().getImaginary();
+                    if (asymBusIyNegative.getLoadWye1() != null) {
+                        targets[equation.getColumn()] = -asymBusIyNegative.getInegativeTarget(LegConnectionType.Y_GROUNDED).getImaginary();
+                    } else if (asymBusIyNegative.getLoadDelta1() != null) {
+                        targets[equation.getColumn()] = -asymBusIyNegative.getInegativeTarget(LegConnectionType.DELTA).getImaginary();
+                    }
                 }
                 break;
 

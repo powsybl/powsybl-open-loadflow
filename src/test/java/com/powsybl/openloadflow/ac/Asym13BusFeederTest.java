@@ -21,15 +21,17 @@ import org.apache.commons.math3.complex.ComplexUtils;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class Asym13nodesLoadsTest {
+public class Asym13BusFeederTest {
 
     private Network network;
     private Bus bus650;
     private Bus bus632;
     private Bus bus645;
     private Bus bus646;
+    private Bus bus652;
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
@@ -98,6 +100,7 @@ public class Asym13nodesLoadsTest {
         bus632 = network.getBusBreakerView().getBus("B632");
         bus645 = network.getBusBreakerView().getBus("B645");
         bus646 = network.getBusBreakerView().getBus("B646");
+        bus652 = network.getBusBreakerView().getBus("B652");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
@@ -119,9 +122,10 @@ public class Asym13nodesLoadsTest {
 
         //assertVoltageEquals(4.16, bus650);
         //assertAngleEquals(0., bus650);
-        /*assertVoltageEquals(4.16, bus632);
-        assertVoltageEquals(4.160250008971789, bus645);
-        assertVoltageEquals(4.160271884980543, bus646);*/
+        assertVoltageEquals(4.2762101139626765, bus632);
+        assertVoltageEquals(4.230636258403482, bus645);
+        assertVoltageEquals(4.2218389287024145, bus646);
+        assertVoltageEquals(4.09426812981166, bus652);
     }
 
     public static Network ieee13LoadFeeder() {
@@ -400,20 +404,33 @@ public class Asym13nodesLoadsTest {
                 .setQ0(0.)
                 .add();
 
-        // for now it is not possible to have 2 different types of load at bus
-        Complex vc611 = ComplexUtils.polar2Complex(vBase * 0.9738, Math.toRadians(115.78));
-        Complex vc0 = ComplexUtils.polar2Complex(vBase, Math.toRadians(120.));
-        Complex scCompens = new Complex(0., 0.1);
-        Complex scEq = scCompens.multiply(vc611.multiply(vc611.multiply(vc0.reciprocal()))).multiply(vc0.reciprocal());
         load611.newExtension(LoadUnbalancedAdder.class)
                 .withPa(0.)
                 .withQa(0.)
                 .withPb(0.)
                 .withQb(0.)
-                .withPc(0.170 - scEq.getReal())
-                .withQc(0.080 - scEq.getImaginary())
+                .withPc(0.170)
+                .withQc(0.080)
                 .withLoadType(LoadType.CONSTANT_CURRENT)
                 .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
+                .add();
+
+        Load compens611 = vl611.newLoad()
+                .setId("COMPENS_611")
+                .setBus(bus611.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        compens611.newExtension(LoadUnbalancedAdder.class)
+                .withPa(0.)
+                .withQa(0.)
+                .withPb(0.)
+                .withQb(0.)
+                .withPc(0.)
+                .withQc(-0.1)
+                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
+                .withConnectionType(WindingConnectionType.Y_GROUNDED)
                 .add();
 
         // bus 652
@@ -563,6 +580,7 @@ public class Asym13nodesLoadsTest {
         bus675.newExtension(BusAsymmetricalAdder.class)
                 .withBusVariableType(BusVariableType.WYE)
                 .withPositiveSequenceAsCurrent(true)
+                .withFortescueRepresentation(false)
                 .add();
 
         double p675 = 0.;
@@ -574,25 +592,32 @@ public class Asym13nodesLoadsTest {
                 .setQ0(q675)
                 .add();
 
-        // for now it is not possible to have 2 different types of load at bus
-        Complex va675 = ComplexUtils.polar2Complex(vBase * 0.9835, Math.toRadians(-5.56));
-        Complex vb675 = ComplexUtils.polar2Complex(vBase * 1.0553, Math.toRadians(-122.52));
-        Complex vc675 = ComplexUtils.polar2Complex(vBase * 0.9758, Math.toRadians(116.03));
-        Complex va0675 = ComplexUtils.polar2Complex(vBase, Math.toRadians(0.));
-        Complex vb0675 = ComplexUtils.polar2Complex(vBase, Math.toRadians(-120.));
-        Complex vc0675 = ComplexUtils.polar2Complex(vBase, Math.toRadians(120.));
-        Complex sCompens675 = new Complex(0., 0.200);
-        Complex saEq675 = sCompens675.multiply(va675.multiply(va675.multiply(va0675.reciprocal()))).multiply(va0675.reciprocal());
-        Complex sbEq675 = sCompens675.multiply(vb675.multiply(vb675.multiply(vb0675.reciprocal()))).multiply(vb0675.reciprocal());
-        Complex scEq675 = sCompens675.multiply(vc675.multiply(vc675.multiply(vc0675.reciprocal()))).multiply(vc0675.reciprocal());
         load675.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.485 - saEq675.getReal())
-                .withQa(0.190 - saEq675.getImaginary()) // approx of capa
-                .withPb(0.068 - sbEq675.getReal())
-                .withQb(0.060 - sbEq675.getImaginary()) // approx of capa
-                .withPc(0.290 - scEq675.getReal()) // equivalent load at 692
-                .withQc(0.212 - scEq675.getImaginary()) // approx of capa
-                .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
+                .withPa(0.485)
+                .withQa(0.190)
+                .withPb(0.068)
+                .withQb(0.060)
+                .withPc(0.290)
+                .withQc(0.212)
+                .withConnectionType(WindingConnectionType.Y_GROUNDED)
+                .add();
+
+        Load compens675 = vl675.newLoad()
+                .setId("COMPENS_675")
+                .setBus(bus675.getId())
+                .setP0(0.)
+                .setQ0(-0.2)
+                .add();
+
+        compens675.newExtension(LoadUnbalancedAdder.class)
+                .withPa(0.)
+                .withQa(0.)
+                .withPb(0.)
+                .withQb(0.)
+                .withPc(0.)
+                .withQc(0.)
+                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
+                .withConnectionType(WindingConnectionType.Y_GROUNDED)
                 .add();
 
         double micro = 0.000001;
@@ -622,8 +647,6 @@ public class Asym13nodesLoadsTest {
         b601.set(3, 2, new Complex(0, micro * -0.7417));
         b601.set(3, 3, new Complex(0, micro * 5.6386));
 
-        ComplexMatrix yabc601 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, true);
-
         // config 602 :
         // building of Yabc from given Y impedance matrix Zy
         ComplexMatrix zy602 = new ComplexMatrix(3, 3);
@@ -649,8 +672,6 @@ public class Asym13nodesLoadsTest {
         b602.set(3, 2, new Complex(0, micro * -0.6588));
         b602.set(3, 3, new Complex(0, micro * 5.4246));
 
-        ComplexMatrix yabc602 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy602, b602, true, true, true);
-
         // config 603 :
         // building of Yabc from given Y impedance matrix Zy
         ComplexMatrix zy603 = new ComplexMatrix(3, 3);
@@ -674,8 +695,6 @@ public class Asym13nodesLoadsTest {
         b603.set(3, 1, new Complex(0, micro * 0.));
         b603.set(3, 2, new Complex(0, micro * -0.8999));
         b603.set(3, 3, new Complex(0, micro * 4.6658));
-
-        ComplexMatrix yabc603 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy603, b603, false, true, true);
 
         // config 604 :
         // building of Yabc from given Y impedance matrix Zy
@@ -702,8 +721,6 @@ public class Asym13nodesLoadsTest {
         b604.set(3, 2, new Complex(0, micro * 0.));
         b604.set(3, 3, new Complex(0, micro * 4.7097));
 
-        ComplexMatrix yabc604 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy604, b604, true, false, true);
-
         // config 605 :
         // building of Yabc from given Y impedance matrix Zy
         ComplexMatrix zy605 = new ComplexMatrix(3, 3);
@@ -728,8 +745,6 @@ public class Asym13nodesLoadsTest {
         b605.set(3, 1, new Complex(0, micro * 0.));
         b605.set(3, 2, new Complex(0, micro * 0.));
         b605.set(3, 3, new Complex(0, micro * 4.5193));
-
-        ComplexMatrix yabc605 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy605, b605, false, false, true);
 
         // config 606 :
         // building of Yabc from given Y impedance matrix Zy
@@ -756,8 +771,6 @@ public class Asym13nodesLoadsTest {
         b606.set(3, 2, new Complex(0, micro * 0.));
         b606.set(3, 3, new Complex(0, micro * 96.8897));
 
-        ComplexMatrix yabc606 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy606, b606, true, true, true);
-
         // config 607 :
         // building of Yabc from given Y impedance matrix Zy
         ComplexMatrix zy607 = new ComplexMatrix(3, 3);
@@ -782,8 +795,6 @@ public class Asym13nodesLoadsTest {
         b607.set(3, 1, new Complex(0, micro * 0.));
         b607.set(3, 2, new Complex(0, micro * 0.));
         b607.set(3, 3, new Complex(0, micro * 0.));
-
-        ComplexMatrix yabc607 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy607, b607, true, false, false);
 
         double feetInMile = 5280;
         double ry = 0.3061;
@@ -827,14 +838,15 @@ public class Asym13nodesLoadsTest {
         rho.set(4, 4, new Complex(1., 0.));
         rho.set(5, 5, new Complex(1., 0.));
         rho.set(6, 6, new Complex(1., 0.));
-        DenseMatrix yabcRg60Real = rho.getRealCartesianMatrix().times(yabc601.getRealCartesianMatrix().times(rho.getRealCartesianMatrix()));
+        ComplexMatrix yabc650y632 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, true, length650y632InFeet / feetInMile);
+        DenseMatrix yabcRg60Real = rho.getRealCartesianMatrix().times(yabc650y632.getRealCartesianMatrix().times(rho.getRealCartesianMatrix()));
         ComplexMatrix yabcRg60 = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcRg60Real);
 
         line650y632.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabcRg60, feetInMile / length650y632InFeet * yCoef))
+                .withYabc(ComplexMatrix.getMatrixScaled(yabcRg60, yCoef))
                 .add();
 
         line650y632.newExtension(LineFortescueAdder.class)
@@ -859,11 +871,12 @@ public class Asym13nodesLoadsTest {
                 .setB2(0.0)
                 .add();
 
+        ComplexMatrix yabc632y645 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy603, b603, false, true, true, length632y645InFeet / feetInMile);
         line632y645.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc603, feetInMile / length632y645InFeet * yCoef))
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc632y645, yCoef))
                 .add();
 
         line632y645.newExtension(LineFortescueAdder.class)
@@ -888,11 +901,12 @@ public class Asym13nodesLoadsTest {
                 .setB2(0.0)
                 .add();
 
+        ComplexMatrix yabc645y646 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy603, b603, false, true, true, length645y646InFeet / feetInMile);
         line645y646.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc603, feetInMile / length645y646InFeet * yCoef))
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc645y646, yCoef))
                 .add();
 
         line645y646.newExtension(LineFortescueAdder.class)
@@ -917,11 +931,12 @@ public class Asym13nodesLoadsTest {
                 .setB2(0.0)
                 .add();
 
+        ComplexMatrix yabc632y671 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, true, length632y671InFeet / feetInMile);
         line632y671.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc601, feetInMile / length632y671InFeet * yCoef))
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc632y671, yCoef))
                 .add();
 
         line632y671.newExtension(LineFortescueAdder.class)
@@ -946,11 +961,12 @@ public class Asym13nodesLoadsTest {
                 .setB2(0.0)
                 .add();
 
+        ComplexMatrix yabc671y684 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy604, b604, true, false, true, length671y684InFeet / feetInMile);
         line671y684.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc604, feetInMile / length671y684InFeet * yCoef))
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc671y684, yCoef))
                 .add();
 
         line671y684.newExtension(LineFortescueAdder.class)
@@ -975,11 +991,12 @@ public class Asym13nodesLoadsTest {
                 .setB2(0.0)
                 .add();
 
+        ComplexMatrix yabc684y611 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy605, b605, false, false, true, length684y611InFeet / feetInMile);
         line684y611.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc605, feetInMile / length684y611InFeet * yCoef))
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc684y611, yCoef))
                 .add();
 
         line684y611.newExtension(LineFortescueAdder.class)
@@ -1004,11 +1021,12 @@ public class Asym13nodesLoadsTest {
                 .setB2(0.0)
                 .add();
 
+        ComplexMatrix yabc684y652 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy607, b607, true, false, false, length684y652InFeet / feetInMile);
         line684y652.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc607, feetInMile / length684y652InFeet * yCoef))
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc684y652, yCoef))
                 .add();
 
         line684y652.newExtension(LineFortescueAdder.class)
@@ -1033,11 +1051,12 @@ public class Asym13nodesLoadsTest {
                 .setB2(0.0)
                 .add();
 
+        ComplexMatrix yabc671y680 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, true, length671y680InFeet / feetInMile);
         line671y680.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc601, feetInMile / length671y680InFeet * yCoef))
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc671y680, yCoef))
                 .add();
 
         line671y680.newExtension(LineFortescueAdder.class)
@@ -1062,11 +1081,12 @@ public class Asym13nodesLoadsTest {
                 .setB2(0.0)
                 .add();
 
+        ComplexMatrix yabc632y633 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy602, b602, true, true, true, length632y633InFeet / feetInMile);
         line632y633.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc602, feetInMile / length632y633InFeet * yCoef))
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc632y633, yCoef))
                 .add();
 
         line632y633.newExtension(LineFortescueAdder.class)
@@ -1091,11 +1111,12 @@ public class Asym13nodesLoadsTest {
                 .setB2(0.0)
                 .add();
 
+        ComplexMatrix yabc671y675 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy606, b606, true, true, true, length671y675InFeet / feetInMile);
         line671y675.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc606, feetInMile / length671y675InFeet * yCoef))
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc671y675, yCoef))
                 .add();
 
         line671y675.newExtension(LineFortescueAdder.class)
@@ -1111,8 +1132,8 @@ public class Asym13nodesLoadsTest {
         double rTpc = 1.1;
         double xTpc = 2.;
         double zBase = ratedU634 * ratedU633 / sBase;
-        double rT = rTpc * zBase / 3. / 100; // TODO : sBase = 2. for single phase and 6. for three phase
-        double xT = xTpc * zBase / 3. / 100;
+        double rT = rTpc * zBase / 100; // TODO : sBase = 2. for single phase and 6. for three phase
+        double xT = xTpc * zBase / 100;
 
         var t633y634 = substation633.newTwoWindingsTransformer()
                 .setId("t633y634")
@@ -1141,7 +1162,7 @@ public class Asym13nodesLoadsTest {
                 .withFreeFluxes(true)
                 .add();
 
-        Complex zPhase = new Complex(rTpc, xTpc).multiply(zBase / 100.);
+        Complex zPhase = new Complex(rTpc, xTpc).multiply(zBase / 3. / 100.);
         Complex yPhase = new Complex(0., 0.);
 
         t633y634.newExtension(Tfo3PhasesAdder.class)

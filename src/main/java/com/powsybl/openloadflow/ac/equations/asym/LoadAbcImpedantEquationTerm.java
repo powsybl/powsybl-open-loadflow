@@ -17,13 +17,42 @@ import java.util.Objects;
 
 public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
 
-    public LoadAbcImpedantEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType) {
-        super(bus, variableSet, complexPart, sequenceType);
+    public LoadAbcImpedantEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
+        super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         Objects.requireNonNull(variableSet);
+
+        Complex sa = new Complex(0., 0.);
+        Complex sb = new Complex(0., 0.);
+        Complex sc = new Complex(0., 0.);
+
+        LfAsymBus asymBus = bus.getAsym();
+        if (asymBus == null) {
+            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
+        }
+
+        if (loadConnectionType == LegConnectionType.DELTA) {
+            if (asymBus.getLoadDelta2() != null) {
+                sa = sa.add(new Complex(asymBus.getLoadDelta2().getPa(), asymBus.getLoadDelta2().getQa()));
+                sb = sb.add(new Complex(asymBus.getLoadDelta2().getPb(), asymBus.getLoadDelta2().getQb()));
+                sc = sc.add(new Complex(asymBus.getLoadDelta2().getPc(), asymBus.getLoadDelta2().getQc()));
+            }
+        } else {
+            if (asymBus.getLoadWye2() != null) {
+                sa = sa.add(new Complex(asymBus.getLoadWye2().getPa(), asymBus.getLoadWye2().getQa()));
+                sb = sb.add(new Complex(asymBus.getLoadWye2().getPb(), asymBus.getLoadWye2().getQb()));
+                sc = sc.add(new Complex(asymBus.getLoadWye2().getPc(), asymBus.getLoadWye2().getQc()));
+            }
+        }
+
+        this.sabc = new ComplexMatrix(3, 1);
+        sabc.set(1, 1, sa);
+        sabc.set(2, 1, sb);
+        sabc.set(3, 1, sc);
+
     }
 
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType,
-                            double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative) {
+                            double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative, ComplexMatrix sabc, LegConnectionType loadConnectionType) {
 
         // We suppose that input for impedant load is S0 at nominal voltage
         // For each phase we have :
@@ -78,10 +107,10 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
         boolean hasPhaseB = asymBus.isHasPhaseB();
         boolean hasPhaseC = asymBus.isHasPhaseC();
 
-        if (asymBus.getLoadConnectionType() == LegConnectionType.Y || asymBus.getLoadConnectionType() == LegConnectionType.Y_GROUNDED) {
-            Complex sA = new Complex(asymBus.getPa(), asymBus.getQa());
-            Complex sB = new Complex(asymBus.getPb(), asymBus.getQb());
-            Complex sC = new Complex(asymBus.getPc(), asymBus.getQc());
+        if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
+            Complex sA = sabc.getTerm(1, 1);
+            Complex sB = sabc.getTerm(2, 1);
+            Complex sC = sabc.getTerm(3, 1);
 
             Complex saByVa0Sq = sA.multiply(vA0.reciprocal()).multiply(vA0.reciprocal());
             Complex sbByVa0Sq = sB.multiply(vB0.reciprocal()).multiply(vB0.reciprocal());
@@ -109,11 +138,11 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
             } else {
                 throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
             }
-        } else if (asymBus.getLoadConnectionType() == LegConnectionType.DELTA) {
+        } else if (loadConnectionType == LegConnectionType.DELTA) {
 
-            Complex sAb = new Complex(asymBus.getPa(), asymBus.getQa());
-            Complex sBc = new Complex(asymBus.getPb(), asymBus.getQb());
-            Complex sCa = new Complex(asymBus.getPc(), asymBus.getQc());
+            Complex sAb = sabc.getTerm(1, 1);
+            Complex sBc = sabc.getTerm(2, 1);
+            Complex sCa = sabc.getTerm(3, 1);
 
             Complex vAb02 = vA0.add(vB0.multiply(-1.)).multiply(vA0.add(vB0.multiply(-1.)));
             Complex vBc02 = vB0.add(vC0.multiply(-1.)).multiply(vB0.add(vC0.multiply(-1.)));
@@ -171,7 +200,7 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
         }
     }
 
-    public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
+    public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi, ComplexMatrix sabc, LegConnectionType loadConnectionType) {
         // We derivate the PQ formula with complex matrices:
 
         // Case of a Wye load connected to a Wye-variables bus :
@@ -209,9 +238,9 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
             throw new IllegalStateException("ABC load with delta variables  not yet handled at bus " + bus.getId());
         }
 
-        Complex sA = new Complex(asymBus.getPa(), asymBus.getQa());
-        Complex sB = new Complex(asymBus.getPb(), asymBus.getQb());
-        Complex sC = new Complex(asymBus.getPc(), asymBus.getQc());
+        Complex sA = sabc.getTerm(1, 1);
+        Complex sB = sabc.getTerm(2, 1);
+        Complex sC = sabc.getTerm(3, 1);
 
         Complex vA0 = LfAsymBus.getVa0();
         Complex vB0 = LfAsymBus.getVb0();
@@ -225,7 +254,7 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
         Complex diPosi;
         Complex diNega = new Complex(0., 0.);
 
-        if (asymBus.getLoadConnectionType() == LegConnectionType.Y || asymBus.getLoadConnectionType() == LegConnectionType.Y_GROUNDED) {
+        if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
             Complex saByVa0Sq = sA.multiply(vA0.reciprocal()).multiply(vA0.reciprocal());
             Complex sbByVa0Sq = sB.multiply(vB0.reciprocal()).multiply(vB0.reciprocal());
             Complex scByVa0Sq = sC.multiply(vC0.reciprocal()).multiply(vC0.reciprocal());
@@ -252,10 +281,10 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
             } else {
                 throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
             }
-        } else if (asymBus.getLoadConnectionType() == LegConnectionType.DELTA) {
-            Complex sAb = new Complex(asymBus.getPa(), asymBus.getQa());
-            Complex sBc = new Complex(asymBus.getPb(), asymBus.getQb());
-            Complex sCa = new Complex(asymBus.getPc(), asymBus.getQc());
+        } else if (loadConnectionType == LegConnectionType.DELTA) {
+            Complex sAb = sabc.getTerm(1, 1);
+            Complex sBc = sabc.getTerm(2, 1);
+            Complex sCa = sabc.getTerm(3, 1);
 
             Complex vAb02 = vA0.add(vB0.multiply(-1.)).multiply(vA0.add(vB0.multiply(-1.)));
             Complex vBc02 = vB0.add(vC0.multiply(-1.)).multiply(vB0.add(vC0.multiply(-1.)));
@@ -319,7 +348,7 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
         pq = pq(element, complexPart, sequenceType,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
-                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
+                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), sabc, loadConnectionType);
         return pq;
     }
 
@@ -329,7 +358,7 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
         double deriv = dpq(element, complexPart, sequenceType, variable,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
-                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
+                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), sabc, loadConnectionType);
         return deriv;
     }
 

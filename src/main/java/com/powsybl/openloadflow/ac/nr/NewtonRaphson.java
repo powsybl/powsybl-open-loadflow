@@ -173,7 +173,6 @@ public class NewtonRaphson {
 
         LfBus bus = network.getBus(v.getElementNum());
         LfAsymBus asymBus = bus.getAsym();
-        //AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus != null) {
             return true;
         }
