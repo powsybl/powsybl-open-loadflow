@@ -22,7 +22,9 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.*;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
@@ -138,10 +140,22 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                           parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
                                                                           parameters.isDc(),
                                                                           acParameters.getNetworkParameters().isBreakers());
-                result.getNetwork().updateState(updateParameters);
 
-                // zero or low impedance branch flows computation
-                computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.AC);
+                if (parametersExt.isNetworkCacheEnabled()) {
+                    // to avoid in case of LF with transformer voltage control, that cache is invalidated because of
+                    // tap position update
+                    NetworkCache.INSTANCE.pauseListener(network, () -> {
+                        result.getNetwork().updateState(updateParameters);
+
+                        // zero or low impedance branch flows computation
+                        computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.AC);
+                    });
+                } else {
+                    result.getNetwork().updateState(updateParameters);
+
+                    // zero or low impedance branch flows computation
+                    computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.AC);
+                }
             }
 
             LoadFlowResult.ComponentResult.Status status = convertStatus(result);

@@ -8,12 +8,9 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.GeneratorVoltageControl;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
@@ -156,7 +153,7 @@ public enum NetworkCache {
         private boolean onShuntUpdate(ShuntCompensator shunt, String attribute) {
             return onInjectionUpdate(shunt, attribute, (context, lfBus) -> {
                 if (attribute.equals("sectionCount")) {
-                    if (!lfBus.getControllerShunt().isPresent()) {
+                    if (lfBus.getControllerShunt().isEmpty()) {
                         LfShunt lfShunt = lfBus.getShunt().orElseThrow();
                         lfShunt.reInit();
                         return true;
@@ -378,5 +375,16 @@ public enum NetworkCache {
         } finally {
             lock.unlock();
         }
+    }
+
+    public void pauseListener(Network network, Runnable runnable) {
+        findEntry(network).ifPresent(entry -> {
+            network.removeListener(entry);
+            try {
+                runnable.run();
+            } finally {
+                network.addListener(entry);
+            }
+        });
     }
 }
