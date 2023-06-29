@@ -334,6 +334,35 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
+    void testInvalidNetwork() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var result = loadFlowRunner.run(network, parameters);
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        var gen = network.getGenerator("GEN");
+        gen.setTargetV(1000);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+    }
+
+    @Test
+    @Disabled("To support later")
+    void testInitiallyInvalidNetwork() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var gen = network.getGenerator("GEN");
+        gen.setTargetV(1000);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        gen.setTargetV(24);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+    }
+
+    @Test
     void testSwitchIssueWithInit() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var vlload = network.getVoltageLevel("VLLOAD");
