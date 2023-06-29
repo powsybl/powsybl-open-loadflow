@@ -345,4 +345,20 @@ class AcLoadFlowWithCachingTest {
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
     }
+
+    @Test
+    @Disabled
+    void testInitiallyInvalidNetwork() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var gen = network.getGenerator("GEN");
+        gen.setTargetV(1000);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        gen.setTargetV(24);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+    }
 }
