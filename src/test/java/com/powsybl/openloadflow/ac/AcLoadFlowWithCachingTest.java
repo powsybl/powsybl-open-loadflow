@@ -347,7 +347,7 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
-    @Disabled
+    @Disabled("To support later")
     void testInitiallyInvalidNetwork() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var gen = network.getGenerator("GEN");
