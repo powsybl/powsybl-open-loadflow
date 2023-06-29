@@ -490,18 +490,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private void validateBuses(LoadFlowModel loadFlowModel, Reporter reporter) {
         if (loadFlowModel == LoadFlowModel.AC) {
-            boolean hasAtLeastOneBusVoltageControlled = false;
+            boolean hasAtLeastOneBusGeneratorVoltageControlEnabled = false;
             for (LfBus bus : busesByIndex) {
-                if (bus.isGeneratorVoltageControlled() &&
-                        bus.getGeneratorVoltageControl().orElseThrow().getControllerElements().stream().anyMatch(LfBus::isGeneratorVoltageControlEnabled)) {
-                    hasAtLeastOneBusVoltageControlled = true;
+                if (bus.isGeneratorVoltageControlEnabled()) {
+                    hasAtLeastOneBusGeneratorVoltageControlEnabled = true;
                     break;
                 }
             }
-            if (!hasAtLeastOneBusVoltageControlled) {
-                LOGGER.error("Network {} must have at least one bus voltage controlled", this);
+            if (!hasAtLeastOneBusGeneratorVoltageControlEnabled) {
+                LOGGER.error("Network {} must have at least one bus with generator voltage control enabled", this);
                 if (reporter != null) {
-                    Reports.reportNetworkMustHaveAtLeastOneBusVoltageControlled(reporter);
+                    Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reporter);
                 }
                 valid = false;
             }

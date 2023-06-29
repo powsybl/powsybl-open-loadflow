@@ -47,10 +47,10 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportNetworkMustHaveAtLeastOneBusVoltageControlled(Reporter reporter) {
+    public static void reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(Reporter reporter) {
         reporter.report(Report.builder()
-                .withKey("networkMustHaveAtLeastOneBusVoltageControlled")
-                .withDefaultMessage("Network must have at least one bus voltage controlled")
+                .withKey("networkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled")
+                .withDefaultMessage("Network must have at least one bus with generator voltage control enabled")
                 .build());
     }
 
