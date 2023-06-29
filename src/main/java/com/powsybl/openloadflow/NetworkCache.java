@@ -181,18 +181,7 @@ public enum NetworkCache {
                 } else {
                     connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
                 }
-                for (var b : connectivity.getVerticesAddedToMainComponent()) {
-                    b.setDisabled(false);
-                }
-                for (var b : connectivity.getVerticesRemovedFromMainComponent()) {
-                    b.setDisabled(true);
-                }
-                for (var b : connectivity.getEdgesAddedToMainComponent()) {
-                    b.setDisabled(false);
-                }
-                for (var b : connectivity.getEdgesRemovedFromMainComponent()) {
-                    b.setDisabled(true);
-                }
+                LfAction.updateBusesAndBranchStatus(connectivity);
             } finally {
                 connectivity.undoTemporaryChanges();
             }
