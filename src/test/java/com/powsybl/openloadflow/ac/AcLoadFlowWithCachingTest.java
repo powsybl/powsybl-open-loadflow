@@ -361,4 +361,43 @@ class AcLoadFlowWithCachingTest {
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
     }
+
+    @Test
+    void testSwitchIssueWithInit() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var vlload = network.getVoltageLevel("VLLOAD");
+        vlload.getBusBreakerView().newBus()
+                .setId("NLOAD2")
+                .add();
+        var br = vlload.getBusBreakerView().newSwitch()
+                .setId("BR")
+                .setBus1("NLOAD")
+                .setBus2("NLOAD2")
+                .setOpen(true)
+                .add();
+        vlload.newLoad()
+                .setId("LOAD2")
+                .setBus("NLOAD2")
+                .setP0(5)
+                .setQ0(5)
+                .add();
+
+        parametersExt.setActionableSwitchesIds(Set.of("BR"));
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+
+        br.setOpen(false);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+
+        br.setOpen(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+    }
 }
