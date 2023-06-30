@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.GeneratorVoltageControl;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,8 +135,18 @@ public enum NetworkCache {
                 if (attribute.equals("targetV")) {
                     double valueShift = (double) newValue - (double) oldValue;
                     GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
-                    double newTargetV = voltageControl.getTargetValue() + valueShift / lfBus.getNominalV();
-                    voltageControl.setTargetValue(newTargetV);
+                    double nominalV = voltageControl.getControlledBus().getNominalV();
+                    double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
+                    LfNetworkParameters networkParameters = context.getParameters().getNetworkParameters();
+                    if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
+                        voltageControl.setTargetValue(newTargetV);
+                    } else {
+                        context.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                        if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
+                            lfBus.setGeneratorVoltageControlEnabled(false);
+                        }
+                    }
+                    context.getNetwork().validate(LoadFlowModel.AC, null);
                     return true;
                 }
                 return false;
