@@ -281,8 +281,15 @@ public final class LfAction {
             action.updateConnectivity(connectivity);
         }
 
-        // add to action description buses and branches that won't be part of the main connected
-        // component in post action state.
+        updateBusesAndBranchStatus(connectivity);
+
+        // reset connectivity to discard post contingency connectivity and post action connectivity
+        connectivity.undoTemporaryChanges();
+        connectivity.undoTemporaryChanges();
+    }
+
+    public static void updateBusesAndBranchStatus(GraphConnectivity<LfBus, LfBranch> connectivity) {
+        // disable buses and branches that won't be part of the main connected component
         Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
         removedBuses.forEach(bus -> bus.setDisabled(true));
         Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
@@ -292,8 +299,7 @@ public final class LfAction {
         }
         removedBranches.forEach(branch -> branch.setDisabled(true));
 
-        // add to action description buses and branches that will be part of the main connected
-        // component in post action state.
+        // enable buses and branches that will be part of the main connected component
         Set<LfBus> addedBuses = connectivity.getVerticesAddedToMainComponent();
         addedBuses.forEach(bus -> bus.setDisabled(false));
         Set<LfBranch> addedBranches = new HashSet<>(connectivity.getEdgesAddedToMainComponent());
@@ -302,10 +308,6 @@ public final class LfAction {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(addedBranches::add);
         }
         addedBranches.forEach(branch -> branch.setDisabled(false));
-
-        // reset connectivity to discard post contingency connectivity and post action connectivity
-        connectivity.undoTemporaryChanges();
-        connectivity.undoTemporaryChanges();
     }
 
     public void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
