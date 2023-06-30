@@ -365,4 +365,77 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(0).getStatus());
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(1).getStatus());
     }
+
+    @Test
+    void securityAnalysisTest2() {
+        Network network = Network.create("test", "code");
+        Bus b0 = createBus(network, "s", "b0");
+        Bus b1 = createBus(network, "s", "b1");
+        Bus b2 = createBus(network, "s", "b2");
+        Bus b3 = createBus(network, "s", "b3");
+        Bus b4 = createBus(network, "s", "b4");
+        Bus b5 = createBus(network, "s", "b5");
+        createGenerator(b0, "g0", 2);
+        createGenerator(b5, "g5", 2);
+        createLoad(b4, "d4", 2);
+        createLine(network, b0, b1, "l01", 0.1);
+        createLine(network, b1, b2, "l12", 0.0);
+        createLine(network, b2, b3, "l23", 0.0);
+        createLine(network, b1, b5, "l15", 0.1);
+        createLine(network, b5, b3, "l53", 0.1);
+        network.getGenerator("g0").setRegulatingTerminal(network.getLine("l01").getTerminal2()); // remote
+        TwoWindingsTransformer t34 = createTransformer(network, "s", b3, b4, "t23", 0, 1.1);
+        t34.newRatioTapChanger()
+                .beginStep()
+                .setRho(0.9)
+                .setR(0.1089)
+                .setX(0.01089)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.0)
+                .setR(0.121)
+                .setX(0.0121)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.05)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.1)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .setRegulating(true)
+                .setTargetV(1.0)
+                .setRegulationTerminal(t34.getTerminal1())
+                .setTargetDeadband(0.01)
+                .add();
+
+        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l01"))));
+
+        ContingenciesProvider provider = n -> contingencies;
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
+        loadFlowParameters.setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        loadFlowParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(loadFlowParameters);
+        SecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network, network.getVariantManager().getWorkingVariantId(), new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), LocalComputationManager.getDefault(), securityAnalysisParameters, provider, Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), Reporter.NO_OP).join();
+    }
 }
