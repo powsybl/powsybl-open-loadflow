@@ -115,6 +115,8 @@ public interface LfShunt extends LfElement {
         }
     }
 
+    LfBus getBus();
+
     double getB();
 
     default double getBMagnitude() {
@@ -146,6 +148,10 @@ public interface LfShunt extends LfElement {
     void reInit();
 
     List<Controller> getControllers();
+
+    Evaluable getP();
+
+    void setP(Evaluable evaluable);
 
     Evaluable getQ();
 

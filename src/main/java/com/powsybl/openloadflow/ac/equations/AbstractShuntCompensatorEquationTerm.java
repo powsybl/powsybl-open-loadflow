@@ -6,26 +6,40 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
+import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfShunt;
+import com.powsybl.openloadflow.network.ElementType;
 
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractShuntCompensatorEquationTerm extends AbstractElementEquationTerm<LfShunt, AcVariableType, AcEquationType> {
+public abstract class AbstractShuntCompensatorEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
+
+    protected final AcShuntVector shuntVector;
+
+    protected final int num;
 
     protected final Variable<AcVariableType> vVar;
 
-    protected AbstractShuntCompensatorEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet) {
-        super(shunt);
-        Objects.requireNonNull(bus);
+    protected AbstractShuntCompensatorEquationTerm(AcShuntVector shuntVector, int num, int busNum, VariableSet<AcVariableType> variableSet) {
+        super(!Objects.requireNonNull(shuntVector).disabled[num]);
+        this.shuntVector = Objects.requireNonNull(shuntVector);
+        this.num = num;
         Objects.requireNonNull(variableSet);
-        vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
+        vVar = variableSet.getVariable(busNum, AcVariableType.BUS_V);
+    }
+
+    @Override
+    public ElementType getElementType() {
+        return ElementType.SHUNT_COMPENSATOR;
+    }
+
+    @Override
+    public int getElementNum() {
+        return num;
     }
 
     protected double v() {

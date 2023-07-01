@@ -36,8 +36,8 @@ public class AcEquationSystemCreator {
         this.creationParameters = Objects.requireNonNull(creationParameters);
     }
 
-    protected void createBusEquation(LfBus bus,
-                                   EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected void createBusEquation(LfBus bus, AcEquationSystemCreationContext creationContext) {
+        var equationSystem = creationContext.getEquationSystem();
         var p = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P);
         bus.setP(p);
         var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
@@ -60,7 +60,7 @@ public class AcEquationSystemCreator {
                 .setActive(false);
         bus.setCalculatedV(vTerm);
 
-        createShuntEquations(bus, equationSystem);
+        createShuntEquations(bus, creationContext);
     }
 
     private void createVoltageControlEquations(AcEquationSystemCreationContext creationContext) {
@@ -71,9 +71,9 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private void createBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createBusesEquations(AcEquationSystemCreationContext creationContext) {
         for (LfBus bus : network.getBuses()) {
-            createBusEquation(bus, equationSystem);
+            createBusEquation(bus, creationContext);
         }
     }
 
@@ -139,18 +139,21 @@ public class AcEquationSystemCreator {
                 .setActive(false);
     }
 
-    private static void createShuntEquation(LfShunt shunt, LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem, boolean deriveB) {
-        ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), deriveB);
+    private static void createShuntEquation(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
+        AcShuntVector shuntVector = creationContext.getNetworkVector().getShuntVector();
+        var equationSystem = creationContext.getEquationSystem();
+        ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shuntVector, shunt.getNum(), bus.getNum(), equationSystem.getVariableSet(), deriveB);
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
         shunt.setQ(q);
-        ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
+        ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shuntVector, shunt.getNum(), bus.getNum(), equationSystem.getVariableSet());
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
+        shunt.setP(p);
     }
 
-    private static void createShuntEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        bus.getShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
-        bus.getControllerShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, shunt.hasVoltageControlCapability()));
-        bus.getSvcShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
+    private static void createShuntEquations(LfBus bus, AcEquationSystemCreationContext creationContext) {
+        bus.getShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, false, creationContext));
+        bus.getControllerShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, shunt.hasVoltageControlCapability(), creationContext));
+        bus.getSvcShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, false, creationContext));
     }
 
     private static void createReactivePowerDistributionEquations(GeneratorVoltageControl voltageControl,
@@ -319,12 +322,13 @@ public class AcEquationSystemCreator {
             }
             terms.add(q);
         }
+        AcShuntVector shuntVector = creationContext.getNetworkVector().getShuntVector();
         controllerBus.getShunt().ifPresent(shunt -> {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet, false);
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shuntVector, shunt.getNum(), controllerBus.getNum(), variableSet, false);
             terms.add(q);
         });
         controllerBus.getControllerShunt().ifPresent(shunt -> {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet, false);
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shuntVector, shunt.getNum(), controllerBus.getNum(), variableSet, false);
             terms.add(q);
         });
         return terms;
@@ -778,7 +782,7 @@ public class AcEquationSystemCreator {
         AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
         AcEquationSystemCreationContext creationContext = new AcEquationSystemCreationContext(equationSystem, networkVector);
 
-        createBusesEquations(equationSystem);
+        createBusesEquations(creationContext);
         createMultipleSlackBusesEquations(creationContext);
         createBranchesEquations(creationContext);
 

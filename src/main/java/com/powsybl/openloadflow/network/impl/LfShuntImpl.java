@@ -70,7 +70,7 @@ public class LfShuntImpl extends AbstractLfShunt {
         // if withVoltageControl equals to true, all shunt compensators that are listed must control voltage.
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
-        super(network);
+        super(bus, network);
         shuntCompensatorsRefs = Objects.requireNonNull(shuntCompensators).stream()
                 .map(sc -> Ref.create(sc, parameters.isCacheEnabled()))
                 .collect(Collectors.toList());
@@ -265,7 +265,7 @@ public class LfShuntImpl extends AbstractLfShunt {
             throw new PowsyblException("Cannot re-init a shunt compensator with voltage control capabilities");
         }
         List<ShuntCompensator> shuntCompensators = shuntCompensatorsRefs.stream().map(Ref::get).collect(Collectors.toList());
-        b = computeB(shuntCompensators, zb);
-        g = computeG(shuntCompensators, zb);
+        setB(computeB(shuntCompensators, zb));
+        setG(computeG(shuntCompensators, zb));
     }
 }

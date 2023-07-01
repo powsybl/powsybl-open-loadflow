@@ -32,6 +32,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
     private final AcBusVector busVector;
     private final AcBranchVector branchVector;
+    private final AcShuntVector shuntVector;
     private boolean variablesInvalid = true;
 
     public AcNetworkVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
@@ -40,6 +41,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         this.equationSystem = Objects.requireNonNull(equationSystem);
         busVector = new AcBusVector(network.getBuses());
         branchVector = new AcBranchVector(network.getBranches(), creationParameters);
+        shuntVector = new AcShuntVector(network.getShunts());
     }
 
     public AcBusVector getBusVector() {
@@ -48,6 +50,10 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     public AcBranchVector getBranchVector() {
         return branchVector;
+    }
+
+    public AcShuntVector getShuntVector() {
+        return shuntVector;
     }
 
     public void startListening() {
@@ -80,6 +86,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         Arrays.fill(branchVector.ph1Row, -1);
         Arrays.fill(branchVector.v2Row, -1);
         Arrays.fill(branchVector.ph2Row, -1);
+        Arrays.fill(shuntVector.bRow, -1);
 
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             int num = v.getElementNum();
@@ -99,6 +106,10 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
                 case BRANCH_RHO1:
                     branchVector.r1Row[num] = branchVector.deriveR1[num] ? row : -1;
+                    break;
+
+                case SHUNT_B:
+                    shuntVector.bRow[num] = shuntVector.deriveB[num] ? row : -1;
                     break;
 
                 default:
@@ -478,6 +489,20 @@ public class AcNetworkVector extends AbstractLfNetworkListener
             }
         }
 
+        for (int shuntNum = 0; shuntNum < shuntVector.getSize(); shuntNum++) {
+            if (!shuntVector.disabled[shuntNum]) {
+                if (shuntVector.busNum[shuntNum] != -1) {
+                    double v = state[busVector.vRow[shuntVector.busNum[shuntNum]]];
+                    double b = shuntVector.bRow[shuntNum] != -1 ? state[shuntVector.bRow[shuntNum]] : shuntVector.b[shuntNum];
+                    shuntVector.p[shuntNum] = ShuntCompensatorActiveFlowEquationTerm.p(v, shuntVector.g[shuntNum]);
+                    shuntVector.dpdv[shuntNum] = ShuntCompensatorActiveFlowEquationTerm.dpdv(v, shuntVector.g[shuntNum]);
+                    shuntVector.q[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.q(v, b);
+                    shuntVector.dqdv[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.dqdv(v, b);
+                    shuntVector.dqdb[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.dqdb(v);
+                }
+            }
+        }
+
         stopwatch.stop();
         LOGGER.debug("AC network power flows updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
@@ -535,6 +560,8 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     public void onDisableChange(LfElement element, boolean disabled) {
         if (element.getType() == ElementType.BRANCH) {
             branchVector.disabled[element.getNum()] = disabled;
+        } else if (element.getType() == ElementType.SHUNT_COMPENSATOR) {
+            shuntVector.disabled[element.getNum()] = disabled;
         } else if (element.getType() == ElementType.BUS) {
             busVector.disabled[element.getNum()] = disabled;
         }
@@ -545,6 +572,11 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         PiModel piModel = branch.getPiModel();
         branchVector.a1[branch.getNum()] = piModel.getA1();
         branchVector.r1[branch.getNum()] = piModel.getR1();
+    }
+
+    @Override
+    public void onShuntSusceptanceChange(LfShunt shunt, double b) {
+        shuntVector.b[shunt.getNum()] = b;
     }
 
     @Override

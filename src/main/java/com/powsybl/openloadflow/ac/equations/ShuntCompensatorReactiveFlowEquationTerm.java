@@ -9,8 +9,6 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfShunt;
 
 import java.util.List;
 import java.util.Objects;
@@ -24,10 +22,10 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
 
     private final List<Variable<AcVariableType>> variables;
 
-    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet, boolean deriveB) {
-        super(shunt, bus, variableSet);
+    public ShuntCompensatorReactiveFlowEquationTerm(AcShuntVector shuntVector, int num, int busNum, VariableSet<AcVariableType> variableSet, boolean deriveB) {
+        super(shuntVector, num, busNum, variableSet);
         if (deriveB) {
-            bVar = variableSet.getVariable(shunt.getNum(), AcVariableType.SHUNT_B);
+            bVar = variableSet.getVariable(num, AcVariableType.SHUNT_B);
             variables = List.of(vVar, bVar);
         } else {
             variables = List.of(vVar);
@@ -40,33 +38,33 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
     }
 
     private double b() {
-        return bVar != null ? sv.get(bVar.getRow()) : element.getB();
+        return bVar != null ? sv.get(bVar.getRow()) : shuntVector.b[num];
     }
 
-    private static double q(double v, double b) {
+    public static double q(double v, double b) {
         return -b * v * v;
     }
 
-    private static double dqdv(double v, double b) {
+    public static double dqdv(double v, double b) {
         return -2 * b * v;
     }
 
-    private static double dqdb(double v) {
+    public static double dqdb(double v) {
         return -v * v;
     }
 
     @Override
     public double eval() {
-        return q(v(), b());
+        return shuntVector.q[num];
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
-            return dqdv(v(), b());
+            return shuntVector.dqdv[num];
         } else if (variable.equals(bVar)) {
-            return dqdb(v());
+            return shuntVector.dqdb[num];
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

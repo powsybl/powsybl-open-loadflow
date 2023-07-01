@@ -9,7 +9,6 @@
 package com.powsybl.openloadflow.ac.equations.asym;
 
 import com.powsybl.openloadflow.ac.equations.*;
-import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.ComplexPart;
@@ -28,8 +27,10 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
     }
 
     @Override
-    protected void createBusEquation(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        super.createBusEquation(bus, equationSystem);
+    protected void createBusEquation(LfBus bus, AcEquationSystemCreationContext creationContext) {
+        super.createBusEquation(bus, creationContext);
+
+        var equationSystem = creationContext.getEquationSystem();
 
         // addition of asymmetric equations, supposing that existing v, theta, p and q are linked to the positive sequence
         LfAsymBus asymBus = bus.getAsym();
