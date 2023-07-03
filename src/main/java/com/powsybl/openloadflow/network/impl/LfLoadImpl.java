@@ -128,7 +128,7 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
             Load load = loadsRefs.get(i).get();
             double diffP0 = diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB;
             double updatedP0 = getLoadTargetP(load) + diffP0;
-            double updatedQ0 = getLoadTargetP(load) + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
+            double updatedQ0 = getLoadTargetQ(load) + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
             load.getTerminal().setP(updatedP0);
             load.getTerminal().setQ(updatedQ0);
         }

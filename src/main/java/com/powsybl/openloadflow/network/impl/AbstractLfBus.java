@@ -239,44 +239,41 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
+    private static boolean hasVariableActivePower(Load load, LfNetworkParameters parameters) {
+        boolean hasVariableActivePower = false;
+        if (parameters.isDistributedOnConformLoad()) {
+            LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+            if (loadDetail != null) {
+                hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
+            }
+        }
+        return hasVariableActivePower;
+    }
+
     void addLoad(Load load, LfNetworkParameters parameters) {
         load.getModel().ifPresentOrElse(loadModel -> {
             LfLoadModel lfLoadModel = createLoadModel(loadModel);
-
-            ((LfLoadImpl) loadsByModel.computeIfAbsent(lfLoadModel, m -> new LfLoadImpl(this.load.isDistributedOnConformLoad(), m)))
-                    .add(load, parameters);
 
             // get constant part of the load model
             lfLoadModel.getTermP(0).ifPresent(term -> {
                 double p0 = load.getP0() / PerUnit.SB * term.getC();
                 loadTargetP += p0;
                 initialLoadTargetP += p0;
-                boolean hasVariableActivePower = false;
-                if (parameters.isDistributedOnConformLoad()) {
-                    LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-                    if (loadDetail != null) {
-                        hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
-                    }
-                }
-                if (p0 < 0 || hasVariableActivePower) {
+                if (p0 < 0 || hasVariableActivePower(load, parameters)) {
                     ensurePowerFactorConstantByLoad = true;
                 }
             });
 
             lfLoadModel.getTermQ(0).ifPresent(term -> loadTargetQ += load.getQ0() / PerUnit.SB * term.getC());
+
+            ((LfLoadImpl) loadsByModel.computeIfAbsent(lfLoadModel, m -> new LfLoadImpl(this.load.isDistributedOnConformLoad(), m)))
+                    .add(load, parameters);
         }, () -> {
                 double p0 = load.getP0() / PerUnit.SB;
                 loadTargetP += p0;
                 initialLoadTargetP += p0;
                 loadTargetQ += load.getQ0() / PerUnit.SB;
-                boolean hasVariableActivePower = false;
-                if (parameters.isDistributedOnConformLoad()) {
-                    LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-                    if (loadDetail != null) {
-                        hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
-                    }
-                }
-                if (p0 < 0 || hasVariableActivePower) {
+                if (p0 < 0 || hasVariableActivePower(load, parameters)) {
                     ensurePowerFactorConstantByLoad = true;
                 }
                 AbstractLfBus.this.load.add(load, parameters);
