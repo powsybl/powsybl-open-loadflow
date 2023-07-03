@@ -250,10 +250,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         loadTargetP += targetP / PerUnit.SB;
         initialLoadTargetP += targetP / PerUnit.SB;
         loadTargetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()) / PerUnit.SB;
-        // FIXME why?
-        if (this.load == null) {
-            this.load = new LfLoadImpl(distributedOnConformLoad);
-        }
     }
 
     protected void add(LfGenerator generator) {

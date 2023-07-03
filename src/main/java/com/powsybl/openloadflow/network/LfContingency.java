@@ -149,17 +149,12 @@ public class LfContingency {
         for (var e : busesLoadShift.entrySet()) {
             LfBus bus = e.getKey();
             PowerShift shift = e.getValue();
-            LfLoad load = bus.getLoad().orElseThrow();
             bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, balanceType, shift.getActive(), shift.getVariableActive()));
             bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
-            Set<String> loadsIdsInContingency = originalPowerShiftIds.stream()
-                    .distinct()
-                    .filter(load.getOriginalIds()::contains) // maybe not optimized.
-                    .collect(Collectors.toSet());
-            if (!loadsIdsInContingency.isEmpty()) { // it could be a LCC in contingency.
+            bus.getLoad().ifPresent(load -> { // it could be a LCC in contingency.
                 load.setAbsVariableTargetP(load.getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
-                loadsIdsInContingency.forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
-            }
+                load.getOriginalIds().forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
+            });
         }
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
@@ -189,15 +184,16 @@ public class LfContingency {
     }
 
     private static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower) {
-        double factor = 0.0;
-        LfLoad load = bus.getLoad().orElseThrow();
-        if (load.getOriginalLoadCount() > 0) {
-            if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-                factor = Math.abs(initialP0) / load.getAbsVariableTargetP();
-            } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-                factor = initialVariableActivePower / load.getAbsVariableTargetP();
+        double factor = bus.getLoad().map(load -> {
+            if (load.getOriginalLoadCount() > 0) {
+                if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
+                    return Math.abs(initialP0) / load.getAbsVariableTargetP();
+                } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+                    return initialVariableActivePower / load.getAbsVariableTargetP();
+                }
             }
-        }
+            return 0d;
+        }).orElse(0d);
         return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;
     }
 
