@@ -8,13 +8,11 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.GeneratorVoltageControl;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,8 +132,18 @@ public enum NetworkCache {
                 if (attribute.equals("targetV")) {
                     double valueShift = (double) newValue - (double) oldValue;
                     GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
-                    double newTargetV = voltageControl.getTargetValue() + valueShift / lfBus.getNominalV();
-                    voltageControl.setTargetValue(newTargetV);
+                    double nominalV = voltageControl.getControlledBus().getNominalV();
+                    double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
+                    LfNetworkParameters networkParameters = context.getParameters().getNetworkParameters();
+                    if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
+                        voltageControl.setTargetValue(newTargetV);
+                    } else {
+                        context.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                        if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
+                            lfBus.setGeneratorVoltageControlEnabled(false);
+                        }
+                    }
+                    context.getNetwork().validate(LoadFlowModel.AC, null);
                     return true;
                 }
                 return false;
@@ -164,7 +172,7 @@ public enum NetworkCache {
                 LfNetwork lfNetwork = context.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
-                    lfBranch.setDisabled(open);
+                    updateSwitch(open, lfNetwork, lfBranch);
                     context.setNetworkUpdated(true);
                     found = true;
                 }
@@ -173,6 +181,21 @@ public enum NetworkCache {
                 LOGGER.warn("Cannot open switch '{}'", switchId);
             }
             return found;
+        }
+
+        private static void updateSwitch(boolean open, LfNetwork lfNetwork, LfBranch lfBranch) {
+            var connectivity = lfNetwork.getConnectivity();
+            connectivity.startTemporaryChanges();
+            try {
+                if (open) {
+                    connectivity.removeEdge(lfBranch);
+                } else {
+                    connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
+                }
+                LfAction.updateBusesAndBranchStatus(connectivity);
+            } finally {
+                connectivity.undoTemporaryChanges();
+            }
         }
 
         @Override
@@ -347,7 +370,7 @@ public enum NetworkCache {
             for (AcLoadFlowContext context : entry.getContexts()) {
                 AcLoadFlowResult result = context.getResult();
                 if (result != null && result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
-                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
                 }
             }
         } else {

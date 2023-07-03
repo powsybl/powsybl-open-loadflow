@@ -163,6 +163,7 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     protected static List<StateMonitor> createNetworkMonitors(Network network) {
         Set<String> allBranchIds = network.getBranchStream().map(Identifiable::getId).collect(Collectors.toSet());
         Set<String> allVoltageLevelIds = network.getVoltageLevelStream().map(Identifiable::getId).collect(Collectors.toSet());
+        allBranchIds.addAll(network.getTieLineStream().map(Identifiable::getId).collect(Collectors.toSet()));
         return List.of(new StateMonitor(ContingencyContext.all(), allBranchIds, allVoltageLevelIds, Collections.emptySet()));
     }
 

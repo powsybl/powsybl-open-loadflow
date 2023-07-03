@@ -6,9 +6,8 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.openloadflow.ac.OuterLoop;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
@@ -22,7 +21,7 @@ import java.util.stream.Collectors;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public abstract class AbstractTransformerVoltageControlOuterLoop implements OuterLoop {
+public abstract class AbstractTransformerVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTransformerVoltageControlOuterLoop.class);
 
@@ -34,7 +33,7 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
                 .collect(Collectors.toList());
     }
 
-    protected OuterLoopStatus roundVoltageRatios(OuterLoopContext context) {
+    protected OuterLoopStatus roundVoltageRatios(AcOuterLoopContext context) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
             controllerBranch.setVoltageControlEnabled(false);

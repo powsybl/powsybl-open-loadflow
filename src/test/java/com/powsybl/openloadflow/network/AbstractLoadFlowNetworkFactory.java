@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.StaticVarCompensator.RegulationMode;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -218,6 +219,63 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
             .setMaxP(activePowerSetpoint)
             .add();
+    }
+
+    protected static ShuntCompensator createFixedShuntCompensator(Bus bus, String id, double gPerSection, double bPersection) {
+        ShuntCompensator sh = bus.getVoltageLevel()
+            .newShuntCompensator()
+            .setId(id)
+            .setBus(bus.getId())
+            .setConnectableBus(bus.getId())
+            .setSectionCount(1)
+            .newLinearModel()
+            .setGPerSection(gPerSection)
+            .setBPerSection(bPersection)
+            .setMaximumSectionCount(1)
+            .add()
+            .add();
+        return sh;
+    }
+
+    protected static ShuntCompensator createShuntCompensator(Bus bus, String id, double g, double b, double v,
+        boolean voltageControl) {
+        ShuntCompensator sh = bus.getVoltageLevel()
+            .newShuntCompensator()
+            .setId(id)
+            .setBus(bus.getId())
+            .setConnectableBus(bus.getId())
+            .setSectionCount(1)
+            .newNonLinearModel()
+            .beginSection()
+            .setB(b)
+            .setG(g)
+            .endSection()
+            .add()
+            .add();
+        sh.setTargetV(v)
+            .setRegulatingTerminal(sh.getTerminal())
+            .setTargetDeadband(0.0)
+            .setVoltageRegulatorOn(voltageControl);
+        return sh;
+    }
+
+    protected static StaticVarCompensator createStaticVarCompensator(Bus bus, String id, double qSetpoint,
+        double vSetpoint, RegulationMode regulationMode) {
+        StaticVarCompensator svc = bus.getVoltageLevel()
+            .newStaticVarCompensator()
+            .setId(id)
+            .setBus(bus.getId())
+            .setConnectableBus(bus.getId())
+            .setBmin(-1.0)
+            .setBmax(1.0)
+            .setRegulationMode(RegulationMode.OFF)
+            .add();
+        svc.setRegulatingTerminal(svc.getTerminal())
+            .setVoltageSetpoint(vSetpoint)
+            .setReactivePowerSetpoint(qSetpoint)
+            .setRegulationMode(regulationMode);
+
+        return svc;
     }
 }
 
