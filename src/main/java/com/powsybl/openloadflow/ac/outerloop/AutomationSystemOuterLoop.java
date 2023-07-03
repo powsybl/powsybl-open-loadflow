@@ -7,9 +7,8 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.ac.OuterLoop;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfOverloadManagementSystem;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -19,17 +18,17 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AutomationSystemOuterLoop implements OuterLoop {
+public class AutomationSystemOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AutomationSystemOuterLoop.class);
 
     @Override
     public String getType() {
-        return "AutomationFunction";
+        return "AutomationSystem";
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         for (LfOverloadManagementSystem system : context.getNetwork().getOverloadManagementSystems()) {
             LfBranch branch = system.getBranchToMonitor();
