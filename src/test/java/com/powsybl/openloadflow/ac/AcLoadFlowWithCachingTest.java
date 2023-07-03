@@ -74,8 +74,7 @@ class AcLoadFlowWithCachingTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
-        // FIXME NO_CALCULATION should be added to API
-        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(0, result.getComponentResults().get(0).getIterationCount());
     }
 
@@ -332,5 +331,73 @@ class AcLoadFlowWithCachingTest {
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(301.884, l1.getTerminal1());
         assertActivePowerEquals(301.884, l2.getTerminal1());
+    }
+
+    @Test
+    void testInvalidNetwork() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var result = loadFlowRunner.run(network, parameters);
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        var gen = network.getGenerator("GEN");
+        gen.setTargetV(1000);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+    }
+
+    @Test
+    @Disabled("To support later")
+    void testInitiallyInvalidNetwork() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var gen = network.getGenerator("GEN");
+        gen.setTargetV(1000);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        gen.setTargetV(24);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+    }
+
+    @Test
+    void testSwitchIssueWithInit() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var vlload = network.getVoltageLevel("VLLOAD");
+        vlload.getBusBreakerView().newBus()
+                .setId("NLOAD2")
+                .add();
+        var br = vlload.getBusBreakerView().newSwitch()
+                .setId("BR")
+                .setBus1("NLOAD")
+                .setBus2("NLOAD2")
+                .setOpen(true)
+                .add();
+        vlload.newLoad()
+                .setId("LOAD2")
+                .setBus("NLOAD2")
+                .setP0(5)
+                .setQ0(5)
+                .add();
+
+        parametersExt.setActionableSwitchesIds(Set.of("BR"));
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+
+        br.setOpen(false);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+
+        br.setOpen(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
     }
 }
