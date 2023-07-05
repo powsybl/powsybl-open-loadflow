@@ -74,6 +74,10 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     }
 
     private double getParticipationFactor(int i) {
+        // FIXME
+        // After a load contingency or a load action, only the global variable targetP is updated.
+        // The list loadsAbsVariableTargetP never changes. It is not an issue for security analysis as the network is
+        // never updated, excepted if loadPowerFactorConstant is true, the new targetQ is wrong.
         return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(i) / absVariableTargetP : 0;
     }
 
