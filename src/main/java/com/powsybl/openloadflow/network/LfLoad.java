@@ -18,7 +18,7 @@ public interface LfLoad extends PropertyBag {
 
     void setAbsVariableTargetP(double absVariableTargetP);
 
-    double getTargetQ(double diffTargetP);
+    double calculateNewTargetQ(double diffTargetP);
 
     List<String> getOriginalIds();
 
@@ -31,4 +31,6 @@ public interface LfLoad extends PropertyBag {
     Map<String, Boolean> getOriginalLoadsDisablingStatus();
 
     void setOriginalLoadsDisablingStatus(Map<String, Boolean> originalLoadsDisablingStatus);
+
+    void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant);
 }
