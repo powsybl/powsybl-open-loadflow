@@ -63,7 +63,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt svcShunt;
 
-    protected final LfLoadImpl load;
+    protected boolean distributedOnConformLoad;
+
+    protected LfLoadImpl load;
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -93,9 +95,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
-        load = new LfLoadImpl(distributedOnConformLoad);
         this.v = v;
         this.angle = angle;
+        this.distributedOnConformLoad = distributedOnConformLoad;
     }
 
     @Override
@@ -234,6 +236,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
         if (p0 < 0 || hasVariableActivePower) {
             ensurePowerFactorConstantByLoad = true;
+        }
+        if (this.load == null) {
+            this.load = new LfLoadImpl(distributedOnConformLoad);
         }
         this.load.add(load, parameters);
     }
@@ -439,8 +444,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public LfLoad getLoad() {
-        return load;
+    public Optional<LfLoad> getLoad() {
+        return Optional.ofNullable(load);
     }
 
     @Override
@@ -508,7 +513,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ, parameters.isReactiveLimits());
 
         // update load power
-        load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
+        if (load != null) {
+            load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
+        }
 
         // update lcc converter station power
         for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
