@@ -8,10 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
-import com.powsybl.iidm.network.extensions.LineFortescueAdder;
-import com.powsybl.iidm.network.extensions.TwoWindingsTransformerFortescueAdder;
-import com.powsybl.iidm.network.extensions.WindingConnectionType;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -24,9 +21,9 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.extensions.LoadAsymmetrical2Adder;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadUnbalancedAdder;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.joda.time.DateTime;
@@ -330,13 +327,16 @@ public class AsymmetricalLoadFlowTest {
 
         Load load4 = network.getLoad("LOAD_4");
 
-        load4.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(10.)
-                .withPb(0.)
-                .withQb(0.)
-                .withPc(0.)
-                .withQc(0.)
+        load4.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(10.)
+                .withDeltaPb(0.)
+                .withDeltaQb(0.)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .add();
+
+        load4.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -376,13 +376,16 @@ public class AsymmetricalLoadFlowTest {
 
         Load load4 = network.getLoad("LOAD_4");
 
-        load4.newExtension(LoadUnbalancedAdder.class)
-                .withPa(20.)
-                .withQa(0.)
-                .withPb(40.)
-                .withQb(0.)
-                .withPc(21)
-                .withQc(0.)
+        load4.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(20.)
+                .withDeltaQa(0.)
+                .withDeltaPb(40.)
+                .withDeltaQb(0.)
+                .withDeltaPc(21)
+                .withDeltaQc(0.)
+                .add();
+
+        load4.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -423,14 +426,17 @@ public class AsymmetricalLoadFlowTest {
 
         Load load4 = network.getLoad("LOAD_4");
 
-        load4.newExtension(LoadUnbalancedAdder.class)
-                .withPa(20.)
-                .withQa(0.)
-                .withPb(40.)
-                .withQb(0.)
-                .withPc(21)
-                .withQc(0.)
-                .withConnectionType(WindingConnectionType.DELTA)
+        load4.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(20.)
+                .withDeltaQa(0.)
+                .withDeltaPb(40.)
+                .withDeltaQb(0.)
+                .withDeltaPc(21)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load4.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));

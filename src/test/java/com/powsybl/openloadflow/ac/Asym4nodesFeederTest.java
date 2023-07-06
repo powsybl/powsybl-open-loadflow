@@ -1,10 +1,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
-import com.powsybl.iidm.network.extensions.LineFortescueAdder;
-import com.powsybl.iidm.network.extensions.TwoWindingsTransformerFortescueAdder;
-import com.powsybl.iidm.network.extensions.WindingConnectionType;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -14,6 +11,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
+import com.powsybl.openloadflow.network.extensions.LoadAsymmetrical2Adder;
 import com.powsybl.openloadflow.network.extensions.iidm.*;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
@@ -469,18 +467,24 @@ public class Asym4nodesFeederTest {
                 double qa = pa * 0.85;
                 double pc = 1.58333;
                 double qc = 0.95 * pc;
-                load4.newExtension(LoadUnbalancedAdder.class)
-                        .withPa(pa - p)
-                        .withQa(qa - q)
-                        .withPb(-0.)
-                        .withQb(-0.)
-                        .withPc(pc - p)
-                        .withQc(qc - q)
-                        .withConnectionType(loadConnectionType) // TODO : put in argument
+                load4.newExtension(LoadAsymmetricalAdder.class)
+                        .withDeltaPa(pa - p)
+                        .withDeltaQa(qa - q)
+                        .withDeltaPb(-0.)
+                        .withDeltaQb(-0.)
+                        .withDeltaPc(pc - p)
+                        .withDeltaQc(qc - q)
+                        .withConnectionType(LoadConnectionType.Y)
                         .add();
+
+                load4.newExtension(LoadAsymmetrical2Adder.class)
+                        .add();
+
             } else {
-                load4.newExtension(LoadUnbalancedAdder.class)
-                        .withConnectionType(loadConnectionType) // TODO : put in argument
+                load4.newExtension(LoadAsymmetricalAdder.class)
+                        .withConnectionType(LoadConnectionType.Y)
+                        .add();
+                load4.newExtension(LoadAsymmetrical2Adder.class)
                         .add();
             }
         } else if (loadConnectionType == WindingConnectionType.DELTA) {
@@ -501,18 +505,22 @@ public class Asym4nodesFeederTest {
                 double qa = pa * 0.85;
                 double pc = 2.375;
                 double qc = 0.95 * pc;
-                load4.newExtension(LoadUnbalancedAdder.class)
-                        .withPa(pa - p)
-                        .withQa(qa - q)
-                        .withPb(-0.)
-                        .withQb(-0.)
-                        .withPc(pc - p)
-                        .withQc(qc - q)
-                        .withConnectionType(loadConnectionType) // TODO : put in argument
+                load4.newExtension(LoadAsymmetricalAdder.class)
+                        .withDeltaPa(pa - p)
+                        .withDeltaQa(qa - q)
+                        .withDeltaPb(-0.)
+                        .withDeltaQb(-0.)
+                        .withDeltaPc(pc - p)
+                        .withDeltaQc(qc - q)
+                        .withConnectionType(LoadConnectionType.DELTA)
+                        .add();
+                load4.newExtension(LoadAsymmetrical2Adder.class)
                         .add();
             } else {
-                load4.newExtension(LoadUnbalancedAdder.class)
-                        .withConnectionType(loadConnectionType) // TODO : put in argument
+                load4.newExtension(LoadAsymmetricalAdder.class)
+                        .withConnectionType(LoadConnectionType.DELTA)
+                        .add();
+                load4.newExtension(LoadAsymmetrical2Adder.class)
                         .add();
             }
         }
@@ -617,9 +625,6 @@ public class Asym4nodesFeederTest {
         if (side2VariableType == BusVariableType.DELTA) {
             yabc34 = ComplexMatrix.getMatrixScaled(yDeltaabc, feetInMile / length2InFeet);
         }
-        System.out.println("---- Complex Yabc34 new -------------------------------");
-        ComplexMatrix.printComplexMatrix(yabc34);
-        System.out.println("---- fin new -------------------------------");
         line34.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(false)
                 .withIsOpenB(false)

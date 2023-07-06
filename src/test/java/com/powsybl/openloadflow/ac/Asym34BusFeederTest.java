@@ -1,10 +1,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
-import com.powsybl.iidm.network.extensions.LineFortescueAdder;
-import com.powsybl.iidm.network.extensions.TwoWindingsTransformerFortescueAdder;
-import com.powsybl.iidm.network.extensions.WindingConnectionType;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -13,6 +10,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.extensions.LoadAsymmetrical2Adder;
 import com.powsybl.openloadflow.network.extensions.iidm.*;
 import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
@@ -72,7 +70,6 @@ public class Asym34BusFeederTest {
         double vBaseLow = 4.16;
 
         double yCoef = 1. / 3.;
-        //double yCoef = 1. / Math.sqrt(3.);
 
         Complex zz = new Complex(0.0001, 0.0001); // 0.0001 , 0.001
         Complex zn = new Complex(0.0001, 0.0001); // 0.001 , 0.01
@@ -148,14 +145,17 @@ public class Asym34BusFeederTest {
                 .setQ0(q802)
                 .add();
 
-        load802.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(0.)
-                .withPb(0.030)
-                .withQb(0.015)
-                .withPc(0.025)
-                .withQc(0.014)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
+        load802.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.030)
+                .withDeltaQb(0.015)
+                .withDeltaPc(0.025)
+                .withDeltaQc(0.014)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load802.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         // Bus 806
@@ -214,15 +214,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q808)
                 .add();
 
-        load808.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(0.)
-                .withPb(0.016)
-                .withQb(0.008)
-                .withPc(0.0)
-                .withQc(0.0)
+        load808.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.016)
+                .withDeltaQb(0.008)
+                .withDeltaPc(0.0)
+                .withDeltaQc(0.0)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load808.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_CURRENT)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
                 .add();
 
         // Bus 810
@@ -353,15 +356,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q816)
                 .add();
 
-        load816.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(0.)
-                .withPb(0.005)
-                .withQb(0.002)
-                .withPc(0.0)
-                .withQc(0.0)
+        load816.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.005)
+                .withDeltaQb(0.002)
+                .withDeltaPc(0.0)
+                .withDeltaQc(0.0)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load816.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_CURRENT)
-                .withConnectionType(WindingConnectionType.DELTA) // TODO : put in argument
                 .add();
 
         // Bus 818
@@ -399,15 +405,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q818)
                 .add();
 
-        load818.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.034)
-                .withQa(0.017)
-                .withPb(0.0)
-                .withQb(0.0)
-                .withPc(0.0)
-                .withQc(0.0)
+        load818.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.034)
+                .withDeltaQa(0.017)
+                .withDeltaPb(0.0)
+                .withDeltaQb(0.0)
+                .withDeltaPc(0.0)
+                .withDeltaQc(0.0)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load818.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_IMPEDANCE)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED)
                 .add();
 
         // Bus 820
@@ -445,15 +454,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q820)
                 .add();
 
-        load818.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.135)
-                .withQa(0.070)
-                .withPb(0.0)
-                .withQb(0.0)
-                .withPc(0.0)
-                .withQc(0.0)
+        load818.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.135)
+                .withDeltaQa(0.070)
+                .withDeltaPb(0.0)
+                .withDeltaQb(0.0)
+                .withDeltaPc(0.0)
+                .withDeltaQc(0.0)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load818.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED)
                 .add();
 
         // Bus 822
@@ -515,15 +527,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q824)
                 .add();
 
-        load824.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(0.)
-                .withPb(0.04)
-                .withQb(0.02)
-                .withPc(0.004) // TODO :  adapt equivalent 824-828 distributed load Y-PQ
-                .withQc(0.002)
+        load824.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.04)
+                .withDeltaQb(0.02)
+                .withDeltaPc(0.004) // TODO :  adapt equivalent 824-828 distributed load Y-PQ
+                .withDeltaQc(0.002)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load824.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_CURRENT)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED)
                 .add();
 
         // Bus 826
@@ -585,15 +600,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q828)
                 .add();
 
-        load828.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.007)
-                .withQa(0.003)
-                .withPb(0.)
-                .withQb(0.)
-                .withPc(0.)
-                .withQc(0.)
+        load828.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.007)
+                .withDeltaQa(0.003)
+                .withDeltaPb(0.)
+                .withDeltaQb(0.)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load828.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED)
                 .add();
 
         // Bus 830
@@ -629,15 +647,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q830)
                 .add();
 
-        load830.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.010)
-                .withQa(0.005)
-                .withPb(0.01)
-                .withQb(0.005)
-                .withPc(0.025)
-                .withQc(0.01)
+        load830.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.010)
+                .withDeltaQa(0.005)
+                .withDeltaPb(0.01)
+                .withDeltaQb(0.005)
+                .withDeltaPc(0.025)
+                .withDeltaQc(0.01)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load830.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_IMPEDANCE)
-                .withConnectionType(WindingConnectionType.DELTA)
                 .add();
 
         // Bus 854
@@ -673,15 +694,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q854)
                 .add();
 
-        load854.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(0.)
-                .withPb(0.004)
-                .withQb(0.002)
-                .withPc(0.)
-                .withQc(0.)
+        load854.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.004)
+                .withDeltaQb(0.002)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load854.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED)
                 .add();
 
         // Bus 856
@@ -766,23 +790,21 @@ public class Asym34BusFeederTest {
                 .setQ0(q832)
                 .add();
 
-        load832.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.007)
-                .withQa(0.003)
-                .withPb(0.002)
-                .withQb(0.001)
-                .withPc(0.006)
-                .withQc(0.003)
+        load832.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.007)
+                .withDeltaQa(0.003)
+                .withDeltaPb(0.002)
+                .withDeltaQb(0.001)
+                .withDeltaPc(0.006)
+                .withDeltaQc(0.003)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load832.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_IMPEDANCE)
-                .withConnectionType(WindingConnectionType.DELTA)
                 .add();
 
         // Bus 888
-        /*Substation substation888 = network.newSubstation()
-                .setId("S888")
-                .setCountry(Country.FR)
-                .add();*/
-
         VoltageLevel vl888 = substation832.newVoltageLevel()
                 .setId("VL_888")
                 .setNominalV(vBaseLow)
@@ -834,15 +856,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q890)
                 .add();
 
-        load890.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.15)
-                .withQa(0.075)
-                .withPb(0.15)
-                .withQb(0.075)
-                .withPc(0.15)
-                .withQc(0.075)
+        load890.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.15)
+                .withDeltaQa(0.075)
+                .withDeltaPb(0.15)
+                .withDeltaQb(0.075)
+                .withDeltaPc(0.15)
+                .withDeltaQc(0.075)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load890.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_CURRENT)
-                .withConnectionType(WindingConnectionType.DELTA)
                 .add();
 
         // Bus 858
@@ -878,15 +903,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q858)
                 .add();
 
-        load858.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.004)
-                .withQa(0.002)
-                .withPb(0.015)
-                .withQb(0.008)
-                .withPc(0.013)
-                .withQc(0.007)
+        load858.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.004)
+                .withDeltaQa(0.002)
+                .withDeltaPb(0.015)
+                .withDeltaQb(0.008)
+                .withDeltaPc(0.013)
+                .withDeltaQc(0.007)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load858.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
-                .withConnectionType(WindingConnectionType.DELTA)
                 .add();
 
         // Bus 864
@@ -948,15 +976,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q834)
                 .add();
 
-        load834.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.016)
-                .withQa(0.008)
-                .withPb(0.020)
-                .withQb(0.010)
-                .withPc(0.110)
-                .withQc(0.055)
+        load834.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.016)
+                .withDeltaQa(0.008)
+                .withDeltaPb(0.020)
+                .withDeltaQb(0.010)
+                .withDeltaPc(0.110)
+                .withDeltaQc(0.055)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load834.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_IMPEDANCE)
-                .withConnectionType(WindingConnectionType.DELTA)
                 .add();
 
         // Bus 842
@@ -991,14 +1022,17 @@ public class Asym34BusFeederTest {
                 .setQ0(q842)
                 .add();
 
-        load842.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.009)
-                .withQa(0.005)
-                .withPb(0.)
-                .withQb(0.)
-                .withPc(0.)
-                .withQc(0.)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
+        load842.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.009)
+                .withDeltaQa(0.005)
+                .withDeltaPb(0.)
+                .withDeltaQb(0.)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load842.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         // Bus 844
@@ -1034,15 +1068,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q844)
                 .add();
 
-        load844.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.135)
-                .withQa(0.105 - 0.1) // approx shunt capacitor
-                .withPb(0.135)
-                .withQb(0.105 - 0.1)
-                .withPc(0.135)
-                .withQc(0.105 - 0.1)
+        load844.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.135)
+                .withDeltaQa(0.105 - 0.1) // approx shunt capacitor
+                .withDeltaPb(0.135)
+                .withDeltaQb(0.105 - 0.1)
+                .withDeltaPc(0.135)
+                .withDeltaQc(0.105 - 0.1)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load844.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_IMPEDANCE)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
                 .add();
 
         Load distrload844 = vl844.newLoad()
@@ -1052,15 +1089,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q844)
                 .add();
 
-        distrload844.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(0.)
-                .withPb(0.025)
-                .withQb(0.012)
-                .withPc(0.020)
-                .withQc(0.011)
+        distrload844.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.025)
+                .withDeltaQb(0.012)
+                .withDeltaPc(0.020)
+                .withDeltaQc(0.011)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        distrload844.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
                 .add();
 
         // Bus 846
@@ -1096,15 +1136,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q846)
                 .add();
 
-        load846.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(0.)
-                .withPb(0.023)
-                .withQb(0.011)
-                .withPc(0.)
-                .withQc(0.)
+        load846.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.023)
+                .withDeltaQb(0.011)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load846.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
                 .add();
 
         // Bus 848
@@ -1140,15 +1183,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q848)
                 .add();
 
-        load848.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.02)
-                .withQa(0.016 - 0.15) // for now combination of Constant power delta load and shunt not possible
-                .withPb(0.02)
-                .withQb(0.016 - 0.15)
-                .withPc(0.02)
-                .withQc(0.016 - 0.15)
+        load848.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.02)
+                .withDeltaQa(0.016 - 0.15) // for now combination of Constant power delta load and shunt not possible
+                .withDeltaPb(0.02)
+                .withDeltaQb(0.016 - 0.15)
+                .withDeltaPc(0.02)
+                .withDeltaQc(0.016 - 0.15)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load848.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
-                .withConnectionType(WindingConnectionType.DELTA)
                 .add();
 /*
         Load compensload848 = vl848.newLoad()
@@ -1159,12 +1205,12 @@ public class Asym34BusFeederTest {
                 .add();
 
         compensload848.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(-0.15)
-                .withPb(0.)
-                .withQb(-0.15)
-                .withPc(0.)
-                .withQc(-0.15)
+                .withDeltaPa(0.)
+                .withDeltaQa(-0.15)
+                .withDeltaPb(0.)
+                .withDeltaQb(-0.15)
+                .withDeltaPc(0.)
+                .withDeltaQc(-0.15)
                 .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
                 .add();
@@ -1202,15 +1248,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q860)
                 .add();
 
-        load860.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.02)
-                .withQa(0.016)
-                .withPb(0.02)
-                .withQb(0.016)
-                .withPc(0.02)
-                .withQc(0.016)
+        load860.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.02)
+                .withDeltaQa(0.016)
+                .withDeltaPb(0.02)
+                .withDeltaQb(0.016)
+                .withDeltaPc(0.02)
+                .withDeltaQc(0.016)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load860.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
                 .add();
 
         Load distriload860 = vl860.newLoad()
@@ -1220,15 +1269,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q860)
                 .add();
 
-        distriload860.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.03)
-                .withQa(0.015)
-                .withPb(0.01)
-                .withQb(0.006)
-                .withPc(0.042)
-                .withQc(0.022)
+        distriload860.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.03)
+                .withDeltaQa(0.015)
+                .withDeltaPb(0.01)
+                .withDeltaQb(0.006)
+                .withDeltaPc(0.042)
+                .withDeltaQc(0.022)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        distriload860.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
-                .withConnectionType(WindingConnectionType.DELTA) // TODO : put in argument
                 .add();
 
         // Bus 836
@@ -1264,15 +1316,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q836)
                 .add();
 
-        load836.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.018)
-                .withQa(0.009)
-                .withPb(0.022)
-                .withQb(0.011)
-                .withPc(0.)
-                .withQc(0.)
+        load836.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.018)
+                .withDeltaQa(0.009)
+                .withDeltaPb(0.022)
+                .withDeltaQb(0.011)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load836.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_CURRENT)
-                .withConnectionType(WindingConnectionType.DELTA) // TODO : put in argument
                 .add();
 
         // Bus 840
@@ -1308,15 +1363,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q840)
                 .add();
 
-        load840.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.009)
-                .withQa(0.007)
-                .withPb(0.009)
-                .withQb(0.007)
-                .withPc(0.009)
-                .withQc(0.007)
+        load840.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.009)
+                .withDeltaQa(0.007)
+                .withDeltaPb(0.009)
+                .withDeltaQb(0.007)
+                .withDeltaPc(0.009)
+                .withDeltaQc(0.007)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load840.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_CURRENT)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
                 .add();
 
         // Bus 862
@@ -1352,15 +1410,18 @@ public class Asym34BusFeederTest {
                 .setQ0(q862)
                 .add();
 
-        load862.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(0.)
-                .withPb(0.028)
-                .withQb(0.014)
-                .withPc(0.)
-                .withQc(0.)
+        load862.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.028)
+                .withDeltaQb(0.014)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load862.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
-                .withConnectionType(WindingConnectionType.Y_GROUNDED) // TODO : put in argument
                 .add();
 
         // Bus 838
@@ -1416,8 +1477,6 @@ public class Asym34BusFeederTest {
         b300.set(3, 2, new Complex(0, micro * -0.6212));
         b300.set(3, 3, new Complex(0, micro * 4.888));
 
-        //ComplexMatrix yabc300 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy300, b300, true, true, true);
-
         // config 301 :
         // building of Yabc from given Y impedance matrix Zy
         ComplexMatrix zy301 = new ComplexMatrix(3, 3);
@@ -1442,8 +1501,6 @@ public class Asym34BusFeederTest {
         b301.set(3, 1, new Complex(0, micro * -0.9402));
         b301.set(3, 2, new Complex(0, micro * -0.5951));
         b301.set(3, 3, new Complex(0, micro * 4.7154));
-
-        //ComplexMatrix yabc301 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true);
 
         // config 302 :
         // building of Yabc from given Y impedance matrix Zy
@@ -1470,8 +1527,6 @@ public class Asym34BusFeederTest {
         b302.set(3, 2, new Complex(0, micro * 0.));
         b302.set(3, 3, new Complex(0, micro * 0.));
 
-        //ComplexMatrix yabc302 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy302, b302, true, false, false);
-
         // config 303 :
         // building of Yabc from given Y impedance matrix Zy
         ComplexMatrix zy303 = new ComplexMatrix(3, 3);
@@ -1497,8 +1552,6 @@ public class Asym34BusFeederTest {
         b303.set(3, 2, new Complex(0, micro * -0.));
         b303.set(3, 3, new Complex(0, micro * 0.));
 
-        //ComplexMatrix yabc303 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy303, b303, false, true, false);
-
         // config 304 :
         // building of Yabc from given Y impedance matrix Zy
         ComplexMatrix zy304 = new ComplexMatrix(3, 3);
@@ -1523,8 +1576,6 @@ public class Asym34BusFeederTest {
         b304.set(3, 1, new Complex(0, micro * -0.));
         b304.set(3, 2, new Complex(0, micro * -0.));
         b304.set(3, 3, new Complex(0, micro * 0.));
-
-        //ComplexMatrix yabc304 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy304, b304, false, true, false);
 
         double feetInMile = 5280;
 
