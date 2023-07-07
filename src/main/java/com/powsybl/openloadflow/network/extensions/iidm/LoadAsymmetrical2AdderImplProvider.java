@@ -1,9 +1,8 @@
-package com.powsybl.openloadflow.network.extensions;
+package com.powsybl.openloadflow.network.extensions.iidm;
 
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.extensions.ExtensionAdderProvider;
 import com.powsybl.iidm.network.Load;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2;
 
 @AutoService(ExtensionAdderProvider.class)
 public class LoadAsymmetrical2AdderImplProvider implements ExtensionAdderProvider<Load, LoadAsymmetrical2, LoadAsymmetrical2Adder> {

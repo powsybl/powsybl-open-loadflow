@@ -1,9 +1,7 @@
-package com.powsybl.openloadflow.network.extensions;
+package com.powsybl.openloadflow.network.extensions.iidm;
 
 import com.powsybl.commons.extensions.AbstractExtensionAdder;
 import com.powsybl.iidm.network.Load;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
 
 public class LoadAsymmetrical2Adder extends AbstractExtensionAdder<Load, LoadAsymmetrical2> {
 
