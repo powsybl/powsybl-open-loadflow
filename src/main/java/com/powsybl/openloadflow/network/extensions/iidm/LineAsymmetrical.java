@@ -27,10 +27,6 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
 
     public static final String NAME = "lineAsymmetrical";
 
-    private Boolean isOpenPhaseA;
-    private Boolean isOpenPhaseB;
-    private Boolean isOpenPhaseC;
-
     private ComplexMatrix yabc; // a three phase admittance matrix can be provided in input and will be used as first option if not null
 
     @Override
@@ -38,57 +34,21 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
         return NAME;
     }
 
-    public LineAsymmetrical(Line line,
-                            boolean isPhaseOpenA,
-                            boolean isPhaseOpenB,
-                            boolean isPhaseOpenC) {
+    public LineAsymmetrical(Line line) {
         super(line);
-        this.isOpenPhaseA = isPhaseOpenA;
-        this.isOpenPhaseB = isPhaseOpenB;
-        this.isOpenPhaseC = isPhaseOpenC;
         this.yabc = null;
 
     }
 
     public LineAsymmetrical(Line line,
-                            boolean isPhaseOpenA,
-                            boolean isPhaseOpenB,
-                            boolean isPhaseOpenC,
                             ComplexMatrix yabc) {
         super(line);
-        this.isOpenPhaseA = isPhaseOpenA;
-        this.isOpenPhaseB = isPhaseOpenB;
-        this.isOpenPhaseC = isPhaseOpenC;
         this.yabc = yabc;
 
-    }
-
-    public void setOpenPhaseA(boolean isOpen) {
-        this.isOpenPhaseA = isOpen;
-    }
-
-    public void setOpenPhaseB(boolean isOpen) {
-        this.isOpenPhaseB = isOpen;
-    }
-
-    public void setOpenPhaseC(boolean isOpen) {
-        this.isOpenPhaseC = isOpen;
     }
 
     public void setYabc(ComplexMatrix yabc) {
         this.yabc = yabc;
-    }
-
-    public Boolean getOpenPhaseA() {
-        return isOpenPhaseA;
-    }
-
-    public Boolean getOpenPhaseB() {
-        return isOpenPhaseB;
-    }
-
-    public Boolean getOpenPhaseC() {
-        return isOpenPhaseC;
     }
 
     public ComplexMatrix getYabc() {

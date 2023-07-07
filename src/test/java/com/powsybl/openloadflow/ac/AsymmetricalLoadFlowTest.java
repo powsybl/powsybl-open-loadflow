@@ -9,11 +9,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
-import com.powsybl.iidm.network.extensions.LineFortescue;
-import com.powsybl.iidm.network.extensions.LineFortescueAdder;
-import com.powsybl.iidm.network.extensions.TwoWindingsTransformerFortescueAdder;
-import com.powsybl.iidm.network.extensions.WindingConnectionType;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -26,9 +22,9 @@ import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.extensions.LoadAsymmetrical2Adder;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadUnbalancedAdder;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.BeforeEach;
@@ -270,7 +266,7 @@ public class AsymmetricalLoadFlowTest {
         assertVoltageEquals(99.2070528211056, bus4); // balanced = 99.29252809145005
 
         Line line23fault = network.getLine("B2_B3_fault");
-        var extension = line23fault.getExtension(LineAsymmetrical.class);
+        var extension = line23fault.getExtension(LineFortescue.class);
         extension.setOpenPhaseA(false);
         extension.setOpenPhaseB(true);
 
@@ -333,13 +329,16 @@ public class AsymmetricalLoadFlowTest {
 
         Load load4 = network.getLoad("LOAD_4");
 
-        load4.newExtension(LoadUnbalancedAdder.class)
-                .withPa(0.)
-                .withQa(10.)
-                .withPb(0.)
-                .withQb(0.)
-                .withPc(0.)
-                .withQc(0.)
+        load4.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(10.)
+                .withDeltaPb(0.)
+                .withDeltaQb(0.)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .add();
+
+        load4.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -374,18 +373,21 @@ public class AsymmetricalLoadFlowTest {
         line23.setX(coeff * 1 / 0.2);
 
         Line line23fault = network.getLine("B2_B3_fault");
-        var extension = line23fault.getExtension(LineAsymmetrical.class);
+        var extension = line23fault.getExtension(LineFortescue.class);
         extension.setOpenPhaseA(false);
 
         Load load4 = network.getLoad("LOAD_4");
 
-        load4.newExtension(LoadUnbalancedAdder.class)
-                .withPa(20.)
-                .withQa(0.)
-                .withPb(40.)
-                .withQb(0.)
-                .withPc(21)
-                .withQc(0.)
+        load4.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(20.)
+                .withDeltaQa(0.)
+                .withDeltaPb(40.)
+                .withDeltaQb(0.)
+                .withDeltaPc(21)
+                .withDeltaQc(0.)
+                .add();
+
+        load4.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -421,19 +423,22 @@ public class AsymmetricalLoadFlowTest {
         line23.setX(coeff * 1 / 0.2);
 
         Line line23fault = network.getLine("B2_B3_fault");
-        var extension = line23fault.getExtension(LineAsymmetrical.class);
+        var extension = line23fault.getExtension(LineFortescue.class);
         extension.setOpenPhaseA(false);
 
         Load load4 = network.getLoad("LOAD_4");
 
-        load4.newExtension(LoadUnbalancedAdder.class)
-                .withPa(20.)
-                .withQa(0.)
-                .withPb(40.)
-                .withQb(0.)
-                .withPc(21)
-                .withQc(0.)
-                .withConnectionType(WindingConnectionType.DELTA)
+        load4.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(20.)
+                .withDeltaQa(0.)
+                .withDeltaPb(40.)
+                .withDeltaQb(0.)
+                .withDeltaPc(21)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load4.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -648,12 +653,12 @@ public class AsymmetricalLoadFlowTest {
 
         // addition of asymmetrical extensions
         line23fault.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(true)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .add();
 
         line23fault.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(true)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .withRz(0)
                 .withXz(line23fault.getX())
                 .add();
@@ -870,12 +875,12 @@ public class AsymmetricalLoadFlowTest {
 
         // addition of asymmetrical extensions
         line23fault.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(true)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .add();
 
         line23fault.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(true)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .withRz(0)
                 .withXz(line23fault.getX())
                 .add();
