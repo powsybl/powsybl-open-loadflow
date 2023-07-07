@@ -871,13 +871,13 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabcRg60 = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcRg60Real);
 
         line650y632.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabcRg60, yCoef))
                 .add();
 
         line650y632.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .withRz(r0y * length650y632InFeet / feetInMile)
                 .withXz(x0y * length650y632InFeet / feetInMile)
                 .add();
@@ -901,13 +901,13 @@ public class Asym13BusFeederTest {
 
         ComplexMatrix yabc632y645 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy603, b603, false, true, true, length632y645InFeet / feetInMile);
         line632y645.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc632y645, yCoef))
                 .add();
 
         line632y645.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .withRz(r0y * length632y645InFeet / feetInMile)
                 .withXz(x0y * length632y645InFeet / feetInMile)
                 .add();
@@ -931,10 +931,12 @@ public class Asym13BusFeederTest {
 
         ComplexMatrix yabc645y646 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy603, b603, false, true, true, length645y646InFeet / feetInMile);
         line645y646.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc645y646, yCoef))
+                .add();
+        line645y646.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .add();
 
         line645y646.newExtension(LineFortescueAdder.class)
@@ -961,10 +963,13 @@ public class Asym13BusFeederTest {
 
         ComplexMatrix yabc632y671 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, true, length632y671InFeet / feetInMile);
         line632y671.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc632y671, yCoef))
+                .add();
+
+        line632y671.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .add();
 
         line632y671.newExtension(LineFortescueAdder.class)
@@ -991,10 +996,13 @@ public class Asym13BusFeederTest {
 
         ComplexMatrix yabc671y684 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy604, b604, true, false, true, length671y684InFeet / feetInMile);
         line671y684.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc671y684, yCoef))
+                .add();
+
+        line671y684.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .add();
 
         line671y684.newExtension(LineFortescueAdder.class)
@@ -1021,10 +1029,13 @@ public class Asym13BusFeederTest {
 
         ComplexMatrix yabc684y611 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy605, b605, false, false, true, length684y611InFeet / feetInMile);
         line684y611.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc684y611, yCoef))
+                .add();
+
+        line684y611.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .add();
 
         line684y611.newExtension(LineFortescueAdder.class)
@@ -1051,10 +1062,13 @@ public class Asym13BusFeederTest {
 
         ComplexMatrix yabc684y652 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy607, b607, true, false, false, length684y652InFeet / feetInMile);
         line684y652.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc684y652, yCoef))
+                .add();
+
+        line684y652.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .add();
 
         line684y652.newExtension(LineFortescueAdder.class)
@@ -1081,10 +1095,13 @@ public class Asym13BusFeederTest {
 
         ComplexMatrix yabc671y680 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, true, length671y680InFeet / feetInMile);
         line671y680.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc671y680, yCoef))
+                .add();
+
+        line671y680.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .add();
 
         line671y680.newExtension(LineFortescueAdder.class)
@@ -1111,10 +1128,13 @@ public class Asym13BusFeederTest {
 
         ComplexMatrix yabc632y633 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy602, b602, true, true, true, length632y633InFeet / feetInMile);
         line632y633.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc632y633, yCoef))
+                .add();
+
+        line632y633.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .add();
 
         line632y633.newExtension(LineFortescueAdder.class)
@@ -1141,10 +1161,13 @@ public class Asym13BusFeederTest {
 
         ComplexMatrix yabc671y675 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy606, b606, true, true, true, length671y675InFeet / feetInMile);
         line671y675.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc671y675, yCoef))
+                .add();
+
+        line671y675.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .add();
 
         line671y675.newExtension(LineFortescueAdder.class)

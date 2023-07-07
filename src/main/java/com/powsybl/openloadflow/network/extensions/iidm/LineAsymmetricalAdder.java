@@ -16,9 +16,6 @@ import com.powsybl.openloadflow.util.ComplexMatrix;
  */
 public class LineAsymmetricalAdder extends AbstractExtensionAdder<Line, LineAsymmetrical> {
 
-    private boolean isOpenA = false;
-    private boolean isOpenB = false;
-    private boolean isOpenC = false;
     private ComplexMatrix yabc = null;
 
     public LineAsymmetricalAdder(Line line) {
@@ -32,22 +29,7 @@ public class LineAsymmetricalAdder extends AbstractExtensionAdder<Line, LineAsym
 
     @Override
     protected LineAsymmetrical createExtension(Line line) {
-        return new LineAsymmetrical(line, isOpenA, isOpenB, isOpenC, yabc);
-    }
-
-    public LineAsymmetricalAdder withIsOpenA(boolean isOpenA) {
-        this.isOpenA = isOpenA;
-        return this;
-    }
-
-    public LineAsymmetricalAdder withIsOpenB(boolean isOpenB) {
-        this.isOpenB = isOpenB;
-        return this;
-    }
-
-    public LineAsymmetricalAdder withIsOpenC(boolean isOpenC) {
-        this.isOpenC = isOpenC;
-        return this;
+        return new LineAsymmetrical(line, yabc);
     }
 
     public LineAsymmetricalAdder withYabc(ComplexMatrix yabc) {

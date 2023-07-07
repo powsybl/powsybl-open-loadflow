@@ -22,7 +22,6 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.LoadAsymmetrical2Adder;
-import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -264,7 +263,7 @@ public class AsymmetricalLoadFlowTest {
         assertVoltageEquals(99.2070528211056, bus4); // balanced = 99.29252809145005
 
         Line line23fault = network.getLine("B2_B3_fault");
-        var extension = line23fault.getExtension(LineAsymmetrical.class);
+        var extension = line23fault.getExtension(LineFortescue.class);
         extension.setOpenPhaseA(false);
         extension.setOpenPhaseB(true);
 
@@ -371,7 +370,7 @@ public class AsymmetricalLoadFlowTest {
         line23.setX(coeff * 1 / 0.2);
 
         Line line23fault = network.getLine("B2_B3_fault");
-        var extension = line23fault.getExtension(LineAsymmetrical.class);
+        var extension = line23fault.getExtension(LineFortescue.class);
         extension.setOpenPhaseA(false);
 
         Load load4 = network.getLoad("LOAD_4");
@@ -421,7 +420,7 @@ public class AsymmetricalLoadFlowTest {
         line23.setX(coeff * 1 / 0.2);
 
         Line line23fault = network.getLine("B2_B3_fault");
-        var extension = line23fault.getExtension(LineAsymmetrical.class);
+        var extension = line23fault.getExtension(LineFortescue.class);
         extension.setOpenPhaseA(false);
 
         Load load4 = network.getLoad("LOAD_4");
@@ -651,12 +650,12 @@ public class AsymmetricalLoadFlowTest {
 
         // addition of asymmetrical extensions
         line23fault.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(true)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .add();
 
         line23fault.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(true)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .withRz(0)
                 .withXz(line23fault.getX())
                 .add();
@@ -873,12 +872,12 @@ public class AsymmetricalLoadFlowTest {
 
         // addition of asymmetrical extensions
         line23fault.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(true)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .add();
 
         line23fault.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(true)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .withRz(0)
                 .withXz(line23fault.getX())
                 .add();

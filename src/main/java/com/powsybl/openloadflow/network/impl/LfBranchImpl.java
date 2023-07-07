@@ -42,9 +42,9 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         var extension = line.getExtension(LineFortescue.class);
         var extension2 = line.getExtension(LineAsymmetrical.class); // TODO to remove when upgrading core
         if (extension != null && extension2 != null) {
-            boolean openPhaseA = extension2.getOpenPhaseA();
-            boolean openPhaseB = extension2.getOpenPhaseB();
-            boolean openPhaseC = extension2.getOpenPhaseC();
+            boolean openPhaseA = extension.isOpenPhaseA();
+            boolean openPhaseB = extension.isOpenPhaseB();
+            boolean openPhaseC = extension.isOpenPhaseC();
             LfAsymLine asymLine;
             if (extension2.getYabc() != null) {
                 // the prioritized option is to use data from ABC three phase admittance matrix

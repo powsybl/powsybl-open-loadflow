@@ -593,13 +593,13 @@ public class Asym4nodesFeederTest {
 
         // addition of asymmetrical extensions
         line12.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(ComplexMatrix.getMatrixScaled(ywyeabc, feetInMile / length1InFeet))
                 .add();
 
         line12.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .withRz(r0y * length1InFeet / feetInMile)
                 .withXz(x0y * length1InFeet / feetInMile)
                 .add();
@@ -626,13 +626,13 @@ public class Asym4nodesFeederTest {
             yabc34 = ComplexMatrix.getMatrixScaled(yDeltaabc, feetInMile / length2InFeet);
         }
         line34.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
                 .withYabc(yabc34)
                 .add();
 
         line34.newExtension(LineFortescueAdder.class)
+                .withOpenPhaseA(false)
+                .withOpenPhaseB(false)
+                .withOpenPhaseC(false)
                 .withRz(r0y * length2InFeet / feetInMile)
                 .withXz(x0y * length2InFeet / feetInMile)
                 .add();
