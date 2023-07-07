@@ -11,7 +11,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
-import com.powsybl.openloadflow.network.extensions.LoadAsymmetrical2Adder;
+import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2Adder;
 import com.powsybl.openloadflow.network.extensions.iidm.*;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
