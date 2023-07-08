@@ -18,8 +18,8 @@ public class BusDcState extends ElementState<LfBus> {
     private final Map<String, Double> generatorsTargetP;
     private final Map<String, Boolean> participatingGenerators;
     private final Map<String, Boolean> disablingStatusGenerators;
-    private final double absVariableLoadTargetP;
-    private final Map<String, Boolean> loadsDisablingStatus;
+    private Double absVariableLoadTargetP;
+    private Map<String, Boolean> loadsDisablingStatus;
 
     public BusDcState(LfBus bus) {
         super(bus);
@@ -27,8 +27,10 @@ public class BusDcState extends ElementState<LfBus> {
         this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
         this.participatingGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isParticipating));
         this.disablingStatusGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isDisabled));
-        this.absVariableLoadTargetP = bus.getLoad().getAbsVariableTargetP();
-        this.loadsDisablingStatus = bus.getLoad().getOriginalLoadsDisablingStatus();
+        bus.getLoad().ifPresent(load -> {
+            this.absVariableLoadTargetP = load.getAbsVariableTargetP();
+            this.loadsDisablingStatus = load.getOriginalLoadsDisablingStatus();
+        });
     }
 
     @Override
@@ -38,8 +40,12 @@ public class BusDcState extends ElementState<LfBus> {
         element.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
         element.getGenerators().forEach(g -> g.setParticipating(participatingGenerators.get(g.getId())));
         element.getGenerators().forEach(g -> g.setDisabled(disablingStatusGenerators.get(g.getId())));
-        element.getLoad().setAbsVariableTargetP(absVariableLoadTargetP);
-        element.getLoad().setOriginalLoadsDisablingStatus(loadsDisablingStatus);
+        if (absVariableLoadTargetP != null) {
+            element.getLoad().orElseThrow().setAbsVariableTargetP(absVariableLoadTargetP);
+        }
+        if (loadsDisablingStatus != null) {
+            element.getLoad().orElseThrow().setOriginalLoadsDisablingStatus(loadsDisablingStatus);
+        }
     }
 
     public static BusDcState save(LfBus bus) {
