@@ -5,8 +5,11 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.Fortescue;
 import net.jafama.FastMath;
+import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.math3.complex.ComplexUtils;
 
 import java.util.Objects;
 
@@ -104,42 +107,28 @@ public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractClosedBran
     }
 
     public static DenseMatrix getRhoMatrix(double r1, double a1, double r2) {
-        DenseMatrix mRho = new DenseMatrix(4, 4);
-        mRho.add(0, 0, r1 * FastMath.cos(a1));
-        mRho.add(1, 0, r1 * FastMath.sin(a1));
-        mRho.add(0, 1, -r1 * FastMath.sin(a1));
-        mRho.add(1, 1, r1 * FastMath.cos(a1));
-        mRho.add(2, 2, r2);
-        mRho.add(3, 3, r2);
 
-        return mRho;
+        Complex rho1 = ComplexUtils.polar2Complex(r1, a1);
+        Complex rho2 = ComplexUtils.polar2Complex(r2, 0.);
+        ComplexMatrix mRho = new ComplexMatrix(2, 2);
+        mRho.set(1, 1, rho1);
+        mRho.set(2, 2, rho2);
+
+        return mRho.getRealCartesianMatrix();
     }
 
     public static DenseMatrix getFixedYmatrix(double g1, double b1, double g2, double b2, double g12, double b12) {
-        DenseMatrix mY = new DenseMatrix(4, 4);
+
         double g21 = g12;
         double b21 = b12;
-        mY.add(0, 0, g1 + g12);
-        mY.add(1, 0, b1 + b12);
-        mY.add(2, 0, -g21);
-        mY.add(3, 0, -b21);
 
-        mY.add(0, 1, -b1 - b12);
-        mY.add(1, 1, g1 + g12);
-        mY.add(2, 1, b21);
-        mY.add(3, 1, -g21);
+        ComplexMatrix mY = new ComplexMatrix(2, 2);
+        mY.set(1, 1, new Complex(g1 + g12, b1 + b12));
+        mY.set(1, 2, new Complex(-g12, -b12));
+        mY.set(2, 1, new Complex(-g21, -b21));
+        mY.set(2, 2, new Complex(g2 + g21, b2 + b21));
 
-        mY.add(0, 2, -g12);
-        mY.add(1, 2, -b12);
-        mY.add(2, 2, g2 + g21);
-        mY.add(3, 2, b2 + b21);
-
-        mY.add(0, 3, b12);
-        mY.add(1, 3, -g12);
-        mY.add(2, 3, -b2 - b21);
-        mY.add(3, 3, g2 + g21);
-
-        return mY;
+        return mY.getRealCartesianMatrix();
     }
 
     public static DenseMatrix getdIdv(double g1, double b1, double g2, double b2,
