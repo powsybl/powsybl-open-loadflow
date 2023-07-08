@@ -28,7 +28,6 @@ public class AsymmetricalLoadFlowTfoTest {
     private Bus bus2;
     private Bus bus3;
     private Bus bus4;
-    private Line line1;
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
@@ -41,7 +40,6 @@ public class AsymmetricalLoadFlowTfoTest {
         bus2 = network.getBusBreakerView().getBus("B2");
         bus3 = network.getBusBreakerView().getBus("B3");
         bus4 = network.getBusBreakerView().getBus("B4");
-        line1 = network.getLine("B1_B2");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
@@ -62,18 +60,18 @@ public class AsymmetricalLoadFlowTfoTest {
         assertVoltageEquals(108.7617902085402, bus4); // balanced = 99.29252809145005
     }
 
+    /**
+     * Proposed network to be tested
+     * The grid is balanced except l23_fault which has phase C disconnected in parallel to line l23 which stays connected
+     * We use a parallel line because in this use case we would like to avoid issues linked to the loss of connexity
+     *
+     *      0          1         2        3        4
+     *      |---(())---|---------|========|--------|
+     * (~)--|---(())---|---------|========|--------|--[X]
+     *      |---(())---|---------|==----==|--------|
+     *                              \  /
+     */
     public static Network fiveNodescreate() {
-        // Proposed network to be tested
-        // The grid is balanced except l23_fault which has phase C disconnected in parallel to line l23 which stays connected
-        // We use a parallel line because in this use case we would like to avoid issues linked to the loss of connexity
-        //
-        //       0          1         2        3        4
-        //       |---(())---|---------|========|--------|
-        //  (~)--|---(())---|---------|========|--------|--[X]
-        //       |---(())---|---------|==----==|--------|
-        //                               \  /
-        //
-
         Network network = Network.create("4n", "test");
         network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
 
