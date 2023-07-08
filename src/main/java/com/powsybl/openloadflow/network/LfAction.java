@@ -331,11 +331,12 @@ public final class LfAction {
         if (loadShift != null) {
             LfBus bus = loadShift.bus;
             String loadId = loadShift.loadId;
-            if (!bus.getLoad().isOriginalLoadDisabled(loadId)) {
+            LfLoad load = bus.getLoad().orElseThrow();
+            if (!load.isOriginalLoadDisabled(loadId)) {
                 PowerShift shift = loadShift.powerShift;
                 bus.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
                 bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
-                bus.getLoad().setAbsVariableTargetP(bus.getLoad().getAbsVariableTargetP()
+                load.setAbsVariableTargetP(load.getAbsVariableTargetP()
                         + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
             }
         }

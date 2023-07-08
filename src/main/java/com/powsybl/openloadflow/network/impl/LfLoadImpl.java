@@ -23,13 +23,11 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
 
     private final List<Ref<Load>> loadsRefs = new ArrayList<>();
 
-    private double[] participationFactors;
+    private final List<Double> loadsAbsVariableTargetP = new ArrayList<>();
 
-    private double absVariableTargetP;
+    private double absVariableTargetP = 0;
 
     private final boolean distributedOnConformLoad;
-
-    private boolean initialized;
 
     private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
@@ -45,12 +43,13 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     void add(Load load, LfNetworkParameters parameters) {
         loadsRefs.add(Ref.create(load, parameters.isCacheEnabled()));
         loadsDisablingStatus.put(load.getId(), false);
-        initialized = false;
+        double absTargetP = getAbsVariableTargetP(load);
+        loadsAbsVariableTargetP.add(absTargetP);
+        absVariableTargetP += absTargetP;
     }
 
     @Override
     public double getAbsVariableTargetP() {
-        init();
         return absVariableTargetP;
     }
 
@@ -59,32 +58,14 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         this.absVariableTargetP = absVariableTargetP;
     }
 
-    private void init() {
-        if (initialized) {
-            return;
+    private double getAbsVariableTargetP(Load load) {
+        double varP;
+        if (distributedOnConformLoad) {
+            varP = load.getExtension(LoadDetail.class) == null ? 0 : load.getExtension(LoadDetail.class).getVariableActivePower();
+        } else {
+            varP = load.getP0();
         }
-
-        participationFactors = new double[loadsRefs.size()];
-        absVariableTargetP = 0;
-        for (int i = 0; i < loadsRefs.size(); i++) {
-            Load load = loadsRefs.get(i).get();
-            double value;
-            if (distributedOnConformLoad) {
-                value = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
-            } else {
-                value = Math.abs(load.getP0());
-            }
-            absVariableTargetP += value;
-            participationFactors[i] = value;
-        }
-
-        if (absVariableTargetP != 0) {
-            for (int i = 0; i < participationFactors.length; i++) {
-                participationFactors[i] /= absVariableTargetP;
-            }
-        }
-        absVariableTargetP = absVariableTargetP / PerUnit.SB;
-        initialized = true;
+        return Math.abs(varP) / PerUnit.SB;
     }
 
     @Override
@@ -92,11 +73,20 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         return loadsRefs.size();
     }
 
-    void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
-        init();
+    private double getParticipationFactor(int i) {
+        // FIXME
+        // After a load contingency or a load action, only the global variable targetP is updated.
+        // The list loadsAbsVariableTargetP never changes. It is not an issue for security analysis as the network is
+        // never updated. Excepted if loadPowerFactorConstant is true, the new targetQ could be wrong after a load contingency
+        // or a load action.
+        return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(i) / absVariableTargetP : 0;
+    }
+
+    @Override
+    public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
-            double diffP0 = diffLoadTargetP * participationFactors[i] * PerUnit.SB;
+            double diffP0 = diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB;
             double updatedP0 = load.getP0() + diffP0;
             double updatedQ0 = load.getQ0() + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
             load.getTerminal().setP(updatedP0);
@@ -105,12 +95,11 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     }
 
     @Override
-    public double getTargetQ(double diffTargetP) {
-        init();
+    public double calculateNewTargetQ(double diffTargetP) {
         double newLoadTargetQ = 0;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
-            double updatedP0 = load.getP0() / PerUnit.SB + diffTargetP * participationFactors[i];
+            double updatedP0 = load.getP0() / PerUnit.SB + diffTargetP * getParticipationFactor(i);
             newLoadTargetQ += getPowerFactor(load) * updatedP0;
         }
         return newLoadTargetQ;
