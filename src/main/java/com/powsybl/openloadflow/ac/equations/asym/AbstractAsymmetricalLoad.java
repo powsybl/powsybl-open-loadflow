@@ -6,6 +6,7 @@ import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfAsymBus;
+import com.powsybl.openloadflow.network.LfAsymLoad;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
@@ -45,7 +46,7 @@ abstract class AbstractAsymmetricalLoad extends AbstractElementEquationTerm<LfBu
 
     private final AsymBusVariableType busVariableType; // variables available at bus (Wye variables, Va, Vb, Vc or Delta variables : Vab, Vbc and Vca = -Vab - Vbc)
 
-    private final LfAsymBus asymBus;
+    protected final LfAsymBus asymBus;
 
     protected ComplexMatrix sabc;
 
@@ -55,10 +56,15 @@ abstract class AbstractAsymmetricalLoad extends AbstractElementEquationTerm<LfBu
         this.complexPart = Objects.requireNonNull(complexPart);
         this.sequenceType = Objects.requireNonNull(sequenceType);
         this.asymBus = bus.getAsym();
+
+        if (asymBus == null) {
+            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
+        }
+
         this.loadConnectionType = Objects.requireNonNull(loadConnectionType);
         this.busVariableType = Objects.requireNonNull(asymBus.getAsymBusVariableType());
 
-        int nbPhases = 3 - asymBus.getNbExistingPhases();
+        int nbPhases = 3 - asymBus.getNbMissingPhases();
 
         vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
         phVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI);
@@ -176,6 +182,20 @@ abstract class AbstractAsymmetricalLoad extends AbstractElementEquationTerm<LfBu
         v0V1V2.set(3, 1, dV2);
 
         return v0V1V2;
+    }
+
+    public static ComplexMatrix getSabc(Complex sa, Complex sb, Complex sc, LfAsymLoad asymLoad) {
+        ComplexMatrix sabc = new ComplexMatrix(3, 1);
+        if (asymLoad != null) {
+            sabc.set(1, 1, sa.add(new Complex(asymLoad.getPa(), asymLoad.getQa())));
+            sabc.set(2, 1, sb.add(new Complex(asymLoad.getPb(), asymLoad.getQb())));
+            sabc.set(3, 1, sc.add(new Complex(asymLoad.getPc(), asymLoad.getQc())));
+        } else {
+            sabc.set(1, 1, sa);
+            sabc.set(2, 1, sb);
+            sabc.set(3, 1, sc);
+        }
+        return sabc;
     }
 
     @Override

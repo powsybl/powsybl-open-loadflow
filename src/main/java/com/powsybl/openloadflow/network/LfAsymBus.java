@@ -224,18 +224,22 @@ public class LfAsymBus {
         return isPositiveSequenceAsCurrent;
     }
 
+    public int getNbMissingPhases() {
+        return 3 - getNbExistingPhases();
+    }
+
     public int getNbExistingPhases() {
-        int nb = 0;
-        if (!hasPhaseA) {
-            nb = nb + 1;
+        int nbPhases = 0;
+        if (hasPhaseA) {
+            nbPhases++;
         }
-        if (!hasPhaseB) {
-            nb = nb + 1;
+        if (hasPhaseB) {
+            nbPhases++;
         }
-        if (!hasPhaseC) {
-            nb = nb + 1;
+        if (hasPhaseC) {
+            nbPhases++;
         }
-        return nb;
+        return nbPhases;
     }
 
     // init ABC voltage values
