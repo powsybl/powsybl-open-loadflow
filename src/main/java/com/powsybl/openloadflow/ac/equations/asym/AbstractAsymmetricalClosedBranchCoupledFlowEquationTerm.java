@@ -66,17 +66,11 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
     protected final AsymBusVariableType variableTypeBus1;
     protected final AsymBusVariableType variableTypeBus2;
 
-    protected final boolean hasPhaseA1;
-    protected final boolean hasPhaseB1;
-    protected final boolean hasPhaseC1;
-
-    protected final boolean hasPhaseA2;
-    protected final boolean hasPhaseB2;
-    protected final boolean hasPhaseC2;
-
     public final LfBranch branch;
     public final LfBus bus1;
     public final LfBus bus2;
+    protected final LfAsymBus asymBus1;
+    protected final LfAsymBus asymBus2;
 
     protected AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                                       ComplexPart complexPart, Side termSide, SequenceType sequenceType) {
@@ -94,10 +88,10 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
         // fetching the type of variables connecting bus1
         AsymBusVariableType tmpVariableTypeBus1 = AsymBusVariableType.WYE;
-        LfAsymBus asymBus1 = bus1.getAsym();
+        asymBus1 = bus1.getAsym();
         if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
             tmpVariableTypeBus1 = AsymBusVariableType.DELTA;
-            if (asymBus1.getNbExistingPhases() > 0) {
+            if (asymBus1.getNbMissingPhases() > 0) {
                 throw new IllegalStateException("Case with missing phase and Delta type variables not yet handled at bus : " + bus1.getId());
             }
         }
@@ -105,44 +99,17 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
         // fetching the type of variables connecting bus2
         AsymBusVariableType tmpVariableTypeBus2 = AsymBusVariableType.WYE;
-        LfAsymBus asymBus2 = bus2.getAsym();
+        asymBus2 = bus2.getAsym();
         if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
             tmpVariableTypeBus2 = AsymBusVariableType.DELTA;
-            if (asymBus2.getNbExistingPhases() > 0) {
+            if (asymBus2.getNbMissingPhases() > 0) {
                 throw new IllegalStateException("Case with missing phase and Delta type variables not yet handled at bus : " + bus2.getId());
             }
         }
         variableTypeBus2 = tmpVariableTypeBus2;
 
-        hasPhaseA1 = asymBus1.isHasPhaseA();
-        hasPhaseB1 = asymBus1.isHasPhaseB();
-        hasPhaseC1 = asymBus1.isHasPhaseC();
-
-        hasPhaseA2 = asymBus2.isHasPhaseA();
-        hasPhaseB2 = asymBus2.isHasPhaseB();
-        hasPhaseC2 = asymBus2.isHasPhaseC();
-
-        int nbPhases1 = 0;
-        if (hasPhaseA1) {
-            nbPhases1++;
-        }
-        if (hasPhaseB1) {
-            nbPhases1++;
-        }
-        if (hasPhaseC1) {
-            nbPhases1++;
-        }
-
-        int nbPhases2 = 0;
-        if (hasPhaseA2) {
-            nbPhases2++;
-        }
-        if (hasPhaseB2) {
-            nbPhases2++;
-        }
-        if (hasPhaseC2) {
-            nbPhases2++;
-        }
+        int nbPhases1 = asymBus1.getNbExistingPhases();
+        int nbPhases2 = asymBus2.getNbExistingPhases();
 
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
@@ -384,13 +351,13 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
     public int getNbPhases() {
         int nbPhases = 0;
-        if (hasPhaseA1 && hasPhaseA2) {
+        if (asymBus1.isHasPhaseA() && asymBus2.isHasPhaseA()) {
             nbPhases++;
         }
-        if (hasPhaseB1 && hasPhaseB2) {
+        if (asymBus1.isHasPhaseB() && asymBus2.isHasPhaseB()) {
             nbPhases++;
         }
-        if (hasPhaseC1 && hasPhaseC2) {
+        if (asymBus1.isHasPhaseC() && asymBus2.isHasPhaseC()) {
             nbPhases++;
         }
         return nbPhases;

@@ -4,6 +4,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfAsymBus;
+import com.powsybl.openloadflow.network.LfAsymLoad;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
@@ -27,29 +28,14 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
         Complex sb = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
         Complex sc = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
 
-        LfAsymBus asymBus = bus.getAsym();
-        if (asymBus == null) {
-            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
-        }
-
+        LfAsymLoad asymLoad;
         if (loadConnectionType == LegConnectionType.DELTA) {
-            if (asymBus.getLoadDelta0() != null) {
-                sa = sa.add(new Complex(asymBus.getLoadDelta0().getPa(), asymBus.getLoadDelta0().getQa()));
-                sb = sb.add(new Complex(asymBus.getLoadDelta0().getPb(), asymBus.getLoadDelta0().getQb()));
-                sc = sc.add(new Complex(asymBus.getLoadDelta0().getPc(), asymBus.getLoadDelta0().getQc()));
-            }
+            asymLoad = asymBus.getLoadDelta0();
         } else {
-            if (asymBus.getLoadWye0() != null) {
-                sa = sa.add(new Complex(asymBus.getLoadWye0().getPa(), asymBus.getLoadWye0().getQa()));
-                sb = sb.add(new Complex(asymBus.getLoadWye0().getPb(), asymBus.getLoadWye0().getQb()));
-                sc = sc.add(new Complex(asymBus.getLoadWye0().getPc(), asymBus.getLoadWye0().getQc()));
-            }
+            asymLoad = asymBus.getLoadWye0();
         }
 
-        this.sabc = new ComplexMatrix(3, 1);
-        sabc.set(1, 1, sa);
-        sabc.set(2, 1, sb);
-        sabc.set(3, 1, sc);
+        this.sabc = getSabc(sa, sb, sc, asymLoad);
     }
 
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType,

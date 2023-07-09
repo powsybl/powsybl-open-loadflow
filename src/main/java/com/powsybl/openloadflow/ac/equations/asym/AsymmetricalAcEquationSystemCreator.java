@@ -36,7 +36,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         LfAsymBus asymBus = bus.getAsym();
 
         if (asymBus.getAsymBusVariableType() == AsymBusVariableType.WYE) {
-            if (asymBus.getNbExistingPhases() == 0) {
+            if (asymBus.getNbMissingPhases() == 0) {
                 var ixi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE);
                 asymBus.setIxN(ixi);
                 var iyi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE);
@@ -46,7 +46,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                 iyi.setActive(true);
             }
 
-            if (asymBus.getNbExistingPhases() <= 1) {
+            if (asymBus.getNbMissingPhases() <= 1) {
                 var ixh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO);
                 asymBus.setIxZ(ixh);
                 var iyh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO);
@@ -56,7 +56,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
             }
 
         } else {
-            if (asymBus.getNbExistingPhases() > 0) {
+            if (asymBus.getNbMissingPhases() > 0) {
                 throw new IllegalStateException(" Delta config with missing phases not yet handled at bus : " + bus.getId());
             }
 
@@ -200,8 +200,8 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
             } else {
                 // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
                 // positive
-                int nbPhases1 = 3 - asymBus1.getNbExistingPhases();
-                int nbPhases2 = 3 - asymBus2.getNbExistingPhases();
+                int nbPhases1 = asymBus1.getNbExistingPhases();
+                int nbPhases2 = asymBus2.getNbExistingPhases();
 
                 // test: if we are WYE variables and there is a phase missing, the positive sequence is modeled with currents
                 if (isBus1Wye) {
@@ -407,7 +407,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                 LoadAbcPowerEquationTerm qLoadPositive = new LoadAbcPowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadPositive);
 
-                int nbPhases = 3 - asymBus.getNbExistingPhases();
+                int nbPhases = asymBus.getNbExistingPhases();
                 if (nbPhases == 3) {
                     LoadAbcPowerEquationTerm ixLoadNegative = new LoadAbcPowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType());
                     equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE).addTerm(ixLoadNegative);
@@ -428,7 +428,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                 LoadAbcImpedantEquationTerm qLoadPositive = new LoadAbcImpedantEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadPositive);
 
-                int nbPhases = 3 - asymBus.getNbExistingPhases();
+                int nbPhases = asymBus.getNbExistingPhases();
                 if (nbPhases == 3) {
                     LoadAbcImpedantEquationTerm ixLoadNegative = new LoadAbcImpedantEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType());
                     equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE).addTerm(ixLoadNegative);

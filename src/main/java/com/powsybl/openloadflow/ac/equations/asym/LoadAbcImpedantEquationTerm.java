@@ -4,6 +4,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfAsymBus;
+import com.powsybl.openloadflow.network.LfAsymLoad;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
@@ -25,29 +26,14 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
         Complex sb = new Complex(0., 0.);
         Complex sc = new Complex(0., 0.);
 
-        LfAsymBus asymBus = bus.getAsym();
-        if (asymBus == null) {
-            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
-        }
-
+        LfAsymLoad asymLoad;
         if (loadConnectionType == LegConnectionType.DELTA) {
-            if (asymBus.getLoadDelta2() != null) {
-                sa = sa.add(new Complex(asymBus.getLoadDelta2().getPa(), asymBus.getLoadDelta2().getQa()));
-                sb = sb.add(new Complex(asymBus.getLoadDelta2().getPb(), asymBus.getLoadDelta2().getQb()));
-                sc = sc.add(new Complex(asymBus.getLoadDelta2().getPc(), asymBus.getLoadDelta2().getQc()));
-            }
+            asymLoad = asymBus.getLoadDelta2();
         } else {
-            if (asymBus.getLoadWye2() != null) {
-                sa = sa.add(new Complex(asymBus.getLoadWye2().getPa(), asymBus.getLoadWye2().getQa()));
-                sb = sb.add(new Complex(asymBus.getLoadWye2().getPb(), asymBus.getLoadWye2().getQb()));
-                sc = sc.add(new Complex(asymBus.getLoadWye2().getPc(), asymBus.getLoadWye2().getQc()));
-            }
+            asymLoad = asymBus.getLoadWye2();
         }
 
-        this.sabc = new ComplexMatrix(3, 1);
-        sabc.set(1, 1, sa);
-        sabc.set(2, 1, sb);
-        sabc.set(3, 1, sc);
+        this.sabc = getSabc(sa, sb, sc, asymLoad);
 
     }
 
