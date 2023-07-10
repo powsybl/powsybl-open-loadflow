@@ -40,7 +40,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private static void createLineAsymExt(Line line, double zb, PiModel piModel, LfBranchImpl lfBranchImpl) {
         var extension = line.getExtension(LineFortescue.class);
-        var extension2 = line.getExtension(LineAsymmetrical.class); // TODO to remove when upgrading core
+        var extension2 = line.getExtension(LineAsymmetrical.class);
         if (extension != null && extension2 != null) {
             boolean openPhaseA = extension.isOpenPhaseA();
             boolean openPhaseB = extension.isOpenPhaseB();
@@ -221,7 +221,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                     double rz = extensionIidm.getRz() / zb;
                     double xz = extensionIidm.getXz() / zb;
                     asymTransfo2W = new AsymTransfo2W(getLegConnectionType(extension.getConnectionType1(), t2w), getLegConnectionType(extension.getConnectionType2(), t2w), rz, xz, extension.isFreeFluxes(),
-                            extension.getGroundingR1() / zb, extension.getGroundingX1() / zb, // TODO : check pu of z1g since it is on the left of rho
+                            extension.getGroundingR1() / zb, extension.getGroundingX1() / zb,
                             extension.getGroundingR2() / zb, extension.getGroundingX2() / zb);
                 } else {
                     throw new PowsyblException("Asymmetrical branch '" + lfBranch.getId() + "' has no assymmetrical Pi values input data defined");

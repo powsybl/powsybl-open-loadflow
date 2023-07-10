@@ -383,28 +383,28 @@ public class LfAsymLineAdmittanceMatrix {
 
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
             permutationMatrix = ComplexMatrix.complexMatrixIdentity(3);
-        } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseB && hasPhaseC) {
             // BCN config
             permutationMatrix.set(1, 3, one);
             permutationMatrix.set(2, 1, one);
             permutationMatrix.set(3, 2, one);
-        } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseA && hasPhaseC) {
             // ACN config
             permutationMatrix.set(1, 1, one);
             permutationMatrix.set(2, 3, one);
             permutationMatrix.set(3, 2, one);
-        } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseA && hasPhaseB) {
             // ABN config
             permutationMatrix.set(1, 1, one);
             permutationMatrix.set(2, 2, one);
             permutationMatrix.set(3, 3, one);
-        } else if (hasPhaseA && !hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseA) {
             // AN config
             permutationMatrix.set(1, 2, one);
-        } else if (!hasPhaseA && hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseB) {
             // BN config
             permutationMatrix.set(2, 2, one);
-        } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseC) {
             // CN config
             permutationMatrix.set(3, 2, one);
         } else {

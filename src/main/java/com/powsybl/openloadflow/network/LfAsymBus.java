@@ -327,17 +327,17 @@ public class LfAsymBus {
         }
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
             return getIaTarget(loadConnectionType);
-        } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseB && hasPhaseC) {
             return getIbTarget(loadConnectionType);
-        } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseA && hasPhaseC) {
             return getIaTarget(loadConnectionType);
-        } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseA && hasPhaseB) {
             return getIaTarget(loadConnectionType);
-        } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseC) {
             return new Complex(0., 0.);
-        } else if (!hasPhaseA && hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseB) {
             return new Complex(0., 0.);
-        } else if (hasPhaseA && !hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseA) {
             return new Complex(0., 0.);
         } else {
             throw new IllegalStateException("unknow abc target load config : " + bus.getId());
@@ -351,17 +351,17 @@ public class LfAsymBus {
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
             System.out.println(" Ipositive Target = " + getIbTarget(loadConnectionType));
             return getIbTarget(loadConnectionType);
-        } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseB && hasPhaseC) {
             return getIcTarget(loadConnectionType);
-        } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseA && hasPhaseC) {
             return getIcTarget(loadConnectionType);
-        } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseA && hasPhaseB) {
             return getIbTarget(loadConnectionType);
-        } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseC) {
             return getIcTarget(loadConnectionType);
-        } else if (!hasPhaseA && hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseB) {
             return getIbTarget(loadConnectionType);
-        } else if (hasPhaseA && !hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseA) {
             return getIaTarget(loadConnectionType);
         } else {
             throw new IllegalStateException("unknow abc target load config : " + bus.getId());

@@ -246,20 +246,20 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoadTerm {
             diZero = (dinvVzero.multiply(sA)).conjugate();
             diPosi = (dinvVPosi.multiply(sB)).conjugate();
             diNega = (dinvVNega.multiply(sC)).conjugate();
-        } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseB && hasPhaseC) {
             diZero = (dinvVzero.multiply(sB)).conjugate();
             diPosi = (dinvVPosi.multiply(sC)).conjugate();
-        } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseA && hasPhaseC) {
             diZero = (dinvVzero.multiply(sA)).conjugate();
             diPosi = (dinvVPosi.multiply(sC)).conjugate();
-        } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseA && hasPhaseB) {
             diZero = (dinvVzero.multiply(sA)).conjugate();
             diPosi = (dinvVPosi.multiply(sB)).conjugate();
-        } else if (hasPhaseA && !hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseA) {
             diPosi = (dinvVPosi.multiply(sA)).conjugate();
-        } else if (!hasPhaseA && hasPhaseB && !hasPhaseC) {
+        } else if (hasPhaseB) {
             diPosi = (dinvVPosi.multiply(sB)).conjugate();
-        } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
+        } else if (hasPhaseC) {
             diPosi = (dinvVPosi.multiply(sC)).conjugate();
         } else {
             throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
