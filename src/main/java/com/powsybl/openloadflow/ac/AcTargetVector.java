@@ -74,8 +74,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                     } else if (asymBusP.getLoadDelta1() != null) {
                         targets[equation.getColumn()] = targets[equation.getColumn()] - asymBusP.getIpositiveTarget(LegConnectionType.DELTA).getReal();
                     }
-
-                    // TODO : handled cases where positive sequence is P or Ix
                 }
                 break;
 
@@ -83,7 +81,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 LfBus busQ = network.getBus(equation.getElementNum());
                 targets[equation.getColumn()] = busQ.getTargetQ();
                 // see the comment for BUS_TARGET_P
-                // TODO : handle here those asym specific cases
                 LfAsymBus asymBusQ = busQ.getAsym();
                 if (asymBusQ != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
@@ -93,7 +90,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                     } else if (asymBusQ.getLoadDelta1() != null) {
                         targets[equation.getColumn()] = targets[equation.getColumn()] - asymBusQ.getIpositiveTarget(LegConnectionType.DELTA).getImaginary();
                     }
-                    // TODO : handled cases where positive sequence is P or Ix
                 }
                 break;
 

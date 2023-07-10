@@ -22,6 +22,8 @@ import java.util.Objects;
  */
 public class LfAsymBus {
 
+    private static final String LOAD_CONFIG_NOT_SUPPORTED = "Load with constant current and fortescue representation not yet handled : ";
+
     private LfBus bus;
 
     private final AsymBusVariableType asymBusVariableType; // available variables at node delta = {vab, vbc, vca} and wye = {va, vb, vc}
@@ -321,7 +323,7 @@ public class LfAsymBus {
 
     public Complex getIzeroTarget(LegConnectionType loadConnectionType) {
         if (isFortescueRepresentation) {
-            throw new IllegalStateException("Load with constant current and fortescue representation not yet handled : " + bus.getId());
+            throw new IllegalStateException(LOAD_CONFIG_NOT_SUPPORTED + bus.getId());
         }
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
             return getIaTarget(loadConnectionType);
@@ -344,7 +346,7 @@ public class LfAsymBus {
 
     public Complex getIpositiveTarget(LegConnectionType loadConnectionType) {
         if (isFortescueRepresentation) {
-            throw new IllegalStateException("Load with constant current and fortescue representation not yet handled : " + bus.getId());
+            throw new IllegalStateException(LOAD_CONFIG_NOT_SUPPORTED + bus.getId());
         }
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
             System.out.println(" Ipositive Target = " + getIbTarget(loadConnectionType));
@@ -368,7 +370,7 @@ public class LfAsymBus {
 
     public Complex getInegativeTarget(LegConnectionType loadConnectionType) {
         if (isFortescueRepresentation) {
-            throw new IllegalStateException("Load with constant current and fortescue representation not yet handled : " + bus.getId());
+            throw new IllegalStateException(LOAD_CONFIG_NOT_SUPPORTED + bus.getId());
         }
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
             return getIcTarget(loadConnectionType);

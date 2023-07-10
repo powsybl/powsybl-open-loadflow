@@ -112,18 +112,22 @@ public class LfAsymLineAdmittanceMatrix {
     private static DenseMatrix build(ComplexMatrix yabc, LfAsymLine asymLine) {
 
         // depending on the fortescue representation at each side, the used matrix for the equation system will vary
-        boolean isSide1FortescueRepresented = asymLine.isSide1FortescueRepresentation();
-        boolean isSide2FortescueRepresented = asymLine.isSide2FortescueRepresentation();
 
+        boolean isSide1FortescueRepresented = asymLine.isSide1FortescueRepresentation();
         boolean hasPhaseA1 = asymLine.isHasPhaseA1();
         boolean hasPhaseB1 = asymLine.isHasPhaseB1();
         boolean hasPhaseC1 = asymLine.isHasPhaseC1();
+        if (isSide1FortescueRepresented && (!hasPhaseA1 || !hasPhaseB1 || !hasPhaseC1)) {
+            throw new IllegalStateException("Fortescue representation and missing phase not yet handled for branches ");
+        }
 
+        boolean isSide2FortescueRepresented = asymLine.isSide2FortescueRepresentation();
         boolean hasPhaseA2 = asymLine.isHasPhaseA2();
         boolean hasPhaseB2 = asymLine.isHasPhaseB2();
         boolean hasPhaseC2 = asymLine.isHasPhaseC2();
-
-        // TODO : put a test to forbid to use fortescue variables if a phase is missing
+        if (isSide2FortescueRepresented && (!hasPhaseA2 || !hasPhaseB2 || !hasPhaseC2)) {
+            throw new IllegalStateException("Fortescue representation and missing phase not yet handled for branches ");
+        }
 
         // we propose to decompose the building of the final matrix using 4 transformation matrices that will vary depending on the configuration
         // [I123i] = [M1] * [M2] * [Yabc] * [M3] * [M4]

@@ -173,10 +173,7 @@ public class NewtonRaphson {
 
         LfBus bus = network.getBus(v.getElementNum());
         LfAsymBus asymBus = bus.getAsym();
-        if (asymBus != null) {
-            return true;
-        }
-        return false;
+        return asymBus != null;
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {

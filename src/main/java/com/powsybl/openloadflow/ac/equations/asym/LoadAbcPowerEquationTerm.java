@@ -185,11 +185,11 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoadTerm {
 
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
-        ComplexMatrix v0V1V2 = AbstractAsymmetricalLoadTerm.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
+        ComplexMatrix dv0V1V2 = AbstractAsymmetricalLoadTerm.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
         // computation of dV0/dx , dV1/dx, dV2/dx
-        Complex dV0 = v0V1V2.getTerm(1, 1);
-        Complex dV1 = v0V1V2.getTerm(2, 1);
-        Complex dV2 = v0V1V2.getTerm(3, 1);
+        Complex dV0 = dv0V1V2.getTerm(1, 1);
+        Complex dV1 = dv0V1V2.getTerm(2, 1);
+        Complex dV2 = dv0V1V2.getTerm(3, 1);
 
         if (loadConnectionType == LegConnectionType.DELTA) {
             throw new IllegalStateException("ABC load with delta load connection not yet handled at bus " + bus.getId());
