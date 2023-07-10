@@ -115,6 +115,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
                 // switch PV -> PQ
                 controllerBus.setGenerationTargetQ(pvToPqBus.qLimit);
+                controllerBus.setQLimitType(pvToPqBus.limitDirection.equals(ReactiveLimitDirection.MIN) ? LfBus.QLimitType.MIN_Q : LfBus.QLimitType.MAX_Q);
                 controllerBus.setGeneratorVoltageControlEnabled(false);
                 // increment PV -> PQ switch counter
                 contextData.incrementPvPqSwitchCount(controllerBus.getId());
@@ -225,6 +226,26 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         }
     }
 
+    /**
+     */
+    private boolean checkPQLimitBus(LfBus controllerCapableBus) {
+        boolean qLimitsUpdated = false;
+        double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
+        double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
+        double q = controllerCapableBus.getGenerationTargetQ(); // the generation targetQ from the previous switch PV to PQ.
+        if (controllerCapableBus.getQLimitType() == LfBus.QLimitType.MIN_Q && Math.abs(minQ - q) > 0.01) {
+            LOGGER.warn("PQ bus with updated Q limits, previous minQ '{}' new minQ '{}'", q, minQ);
+            controllerCapableBus.setGenerationTargetQ(minQ);
+            qLimitsUpdated = true;
+        }
+        if (controllerCapableBus.getQLimitType() == LfBus.QLimitType.MAX_Q && Math.abs(maxQ - q) > 0.01) {
+            LOGGER.warn("PQ bus with updated Q limits, previous maxQ '{}' new maxQ '{}'", q, maxQ);
+            controllerCapableBus.setGenerationTargetQ(maxQ);
+            qLimitsUpdated = true;
+        }
+        return qLimitsUpdated;
+    }
+
     private static double getBusTargetV(LfBus bus) {
         return bus.getGeneratorVoltageControl().map(GeneratorVoltageControl::getTargetValue).orElse(Double.NaN);
     }
@@ -240,12 +261,16 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         List<PvToPqBus> pvToPqBuses = new ArrayList<>();
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
+        boolean qLimitsUpdated = false;
         for (LfBus bus : context.getNetwork().getBuses()) {
             if (bus.isGeneratorVoltageControlEnabled() && !bus.isDisabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
             } else if (bus.hasGeneratorVoltageControllerCapability() && !bus.isDisabled()) {
                 if (!bus.hasGeneratorsWithSlope()) {
                     checkPqBus(bus, pqToPvBuses);
+                    if (checkPQLimitBus(bus)) {
+                        qLimitsUpdated = true;
+                    }
                 } else {
                     // we don't support switching PQ to PV for bus with one controller with slope.
                     LOGGER.warn("Controller bus '{}' wants to control back voltage with slope: not supported", bus.getId());
@@ -259,6 +284,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, contextData, reporter, maxPqPvSwitch)) {
+            status = OuterLoopStatus.UNSTABLE;
+        }
+        if (qLimitsUpdated) {
             status = OuterLoopStatus.UNSTABLE;
         }
 
