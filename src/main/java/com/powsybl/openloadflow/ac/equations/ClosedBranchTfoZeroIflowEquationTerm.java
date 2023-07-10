@@ -22,7 +22,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         this.flowType = flowType;
 
         AsymTransfo2W asymTransfo2W = (AsymTransfo2W) branch.getProperty(AsymTransfo2W.PROPERTY_ASYMMETRICAL);
-        if (asymTransfo2W == null) { // TODO : handle zero sequence without data
+        if (asymTransfo2W == null) {
             throw new IllegalStateException("Branch : " + branch.getId() + " has no asymmetric extension but is required here ");
         }
 
@@ -199,18 +199,16 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         }
     }
 
-    public static DenseMatrix getIvector(double v1, double ph1, double v2, double ph2, double r1,
+    public static DenseMatrix getIvector(DenseMatrix mV, double r1,
                                          Complex z0T1, Complex z0T2, Complex y0m, Complex zG1, Complex zG2,
                                          LegConnectionType leg1Type, LegConnectionType leg2Type, boolean isFreeFluxes) {
-
-        DenseMatrix mV = getCartesianVoltageVector(v1, ph1, v2, ph2);
 
         return getAdmittanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1, leg1Type, leg2Type, isFreeFluxes).times(mV); // get admittance matrix in static times voltage to get the current
     }
 
     @Override
     public double eval() {
-        return getIvector(v1(), ph1(), v2(), ph2(), r1(),
+        return getIvector(getCartesianVoltageVector(v1(), ph1(), v2(), ph2()), r1(),
                 z0T1, z0T2, y0m, zG1, zG2, leg1ConnectionType, leg2ConnectionType, isFreeFluxes).get(getIndexline(flowType), 0);
     }
 

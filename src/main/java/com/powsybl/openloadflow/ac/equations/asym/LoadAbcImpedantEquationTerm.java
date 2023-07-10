@@ -18,6 +18,8 @@ import java.util.Objects;
 
 public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
 
+    private static final String PHASE_CONFIG = "Phase config not handled at bus : ";
+
     public LoadAbcImpedantEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
         super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         Objects.requireNonNull(variableSet);
@@ -123,7 +125,7 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
             } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
                 iPosi = (vPositiveComplex.multiply(scByVc0Sq)).conjugate();
             } else {
-                throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
+                throw new IllegalStateException(PHASE_CONFIG + bus.getId());
             }
         } else if (loadConnectionType == LegConnectionType.DELTA) {
 
@@ -159,7 +161,7 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
                 iZero = (vab.multiply(sabByVab0Sq)).conjugate();
                 iPosi = iZero.multiply(-1.);
             } else {
-                throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
+                throw new IllegalStateException(PHASE_CONFIG + bus.getId());
             }
 
         } else {
@@ -215,11 +217,11 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
 
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
-        ComplexMatrix v0V1V2 = AbstractAsymmetricalLoadTerm.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
+        ComplexMatrix dv0V1V2 = AbstractAsymmetricalLoadTerm.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
         // computation of dV0/dx , dV1/dx, dV2/dx
-        Complex dV0 = v0V1V2.getTerm(1, 1);
-        Complex dV1 = v0V1V2.getTerm(2, 1);
-        Complex dV2 = v0V1V2.getTerm(3, 1);
+        Complex dV0 = dv0V1V2.getTerm(1, 1);
+        Complex dV1 = dv0V1V2.getTerm(2, 1);
+        Complex dV2 = dv0V1V2.getTerm(3, 1);
 
         if (busVariableType != AsymBusVariableType.WYE) {
             throw new IllegalStateException("ABC load with delta variables  not yet handled at bus " + bus.getId());
@@ -266,7 +268,7 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
             } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
                 diPosi = (dV1.multiply(scByVc0Sq)).conjugate();
             } else {
-                throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
+                throw new IllegalStateException(PHASE_CONFIG + bus.getId());
             }
         } else if (loadConnectionType == LegConnectionType.DELTA) {
             Complex sAb = sabc.getTerm(1, 1);
@@ -301,7 +303,7 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
                 diZero = (dvab.multiply(sabByVab0Sq)).conjugate();
                 diPosi = diZero.multiply(-1.);
             } else {
-                throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
+                throw new IllegalStateException(PHASE_CONFIG + bus.getId());
             }
         } else {
             throw new IllegalStateException("Load connection type not handled at bus : " + bus.getId());
