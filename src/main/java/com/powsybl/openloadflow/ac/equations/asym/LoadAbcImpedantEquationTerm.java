@@ -109,20 +109,20 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
                 iZero = (vZeroComplex.multiply(saByVa0Sq)).conjugate();
                 iPosi = (vPositiveComplex.multiply(sbByVb0Sq)).conjugate();
                 iNega = (vNegativeComplex.multiply(scByVc0Sq)).conjugate();
-            } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
+            } else if ((!hasPhaseA) && hasPhaseB && hasPhaseC) {
                 iZero = (vZeroComplex.multiply(sbByVb0Sq)).conjugate();
                 iPosi = (vPositiveComplex.multiply(scByVc0Sq)).conjugate();
-            } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
+            } else if (hasPhaseA && (!hasPhaseB) && hasPhaseC) {
                 iZero = (vZeroComplex.multiply(saByVa0Sq)).conjugate();
                 iPosi = (vPositiveComplex.multiply(scByVc0Sq)).conjugate();
-            } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
+            } else if (hasPhaseA && hasPhaseB && (!hasPhaseC)) {
                 iZero = (vZeroComplex.multiply(saByVa0Sq)).conjugate();
                 iPosi = (vPositiveComplex.multiply(sbByVb0Sq)).conjugate();
-            } else if (hasPhaseA && !hasPhaseB && !hasPhaseC) {
+            } else if (hasPhaseA && (!hasPhaseB) && (!hasPhaseC)) {
                 iPosi = (vPositiveComplex.multiply(saByVa0Sq)).conjugate();
-            } else if (!hasPhaseA && hasPhaseB && !hasPhaseC) {
+            } else if ((!hasPhaseA) && hasPhaseB && (!hasPhaseC)) {
                 iPosi = (vPositiveComplex.multiply(sbByVb0Sq)).conjugate();
-            } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
+            } else if ((!hasPhaseA) && (!hasPhaseB) && hasPhaseC) {
                 iPosi = (vPositiveComplex.multiply(scByVc0Sq)).conjugate();
             } else {
                 throw new IllegalStateException(PHASE_CONFIG + bus.getId());
@@ -148,15 +148,15 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
                 iZero = (vab.multiply(sabByVab0Sq).add(vca.multiply(scaByVca0Sq).multiply(-1.))).conjugate();
                 iPosi = (vbc.multiply(sbcByVbc0Sq).add(vab.multiply(sabByVab0Sq).multiply(-1.))).conjugate();
                 iNega = (vca.multiply(scaByVca0Sq).add(vbc.multiply(sbcByVbc0Sq).multiply(-1.))).conjugate();
-            } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
+            } else if ((!hasPhaseA) && hasPhaseB && hasPhaseC) {
                 Complex vbc = vZeroComplex.add(vPositiveComplex.multiply(-1.));
                 iZero = (vbc.multiply(sbcByVbc0Sq)).conjugate();
                 iPosi = iZero.multiply(-1.);
-            } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
+            } else if (hasPhaseA && (!hasPhaseB) && hasPhaseC) {
                 Complex vca = vPositiveComplex.add(vZeroComplex.multiply(-1.));
                 iZero = (vca.multiply(scaByVca0Sq)).conjugate();
                 iPosi = iZero.multiply(-1.);
-            } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
+            } else if (hasPhaseA && hasPhaseB && (!hasPhaseC)) {
                 Complex vab = vZeroComplex.add(vPositiveComplex.multiply(-1.));
                 iZero = (vab.multiply(sabByVab0Sq)).conjugate();
                 iPosi = iZero.multiply(-1.);
@@ -252,20 +252,20 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
                 diZero = (dV0.multiply(saByVa0Sq)).conjugate();
                 diPosi = (dV1.multiply(sbByVb0Sq)).conjugate();
                 diNega = (dV2.multiply(scByVc0Sq)).conjugate();
-            } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
+            } else if ((!hasPhaseA) && hasPhaseB && hasPhaseC) {
                 diZero = (dV0.multiply(sbByVb0Sq)).conjugate();
                 diPosi = (dV1.multiply(scByVc0Sq)).conjugate();
-            } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
+            } else if (hasPhaseA && (!hasPhaseB) && hasPhaseC) {
                 diZero = (dV0.multiply(saByVa0Sq)).conjugate();
                 diPosi = (dV1.multiply(scByVc0Sq)).conjugate();
-            } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
+            } else if (hasPhaseA && hasPhaseB && (!hasPhaseC)) {
                 diZero = (dV0.multiply(saByVa0Sq)).conjugate();
                 diPosi = (dV1.multiply(sbByVb0Sq)).conjugate();
-            } else if (hasPhaseA && !hasPhaseB && !hasPhaseC) {
+            } else if (hasPhaseA && (!hasPhaseB) && (!hasPhaseC)) {
                 diPosi = (dV1.multiply(saByVa0Sq)).conjugate();
-            } else if (!hasPhaseA && hasPhaseB && !hasPhaseC) {
+            } else if ((!hasPhaseA) && hasPhaseB && (!hasPhaseC)) {
                 diPosi = (dV1.multiply(sbByVb0Sq)).conjugate();
-            } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
+            } else if ((!hasPhaseA) && (!hasPhaseB) && hasPhaseC) {
                 diPosi = (dV1.multiply(scByVc0Sq)).conjugate();
             } else {
                 throw new IllegalStateException(PHASE_CONFIG + bus.getId());
@@ -290,15 +290,15 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
                 diZero = (dvab.multiply(sabByVab0Sq).add(dvca.multiply(scaByVca0Sq).multiply(-1.))).conjugate();
                 diPosi = (dvbc.multiply(sbcByVbc0Sq).add(dvab.multiply(sabByVab0Sq).multiply(-1.))).conjugate();
                 diNega = (dvca.multiply(scaByVca0Sq).add(dvbc.multiply(sbcByVbc0Sq).multiply(-1.))).conjugate();
-            } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
+            } else if ((!hasPhaseA) && hasPhaseB && hasPhaseC) {
                 Complex dvbc = dV0.add(dV1.multiply(-1.));
                 diZero = (dvbc.multiply(sbcByVbc0Sq)).conjugate();
                 diPosi = diZero.multiply(-1.);
-            } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
+            } else if (hasPhaseA && (!hasPhaseB) && hasPhaseC) {
                 Complex dvca = dV1.add(dV0.multiply(-1.));
                 diZero = (dvca.multiply(scaByVca0Sq)).conjugate();
                 diPosi = diZero.multiply(-1.);
-            } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
+            } else if (hasPhaseA && hasPhaseB && (!hasPhaseC)) {
                 Complex dvab = dV0.add(dV1.multiply(-1.));
                 diZero = (dvab.multiply(sabByVab0Sq)).conjugate();
                 diPosi = diZero.multiply(-1.);
