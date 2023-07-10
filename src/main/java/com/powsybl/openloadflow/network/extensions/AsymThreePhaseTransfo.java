@@ -95,26 +95,22 @@ public class AsymThreePhaseTransfo {
         ComplexMatrix c1V = ComplexMatrix.complexMatrixIdentity(3);
         ComplexMatrix c2V = ComplexMatrix.complexMatrixIdentity(3);
 
-        if (stepType == StepType.STEP_DOWN) {
-            if ((leg2ConnectionType == LegConnectionType.Y_GROUNDED || leg2ConnectionType == LegConnectionType.Y)
-                    && leg1ConnectionType == LegConnectionType.DELTA) {
-                c1I = complexMatrixP(false);
-                c1V = new ComplexMatrix(3, 3);
-                Complex mOne = new Complex(-1., 0.);
-                c1V.set(1, 3, mOne);
-                c1V.set(2, 1, mOne);
-                c1V.set(3, 2, mOne);
-            }
-        } else if (stepType == StepType.STEP_UP) {
-            if ((leg1ConnectionType == LegConnectionType.Y_GROUNDED || leg1ConnectionType == LegConnectionType.Y)
-                    && leg2ConnectionType == LegConnectionType.DELTA) {
-                c2I = complexMatrixP(false);
-                c2V = new ComplexMatrix(3, 3);
-                Complex mOne = new Complex(-1., 0.);
-                c2V.set(1, 3, mOne);
-                c2V.set(2, 1, mOne);
-                c2V.set(3, 2, mOne);
-            }
+        if (stepType == StepType.STEP_DOWN && ((leg2ConnectionType == LegConnectionType.Y_GROUNDED || leg2ConnectionType == LegConnectionType.Y)
+                && leg1ConnectionType == LegConnectionType.DELTA)) {
+            c1I = complexMatrixP(false);
+            c1V = new ComplexMatrix(3, 3);
+            Complex mOne = new Complex(-1., 0.);
+            c1V.set(1, 3, mOne);
+            c1V.set(2, 1, mOne);
+            c1V.set(3, 2, mOne);
+        } else if (stepType == StepType.STEP_UP && ((leg1ConnectionType == LegConnectionType.Y_GROUNDED || leg1ConnectionType == LegConnectionType.Y)
+                && leg2ConnectionType == LegConnectionType.DELTA)) {
+            c2I = complexMatrixP(false);
+            c2V = new ComplexMatrix(3, 3);
+            Complex mOne = new Complex(-1., 0.);
+            c2V.set(1, 3, mOne);
+            c2V.set(2, 1, mOne);
+            c2V.set(3, 2, mOne);
         }
 
         // Step 1: Computation of matrices after voltage substitution in the fixed system
