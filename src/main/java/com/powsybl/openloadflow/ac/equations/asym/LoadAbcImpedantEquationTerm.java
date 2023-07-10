@@ -177,7 +177,6 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
                 if (asymBus.isPositiveSequenceAsCurrent()) {
                     return complexPart == ComplexPart.REAL ? iPosi.getReal() : iPosi.getImaginary(); // IxZero or IyZero
                 } else {
-                    // todo : handle delta impedant case
                     throw new IllegalStateException("positive sequence as Power not yet implemented in ABC load : " + bus.getId());
                 }
 
