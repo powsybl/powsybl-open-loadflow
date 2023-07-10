@@ -53,9 +53,8 @@ public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractClosedBran
 
         DenseMatrix mTmp1 = mRho.times(mV);
         DenseMatrix mTmp2 = mY.times(mTmp1);
-        DenseMatrix mI = mRhoConjugate.times(mTmp2);
 
-        return mI;
+        return mRhoConjugate.times(mTmp2); // expression of I
     }
 
     public static DenseMatrix getdIda1dr1(double g1, double b1, double g2, double b2,
@@ -148,14 +147,12 @@ public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractClosedBran
 
         DenseMatrix mTmp1 = mRho.times(mdV);
         DenseMatrix mTmp2 = mY.times(mTmp1);
-        DenseMatrix mI = mRhoConjugate.times(mTmp2);
 
-        return mI;
+        return mRhoConjugate.times(mTmp2); // expression of dI/dV
     }
 
     @Override
     public double eval() {
-        //System.out.println("Inegative = " + getIvector(g1, b1, g2, b2, v1(), ph1(), v2(), ph2(), g12, b12, r1(), a1(), R2).get(getIndexline(flowType), 0));
         return getIvector(g1, b1, g2, b2, v1(), ph1(), v2(), ph2(), g12, b12, r1(), a1(), R2).get(getIndexline(flowType), 0);
     }
 

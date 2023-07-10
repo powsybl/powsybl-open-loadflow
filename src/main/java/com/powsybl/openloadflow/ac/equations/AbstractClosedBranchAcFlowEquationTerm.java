@@ -26,10 +26,10 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
 public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
 
     public enum FlowType {
-        I1x,
-        I1y,
-        I2x,
-        I2y;
+        I1X,
+        I1Y,
+        I2X,
+        I2Y;
     }
 
     protected final Variable<AcVariableType> v1Var;
@@ -165,16 +165,16 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     public static int getIndexline(ClosedBranchTfoNegativeIflowEquationTerm.FlowType flowType) {
         switch (flowType) {
-            case I1x:
+            case I1X:
                 return 0;
 
-            case I1y:
+            case I1Y:
                 return 1;
 
-            case I2x:
+            case I2X:
                 return 2;
 
-            case I2y:
+            case I2Y:
                 return 3;
 
             default:

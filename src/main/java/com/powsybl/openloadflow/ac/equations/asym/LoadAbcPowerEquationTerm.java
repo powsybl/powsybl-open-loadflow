@@ -16,7 +16,7 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 import java.util.Objects;
 
-public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
+public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoadTerm {
 
     public static final double EPSILON = 0.000000001;
 
@@ -24,9 +24,10 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
         super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         Objects.requireNonNull(variableSet);
 
-        Complex sa = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
-        Complex sb = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
-        Complex sc = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
+        Complex s0 = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
+        Complex sa = s0;
+        Complex sb = s0;
+        Complex sc = s0;
 
         LfAsymLoad asymLoad;
         if (loadConnectionType == LegConnectionType.DELTA) {
@@ -184,7 +185,7 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
 
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
-        ComplexMatrix v0V1V2 = AbstractAsymmetricalLoad.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
+        ComplexMatrix v0V1V2 = AbstractAsymmetricalLoadTerm.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
         // computation of dV0/dx , dV1/dx, dV2/dx
         Complex dV0 = v0V1V2.getTerm(1, 1);
         Complex dV1 = v0V1V2.getTerm(2, 1);
@@ -286,23 +287,18 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
 
     @Override
     public double eval() {
-
-        double pq;
-        pq = pq(element, complexPart, sequenceType,
+        return pq(element, complexPart, sequenceType,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
                 v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), vVarZero, vVarNegative, sabc, loadConnectionType);
-        return pq;
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-
-        double deriv = dpq(element, complexPart, sequenceType, variable,
+        return dpq(element, complexPart, sequenceType, variable,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
                 v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), vVarZero, vVarNegative, sabc, loadConnectionType);
-        return deriv;
     }
 
     @Override

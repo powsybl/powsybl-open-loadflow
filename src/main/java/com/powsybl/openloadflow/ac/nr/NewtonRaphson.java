@@ -362,9 +362,6 @@ public class NewtonRaphson {
 
         if (status == NewtonRaphsonStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             updateNetwork();
-            AbcResults abcResults = new AbcResults();
-            abcResults.fillAbcBussesResults(network); // stores ABC voltages and phases
-            abcResults.fillAbcBranchesResults(network);
         }
 
         // update network state variable

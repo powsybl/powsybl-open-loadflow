@@ -16,15 +16,16 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 import java.util.Objects;
 
-public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
+public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
 
     public LoadAbcImpedantEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
         super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         Objects.requireNonNull(variableSet);
 
-        Complex sa = new Complex(0., 0.);
-        Complex sb = new Complex(0., 0.);
-        Complex sc = new Complex(0., 0.);
+        Complex s0 = new Complex(0., 0.);
+        Complex sa = s0;
+        Complex sb = s0;
+        Complex sc = s0;
 
         LfAsymLoad asymLoad;
         if (loadConnectionType == LegConnectionType.DELTA) {
@@ -99,28 +100,28 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
             Complex sC = sabc.getTerm(3, 1);
 
             Complex saByVa0Sq = sA.multiply(vA0.reciprocal()).multiply(vA0.reciprocal());
-            Complex sbByVa0Sq = sB.multiply(vB0.reciprocal()).multiply(vB0.reciprocal());
-            Complex scByVa0Sq = sC.multiply(vC0.reciprocal()).multiply(vC0.reciprocal());
+            Complex sbByVb0Sq = sB.multiply(vB0.reciprocal()).multiply(vB0.reciprocal());
+            Complex scByVc0Sq = sC.multiply(vC0.reciprocal()).multiply(vC0.reciprocal());
 
             if (hasPhaseA && hasPhaseB && hasPhaseC) {
                 iZero = (vZeroComplex.multiply(saByVa0Sq)).conjugate();
-                iPosi = (vPositiveComplex.multiply(sbByVa0Sq)).conjugate();
-                iNega = (vNegativeComplex.multiply(scByVa0Sq)).conjugate();
+                iPosi = (vPositiveComplex.multiply(sbByVb0Sq)).conjugate();
+                iNega = (vNegativeComplex.multiply(scByVc0Sq)).conjugate();
             } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
-                iZero = (vZeroComplex.multiply(sbByVa0Sq)).conjugate();
-                iPosi = (vPositiveComplex.multiply(scByVa0Sq)).conjugate();
+                iZero = (vZeroComplex.multiply(sbByVb0Sq)).conjugate();
+                iPosi = (vPositiveComplex.multiply(scByVc0Sq)).conjugate();
             } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
                 iZero = (vZeroComplex.multiply(saByVa0Sq)).conjugate();
-                iPosi = (vPositiveComplex.multiply(scByVa0Sq)).conjugate();
+                iPosi = (vPositiveComplex.multiply(scByVc0Sq)).conjugate();
             } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
                 iZero = (vZeroComplex.multiply(saByVa0Sq)).conjugate();
-                iPosi = (vPositiveComplex.multiply(sbByVa0Sq)).conjugate();
+                iPosi = (vPositiveComplex.multiply(sbByVb0Sq)).conjugate();
             } else if (hasPhaseA && !hasPhaseB && !hasPhaseC) {
                 iPosi = (vPositiveComplex.multiply(saByVa0Sq)).conjugate();
             } else if (!hasPhaseA && hasPhaseB && !hasPhaseC) {
-                iPosi = (vPositiveComplex.multiply(sbByVa0Sq)).conjugate();
+                iPosi = (vPositiveComplex.multiply(sbByVb0Sq)).conjugate();
             } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
-                iPosi = (vPositiveComplex.multiply(scByVa0Sq)).conjugate();
+                iPosi = (vPositiveComplex.multiply(scByVc0Sq)).conjugate();
             } else {
                 throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
             }
@@ -214,7 +215,7 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
 
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
-        ComplexMatrix v0V1V2 = AbstractAsymmetricalLoad.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
+        ComplexMatrix v0V1V2 = AbstractAsymmetricalLoadTerm.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
         // computation of dV0/dx , dV1/dx, dV2/dx
         Complex dV0 = v0V1V2.getTerm(1, 1);
         Complex dV1 = v0V1V2.getTerm(2, 1);
@@ -242,28 +243,28 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
 
         if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
             Complex saByVa0Sq = sA.multiply(vA0.reciprocal()).multiply(vA0.reciprocal());
-            Complex sbByVa0Sq = sB.multiply(vB0.reciprocal()).multiply(vB0.reciprocal());
-            Complex scByVa0Sq = sC.multiply(vC0.reciprocal()).multiply(vC0.reciprocal());
+            Complex sbByVb0Sq = sB.multiply(vB0.reciprocal()).multiply(vB0.reciprocal());
+            Complex scByVc0Sq = sC.multiply(vC0.reciprocal()).multiply(vC0.reciprocal());
 
             if (hasPhaseA && hasPhaseB && hasPhaseC) {
                 diZero = (dV0.multiply(saByVa0Sq)).conjugate();
-                diPosi = (dV1.multiply(sbByVa0Sq)).conjugate();
-                diNega = (dV2.multiply(scByVa0Sq)).conjugate();
+                diPosi = (dV1.multiply(sbByVb0Sq)).conjugate();
+                diNega = (dV2.multiply(scByVc0Sq)).conjugate();
             } else if (!hasPhaseA && hasPhaseB && hasPhaseC) {
-                diZero = (dV0.multiply(sbByVa0Sq)).conjugate();
-                diPosi = (dV1.multiply(scByVa0Sq)).conjugate();
+                diZero = (dV0.multiply(sbByVb0Sq)).conjugate();
+                diPosi = (dV1.multiply(scByVc0Sq)).conjugate();
             } else if (hasPhaseA && !hasPhaseB && hasPhaseC) {
                 diZero = (dV0.multiply(saByVa0Sq)).conjugate();
-                diPosi = (dV1.multiply(scByVa0Sq)).conjugate();
+                diPosi = (dV1.multiply(scByVc0Sq)).conjugate();
             } else if (hasPhaseA && hasPhaseB && !hasPhaseC) {
                 diZero = (dV0.multiply(saByVa0Sq)).conjugate();
-                diPosi = (dV1.multiply(sbByVa0Sq)).conjugate();
+                diPosi = (dV1.multiply(sbByVb0Sq)).conjugate();
             } else if (hasPhaseA && !hasPhaseB && !hasPhaseC) {
                 diPosi = (dV1.multiply(saByVa0Sq)).conjugate();
             } else if (!hasPhaseA && hasPhaseB && !hasPhaseC) {
-                diPosi = (dV1.multiply(sbByVa0Sq)).conjugate();
+                diPosi = (dV1.multiply(sbByVb0Sq)).conjugate();
             } else if (!hasPhaseA && !hasPhaseB && hasPhaseC) {
-                diPosi = (dV1.multiply(scByVa0Sq)).conjugate();
+                diPosi = (dV1.multiply(scByVc0Sq)).conjugate();
             } else {
                 throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
             }
@@ -329,23 +330,18 @@ public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoad {
 
     @Override
     public double eval() {
-
-        double pq;
-        pq = pq(element, complexPart, sequenceType,
+        return pq(element, complexPart, sequenceType,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
                 v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), sabc, loadConnectionType);
-        return pq;
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-
-        double deriv = dpq(element, complexPart, sequenceType, variable,
+        return dpq(element, complexPart, sequenceType, variable,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
                 v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), sabc, loadConnectionType);
-        return deriv;
     }
 
     @Override

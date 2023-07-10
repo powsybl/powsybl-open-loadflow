@@ -37,38 +37,22 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
         if (asymBus.getAsymBusVariableType() == AsymBusVariableType.WYE) {
             if (asymBus.getNbMissingPhases() == 0) {
-                var ixi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE);
-                asymBus.setIxN(ixi);
-                var iyi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE);
-                asymBus.setIyN(iyi);
-
-                ixi.setActive(true);
-                iyi.setActive(true);
+                asymBus.setIxN(equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE));
+                asymBus.setIyN(equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE));
             }
 
             if (asymBus.getNbMissingPhases() <= 1) {
-                var ixh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO);
-                asymBus.setIxZ(ixh);
-                var iyh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO);
-                asymBus.setIyZ(iyh);
-                ixh.setActive(true);
-                iyh.setActive(true);
+                asymBus.setIxZ(equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO));
+                asymBus.setIyZ(equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO));
             }
 
         } else {
             if (asymBus.getNbMissingPhases() > 0) {
                 throw new IllegalStateException(" Delta config with missing phases not yet handled at bus : " + bus.getId());
             }
-
             // delta connection
-            var ixi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE);
-            asymBus.setIxN(ixi);
-            var iyi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE);
-            asymBus.setIyN(iyi);
-
-            ixi.setActive(true);
-            iyi.setActive(true);
-
+            asymBus.setIxN(equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE));
+            asymBus.setIyN(equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE));
         }
 
         // Handle generators at bus for homopolar and inverse
@@ -81,25 +65,21 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                         + " not yet supported in asymmetric load flow: " + gen.getId());
             }
 
-            if (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE
-                    || gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE) {
-                LfAsymGenerator asymGen = gen.getAsym();
-                if (asymGen != null) {
-                    asymBus.setBzEquiv(asymBus.getBzEquiv() + asymGen.getBz());
-                    asymBus.setGzEquiv(asymBus.getGzEquiv() + asymGen.getGz());
-                    asymBus.setBnEquiv(asymBus.getBnEquiv() + asymGen.getBn());
-                    asymBus.setGnEquiv(asymBus.getGnEquiv() + asymGen.getGn());
-                }
+            if (gen.getAsym() != null && (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE
+                    || gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)) {
+                asymBus.setBzEquiv(asymBus.getBzEquiv() + gen.getAsym().getBz());
+                asymBus.setGzEquiv(asymBus.getGzEquiv() + gen.getAsym().getGz());
+                asymBus.setBnEquiv(asymBus.getBnEquiv() + gen.getAsym().getBn());
+                asymBus.setGnEquiv(asymBus.getGnEquiv() + gen.getAsym().getGn());
             }
         }
 
-        if (asymBus.getAsymBusVariableType() == AsymBusVariableType.WYE) {
-            if (Math.abs(asymBus.getBzEquiv()) > EPSILON || Math.abs(asymBus.getGzEquiv()) > EPSILON) {
-                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO)
-                        .addTerm(new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.ZERO));
-                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO)
-                        .addTerm(new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.ZERO));
-            }
+        if (asymBus.getAsymBusVariableType() == AsymBusVariableType.WYE
+                && (Math.abs(asymBus.getBzEquiv()) > EPSILON || Math.abs(asymBus.getGzEquiv()) > EPSILON)) {
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO)
+                    .addTerm(new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.ZERO));
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO)
+                    .addTerm(new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.ZERO));
         }
 
         if (Math.abs(asymBus.getGnEquiv()) > EPSILON || Math.abs(asymBus.getBnEquiv()) > EPSILON) {
@@ -148,17 +128,6 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         boolean deriveA1 = isDeriveA1(branch, creationParameters);
         boolean deriveR1 = isDeriveR1(branch);
 
-        boolean isBus1Wye = true;
-        boolean isBus2Wye = true;
-        LfAsymBus asymBus1 = bus1.getAsym();
-        if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
-            isBus1Wye = false;
-        }
-        LfAsymBus asymBus2 = bus2.getAsym();
-        if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
-            isBus2Wye = false;
-        }
-
         if (bus1 != null && bus2 != null) {
 
             if (!hasBranchAsymmetry(branch)) {
@@ -185,23 +154,27 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                 } else {
                     // this must be a fortescue transformer
                     // zero
-                    ixz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1x);
-                    iyz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1y);
-                    ixz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2x);
-                    iyz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2y);
+                    ixz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1X);
+                    iyz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1Y);
+                    ixz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2X);
+                    iyz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2Y);
 
                     // negative
-                    ixn1 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1x);
-                    iyn1 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1y);
-                    ixn2 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2x);
-                    iyn2 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2y);
+                    ixn1 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1X);
+                    iyn1 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1Y);
+                    ixn2 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2X);
+                    iyn2 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2Y);
                 }
 
             } else {
                 // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
                 // positive
+                boolean isBus1Wye = true;
+                LfAsymBus asymBus1 = bus1.getAsym();
+                if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
+                    isBus1Wye = false;
+                }
                 int nbPhases1 = asymBus1.getNbExistingPhases();
-                int nbPhases2 = asymBus2.getNbExistingPhases();
 
                 // test: if we are WYE variables and there is a phase missing, the positive sequence is modeled with currents
                 if (isBus1Wye) {
@@ -233,6 +206,12 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                     iyn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.NEGATIVE);
                 }
 
+                boolean isBus2Wye = true;
+                LfAsymBus asymBus2 = bus2.getAsym();
+                if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
+                    isBus2Wye = false;
+                }
+                int nbPhases2 = asymBus2.getNbExistingPhases();
                 if (isBus2Wye) {
 
                     if (asymBus2.isPositiveSequenceAsCurrent()) {
@@ -422,7 +401,6 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                     equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO).addTerm(iyLoadZero);
                 }
             } else if (lfAsymLoadType == AsymBusLoadType.CONSTANT_IMPEDANCE) {
-                //throw new IllegalStateException("Non-Constant Power ABC loads not yet handled at bus : " + bus.getId());
                 LoadAbcImpedantEquationTerm pLoadPositive = new LoadAbcImpedantEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(pLoadPositive);
                 LoadAbcImpedantEquationTerm qLoadPositive = new LoadAbcImpedantEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());

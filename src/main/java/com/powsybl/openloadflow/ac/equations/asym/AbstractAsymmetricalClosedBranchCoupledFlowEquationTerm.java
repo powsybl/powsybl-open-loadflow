@@ -228,7 +228,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
         // buildong missing sequences if one phase is disconnected
         double vZero = 0.;
-        double vPositive = 0.;
+        double vPositive;
         double vNegative = 0.;
 
         if (i == Side.ONE) {
@@ -278,7 +278,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
         // buildong missing sequences if one phase is disconnected
         double phZero = 0.;
-        double phPositive = 0.;
+        double phPositive;
         double phNegative = 0.;
 
         if (i == Side.ONE) {
