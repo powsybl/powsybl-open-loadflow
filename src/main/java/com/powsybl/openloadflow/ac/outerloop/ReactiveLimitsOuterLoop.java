@@ -37,6 +37,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
     public static final int MAX_SWITCH_PQ_PV = 3;
 
+    public static final double MAX_Q_LIMITS_DIFFERENCE = 1E-3;
+
     private final int maxPqPvSwitch;
 
     public ReactiveLimitsOuterLoop(int maxPqPvSwitch) {
@@ -233,13 +235,13 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
         double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
         double q = controllerCapableBus.getGenerationTargetQ(); // the generation targetQ from the previous switch PV to PQ.
-        if (controllerCapableBus.getQLimitType() == LfBus.QLimitType.MIN_Q && Math.abs(minQ - q) > 0.01) {
-            LOGGER.warn("PQ bus with updated Q limits, previous minQ '{}' new minQ '{}'", q, minQ);
+        if (controllerCapableBus.getQLimitType() == LfBus.QLimitType.MIN_Q && Math.abs(minQ - q) > MAX_Q_LIMITS_DIFFERENCE) {
+            LOGGER.trace("PQ bus {} with updated Q limits, previous minQ {} new minQ {}", controllerCapableBus.getId(), q, minQ);
             controllerCapableBus.setGenerationTargetQ(minQ);
             qLimitsUpdated = true;
         }
-        if (controllerCapableBus.getQLimitType() == LfBus.QLimitType.MAX_Q && Math.abs(maxQ - q) > 0.01) {
-            LOGGER.warn("PQ bus with updated Q limits, previous maxQ '{}' new maxQ '{}'", q, maxQ);
+        if (controllerCapableBus.getQLimitType() == LfBus.QLimitType.MAX_Q && Math.abs(maxQ - q) > MAX_Q_LIMITS_DIFFERENCE) {
+            LOGGER.trace("PQ bus {} with updated Q limits, previous maxQ {} new maxQ {}", controllerCapableBus.getId(), q, maxQ);
             controllerCapableBus.setGenerationTargetQ(maxQ);
             qLimitsUpdated = true;
         }
