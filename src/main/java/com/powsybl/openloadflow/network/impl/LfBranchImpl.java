@@ -142,13 +142,13 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 for (int i = 0; i < 6; i++) {
                     connectionList.add(true);
                 }
-                if (extension2.getOpenPhaseA1()) {
+                if (extension2.getOpenPhaseA1().equals(Boolean.TRUE)) {
                     connectionList.set(0, false);
                 }
-                if (extension2.getOpenPhaseB1()) {
+                if (extension2.getOpenPhaseB1().equals(Boolean.TRUE)) {
                     connectionList.set(1, false);
                 }
-                if (extension2.getOpenPhaseC1()) {
+                if (extension2.getOpenPhaseC1().equals(Boolean.TRUE)) {
                     connectionList.set(2, false);
                 }
 
@@ -210,7 +210,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
                 ComplexMatrix yabcPu = ComplexMatrix.getComplexMatrixFromRealCartesian(mIbasePu.getRealCartesianMatrix().times(yabcReal.times(mVbasePu.getRealCartesianMatrix())));
                 LfAsymLine asymBranch = new LfAsymLine(yabcPu, extension2.getOpenPhaseA1(), extension2.getOpenPhaseB1(), extension2.getOpenPhaseC1(),
-                        true, true, true, true, true, true, true, true, side1VariableType, side2VariableType); // TODO: rework line opening for a line
+                        true, true, true, true, true, true, true, true, side1VariableType, side2VariableType);
 
                 lfBranch.setAsymLine(asymBranch);
 
