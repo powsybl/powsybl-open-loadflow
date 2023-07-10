@@ -257,7 +257,7 @@ public class AsymThreePhaseTransfo {
         // for now we implement only one phase disconnection
         int numDisconnection = 0;
         for (int i = 0; i < phaseConnections.size(); i++) {
-            if (!phaseConnections.get(i)) {
+            if (phaseConnections.get(i).equals(Boolean.FALSE)) {
                 numDisconnection = i + 1;
                 break;
             }
