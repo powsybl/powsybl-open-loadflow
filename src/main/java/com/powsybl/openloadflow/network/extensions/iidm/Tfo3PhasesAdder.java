@@ -30,7 +30,7 @@ public class Tfo3PhasesAdder extends AbstractExtensionAdder<TwoWindingsTransform
 
     @Override
     protected Tfo3Phases createExtension(TwoWindingsTransformer t2w) {
-        return new Tfo3Phases(t2w, ya, yb, yb,
+        return new Tfo3Phases(t2w, ya, yb, yc,
                 stepWindingConnectionType,
                 isOpenPhaseA1, isOpenPhaseB1, isOpenPhaseC1,
                 isOpenPhaseA2, isOpenPhaseB2, isOpenPhaseC2);

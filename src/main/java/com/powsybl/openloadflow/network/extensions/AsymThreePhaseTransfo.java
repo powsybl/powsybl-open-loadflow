@@ -109,26 +109,24 @@ public class AsymThreePhaseTransfo {
         ComplexMatrix c2V = ComplexMatrix.complexMatrixIdentity(3);
 
         if (stepType == StepType.STEP_DOWN) {
-            if (leg2ConnectionType == LegConnectionType.Y_GROUNDED || leg2ConnectionType == LegConnectionType.Y) {
-                if (leg1ConnectionType == LegConnectionType.DELTA) {
-                    c1I = complexMatrixP(false);
-                    c1V = new ComplexMatrix(3, 3);
-                    Complex mOne = new Complex(-1., 0.);
-                    c1V.set(1, 3, mOne);
-                    c1V.set(2, 1, mOne);
-                    c1V.set(3, 2, mOne);
-                }
+            if ((leg2ConnectionType == LegConnectionType.Y_GROUNDED || leg2ConnectionType == LegConnectionType.Y)
+                    && leg1ConnectionType == LegConnectionType.DELTA) {
+                c1I = complexMatrixP(false);
+                c1V = new ComplexMatrix(3, 3);
+                Complex mOne = new Complex(-1., 0.);
+                c1V.set(1, 3, mOne);
+                c1V.set(2, 1, mOne);
+                c1V.set(3, 2, mOne);
             }
         } else if (stepType == StepType.STEP_UP) {
-            if (leg1ConnectionType == LegConnectionType.Y_GROUNDED || leg1ConnectionType == LegConnectionType.Y) {
-                if (leg2ConnectionType == LegConnectionType.DELTA) {
-                    c2I = complexMatrixP(false);
-                    c2V = new ComplexMatrix(3, 3);
-                    Complex mOne = new Complex(-1., 0.);
-                    c2V.set(1, 3, mOne);
-                    c2V.set(2, 1, mOne);
-                    c2V.set(3, 2, mOne);
-                }
+            if ((leg1ConnectionType == LegConnectionType.Y_GROUNDED || leg1ConnectionType == LegConnectionType.Y)
+                    && leg2ConnectionType == LegConnectionType.DELTA) {
+                c2I = complexMatrixP(false);
+                c2V = new ComplexMatrix(3, 3);
+                Complex mOne = new Complex(-1., 0.);
+                c2V.set(1, 3, mOne);
+                c2V.set(2, 1, mOne);
+                c2V.set(3, 2, mOne);
             }
         }
 
@@ -327,9 +325,6 @@ public class AsymThreePhaseTransfo {
         ComplexMatrix complexMatrix = ComplexMatrix.complexMatrixIdentity(3);
 
         // Test artificial invertability with epsilon
-        //complexMatrix.set(1, 1, new Complex(1. + EPSILON_LEAK, 0.));
-        //complexMatrix.set(3, 3, new Complex(1. - EPSILON_LEAK, 0.));
-
         Complex mOne = new Complex(-1., 0.);
         if (!isForward) {
             // Step-down configuration
