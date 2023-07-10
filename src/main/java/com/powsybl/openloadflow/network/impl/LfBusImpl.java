@@ -160,7 +160,6 @@ public class LfBusImpl extends AbstractLfBus {
         boolean isFortescueRep = true;
         boolean isPositiveSequenceAsCurrent = false;
 
-        // TODO: adapt for better efficiency
         AsymBusVariableType asymBusVariableType = AsymBusVariableType.WYE;
         for (Bus busi : bus.getVoltageLevel().getBusBreakerView().getBuses()) {
             var extensionBus = busi.getExtension(BusAsymmetrical.class);

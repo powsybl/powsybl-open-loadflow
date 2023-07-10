@@ -11,19 +11,11 @@ public class AsymThreePhaseTransfo {
 
     public static final String PROPERTY_ASYMMETRICAL = "ThreePhase";
 
-    private final LegConnectionType leg1ConnectionType;
-    private final LegConnectionType leg2ConnectionType;
-
     private final Complex rho; // rho expressed at side 1 of each single phase transformer
 
     private final ComplexMatrix ya;
     private final ComplexMatrix yb;
     private final ComplexMatrix yc;
-
-    private final List<Boolean> phaseConnections; // first value is true if A1 connected ... last value is true if C2 connected
-
-    private final Complex zG1;
-    private final Complex zG2;
 
     private final ComplexMatrix yp11;
     private final ComplexMatrix yp12;
@@ -41,15 +33,10 @@ public class AsymThreePhaseTransfo {
     public AsymThreePhaseTransfo(LegConnectionType leg1ConnectionType, LegConnectionType leg2ConnectionType, StepType stepType,
                                  ComplexMatrix ya, ComplexMatrix yb, ComplexMatrix yc, Complex rho, Complex zG1, Complex zG2,
                                  List<Boolean> phaseConnections) {
-        this.leg1ConnectionType = leg1ConnectionType;
-        this.leg2ConnectionType = leg2ConnectionType;
         this.rho = rho;
         this.ya = ya;
         this.yb = yb;
         this.yc = yc;
-        this.zG1 = zG1;
-        this.zG2 = zG2;
-        this.phaseConnections = phaseConnections;
 
         // Building terms of the fixed system:
         // [I'abc1] = [ y'11  y'12 ] [V'abc1]
