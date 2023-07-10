@@ -207,8 +207,8 @@ public class LfBusImpl extends AbstractLfBus {
                         isFortescueRep = false;
                     }
                 }
+                break;
             }
-            break;
         }
 
         lfBus.setAsym(new LfAsymBus(asymBusVariableType, hasPhaseA, hasPhaseB, hasPhaseC,

@@ -101,25 +101,21 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         DenseMatrix mMinusdZdr1 = getMatrixFromBloc44(minusdz11, minusdz22, minusdz12);
         DenseMatrix mY = getYgYgForcedFluxesImpedanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1, true);
 
-        return mY.times(mMinusdZdr1.times(mY));
+        return mY.times(mMinusdZdr1.times(mY)); // [dY]
 
     }
 
     public static DenseMatrix getYgYgFreeFluxesImpedanceMatrix(Complex z0T1, Complex z0T2, Complex zG1, Complex zG2, double r1) {
-        //System.out.println("free fluxes Impedance ");
         // F(x) = 1 / (A + B.x²) = yeq
         Complex yeq = ((zG1.multiply(r1 * r1).add(zG2)).multiply(3)).add(z0T1.add(z0T2)).reciprocal();
         Complex y11 = yeq.multiply(r1 * r1);
         Complex y12 = yeq.multiply(-r1);
         Complex y22 = yeq;
 
-        DenseMatrix mY = getMatrixFromBloc44(y11, y22, y12);
-
-        return mY;
+        return getMatrixFromBloc44(y11, y22, y12); // [Y]
     }
 
     public static DenseMatrix getYgYgFreeFluxesDeriveAdmittanceMatrixdr1(Complex z0T1, Complex z0T2, Complex zG1, Complex zG2, double r1) {
-        //System.out.println(">>>>>>>>>>>>>>>> free fluxes Derive Impedance ");
         // F(x) = 1 / (a + b.x²) = yeq
         // F'(x) = -2.b.x.(a+b.x²)^-2 = dYeq
         Complex a = zG2.multiply(3).add(z0T1.add(z0T2));
@@ -134,9 +130,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         Complex dy12 = (yeq.multiply(-1)).add(dYeq.multiply(-r1));
         Complex dy22 = dYeq;
 
-        DenseMatrix mdY = getMatrixFromBloc44(dy11, dy22, dy12);
-
-        return mdY;
+        return getMatrixFromBloc44(dy11, dy22, dy12); // [dY]
     }
 
     public static DenseMatrix getAdmittanceMatrix(Complex z0T1, Complex z0T2, Complex y0m, Complex zG1, Complex zG2,
@@ -211,9 +205,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
 
         DenseMatrix mV = getCartesianVoltageVector(v1, ph1, v2, ph2);
 
-        DenseMatrix mI = getAdmittanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1, leg1Type, leg2Type, isFreeFluxes).times(mV); // get admittance matrix in static
-
-        return mI;
+        return getAdmittanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1, leg1Type, leg2Type, isFreeFluxes).times(mV); // get admittance matrix in static times voltage to get the current
     }
 
     @Override

@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-abstract class AbstractAsymmetricalLoad extends AbstractElementEquationTerm<LfBus, AcVariableType, AcEquationType> {
+abstract class AbstractAsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariableType, AcEquationType> {
 
     // positive
     protected final Variable<AcVariableType> vVar;
@@ -50,7 +50,7 @@ abstract class AbstractAsymmetricalLoad extends AbstractElementEquationTerm<LfBu
 
     protected ComplexMatrix sabc;
 
-    public AbstractAsymmetricalLoad(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
+    protected AbstractAsymmetricalLoadTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
         super(bus);
         Objects.requireNonNull(variableSet);
         this.complexPart = Objects.requireNonNull(complexPart);
@@ -99,7 +99,6 @@ abstract class AbstractAsymmetricalLoad extends AbstractElementEquationTerm<LfBu
 
             vVarNegative = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_NEGATIVE);
             phVarNegative = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
-            //throw new IllegalStateException("Delta variables not yet handled for Load with ABC bus: " + bus.getId());
         }
     }
 
