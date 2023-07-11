@@ -53,6 +53,12 @@ public class AsymThreePhaseTfoTest {
         AsymThreePhaseTransfo asym3phaseTfo = new AsymThreePhaseTransfo(leg1ConnectionType, leg2ConnectionType, StepType.STEP_DOWN,
                 ya, yb, yc, rho, zG1, zG2, connectionList);
 
+        DenseMatrix yabc = asym3phaseTfo.getYabc();
+
+        assertEquals(0.040504009900990144, yabc.get(0, 0), 0.000001);
+        assertEquals(0.39694009900990224, yabc.get(0, 1), 0.000001);
+        assertEquals(0.0, yabc.get(5, 4), 0.000001);
+
     }
 
     public static ComplexMatrix buildSinglePhaseAdmittanceMatrix(Complex z, Complex y1, Complex y2) {
@@ -82,7 +88,7 @@ public class AsymThreePhaseTfoTest {
             vWinding3 = vBase3 / Math.sqrt(3.);
         }
 
-        double zBase = vWinding3 * vWinding3 / sBase; // TODO : remove 1.01 !!!
+        double zBase = vWinding3 * vWinding3 / sBase;
 
         Complex zPhase = new Complex(1., 6.).multiply(zBase / 100.);
         Complex yPhase = new Complex(0., 0.);
@@ -122,11 +128,7 @@ public class AsymThreePhaseTfoTest {
         // test of an asymmetric three phase transformer
         LegConnectionType leg1ConnectionType = LegConnectionType.Y_GROUNDED;
         LegConnectionType leg2ConnectionType = LegConnectionType.Y_GROUNDED;
-        DenseMatrix yabc = initYabc4busFeeder(leg1ConnectionType, leg2ConnectionType, 0, StepType.STEP_DOWN); //asym3phaseTfo.getYabc();
-
-        /*System.out.println("---- Complex Yabc from example -------------------------------");
-        ComplexMatrix.printComplexMatrix(ComplexMatrix.getComplexMatrixFromRealCartesian(yabc));
-        System.out.println("---- fin -------------------------------");*/
+        DenseMatrix yabc = initYabc4busFeeder(leg1ConnectionType, leg2ConnectionType, 0, StepType.STEP_DOWN);
 
         Complex va2 = ComplexUtils.polar2Complex(7.107, Math.toRadians(-0.3));
         Complex vb2 = ComplexUtils.polar2Complex(7.140, Math.toRadians(-120.3));
@@ -140,6 +142,15 @@ public class AsymThreePhaseTfoTest {
 
         DenseMatrix iabc2Iabc3 = yabc.times(vabc2Vabc3);
         ComplexMatrix i23 = getComplexCurrent(iabc2Iabc3);
+
+        assertEquals(0.10428374508582401, yabc.get(0, 0), 0.000001);
+        assertEquals(0.6257024705149441, yabc.get(0, 1), 0.000001);
+        assertEquals(-0.6257024705149441, yabc.get(5, 4), 0.000001);
+
+        assertEquals(0.2887570522476377, i23.getTerm(1, 1).getReal(), 0.000001);
+        assertEquals(-0.14632219207677777, i23.getTerm(2, 1).getImaginary(), 0.000001);
+        assertEquals(0.8771236971578364, i23.getTerm(5, 1).getReal(), 0.000001);
+
     }
 
     @Test
@@ -469,14 +480,6 @@ public class AsymThreePhaseTfoTest {
             Complex term = new Complex(iabc2Iabc3.get(2 * (i - 1), 0), iabc2Iabc3.get(2 * (i - 1) + 1, 0));
             i23.set(i, 1, term);
         }
-
-        System.out.println("Ia2 = " + i23.getTerm(1, 1).abs() + " ( " + Math.toDegrees(i23.getTerm(1, 1).getArgument()));
-        System.out.println("Ib2 = " + i23.getTerm(2, 1).abs() + " ( " + Math.toDegrees(i23.getTerm(2, 1).getArgument()));
-        System.out.println("Ic2 = " + i23.getTerm(3, 1).abs() + " ( " + Math.toDegrees(i23.getTerm(3, 1).getArgument()));
-
-        System.out.println("Ia3 = " + i23.getTerm(4, 1).abs() + " ( " + Math.toDegrees(i23.getTerm(4, 1).getArgument()));
-        System.out.println("Ib3 = " + i23.getTerm(5, 1).abs() + " ( " + Math.toDegrees(i23.getTerm(5, 1).getArgument()));
-        System.out.println("Ic3 = " + i23.getTerm(6, 1).abs() + " ( " + Math.toDegrees(i23.getTerm(6, 1).getArgument()));
 
         return i23;
 

@@ -20,6 +20,7 @@ import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class Asym34BusFeederTest {
@@ -57,8 +58,8 @@ public class Asym34BusFeederTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
-        assertVoltageEquals(25.798286776093295, bus860);
-        assertVoltageEquals(25.53020743980888, bus850);
+        assertVoltageEquals(25.74576766760779, bus860);
+        assertVoltageEquals(25.480362952505075, bus850);
 
     }
 
@@ -454,7 +455,7 @@ public class Asym34BusFeederTest {
                 .setQ0(q820)
                 .add();
 
-        load818.newExtension(LoadAsymmetricalAdder.class)
+        load820.newExtension(LoadAsymmetricalAdder.class)
                 .withDeltaPa(0.135)
                 .withDeltaQa(0.070)
                 .withDeltaPb(0.0)
@@ -464,7 +465,7 @@ public class Asym34BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load818.newExtension(LoadAsymmetrical2Adder.class)
+        load820.newExtension(LoadAsymmetrical2Adder.class)
                 .withLoadType(LoadType.CONSTANT_POWER)
                 .add();
 
@@ -2793,13 +2794,8 @@ public class Asym34BusFeederTest {
         DenseMatrix i800Real = yabc300.getRealCartesianMatrix().times(v.getRealCartesianMatrix());
         ComplexMatrix i800 = ComplexMatrix.getComplexMatrixFromRealCartesian(i800Real);
 
-        System.out.println(" 800 PHASE A = " + i800.getTerm(1, 1).abs() + " (" + Math.toDegrees(i800.getTerm(1, 1).getArgument()));
-        System.out.println(" 800 PHASE B = " + i800.getTerm(2, 1).abs() + " (" + Math.toDegrees(i800.getTerm(2, 1).getArgument()));
-        System.out.println(" 800 PHASE C = " + i800.getTerm(3, 1).abs() + " (" + Math.toDegrees(i800.getTerm(3, 1).getArgument()));
-
-        System.out.println(" 802 PHASE A = " + i800.getTerm(4, 1).abs() + " (" + Math.toDegrees(i800.getTerm(4, 1).getArgument()));
-        System.out.println(" 802 PHASE B = " + i800.getTerm(5, 1).abs() + " (" + Math.toDegrees(i800.getTerm(5, 1).getArgument()));
-        System.out.println(" 802 PHASE C = " + i800.getTerm(6, 1).abs() + " (" + Math.toDegrees(i800.getTerm(6, 1).getArgument()));
+        assertEquals(0.050698174712604675, i800.getTerm(1, 1).abs(), 0.00001);
+        assertEquals(0.04553392610054142, i800.getTerm(5, 1).abs(), 0.00001);
 
     }
 }

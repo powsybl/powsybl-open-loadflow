@@ -123,15 +123,4 @@ public class ComplexMatrix {
         return complexMatrix;
     }
 
-    public static void printComplexMatrix(ComplexMatrix cm) {
-
-        for (int i = 0; i < cm.getNbRow(); i++) {
-            String line = " ";
-            for (int j = 0; j < cm.getNbCol(); j++) {
-                line = line + cm.matrix[i][j].toString() + "   ";
-            }
-            System.out.println(line);
-        }
-    }
-
 }
