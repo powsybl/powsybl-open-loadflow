@@ -19,8 +19,7 @@ public interface LfBus extends LfElement {
 
     public enum QLimitType {
         MIN_Q,
-        MAX_Q,
-        OTHER
+        MAX_Q
     }
 
     String getVoltageLevelId();
@@ -105,7 +104,7 @@ public interface LfBus extends LfElement {
 
     double getMaxQ();
 
-    QLimitType getQLimitType();
+    Optional<QLimitType> getQLimitType();
 
     void setQLimitType(QLimitType qLimitType);
 

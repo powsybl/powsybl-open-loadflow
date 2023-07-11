@@ -55,7 +55,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double generationTargetQ = 0;
 
-    protected QLimitType qLimitType = QLimitType.OTHER;
+    protected QLimitType qLimitType;
 
     protected final List<LfGenerator> generators = new ArrayList<>();
 
@@ -396,8 +396,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public QLimitType getQLimitType() {
-        return this.qLimitType;
+    public Optional<QLimitType> getQLimitType() {
+        return Optional.ofNullable(this.qLimitType);
     }
 
     @Override
