@@ -20,6 +20,7 @@ import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class Asym13BusFeederTest {
@@ -86,6 +87,9 @@ public class Asym13BusFeederTest {
         System.out.println(" 632 PHASE A = " + i601.getTerm(4, 1).abs() + " (" + Math.toDegrees(i601.getTerm(4, 1).getArgument()));
         System.out.println(" 632 PHASE B = " + i601.getTerm(5, 1).abs() + " (" + Math.toDegrees(i601.getTerm(5, 1).getArgument()));
         System.out.println(" 632 PHASE C = " + i601.getTerm(6, 1).abs() + " (" + Math.toDegrees(i601.getTerm(6, 1).getArgument()));
+
+        assertEquals(0.5586746694365669, i601.getTerm(1, 1).abs(), 0.00001);
+        assertEquals(0.41499019362590045, i601.getTerm(5, 1).abs(), 0.00001);
 
     }
 
@@ -619,12 +623,33 @@ public class Asym13BusFeederTest {
                 .withDeltaQa(0.190)
                 .withDeltaPb(0.068)
                 .withDeltaQb(0.060)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load675.newExtension(LoadAsymmetrical2Adder.class)
+                .add();
+
+        // we split the load into 2 parts to test the addition of loads
+        Load load675bis = vl675.newLoad()
+                .setId("LOAD_675_bis")
+                .setBus(bus675.getId())
+                .setP0(p675)
+                .setQ0(q675)
+                .add();
+
+        load675bis.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.)
+                .withDeltaQb(0.)
                 .withDeltaPc(0.290)
                 .withDeltaQc(0.212)
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load675.newExtension(LoadAsymmetrical2Adder.class)
+        load675bis.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         Load compens675 = vl675.newLoad()

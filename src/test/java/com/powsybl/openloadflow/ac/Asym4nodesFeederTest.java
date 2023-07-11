@@ -188,6 +188,11 @@ public class Asym4nodesFeederTest {
 
     @Disabled
     @Test
+    /*
+     * test will be enabled once perfect voltage source for Negative and Zero sequence
+     * is implemented
+     *
+     */
     void yDeltaTest() {
 
         // TODO : test with perfect voltage source for Negative and Zero sequence
@@ -232,6 +237,11 @@ public class Asym4nodesFeederTest {
 
     @Disabled
     @Test
+    /*
+     * test will be enabled once perfect voltage source for Negative and Zero sequence
+     * is implemented. Otherwise, phase C at generating bus will stay unsolvable
+     *
+     */
     void ygDeltaOpenTest() {
 
         // TODO : test with perfect voltage source for Negative and Zero sequence
@@ -255,13 +265,13 @@ public class Asym4nodesFeederTest {
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(100)
-                .setMaxActivePowerMismatch(0.1)
-                .setMaxReactivePowerMismatch(0.1)
-                .setNewtonRaphsonConvEpsPerEq(0.1)
-                .setMaxVoltageMismatch(0.1)
-                .setMaxSusceptanceMismatch(0.1)
-                .setMaxAngleMismatch(0.1)
-                .setMaxRatioMismatch(0.1)
+                .setMaxActivePowerMismatch(0.001)
+                .setMaxReactivePowerMismatch(0.001)
+                .setNewtonRaphsonConvEpsPerEq(0.001)
+                .setMaxVoltageMismatch(0.001)
+                .setMaxSusceptanceMismatch(0.001)
+                .setMaxAngleMismatch(0.001)
+                .setMaxRatioMismatch(0.001)
                 .setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -649,7 +659,7 @@ public class Asym4nodesFeederTest {
         }
 
         double zBase = ratedU3 * ratedU3 / sBase;
-        double rT23 = zBase / 3. / 100; // TODO : sBase = 2. for single phase and 6. for three phase
+        double rT23 = zBase / 3. / 100;
         double xT23 = 6. * zBase / 3. / 100;
         var t23 = substation23.newTwoWindingsTransformer()
                 .setId("T2W_B2_B3")
@@ -660,7 +670,7 @@ public class Asym4nodesFeederTest {
                 .setVoltageLevel2(vl3.getId())
                 .setBus2(bus3.getId())
                 .setConnectableBus2(bus3.getId())
-                .setRatedU2(ratedU3) // TODO : check OK for Fortescue modeling
+                .setRatedU2(ratedU3)
                 .setR(rT23)
                 .setX(xT23)
                 .setG(0.0D)
@@ -669,8 +679,8 @@ public class Asym4nodesFeederTest {
                 .add();
 
         t23.newExtension(TwoWindingsTransformerFortescueAdder.class)
-                .withRz(rT23) // TODO : check that again
-                .withXz(xT23) // TODO : check that
+                .withRz(rT23)
+                .withXz(xT23)
                 .withConnectionType1(w1)
                 .withConnectionType2(w2)
                 .withGroundingX1(0.0000)
