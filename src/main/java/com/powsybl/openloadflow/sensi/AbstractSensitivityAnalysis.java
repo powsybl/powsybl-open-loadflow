@@ -16,7 +16,10 @@ import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -305,7 +308,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             return variableElement;
         }
 
-        public ElementEquation<V, E> getVariableEquation() {
+        public Equation<V, E> getVariableEquation() {
             switch (variableType) {
                 case TRANSFORMER_PHASE:
                 case TRANSFORMER_PHASE_1:
@@ -474,9 +477,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         private final LfElement variableElement;
 
-        private final ElementEquation<V, E> variableEquation;
+        private final Equation<V, E> variableEquation;
 
-        SingleVariableFactorGroup(LfElement variableElement, ElementEquation<V, E> variableEquation, SensitivityVariableType variableType) {
+        SingleVariableFactorGroup(LfElement variableElement, Equation<V, E> variableEquation, SensitivityVariableType variableType) {
             super(variableType);
             this.variableElement = Objects.requireNonNull(variableElement);
             this.variableEquation = variableEquation;

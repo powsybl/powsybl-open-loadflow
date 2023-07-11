@@ -18,6 +18,8 @@ import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
 
+import java.util.function.ToDoubleBiFunction;
+
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 /**
@@ -55,8 +57,10 @@ class EquationArrayTest {
         for (LfBranch branch : lfNetwork.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            p.addTerm(bus1.getNum(), new ClosedBranchSide1ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), false, false))
-                    .addTerm(bus2.getNum(), new ClosedBranchSide2ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), false, false));
+            p.registerTermEvaluator(0, ClosedBranchSide1ActiveFlowEquationTerm::eval);
+            p.registerTermEvaluator(1, ClosedBranchSide2ActiveFlowEquationTerm::eval);
+            p.addTerm(0, bus1.getNum(), branch.getNum());
+            p.addTerm(1, bus2.getNum(), branch.getNum());
         }
         networkVector.startListening();
         NewtonRaphson.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());

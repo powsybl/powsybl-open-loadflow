@@ -46,12 +46,12 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public ElementEquation<V, E> getEquation() {
+        public Equation<V, E> getEquation() {
             return term.getEquation();
         }
 
         @Override
-        public void setEquation(ElementEquation<V, E> equation) {
+        public void setEquation(Equation<V, E> equation) {
             term.setEquation(equation);
         }
 
@@ -133,9 +133,9 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     List<EquationTerm<V, E>> getChildren();
 
-    ElementEquation<V, E> getEquation();
+    Equation<V, E> getEquation();
 
-    void setEquation(ElementEquation<V, E> equation);
+    void setEquation(Equation<V, E> equation);
 
     boolean isActive();
 
