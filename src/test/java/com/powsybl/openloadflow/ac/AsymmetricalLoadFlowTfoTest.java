@@ -1,10 +1,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
-import com.powsybl.iidm.network.extensions.LineFortescueAdder;
-import com.powsybl.iidm.network.extensions.TwoWindingsTransformerFortescueAdder;
-import com.powsybl.iidm.network.extensions.WindingConnectionType;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -35,6 +32,39 @@ public class AsymmetricalLoadFlowTfoTest {
     @Test
     void fiveNodeTest() {
         network = fiveNodescreate();
+        bus0 = network.getBusBreakerView().getBus("B0");
+        bus1 = network.getBusBreakerView().getBus("B1");
+        bus2 = network.getBusBreakerView().getBus("B2");
+        bus3 = network.getBusBreakerView().getBus("B3");
+        bus4 = network.getBusBreakerView().getBus("B4");
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAsymmetrical(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(10., bus0);
+        assertAngleEquals(0, bus0);
+        assertVoltageEquals(109.4843854548432, bus1);
+        assertAngleEquals(-0.018721076877077133, bus1);
+        assertVoltageEquals(109.29944440302664, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(108.99189289657092, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(108.7617902085402, bus4); // balanced = 99.29252809145005
+    }
+
+    // TODO : add test with forced fluxes and g1, b1 and g2, b2 not zero
+    @Test
+    void fiveNodeForcedFluxTest() {
+        network = fiveNodescreate();
+        TwoWindingsTransformer t2w = network.getTwoWindingsTransformer("T2W_B0_B1");
+        t2w.setB(0.01);
+        t2w.setG(0.01);
+
         bus0 = network.getBusBreakerView().getBus("B0");
         bus1 = network.getBusBreakerView().getBus("B1");
         bus2 = network.getBusBreakerView().getBus("B2");
