@@ -17,7 +17,7 @@ import java.util.*;
  */
 public interface LfBus extends LfElement {
 
-    public enum QLimitType {
+    enum QLimitType {
         MIN_Q,
         MAX_Q
     }

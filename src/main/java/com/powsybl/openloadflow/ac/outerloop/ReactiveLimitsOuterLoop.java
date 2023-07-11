@@ -219,9 +219,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
         double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
         double q = controllerCapableBus.getGenerationTargetQ();
-        Optional<LfBus.QLimitType> qLimitType = controllerCapableBus.getQLimitType();
-        if (qLimitType.isPresent()) {
-            if (qLimitType.get().equals(LfBus.QLimitType.MIN_Q)) {
+        controllerCapableBus.getQLimitType().ifPresent(qLimitType -> {
+            if (qLimitType == LfBus.QLimitType.MIN_Q) {
                 if (getBusV(controllerCapableBus) < getBusTargetV(controllerCapableBus)) {
                     // bus absorb too much reactive power
                     pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MIN));
@@ -230,7 +229,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                     controllerCapableBus.setGenerationTargetQ(minQ);
                     busesWithUpdatedQLimits.add(controllerCapableBus);
                 }
-            } else if (qLimitType.get().equals(LfBus.QLimitType.MAX_Q)) {
+            } else if (qLimitType == LfBus.QLimitType.MAX_Q) {
                 if (getBusV(controllerCapableBus) > getBusTargetV(controllerCapableBus)) {
                     // bus produce too much reactive power
                     pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MAX));
@@ -240,7 +239,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                     busesWithUpdatedQLimits.add(controllerCapableBus);
                 }
             }
-        }
+        });
     }
 
     private static double getBusTargetV(LfBus bus) {
