@@ -171,6 +171,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             } else {
                 controllerBus.setGeneratorVoltageControlEnabled(true);
                 controllerBus.setGenerationTargetQ(0);
+                controllerBus.setQLimitType(null);
                 pqPvSwitchCount++;
 
                 if (LOGGER.isTraceEnabled()) {
