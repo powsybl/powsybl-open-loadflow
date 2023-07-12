@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 import com.powsybl.openloadflow.util.MatrixUtil;
 import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.math3.util.Pair;
 
 /**
  * This class is made to build and access the admittance terms that will be used to fill up the Jacobian :
@@ -113,22 +114,6 @@ public class LfAsymLineAdmittanceMatrix {
 
         // depending on the fortescue representation at each side, the used matrix for the equation system will vary
 
-        boolean isSide1FortescueRepresented = asymLine.isSide1FortescueRepresentation();
-        boolean hasPhaseA1 = asymLine.isHasPhaseA1();
-        boolean hasPhaseB1 = asymLine.isHasPhaseB1();
-        boolean hasPhaseC1 = asymLine.isHasPhaseC1();
-        if (isSide1FortescueRepresented && (!hasPhaseA1 || !hasPhaseB1 || !hasPhaseC1)) {
-            throw new IllegalStateException("Fortescue representation and missing phase not yet handled for branches ");
-        }
-
-        boolean isSide2FortescueRepresented = asymLine.isSide2FortescueRepresentation();
-        boolean hasPhaseA2 = asymLine.isHasPhaseA2();
-        boolean hasPhaseB2 = asymLine.isHasPhaseB2();
-        boolean hasPhaseC2 = asymLine.isHasPhaseC2();
-        if (isSide2FortescueRepresented && (!hasPhaseA2 || !hasPhaseB2 || !hasPhaseC2)) {
-            throw new IllegalStateException("Fortescue representation and missing phase not yet handled for branches ");
-        }
-
         // we propose to decompose the building of the final matrix using 4 transformation matrices that will vary depending on the configuration
         // [I123i] = [M1] * [M2] * [Yabc] * [M3] * [M4]
         // [I123j]   [  ]   [  ]   [    ]   [  ]   [  ]
@@ -138,129 +123,89 @@ public class LfAsymLineAdmittanceMatrix {
         // M3 = is the fortescue transformation (if necessary)
         // M4 = is a permutation matrix to match the active equations and the active variables
 
-        // First we build the blocs that will be used to build M1, M2, M3 and M4
-        ComplexMatrix ft1 = ComplexMatrix.complexMatrixIdentity(3); // fortescue transform at side 1
-        ComplexMatrix invFt1 = ComplexMatrix.complexMatrixIdentity(3); // fortescue inverse at side 1
-        if (isSide1FortescueRepresented) {
-            ft1 = Fortescue.createComplexMatrix(false);
-            invFt1 = Fortescue.createComplexMatrix(true);
-        }
-
-        ComplexMatrix ft2 = ComplexMatrix.complexMatrixIdentity(3); // fortescue transform at side 2
-        ComplexMatrix invFt2 = ComplexMatrix.complexMatrixIdentity(3); // fortescue inverse at side 2
-        if (isSide2FortescueRepresented) {
-            ft2 = Fortescue.createComplexMatrix(false);
-            invFt2 = Fortescue.createComplexMatrix(true);
-        }
-
-        boolean hasPhaseA = hasPhaseA1 && hasPhaseA2;
-        boolean hasPhaseB = hasPhaseB1 && hasPhaseB2;
-        boolean hasPhaseC = hasPhaseC1 && hasPhaseC2;
-
-        ComplexMatrix phaseId1 = getPhaseIdMatrix(hasPhaseA, hasPhaseB, hasPhaseC);
-        ComplexMatrix phaseId2 = getPhaseIdMatrix(hasPhaseA, hasPhaseB, hasPhaseC);
-
-        ComplexMatrix permutationMatrix1 = getPermutationMatrix(hasPhaseA1, hasPhaseB1, hasPhaseC1);
-        ComplexMatrix permutationMatrix2 = getPermutationMatrix(hasPhaseA2, hasPhaseB2, hasPhaseC2);
+        Pair<DenseMatrix, DenseMatrix> blocs1M1M2AndM3M4 = getBlocsM1M2AndM3M4(asymLine, asymLine.isSide1FortescueRepresentation(), asymLine.getSide1VariableType(), asymLine.isHasPhaseA1(), asymLine.isHasPhaseB1(), asymLine.isHasPhaseC1());
+        Pair<DenseMatrix, DenseMatrix> blocs2M1M2AndM3M4 = getBlocsM1M2AndM3M4(asymLine, asymLine.isSide2FortescueRepresentation(), asymLine.getSide2VariableType(), asymLine.isHasPhaseA2(), asymLine.isHasPhaseB2(), asymLine.isHasPhaseC2());
 
         ComplexMatrix zeroBloc = new ComplexMatrix(3, 3);
         DenseMatrix zeroBlocReal = zeroBloc.getRealCartesianMatrix();
+        DenseMatrix m1m2 = AsymThreePhaseTransfo.buildFromBlocs(blocs1M1M2AndM3M4.getFirst(), zeroBlocReal, zeroBlocReal, blocs2M1M2AndM3M4.getFirst());
+        DenseMatrix m3m4 = AsymThreePhaseTransfo.buildFromBlocs(blocs1M1M2AndM3M4.getSecond(), zeroBlocReal, zeroBlocReal, blocs2M1M2AndM3M4.getSecond());
 
-        // bloc1 M1 * M2 = transpose([permut1]) * [invft1] * [phaseId1]
-        // bloc2 M1 * M2 = transpose([permut2]) * [invft2] * [phaseId2]  the inverse of a permutation matrix is its transposed
-        DenseMatrix bloc1M1M2 = ComplexMatrix.getTransposed(permutationMatrix1).getRealCartesianMatrix().times(invFt1.getRealCartesianMatrix().times(phaseId1.getRealCartesianMatrix()));
-        DenseMatrix bloc2M1M2 = ComplexMatrix.getTransposed(permutationMatrix2).getRealCartesianMatrix().times(invFt2.getRealCartesianMatrix().times(phaseId2.getRealCartesianMatrix()));
-        // bloc1 M3 * M4 = [phaseId1] * [ft1] * [permut1]
-        // bloc2 M3 * M4 = [phaseId2] * [ft2] * [permut2]   the inverse of a permutation matrix is its transposed
-        DenseMatrix bloc1M3M4 = phaseId1.getRealCartesianMatrix().times(ft1.getRealCartesianMatrix().times(permutationMatrix1.getRealCartesianMatrix()));
-        DenseMatrix bloc2M3M4 = phaseId2.getRealCartesianMatrix().times(ft2.getRealCartesianMatrix().times(permutationMatrix2.getRealCartesianMatrix()));
+        return productMatrixM1M2M3(m1m2, yabc.getRealCartesianMatrix(), m3m4);
+    }
+
+    private static Pair<DenseMatrix, DenseMatrix> getBlocsM1M2AndM3M4(LfAsymLine asymLine, boolean isSideFortescueRepresented, AsymBusVariableType asymBusVariableType, boolean hasPhaseA, boolean hasPhaseB, boolean hasPhaseC) {
+
+        boolean hasLinePhaseA = asymLine.isHasPhaseA1() && asymLine.isHasPhaseA2();
+        boolean hasLinePhaseB = asymLine.isHasPhaseB1() && asymLine.isHasPhaseB2();
+        boolean hasLinePhaseC = asymLine.isHasPhaseC1() && asymLine.isHasPhaseC2();
+
+        if (isSideFortescueRepresented && (!hasPhaseA || !hasPhaseB || !hasPhaseC)) {
+            throw new IllegalStateException("Fortescue representation and missing phase not yet handled for branches ");
+        }
+
+        // First we build the blocs that will be used to build M1, M2, M3 and M4
+        ComplexMatrix ft = ComplexMatrix.complexMatrixIdentity(3); // fortescue transform at side 1
+        ComplexMatrix invFt = ComplexMatrix.complexMatrixIdentity(3); // fortescue inverse at side 1
+        if (isSideFortescueRepresented) {
+            ft = Fortescue.createComplexMatrix(false);
+            invFt = Fortescue.createComplexMatrix(true);
+        }
+
+        ComplexMatrix phaseId1 = getPhaseIdMatrix(hasLinePhaseA, hasLinePhaseB, hasLinePhaseC);
+        ComplexMatrix permutationMatrix = getPermutationMatrix(hasPhaseA, hasPhaseB, hasPhaseC);
+
+        // bloc1 M1 * M2 = transpose([permut]) * [invft] * [phaseId]
+        DenseMatrix blocM1M2 = ComplexMatrix.getTransposed(permutationMatrix).getRealCartesianMatrix().times(invFt.getRealCartesianMatrix().times(phaseId1.getRealCartesianMatrix()));
+        // bloc1 M3 * M4 = [phaseId] * [ft] * [permut]
+        DenseMatrix blocM3M4 = phaseId1.getRealCartesianMatrix().times(ft.getRealCartesianMatrix().times(permutationMatrix.getRealCartesianMatrix()));
 
         // Delta config : if delta config, we cancel columns related to Vzero and lines related ti Izero
         ComplexMatrix cancelZeroSequence = ComplexMatrix.complexMatrixIdentity(3);
         cancelZeroSequence.set(1, 1, new Complex(0., 0.));
         DenseMatrix cancelZeroSequenceReal = cancelZeroSequence.getRealCartesianMatrix();
-        if (asymLine.getSide1VariableType() == AsymBusVariableType.DELTA) {
-            bloc1M1M2 = cancelZeroSequenceReal.times(bloc1M1M2);
-            bloc1M3M4 = bloc1M3M4.times(cancelZeroSequenceReal);
+        if (asymBusVariableType == AsymBusVariableType.DELTA) {
+            blocM1M2 = cancelZeroSequenceReal.times(blocM1M2);
+            blocM3M4 = blocM3M4.times(cancelZeroSequenceReal);
         }
 
-        if (asymLine.getSide2VariableType() == AsymBusVariableType.DELTA) {
-            bloc2M1M2 = cancelZeroSequenceReal.times(bloc2M1M2);
-            bloc2M3M4 = bloc2M3M4.times(cancelZeroSequenceReal);
-        }
-
-        DenseMatrix m1m2 = AsymThreePhaseTransfo.buildFromBlocs(bloc1M1M2, zeroBlocReal, zeroBlocReal, bloc2M1M2);
-        DenseMatrix m3m4 = AsymThreePhaseTransfo.buildFromBlocs(bloc1M3M4, zeroBlocReal, zeroBlocReal, bloc2M3M4);
-
-        return productMatrixM1M2M3(m1m2, yabc.getRealCartesianMatrix(), m3m4);
+        return new Pair<>(blocM1M2, blocM3M4);
     }
 
     private static DenseMatrix build(SimplePiModel piZeroComponent, SimplePiModel piPositiveComponent, SimplePiModel piNegativeComponent) {
         DenseMatrix mY = new DenseMatrix(12, 12);
 
-        double rz = piZeroComponent.getR();
-        double xz = piZeroComponent.getX();
-        double g1z = piZeroComponent.getG1();
-        double g2z = piZeroComponent.getG2();
-        double b1z = piZeroComponent.getB1();
-        double b2z = piZeroComponent.getB2();
-        double g12z = rz / (rz * rz + xz * xz);
-        double b12z = -xz / (rz * rz + xz * xz);
+        Complex zz = new Complex(piZeroComponent.getR(), piZeroComponent.getX());
+        Complex y1z = new Complex(piZeroComponent.getG1(), piZeroComponent.getB1());
+        Complex y2z = new Complex(piZeroComponent.getG2(), piZeroComponent.getB2());
+        Complex y12z = zz.reciprocal();
 
-        double g21z = g12z;
-        double b21z = b12z;
+        Complex zp = new Complex(piPositiveComponent.getR(), piPositiveComponent.getX());
+        Complex y1p = new Complex(piPositiveComponent.getG1(), piPositiveComponent.getB1());
+        Complex y2p = new Complex(piPositiveComponent.getG2(), piPositiveComponent.getB2());
+        Complex y12p = zp.reciprocal();
 
-        double rp = piPositiveComponent.getR();
-        double xp = piPositiveComponent.getX();
-        double g1p = piPositiveComponent.getG1();
-        double g2p = piPositiveComponent.getG2();
-        double b1p = piPositiveComponent.getB1();
-        double b2p = piPositiveComponent.getB2();
-        double g12p = rp / (rp * rp + xp * xp);
-        double b12p = -xp / (rp * rp + xp * xp);
+        Complex zn = new Complex(piNegativeComponent.getR(), piNegativeComponent.getX());
+        Complex y1n = new Complex(piNegativeComponent.getG1(), piNegativeComponent.getB1());
+        Complex y2n = new Complex(piNegativeComponent.getG2(), piNegativeComponent.getB2());
+        Complex y12n = zn.reciprocal();
 
-        double g21p = g12p;
-        double b21p = b12p;
+        ComplexMatrix mYc = new ComplexMatrix(6, 6);
+        mYc.set(1, 1, y12z.add(y1z));
+        mYc.set(1, 4, y12z.multiply(-1));
+        mYc.set(2, 2, y12p.add(y1p));
+        mYc.set(2, 5, y12p.multiply(-1));
+        mYc.set(3, 3, y12n.add(y1n));
+        mYc.set(3, 6, y12n.multiply(-1));
 
-        double rn = piNegativeComponent.getR();
-        double xn = piNegativeComponent.getX();
-        double g1n = piNegativeComponent.getG1();
-        double g2n = piNegativeComponent.getG2();
-        double b1n = piNegativeComponent.getB1();
-        double b2n = piNegativeComponent.getB2();
-        double g12n = rn / (rn * rn + xn * xn);
-        double b12n = -xn / (rn * rn + xn * xn);
+        mYc.set(4, 4, y12z.add(y2z));
+        mYc.set(4, 1, y12z.multiply(-1));
+        mYc.set(5, 5, y12p.add(y2p));
+        mYc.set(5, 2, y12p.multiply(-1));
+        mYc.set(6, 6, y12n.add(y2n));
+        mYc.set(6, 3, y12n.multiply(-1));
 
-        double g21n = g12n;
-        double b21n = b12n;
-
-        //bloc yz11
-        add22Bloc(g12z + g1z, b12z + b1z, 1, 1, mY);
-        //bloc yz12
-        add22Bloc(-g12z, -b12z, 1, 4, mY);
-        //bloc yp11
-        add22Bloc(g12p + g1p, b12p + b1p, 2, 2, mY);
-        //bloc yp12
-        add22Bloc(-g12p, -b12p, 2, 5, mY);
-        //bloc yn11
-        add22Bloc(g12n + g1n, b12n + b1n, 3, 3, mY);
-        //bloc yn12
-        add22Bloc(-g12n, -b12n, 3, 6, mY);
-
-        //bloc yz22
-        add22Bloc(g21z + g2z, b21z + b2z, 4, 4, mY);
-        //bloc yz21
-        add22Bloc(-g21z, -b21z, 4, 1, mY);
-        //bloc yp22
-        add22Bloc(g21p + g2p, b21p + b2p, 5, 5, mY);
-        //bloc yp21
-        add22Bloc(-g21p, -b21p, 5, 2, mY);
-        //bloc yn22
-        add22Bloc(g21n + g2n, b21n + b2n, 6, 6, mY);
-        //bloc yn21
-        add22Bloc(-g21n, -b21n, 6, 3, mY);
-
-        return mY;
+        return mYc.getRealCartesianMatrix();
     }
 
     private static DenseMatrix update(DenseMatrix mYzpn, boolean phaseOpenA, boolean phaseOpenB, boolean phaseOpenC) {
@@ -315,13 +260,6 @@ public class LfAsymLineAdmittanceMatrix {
         MatrixUtil.resetColumn(m, 2 * component - 1);
         MatrixUtil.resetColumn(m, 2 * component + 4);
         MatrixUtil.resetColumn(m, 2 * component + 5);
-    }
-
-    private static void add22Bloc(double mx, double my, int i, int j, DenseMatrix m) {
-        m.add(2 * (i - 1), 2 * (j - 1), mx);
-        m.add(2 * (i - 1), 2 * (j - 1) + 1, -my);
-        m.add(2 * (i - 1) + 1, 2 * (j - 1), my);
-        m.add(2 * (i - 1) + 1, 2 * (j - 1) + 1, mx);
     }
 
     private static DenseMatrix productMatrixM1M2M3(DenseMatrix m1, DenseMatrix m2, DenseMatrix m3) {
