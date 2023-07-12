@@ -1,7 +1,9 @@
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.network.extensions.AbcPhaseType;
 import com.powsybl.openloadflow.network.extensions.AsymBusLoadType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import org.apache.commons.math3.complex.Complex;
 
 public class LfAsymLoad {
 
@@ -26,6 +28,18 @@ public class LfAsymLoad {
         this.totalDeltaQb = totalDeltaQb;
         this.totalDeltaPc = totalDeltaPc;
         this.totalDeltaQc = totalDeltaQc;
+    }
+
+    public Complex getS(AbcPhaseType abcPhaseType) {
+        if (abcPhaseType == AbcPhaseType.A) {
+            return new Complex(totalDeltaPa, totalDeltaQa);
+        } else if (abcPhaseType == AbcPhaseType.B) {
+            return new Complex(totalDeltaPb, totalDeltaQb);
+        } else if (abcPhaseType == AbcPhaseType.C) {
+            return new Complex(totalDeltaPc, totalDeltaQc);
+        } else {
+            throw new IllegalStateException("Unknown Abc Phase Type ");
+        }
     }
 
     public double getPa() {

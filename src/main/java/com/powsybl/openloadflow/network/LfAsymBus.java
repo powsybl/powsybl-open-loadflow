@@ -8,6 +8,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.network.extensions.AbcPhaseType;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -269,55 +270,43 @@ public class LfAsymBus {
         return getVc0().add(getVa0().multiply(-1.));
     }
 
-    public Complex getIaTarget(LegConnectionType loadConnectionType) {
-        Complex sA = new Complex(0., 0.);
-        Complex sC = new Complex(0., 0.);
+    public Complex getItarget(LegConnectionType loadConnectionType, AbcPhaseType abcPhaseType) {
+        Complex s1 = new Complex(0., 0.);
+        Complex s2 = new Complex(0., 0.);
+
+        AbcPhaseType abcPhaseType2;
+        Complex v1;
+        Complex v31;
+        Complex v12;
+        if (abcPhaseType == AbcPhaseType.A) {
+            abcPhaseType2 = AbcPhaseType.C;
+            v12 = getVab0();
+            v31 = getVca0();
+            v1 = getVa0();
+        } else if (abcPhaseType == AbcPhaseType.B) {
+            abcPhaseType2 = AbcPhaseType.A;
+            v12 = getVbc0();
+            v31 = getVab0();
+            v1 = getVb0();
+        } else {
+            abcPhaseType2 = AbcPhaseType.B;
+            v12 = getVca0();
+            v31 = getVbc0();
+            v1 = getVc0();
+        }
+
         if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
             if (loadWye1 != null) {
-                sA = new Complex(loadWye1.getPa(), loadWye1.getQa());
+                s1 = loadWye1.getS(abcPhaseType);
             }
-            return (sA.multiply(getVa0().reciprocal())).conjugate();
+            return (s1.multiply(v1.reciprocal())).conjugate();
         } else {
             // We suppose sA = sAB and sC = sCA
             if (loadDelta1 != null) {
-                sA = new Complex(loadDelta1.getPa(), loadDelta1.getQa());
-                sC = new Complex(loadDelta1.getPc(), loadDelta1.getQc());
+                s1 = loadDelta1.getS(abcPhaseType);
+                s2 = loadDelta1.getS(abcPhaseType2);
             }
-            return (sA.multiply(getVab0().reciprocal()).add(sC.multiply(getVca0().reciprocal().multiply(-1.)))).conjugate();
-        }
-    }
-
-    public Complex getIbTarget(LegConnectionType loadConnectionType) {
-        Complex sA = new Complex(0., 0.);
-        Complex sB = new Complex(0., 0.);
-        if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
-            if (loadWye1 != null) {
-                sB = new Complex(loadWye1.getPb(), loadWye1.getQb());
-            }
-            return (sB.multiply(getVb0().reciprocal())).conjugate();
-        } else {
-            if (loadDelta1 != null) {
-                sA = new Complex(loadDelta1.getPa(), loadDelta1.getQa());
-                sB = new Complex(loadDelta1.getPb(), loadDelta1.getQb());
-            }
-            return (sB.multiply(getVbc0().reciprocal()).add(sA.multiply(getVab0().reciprocal().multiply(-1.)))).conjugate();
-        }
-    }
-
-    public Complex getIcTarget(LegConnectionType loadConnectionType) {
-        Complex sB = new Complex(0., 0.);
-        Complex sC = new Complex(0., 0.);
-        if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
-            if (loadWye1 != null) {
-                sC = new Complex(loadWye1.getPc(), loadWye1.getQc());
-            }
-            return (sC.multiply(getVc0().reciprocal())).conjugate();
-        } else {
-            if (loadDelta1 != null) {
-                sC = new Complex(loadDelta1.getPc(), loadDelta1.getQc());
-                sB = new Complex(loadDelta1.getPb(), loadDelta1.getQb());
-            }
-            return (sC.multiply(getVca0().reciprocal()).add(sB.multiply(getVbc0().reciprocal().multiply(-1.)))).conjugate();
+            return (s1.multiply(v12.reciprocal()).add(s2.multiply(v31.reciprocal().multiply(-1.)))).conjugate();
         }
     }
 
@@ -326,13 +315,13 @@ public class LfAsymBus {
             throw new IllegalStateException(LOAD_CONFIG_NOT_SUPPORTED + bus.getId());
         }
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
-            return getIaTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.A);
         } else if (hasPhaseB && hasPhaseC) {
-            return getIbTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.B);
         } else if (hasPhaseA && hasPhaseC) {
-            return getIaTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.A);
         } else if (hasPhaseA && hasPhaseB) {
-            return getIaTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.A);
         } else if (hasPhaseC) {
             return new Complex(0., 0.);
         } else if (hasPhaseB) {
@@ -349,20 +338,19 @@ public class LfAsymBus {
             throw new IllegalStateException(LOAD_CONFIG_NOT_SUPPORTED + bus.getId());
         }
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
-            System.out.println(" Ipositive Target = " + getIbTarget(loadConnectionType));
-            return getIbTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.B);
         } else if (hasPhaseB && hasPhaseC) {
-            return getIcTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.C);
         } else if (hasPhaseA && hasPhaseC) {
-            return getIcTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.C);
         } else if (hasPhaseA && hasPhaseB) {
-            return getIbTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.B);
         } else if (hasPhaseC) {
-            return getIcTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.C);
         } else if (hasPhaseB) {
-            return getIbTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.B);
         } else if (hasPhaseA) {
-            return getIaTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.A);
         } else {
             throw new IllegalStateException("unknow abc target load config : " + bus.getId());
         }
@@ -373,7 +361,7 @@ public class LfAsymBus {
             throw new IllegalStateException(LOAD_CONFIG_NOT_SUPPORTED + bus.getId());
         }
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
-            return getIcTarget(loadConnectionType);
+            return getItarget(loadConnectionType, AbcPhaseType.C);
         } else {
             return new Complex(0., 0.);
         }
