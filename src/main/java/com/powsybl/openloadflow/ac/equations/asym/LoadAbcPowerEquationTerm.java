@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.complex.Complex;
-import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 import java.util.Objects;
 
@@ -39,10 +38,8 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoadTerm {
         this.sabc = getSabc(sa, sb, sc, asymLoad);
     }
 
-    public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType,
-                            double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative,
-                            Variable<AcVariableType> vVarZero, Variable<AcVariableType> vVarNegative, ComplexMatrix sabc, LegConnectionType loadConnectionType) {
-
+    public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, ComplexMatrix v0V1V2,
+                            Variable<AcVariableType> vVarZero, Variable<AcVariableType> vVarNegative, ComplexMatrix sabc, LegConnectionType loadConnectionType, boolean computeDerivative, ComplexMatrix dv0V1V2) {
         // We suppose that input for power load is constant S
         // For each phase we have :
         // S is also S = I* * V  which gives I* = S / V
@@ -62,106 +59,7 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoadTerm {
         // Not yet handled
         //
 
-        LfAsymBus asymBus = bus.getAsym();
-        if (asymBus == null) {
-            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
-        }
-
-        if (loadConnectionType == LegConnectionType.DELTA) {
-            throw new IllegalStateException("ABC Power load with delta load connection not yet handled at bus " + bus.getId());
-        }
-
-        AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
-        if (busVariableType != AsymBusVariableType.WYE) {
-            throw new IllegalStateException("ABC Power load with delta variables  not yet handled at bus " + bus.getId());
-        }
-
-        Complex sA = sabc.getTerm(1, 1);
-        Complex sB = sabc.getTerm(2, 1);
-        Complex sC = sabc.getTerm(3, 1);
-
-        Vector2D positiveSequence = Fortescue.getCartesianFromPolar(vPositive, phPositive);
-        Vector2D zeroSequence = Fortescue.getCartesianFromPolar(vZero, phZero);
-        Vector2D negativeSequence = Fortescue.getCartesianFromPolar(vNegative, phNegative);
-
-        Complex vPositiveComplex = new Complex(positiveSequence.getX(), positiveSequence.getY());
-        Complex invVpositive = vPositiveComplex.reciprocal();
-
-        Complex invVnegative = new Complex(0., 0.);
-        if (vVarNegative != null) {
-            Complex vNegativeComplex = new Complex(negativeSequence.getX(), negativeSequence.getY());
-            if (vNegativeComplex.abs() > EPSILON) {
-                invVnegative = vNegativeComplex.reciprocal();
-            } else {
-                throw new IllegalStateException("ABC load could not be computed because of zero voltage of Negative sequence  value at bus : " + bus.getId());
-            }
-        }
-
-        Complex invVzero = new Complex(0., 0.);
-        if (vVarZero != null) {
-            Complex vZeroComplex = new Complex(zeroSequence.getX(), zeroSequence.getY());
-            if (vZeroComplex.abs() > EPSILON) {
-                invVzero = vZeroComplex.reciprocal();
-            } else {
-                throw new IllegalStateException("ABC load could not be computed because of zero voltage of Zero sequence value at bus : " + bus.getId());
-            }
-        }
-
-        boolean hasPhaseA = asymBus.isHasPhaseA();
-        boolean hasPhaseB = asymBus.isHasPhaseB();
-        boolean hasPhaseC = asymBus.isHasPhaseC();
-
-        Complex iZero = new Complex(0., 0.);
-        Complex iPosi;
-        Complex iNega = new Complex(0., 0.);
-        if (hasPhaseA && hasPhaseB && hasPhaseC) {
-            iZero = (invVzero.multiply(sA)).conjugate();
-            iPosi = (invVpositive.multiply(sB)).conjugate();
-            iNega = (invVnegative.multiply(sC)).conjugate();
-        } else if (hasPhaseB && hasPhaseC) {
-            iZero = (invVzero.multiply(sB)).conjugate();
-            iPosi = (invVpositive.multiply(sC)).conjugate();
-        } else if (hasPhaseA && hasPhaseC) {
-            iZero = (invVzero.multiply(sA)).conjugate();
-            iPosi = (invVpositive.multiply(sC)).conjugate();
-        } else if (hasPhaseA && hasPhaseB) {
-            iZero = (invVzero.multiply(sA)).conjugate();
-            iPosi = (invVpositive.multiply(sB)).conjugate();
-        } else if (hasPhaseA) {
-            iPosi = (invVpositive.multiply(sA)).conjugate();
-        } else if (hasPhaseB) {
-            iPosi = (invVpositive.multiply(sB)).conjugate();
-        } else if (hasPhaseC) {
-            iPosi = (invVpositive.multiply(sC)).conjugate();
-        } else {
-            throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
-        }
-
-        switch (sequenceType) {
-            case ZERO:
-                return complexPart == ComplexPart.REAL ? iZero.getReal() : iZero.getImaginary(); // IxZero or IyZero
-
-            case POSITIVE:
-                // check if positive sequence is modelled as P,Q or Ix,Iy
-                if (asymBus.isPositiveSequenceAsCurrent()) {
-                    return complexPart == ComplexPart.REAL ? iPosi.getReal() : iPosi.getImaginary(); // IxZero or IyZero
-                } else {
-                    throw new IllegalStateException("Load ABC as Power not yet handled : " + bus.getId());
-                }
-
-            case NEGATIVE:
-                return complexPart == ComplexPart.REAL ? iNega.getReal() : iNega.getImaginary(); // IxNegative or IyNegative
-
-            default:
-                throw new IllegalStateException("Unknown sequence at bus : " + bus.getId());
-        }
-    }
-
-    public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi,
-                             Variable<AcVariableType> vVarZero, Variable<AcVariableType> vVarNegative, ComplexMatrix sabc, LegConnectionType loadConnectionType) {
-        // We suppose that input for power load is constant S
-        // For each phase we have :
-        // S is also S = I* * V  which gives I* = S / V
+        // For derivation we have:
         //
         // Case of a Wye load connected to a Wye-variables bus :
         //
@@ -185,12 +83,6 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoadTerm {
 
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
-        ComplexMatrix dv0V1V2 = AbstractAsymmetricalLoadTerm.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
-        // computation of dV0/dx , dV1/dx, dV2/dx
-        Complex dV0 = dv0V1V2.getTerm(1, 1);
-        Complex dV1 = dv0V1V2.getTerm(2, 1);
-        Complex dV2 = dv0V1V2.getTerm(3, 1);
-
         if (loadConnectionType == LegConnectionType.DELTA) {
             throw new IllegalStateException("ABC load with delta load connection not yet handled at bus " + bus.getId());
         }
@@ -203,30 +95,26 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoadTerm {
         Complex sB = sabc.getTerm(2, 1);
         Complex sC = sabc.getTerm(3, 1);
 
-        Vector2D positiveSequence = Fortescue.getCartesianFromPolar(vd, phd);
-        Vector2D zeroSequence = Fortescue.getCartesianFromPolar(vo, pho);
-        Vector2D negativeSequence = Fortescue.getCartesianFromPolar(vi, phi);
-
-        Complex vPositiveComplex = new Complex(positiveSequence.getX(), positiveSequence.getY());
+        Complex vPositiveComplex = v0V1V2.getTerm(2, 1);
         Complex invVpositive = vPositiveComplex.reciprocal();
 
         Complex invVnegative = new Complex(0., 0.);
         if (vVarNegative != null) {
-            Complex vNegativeComplex = new Complex(negativeSequence.getX(), negativeSequence.getY());
+            Complex vNegativeComplex = v0V1V2.getTerm(3, 1);
             if (vNegativeComplex.abs() > EPSILON) {
                 invVnegative = vNegativeComplex.reciprocal();
             } else {
-                throw new IllegalStateException("ABC load could not be computed because of zero voltage value of Negative sequence at bus : " + bus.getId());
+                throw new IllegalStateException("ABC load could not be computed because of zero voltage of Negative sequence  value at bus : " + bus.getId());
             }
         }
 
         Complex invVzero = new Complex(0., 0.);
         if (vVarZero != null) {
-            Complex vZeroComplex = new Complex(zeroSequence.getX(), zeroSequence.getY());
+            Complex vZeroComplex = v0V1V2.getTerm(1, 1);
             if (vZeroComplex.abs() > EPSILON) {
                 invVzero = vZeroComplex.reciprocal();
             } else {
-                throw new IllegalStateException("ABC load could not be computed because of zero voltage value of Zero sequence at bus : " + bus.getId());
+                throw new IllegalStateException("ABC load could not be computed because of zero voltage of Zero sequence value at bus : " + bus.getId());
             }
         }
 
@@ -234,51 +122,60 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoadTerm {
         boolean hasPhaseB = asymBus.isHasPhaseB();
         boolean hasPhaseC = asymBus.isHasPhaseC();
 
-        Complex diZero = new Complex(0., 0.);
-        Complex diPosi;
-        Complex diNega = new Complex(0., 0.);
+        Complex iZero = new Complex(0., 0.);
+        Complex iPosi;
+        Complex iNega = new Complex(0., 0.);
 
-        Complex dinvVzero = invVzero.multiply(invVzero).multiply(dV0).multiply(-1.);
-        Complex dinvVPosi = invVpositive.multiply(invVpositive).multiply(dV1).multiply(-1.);
-        Complex dinvVNega = invVnegative.multiply(invVnegative).multiply(dV2).multiply(-1.);
+        if (computeDerivative) {
+            // if this boolean is true, we use the derivative of V to compute the derivative of I, the rest of the formula is unchanged
+            // computation of dV0/dx , dV1/dx, dV2/dx
+            Complex dV0 = dv0V1V2.getTerm(1, 1);
+            Complex dV1 = dv0V1V2.getTerm(2, 1);
+            Complex dV2 = dv0V1V2.getTerm(3, 1);
+
+            // computation of d(1/V0)/dx , d(1/V1)/dx, d(1/V2)/dx
+            invVzero = invVzero.multiply(invVzero).multiply(dV0).multiply(-1.);
+            invVpositive = invVpositive.multiply(invVpositive).multiply(dV1).multiply(-1.);
+            invVnegative = invVnegative.multiply(invVnegative).multiply(dV2).multiply(-1.);
+        }
 
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
-            diZero = (dinvVzero.multiply(sA)).conjugate();
-            diPosi = (dinvVPosi.multiply(sB)).conjugate();
-            diNega = (dinvVNega.multiply(sC)).conjugate();
+            iZero = (invVzero.multiply(sA)).conjugate();
+            iPosi = (invVpositive.multiply(sB)).conjugate();
+            iNega = (invVnegative.multiply(sC)).conjugate();
         } else if (hasPhaseB && hasPhaseC) {
-            diZero = (dinvVzero.multiply(sB)).conjugate();
-            diPosi = (dinvVPosi.multiply(sC)).conjugate();
+            iZero = (invVzero.multiply(sB)).conjugate();
+            iPosi = (invVpositive.multiply(sC)).conjugate();
         } else if (hasPhaseA && hasPhaseC) {
-            diZero = (dinvVzero.multiply(sA)).conjugate();
-            diPosi = (dinvVPosi.multiply(sC)).conjugate();
+            iZero = (invVzero.multiply(sA)).conjugate();
+            iPosi = (invVnegative.multiply(sC)).conjugate();
         } else if (hasPhaseA && hasPhaseB) {
-            diZero = (dinvVzero.multiply(sA)).conjugate();
-            diPosi = (dinvVPosi.multiply(sB)).conjugate();
+            iZero = (invVzero.multiply(sA)).conjugate();
+            iPosi = (invVpositive.multiply(sB)).conjugate();
         } else if (hasPhaseA) {
-            diPosi = (dinvVPosi.multiply(sA)).conjugate();
+            iPosi = (invVpositive.multiply(sA)).conjugate();
         } else if (hasPhaseB) {
-            diPosi = (dinvVPosi.multiply(sB)).conjugate();
+            iPosi = (invVpositive.multiply(sB)).conjugate();
         } else if (hasPhaseC) {
-            diPosi = (dinvVPosi.multiply(sC)).conjugate();
+            iPosi = (invVpositive.multiply(sC)).conjugate();
         } else {
             throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
         }
 
         switch (sequenceType) {
             case ZERO:
-                return complexPart == ComplexPart.REAL ? diZero.getReal() : diZero.getImaginary(); // IxZero or IyZero
+                return complexPart == ComplexPart.REAL ? iZero.getReal() : iZero.getImaginary(); // IxZero or IyZero
 
             case POSITIVE:
                 // check if positive sequence is modelled as P,Q or Ix,Iy
                 if (asymBus.isPositiveSequenceAsCurrent()) {
-                    return complexPart == ComplexPart.REAL ? diPosi.getReal() : diPosi.getImaginary(); // IxPositive or IyPositive
+                    return complexPart == ComplexPart.REAL ? iPosi.getReal() : iPosi.getImaginary(); // IxPositive or IyPositive
                 } else {
                     throw new IllegalStateException("positive sequence as Power not yet implemented in ABC load : " + bus.getId());
                 }
 
             case NEGATIVE:
-                return complexPart == ComplexPart.REAL ? diNega.getReal() : diNega.getImaginary(); // IxNegative or IyNegative
+                return complexPart == ComplexPart.REAL ? iNega.getReal() : iNega.getImaginary(); // IxNegative or IyNegative
 
             default:
                 throw new IllegalStateException("Unknown sequence at bus : " + bus.getId());
@@ -287,18 +184,13 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoadTerm {
 
     @Override
     public double eval() {
-        return pq(element, complexPart, sequenceType,
-                v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
-                v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
-                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), vVarZero, vVarNegative, sabc, loadConnectionType);
+        return pq(element, complexPart, sequenceType, getVfortescue(), vVarZero, vVarNegative, sabc, loadConnectionType, false, null);
+
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        return dpq(element, complexPart, sequenceType, variable,
-                v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
-                v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
-                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), vVarZero, vVarNegative, sabc, loadConnectionType);
+        return pq(element, complexPart, sequenceType, getVfortescue(), vVarZero, vVarNegative, sabc, loadConnectionType, true, getdVfortescue(variable));
     }
 
     @Override

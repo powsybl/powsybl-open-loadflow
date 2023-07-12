@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -175,12 +176,44 @@ abstract class AbstractAsymmetricalLoadTerm extends AbstractElementEquationTerm<
             throw new IllegalStateException("Unknown derivation variable: " + derVariable + " at bus : " + bus.getId());
         }
 
+        ComplexMatrix dv0V1V2 = new ComplexMatrix(3, 1);
+        dv0V1V2.set(1, 1, dV0);
+        dv0V1V2.set(2, 1, dV1);
+        dv0V1V2.set(3, 1, dV2);
+
+        return dv0V1V2;
+    }
+
+    public static ComplexMatrix vFortescue(double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative) {
+
+        Vector2D positiveSequence = Fortescue.getCartesianFromPolar(vPositive, phPositive);
+        Vector2D zeroSequence = Fortescue.getCartesianFromPolar(vZero, phZero);
+        Vector2D negativeSequence = Fortescue.getCartesianFromPolar(vNegative, phNegative);
+
+        Complex vPositiveComplex = new Complex(positiveSequence.getX(), positiveSequence.getY());
+        Complex vNegativeComplex = new Complex(negativeSequence.getX(), negativeSequence.getY());
+        Complex vZeroComplex = new Complex(zeroSequence.getX(), zeroSequence.getY());
+
         ComplexMatrix v0V1V2 = new ComplexMatrix(3, 1);
-        v0V1V2.set(1, 1, dV0);
-        v0V1V2.set(2, 1, dV1);
-        v0V1V2.set(3, 1, dV2);
+        v0V1V2.set(1, 1, vZeroComplex);
+        v0V1V2.set(2, 1, vPositiveComplex);
+        v0V1V2.set(3, 1, vNegativeComplex);
 
         return v0V1V2;
+
+    }
+
+    public ComplexMatrix getVfortescue() {
+        return vFortescue(v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
+                v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
+                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
+    }
+
+    public ComplexMatrix getdVfortescue(Variable<AcVariableType> variable) {
+        return getdVvector(element, busVariableType, variable,
+                v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
+                v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
+                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
     }
 
     public static ComplexMatrix getSabc(Complex sa, Complex sb, Complex sc, LfAsymLoad asymLoad) {
