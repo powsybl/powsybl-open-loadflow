@@ -85,7 +85,6 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
         //       [ 0 -1  1]
 
         LfAsymBus asymBus = bus.getAsym();
-        AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
         // Build of Sabc/3 vector
         DenseMatrix mSabc3 = ComplexMatrix.getMatrixScaled(sabc, 1. / 3.).getRealCartesianMatrix();
@@ -93,14 +92,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
         ComplexMatrix vabc = ComplexMatrix.getComplexMatrixFromRealCartesian(mVabc);
 
         // build  1/Vabc square matrix
-        DenseMatrix mInvVabc = getSquareInverseFromVector(bus, asymBus, vabc);
-
-        if (loadConnectionType == LegConnectionType.DELTA && busVariableType == AsymBusVariableType.WYE) {
-            if (asymBus.getNbMissingPhases() > 0) {
-                throw new IllegalStateException("Delta load with phase disconnection not yet handled at bus : " + bus.getId());
-            }
-            mInvVabc = getSquareInverseFromVector(bus, asymBus, getDeltaVabcFromVabc(vabc));
-        }
+        DenseMatrix mInvVabc = getSquareInverseFromVector(bus, asymBus, loadConnectionType, vabc);
 
         // build Vfortescue square matrix
         DenseMatrix mSquareVFortescue = getSquareMatrixFromVector(v0V1V2);
@@ -168,19 +160,12 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
         LfAsymBus asymBus = bus.getAsym();
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
-        // computation of dV0/dx , dV1/dx, dV2/dx
         DenseMatrix mVabc = Fortescue.createMatrix().times(v0V1V2.getRealCartesianMatrix()).toDense(); // vector build with cartesian values of complex abc voltages
         DenseMatrix mSabc3 = ComplexMatrix.getMatrixScaled(sabc, 1. / 3.).getRealCartesianMatrix();
         ComplexMatrix vabc = ComplexMatrix.getComplexMatrixFromRealCartesian(mVabc);
 
         // build of 1/Vabc square matrix
-        DenseMatrix mInvVabc = getSquareInverseFromVector(bus, asymBus, vabc);
-        if (loadConnectionType == LegConnectionType.DELTA && busVariableType == AsymBusVariableType.WYE) {
-            if (asymBus.getNbMissingPhases() > 0) {
-                throw new IllegalStateException("Delta load with phase disconnection not yet handled at bus : " + bus.getId());
-            }
-            mInvVabc = getSquareInverseFromVector(bus, asymBus, getDeltaVabcFromVabc(vabc));
-        }
+        DenseMatrix mInvVabc = getSquareInverseFromVector(bus, asymBus, loadConnectionType, vabc);
 
         // build of derivative fortescue voltage square matrix
         DenseMatrix mdVSquare = getSquareMatrixFromVector(dv0V1V2);
@@ -247,11 +232,15 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
         return "ac_pq_fortescue_load";
     }
 
-    public static DenseMatrix getSquareInverseFromVector(LfBus bus, LfAsymBus asymBus, ComplexMatrix m) {
+    public static DenseMatrix getSquareInverseFromVector(LfBus bus, LfAsymBus asymBus, LegConnectionType loadConnectionType, ComplexMatrix vabc) {
         double epsilon = 0.00000001;
 
-        if (asymBus.getNbMissingPhases() > 0 && asymBus.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
-            throw new IllegalStateException("Load with delta variables and missing phases not yet handled at bus : " + bus.getId());
+        ComplexMatrix mVabc = vabc;
+        if (loadConnectionType == LegConnectionType.DELTA && asymBus.getAsymBusVariableType() == AsymBusVariableType.WYE) {
+            if (asymBus.getNbMissingPhases() > 0) {
+                throw new IllegalStateException("Delta load with phase disconnection not yet handled at bus : " + bus.getId());
+            }
+            mVabc = getDeltaVabcFromVabc(vabc);
         }
 
         String cantBuildLoad = " is null at bus : " + bus.getId() + " : cannot build load model";
@@ -259,26 +248,26 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
         ComplexMatrix invVabc = new ComplexMatrix(3, 1);
 
         if (asymBus.isHasPhaseA()) {
-            if (m.getTerm(1, 1).abs() < epsilon) {
+            if (mVabc.getTerm(1, 1).abs() < epsilon) {
                 throw new IllegalStateException("Va" + cantBuildLoad);
             } else {
-                invVabc.set(1, 1, m.getTerm(1, 1).reciprocal());
+                invVabc.set(1, 1, mVabc.getTerm(1, 1).reciprocal());
             }
         }
 
         if (asymBus.isHasPhaseB()) {
-            if (m.getTerm(2, 1).abs() < epsilon) {
+            if (mVabc.getTerm(2, 1).abs() < epsilon) {
                 throw new IllegalStateException("Vb" + cantBuildLoad);
             } else {
-                invVabc.set(2, 1, m.getTerm(2, 1).reciprocal());
+                invVabc.set(2, 1, mVabc.getTerm(2, 1).reciprocal());
             }
         }
 
         if (asymBus.isHasPhaseC()) {
-            if (m.getTerm(3, 1).abs() < epsilon) {
+            if (mVabc.getTerm(3, 1).abs() < epsilon) {
                 throw new IllegalStateException("Vc" + cantBuildLoad);
             } else {
-                invVabc.set(3, 1, m.getTerm(3, 1).reciprocal());
+                invVabc.set(3, 1, mVabc.getTerm(3, 1).reciprocal());
             }
         }
 
