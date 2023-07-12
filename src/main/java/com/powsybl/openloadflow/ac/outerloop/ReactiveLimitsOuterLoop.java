@@ -35,7 +35,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
     private static final Comparator<PvToPqBus> BY_ID_COMPARATOR = Comparator.comparing(pvToPqBus -> pvToPqBus.controllerBus.getId());
 
-    public static final int MAX_SWITCH_PQ_PV = 3;
+    public static final int MAX_SWITCH_PQ_PV_DEFAULT_VALUE = 3;
 
     private final int maxPqPvSwitch;
     private final double maxReactivePowerMismatch;
