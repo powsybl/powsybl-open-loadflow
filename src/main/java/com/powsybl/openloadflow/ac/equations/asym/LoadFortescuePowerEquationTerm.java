@@ -21,7 +21,6 @@ import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.complex.Complex;
-import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
@@ -46,7 +45,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
     }
 
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType,
-                            double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative, LegConnectionType loadConnectionType, ComplexMatrix sabc) {
+                            ComplexMatrix v0V1V2, LegConnectionType loadConnectionType, ComplexMatrix sabc) {
         // We use the formula with complex matrices:
         //
         // Case of a Wye load connected to a Wye bus :
@@ -86,64 +85,55 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
         //       [ 0 -1  1]
 
         LfAsymBus asymBus = bus.getAsym();
-        if (asymBus == null) {
-            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
-        }
-
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
         // Build of Sabc/3 vector
-        DenseMatrix mSabc3 = getCartesianMatrix(sabc.getTerm(1, 1).getReal() / 3, sabc.getTerm(1, 1).getImaginary() / 3, sabc.getTerm(2, 1).getReal() / 3, sabc.getTerm(2, 1).getImaginary() / 3, sabc.getTerm(3, 1).getReal() / 3, sabc.getTerm(3, 1).getImaginary() / 3, true);
-
-        Vector2D positiveSequence = Fortescue.getCartesianFromPolar(vPositive, phPositive);
-        Vector2D zeroSequence = Fortescue.getCartesianFromPolar(vZero, phZero);
-        Vector2D negativeSequence = Fortescue.getCartesianFromPolar(vNegative, phNegative);
-
-        DenseMatrix mVfortescue = getCartesianMatrix(zeroSequence.getX(), zeroSequence.getY(), positiveSequence.getX(), positiveSequence.getY(), negativeSequence.getX(), negativeSequence.getY(), true); // vector build with cartesian values (Vx,Vy) of complex fortescue voltages
-        DenseMatrix mVabc = Fortescue.createMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
+        DenseMatrix mSabc3 = ComplexMatrix.getMatrixScaled(sabc, 1. / 3.).getRealCartesianMatrix();
+        DenseMatrix mVabc = Fortescue.createMatrix().times(v0V1V2.getRealCartesianMatrix()).toDense(); // vector build with cartesian values of complex abc voltages
+        ComplexMatrix vabc = ComplexMatrix.getComplexMatrixFromRealCartesian(mVabc);
 
         // build  1/Vabc square matrix
-        DenseMatrix mInvVabc = getInvVabcSquare(bus, asymBus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
+        DenseMatrix mInvVabc = getSquareInverseFromVector(bus, asymBus, vabc);
 
         if (loadConnectionType == LegConnectionType.DELTA && busVariableType == AsymBusVariableType.WYE) {
             if (asymBus.getNbMissingPhases() > 0) {
                 throw new IllegalStateException("Delta load with phase disconnection not yet handled at bus : " + bus.getId());
             }
-            mInvVabc = getInvVabcSquare(bus, asymBus, mVabc.get(0, 0) - mVabc.get(2, 0), mVabc.get(1, 0) - mVabc.get(3, 0), mVabc.get(2, 0) - mVabc.get(4, 0), mVabc.get(3, 0) - mVabc.get(5, 0), mVabc.get(4, 0) - mVabc.get(0, 0), mVabc.get(5, 0) - mVabc.get(1, 0));
+            mInvVabc = getSquareInverseFromVector(bus, asymBus, getDeltaVabcFromVabc(vabc));
         }
 
         // build Vfortescue square matrix
-        DenseMatrix mSquareVFortescue = getCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
+        DenseMatrix mSquareVFortescue = getSquareMatrixFromVector(v0V1V2);
 
         DenseMatrix m0T0 = mInvVabc.times(mSabc3);
         DenseMatrix m1T0 = m0T0;
         if (loadConnectionType == LegConnectionType.DELTA) {
             m1T0 = complexMatrixP(StepType.STEP_DOWN).getRealCartesianMatrix().times(m0T0);
         }
-        DenseMatrix mIfortescueConjugate = Fortescue.createMatrix().times(m1T0);
-        DenseMatrix mSfortescue = mSquareVFortescue.times(mIfortescueConjugate); //  term T0 = Sfortescue
+        ComplexMatrix mIfortescueConjugate = ComplexMatrix.getComplexMatrixFromRealCartesian(Fortescue.createMatrix().times(m1T0));
+        ComplexMatrix mSfortescue = ComplexMatrix.getComplexMatrixFromRealCartesian(mSquareVFortescue.times(mIfortescueConjugate.getRealCartesianMatrix())); //  term T0 = Sfortescue
 
         switch (sequenceType) {
             case ZERO:
-                return complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(0, 0) : -mIfortescueConjugate.get(1, 0); // IxZero or IyZero
+                return complexPart == ComplexPart.REAL ? mIfortescueConjugate.getTerm(1, 1).getReal() : -mIfortescueConjugate.getTerm(1, 1).getImaginary(); // IxZero or IyZero
 
             case POSITIVE:
                 // check if positive sequence is modelled as P,Q or Ix,Iy
                 if (asymBus.isPositiveSequenceAsCurrent()) {
-                    return complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(2, 0) : -mIfortescueConjugate.get(3, 0); // IxZero or IyZero
+                    return complexPart == ComplexPart.REAL ? mIfortescueConjugate.getTerm(2, 1).getReal() : -mIfortescueConjugate.getTerm(2, 1).getImaginary(); // IxZero or IyZero
                 } else {
-                    return complexPart == ComplexPart.REAL ? mSfortescue.get(2, 0) : mSfortescue.get(3, 0); // Ppositive or Qpositive
+                    return complexPart == ComplexPart.REAL ? mSfortescue.getTerm(2, 1).getReal() : mSfortescue.getTerm(2, 1).getImaginary(); // Ppositive or Qpositive
                 }
 
             case NEGATIVE:
-                return complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
+                return complexPart == ComplexPart.REAL ? mIfortescueConjugate.getTerm(3, 1).getReal() : -mIfortescueConjugate.getTerm(3, 1).getImaginary(); // IxNegative or IyNegative
 
             default:
                 throw new IllegalStateException("Unknown sequence at bus : " + bus.getId());
         }
     }
 
-    public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi, LegConnectionType loadConnectionType, ComplexMatrix sabc) {
+    public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, ComplexMatrix v0V1V2, ComplexMatrix dv0V1V2, LegConnectionType loadConnectionType, ComplexMatrix sabc) {
         // We derivate the PQ formula with complex matrices:
 
         // Wye Load with Wye variables at bus
@@ -176,40 +166,24 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
         //                                                                                                                               term T2
 
         LfAsymBus asymBus = bus.getAsym();
-        if (asymBus == null) {
-            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
-        }
-
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
-        ComplexMatrix v0V1V2 = AbstractAsymmetricalLoadTerm.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
         // computation of dV0/dx , dV1/dx, dV2/dx
-        Complex dV0 = v0V1V2.getTerm(1, 1);
-        Complex dV1 = v0V1V2.getTerm(2, 1);
-        Complex dV2 = v0V1V2.getTerm(3, 1);
-
-        // build of voltage vectors
-        Vector2D positiveComponent = Fortescue.getCartesianFromPolar(vd, phd);
-        Vector2D zeroComponent = Fortescue.getCartesianFromPolar(vo, pho);
-        Vector2D negativeComponent = Fortescue.getCartesianFromPolar(vi, phi);
-
-        DenseMatrix mVfortescue = getCartesianMatrix(zeroComponent.getX(), zeroComponent.getY(), positiveComponent.getX(), positiveComponent.getY(), negativeComponent.getX(), negativeComponent.getY(), true); // vector build with cartesian values of complex fortescue voltages
-        DenseMatrix mVabc = Fortescue.createMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
-
-        // build of Sabc vector
-        DenseMatrix mSabc3 = getCartesianMatrix(sabc.getTerm(1, 1).getReal() / 3, sabc.getTerm(1, 1).getImaginary() / 3, sabc.getTerm(2, 1).getReal() / 3, sabc.getTerm(2, 1).getImaginary() / 3, sabc.getTerm(3, 1).getReal() / 3, sabc.getTerm(3, 1).getImaginary() / 3, true);
+        DenseMatrix mVabc = Fortescue.createMatrix().times(v0V1V2.getRealCartesianMatrix()).toDense(); // vector build with cartesian values of complex abc voltages
+        DenseMatrix mSabc3 = ComplexMatrix.getMatrixScaled(sabc, 1. / 3.).getRealCartesianMatrix();
+        ComplexMatrix vabc = ComplexMatrix.getComplexMatrixFromRealCartesian(mVabc);
 
         // build of 1/Vabc square matrix
-        DenseMatrix mInvVabc = getInvVabcSquare(bus, asymBus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
+        DenseMatrix mInvVabc = getSquareInverseFromVector(bus, asymBus, vabc);
         if (loadConnectionType == LegConnectionType.DELTA && busVariableType == AsymBusVariableType.WYE) {
             if (asymBus.getNbMissingPhases() > 0) {
                 throw new IllegalStateException("Delta load with phase disconnection not yet handled at bus : " + bus.getId());
             }
-            mInvVabc = getInvVabcSquare(bus, asymBus, mVabc.get(0, 0) - mVabc.get(2, 0), mVabc.get(1, 0) - mVabc.get(3, 0), mVabc.get(2, 0) - mVabc.get(4, 0), mVabc.get(3, 0) - mVabc.get(5, 0), mVabc.get(4, 0) - mVabc.get(0, 0), mVabc.get(5, 0) - mVabc.get(1, 0));
+            mInvVabc = getSquareInverseFromVector(bus, asymBus, getDeltaVabcFromVabc(vabc));
         }
 
         // build of derivative fortescue voltage square matrix
-        DenseMatrix mdVSquare = getCartesianMatrix(dV0.getReal(), dV0.getImaginary(), dV1.getReal(), dV1.getImaginary(), dV2.getReal(), dV2.getImaginary(), false);
+        DenseMatrix mdVSquare = getSquareMatrixFromVector(dv0V1V2);
 
         // computation of vector = term T1:
         DenseMatrix m0T1 = mInvVabc.times(mSabc3);
@@ -219,19 +193,16 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
             m1T1 = complexMatrixP(StepType.STEP_DOWN).getRealCartesianMatrix().times(m0T1);
         }
         DenseMatrix m2T1 = Fortescue.createMatrix().times(m1T1);
-        DenseMatrix mT1 = mdVSquare.times(m2T1);
+        ComplexMatrix mT1 = ComplexMatrix.getComplexMatrixFromRealCartesian(mdVSquare.times(m2T1));
 
         // build Vfortescue square matrix
-        DenseMatrix mSquareVFortescue = getCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
+        DenseMatrix mSquareVFortescue = getSquareMatrixFromVector(v0V1V2);
 
         // build of -1/3.Sabc square matrix
-        DenseMatrix mMinusSabc3Square = getCartesianMatrix(-sabc.getTerm(1, 1).getReal() / 3, -sabc.getTerm(1, 1).getImaginary() / 3, -sabc.getTerm(2, 1).getReal() / 3, -sabc.getTerm(2, 1).getImaginary() / 3, -sabc.getTerm(3, 1).getReal() / 3, -sabc.getTerm(3, 1).getImaginary() / 3, false);
-
-        // buils of fortescue derivative vector
-        DenseMatrix mdV = getCartesianMatrix(dV0.getReal(), dV0.getImaginary(), dV1.getReal(), dV1.getImaginary(), dV2.getReal(), dV2.getImaginary(), true);
+        DenseMatrix mMinusSabc3Square = getSquareMatrixFromVector(ComplexMatrix.getMatrixScaled(sabc, -1. / 3.));
 
         // computation of vector = term T2:
-        DenseMatrix m0T2 = Fortescue.createMatrix().times(mdV);
+        DenseMatrix m0T2 = Fortescue.createMatrix().times(dv0V1V2.getRealCartesianMatrix());
         DenseMatrix m1T2 = mInvVabc.times(m0T2);
         DenseMatrix m2T2 = mInvVabc.times(m1T2);
         DenseMatrix m3T2 = mMinusSabc3Square.times(m2T2);
@@ -239,22 +210,22 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
         if (loadConnectionType == LegConnectionType.DELTA && busVariableType == AsymBusVariableType.DELTA) {
             m4T2 = complexMatrixP(StepType.STEP_DOWN).getRealCartesianMatrix().times(m3T2);
         }
-        DenseMatrix mdIFortescueConjugate = Fortescue.createMatrix().times(m4T2);
-        DenseMatrix mT2 = mSquareVFortescue.times(mdIFortescueConjugate);
+        ComplexMatrix mdIFortescueConjugate = ComplexMatrix.getComplexMatrixFromRealCartesian(Fortescue.createMatrix().times(m4T2));
+        ComplexMatrix mT2 = ComplexMatrix.getComplexMatrixFromRealCartesian(mSquareVFortescue.times(mdIFortescueConjugate.getRealCartesianMatrix()));
 
         switch (sequenceType) {
             case ZERO:
-                return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(0, 0) : -mdIFortescueConjugate.get(1, 0); // dIxZero or dIyZero
+                return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.getTerm(1, 1).getReal() : -mdIFortescueConjugate.getTerm(1, 1).getImaginary(); // dIxZero or dIyZero
 
             case POSITIVE:
                 if (asymBus.isPositiveSequenceAsCurrent()) {
-                    return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(2, 0) : -mdIFortescueConjugate.get(3, 0); // dIxPositive or dIyPositive
+                    return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.getTerm(2, 1).getReal() : -mdIFortescueConjugate.getTerm(2, 1).getImaginary(); // dIxPositive or dIyPositive
                 } else {
-                    return complexPart == ComplexPart.REAL ? mT1.get(2, 0) + mT2.get(2, 0) : mT1.get(3, 0) + mT2.get(3, 0); // dPpositive or dQpositive
+                    return complexPart == ComplexPart.REAL ? mT1.getTerm(2, 1).getReal() + mT2.getTerm(2, 1).getReal() : mT1.getTerm(2, 1).getImaginary() + mT2.getTerm(2, 1).getImaginary(); // dPpositive or dQpositive
                 }
 
             case NEGATIVE:
-                return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
+                return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.getTerm(3, 1).getReal() : -mdIFortescueConjugate.getTerm(3, 1).getImaginary(); // dIxNegative or dIyNegative
 
             default:
                 throw new IllegalStateException("Unknown sequence at bus : " + bus.getId());
@@ -263,18 +234,12 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
 
     @Override
     public double eval() {
-        return pq(element, complexPart, sequenceType,
-                v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
-                v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
-                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), loadConnectionType, sabc);
+        return pq(element, complexPart, sequenceType, getVfortescue(), loadConnectionType, sabc);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        return dpq(element, complexPart, sequenceType, variable,
-                v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
-                v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
-                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE), loadConnectionType, sabc);
+        return dpq(element, complexPart, sequenceType, getVfortescue(), getdVfortescue(variable), loadConnectionType, sabc);
     }
 
     @Override
@@ -282,53 +247,54 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
         return "ac_pq_fortescue_load";
     }
 
-    public static DenseMatrix getInvVabcSquare(LfBus bus, LfAsymBus asymBus, double vAx, double vAy, double vBx, double vBy, double vCx, double vCy) {
+    public static DenseMatrix getSquareInverseFromVector(LfBus bus, LfAsymBus asymBus, ComplexMatrix m) {
         double epsilon = 0.00000001;
 
         if (asymBus.getNbMissingPhases() > 0 && asymBus.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
             throw new IllegalStateException("Load with delta variables and missing phases not yet handled at bus : " + bus.getId());
         }
 
-        Complex vA = new Complex(vAx, vAy);
-        Complex vB = new Complex(vBx, vBy);
-        Complex vC = new Complex(vCx, vCy);
-
         String cantBuildLoad = " is null at bus : " + bus.getId() + " : cannot build load model";
 
-        Complex invVa = new Complex(0., 0.);
-        Complex invVb = new Complex(0., 0.);
-        Complex invVc = new Complex(0., 0.);
+        ComplexMatrix invVabc = new ComplexMatrix(3, 1);
 
         if (asymBus.isHasPhaseA()) {
-            if (vA.abs() < epsilon) {
+            if (m.getTerm(1, 1).abs() < epsilon) {
                 throw new IllegalStateException("Va" + cantBuildLoad);
             } else {
-                invVa = vA.reciprocal();
+                invVabc.set(1, 1, m.getTerm(1, 1).reciprocal());
             }
         }
 
         if (asymBus.isHasPhaseB()) {
-            if (vB.abs() < epsilon) {
+            if (m.getTerm(2, 1).abs() < epsilon) {
                 throw new IllegalStateException("Vb" + cantBuildLoad);
             } else {
-                invVb = vB.reciprocal();
+                invVabc.set(2, 1, m.getTerm(2, 1).reciprocal());
             }
         }
 
         if (asymBus.isHasPhaseC()) {
-            if (vC.abs() < epsilon) {
+            if (m.getTerm(3, 1).abs() < epsilon) {
                 throw new IllegalStateException("Vc" + cantBuildLoad);
             } else {
-                invVc = vC.reciprocal();
+                invVabc.set(3, 1, m.getTerm(3, 1).reciprocal());
             }
         }
 
-        return getCartesianMatrix(invVa.getReal(), invVa.getImaginary(), invVb.getReal(), invVb.getImaginary(), invVc.getReal(), invVc.getImaginary(), false);
+        return getSquareMatrixFromVector(invVabc);
     }
 
-    public static DenseMatrix getCartesianMatrix(double m1x, double m1y, double m2x, double m2y, double m3x, double m3y, boolean isVector) {
-        // if this is a vector we build: m = [m1x;m1y;m2x;m2y;m3x;m3y] equivalent in complex to [m1;m2;m3]
-        // if not, this is a 6x6 square matrix expected:
+    public static ComplexMatrix getDeltaVabcFromVabc(ComplexMatrix vabc) {
+        ComplexMatrix vDelta = new ComplexMatrix(3, 1);
+        vDelta.set(1, 1, vabc.getTerm(1, 1).add(vabc.getTerm(2, 1).multiply(-1.))); // Vab = va - Vb
+        vDelta.set(2, 1, vabc.getTerm(2, 1).add(vabc.getTerm(3, 1).multiply(-1.))); // Vbc = vb - Vc
+        vDelta.set(3, 1, vabc.getTerm(3, 1).add(vabc.getTerm(1, 1).multiply(-1.))); // Vca = vc - Va
+        return vDelta;
+    }
+
+    public static DenseMatrix getSquareMatrixFromVector(ComplexMatrix m1m2m3Vector) {
+        // from input complex vector: m = [m1;m2;m3] we build:
         //
         //      [m1x -m1y  0    0    0    0 ]
         //      [m1y  m1x  0    0    0    0 ]
@@ -337,33 +303,13 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm
         //      [ 0    0   0    0   m3x -m3y]                           [ 0  0  m3]
         //      [ 0    0   0    0   m3y  m3x]
         //
-        DenseMatrix mCartesian;
-        if (isVector) {
-            mCartesian = new DenseMatrix(6, 1);
-            mCartesian.add(0, 0, m1x);
-            mCartesian.add(1, 0, m1y);
-            mCartesian.add(2, 0, m2x);
-            mCartesian.add(3, 0, m2y);
-            mCartesian.add(4, 0, m3x);
-            mCartesian.add(5, 0, m3y);
-        } else {
-            mCartesian = new DenseMatrix(6, 6);
-            mCartesian.add(0, 0, m1x);
-            mCartesian.add(1, 1, m1x);
-            mCartesian.add(0, 1, -m1y);
-            mCartesian.add(1, 0, m1y);
 
-            mCartesian.add(2, 2, m2x);
-            mCartesian.add(3, 3, m2x);
-            mCartesian.add(2, 3, -m2y);
-            mCartesian.add(3, 2, m2y);
-
-            mCartesian.add(4, 4, m3x);
-            mCartesian.add(5, 5, m3x);
-            mCartesian.add(4, 5, -m3y);
-            mCartesian.add(5, 4, m3y);
-        }
-        return mCartesian;
+        ComplexMatrix m;
+        m = new ComplexMatrix(3, 3);
+        m.set(1, 1, m1m2m3Vector.getTerm(1, 1));
+        m.set(2, 2, m1m2m3Vector.getTerm(2, 1));
+        m.set(3, 3, m1m2m3Vector.getTerm(3, 1));
+        return m.getRealCartesianMatrix();
     }
 
     public static ComplexMatrix complexMatrixP(StepType stepLegConnectionType) {
