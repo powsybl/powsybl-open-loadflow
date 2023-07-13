@@ -15,7 +15,7 @@ import org.apache.commons.math3.complex.Complex;
 
 import java.util.Objects;
 
-public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoadTerm {
+public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
 
     public static final double EPSILON = 0.000000001;
 

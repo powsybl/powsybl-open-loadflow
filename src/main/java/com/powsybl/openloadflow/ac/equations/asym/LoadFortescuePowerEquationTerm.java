@@ -34,7 +34,7 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
-public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoadTerm {
+public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
     public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
         super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         Complex s0 = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());

@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-abstract class AbstractAsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariableType, AcEquationType> {
+class AsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariableType, AcEquationType> {
 
     // positive
     protected final Variable<AcVariableType> vVar;
@@ -51,7 +51,7 @@ abstract class AbstractAsymmetricalLoadTerm extends AbstractElementEquationTerm<
 
     protected ComplexMatrix sabc;
 
-    protected AbstractAsymmetricalLoadTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
+    protected AsymmetricalLoadTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
         super(bus);
         Objects.requireNonNull(variableSet);
         this.complexPart = Objects.requireNonNull(complexPart);
