@@ -173,7 +173,6 @@ public class LfAsymLineAdmittanceMatrix {
     }
 
     private static DenseMatrix build(SimplePiModel piZeroComponent, SimplePiModel piPositiveComponent, SimplePiModel piNegativeComponent) {
-        DenseMatrix mY = new DenseMatrix(12, 12);
 
         Complex zz = new Complex(piZeroComponent.getR(), piZeroComponent.getX());
         Complex y1z = new Complex(piZeroComponent.getG1(), piZeroComponent.getB1());
