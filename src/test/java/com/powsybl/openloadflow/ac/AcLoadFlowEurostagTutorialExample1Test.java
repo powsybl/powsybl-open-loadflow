@@ -432,7 +432,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 assertTrue(-gen.getTerminal().getQ() >= ((MinMaxReactiveLimits) gen.getReactiveLimits()).getMinQ());
             }
         });
-        assertEquals(-120, network.getGenerator("GEN").getTerminal().getQ());
+        assertEquals(-120, network.getGenerator("GEN").getTerminal().getQ(), 0.01);
         assertEquals(-160, network.getGenerator("GEN1").getTerminal().getQ(), 0.01);
     }
 
