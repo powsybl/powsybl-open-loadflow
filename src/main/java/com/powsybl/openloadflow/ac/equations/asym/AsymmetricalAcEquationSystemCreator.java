@@ -11,9 +11,11 @@ package com.powsybl.openloadflow.ac.equations.asym;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.*;
 import com.powsybl.openloadflow.util.ComplexPart;
+import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 
 /**
@@ -326,7 +328,6 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         }
 
         createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
-
         createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
 
     }
@@ -349,9 +350,32 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
     }
 
+    public void addTermForLoadEquation(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem, AcEquationType acEquationType, AsymmetricalLoadTerm asymmetricalLoadTerm) {
+        if (asymmetricalLoadTerm != null) {
+            equationSystem.createEquation(bus, acEquationType).addTerm(asymmetricalLoadTerm);
+        }
+
+    }
+
+    public AsymmetricalLoadTerm createAbcLoadEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType, AsymBusLoadType asymBusLoadType) {
+        if (asymBusLoadType == AsymBusLoadType.CONSTANT_POWER) {
+            return new LoadAbcPowerEquationTerm(bus, variableSet, complexPart, sequenceType, loadConnectionType);
+        } else if (asymBusLoadType == AsymBusLoadType.CONSTANT_IMPEDANCE) {
+            return new LoadAbcImpedantEquationTerm(bus, variableSet, complexPart, sequenceType, loadConnectionType);
+        } else {
+            throw new IllegalStateException("Load abc has no supported type at bus : " + bus.getId());
+        }
+    }
+
     public void addTermsForLoad(LfBus bus, LfAsymBus asymBus, EquationSystem<AcVariableType, AcEquationType> equationSystem, LfAsymLoad lfAsymLoad) {
 
         AsymBusLoadType lfAsymLoadType = lfAsymLoad.getLoadType();
+        AsymmetricalLoadTerm pLoadPositive;
+        AsymmetricalLoadTerm qLoadPositive;
+        AsymmetricalLoadTerm ixLoadNegative = null;
+        AsymmetricalLoadTerm iyLoadNegative = null;
+        AsymmetricalLoadTerm ixLoadZero = null;
+        AsymmetricalLoadTerm iyLoadZero = null;
 
         if (asymBus.isFortescueRepresentation()) {
 
@@ -360,68 +384,40 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
             }
 
             // load modelled as a constant power load in abc phase representation leading to a model depending on vd, vi, vo in fortescue representation
-            LoadFortescuePowerEquationTerm pLoadPositive = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(pLoadPositive);
-            LoadFortescuePowerEquationTerm qLoadPositive = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadPositive);
+            pLoadPositive = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
+            qLoadPositive = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
 
-            LoadFortescuePowerEquationTerm ixLoadNegative = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE).addTerm(ixLoadNegative);
-            LoadFortescuePowerEquationTerm iyLoadNegative = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE).addTerm(iyLoadNegative);
+            ixLoadNegative = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType());
+            iyLoadNegative = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType());
 
             if (asymBus.getAsymBusVariableType() == AsymBusVariableType.WYE) {
-                LoadFortescuePowerEquationTerm ixLoadZero = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.ZERO, lfAsymLoad.getLoadConnectionType());
-                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO).addTerm(ixLoadZero);
-                LoadFortescuePowerEquationTerm iyLoadZero = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.ZERO, lfAsymLoad.getLoadConnectionType());
-                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO).addTerm(iyLoadZero);
+                ixLoadZero = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.ZERO, lfAsymLoad.getLoadConnectionType());
+                iyLoadZero = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.ZERO, lfAsymLoad.getLoadConnectionType());
             }
         } else {
             // use of load in ABC sequences
             // for now only S with current moddeling provided
+            int nbPhases = asymBus.getNbExistingPhases();
+            pLoadPositive = createAbcLoadEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType(), lfAsymLoadType);
+            qLoadPositive = createAbcLoadEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType(), lfAsymLoadType);
 
-            if (lfAsymLoadType == AsymBusLoadType.CONSTANT_POWER) {
-                LoadAbcPowerEquationTerm pLoadPositive = new LoadAbcPowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
-                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(pLoadPositive);
-                LoadAbcPowerEquationTerm qLoadPositive = new LoadAbcPowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
-                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadPositive);
+            if (nbPhases == 3) {
+                ixLoadNegative = createAbcLoadEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType(), lfAsymLoadType);
+                iyLoadNegative = createAbcLoadEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType(), lfAsymLoadType);
+            }
 
-                int nbPhases = asymBus.getNbExistingPhases();
-                if (nbPhases == 3) {
-                    LoadAbcPowerEquationTerm ixLoadNegative = new LoadAbcPowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType());
-                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE).addTerm(ixLoadNegative);
-                    LoadAbcPowerEquationTerm iyLoadNegative = new LoadAbcPowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType());
-                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE).addTerm(iyLoadNegative);
-                }
-
-                if (nbPhases > 1) {
-                    LoadAbcPowerEquationTerm ixLoadZero = new LoadAbcPowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.ZERO, lfAsymLoad.getLoadConnectionType());
-                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO).addTerm(ixLoadZero);
-                    LoadAbcPowerEquationTerm iyLoadZero = new LoadAbcPowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.ZERO, lfAsymLoad.getLoadConnectionType());
-                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO).addTerm(iyLoadZero);
-                }
-            } else if (lfAsymLoadType == AsymBusLoadType.CONSTANT_IMPEDANCE) {
-                LoadAbcImpedantEquationTerm pLoadPositive = new LoadAbcImpedantEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
-                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(pLoadPositive);
-                LoadAbcImpedantEquationTerm qLoadPositive = new LoadAbcImpedantEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.POSITIVE, lfAsymLoad.getLoadConnectionType());
-                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadPositive);
-
-                int nbPhases = asymBus.getNbExistingPhases();
-                if (nbPhases == 3) {
-                    LoadAbcImpedantEquationTerm ixLoadNegative = new LoadAbcImpedantEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType());
-                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE).addTerm(ixLoadNegative);
-                    LoadAbcImpedantEquationTerm iyLoadNegative = new LoadAbcImpedantEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.NEGATIVE, lfAsymLoad.getLoadConnectionType());
-                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE).addTerm(iyLoadNegative);
-                }
-
-                if (nbPhases > 1) {
-                    LoadAbcImpedantEquationTerm ixLoadZero = new LoadAbcImpedantEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.ZERO, lfAsymLoad.getLoadConnectionType());
-                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO).addTerm(ixLoadZero);
-                    LoadAbcImpedantEquationTerm iyLoadZero = new LoadAbcImpedantEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.ZERO, lfAsymLoad.getLoadConnectionType());
-                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO).addTerm(iyLoadZero);
-                }
-
+            if (nbPhases > 1) {
+                ixLoadZero = createAbcLoadEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.ZERO, lfAsymLoad.getLoadConnectionType(), lfAsymLoadType);
+                iyLoadZero = createAbcLoadEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.ZERO, lfAsymLoad.getLoadConnectionType(), lfAsymLoadType);
             }
         }
+        // only terms that are not null are added :
+        addTermForLoadEquation(bus, equationSystem, AcEquationType.BUS_TARGET_P, pLoadPositive);
+        addTermForLoadEquation(bus, equationSystem, AcEquationType.BUS_TARGET_Q, qLoadPositive);
+        addTermForLoadEquation(bus, equationSystem, AcEquationType.BUS_TARGET_IX_NEGATIVE, ixLoadNegative);
+        addTermForLoadEquation(bus, equationSystem, AcEquationType.BUS_TARGET_IY_NEGATIVE, iyLoadNegative);
+        addTermForLoadEquation(bus, equationSystem, AcEquationType.BUS_TARGET_IX_ZERO, ixLoadZero);
+        addTermForLoadEquation(bus, equationSystem, AcEquationType.BUS_TARGET_IY_ZERO, iyLoadZero);
+
     }
 }

@@ -15,7 +15,7 @@ import org.apache.commons.math3.complex.Complex;
 
 import java.util.Objects;
 
-public class LoadAbcImpedantEquationTerm extends AbstractAsymmetricalLoadTerm {
+public class LoadAbcImpedantEquationTerm extends AsymmetricalLoadTerm {
 
     private static final String PHASE_CONFIG = "Phase config not handled at bus : ";
 
