@@ -17,6 +17,11 @@ import java.util.*;
  */
 public interface LfBus extends LfElement {
 
+    enum QLimitType {
+        MIN_Q,
+        MAX_Q
+    }
+
     String getVoltageLevelId();
 
     boolean isFictitious();
@@ -98,6 +103,10 @@ public interface LfBus extends LfElement {
     double getMinQ();
 
     double getMaxQ();
+
+    Optional<QLimitType> getQLimitType();
+
+    void setQLimitType(QLimitType qLimitType);
 
     double getV();
 
