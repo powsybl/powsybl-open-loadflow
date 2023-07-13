@@ -415,7 +415,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
     @Test
     void testGeneratorReactiveLimits() {
         Network network = EurostagTutorialExample1Factory.create();
-        network.getGenerator("GEN").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(150).add();
+        network.getGenerator("GEN").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(120).add();
         network.getVoltageLevel("VLGEN").newGenerator().setId("GEN1")
                 .setBus("NGEN").setConnectableBus("NGEN")
                 .setMinP(-9999.99D).setMaxP(9999.99D)
@@ -432,8 +432,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 assertTrue(-gen.getTerminal().getQ() >= ((MinMaxReactiveLimits) gen.getReactiveLimits()).getMinQ());
             }
         });
-        assertEquals(-150, network.getGenerator("GEN").getTerminal().getQ(), 0.01);
-        assertEquals(-153.86, network.getGenerator("GEN1").getTerminal().getQ(), 0.01);
+        assertEquals(-120, network.getGenerator("GEN").getTerminal().getQ(), 0.01);
+        assertEquals(-160, network.getGenerator("GEN1").getTerminal().getQ(), 0.01);
     }
 
     @Test
