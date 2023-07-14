@@ -50,18 +50,6 @@ public class Tfo3Phases extends AbstractExtension<TwoWindingsTransformer> {
         this.stepWindingConnectionType = stepWindingConnectionType;
     }
 
-    public void setOpenPhaseA1(boolean isOpen) {
-        this.isOpenPhaseA1 = isOpen;
-    }
-
-    public void setOpenPhaseB1(boolean isOpen) {
-        this.isOpenPhaseB1 = isOpen;
-    }
-
-    public void setOpenPhaseC1(boolean isOpen) {
-        this.isOpenPhaseC1 = isOpen;
-    }
-
     public Boolean getOpenPhaseA1() {
         return isOpenPhaseA1;
     }
@@ -72,18 +60,6 @@ public class Tfo3Phases extends AbstractExtension<TwoWindingsTransformer> {
 
     public Boolean getOpenPhaseC1() {
         return isOpenPhaseC1;
-    }
-
-    public void setYa(ComplexMatrix ya) {
-        this.ya = ya;
-    }
-
-    public void setYb(ComplexMatrix yb) {
-        this.yb = yb;
-    }
-
-    public void setYc(ComplexMatrix yc) {
-        this.yc = yc;
     }
 
     public ComplexMatrix getYa() {
