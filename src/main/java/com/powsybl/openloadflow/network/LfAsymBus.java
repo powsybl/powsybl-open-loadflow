@@ -322,11 +322,7 @@ public class LfAsymBus {
             return getItarget(loadConnectionType, AbcPhaseType.A);
         } else if (hasPhaseA && hasPhaseB) {
             return getItarget(loadConnectionType, AbcPhaseType.A);
-        } else if (hasPhaseC) {
-            return new Complex(0., 0.);
-        } else if (hasPhaseB) {
-            return new Complex(0., 0.);
-        } else if (hasPhaseA) {
+        } else if (hasPhaseC || hasPhaseB || hasPhaseA) {
             return new Complex(0., 0.);
         } else {
             throw new IllegalStateException("unknow abc target load config : " + bus.getId());
