@@ -132,7 +132,26 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
         if (bus1 != null && bus2 != null) {
 
+            boolean isBus1Wye = true;
+            LfAsymBus asymBus1 = bus1.getAsym();
+            if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
+                isBus1Wye = false;
+            }
+            int nbPhases1 = asymBus1.getNbExistingPhases();
+
+            boolean isBus2Wye = true;
+            LfAsymBus asymBus2 = bus2.getAsym();
+            if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
+                isBus2Wye = false;
+            }
+            int nbPhases2 = asymBus2.getNbExistingPhases();
+
             if (!hasBranchAsymmetry(branch)) {
+
+                if (nbPhases1 < 3 || nbPhases2 < 3) {
+                    throw new IllegalStateException("Branch with a missing phase cannot be handled as a fortescue balanced model at branch : " + branch.getId());
+                }
+
                 // no assymmetry is detected with this line, we handle the equations as Fortescue and decoupled
                 p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
                 q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
@@ -143,10 +162,16 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
                 if (branch.getBranchType() == LfBranch.BranchType.LINE) {
                     // zero
-                    ixz1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
-                    iyz1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
-                    ixz2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
-                    iyz2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+
+                    if (isBus2Wye) {
+                        ixz2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                        iyz2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                    }
+
+                    if (isBus1Wye) {
+                        ixz1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                        iyz1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                    }
 
                     // negative
                     ixn1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
@@ -156,10 +181,15 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                 } else {
                     // this must be a fortescue transformer
                     // zero
-                    ixz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1X);
-                    iyz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1Y);
-                    ixz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2X);
-                    iyz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2Y);
+                    if (isBus2Wye) {
+                        ixz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2X);
+                        iyz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2Y);
+                    }
+
+                    if (isBus1Wye) {
+                        ixz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1X);
+                        iyz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1Y);
+                    }
 
                     // negative
                     ixn1 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1X);
@@ -171,12 +201,6 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
             } else {
                 // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
                 // positive
-                boolean isBus1Wye = true;
-                LfAsymBus asymBus1 = bus1.getAsym();
-                if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
-                    isBus1Wye = false;
-                }
-                int nbPhases1 = asymBus1.getNbExistingPhases();
 
                 // test: if we are WYE variables and there is a phase missing, the positive sequence is modeled with currents
                 if (isBus1Wye) {
@@ -208,12 +232,6 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                     iyn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.NEGATIVE);
                 }
 
-                boolean isBus2Wye = true;
-                LfAsymBus asymBus2 = bus2.getAsym();
-                if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
-                    isBus2Wye = false;
-                }
-                int nbPhases2 = asymBus2.getNbExistingPhases();
                 if (isBus2Wye) {
 
                     if (asymBus2.isPositiveSequenceAsCurrent()) {
