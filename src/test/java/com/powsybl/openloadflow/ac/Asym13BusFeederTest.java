@@ -279,7 +279,6 @@ public class Asym13BusFeederTest {
         assertVoltageEquals(4.154403168622116, bus652);
     }
 
-
     @Test
     void ieee13LoadWithConstantImpedanceDeltaTest() {
 
