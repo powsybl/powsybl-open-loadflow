@@ -40,11 +40,12 @@ public class Asym4nodesFeederTest {
         Complex zz = new Complex(0.1, 0.01); // 0.0001 , 0.001
         Complex zn = new Complex(0.1, 0.01); // 0.001 , 0.01
         Boolean isLoadBalanced = false;
-        Boolean is3PhaseTfo = true;
         WindingConnectionType w1 = WindingConnectionType.Y_GROUNDED;
         WindingConnectionType w2 = WindingConnectionType.Y_GROUNDED;
+        int numDisconnectedPhase = 0;
+        StepWindingConnectionType stepWindingConnectionType = StepWindingConnectionType.NONE;
 
-        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.Y_GROUNDED, is3PhaseTfo, w1, w2, StepWindingConnectionType.NONE, 0);
+        network = Asym4nodesFeederTest.ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.Y_GROUNDED, w1, w2);
 
         bus1 = network.getBusBreakerView().getBus("B1");
         bus2 = network.getBusBreakerView().getBus("B2");
@@ -63,6 +64,17 @@ public class Asym4nodesFeederTest {
 
         assertVoltageEquals(7.199557856794634, bus1);
         assertAngleEquals(0., bus1);
+        assertVoltageEquals(7.133584938970962, bus2);
+        assertVoltageEquals(2.3420558121701402, bus3);
+        assertVoltageEquals(2.0966856983831206, bus4);
+
+        // addition of an extension to have a 3 phase transformer and new load flow:
+        addTfo3PhaseExtension(w2, stepWindingConnectionType, numDisconnectedPhase);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(7.199557856794634, bus1);
+        assertAngleEquals(0., bus1);
         assertVoltageEquals(7.121244336543118, bus2);
         assertVoltageEquals(2.243330561718073, bus3);
         assertVoltageEquals(1.9537456912534272, bus4);
@@ -74,11 +86,12 @@ public class Asym4nodesFeederTest {
         Complex zz = new Complex(0.1, 0.01); // 0.0001 , 0.001
         Complex zn = new Complex(0.1, 0.01); // 0.001 , 0.01
         Boolean isLoadBalanced = true;
-        Boolean is3PhaseTfo = true;
         WindingConnectionType w1 = WindingConnectionType.Y_GROUNDED;
         WindingConnectionType w2 = WindingConnectionType.Y_GROUNDED;
+        int numDisconnectedPhase = 0;
+        StepWindingConnectionType stepWindingConnectionType = StepWindingConnectionType.NONE;
 
-        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.Y_GROUNDED, is3PhaseTfo, w1, w2, StepWindingConnectionType.NONE, 0);
+        network = Asym4nodesFeederTest.ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.Y_GROUNDED, w1, w2);
 
         bus1 = network.getBusBreakerView().getBus("B1");
         bus2 = network.getBusBreakerView().getBus("B2");
@@ -98,8 +111,20 @@ public class Asym4nodesFeederTest {
         assertVoltageEquals(7.199557856794634, bus1);
         assertAngleEquals(0., bus1);
         assertVoltageEquals(7.132278619390253, bus2);
+        assertVoltageEquals(2.344230653528591, bus3);
+        assertVoltageEquals(2.107863958213946, bus4);
+
+        // addition of an extension to have a 3 phase transformer and new load flow:
+        addTfo3PhaseExtension(w2, stepWindingConnectionType, numDisconnectedPhase);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(7.199557856794634, bus1);
+        assertAngleEquals(0., bus1);
+        assertVoltageEquals(7.132278619390253, bus2);
         assertVoltageEquals(2.2643149471277386, bus3);
         assertVoltageEquals(2.017173369480019, bus4);
+
     }
 
     @Test
@@ -108,11 +133,12 @@ public class Asym4nodesFeederTest {
         Complex zz = new Complex(0.0001, 0.0001); // 0.0001 , 0.001
         Complex zn = new Complex(0.0001, 0.0001); // 0.001 , 0.01
         Boolean isLoadBalanced = true;
-        Boolean is3PhaseTfo = true;
         WindingConnectionType w1 = WindingConnectionType.Y_GROUNDED;
         WindingConnectionType w2 = WindingConnectionType.DELTA;
+        int numDisconnectedPhase = 0;
+        StepWindingConnectionType stepWindingConnectionType = StepWindingConnectionType.STEP_DOWN;
 
-        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, is3PhaseTfo, w1, w2, StepWindingConnectionType.STEP_DOWN, 0);
+        network = Asym4nodesFeederTest.ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, w1, w2);
 
         bus1 = network.getBusBreakerView().getBus("B1");
         bus2 = network.getBusBreakerView().getBus("B2");
@@ -139,6 +165,17 @@ public class Asym4nodesFeederTest {
 
         assertVoltageEquals(7.199557856794634, bus1);
         assertAngleEquals(0., bus1);
+        assertVoltageEquals(7.015678041873337, bus2);
+        assertVoltageEquals(3.842798277594563, bus3);
+        assertVoltageEquals(3.4440931482904062, bus4);
+
+        // addition of an extension to have a 3 phase transformer and new load flow:
+        addTfo3PhaseExtension(w2, stepWindingConnectionType, numDisconnectedPhase);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(7.199557856794634, bus1);
+        assertAngleEquals(0., bus1);
         assertVoltageEquals(7.096954458010889, bus2);
         assertVoltageEquals(3.8041760321458704, bus3);
         assertVoltageEquals(3.400344917162819, bus4);
@@ -150,11 +187,12 @@ public class Asym4nodesFeederTest {
         Complex zz = new Complex(0.001, 0.001); // 0.0001 , 0.001
         Complex zn = new Complex(0.001, 0.001); // 0.001 , 0.01
         Boolean isLoadBalanced = true;
-        Boolean is3PhaseTfo = true;
         WindingConnectionType w1 = WindingConnectionType.DELTA;
         WindingConnectionType w2 = WindingConnectionType.DELTA;
+        int numDisconnectedPhase = 0;
+        StepWindingConnectionType stepWindingConnectionType = StepWindingConnectionType.STEP_DOWN;
 
-        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, is3PhaseTfo, w1, w2, StepWindingConnectionType.STEP_DOWN, 0);
+        network = Asym4nodesFeederTest.ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, w1, w2);
 
         bus1 = network.getBusBreakerView().getBus("B1");
         bus2 = network.getBusBreakerView().getBus("B2");
@@ -182,106 +220,19 @@ public class Asym4nodesFeederTest {
         assertVoltageEquals(12.47, bus1);
         assertAngleEquals(0., bus1);
         assertVoltageEquals(12.363327843118185, bus2);
+        assertVoltageEquals(3.919374745381408, bus3);
+        assertVoltageEquals(3.5306643903086035, bus4);
+
+        // addition of an extension to have a 3 phase transformer and new load flow:
+        addTfo3PhaseExtension(w2, stepWindingConnectionType, numDisconnectedPhase);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(12.47, bus1);
+        assertAngleEquals(0., bus1);
+        assertVoltageEquals(12.363327843118185, bus2);
         assertVoltageEquals(3.8305407701093968, bus3);
         assertVoltageEquals(3.430495590081445, bus4);
-    }
-
-    @Disabled
-    @Test
-    /*
-     * test will be enabled once perfect voltage source for Negative and Zero sequence
-     * is implemented
-     *
-     */
-    void yDeltaTest() {
-
-        // TODO : test with perfect voltage source for Negative and Zero sequence
-        Complex zz = new Complex(0.001, 0.001); // 0.0001 , 0.001
-        Complex zn = new Complex(0.01, 0.01); // 0.001 , 0.01
-        Boolean isLoadBalanced = true;
-        Boolean is3PhaseTfo = true;
-        WindingConnectionType w1 = WindingConnectionType.Y;
-        WindingConnectionType w2 = WindingConnectionType.DELTA;
-
-        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, is3PhaseTfo, w1, w2, StepWindingConnectionType.STEP_DOWN, 0);
-
-        bus1 = network.getBusBreakerView().getBus("B1");
-        bus2 = network.getBusBreakerView().getBus("B2");
-        bus3 = network.getBusBreakerView().getBus("B3");
-        bus4 = network.getBusBreakerView().getBus("B4");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setMaxNewtonRaphsonIterations(100)
-                .setMaxActivePowerMismatch(0.001)
-                .setMaxReactivePowerMismatch(0.001)
-                .setNewtonRaphsonConvEpsPerEq(0.001)
-                .setMaxVoltageMismatch(0.001)
-                .setMaxSusceptanceMismatch(0.001)
-                .setMaxAngleMismatch(0.001)
-                .setMaxRatioMismatch(0.001)
-                .setAsymmetrical(true);
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-
-        assertVoltageEquals(7.199557856794634, bus1);
-        assertAngleEquals(0., bus1);
-        assertVoltageEquals(7.096954458010889, bus2);
-        assertVoltageEquals(3.8041760321458704, bus3);
-        assertVoltageEquals(3.400330561379124, bus4);
-    }
-
-    @Disabled
-    @Test
-    /*
-     * test will be enabled once perfect voltage source for Negative and Zero sequence
-     * is implemented. Otherwise, phase C at generating bus will stay unsolvable
-     *
-     */
-    void ygDeltaOpenTest() {
-
-        // TODO : test with perfect voltage source for Negative and Zero sequence
-        Complex zz = new Complex(0.01, 0.01); // 0.0001 , 0.001
-        Complex zn = new Complex(0.01, 0.01); // 0.001 , 0.01
-        Boolean isLoadBalanced = true;
-        Boolean is3PhaseTfo = true;
-        WindingConnectionType w1 = WindingConnectionType.Y_GROUNDED;
-        WindingConnectionType w2 = WindingConnectionType.DELTA;
-
-        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, is3PhaseTfo, w1, w2, StepWindingConnectionType.STEP_DOWN, 3);
-
-        bus1 = network.getBusBreakerView().getBus("B1");
-        bus2 = network.getBusBreakerView().getBus("B2");
-        bus3 = network.getBusBreakerView().getBus("B3");
-        bus4 = network.getBusBreakerView().getBus("B4");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setMaxNewtonRaphsonIterations(100)
-                .setMaxActivePowerMismatch(0.001)
-                .setMaxReactivePowerMismatch(0.001)
-                .setNewtonRaphsonConvEpsPerEq(0.001)
-                .setMaxVoltageMismatch(0.001)
-                .setMaxSusceptanceMismatch(0.001)
-                .setMaxAngleMismatch(0.001)
-                .setMaxRatioMismatch(0.001)
-                .setAsymmetrical(true);
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-
-        assertVoltageEquals(7.199557856794634, bus1);
-        assertAngleEquals(0., bus1);
-        assertVoltageEquals(7.096954458010889, bus2);
-        assertVoltageEquals(3.8041760321458704, bus3);
-        assertVoltageEquals(3.400330561379124, bus4);
     }
 
     @Test
@@ -290,11 +241,12 @@ public class Asym4nodesFeederTest {
         Complex zz = new Complex(0.00001, 0.00001); // 0.0001 , 0.001
         Complex zn = new Complex(0.00001, 0.00001); // 0.001 , 0.01
         Boolean isLoadBalanced = false;
-        Boolean is3PhaseTfo = true;
         WindingConnectionType w1 = WindingConnectionType.Y_GROUNDED;
         WindingConnectionType w2 = WindingConnectionType.DELTA;
+        int numDisconnectedPhase = 0;
+        StepWindingConnectionType stepWindingConnectionType = StepWindingConnectionType.STEP_DOWN;
 
-        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, is3PhaseTfo, w1, w2, StepWindingConnectionType.STEP_DOWN, 0);
+        network = Asym4nodesFeederTest.ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, w1, w2);
 
         bus1 = network.getBusBreakerView().getBus("B1");
         bus2 = network.getBusBreakerView().getBus("B2");
@@ -321,14 +273,120 @@ public class Asym4nodesFeederTest {
 
         assertVoltageEquals(7.199557856794634, bus1);
         assertAngleEquals(0., bus1);
+        assertVoltageEquals(7.0078109349944375, bus2);
+        assertVoltageEquals(3.8315940839604075, bus3);
+        assertVoltageEquals(3.413967683262305, bus4);
+
+        // addition of an extension to have a 3 phase transformer and new load flow:
+        addTfo3PhaseExtension(w2, stepWindingConnectionType, numDisconnectedPhase);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(7.199557856794634, bus1);
+        assertAngleEquals(0., bus1);
         assertVoltageEquals(7.090474310111878, bus2);
         assertVoltageEquals(3.7865891875643336, bus3);
         assertVoltageEquals(3.36128591375635, bus4);
+
     }
 
-    public static Network ieee4Feeder(Complex zz, Complex zn, boolean isLoadBalanced, WindingConnectionType loadConnectionType, boolean is3PhaseTfo, WindingConnectionType w1, WindingConnectionType w2, StepWindingConnectionType stepWindingConnectionType, int numDisconnectedPhase) {
+    @Disabled
+    @Test
+        /*
+         * test will be enabled once perfect voltage source for Negative and Zero sequence
+         * is implemented. Otherwise, phase C at generating bus will stay unsolvable
+         *
+         */
+    void ygDeltaOpenTest() {
 
-        //WindingConnectionType windingConnectionType = WindingConnectionType.Y_GROUNDED;
+        // TODO : test with perfect voltage source for Negative and Zero sequence
+        Complex zz = new Complex(0.01, 0.01); // 0.0001 , 0.001
+        Complex zn = new Complex(0.01, 0.01); // 0.001 , 0.01
+        Boolean isLoadBalanced = true;
+        WindingConnectionType w1 = WindingConnectionType.Y_GROUNDED;
+        WindingConnectionType w2 = WindingConnectionType.DELTA;
+
+        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, w1, w2);
+
+        bus1 = network.getBusBreakerView().getBus("B1");
+        bus2 = network.getBusBreakerView().getBus("B2");
+        bus3 = network.getBusBreakerView().getBus("B3");
+        bus4 = network.getBusBreakerView().getBus("B4");
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setMaxNewtonRaphsonIterations(100)
+                .setMaxActivePowerMismatch(0.001)
+                .setMaxReactivePowerMismatch(0.001)
+                .setNewtonRaphsonConvEpsPerEq(0.001)
+                .setMaxVoltageMismatch(0.001)
+                .setMaxSusceptanceMismatch(0.001)
+                .setMaxAngleMismatch(0.001)
+                .setMaxRatioMismatch(0.001)
+                .setAsymmetrical(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(7.199557856794634, bus1);
+        assertAngleEquals(0., bus1);
+        assertVoltageEquals(7.096954458010889, bus2);
+        assertVoltageEquals(3.8041760321458704, bus3);
+        assertVoltageEquals(3.400330561379124, bus4);
+    }
+
+    @Disabled
+    @Test
+        /*
+         * test will be enabled once perfect voltage source for Negative and Zero sequence
+         * is implemented
+         *
+         */
+    void yDeltaTest() {
+
+        // TODO : test with perfect voltage source for Negative and Zero sequence
+        Complex zz = new Complex(0.001, 0.001); // 0.0001 , 0.001
+        Complex zn = new Complex(0.01, 0.01); // 0.001 , 0.01
+        Boolean isLoadBalanced = true;
+        WindingConnectionType w1 = WindingConnectionType.Y;
+        WindingConnectionType w2 = WindingConnectionType.DELTA;
+
+        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, w1, w2);
+
+        bus1 = network.getBusBreakerView().getBus("B1");
+        bus2 = network.getBusBreakerView().getBus("B2");
+        bus3 = network.getBusBreakerView().getBus("B3");
+        bus4 = network.getBusBreakerView().getBus("B4");
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setMaxNewtonRaphsonIterations(100)
+                .setMaxActivePowerMismatch(0.001)
+                .setMaxReactivePowerMismatch(0.001)
+                .setNewtonRaphsonConvEpsPerEq(0.001)
+                .setMaxVoltageMismatch(0.001)
+                .setMaxSusceptanceMismatch(0.001)
+                .setMaxAngleMismatch(0.001)
+                .setMaxRatioMismatch(0.001)
+                .setAsymmetrical(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(7.199557856794634, bus1);
+        assertAngleEquals(0., bus1);
+        assertVoltageEquals(7.096954458010889, bus2);
+        assertVoltageEquals(3.8041760321458704, bus3);
+        assertVoltageEquals(3.400330561379124, bus4);
+    }
+
+    public static Network ieee4Feeder(Complex zz, Complex zn, boolean isLoadBalanced, WindingConnectionType loadConnectionType, WindingConnectionType w1, WindingConnectionType w2) {
 
         Network network = Network.create("4n", "test");
         network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
@@ -577,7 +635,6 @@ public class Asym4nodesFeederTest {
         zd.set(3, 3, new Complex(0.4013, 1.4133));
 
         DenseMatrix bdelta3 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix();
-        //DenseMatrix minusId3 = ComplexMatrix.getMatrixScaled(ComplexMatrix.complexMatrixIdentity(3), -1.).getRealCartesianMatrix();
         DenseMatrix zDelta = zd.getRealCartesianMatrix();
         zDelta.decomposeLU().solve(bdelta3);
 
@@ -688,35 +745,48 @@ public class Asym4nodesFeederTest {
                 .withFreeFluxes(true)
                 .add();
 
-        //double zBase = ratedU3 * ratedU3 / sBase / Math.sqrt(3);
+        return network;
+    }
+
+    public void addTfo3PhaseExtension(WindingConnectionType w2, StepWindingConnectionType stepWindingConnectionType, int numDisconnectedPhase) {
+
+        TwoWindingsTransformer t2w = network.getTwoWindingsTransformer("T2W_B2_B3");
+        // step up case, we use Vbase of transformer = Vnom
+        double vBase3 = 4.16;
+        double ratedU3 = vBase3;
+        double sBase = 2.;
+
+        if (w2 == WindingConnectionType.Y_GROUNDED) {
+            ratedU3 = vBase3 / Math.sqrt(3.);
+        }
+
+        double zBase = ratedU3 * ratedU3 / sBase;
+
         Complex zPhase = new Complex(1., 6.).multiply(zBase / 100.);
         Complex yPhase = new Complex(0., 0.);
 
-        if (is3PhaseTfo) {
-            // test 3 phase tfo
-            boolean openPhase1 = false;
-            boolean openPhase2 = false;
-            boolean openPhase3 = false;
-            if (numDisconnectedPhase == 1) {
-                openPhase1 = true;
-            }
-            if (numDisconnectedPhase == 2) {
-                openPhase2 = true;
-            }
-            if (numDisconnectedPhase == 3) {
-                openPhase3 = true;
-            }
-            t23.newExtension(Tfo3PhasesAdder.class)
-                    .withIsOpenPhaseA1(openPhase1)
-                    .withIsOpenPhaseB1(openPhase2)
-                    .withIsOpenPhaseC1(openPhase3)
-                    .withYa(buildSinglePhaseAdmittanceMatrix(zPhase, yPhase, yPhase))
-                    .withYb(buildSinglePhaseAdmittanceMatrix(zPhase, yPhase, yPhase))
-                    .withYc(buildSinglePhaseAdmittanceMatrix(zPhase, yPhase, yPhase))
-                    .withStepWindingConnectionType(stepWindingConnectionType)
-                    .add();
+        // test 3 phase tfo
+        boolean openPhase1 = false;
+        boolean openPhase2 = false;
+        boolean openPhase3 = false;
+        if (numDisconnectedPhase == 1) {
+            openPhase1 = true;
         }
-        return network;
+        if (numDisconnectedPhase == 2) {
+            openPhase2 = true;
+        }
+        if (numDisconnectedPhase == 3) {
+            openPhase3 = true;
+        }
+        t2w.newExtension(Tfo3PhasesAdder.class)
+                .withIsOpenPhaseA1(openPhase1)
+                .withIsOpenPhaseB1(openPhase2)
+                .withIsOpenPhaseC1(openPhase3)
+                .withYa(buildSinglePhaseAdmittanceMatrix(zPhase, yPhase, yPhase))
+                .withYb(buildSinglePhaseAdmittanceMatrix(zPhase, yPhase, yPhase))
+                .withYc(buildSinglePhaseAdmittanceMatrix(zPhase, yPhase, yPhase))
+                .withStepWindingConnectionType(stepWindingConnectionType)
+                .add();
     }
 
     public static ComplexMatrix buildSinglePhaseAdmittanceMatrix(Complex z, Complex y1, Complex y2) {
