@@ -31,6 +31,7 @@ public class Asym13BusFeederTest {
     private Bus bus645;
     private Bus bus646;
     private Bus bus652;
+    private Bus bus684;
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
@@ -103,6 +104,7 @@ public class Asym13BusFeederTest {
         bus645 = network.getBusBreakerView().getBus("B645");
         bus646 = network.getBusBreakerView().getBus("B646");
         bus652 = network.getBusBreakerView().getBus("B652");
+        bus684 = network.getBusBreakerView().getBus("B684");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
@@ -126,7 +128,91 @@ public class Asym13BusFeederTest {
         //assertAngleEquals(0., bus650);
         assertVoltageEquals(4.2762101139626765, bus632);
         assertVoltageEquals(4.230636258403482, bus645);
-        assertVoltageEquals(4.2218389287024145, bus646);
+        assertVoltageEquals(4.220762522173593, bus646);
+        assertVoltageEquals(4.09426812981166, bus652);
+    }
+
+    @Test
+    void ieee13LoadWithConstantCurrentTest() {
+
+        network = ieee13LoadFeeder();
+        bus650 = network.getBusBreakerView().getBus("B650");
+        bus632 = network.getBusBreakerView().getBus("B632");
+        bus645 = network.getBusBreakerView().getBus("B645");
+        bus646 = network.getBusBreakerView().getBus("B646");
+        bus652 = network.getBusBreakerView().getBus("B652");
+        bus684 = network.getBusBreakerView().getBus("B684");
+
+        // addition of constant loads at busses
+        Load load645Current = network.getVoltageLevel("VL_645").newLoad()
+                .setId("LOAD_645_CURRENT")
+                .setBus(bus645.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        load645Current.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.01)
+                .withDeltaQb(0.02)
+                .withDeltaPc(0.015)
+                .withDeltaQc(0.025)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load645Current.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_CURRENT)
+                .add();
+
+        Load load684Current = network.getVoltageLevel("VL_684").newLoad()
+                .setId("LOAD_684_CURRENT")
+                .setBus(bus684.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        load684Current.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.01)
+                .withDeltaQa(0.02)
+                .withDeltaPb(0.)
+                .withDeltaQb(0.)
+                .withDeltaPc(0.015)
+                .withDeltaQc(0.025)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load684Current.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_CURRENT)
+                .add();
+
+        bus650 = network.getBusBreakerView().getBus("B650");
+        bus632 = network.getBusBreakerView().getBus("B632");
+        bus645 = network.getBusBreakerView().getBus("B645");
+        bus646 = network.getBusBreakerView().getBus("B646");
+        bus652 = network.getBusBreakerView().getBus("B652");
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setMaxNewtonRaphsonIterations(100)
+                .setMaxActivePowerMismatch(0.0001)
+                .setMaxReactivePowerMismatch(0.0001)
+                .setNewtonRaphsonConvEpsPerEq(0.0001)
+                .setMaxVoltageMismatch(0.0001)
+                .setMaxSusceptanceMismatch(0.0001)
+                .setMaxAngleMismatch(0.0001)
+                .setMaxRatioMismatch(0.0001)
+                .setAsymmetrical(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(4.2762101139626765, bus632);
+        assertVoltageEquals(4.211289127155611, bus645);
+        assertVoltageEquals(4.202478360461728, bus646);
         assertVoltageEquals(4.09426812981166, bus652);
     }
 
