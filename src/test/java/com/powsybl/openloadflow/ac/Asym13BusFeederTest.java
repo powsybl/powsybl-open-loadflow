@@ -216,6 +216,69 @@ public class Asym13BusFeederTest {
         assertVoltageEquals(4.09426812981166, bus652);
     }
 
+    @Test
+    void ieee13LoadWithConstantImpedanceTest() {
+
+        network = ieee13LoadFeeder();
+        bus650 = network.getBusBreakerView().getBus("B650");
+        bus632 = network.getBusBreakerView().getBus("B632");
+        bus645 = network.getBusBreakerView().getBus("B645");
+        bus646 = network.getBusBreakerView().getBus("B646");
+        bus652 = network.getBusBreakerView().getBus("B652");
+        bus684 = network.getBusBreakerView().getBus("B684");
+
+        // addition of constant loads at busses
+        Load load684Impedance = network.getVoltageLevel("VL_684").newLoad()
+                .setId("LOAD_684_IMPEDANCE")
+                .setBus(bus684.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        load684Impedance.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.)
+                .withDeltaQb(0.)
+                .withDeltaPc(0.15)
+                .withDeltaQc(0.25)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load684Impedance.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
+                .add();
+
+        bus650 = network.getBusBreakerView().getBus("B650");
+        bus632 = network.getBusBreakerView().getBus("B632");
+        bus645 = network.getBusBreakerView().getBus("B645");
+        bus646 = network.getBusBreakerView().getBus("B646");
+        bus652 = network.getBusBreakerView().getBus("B652");
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setMaxNewtonRaphsonIterations(100)
+                .setMaxActivePowerMismatch(0.0001)
+                .setMaxReactivePowerMismatch(0.0001)
+                .setNewtonRaphsonConvEpsPerEq(0.0001)
+                .setMaxVoltageMismatch(0.0001)
+                .setMaxSusceptanceMismatch(0.0001)
+                .setMaxAngleMismatch(0.0001)
+                .setMaxRatioMismatch(0.0001)
+                .setAsymmetrical(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(4.2581057409678005, bus632);
+        assertVoltageEquals(4.147549288446873, bus645);
+        assertVoltageEquals(4.138729902805793, bus646);
+        assertVoltageEquals(4.154403168622116, bus652);
+    }
+
     public static Network ieee13LoadFeeder() {
         Network network = Network.create("13n", "test");
         network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
