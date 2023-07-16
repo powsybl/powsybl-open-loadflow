@@ -107,64 +107,32 @@ public class LfAsymBus {
         return loadWye2;
     }
 
-    public double getAngleZ() {
-        return angleZ;
-    }
-
     public void setAngleZ(double angleZ) {
         this.angleZ = angleZ;
-    }
-
-    public double getAngleN() {
-        return angleN;
     }
 
     public void setAngleN(double angleN) {
         this.angleN = angleN;
     }
 
-    public double getVz() {
-        return vz;
-    }
-
     public void setVz(double vz) {
         this.vz = vz;
-    }
-
-    public double getVn() {
-        return vn;
     }
 
     public void setVn(double vn) {
         this.vn = vn;
     }
 
-    public Evaluable getIxZ() {
-        return ixZ;
-    }
-
     public void setIxZ(Evaluable ixZ) {
         this.ixZ = ixZ;
-    }
-
-    public Evaluable getIxN() {
-        return ixN;
     }
 
     public void setIxN(Evaluable ixN) {
         this.ixN = ixN;
     }
 
-    public Evaluable getIyZ() {
-        return iyZ;
-    }
-
     public void setIyZ(Evaluable iyZ) {
         this.iyZ = iyZ;
-    }
-
-    public Evaluable getIyN() {
-        return iyN;
     }
 
     public void setIyN(Evaluable iyN) {
