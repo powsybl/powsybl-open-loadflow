@@ -8,6 +8,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfAsymLoad;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.extensions.AbcPhaseType;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
@@ -218,16 +219,25 @@ class AsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariable
 
     public static ComplexMatrix getSabc(Complex sa, Complex sb, Complex sc, LfAsymLoad asymLoad) {
         ComplexMatrix sabc = new ComplexMatrix(3, 1);
-        if (asymLoad != null) {
-            sabc.set(1, 1, sa.add(new Complex(asymLoad.getPa(), asymLoad.getQa())));
-            sabc.set(2, 1, sb.add(new Complex(asymLoad.getPb(), asymLoad.getQb())));
-            sabc.set(3, 1, sc.add(new Complex(asymLoad.getPc(), asymLoad.getQc())));
-        } else {
-            sabc.set(1, 1, sa);
-            sabc.set(2, 1, sb);
-            sabc.set(3, 1, sc);
-        }
+        sabc.set(1, 1, getAddedS(sa, asymLoad, AbcPhaseType.A));
+        sabc.set(2, 1, getAddedS(sb, asymLoad, AbcPhaseType.B));
+        sabc.set(3, 1, getAddedS(sc, asymLoad, AbcPhaseType.C));
         return sabc;
+    }
+
+    public static Complex getAddedS(Complex s, LfAsymLoad asymLoad, AbcPhaseType phaseType) {
+        if (asymLoad != null) {
+            if (phaseType == AbcPhaseType.A) {
+                return s.add(new Complex(asymLoad.getPa(), asymLoad.getQa()));
+            }
+            if (phaseType == AbcPhaseType.B) {
+                return s.add(new Complex(asymLoad.getPb(), asymLoad.getQb()));
+            }
+            if (phaseType == AbcPhaseType.C) {
+                return s.add(new Complex(asymLoad.getPc(), asymLoad.getQc()));
+            }
+        }
+        return s;
     }
 
     @Override
