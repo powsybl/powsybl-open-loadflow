@@ -43,30 +43,15 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
             this.y0m = new Complex(0, 0);
             isFreeFluxes = true;
         } else {
-            // triangle to star Kennelly transformation to have a T model for the transformer
             Complex z12 = new Complex(asymTransfo2W.getRo(), asymTransfo2W.getXo());
 
-            if (y1.abs() < epsilon) {
-                this.z0T1 = z12;
-                this.y0m = y2;
-                this.z0T2 = new Complex(0, 0);
-            } else if (y2.abs() < epsilon) {
-                this.z0T1 = new Complex(0, 0);
-                this.y0m = y1;
-                this.z0T2 = z12;
-            } else {
-                Complex z1 = (new Complex(g1, b1)).reciprocal();
-                Complex z2 = (new Complex(g2, b2)).reciprocal();
-
-                Complex sumZ = z1.add(z2.add(z12));
-                if (sumZ.abs() < epsilon) {
-                    throw new IllegalArgumentException("Branch " + branch.getId() + " has homopolar input data that will bring singularity in the Newton Raphson resolution");
-                }
-
-                this.z0T1 = (z1.multiply(z12)).divide(sumZ);
-                this.y0m = ((z1.multiply(z2)).divide(sumZ)).reciprocal();
-                this.z0T2 = (z2.multiply(z12)).divide(sumZ);
+            if (y2.abs() > epsilon) {
+                throw new IllegalArgumentException("Transfomer " + branch.getId() + " has homopolar input y2 not equal to zero and is not supported in current version of the asymmetric load flow");
             }
+
+            this.z0T1 = new Complex(0, 0);
+            this.y0m = y1;
+            this.z0T2 = z12;
         }
     }
 
