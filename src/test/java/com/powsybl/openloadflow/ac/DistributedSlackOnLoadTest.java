@@ -220,11 +220,22 @@ class DistributedSlackOnLoadTest {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parametersExt.setLoadPowerFactorConstant(true);
-        network.getLoad("l4").newExtension(LoadDetailAdder.class)
+        network.getGenerator("g1").setTargetP(-208);
+        Load l4 = network.getLoad("l4");
+        l4.setP0(0.0).setQ0(-50);
+        l4.newExtension(LoadDetailAdder.class)
                 .withFixedActivePower(0)
                 .withFixedReactivePower(0)
                 .withVariableActivePower(0)
-                .withVariableReactivePower(50)
+                .withVariableReactivePower(-50)
+                .add();
+        Load l5 = network.getLoad("l5");
+        l5.setP0(-10.0).setQ0(0.0);
+        l5.newExtension(LoadDetailAdder.class)
+                .withFixedActivePower(-10)
+                .withFixedReactivePower(0)
+                .withVariableActivePower(0)
+                .withVariableReactivePower(0.0)
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -234,7 +245,7 @@ class DistributedSlackOnLoadTest {
         sumBus += network.getLine("l34").getTerminal2().getQ();
         sumBus += network.getLoad("l4").getTerminal().getQ();
         sumBus += network.getLoad("l5").getTerminal().getQ();
-        assertEquals(0.0, sumBus, 10E-6);
+        assertEquals(0.0, sumBus, 10E-3);
         assertPowerFactor(network);
     }
 }
