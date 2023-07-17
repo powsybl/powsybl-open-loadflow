@@ -96,6 +96,48 @@ public class Asym34BusFeederTest {
                 .withLoadType(LoadType.CONSTANT_POWER)
                 .add();
 
+        Load load810Impedant = network.getVoltageLevel("VL_810").newLoad()
+                .setId("LOAD_810_IMPEDANT")
+                .setBus(bus810.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        load810Impedant.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.2)
+                .withDeltaQb(0.25)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load810Impedant.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
+                .add();
+
+        Load load810Current = network.getVoltageLevel("VL_810").newLoad()
+                .setId("LOAD_810_CURRENT")
+                .setBus(bus810.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        load810Current.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.02)
+                .withDeltaQb(0.01)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load810Current.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_CURRENT)
+                .add();
+
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
@@ -114,8 +156,8 @@ public class Asym34BusFeederTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
-        assertVoltageEquals(25.671063694008538, bus860);
-        assertVoltageEquals(25.410774382276298, bus850);
+        assertVoltageEquals(25.520692860319357, bus860);
+        assertVoltageEquals(25.27020825194182, bus850);
 
     }
 
