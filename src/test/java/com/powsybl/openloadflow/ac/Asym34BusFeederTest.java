@@ -28,6 +28,7 @@ public class Asym34BusFeederTest {
     private Network network;
     private Bus bus860;
     private Bus bus850;
+    private Bus bus810;
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
@@ -39,6 +40,7 @@ public class Asym34BusFeederTest {
 
         bus860 = network.getBusBreakerView().getBus("B860");
         bus850 = network.getBusBreakerView().getBus("B850");
+        bus810 = network.getBusBreakerView().getBus("B810");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
@@ -60,6 +62,60 @@ public class Asym34BusFeederTest {
 
         assertVoltageEquals(25.74576766760779, bus860);
         assertVoltageEquals(25.480362952505075, bus850);
+
+    }
+
+    @Test
+    void ieee34LoadAbcPowerTest() {
+
+        network = ieee34LoadFeeder();
+
+        bus860 = network.getBusBreakerView().getBus("B860");
+        bus850 = network.getBusBreakerView().getBus("B850");
+        bus810 = network.getBusBreakerView().getBus("B810");
+
+        // addition of constant loads at busses
+        Load load810Power = network.getVoltageLevel("VL_810").newLoad()
+                .setId("LOAD_810_POWER")
+                .setBus(bus810.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        load810Power.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.1)
+                .withDeltaQb(0.15)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load810Power.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_POWER)
+                .add();
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setMaxNewtonRaphsonIterations(100)
+                .setMaxActivePowerMismatch(0.0001)
+                .setMaxReactivePowerMismatch(0.0001)
+                .setNewtonRaphsonConvEpsPerEq(0.0001)
+                .setMaxVoltageMismatch(0.0001)
+                .setMaxSusceptanceMismatch(0.0001)
+                .setMaxAngleMismatch(0.0001)
+                .setMaxRatioMismatch(0.0001)
+                .setAsymmetrical(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(25.671063694008538, bus860);
+        assertVoltageEquals(25.410774382276298, bus850);
 
     }
 
