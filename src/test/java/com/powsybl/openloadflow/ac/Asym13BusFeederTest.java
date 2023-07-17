@@ -399,6 +399,29 @@ public class Asym13BusFeederTest {
                 .withLoadType(LoadType.CONSTANT_POWER)
                 .add();
 
+        bus646.newExtension(BusAsymmetricalAdder.class)
+                .withBusVariableType(BusVariableType.WYE)
+                .withHasPhaseA(false)
+                .withPositiveSequenceAsCurrent(true)
+                .withFortescueRepresentation(false)
+                .add();
+
+        Load load646 = network.getLoad("LOAD_646");
+
+        load646.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.230)
+                .withDeltaQb(0.132)
+                .withDeltaPc(0.08)
+                .withDeltaQc(0.07)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load646.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
+                .add();
+
         bus650 = network.getBusBreakerView().getBus("B650");
         bus632 = network.getBusBreakerView().getBus("B632");
         bus645 = network.getBusBreakerView().getBus("B645");
@@ -424,8 +447,8 @@ public class Asym13BusFeederTest {
         assertTrue(result.isOk());
 
         assertVoltageEquals(4.254515745736239, bus632);
-        assertVoltageEquals(4.1307820331789085, bus645);
-        assertVoltageEquals(4.121981989401528, bus646);
+        assertVoltageEquals(4.172825723037055, bus645);
+        assertVoltageEquals(4.169908057051565, bus646);
         assertVoltageEquals(4.153827817198066, bus652);
     }
 
