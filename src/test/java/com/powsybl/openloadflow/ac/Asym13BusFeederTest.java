@@ -32,6 +32,7 @@ public class Asym13BusFeederTest {
     private Bus bus646;
     private Bus bus652;
     private Bus bus684;
+    private Bus bus611;
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
@@ -340,6 +341,92 @@ public class Asym13BusFeederTest {
         assertVoltageEquals(4.2520625000874075, bus645);
         assertVoltageEquals(4.243258426216129, bus646);
         assertVoltageEquals(4.154403168622116, bus652);
+    }
+
+    @Test
+    void ieee13LoadWithAbcPowerLoadTest() {
+
+        network = ieee13LoadFeeder();
+        bus650 = network.getBusBreakerView().getBus("B650");
+        bus632 = network.getBusBreakerView().getBus("B632");
+        bus645 = network.getBusBreakerView().getBus("B645");
+        bus646 = network.getBusBreakerView().getBus("B646");
+        bus652 = network.getBusBreakerView().getBus("B652");
+        bus684 = network.getBusBreakerView().getBus("B684");
+        bus611 = network.getBusBreakerView().getBus("B611");
+
+        // addition of constant loads at busses
+        Load load684Impedance = network.getVoltageLevel("VL_684").newLoad()
+                .setId("LOAD_684_POWER")
+                .setBus(bus684.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        load684Impedance.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.)
+                .withDeltaQb(0.)
+                .withDeltaPc(0.15)
+                .withDeltaQc(0.25)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load684Impedance.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_POWER)
+                .add();
+
+        // addition of constant loads at busses
+        Load load611Power = network.getVoltageLevel("VL_611").newLoad()
+                .setId("LOAD_611_POWER")
+                .setBus(bus611.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        load611Power.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.)
+                .withDeltaQa(0.)
+                .withDeltaPb(0.)
+                .withDeltaQb(0.)
+                .withDeltaPc(0.15)
+                .withDeltaQc(0.25)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load611Power.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_POWER)
+                .add();
+
+        bus650 = network.getBusBreakerView().getBus("B650");
+        bus632 = network.getBusBreakerView().getBus("B632");
+        bus645 = network.getBusBreakerView().getBus("B645");
+        bus646 = network.getBusBreakerView().getBus("B646");
+        bus652 = network.getBusBreakerView().getBus("B652");
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setMaxNewtonRaphsonIterations(100)
+                .setMaxActivePowerMismatch(0.0001)
+                .setMaxReactivePowerMismatch(0.0001)
+                .setNewtonRaphsonConvEpsPerEq(0.0001)
+                .setMaxVoltageMismatch(0.0001)
+                .setMaxSusceptanceMismatch(0.0001)
+                .setMaxAngleMismatch(0.0001)
+                .setMaxRatioMismatch(0.0001)
+                .setAsymmetrical(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(4.254515745736239, bus632);
+        assertVoltageEquals(4.1307820331789085, bus645);
+        assertVoltageEquals(4.121981989401528, bus646);
+        assertVoltageEquals(4.153827817198066, bus652);
     }
 
     public static Network ieee13LoadFeeder() {
