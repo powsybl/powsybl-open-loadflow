@@ -137,7 +137,6 @@ public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
     public static Complex getVfortescueInverse(LfBus bus, Variable<AcVariableType> vVar, Complex vComplex) {
         Complex invV = new Complex(0., 0.);
         if (vVar != null) {
-            //Complex vComplex = v0V1V2.getTerm(1, 1);
             if (vComplex.abs() > EPSILON) {
                 invV = vComplex.reciprocal();
             } else {
