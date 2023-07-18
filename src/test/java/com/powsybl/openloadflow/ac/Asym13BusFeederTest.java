@@ -553,6 +553,22 @@ public class Asym13BusFeederTest {
                 .withLoadType(LoadType.CONSTANT_CURRENT)
                 .add();
 
+        Load load652 = network.getLoad("LOAD_652");
+
+        load652.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.1)
+                .withDeltaQa(0.05)
+                .withDeltaPb(0.)
+                .withDeltaQb(0.)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load652.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_CURRENT)
+                .add();
+
         double micro = 0.000001;
         double yCoef = 1. / 3.;
         double feetInMile = 5280;
@@ -620,7 +636,7 @@ public class Asym13BusFeederTest {
         assertVoltageEquals(4.254515745736239, bus632);
         assertVoltageEquals(4.256717054142234, bus645);
         assertVoltageEquals(4.248706828201556, bus646);
-        assertVoltageEquals(4.0163951501421185, bus652);
+        assertVoltageEquals(4.042857013587517, bus652);
     }
 
     public static Network ieee13LoadFeeder() {
