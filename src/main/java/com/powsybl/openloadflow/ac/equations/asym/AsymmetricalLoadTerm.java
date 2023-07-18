@@ -104,6 +104,22 @@ class AsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariable
         }
     }
 
+    public void setSabc() {
+        Complex s0 = new Complex(element.getLoadTargetP(), element.getLoadTargetQ());
+        Complex sa = s0;
+        Complex sb = s0;
+        Complex sc = s0;
+
+        LfAsymLoad asymLoad;
+        if (loadConnectionType == LegConnectionType.DELTA) {
+            asymLoad = asymBus.getLoadDelta0();
+        } else {
+            asymLoad = asymBus.getLoadWye0();
+        }
+
+        this.sabc = getSabc(sa, sb, sc, asymLoad);
+    }
+
     public double ph(Fortescue.SequenceType g) {
         switch (g) {
             case ZERO:

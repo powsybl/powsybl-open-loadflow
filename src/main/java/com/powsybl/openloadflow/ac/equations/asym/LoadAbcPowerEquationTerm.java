@@ -4,7 +4,6 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfAsymBus;
-import com.powsybl.openloadflow.network.LfAsymLoad;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
@@ -23,19 +22,7 @@ public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
         super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         Objects.requireNonNull(variableSet);
 
-        Complex s0 = new Complex(bus.getLoadTargetP(), bus.getLoadTargetQ());
-        Complex sa = s0;
-        Complex sb = s0;
-        Complex sc = s0;
-
-        LfAsymLoad asymLoad;
-        if (loadConnectionType == LegConnectionType.DELTA) {
-            asymLoad = asymBus.getLoadDelta0();
-        } else {
-            asymLoad = asymBus.getLoadWye0();
-        }
-
-        this.sabc = getSabc(sa, sb, sc, asymLoad);
+        setSabc();
     }
 
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, ComplexMatrix v0V1V2,
