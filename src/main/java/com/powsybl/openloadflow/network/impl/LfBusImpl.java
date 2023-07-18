@@ -28,6 +28,7 @@ import com.powsybl.security.BusBreakerViolationLocation;
 import com.powsybl.security.NodeBreakerViolationLocation;
 import com.powsybl.security.ViolationLocation;
 import com.powsybl.security.results.BusResult;
+import org.apache.commons.math3.complex.Complex;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -117,9 +118,8 @@ public class LfBusImpl extends AbstractLfBus {
                 }
 
             } else if (Math.abs(load.getP0()) > 0.000001 && Math.abs(load.getQ0()) > 0.000001) {
-                loadWye0 = new LfAsymLoad(lfBus, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.Y_GROUNDED, 0., 0.,
-                        0., 0.,
-                        0., 0.);
+                loadWye0 = new LfAsymLoad(lfBus, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.Y_GROUNDED, new Complex(0., 0.),
+                        new Complex(0., 0.), new Complex(0., 0.));
             }
         }
 
@@ -170,13 +170,13 @@ public class LfBusImpl extends AbstractLfBus {
         LfAsymLoad asymLoadNew;
         if (asymLoad == null) {
             asymLoadNew = new LfAsymLoad(lfBus, asymBusLoadType, legConnectionType,
-                    extension.getDeltaPa() / PerUnit.SB, extension.getDeltaQa() / PerUnit.SB,
-                    extension.getDeltaPb() / PerUnit.SB, extension.getDeltaQb() / PerUnit.SB,
-                    extension.getDeltaPc() / PerUnit.SB, extension.getDeltaQc() / PerUnit.SB);
+                    new Complex(extension.getDeltaPa() / PerUnit.SB, extension.getDeltaQa() / PerUnit.SB),
+                    new Complex(extension.getDeltaPb() / PerUnit.SB, extension.getDeltaQb() / PerUnit.SB),
+                    new Complex(extension.getDeltaPc() / PerUnit.SB, extension.getDeltaQc() / PerUnit.SB));
         } else {
-            asymLoad.addSabc(extension.getDeltaPa() / PerUnit.SB, extension.getDeltaQa() / PerUnit.SB,
-                    extension.getDeltaPb() / PerUnit.SB, extension.getDeltaQb() / PerUnit.SB,
-                    extension.getDeltaPc() / PerUnit.SB, extension.getDeltaQc() / PerUnit.SB);
+            asymLoad.addSabc(new Complex(extension.getDeltaPa() / PerUnit.SB, extension.getDeltaQa() / PerUnit.SB),
+                    new Complex(extension.getDeltaPb() / PerUnit.SB, extension.getDeltaQb() / PerUnit.SB),
+                    new Complex(extension.getDeltaPc() / PerUnit.SB, extension.getDeltaQc() / PerUnit.SB));
             asymLoadNew = asymLoad;
         }
 

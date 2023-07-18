@@ -244,13 +244,13 @@ class AsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariable
     public static Complex getAddedS(Complex s, LfAsymLoad asymLoad, AbcPhaseType phaseType) {
         if (asymLoad != null) {
             if (phaseType == AbcPhaseType.A) {
-                return s.add(new Complex(asymLoad.getPa(), asymLoad.getQa()));
+                return s.add(asymLoad.getTotalDeltaSa());
             }
             if (phaseType == AbcPhaseType.B) {
-                return s.add(new Complex(asymLoad.getPb(), asymLoad.getQb()));
+                return s.add(asymLoad.getTotalDeltaSb());
             }
             if (phaseType == AbcPhaseType.C) {
-                return s.add(new Complex(asymLoad.getPc(), asymLoad.getQc()));
+                return s.add(asymLoad.getTotalDeltaSc());
             }
         }
         return s;
