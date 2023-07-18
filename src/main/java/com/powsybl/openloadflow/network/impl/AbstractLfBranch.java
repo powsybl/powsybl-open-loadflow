@@ -283,7 +283,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                 zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = false;
             } else if (isZeroImpedance(loadFlowModel)) {
                 // For DC load flow model, the min impedance has already been set by AC load flow model but
-                // the zero impedance field was not updated.
+                // the zero impedance field must still be updated.
                 zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = false;
             }
         }

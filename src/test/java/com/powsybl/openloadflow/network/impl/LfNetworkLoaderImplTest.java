@@ -213,7 +213,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBranch line = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
         assertTrue(line.isZeroImpedance(LoadFlowModel.AC));
         assertTrue(line.isZeroImpedance(LoadFlowModel.DC));
-        line.setMinZ(10); // for both AC and DL load flow model
+        line.setMinZ(10); // for both AC and DC load flow model
         assertFalse(line.isZeroImpedance(LoadFlowModel.AC));
         assertFalse(line.isZeroImpedance(LoadFlowModel.DC));
     }
