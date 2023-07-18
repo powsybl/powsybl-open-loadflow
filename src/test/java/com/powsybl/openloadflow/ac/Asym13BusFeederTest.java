@@ -452,6 +452,177 @@ public class Asym13BusFeederTest {
         assertVoltageEquals(4.153827817198066, bus652);
     }
 
+    @Test
+    void ieee13LoadWithAbLoadTest() {
+
+        network = ieee13LoadFeeder();
+        bus650 = network.getBusBreakerView().getBus("B650");
+        bus632 = network.getBusBreakerView().getBus("B632");
+        bus645 = network.getBusBreakerView().getBus("B645");
+        bus646 = network.getBusBreakerView().getBus("B646");
+        bus652 = network.getBusBreakerView().getBus("B652");
+        bus684 = network.getBusBreakerView().getBus("B684");
+        bus611 = network.getBusBreakerView().getBus("B611");
+
+        // addition of constant loads at busses
+        Load load645Impedance = network.getVoltageLevel("VL_645").newLoad()
+                .setId("LOAD_645_IMPEDANCE")
+                .setBus(bus645.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        load645Impedance.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.02)
+                .withDeltaQa(0.03)
+                .withDeltaPb(0.04)
+                .withDeltaQb(0.05)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        load645Impedance.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
+                .add();
+
+        bus645.newExtension(BusAsymmetricalAdder.class)
+                .withBusVariableType(BusVariableType.WYE)
+                .withHasPhaseC(false)
+                .withPositiveSequenceAsCurrent(true)
+                .withFortescueRepresentation(false)
+                .add();
+
+        Load load645 = network.getLoad("LOAD_645");
+
+        load645.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.08)
+                .withDeltaQa(0.07)
+                .withDeltaPb(0.230)
+                .withDeltaQb(0.132)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load645.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_POWER)
+                .add();
+
+        bus646.newExtension(BusAsymmetricalAdder.class)
+                .withBusVariableType(BusVariableType.WYE)
+                .withHasPhaseC(false)
+                .withPositiveSequenceAsCurrent(true)
+                .withFortescueRepresentation(false)
+                .add();
+
+        Load load646 = network.getLoad("LOAD_646");
+
+        load646.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.08)
+                .withDeltaQa(0.07)
+                .withDeltaPb(0.230)
+                .withDeltaQb(0.132)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load646.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
+                .add();
+
+        Load load646Current = network.getVoltageLevel("VL_646").newLoad()
+                .setId("LOAD_646_CURRENT")
+                .setBus(bus646.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .add();
+
+        load646Current.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(0.02)
+                .withDeltaQa(0.03)
+                .withDeltaPb(0.04)
+                .withDeltaQb(0.05)
+                .withDeltaPc(0.)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.Y)
+                .add();
+
+        load646Current.newExtension(LoadAsymmetrical2Adder.class)
+                .withLoadType(LoadType.CONSTANT_CURRENT)
+                .add();
+
+        double micro = 0.000001;
+        double yCoef = 1. / 3.;
+        double feetInMile = 5280;
+        double length632y645InFeet = 500.;
+        double length645y646InFeet = 300.;
+
+        // config 601 :
+        // building of Yabc from given Y impedance matrix Zy
+        ComplexMatrix zy601 = new ComplexMatrix(3, 3);
+        zy601.set(1, 1, new Complex(0.3465, 1.0179));
+        zy601.set(1, 2, new Complex(0.1560, 0.5017));
+        zy601.set(1, 3, new Complex(0.1580, 0.4236));
+        zy601.set(2, 1, new Complex(0.1560, 0.5017));
+        zy601.set(2, 2, new Complex(0.3375, 1.0478));
+        zy601.set(2, 3, new Complex(0.1535, 0.3849));
+        zy601.set(3, 1, new Complex(0.1580, 0.4236));
+        zy601.set(3, 2, new Complex(0.1535, 0.3849));
+        zy601.set(3, 3, new Complex(0.3414, 1.0348));
+
+        ComplexMatrix b601 = new ComplexMatrix(3, 3);
+
+        b601.set(1, 1, new Complex(0, micro * 6.2998));
+        b601.set(1, 2, new Complex(0, micro * -1.9958));
+        b601.set(1, 3, new Complex(0, micro * -1.2595));
+        b601.set(2, 1, new Complex(0, micro * -1.9958));
+        b601.set(2, 2, new Complex(0, micro * 5.9597));
+        b601.set(2, 3, new Complex(0, micro * -0.7417));
+        b601.set(3, 1, new Complex(0, micro * -1.2595));
+        b601.set(3, 2, new Complex(0, micro * -0.7417));
+        b601.set(3, 3, new Complex(0, micro * 5.6386));
+        // line 632y645
+        Line line632y645 = network.getLine("632y645");
+
+        ComplexMatrix yabc632y645 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, false, length632y645InFeet / feetInMile);
+        line632y645.newExtension(LineAsymmetricalAdder.class)
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc632y645, yCoef))
+                .add();
+
+        // line 645y646
+        Line line645y646 = network.getLine("645y646");
+
+        ComplexMatrix yabc645y646 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, false, length645y646InFeet / feetInMile);
+        line645y646.newExtension(LineAsymmetricalAdder.class)
+                .withYabc(ComplexMatrix.getMatrixScaled(yabc645y646, yCoef))
+                .add();
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setMaxNewtonRaphsonIterations(100)
+                .setMaxActivePowerMismatch(0.0001)
+                .setMaxReactivePowerMismatch(0.0001)
+                .setNewtonRaphsonConvEpsPerEq(0.0001)
+                .setMaxVoltageMismatch(0.0001)
+                .setMaxSusceptanceMismatch(0.0001)
+                .setMaxAngleMismatch(0.0001)
+                .setMaxRatioMismatch(0.0001)
+                .setAsymmetrical(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(4.254515745736239, bus632);
+        assertVoltageEquals(4.256717054142234, bus645);
+        assertVoltageEquals(4.248706828201556, bus646);
+        assertVoltageEquals(4.0163951501421185, bus652);
+    }
+
     public static Network ieee13LoadFeeder() {
         Network network = Network.create("13n", "test");
         network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
