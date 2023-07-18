@@ -69,20 +69,17 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         return 0;
     }
 
-    public static DenseMatrix getYgYgForcedFluxesImpedanceMatrix(Complex z0T1, Complex z0T2, Complex y0m, Complex zG1, Complex zG2, double r1, boolean getInverse) {
+    public static DenseMatrix getYgYgForcedFluxesAdmittanceMatrix(Complex z0T1, Complex z0T2, Complex y0m, Complex zG1, Complex zG2, double r1) {
 
         Complex z11 = (zG1.multiply(3.)).add((z0T1.add(y0m.reciprocal())).multiply(1 / (r1 * r1)));
         Complex z12 = (y0m.reciprocal()).multiply(1 / r1);
         Complex z22 = (zG2.multiply(3.)).add(z0T2.add(y0m.reciprocal()));
 
         DenseMatrix mZ = getMatrixFromBloc44(z11, z22, z12);
+        DenseMatrix b44 = getId44();
+        mZ.decomposeLU().solve(b44);
+        return b44;
 
-        if (getInverse) {
-            DenseMatrix b44 = getId44();
-            mZ.decomposeLU().solve(b44);
-            return b44;
-        }
-        return mZ;
     }
 
     public static DenseMatrix getYgYgFreeFluxesImpedanceMatrix(Complex z0T1, Complex z0T2, Complex zG1, Complex zG2, double r1) {
@@ -102,25 +99,17 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
             if (isFreeFluxes) {
                 return getYgYgFreeFluxesImpedanceMatrix(z0T1, z0T2, zG1, zG2, r1);
             } else {
-                return getYgYgForcedFluxesImpedanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1, true);
+                return getYgYgForcedFluxesAdmittanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1);
             }
         } else {
-            double epsilon = 0.00000001;
-            Complex y11 = new Complex(epsilon, epsilon);
-            Complex y22 = new Complex(epsilon, epsilon);
-            Complex y12 = new Complex(epsilon, epsilon);
-            if (leg1Type == LegConnectionType.DELTA && leg2Type == LegConnectionType.Y_GROUNDED) {
-                Complex tmp1 = z0T2.add(y0m.add(z0T1.reciprocal()).reciprocal());
-                y22 = (zG2.multiply(3).add(tmp1)).reciprocal();
-            } else if (leg1Type == LegConnectionType.Y_GROUNDED && leg2Type == LegConnectionType.DELTA) {
+            Complex y11;
+            Complex y22 = new Complex(0., 0.);
+            Complex y12 = y22;
+            if (leg1Type == LegConnectionType.Y_GROUNDED && leg2Type == LegConnectionType.DELTA) {
                 Complex tmp2 = z0T1.add(y0m.add(z0T2.reciprocal()).reciprocal()).multiply(1 / (r1 * r1));
                 y11 = (zG1.multiply(3).add(tmp2)).reciprocal();
-            } else if (leg1Type == LegConnectionType.Y && leg2Type == LegConnectionType.Y_GROUNDED && !isFreeFluxes) {
-                Complex tmp3 = z0T2.add(y0m.reciprocal());
-                y22 = (zG2.multiply(3).add(tmp3)).reciprocal();
-            } else if (leg1Type == LegConnectionType.Y_GROUNDED && leg2Type == LegConnectionType.Y && !isFreeFluxes) {
-                Complex tmp4 = z0T1.add(y0m.reciprocal()).multiply(1 / (r1 * r1));
-                y11 = (zG1.multiply(3).add(tmp4)).reciprocal();
+            } else {
+                throw new IllegalArgumentException("Transfomer with winding config Yg or Y or DELTA not supported in current version of the asymmetric load flow");
             }
             // if windings are in another configuration we consider it is a zero admittance matrix
             return getMatrixFromBloc44(y11, y22, y12);
