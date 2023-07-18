@@ -481,7 +481,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 branch.setMinZ(lowImpedanceThreshold);
             }
         } else {
-            // zero impedance controller phase shifter or controller branch is not supported
+            // zero impedance phase shifter controller or controlled branch is not supported
             branches.stream()
                     .filter(b -> b.isPhaseController() || b.isPhaseControlled())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
