@@ -250,12 +250,6 @@ public class Asym13BusFeederTest {
                 .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
-        bus650 = network.getBusBreakerView().getBus("B650");
-        bus632 = network.getBusBreakerView().getBus("B632");
-        bus645 = network.getBusBreakerView().getBus("B645");
-        bus646 = network.getBusBreakerView().getBus("B646");
-        bus652 = network.getBusBreakerView().getBus("B652");
-
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);

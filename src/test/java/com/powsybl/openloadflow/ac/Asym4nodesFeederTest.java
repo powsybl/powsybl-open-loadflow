@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.network.extensions.iidm.*;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
 import org.joda.time.DateTime;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
@@ -288,102 +287,6 @@ public class Asym4nodesFeederTest {
         assertVoltageEquals(3.7865891875643336, bus3);
         assertVoltageEquals(3.36128591375635, bus4);
 
-    }
-
-    @Disabled
-    @Test
-        /*
-         * test will be enabled once perfect voltage source for Negative and Zero sequence
-         * is implemented. Otherwise, phase C at generating bus will stay unsolvable
-         *
-         */
-    void ygDeltaOpenTest() {
-
-        // TODO : test with perfect voltage source for Negative and Zero sequence
-        Complex zz = new Complex(0.01, 0.01); // 0.0001 , 0.001
-        Complex zn = new Complex(0.01, 0.01); // 0.001 , 0.01
-        Boolean isLoadBalanced = true;
-        WindingConnectionType w1 = WindingConnectionType.Y_GROUNDED;
-        WindingConnectionType w2 = WindingConnectionType.DELTA;
-
-        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, w1, w2);
-
-        bus1 = network.getBusBreakerView().getBus("B1");
-        bus2 = network.getBusBreakerView().getBus("B2");
-        bus3 = network.getBusBreakerView().getBus("B3");
-        bus4 = network.getBusBreakerView().getBus("B4");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setMaxNewtonRaphsonIterations(100)
-                .setMaxActivePowerMismatch(0.001)
-                .setMaxReactivePowerMismatch(0.001)
-                .setNewtonRaphsonConvEpsPerEq(0.001)
-                .setMaxVoltageMismatch(0.001)
-                .setMaxSusceptanceMismatch(0.001)
-                .setMaxAngleMismatch(0.001)
-                .setMaxRatioMismatch(0.001)
-                .setAsymmetrical(true);
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-
-        assertVoltageEquals(7.199557856794634, bus1);
-        assertAngleEquals(0., bus1);
-        assertVoltageEquals(7.096954458010889, bus2);
-        assertVoltageEquals(3.8041760321458704, bus3);
-        assertVoltageEquals(3.400330561379124, bus4);
-    }
-
-    @Disabled
-    @Test
-        /*
-         * test will be enabled once perfect voltage source for Negative and Zero sequence
-         * is implemented
-         *
-         */
-    void yDeltaTest() {
-
-        // TODO : test with perfect voltage source for Negative and Zero sequence
-        Complex zz = new Complex(0.001, 0.001); // 0.0001 , 0.001
-        Complex zn = new Complex(0.01, 0.01); // 0.001 , 0.01
-        Boolean isLoadBalanced = true;
-        WindingConnectionType w1 = WindingConnectionType.Y;
-        WindingConnectionType w2 = WindingConnectionType.DELTA;
-
-        network = ieee4Feeder(zz, zn, isLoadBalanced, WindingConnectionType.DELTA, w1, w2);
-
-        bus1 = network.getBusBreakerView().getBus("B1");
-        bus2 = network.getBusBreakerView().getBus("B2");
-        bus3 = network.getBusBreakerView().getBus("B3");
-        bus4 = network.getBusBreakerView().getBus("B4");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setMaxNewtonRaphsonIterations(100)
-                .setMaxActivePowerMismatch(0.001)
-                .setMaxReactivePowerMismatch(0.001)
-                .setNewtonRaphsonConvEpsPerEq(0.001)
-                .setMaxVoltageMismatch(0.001)
-                .setMaxSusceptanceMismatch(0.001)
-                .setMaxAngleMismatch(0.001)
-                .setMaxRatioMismatch(0.001)
-                .setAsymmetrical(true);
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-
-        assertVoltageEquals(7.199557856794634, bus1);
-        assertAngleEquals(0., bus1);
-        assertVoltageEquals(7.096954458010889, bus2);
-        assertVoltageEquals(3.8041760321458704, bus3);
-        assertVoltageEquals(3.400330561379124, bus4);
     }
 
     public static Network ieee4Feeder(Complex zz, Complex zn, boolean isLoadBalanced, WindingConnectionType loadConnectionType, WindingConnectionType w1, WindingConnectionType w2) {
