@@ -281,6 +281,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             if (piModel.setMinZ(lowImpedanceThreshold, loadFlowModel)) {
                 LOGGER.trace("Branch {} has a low impedance in {}, set to min {}", getId(), loadFlowModel, lowImpedanceThreshold);
                 zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = false;
+            } else if (isZeroImpedance(loadFlowModel)) {
+                // For DC load flow model, the min impedance has already been set by AC load flow model but
+                // the zero impedance field was not updated.
+                zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = false;
             }
         }
     }

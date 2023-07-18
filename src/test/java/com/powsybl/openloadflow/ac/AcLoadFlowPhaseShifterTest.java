@@ -168,22 +168,11 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationTerminal(line1.getTerminal1())
                 .setRegulationValue(83);
         line1.setR(0).setX(0).setG1(0).setG2(0).setB1(0).setB2(0);
-
-        // FIXME: throws
-        //   Caused by: java.util.NoSuchElementException: No value present
-        //     at java.base/java.util.Optional.orElseThrow(Optional.java:382)
-        //     at com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator.updateTransformerPhaseControlEquations(AcEquationSystemCreator.java:474)
-        //     at com.powsybl.openloadflow.ac.equations.AcEquationSystemUpdater.onTransformerPhaseControlChange(AcEquationSystemUpdater.java:43)
-        //     at com.powsybl.openloadflow.network.LfNetworkListenerTracer.onTransformerPhaseControlChange(LfNetworkListenerTracer.java:54)
-        //     at com.powsybl.openloadflow.network.impl.AbstractLfBranch.setPhaseControlEnabled(AbstractLfBranch.java:163)
-        //     at com.powsybl.openloadflow.ac.outerloop.PhaseControlOuterLoop.initialize(PhaseControlOuterLoop.java:39)
-        //     at com.powsybl.openloadflow.ac.outerloop.PhaseControlOuterLoop.initialize(PhaseControlOuterLoop.java:24)
-        //     at com.powsybl.openloadflow.ac.AcloadFlowEngine.run(AcloadFlowEngine.java:130)
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        // TODO will be different values: assertActivePowerEquals(83.688, line1.getTerminal1());
-        // TODO will be different values: assertActivePowerEquals(16.527, line2.getTerminal1());
-        // TODO will be different values: assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
+        assertActivePowerEquals(100.0, line1.getTerminal1());
+        assertActivePowerEquals(0.0, line2.getTerminal1());
+        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
     }
 
     @Test
@@ -650,15 +639,16 @@ class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(-112.019, line2.getTerminal2());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
 
-        line1.setR(0).setX(0);
+        line1.setR(0.0).setX(0.0);
         t2wt.setR(2.0).setX(100.0);
         t2wt.getPhaseTapChanger()
                 .setRegulationTerminal(line1.getTerminal1())
                 .setTapPosition(0);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
-        assertActivePowerEquals(-12.006, line1.getTerminal1());
-        assertActivePowerEquals(112.197, line2.getTerminal1());
-        assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
+        assertTrue(result2.isOk());
+        assertActivePowerEquals(100.0, line1.getTerminal1());
+        assertActivePowerEquals(0.0, line2.getTerminal1());
+        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
     }
 }
