@@ -503,16 +503,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     void updateGeneratorsState(double generationQ, boolean reactiveLimits) {
         double qToDispatch = generationQ;
         List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
-        List<LfGenerator> initialGeneratorsThatControlVoltage = new LinkedList<>();
         for (LfGenerator generator : generators) {
             if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
                 generatorsThatControlVoltage.add(generator);
-                initialGeneratorsThatControlVoltage.add(generator);
             } else {
                 qToDispatch -= generator.getTargetQ();
             }
         }
-
+        List<LfGenerator> initialGeneratorsThatControlVoltage = new LinkedList<>(generatorsThatControlVoltage);
         for (LfGenerator generator : generatorsThatControlVoltage) {
             generator.setCalculatedQ(0);
         }
