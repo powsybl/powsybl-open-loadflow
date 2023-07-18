@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -163,5 +164,30 @@ class NewtonRaphsonStoppingCriteriaTest {
         assertTrue(result.isOk());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+    }
+
+    @Test
+    void testReactivePowerConvergedPerEquationCriteria2() {
+        network = BoundaryFactory.createWithoutLoads();
+        parameters.setUseReactiveLimits(true);
+        OpenLoadFlowParameters.create(parameters)
+                .setMaxReactivePowerMismatch(1E-2)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        double b1Q = network.getBusBreakerView().getBus("b1")
+                .getConnectedTerminalStream()
+                .map(Terminal::getQ)
+                .filter(d -> !Double.isNaN(d))
+                .reduce(0.0, Double::sum);
+        double b2Q = network.getBusBreakerView().getBus("b2")
+                .getConnectedTerminalStream()
+                .map(Terminal::getQ)
+                .filter(d -> !Double.isNaN(d))
+                .reduce(0.0, Double::sum);
+
+        assertEquals(0.0, b1Q, 1E-2);
+        assertEquals(0.0, b2Q, 1E-2);
     }
 }
