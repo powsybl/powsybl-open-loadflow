@@ -97,26 +97,8 @@ public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
 
         Complex vPositiveComplex = v0V1V2.getTerm(2, 1);
         Complex invVpositive = vPositiveComplex.reciprocal();
-
-        Complex invVnegative = new Complex(0., 0.);
-        if (vVarNegative != null) {
-            Complex vNegativeComplex = v0V1V2.getTerm(3, 1);
-            if (vNegativeComplex.abs() > EPSILON) {
-                invVnegative = vNegativeComplex.reciprocal();
-            } else {
-                throw new IllegalStateException("ABC load could not be computed because of zero voltage of Negative sequence  value at bus : " + bus.getId());
-            }
-        }
-
-        Complex invVzero = new Complex(0., 0.);
-        if (vVarZero != null) {
-            Complex vZeroComplex = v0V1V2.getTerm(1, 1);
-            if (vZeroComplex.abs() > EPSILON) {
-                invVzero = vZeroComplex.reciprocal();
-            } else {
-                throw new IllegalStateException("ABC load could not be computed because of zero voltage of Zero sequence value at bus : " + bus.getId());
-            }
-        }
+        Complex invVnegative = getVfortescueInverse(bus, vVarNegative, v0V1V2.getTerm(3, 1));
+        Complex invVzero = getVfortescueInverse(bus, vVarZero, v0V1V2.getTerm(1, 1));
 
         boolean hasPhaseA = asymBus.isHasPhaseA();
         boolean hasPhaseB = asymBus.isHasPhaseB();
@@ -180,6 +162,19 @@ public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
             default:
                 throw new IllegalStateException("Unknown sequence at bus : " + bus.getId());
         }
+    }
+
+    public static Complex getVfortescueInverse(LfBus bus, Variable<AcVariableType> vVar, Complex vComplex) {
+        Complex invV = new Complex(0., 0.);
+        if (vVar != null) {
+            //Complex vComplex = v0V1V2.getTerm(1, 1);
+            if (vComplex.abs() > EPSILON) {
+                invV = vComplex.reciprocal();
+            } else {
+                throw new IllegalStateException("ABC load could not be computed because of zero voltage of Zero sequence value at bus : " + bus.getId());
+            }
+        }
+        return invV;
     }
 
     @Override
