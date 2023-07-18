@@ -2105,4 +2105,23 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .getLimitViolationsResult().getLimitViolations().get(1));
         assertEquals(0, compare5);
     }
+
+    @Test
+    void testWithControlledBranchContingency() {
+        // PST 'PS1' regulates flow on terminal 1 of line 'L1'. Test contingency of L1.
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+        Line line1 = network.getLine("L1");
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(line1.getTerminal1())
+                .setRegulationValue(83);
+        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new LineContingency("L1"))));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setPhaseShifterRegulationOn(true);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+    }
 }
