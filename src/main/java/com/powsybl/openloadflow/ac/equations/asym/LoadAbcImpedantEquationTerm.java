@@ -184,24 +184,7 @@ public class LoadAbcImpedantEquationTerm extends AsymmetricalLoadTerm {
             throw new IllegalStateException("Load connection type not handled at bus : " + bus.getId());
         }
 
-        switch (sequenceType) {
-            case ZERO:
-                return complexPart == ComplexPart.REAL ? iZero.getReal() : iZero.getImaginary(); // IxZero or IyZero
-
-            case POSITIVE:
-                // check if positive sequence is modelled as P,Q or Ix,Iy
-                if (asymBus.isPositiveSequenceAsCurrent()) {
-                    return complexPart == ComplexPart.REAL ? iPosi.getReal() : iPosi.getImaginary(); // IxZero or IyZero
-                } else {
-                    throw new IllegalStateException("positive sequence as Power not yet implemented in ABC load : " + bus.getId());
-                }
-
-            case NEGATIVE:
-                return complexPart == ComplexPart.REAL ? iNega.getReal() : iNega.getImaginary(); // IxNegative or IyNegative
-
-            default:
-                throw new IllegalStateException("Unknown sequence at bus : " + bus.getId());
-        }
+        return getIvalue(bus, complexPart, sequenceType, iZero, iPosi, iNega);
     }
 
     @Override

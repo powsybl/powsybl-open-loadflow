@@ -240,6 +240,29 @@ class AsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariable
         return s;
     }
 
+    public static double getIvalue(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType,
+                                   Complex iZero, Complex iPosi, Complex iNega) {
+        LfAsymBus asymBus = bus.getAsym();
+        switch (sequenceType) {
+            case ZERO:
+                return complexPart == ComplexPart.REAL ? iZero.getReal() : iZero.getImaginary(); // IxZero or IyZero
+
+            case POSITIVE:
+                // check if positive sequence is modelled as P,Q or Ix,Iy
+                if (asymBus.isPositiveSequenceAsCurrent()) {
+                    return complexPart == ComplexPart.REAL ? iPosi.getReal() : iPosi.getImaginary(); // IxZero or IyZero
+                } else {
+                    throw new IllegalStateException("positive sequence as Power not yet implemented in ABC load : " + bus.getId());
+                }
+
+            case NEGATIVE:
+                return complexPart == ComplexPart.REAL ? iNega.getReal() : iNega.getImaginary(); // IxNegative or IyNegative
+
+            default:
+                throw new IllegalStateException("Unknown sequence at bus : " + bus.getId());
+        }
+    }
+
     @Override
     public double eval() {
         return 0.;
