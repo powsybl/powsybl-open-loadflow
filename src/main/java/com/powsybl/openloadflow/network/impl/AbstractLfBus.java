@@ -520,6 +520,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, qToDispatch);
         }
         if (!initialGeneratorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
+            // FIXME
+            // We have to much reactive power to dispatch, which is linked to a bus that has been forced to remain PV to
+            // ease the convergence. Updating a generator reactive power outside its reactive limits is a quick fix.
+            // It could be better to return a global failed status.
             dispatchQ(initialGeneratorsThatControlVoltage, false, qToDispatch);
         }
     }
