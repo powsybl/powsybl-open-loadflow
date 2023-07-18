@@ -621,15 +621,16 @@ class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(-112.019, line2.getTerminal2());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
 
-        line1.setR(0).setX(0);
+        line1.setR(0.0).setX(0.0);
         t2wt.setR(2.0).setX(100.0);
         t2wt.getPhaseTapChanger()
                 .setRegulationTerminal(line1.getTerminal1())
                 .setTapPosition(0);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
-        assertActivePowerEquals(-12.006, line1.getTerminal1());
-        assertActivePowerEquals(112.197, line2.getTerminal1());
-        assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
+        assertTrue(result2.isOk());
+        assertActivePowerEquals(100.0, line1.getTerminal1());
+        assertActivePowerEquals(0.0, line2.getTerminal1());
+        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
     }
 }
