@@ -31,6 +31,7 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  */
 public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm extends AbstractAsymmetricalBranchFlowEquationTerm {
 
+    static final String UNKNOWN_VAR = "Unknown variable: ";
     // positive
     protected final Variable<AcVariableType> v1Var;
 
@@ -199,7 +200,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
                 return SequenceType.ZERO;
 
             default:
-                throw new IllegalStateException("Unknown variable: " + variable);
+                throw new IllegalStateException(UNKNOWN_VAR + variable);
         }
     }
 
@@ -260,7 +261,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
                 return vNegative;
 
             default:
-                throw new IllegalStateException("Unknown variable: ");
+                throw new IllegalStateException(UNKNOWN_VAR);
         }
     }
 
@@ -311,7 +312,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
                 return phNegative;
 
             default:
-                throw new IllegalStateException("Unknown variable: ");
+                throw new IllegalStateException(UNKNOWN_VAR);
         }
     }
 
@@ -345,7 +346,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
                 || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
             return Side.TWO;
         } else {
-            throw new IllegalStateException("Unknown variable type");
+            throw new IllegalStateException(UNKNOWN_VAR);
         }
     }
 
