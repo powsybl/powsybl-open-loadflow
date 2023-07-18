@@ -11,59 +11,41 @@ public class LfAsymLoad {
 
     private final LegConnectionType loadConnectionType; // how loads are connected between each other
     private final AsymBusLoadType loadType;
-    private double totalDeltaPa;
-    private double totalDeltaQa;
-    private double totalDeltaPb;
-    private double totalDeltaQb;
-    private double totalDeltaPc;
-    private double totalDeltaQc;
+    private Complex totalDeltaSa;
+    private Complex totalDeltaSb;
+    private Complex totalDeltaSc;
 
-    public LfAsymLoad(LfBus bus, AsymBusLoadType loadType, LegConnectionType loadConnectionType, double totalDeltaPa, double totalDeltaQa, double totalDeltaPb, double totalDeltaQb, double totalDeltaPc, double totalDeltaQc) {
+    public LfAsymLoad(LfBus bus, AsymBusLoadType loadType, LegConnectionType loadConnectionType, Complex totalDeltaSa, Complex totalDeltaSb, Complex totalDeltaSc) {
         this.bus = bus;
         this.loadType = loadType;
         this.loadConnectionType = loadConnectionType;
-        this.totalDeltaPa = totalDeltaPa;
-        this.totalDeltaQa = totalDeltaQa;
-        this.totalDeltaPb = totalDeltaPb;
-        this.totalDeltaQb = totalDeltaQb;
-        this.totalDeltaPc = totalDeltaPc;
-        this.totalDeltaQc = totalDeltaQc;
+        this.totalDeltaSa = totalDeltaSa;
+        this.totalDeltaSb = totalDeltaSb;
+        this.totalDeltaSc = totalDeltaSc;
     }
 
     public Complex getS(AbcPhaseType abcPhaseType) {
         if (abcPhaseType == AbcPhaseType.A) {
-            return new Complex(totalDeltaPa, totalDeltaQa);
+            return totalDeltaSa;
         } else if (abcPhaseType == AbcPhaseType.B) {
-            return new Complex(totalDeltaPb, totalDeltaQb);
+            return totalDeltaSb;
         } else if (abcPhaseType == AbcPhaseType.C) {
-            return new Complex(totalDeltaPc, totalDeltaQc);
+            return totalDeltaSc;
         } else {
             throw new IllegalStateException("Unknown Abc Phase Type ");
         }
     }
 
-    public double getPa() {
-        return totalDeltaPa;
+    public Complex getTotalDeltaSa() {
+        return totalDeltaSa;
     }
 
-    public double getPb() {
-        return totalDeltaPb;
+    public Complex getTotalDeltaSb() {
+        return totalDeltaSb;
     }
 
-    public double getPc() {
-        return totalDeltaPc;
-    }
-
-    public double getQa() {
-        return totalDeltaQa;
-    }
-
-    public double getQb() {
-        return totalDeltaQb;
-    }
-
-    public double getQc() {
-        return totalDeltaQc;
+    public Complex getTotalDeltaSc() {
+        return totalDeltaSc;
     }
 
     public AsymBusLoadType getLoadType() {
@@ -78,36 +60,21 @@ public class LfAsymLoad {
         return bus;
     }
 
-    public void addPa(double pa) {
-        totalDeltaPa = totalDeltaPa + pa;
+    public void addSa(Complex sa) {
+        totalDeltaSa = totalDeltaSa.add(sa);
     }
 
-    public void addPb(double pb) {
-        totalDeltaPb = totalDeltaPb + pb;
+    public void addSb(Complex sb) {
+        totalDeltaSb = totalDeltaSb.add(sb);
     }
 
-    public void addPc(double pc) {
-        totalDeltaPc = totalDeltaPc + pc;
+    public void addSc(Complex sc) {
+        totalDeltaSc = totalDeltaSc.add(sc);
     }
 
-    public void addQa(double qa) {
-        totalDeltaQa = totalDeltaQa + qa;
-    }
-
-    public void addQb(double qb) {
-        totalDeltaQb = totalDeltaQb + qb;
-    }
-
-    public void addQc(double qc) {
-        totalDeltaQc = totalDeltaQc + qc;
-    }
-
-    public void addSabc(double pa, double qa, double pb, double qb, double pc, double qc) {
-        addPa(pa);
-        addQa(qa);
-        addPb(pb);
-        addQb(qb);
-        addPc(pc);
-        addQc(qc);
+    public void addSabc(Complex sa, Complex sb, Complex sc) {
+        addSa(sa);
+        addSb(sb);
+        addSc(sc);
     }
 }
