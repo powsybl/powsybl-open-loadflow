@@ -190,6 +190,13 @@ public class AsymmetricalLoadFlowTest {
         }
         assertEquals(2, coupledPowerEquTerm.getElementNum());
         assertEquals("ac_pq_coupled_closed", coupledPowerEquTerm.getName());
+
+        LfBus bus4 = branch2.getBus2();
+        LfAsymBus asymBus4 = bus4.getAsym();
+        assertEquals(0., asymBus4.getAngleN(), 0.000001);
+        assertEquals(0., asymBus4.getAngleZ(), 0.000001);
+        assertEquals(0., asymBus4.getVn(), 0.000001);
+        assertEquals(0., asymBus4.getVz(), 0.000001);
     }
 
     @Test
