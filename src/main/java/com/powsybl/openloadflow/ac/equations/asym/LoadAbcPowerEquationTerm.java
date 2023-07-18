@@ -144,24 +144,7 @@ public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
             throw new IllegalStateException("Phase config not handled at bus : " + bus.getId());
         }
 
-        switch (sequenceType) {
-            case ZERO:
-                return complexPart == ComplexPart.REAL ? iZero.getReal() : iZero.getImaginary(); // IxZero or IyZero
-
-            case POSITIVE:
-                // check if positive sequence is modelled as P,Q or Ix,Iy
-                if (asymBus.isPositiveSequenceAsCurrent()) {
-                    return complexPart == ComplexPart.REAL ? iPosi.getReal() : iPosi.getImaginary(); // IxPositive or IyPositive
-                } else {
-                    throw new IllegalStateException("positive sequence as Power not yet implemented in ABC load : " + bus.getId());
-                }
-
-            case NEGATIVE:
-                return complexPart == ComplexPart.REAL ? iNega.getReal() : iNega.getImaginary(); // IxNegative or IyNegative
-
-            default:
-                throw new IllegalStateException("Unknown sequence at bus : " + bus.getId());
-        }
+        return getIvalue(bus, complexPart, sequenceType, iZero, iPosi, iNega);
     }
 
     public static Complex getVfortescueInverse(LfBus bus, Variable<AcVariableType> vVar, Complex vComplex) {
