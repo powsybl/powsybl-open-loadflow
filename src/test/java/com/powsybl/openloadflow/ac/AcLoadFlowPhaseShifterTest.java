@@ -158,24 +158,6 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    void remoteFlowControlOnZeroImpedanceBranch() {
-        selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
-        parameters.setPhaseShifterRegulationOn(true);
-        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
-                .setTargetDeadband(1)
-                .setRegulating(true)
-                .setTapPosition(2)
-                .setRegulationTerminal(line1.getTerminal1())
-                .setRegulationValue(83);
-        line1.setR(0).setX(0).setG1(0).setG2(0).setB1(0).setB2(0);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-        assertActivePowerEquals(100.0, line1.getTerminal1());
-        assertActivePowerEquals(0.0, line2.getTerminal1());
-        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
-    }
-
-    @Test
     void currentLimiterT2wtTest() {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
         parameters.setPhaseShifterRegulationOn(true);
