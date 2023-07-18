@@ -49,6 +49,9 @@ public final class AsymUniformValueVoltageInitializer {
         boolean pB = asymBus.isHasPhaseB();
         boolean pC = asymBus.isHasPhaseC();
 
+        String negativeExcluded = "negative sequence must be excluded from a 2 phase bus at bus = ";
+        String zeroAndNegativeExcluded = "zero and negative sequences must be excluded from a 1 phase bus at bus = ";
+
         if (pA && pB && pC) {
             if (sequenceType == Fortescue.SequenceType.ZERO) {
                 return phiA;
@@ -63,7 +66,7 @@ public final class AsymUniformValueVoltageInitializer {
             } else if (sequenceType == Fortescue.SequenceType.POSITIVE) {
                 return phiC;
             } else {
-                throw new IllegalStateException("negative sequence must be excluded from a 2 phase bus at bus = " + bus.getId());
+                throw new IllegalStateException(negativeExcluded + bus.getId());
             }
         } else if (pA && pC) {
             if (sequenceType == Fortescue.SequenceType.ZERO) {
@@ -71,7 +74,7 @@ public final class AsymUniformValueVoltageInitializer {
             } else if (sequenceType == Fortescue.SequenceType.POSITIVE) {
                 return phiC;
             } else {
-                throw new IllegalStateException("negative sequence must be excluded from a 2 phase bus at bus = " + bus.getId());
+                throw new IllegalStateException(negativeExcluded + bus.getId());
             }
         } else if (pA && pB) {
             if (sequenceType == Fortescue.SequenceType.ZERO) {
@@ -79,25 +82,25 @@ public final class AsymUniformValueVoltageInitializer {
             } else if (sequenceType == Fortescue.SequenceType.POSITIVE) {
                 return phiB;
             } else {
-                throw new IllegalStateException("negative sequence must be excluded from a 2 phase bus at bus = " + bus.getId());
+                throw new IllegalStateException(negativeExcluded + bus.getId());
             }
         } else if (pC) {
             if (sequenceType == Fortescue.SequenceType.POSITIVE) {
                 return phiC;
             } else {
-                throw new IllegalStateException("zero and negative sequences must be excluded from a 1 phase bus at bus = " + bus.getId());
+                throw new IllegalStateException(zeroAndNegativeExcluded + bus.getId());
             }
         } else if (pB) {
             if (sequenceType == Fortescue.SequenceType.POSITIVE) {
                 return phiB;
             } else {
-                throw new IllegalStateException("zero and negative sequences must be excluded from a 1 phase bus at bus = " + bus.getId());
+                throw new IllegalStateException(zeroAndNegativeExcluded + bus.getId());
             }
         } else if (pA) {
             if (sequenceType == Fortescue.SequenceType.POSITIVE) {
                 return phiA;
             } else {
-                throw new IllegalStateException("zero and negative sequences must be excluded from a 1 phase bus at bus = " + bus.getId());
+                throw new IllegalStateException(zeroAndNegativeExcluded + bus.getId());
             }
         }
 
