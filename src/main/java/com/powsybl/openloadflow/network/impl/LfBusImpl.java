@@ -73,6 +73,7 @@ public class LfBusImpl extends AbstractLfBus {
             var extension2 = load.getExtension(LoadAsymmetrical2.class);
             if (extension != null && extension2 != null) {
 
+                String unknownLoad = "unknown load type at Bus : ";
                 if (extension.getConnectionType() == LoadConnectionType.DELTA) {
                     if (extension2.getLoadType() == LoadType.CONSTANT_POWER) {
                         loadDelta0 = addSabcToLoad(lfBus, loadDelta0, extension, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.DELTA);
@@ -81,7 +82,7 @@ public class LfBusImpl extends AbstractLfBus {
                     } else if (extension2.getLoadType() == LoadType.CONSTANT_IMPEDANCE) {
                         loadDelta2 = addSabcToLoad(lfBus, loadDelta2, extension, AsymBusLoadType.CONSTANT_IMPEDANCE, LegConnectionType.DELTA);
                     } else {
-                        throw new IllegalStateException("unknown load type at Bus : " + bus.getId());
+                        throw new IllegalStateException(unknownLoad + bus.getId());
                     }
                 } else if (extension.getConnectionType() == LoadConnectionType.Y) {
                     if (extension2.getLoadType() == LoadType.CONSTANT_POWER) {
@@ -91,10 +92,10 @@ public class LfBusImpl extends AbstractLfBus {
                     } else if (extension2.getLoadType() == LoadType.CONSTANT_IMPEDANCE) {
                         loadWye2 = addSabcToLoad(lfBus, loadWye2, extension, AsymBusLoadType.CONSTANT_IMPEDANCE, LegConnectionType.Y_GROUNDED);
                     } else {
-                        throw new IllegalStateException("unknown load type at Bus : " + bus.getId());
+                        throw new IllegalStateException(unknownLoad + bus.getId());
                     }
                 } else {
-                    throw new IllegalStateException("unknown load type at Bus : " + bus.getId());
+                    throw new IllegalStateException(unknownLoad + bus.getId());
                 }
 
             } else if (Math.abs(load.getP0()) > 0.000001 && Math.abs(load.getQ0()) > 0.000001) {
