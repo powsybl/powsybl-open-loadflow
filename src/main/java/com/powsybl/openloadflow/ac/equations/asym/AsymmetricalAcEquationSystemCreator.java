@@ -91,18 +91,10 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE).addTerm(iyShuntNegative);
         }
 
-        if (asymBus.getLoadWye0() != null) {
-            addTermsForLoad(bus, asymBus, equationSystem, asymBus.getLoadWye0());
-        }
-        if (asymBus.getLoadDelta0() != null) {
-            addTermsForLoad(bus, asymBus, equationSystem, asymBus.getLoadDelta0());
-        }
-        if (asymBus.getLoadWye2() != null) {
-            addTermsForLoad(bus, asymBus, equationSystem, asymBus.getLoadWye2());
-        }
-        if (asymBus.getLoadDelta2() != null) {
-            addTermsForLoad(bus, asymBus, equationSystem, asymBus.getLoadDelta2());
-        }
+        addTermsForLoad(bus, asymBus, equationSystem, asymBus.getLoadWye0());
+        addTermsForLoad(bus, asymBus, equationSystem, asymBus.getLoadDelta0());
+        addTermsForLoad(bus, asymBus, equationSystem, asymBus.getLoadWye2());
+        addTermsForLoad(bus, asymBus, equationSystem, asymBus.getLoadDelta2());
     }
 
     @Override
@@ -386,6 +378,10 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
     }
 
     public void addTermsForLoad(LfBus bus, LfAsymBus asymBus, EquationSystem<AcVariableType, AcEquationType> equationSystem, LfAsymLoad lfAsymLoad) {
+
+        if (lfAsymLoad == null) {
+            return;
+        }
 
         AsymBusLoadType lfAsymLoadType = lfAsymLoad.getLoadType();
         AsymmetricalLoadTerm pLoadPositive;
