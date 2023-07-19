@@ -164,7 +164,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
         LfBranchImpl lfBranch = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
         if (parameters.isAsymmetrical()) {
-            createLineAsym(line, zb, piModel, lfBranch);
+            createLineAsymExt(line, zb, piModel, lfBranch);
         }
         return lfBranch;
     }
