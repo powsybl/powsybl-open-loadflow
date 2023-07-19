@@ -240,7 +240,7 @@ public class AsymmetricalLoadFlowTest {
     }
 
     @Test
-    void fourNodesDissymTest() {
+    void fourNodesAsymTest() {
         parametersExt.setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -378,7 +378,7 @@ public class AsymmetricalLoadFlowTest {
     }
 
     @Test
-    void fourNodesDissymUnbalancedDeltaLoadTest() {
+    void fourNodesAsymUnbalancedDeltaLoadTest() {
 
         double coeff = 1.;
         line23.setX(coeff * 1 / 0.2);

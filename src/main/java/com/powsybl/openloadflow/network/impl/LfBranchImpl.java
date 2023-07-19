@@ -38,7 +38,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         this.branchRef = Ref.create(branch, parameters.isCacheEnabled());
     }
 
-    private static void createLineAsymExt(Line line, double zb, PiModel piModel, LfBranchImpl lfBranchImpl) {
+    private static void createLineAsym(Line line, double zb, PiModel piModel, LfBranchImpl lfBranch) {
         var extension = line.getExtension(LineFortescue.class);
         var extension2 = line.getExtension(LineAsymmetrical.class);
         if (extension != null && extension2 != null) {
@@ -62,8 +62,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 boolean hasPhaseB2 = true;
                 boolean hasPhaseC2 = true;
 
-                LfAsymBus asymBus1 = lfBranchImpl.getBus1().getAsym();
-                LfAsymBus asymBus2 = lfBranchImpl.getBus2().getAsym();
+                LfAsymBus asymBus1 = lfBranch.getBus1().getAsym();
+                LfAsymBus asymBus2 = lfBranch.getBus2().getAsym();
 
                 if (asymBus1 != null) {
                     isBus1FortescueRepresented = asymBus1.isFortescueRepresentation();
@@ -100,7 +100,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                         openPhaseA, openPhaseB, openPhaseC, AsymBusVariableType.WYE, AsymBusVariableType.WYE);
             }
 
-            lfBranchImpl.setAsymLine(asymLine);
+            lfBranch.setAsymLine(asymLine);
         }
     }
 
@@ -116,12 +116,12 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
         LfBranchImpl lfBranchImpl = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
         if (parameters.isAsymmetrical()) {
-            createLineAsymExt(line, zb, piModel, lfBranchImpl);
+            createLineAsym(line, zb, piModel, lfBranchImpl);
         }
         return lfBranchImpl;
     }
 
-    private static void createTransfoToAsymExt(TwoWindingsTransformer t2w, double zb, LfBranchImpl lfBranch) {
+    private static void createTransfoToAsym(TwoWindingsTransformer t2w, double zb, LfBranchImpl lfBranch) {
         var extension = t2w.getExtension(TwoWindingsTransformerFortescue.class);
         if (extension != null) {
             var extension2 = t2w.getExtension(Tfo3Phases.class);
@@ -293,11 +293,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance());
         }
 
-        LfBranchImpl lfBranchImpl = new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters);
+        LfBranchImpl lfBranch = new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters);
         if (parameters.isAsymmetrical()) {
-            createTransfoToAsymExt(twt, zb, lfBranchImpl);
+            createTransfoToAsym(twt, zb, lfBranch);
         }
-        return lfBranchImpl;
+        return lfBranch;
     }
 
     public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
