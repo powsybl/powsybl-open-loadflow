@@ -87,27 +87,12 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         this.bus1 = bus1;
         this.bus2 = bus2;
 
-        // fetching the type of variables connecting bus1
-        AsymBusVariableType tmpVariableTypeBus1 = AsymBusVariableType.WYE;
-        asymBus1 = bus1.getAsym();
-        if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
-            tmpVariableTypeBus1 = AsymBusVariableType.DELTA;
-            if (asymBus1.getNbMissingPhases() > 0) {
-                throw new IllegalStateException("Case with missing phase and Delta type variables not yet handled at bus : " + bus1.getId());
-            }
-        }
-        variableTypeBus1 = tmpVariableTypeBus1;
+        this.asymBus1 = bus1.getAsym();
+        this.asymBus2 = bus2.getAsym();
 
-        // fetching the type of variables connecting bus2
-        AsymBusVariableType tmpVariableTypeBus2 = AsymBusVariableType.WYE;
-        asymBus2 = bus2.getAsym();
-        if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
-            tmpVariableTypeBus2 = AsymBusVariableType.DELTA;
-            if (asymBus2.getNbMissingPhases() > 0) {
-                throw new IllegalStateException("Case with missing phase and Delta type variables not yet handled at bus : " + bus2.getId());
-            }
-        }
-        variableTypeBus2 = tmpVariableTypeBus2;
+        // fetching the type of variables connecting bus1
+        variableTypeBus1 = getAsymBusVariableType(bus1, asymBus1);
+        variableTypeBus2 = getAsymBusVariableType(bus2, asymBus2);
 
         int nbPhases1 = asymBus1.getNbExistingPhases();
         int nbPhases2 = asymBus2.getNbExistingPhases();
@@ -183,6 +168,17 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
             }
 
         }
+    }
+
+    protected static AsymBusVariableType getAsymBusVariableType(LfBus bus, LfAsymBus asymBus) {
+        AsymBusVariableType tmpVariableTypeBus = AsymBusVariableType.WYE;
+        if (asymBus.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
+            tmpVariableTypeBus = AsymBusVariableType.DELTA;
+            if (asymBus.getNbMissingPhases() > 0) {
+                throw new IllegalStateException("Case with missing phase and Delta type variables not yet handled at bus : " + bus.getId());
+            }
+        }
+        return tmpVariableTypeBus;
     }
 
     protected static SequenceType getSequenceType(Variable<AcVariableType> variable) {
