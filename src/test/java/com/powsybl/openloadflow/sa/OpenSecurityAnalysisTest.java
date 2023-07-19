@@ -93,7 +93,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "LD");
-        assertEquals(398.0, postContingencyResult.getNetworkResult().getBusResult("VL1_0").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals(398.0, postContingencyResult.getNetworkResult().getBusResult("[BBS2]").getV(), LoadFlowAssert.DELTA_V);
     }
 
     @Test
