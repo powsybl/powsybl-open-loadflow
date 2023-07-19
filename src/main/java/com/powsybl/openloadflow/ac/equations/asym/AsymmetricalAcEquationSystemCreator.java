@@ -122,141 +122,139 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         boolean deriveA1 = isDeriveA1(branch, creationParameters);
         boolean deriveR1 = isDeriveR1(branch);
 
-        if (bus1 != null && bus2 != null) {
+        if (bus1 == null) {
+            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow at bus: " + bus1.getId());
+        }
 
-            LfAsymBus asymBus1 = bus1.getAsym();
-            LfAsymBus asymBus2 = bus2.getAsym();
+        if (bus2 == null) {
+            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow  at bus: " + bus2.getId());
+        }
 
-            boolean isBus1Wye = true;
-            if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
-                isBus1Wye = false;
+        LfAsymBus asymBus1 = bus1.getAsym();
+        LfAsymBus asymBus2 = bus2.getAsym();
+
+        boolean isBus1Wye = true;
+        if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
+            isBus1Wye = false;
+        }
+        int nbPhases1 = asymBus1.getNbExistingPhases();
+
+        boolean isBus2Wye = true;
+        if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
+            isBus2Wye = false;
+        }
+        int nbPhases2 = asymBus2.getNbExistingPhases();
+
+        if (!hasBranchAsymmetry(branch)) {
+
+            if (nbPhases1 < 3 || nbPhases2 < 3) {
+                throw new IllegalStateException("Branch with a missing phase cannot be handled as a fortescue balanced model at branch : " + branch.getId());
             }
-            int nbPhases1 = asymBus1.getNbExistingPhases();
 
-            boolean isBus2Wye = true;
+            // no assymmetry is detected with this line, we handle the equations as Fortescue and decoupled
+            p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
+            q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
+            p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
+            q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
+            i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
 
-            if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
-                isBus2Wye = false;
-            }
-            int nbPhases2 = asymBus2.getNbExistingPhases();
-
-            if (!hasBranchAsymmetry(branch)) {
-
-                if (nbPhases1 < 3 || nbPhases2 < 3) {
-                    throw new IllegalStateException("Branch with a missing phase cannot be handled as a fortescue balanced model at branch : " + branch.getId());
+            if (branch.getBranchType() == LfBranch.BranchType.LINE) {
+                // zero
+                if (isBus2Wye) {
+                    ixz2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                    iyz2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
                 }
 
-                // no assymmetry is detected with this line, we handle the equations as Fortescue and decoupled
-                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
-                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
-                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
-                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
-                i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-                i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-
-                if (branch.getBranchType() == LfBranch.BranchType.LINE) {
-                    // zero
-
-                    if (isBus2Wye) {
-                        ixz2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
-                        iyz2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
-                    }
-
-                    if (isBus1Wye) {
-                        ixz1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
-                        iyz1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
-                    }
-
-                    // negative
-                    ixn1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
-                    iyn1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
-                    ixn2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
-                    iyn2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
-                } else {
-                    // this must be a fortescue transformer
-                    // zero
-                    if (isBus2Wye) {
-                        ixz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2X);
-                        iyz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2Y);
-                    }
-
-                    if (isBus1Wye) {
-                        ixz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1X);
-                        iyz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1Y);
-                    }
-
-                    // negative
-                    ixn1 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1X);
-                    iyn1 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1Y);
-                    ixn2 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2X);
-                    iyn2 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2Y);
-                }
-
-            } else {
-                // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
-                // positive
-
-                // test: if we are WYE variables and there is a phase missing, the positive sequence is modeled with currents
                 if (isBus1Wye) {
+                    ixz1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                    iyz1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                }
 
-                    if (asymBus1.isPositiveSequenceAsCurrent()) {
-                        // in this case we try to model the positive sequence as current balances
-                        p1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.POSITIVE);
-                        q1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.POSITIVE);
-                    } else {
-                        p1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.POSITIVE);
-                        q1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.POSITIVE);
-                    }
+                // negative
+                ixn1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
+                iyn1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
+                ixn2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
+                iyn2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
+            } else {
+                // this must be a fortescue transformer
+                // zero
+                if (isBus2Wye) {
+                    ixz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2X);
+                    iyz2 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2Y);
+                }
 
-                    // test
-                    if (nbPhases1 == 3) {
-                        ixn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.NEGATIVE);
-                        iyn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.NEGATIVE);
-                    }
-                    if (nbPhases1 > 1) {
-                        ixz1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.ZERO);
-                        iyz1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.ZERO);
-                    }
+                if (isBus1Wye) {
+                    ixz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1X);
+                    iyz1 = new ClosedBranchTfoZeroIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1Y);
+                }
 
+                // negative
+                ixn1 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1X);
+                iyn1 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I1Y);
+                ixn2 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2X);
+                iyn2 = new ClosedBranchTfoNegativeIflowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, AbstractClosedBranchAcFlowEquationTerm.FlowType.I2Y);
+            }
+
+        } else {
+            // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
+            // positive
+
+            // test: if we are WYE variables and there is a phase missing, the positive sequence is modeled with currents
+            if (isBus1Wye) {
+
+                if (asymBus1.isPositiveSequenceAsCurrent()) {
+                    // in this case we try to model the positive sequence as current balances
+                    p1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.POSITIVE);
+                    q1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.POSITIVE);
                 } else {
                     p1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.POSITIVE);
                     q1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.POSITIVE);
+                }
 
+                // test
+                if (nbPhases1 == 3) {
                     ixn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.NEGATIVE);
                     iyn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.NEGATIVE);
                 }
+                if (nbPhases1 > 1) {
+                    ixz1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.ZERO);
+                    iyz1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.ZERO);
+                }
 
-                if (isBus2Wye) {
+            } else {
+                p1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.POSITIVE);
+                q1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.POSITIVE);
 
-                    if (asymBus2.isPositiveSequenceAsCurrent()) {
-                        p2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.POSITIVE);
-                        q2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.POSITIVE);
-                    } else {
-                        p2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.POSITIVE);
-                        q2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.POSITIVE);
-                    }
+                ixn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.NEGATIVE);
+                iyn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.NEGATIVE);
+            }
 
-                    if (nbPhases2 == 3) {
-                        ixn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.NEGATIVE);
-                        iyn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.NEGATIVE);
-                    }
-                    if (nbPhases2 > 1) {
-                        ixz2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.ZERO);
-                        iyz2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.ZERO);
-                    }
+            if (isBus2Wye) {
+
+                if (asymBus2.isPositiveSequenceAsCurrent()) {
+                    p2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.POSITIVE);
+                    q2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.POSITIVE);
                 } else {
                     p2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.POSITIVE);
                     q2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.POSITIVE);
+                }
 
+                if (nbPhases2 == 3) {
                     ixn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.NEGATIVE);
                     iyn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.NEGATIVE);
                 }
+                if (nbPhases2 > 1) {
+                    ixz2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.ZERO);
+                    iyz2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.ZERO);
+                }
+            } else {
+                p2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.POSITIVE);
+                q2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.POSITIVE);
 
+                ixn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.NEGATIVE);
+                iyn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.NEGATIVE);
             }
-        } else if (bus1 != null) {
-            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow at bus: " + bus1.getId());
-        } else if (bus2 != null) {
-            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow  at bus: " + bus2.getId());
         }
 
         // positive
