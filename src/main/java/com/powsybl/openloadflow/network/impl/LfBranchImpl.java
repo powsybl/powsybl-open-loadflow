@@ -220,9 +220,9 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 if (extensionIidm != null) {
                     double rz = extensionIidm.getRz() / zb;
                     double xz = extensionIidm.getXz() / zb;
-                    asymTransfo2W = new AsymTransfo2W(getLegConnectionType(extension.getConnectionType1(), t2w), getLegConnectionType(extension.getConnectionType2(), t2w), rz, xz, extension.isFreeFluxes(),
-                            extension.getGroundingR1() / zb, extension.getGroundingX1() / zb,
-                            extension.getGroundingR2() / zb, extension.getGroundingX2() / zb);
+                    asymTransfo2W = new AsymTransfo2W(getLegConnectionType(extension.getConnectionType1(), t2w), getLegConnectionType(extension.getConnectionType2(), t2w), new Complex(rz, xz), extension.isFreeFluxes(),
+                            new Complex(extension.getGroundingR1() / zb, extension.getGroundingX1() / zb),
+                            new Complex(extension.getGroundingR2() / zb, extension.getGroundingX2() / zb));
                 } else {
                     throw new PowsyblException("Asymmetrical branch '" + lfBranch.getId() + "' has no assymmetrical Pi values input data defined");
                 }

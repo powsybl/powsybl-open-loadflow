@@ -124,15 +124,17 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
         if (bus1 != null && bus2 != null) {
 
-            boolean isBus1Wye = true;
             LfAsymBus asymBus1 = bus1.getAsym();
+            LfAsymBus asymBus2 = bus2.getAsym();
+
+            boolean isBus1Wye = true;
             if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
                 isBus1Wye = false;
             }
             int nbPhases1 = asymBus1.getNbExistingPhases();
 
             boolean isBus2Wye = true;
-            LfAsymBus asymBus2 = bus2.getAsym();
+
             if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
                 isBus2Wye = false;
             }

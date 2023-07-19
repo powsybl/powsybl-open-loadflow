@@ -31,19 +31,19 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         this.leg2ConnectionType = asymTransfo2W.getLeg2ConnectionType();
         this.isFreeFluxes = asymTransfo2W.isFreeFluxes();
 
-        this.zG1 = new Complex(asymTransfo2W.getR1Ground(), asymTransfo2W.getX1Ground());
-        this.zG2 = new Complex(asymTransfo2W.getR2Ground(), asymTransfo2W.getX2Ground());
+        this.zG1 = asymTransfo2W.getZ1Ground();
+        this.zG2 = asymTransfo2W.getZ2Ground();
         double epsilon = 0.00000001;
         Complex y1 = new Complex(g1, b1);
         Complex y2 = new Complex(g2, b2);
         if (isFreeFluxes || (y1.abs() < epsilon && y2.abs() < epsilon)) {
             // magnetizing circuit is open or Y1 or Y2 are zero, leading Ym to zero
             this.z0T1 = new Complex(0, 0);
-            this.z0T2 = new Complex(asymTransfo2W.getRo(), asymTransfo2W.getXo());
+            this.z0T2 = asymTransfo2W.getZo();
             this.y0m = new Complex(0, 0);
             isFreeFluxes = true;
         } else {
-            Complex z12 = new Complex(asymTransfo2W.getRo(), asymTransfo2W.getXo());
+            Complex z12 = asymTransfo2W.getZo();
 
             if (y2.abs() > epsilon) {
                 throw new IllegalArgumentException("Transfomer " + branch.getId() + " has homopolar input y2 not equal to zero and is not supported in current version of the asymmetric load flow");
