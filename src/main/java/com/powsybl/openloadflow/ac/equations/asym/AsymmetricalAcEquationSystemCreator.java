@@ -123,11 +123,11 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         boolean deriveR1 = isDeriveR1(branch);
 
         if (bus1 == null) {
-            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow at bus: " + bus1.getId());
+            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow at bus 1 of branch: " + branch.getId());
         }
 
         if (bus2 == null) {
-            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow  at bus: " + bus2.getId());
+            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow at bus 2 of branch: " + branch.getId());
         }
 
         LfAsymBus asymBus1 = bus1.getAsym();
