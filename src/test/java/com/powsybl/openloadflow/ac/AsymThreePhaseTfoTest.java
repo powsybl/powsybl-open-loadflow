@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2023, Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * Copyright (c) 2023, Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.math.matrix.DenseMatrix;
@@ -5,7 +13,6 @@ import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.network.extensions.StepType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
-//import com.powsybl.openloadflow.util.ProviderConstants;
 import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.math3.complex.ComplexUtils;
 import org.junit.jupiter.api.Test;
@@ -15,6 +22,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ */
 public class AsymThreePhaseTfoTest {
 
     @Test
