@@ -25,6 +25,7 @@ import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.math3.complex.ComplexUtils;
 import org.joda.time.DateTime;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -44,9 +45,8 @@ public class Asym34BusFeederTest {
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
 
-    @Test
-    void ieee34LoadTest() {
-
+    @BeforeEach
+    void setUp() {
         network = ieee34LoadFeeder();
 
         bus860 = network.getBusBreakerView().getBus("B860");
@@ -56,6 +56,11 @@ public class Asym34BusFeederTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
+    }
+
+    @Test
+    void ieee34LoadTest() {
+
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(100)
@@ -78,12 +83,6 @@ public class Asym34BusFeederTest {
 
     @Test
     void ieee34LoadAbcPowerTest() {
-
-        network = ieee34LoadFeeder();
-
-        bus860 = network.getBusBreakerView().getBus("B860");
-        bus850 = network.getBusBreakerView().getBus("B850");
-        bus810 = network.getBusBreakerView().getBus("B810");
 
         // addition of constant loads at busses
         Load load810Power = network.getVoltageLevel("VL_810").newLoad()
@@ -149,9 +148,6 @@ public class Asym34BusFeederTest {
                 .withLoadType(LoadType.CONSTANT_CURRENT)
                 .add();
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(100)
