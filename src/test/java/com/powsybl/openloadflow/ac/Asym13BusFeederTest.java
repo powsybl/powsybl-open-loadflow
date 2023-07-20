@@ -25,6 +25,7 @@ import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.math3.complex.ComplexUtils;
 import org.joda.time.DateTime;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -47,6 +48,23 @@ public class Asym13BusFeederTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+
+    @BeforeEach
+    void setUp() {
+        network = ieee13LoadFeeder();
+
+        bus650 = network.getBusBreakerView().getBus("B650");
+        bus632 = network.getBusBreakerView().getBus("B632");
+        bus645 = network.getBusBreakerView().getBus("B645");
+        bus646 = network.getBusBreakerView().getBus("B646");
+        bus652 = network.getBusBreakerView().getBus("B652");
+        bus684 = network.getBusBreakerView().getBus("B684");
+        bus611 = network.getBusBreakerView().getBus("B611");
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+    }
 
     @Test
     void test601() {
@@ -93,14 +111,6 @@ public class Asym13BusFeederTest {
         DenseMatrix i601Real = yabc601.getRealCartesianMatrix().times(v.getRealCartesianMatrix());
         ComplexMatrix i601 = ComplexMatrix.getComplexMatrixFromRealCartesian(i601Real);
 
-        System.out.println(" 650 PHASE A = " + i601.getTerm(1, 1).abs() + " (" + Math.toDegrees(i601.getTerm(1, 1).getArgument()));
-        System.out.println(" 650 PHASE B = " + i601.getTerm(2, 1).abs() + " (" + Math.toDegrees(i601.getTerm(2, 1).getArgument()));
-        System.out.println(" 650 PHASE C = " + i601.getTerm(3, 1).abs() + " (" + Math.toDegrees(i601.getTerm(3, 1).getArgument()));
-
-        System.out.println(" 632 PHASE A = " + i601.getTerm(4, 1).abs() + " (" + Math.toDegrees(i601.getTerm(4, 1).getArgument()));
-        System.out.println(" 632 PHASE B = " + i601.getTerm(5, 1).abs() + " (" + Math.toDegrees(i601.getTerm(5, 1).getArgument()));
-        System.out.println(" 632 PHASE C = " + i601.getTerm(6, 1).abs() + " (" + Math.toDegrees(i601.getTerm(6, 1).getArgument()));
-
         assertEquals(0.5586746694365669, i601.getTerm(1, 1).abs(), 0.00001);
         assertEquals(0.41499019362590045, i601.getTerm(5, 1).abs(), 0.00001);
 
@@ -109,18 +119,6 @@ public class Asym13BusFeederTest {
     @Test
     void ieee13LoadTest() {
 
-        network = ieee13LoadFeeder();
-
-        bus650 = network.getBusBreakerView().getBus("B650");
-        bus632 = network.getBusBreakerView().getBus("B632");
-        bus645 = network.getBusBreakerView().getBus("B645");
-        bus646 = network.getBusBreakerView().getBus("B646");
-        bus652 = network.getBusBreakerView().getBus("B652");
-        bus684 = network.getBusBreakerView().getBus("B684");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(100)
@@ -135,9 +133,6 @@ public class Asym13BusFeederTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-
-        //assertVoltageEquals(4.16, bus650);
-        //assertAngleEquals(0., bus650);
         assertVoltageEquals(4.2762101139626765, bus632);
         assertVoltageEquals(4.230636258403482, bus645);
         assertVoltageEquals(4.220762522173593, bus646);
@@ -146,14 +141,6 @@ public class Asym13BusFeederTest {
 
     @Test
     void ieee13LoadWithConstantCurrentTest() {
-
-        network = ieee13LoadFeeder();
-        bus650 = network.getBusBreakerView().getBus("B650");
-        bus632 = network.getBusBreakerView().getBus("B632");
-        bus645 = network.getBusBreakerView().getBus("B645");
-        bus646 = network.getBusBreakerView().getBus("B646");
-        bus652 = network.getBusBreakerView().getBus("B652");
-        bus684 = network.getBusBreakerView().getBus("B684");
 
         // addition of constant loads at busses
         Load load645Current = network.getVoltageLevel("VL_645").newLoad()
@@ -198,15 +185,6 @@ public class Asym13BusFeederTest {
                 .withLoadType(LoadType.CONSTANT_CURRENT)
                 .add();
 
-        bus650 = network.getBusBreakerView().getBus("B650");
-        bus632 = network.getBusBreakerView().getBus("B632");
-        bus645 = network.getBusBreakerView().getBus("B645");
-        bus646 = network.getBusBreakerView().getBus("B646");
-        bus652 = network.getBusBreakerView().getBus("B652");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(100)
@@ -231,14 +209,6 @@ public class Asym13BusFeederTest {
     @Test
     void ieee13LoadWithConstantImpedanceTest() {
 
-        network = ieee13LoadFeeder();
-        bus650 = network.getBusBreakerView().getBus("B650");
-        bus632 = network.getBusBreakerView().getBus("B632");
-        bus645 = network.getBusBreakerView().getBus("B645");
-        bus646 = network.getBusBreakerView().getBus("B646");
-        bus652 = network.getBusBreakerView().getBus("B652");
-        bus684 = network.getBusBreakerView().getBus("B684");
-
         // addition of constant loads at busses
         Load load684Impedance = network.getVoltageLevel("VL_684").newLoad()
                 .setId("LOAD_684_IMPEDANCE")
@@ -261,9 +231,6 @@ public class Asym13BusFeederTest {
                 .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(100)
@@ -288,14 +255,6 @@ public class Asym13BusFeederTest {
     @Test
     void ieee13LoadWithConstantImpedanceDeltaTest() {
 
-        network = ieee13LoadFeeder();
-        bus650 = network.getBusBreakerView().getBus("B650");
-        bus632 = network.getBusBreakerView().getBus("B632");
-        bus645 = network.getBusBreakerView().getBus("B645");
-        bus646 = network.getBusBreakerView().getBus("B646");
-        bus652 = network.getBusBreakerView().getBus("B652");
-        bus684 = network.getBusBreakerView().getBus("B684");
-
         // addition of constant loads at busses
         Load load684Impedance = network.getVoltageLevel("VL_684").newLoad()
                 .setId("LOAD_684_IMPEDANCE")
@@ -318,15 +277,6 @@ public class Asym13BusFeederTest {
                 .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
-        bus650 = network.getBusBreakerView().getBus("B650");
-        bus632 = network.getBusBreakerView().getBus("B632");
-        bus645 = network.getBusBreakerView().getBus("B645");
-        bus646 = network.getBusBreakerView().getBus("B646");
-        bus652 = network.getBusBreakerView().getBus("B652");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(100)
@@ -350,15 +300,6 @@ public class Asym13BusFeederTest {
 
     @Test
     void ieee13LoadWithAbcPowerLoadTest() {
-
-        network = ieee13LoadFeeder();
-        bus650 = network.getBusBreakerView().getBus("B650");
-        bus632 = network.getBusBreakerView().getBus("B632");
-        bus645 = network.getBusBreakerView().getBus("B645");
-        bus646 = network.getBusBreakerView().getBus("B646");
-        bus652 = network.getBusBreakerView().getBus("B652");
-        bus684 = network.getBusBreakerView().getBus("B684");
-        bus611 = network.getBusBreakerView().getBus("B611");
 
         // addition of constant loads at busses
         Load load684Impedance = network.getVoltageLevel("VL_684").newLoad()
@@ -427,15 +368,6 @@ public class Asym13BusFeederTest {
                 .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
-        bus650 = network.getBusBreakerView().getBus("B650");
-        bus632 = network.getBusBreakerView().getBus("B632");
-        bus645 = network.getBusBreakerView().getBus("B645");
-        bus646 = network.getBusBreakerView().getBus("B646");
-        bus652 = network.getBusBreakerView().getBus("B652");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(100)
@@ -459,15 +391,6 @@ public class Asym13BusFeederTest {
 
     @Test
     void ieee13LoadWithAbLoadTest() {
-
-        network = ieee13LoadFeeder();
-        bus650 = network.getBusBreakerView().getBus("B650");
-        bus632 = network.getBusBreakerView().getBus("B632");
-        bus645 = network.getBusBreakerView().getBus("B645");
-        bus646 = network.getBusBreakerView().getBus("B646");
-        bus652 = network.getBusBreakerView().getBus("B652");
-        bus684 = network.getBusBreakerView().getBus("B684");
-        bus611 = network.getBusBreakerView().getBus("B611");
 
         // addition of constant loads at busses
         Load load645Impedance = network.getVoltageLevel("VL_645").newLoad()
@@ -620,9 +543,6 @@ public class Asym13BusFeederTest {
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc645y646, yCoef))
                 .add();
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(100)

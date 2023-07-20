@@ -68,7 +68,6 @@ public class AsymmetricalLoadFlowTfoTest {
         assertVoltageEquals(108.7617902085402, bus4); // balanced = 99.29252809145005
     }
 
-    // TODO : add test with forced fluxes and g1, b1 and g2, b2 not zero
     @Test
     void fiveNodeForcedFluxTest() {
         network = fiveNodescreate();
