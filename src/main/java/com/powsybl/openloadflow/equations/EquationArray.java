@@ -6,11 +6,12 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.ac.equations.AcNetworkVector;
+import gnu.trove.list.array.TIntArrayList;
 
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.*;
+import java.util.function.IntToDoubleFunction;
 import java.util.function.ToDoubleBiFunction;
+import java.util.function.ToDoubleFunction;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -25,7 +26,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private final boolean[] elementActive;
 
-    private final int[] elementColumn;
+    private int firstColumn = -1;
 
     private int length;
 
@@ -34,7 +35,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         this.elementCount = elementCount;
         this.equationSystem = Objects.requireNonNull(equationSystem);
         elementActive = new boolean[elementCount];
-        elementColumn = new int[elementCount];
         Arrays.fill(elementActive, true);
         this.length = elementCount; // all activated initially
     }
@@ -51,12 +51,12 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         return equationSystem;
     }
 
-    public int getElementColumn(int elementNum) {
-        return elementColumn[elementNum];
+    public int getFirstColumn() {
+        return firstColumn;
     }
 
-    public void setElementColumn(int elementNum, int column) {
-        elementColumn[elementNum] = column;
+    public void setFirstColumn(int firstColumn) {
+        this.firstColumn = firstColumn;
     }
 
     public int getLength() {
@@ -79,18 +79,43 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    public void registerTermEvaluator(int termNum, ToDoubleBiFunction<AcNetworkVector, Integer> evaluator) {
+    public static class ArrayTerm {
 
+        private final IntToDoubleFunction evaluator;
+
+        private final TIntArrayList elementNums = new TIntArrayList();
+        private final TIntArrayList termElementNums = new TIntArrayList();
+
+        public ArrayTerm(IntToDoubleFunction evaluator) {
+            this.evaluator = Objects.requireNonNull(evaluator);
+        }
+
+        public ArrayTerm addTerm(int elementNum, int termElementNum) {
+            elementNums.add(elementNum);
+            termElementNums.add(termElementNum);
+            return this;
+        }
     }
 
-    public void addTerm(int termNum, int elementNum, int termElementNum) {
+    private final Map<Class<? extends EquationTerm<V, E>>, ArrayTerm> arrayTermsByClass = new HashMap<>();
 
+    public <T extends EquationTerm<V, E>> ArrayTerm createTermArray(Class<T> termClass,
+                                                                    IntToDoubleFunction evaluator) {
+        return arrayTermsByClass.computeIfAbsent(termClass, k -> new ArrayTerm(evaluator));
     }
 
     public void eval(double[] values) {
-        // term arrays
-        // TODO
-
+        Arrays.fill(values, firstColumn, firstColumn + length, 0);
+        for (ArrayTerm arrayTerm : arrayTermsByClass.values()) {
+            int column = firstColumn;
+            for (int i = 0; i < arrayTerm.elementNums.size(); i++) {
+                int elementNum = arrayTerm.elementNums.get(i);
+                if (elementActive[elementNum]) {
+                    int termElementNum = arrayTerm.termElementNums.get(i);
+                    values[column++] += arrayTerm.evaluator.applyAsDouble(termElementNum);
+                }
+            }
+        }
     }
 
     interface DerHandler<V extends Enum<V> & Quantity> {

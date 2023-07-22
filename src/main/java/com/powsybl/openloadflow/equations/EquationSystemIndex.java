@@ -71,9 +71,8 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                 equation.setColumn(columnCount++);
             }
             for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
-                for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
-                    equationArray.setElementColumn(elementNum, columnCount++);
-                }
+                equationArray.setFirstColumn(columnCount);
+                columnCount += equationArray.getLength();
             }
             equationsIndexValid = true;
             LOGGER.debug("Equations index updated ({} columns)", columnCount);

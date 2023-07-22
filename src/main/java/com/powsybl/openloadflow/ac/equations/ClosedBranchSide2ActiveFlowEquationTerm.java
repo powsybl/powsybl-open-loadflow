@@ -78,8 +78,8 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return -y * R2 * v1 * v2 * sinTheta;
     }
 
-    public static double eval(AcNetworkVector networkVector, int branchNum) {
-        return networkVector.getBranchVector().p2[branchNum];
+    public static double eval(AcBranchVector branchVector, int branchNum) {
+        return branchVector.p2[branchNum];
     }
 
     @Override

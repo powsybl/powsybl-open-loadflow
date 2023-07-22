@@ -51,7 +51,7 @@ public class AcBranchVector implements ElementVector {
     public final int[] a1Row;
     public final int[] r1Row;
 
-    final double[] p1;
+    public final double[] p1;
     final double[] p2;
     final double[] q1;
     final double[] q2;
