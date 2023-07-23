@@ -54,39 +54,36 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return "SecondaryVoltageControl";
     }
 
-    private static boolean isValid(LfBus bus) {
-        return !bus.isDisabled() && bus.isGeneratorVoltageControlEnabled();
-    }
-
-    private static List<LfBus> getControllerBuses(LfBus controlledBus) {
-        return controlledBus.getGeneratorVoltageControl()
-                .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                .orElseThrow()
-                .getMergedControllerElements()
-                .stream().filter(SecondaryVoltageControlOuterLoop::isValid)
+    private static List<LfBus> findControllerBuses(LfBus controlledBus) {
+        return controlledBus.getGeneratorVoltageControl().orElseThrow()
+                .getMergedControllerElements().stream()
+                .filter(bus -> !bus.isDisabled() && bus.isGeneratorVoltageControlEnabled())
                 .collect(Collectors.toList());
     }
 
     private void findActiveSecondaryVoltageControls(LfNetwork network, Map<LfSecondaryVoltageControl, List<LfBus>> activeSecondaryVoltageControls,
-                                                    Set<LfBus> allBusSet) {
+                                                    Set<LfBus> allControlledBusSet) {
         List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls().stream()
                 .filter(control -> !control.getPilotBus().isDisabled())
                 .collect(Collectors.toList());
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
             List<LfBus> activeControlledBuses = secondaryVoltageControl.getControlledBuses().stream()
-                    .filter(SecondaryVoltageControlOuterLoop::isValid)
                     .filter(controlledBus -> {
-                        double targetV = controlledBus.getGeneratorVoltageControl().orElseThrow().getTargetValue();
-                        return targetV > minPlausibleTargetVoltage && targetV < maxPlausibleTargetVoltage;
+                        GeneratorVoltageControl voltageControl = controlledBus.getGeneratorVoltageControl().orElseThrow();
+                        double targetV = voltageControl.getTargetValue();
+                        return !controlledBus.isDisabled()
+                                && !findControllerBuses(controlledBus).isEmpty()
+                                && !voltageControl.isHidden()
+                                && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN
+                                && targetV > minPlausibleTargetVoltage && targetV < maxPlausibleTargetVoltage;
                     })
                     .collect(Collectors.toList());
             if (!activeControlledBuses.isEmpty()) {
                 activeSecondaryVoltageControls.put(secondaryVoltageControl, activeControlledBuses);
                 for (LfBus activeControlledBus : activeControlledBuses) {
-                    if (!allBusSet.add(activeControlledBus)) {
+                    if (!allControlledBusSet.add(activeControlledBus)) {
                         throw new IllegalStateException("Non disjoint secondary voltage control zones");
                     }
-                    allBusSet.addAll(getControllerBuses(activeControlledBus));
                 }
             }
         }
@@ -112,20 +109,20 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             this.sensitivities = Objects.requireNonNull(sensitivities);
         }
 
-        static SensitivityContext create(List<LfBus> buses, AcLoadFlowContext context) {
-            var busNumToSensiColumn = buildBusIndex(buses);
+        static SensitivityContext create(List<LfBus> controlledBuses, AcLoadFlowContext context) {
+            var busNumToSensiColumn = buildBusIndex(controlledBuses);
 
-            DenseMatrix sensitivities = calculateSensitivityValues(buses, busNumToSensiColumn, context.getEquationSystem(),
+            DenseMatrix sensitivities = calculateSensitivityValues(controlledBuses, busNumToSensiColumn, context.getEquationSystem(),
                                                                    context.getJacobianMatrix());
 
             return new SensitivityContext(busNumToSensiColumn, sensitivities);
         }
 
-        private static DenseMatrix calculateSensitivityValues(List<LfBus> controllerBuses, Map<Integer, Integer> busNumToSensiColumn,
+        private static DenseMatrix calculateSensitivityValues(List<LfBus> controlledBuses, Map<Integer, Integer> busNumToSensiColumn,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                               JacobianMatrix<AcVariableType, AcEquationType> j) {
-            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBuses.size());
-            for (LfBus controlledBus : controllerBuses) {
+            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controlledBuses.size());
+            for (LfBus controlledBus : controlledBuses) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                         .ifPresent(equation -> rhs.set(equation.getColumn(), busNumToSensiColumn.get(controlledBus.getNum()), 1d));
             }
@@ -218,7 +215,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     private SensiVq calculateSensiVq(String zoneName, SensitivityContext sensitivityContext, List<LfBus> controlledBuses, double[] svi) {
         // get list of all controllers of the zone
         List<LfBus> allControllerBuses = controlledBuses.stream()
-                .flatMap(controlledBus -> getControllerBuses(controlledBus).stream())
+                .flatMap(controlledBus -> findControllerBuses(controlledBus).stream())
                 .collect(Collectors.toList());
         var controllerBusIndex = buildBusIndex(controlledBuses);
 
@@ -229,7 +226,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             LfBus controlledBus = controlledBuses.get(i);
             // we need to filter very small sensitivity to avoid large target v shift
             if (Math.abs(svi[i]) > sensiVvEps) {
-                for (LfBus controllerBus : getControllerBuses(controlledBus)) {
+                for (LfBus controllerBus : findControllerBuses(controlledBus)) {
                     double sq = sensitivityContext.calculateSensiVq(controllerBus);
                     int j = controllerBusIndex.get(controllerBus.getNum());
                     if (sq != 0) {
@@ -294,7 +291,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
                 for (LfBus controlledBus : controlledBuses) {
                     double pvcDv = 0;
-                    for (LfBus controllerBus : getControllerBuses(controlledBus)) {
+                    for (LfBus controllerBus : findControllerBuses(controlledBus)) {
                         double sqi = sensiVq.getSqi(controllerBus);
                         if (sqi != 0) {
                             pvcDv += dq / sqi;
@@ -333,16 +330,16 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         //  - pilot bus should be enabled
         //  - at least one primary control controlled bus should be enabled
         Map<LfSecondaryVoltageControl, List<LfBus>> activeSecondaryVoltageControls = new LinkedHashMap<>();
-        Set<LfBus> allBusSet = new LinkedHashSet<>();
-        findActiveSecondaryVoltageControls(network, activeSecondaryVoltageControls, allBusSet);
+        Set<LfBus> allControlledBusSet = new LinkedHashSet<>();
+        findActiveSecondaryVoltageControls(network, activeSecondaryVoltageControls, allControlledBusSet);
 
         if (activeSecondaryVoltageControls.isEmpty()) {
             return OuterLoopStatus.STABLE;
         }
 
-        List<LfBus> allBusList = new ArrayList<>(allBusSet);
+        List<LfBus> allControlledBusList = new ArrayList<>(allControlledBusSet);
 
-        SensitivityContext sensitivityContext = SensitivityContext.create(allBusList, context.getLoadFlowContext());
+        SensitivityContext sensitivityContext = SensitivityContext.create(allControlledBusList, context.getLoadFlowContext());
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
