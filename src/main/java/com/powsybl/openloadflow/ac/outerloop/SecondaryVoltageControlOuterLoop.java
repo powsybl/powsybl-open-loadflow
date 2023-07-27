@@ -148,10 +148,15 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             return (EquationTerm<AcEquationType, AcEquationType>) shunt.getQ();
         }
 
+        double calculateSensiK(LfBus controllerBus, LfBus controlledBus) {
+            return 2 * calculateSensiQ(controllerBus, controlledBus)
+                    / (controllerBus.getMaxQ() - controllerBus.getMinQ());
+        }
+
         /**
          * Calculate controlled bus voltage to controller bus reactive power injection sensitivity.
          */
-        double calculateSensiVq(LfBus controllerBus, LfBus controlledBus) {
+        double calculateSensiQ(LfBus controllerBus, LfBus controlledBus) {
             int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
 
             MutableDouble sq = new MutableDouble();
@@ -174,7 +179,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         /**
          * Calculate controlled buses voltage to pilot bus voltage sensitivities.
          */
-        double calculateSensiVv(LfBus controlledBus, LfBus pilotBus) {
+        double calculateSensiVpp(LfBus controlledBus, LfBus pilotBus) {
             int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
             return getCalculatedV(pilotBus).calculateSensi(sensitivities, controlledBusSensiColumn);
         }
@@ -199,8 +204,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 a.set(i, j, i == j ? 1d - (1d / n) : - 1d / n);
             }
         }
-//        System.out.println("a=");
-//        a.print(System.out);
+        System.out.println("a=");
+        a.print(System.out);
 
         DenseMatrix k0 = new DenseMatrix(n, 1);
         for (LfBus controllerBus : controllerBuses) {
@@ -211,8 +216,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         k0.print(System.out);
 
         DenseMatrix rhs = a.times(k0, -1);
-//        System.out.println("rhs=");
-//        rhs.print(System.out);
+        System.out.println("rhs=");
+        rhs.print(System.out);
 
         DenseMatrix jK = new DenseMatrix(n, n);
         for (LfBus controllerBus : controllerBuses) {
@@ -220,38 +225,38 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 int i = controllerBusIndex.get(controllerBus.getNum());
                 int j = controllerBusIndex.get(controllerBus2.getNum());
                 LfBus controlledBus2 = controllerBus2.getGeneratorVoltageControl().orElseThrow().getControlledBus();
-                jK.set(i, j, qToK(sensitivityContext.calculateSensiVq(controllerBus, controlledBus2), controllerBus));
+                jK.set(i, j, sensitivityContext.calculateSensiK(controllerBus, controlledBus2));
             }
         }
-//        System.out.println("jK=");
-//        jK.print(System.out);
+        System.out.println("jK=");
+        jK.print(System.out);
 
         DenseMatrix jVpp = new DenseMatrix(n, 1);
         for (LfBus controllerBus : controllerBuses) {
             int i = controllerBusIndex.get(controllerBus.getNum());
             LfBus controlledBus = controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus();
-            jVpp.set(i, 0, sensitivityContext.calculateSensiVv(controlledBus, pilotBus));
+            jVpp.set(i, 0, sensitivityContext.calculateSensiVpp(controlledBus, pilotBus));
         }
-//        System.out.println("jVpp=");
-//        jVpp.print(System.out);
+        System.out.println("jVpp=");
+        jVpp.print(System.out);
 
         DenseMatrix jVppT = jVpp.transpose();
-//        System.out.println("jVppT=");
-//        jVppT.print(System.out);
+        System.out.println("jVppT=");
+        jVppT.print(System.out);
 
         DenseMatrix bt = a.times(jK).transpose();
-//        System.out.println("bt=");
-//        bt.print(System.out);
+        System.out.println("bt=");
+        bt.print(System.out);
 
         // replace last row
         for (int j = 0; j < bt.getColumnCount(); j++) {
             bt.set(bt.getRowCount() - 1, j, jVppT.get(0, j));
         }
         rhs.set(rhs.getRowCount() - 1, 0, pilotDv);
-//        System.out.println("bt (modified)=");
-//        bt.print(System.out);
-//        System.out.println("rhs (modified)=");
-//        rhs.print(System.out);
+        System.out.println("bt (modified)=");
+        bt.print(System.out);
+        System.out.println("rhs (modified)=");
+        rhs.print(System.out);
 
         try (LUDecomposition luDecomposition = bt.decomposeLU()) {
             luDecomposition.solve(rhs);
