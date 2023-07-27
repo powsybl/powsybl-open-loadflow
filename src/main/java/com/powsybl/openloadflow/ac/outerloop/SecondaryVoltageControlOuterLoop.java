@@ -214,32 +214,32 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 //        System.out.println("rhs=");
 //        rhs.print(System.out);
 
-        DenseMatrix jKv = new DenseMatrix(n, n);
+        DenseMatrix jK = new DenseMatrix(n, n);
         for (LfBus controllerBus : controllerBuses) {
             for (LfBus controllerBus2 : controllerBuses) {
                 LfBus controlledBus2 = controllerBus2.getGeneratorVoltageControl().orElseThrow().getControlledBus();
                 int i = controllerBusIndex.get(controllerBus.getNum());
                 int j = controllerBusIndex.get(controlledBus2.getNum());
-                jKv.set(i, j, qToK(sensitivityContext.calculateSensiVq(controllerBus, controlledBus2), controllerBus));
+                jK.set(i, j, qToK(sensitivityContext.calculateSensiVq(controllerBus, controlledBus2), controllerBus));
             }
         }
-//        System.out.println("jKv=");
-//        jKv.print(System.out);
+//        System.out.println("jK=");
+//        jK.print(System.out);
 
-        DenseMatrix jVppV = new DenseMatrix(n, 1);
+        DenseMatrix jVpp = new DenseMatrix(n, 1);
         for (LfBus controllerBus : controllerBuses) {
             LfBus controlledBus = controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus();
             int i = controllerBusIndex.get(controlledBus.getNum());
-            jVppV.set(i, 0, sensitivityContext.calculateSensiVv(controlledBus, pilotBus));
+            jVpp.set(i, 0, sensitivityContext.calculateSensiVv(controlledBus, pilotBus));
         }
-//        System.out.println("jVppV=");
-//        jVppV.print(System.out);
+//        System.out.println("jVpp=");
+//        jVpp.print(System.out);
 
-        DenseMatrix jVppVt = jVppV.transpose();
+        DenseMatrix jVppVt = jVpp.transpose();
 //        System.out.println("jVppVt=");
 //        jVppVt.print(System.out);
 
-        DenseMatrix bt = a.times(jKv).transpose();
+        DenseMatrix bt = a.times(jK).transpose();
 //        System.out.println("bt=");
 //        bt.print(System.out);
 
