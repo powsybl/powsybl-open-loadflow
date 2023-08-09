@@ -21,11 +21,14 @@ public class DcEquationSystemCreationParameters {
 
     private final boolean useTransformerRatio;
 
+    private final boolean phaseShifterRegulationOn;
+
     public DcEquationSystemCreationParameters(boolean updateFlows, boolean forcePhaseControlOffAndAddAngle1Var,
-                                              boolean useTransformerRatio) {
+                                              boolean useTransformerRatio, boolean phaseShifterRegulationOn) {
         this.updateFlows = updateFlows;
         this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
         this.useTransformerRatio = useTransformerRatio;
+        this.phaseShifterRegulationOn = phaseShifterRegulationOn;
     }
 
     public boolean isUpdateFlows() {
@@ -38,6 +41,10 @@ public class DcEquationSystemCreationParameters {
 
     public boolean isUseTransformerRatio() {
         return useTransformerRatio;
+    }
+
+    public boolean isPhaseShifterRegulationOn() {
+        return phaseShifterRegulationOn;
     }
 
     @Override
