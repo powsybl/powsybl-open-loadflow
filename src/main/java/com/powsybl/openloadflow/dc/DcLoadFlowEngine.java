@@ -61,13 +61,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         return -mismatch;
     }
 
-    @Override
-    public DcLoadFlowResult run() {
-        boolean succeeded = run(context.getNetwork(), context.getParameters(), context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector(),
-                Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
-        return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
-    }
-
     public static void initStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
         double[] x = new double[equationSystem.getIndex().getSortedVariablesToFind().size()];
         for (Variable<DcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
@@ -153,22 +146,18 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         return succeeded;
     }
 
-    public Pair<Boolean, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
-                                              EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                              JacobianMatrix<DcVariableType, DcEquationType> j,
-                                              Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
-                                              Reporter reporter) {
-        try (var targetVector = new DcTargetVector(network, equationSystem)) {
-            return this.run(network, parameters, equationSystem, j, targetVector, disabledBuses, disabledBranches, reporter);
-        }
+    public DcLoadFlowResult run() {
+        boolean succeeded = run(Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
+        return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
     }
 
-    private Pair<Boolean, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
-                                        EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                        JacobianMatrix<DcVariableType, DcEquationType> j,
-                                        TargetVector<DcVariableType, DcEquationType> targetVector,
-                                        Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
-                                        Reporter reporter) {
+    public Pair<Boolean, double[]> run(Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
+                                       Reporter reporter) {
+        LfNetwork network = context.getNetwork();
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = context.getEquationSystem();
+        DcLoadFlowParameters parameters = context.getParameters();
+        TargetVector<DcVariableType, DcEquationType> targetVector = context.getTargetVector();
+
         // outer loop initialization
         DcIncrementalPhaseControlOuterLoop dcPhaseShifterControlOuterLoop = new DcIncrementalPhaseControlOuterLoop();
         DcOuterLoopContext outerLoopContext = new DcOuterLoopContext(network);
@@ -195,9 +184,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0
             disabledBuses.stream()
-                .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .flatMap(lfBus -> equationSystem.getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).stream())
                 .map(Equation::getColumn)
                 .forEach(column -> targetVectorArray[column] = 0);
         }
@@ -205,9 +192,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         if (!disabledBranches.isEmpty()) {
             // set transformer phase shift to 0
             disabledBranches.stream()
-                .map(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .flatMap(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
                 .map(Equation::getColumn)
                 .forEach(column -> targetVectorArray[column] = 0);
         }
@@ -215,7 +200,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         // First linear system solution
         boolean succeeded;
         try {
-            j.solveTransposed(targetVectorArray);
+            context.getJacobianMatrix().solveTransposed(targetVectorArray);
             succeeded = true;
         } catch (MatrixException e) {
             succeeded = false;
