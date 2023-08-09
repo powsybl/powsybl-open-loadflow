@@ -89,7 +89,7 @@ public class DcEquationSystemCreator {
             equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P)
                     .orElseThrow()
                     .addTerm(p2);
-            if (deriveA1 || branch.hasPhaseControllerCapability()) {
+            if (deriveA1) {
                 // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
                 EquationTerm<DcVariableType, DcEquationType> a1 = equationSystem.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1)
                         .createTerm();
