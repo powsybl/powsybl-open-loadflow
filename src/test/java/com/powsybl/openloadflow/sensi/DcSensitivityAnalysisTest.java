@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sensi.dc;
+package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
@@ -22,15 +22,15 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemIndex;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysis;
-import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
-import com.powsybl.openloadflow.sensi.DcSensitivityAnalysis;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 

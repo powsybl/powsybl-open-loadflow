@@ -60,7 +60,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         this.parameters = Objects.requireNonNull(parameters);
     }
 
-    public interface LfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+    interface LfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         enum Status {
             VALID,
@@ -414,7 +414,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public interface SensitivityFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+    interface SensitivityFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         List<LfSensitivityFactor<V, E>> getFactors();
 
@@ -574,7 +574,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public static class SensitivityFactorGroupList<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+    protected static class SensitivityFactorGroupList<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         private final List<SensitivityFactorGroup<V, E>> list;
 
@@ -627,7 +627,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return participatingElements;
     }
 
-    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
         int factorsGroupCount = factorsGroups.getList().size();

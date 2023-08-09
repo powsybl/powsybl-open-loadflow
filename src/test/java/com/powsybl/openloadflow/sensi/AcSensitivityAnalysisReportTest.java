@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sensi.ac;
+package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -14,7 +14,6 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityFactor;
 import org.junit.jupiter.api.Test;
