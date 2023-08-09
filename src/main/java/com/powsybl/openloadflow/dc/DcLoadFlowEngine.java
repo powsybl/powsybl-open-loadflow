@@ -112,7 +112,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         OuterLoopStatus outerLoopStatus;
         int outerLoopIteration = 0;
         boolean succeeded = true;
-        double[] targetVectorArray;
 
         // re-run linear system solving until stabilization
         do {
@@ -127,9 +126,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
                 // if not yet stable, restart linear system solving
                 try {
-                    targetVectorArray = dcLoadFlowContext.getTargetVector().getArray().clone();
+                    double[] targetVectorArray = dcLoadFlowContext.getTargetVector().getArray().clone();
                     dcLoadFlowContext.getJacobianMatrix().solveTransposed(targetVectorArray);
-                    succeeded = true;
                     dcLoadFlowContext.getEquationSystem().getStateVector().set(targetVectorArray);
                     updateNetwork(outerLoopContext.getNetwork(), dcLoadFlowContext.getEquationSystem(), targetVectorArray);
                 } catch (MatrixException e) {
@@ -159,10 +157,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         TargetVector<DcVariableType, DcEquationType> targetVector = context.getTargetVector();
 
         // outer loop initialization
-        DcIncrementalPhaseControlOuterLoop dcPhaseShifterControlOuterLoop = new DcIncrementalPhaseControlOuterLoop();
+        DcIncrementalPhaseControlOuterLoop phaseShifterControlOuterLoop = new DcIncrementalPhaseControlOuterLoop();
         DcOuterLoopContext outerLoopContext = new DcOuterLoopContext(network);
         if (parameters.getNetworkParameters().isPhaseControl()) {
-            dcPhaseShifterControlOuterLoop.initialize(outerLoopContext);
+            phaseShifterControlOuterLoop.initialize(outerLoopContext);
         }
 
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
@@ -214,7 +212,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         // continue with PST active power control outer loop only if first linear system solution has succeeded
         if (succeeded && parameters.getNetworkParameters().isPhaseControl()) {
-            succeeded = this.runPhaseShifterOuterLoop(dcPhaseShifterControlOuterLoop, outerLoopContext);
+            succeeded = runPhaseShifterOuterLoop(phaseShifterControlOuterLoop, outerLoopContext);
         }
 
         // set all calculated voltages to NaN
