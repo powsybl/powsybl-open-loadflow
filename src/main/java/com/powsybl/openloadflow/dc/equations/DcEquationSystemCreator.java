@@ -90,7 +90,6 @@ public class DcEquationSystemCreator {
                     .orElseThrow()
                     .addTerm(p2);
             if (deriveA1) {
-                // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
                 EquationTerm<DcVariableType, DcEquationType> a1 = equationSystem.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1)
                         .createTerm();
                 branch.setA1(a1);
