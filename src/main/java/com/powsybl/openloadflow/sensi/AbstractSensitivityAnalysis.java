@@ -628,7 +628,15 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     }
 
     protected DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), factorsGroups.getList().size());
+        // otherwise, defining the rhs matrix will result in integer overflow
+        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int factorsGroupCount = factorsGroups.getList().size();
+        if (factorsGroupCount >= Integer.MAX_VALUE / (equationCount * Double.BYTES)) {
+            throw new PowsyblException("So many factors groups (" + factorsGroupCount
+                    + ") is not allowed for a system with " + equationCount + " equations");
+        }
+
+        DenseMatrix rhs = new DenseMatrix(equationCount, factorsGroupCount);
         fillRhsSensitivityVariable(factorsGroups, rhs, participationByBus);
         return rhs;
     }
