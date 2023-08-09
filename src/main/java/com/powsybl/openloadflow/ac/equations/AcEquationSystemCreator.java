@@ -143,6 +143,7 @@ public class AcEquationSystemCreator {
         shunt.setQ(q);
         ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
+        shunt.setP(p);
     }
 
     private static void createShuntEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
@@ -466,17 +467,17 @@ public class AcEquationSystemCreator {
         LfBranch controlledBranch = phaseControl.getControlledBranch();
 
         if (phaseControl.getMode() == Mode.CONTROLLER) {
-            boolean enabled = !controllerBranch.isDisabled() && !controlledBranch.isDisabled();
+            boolean controlEnabled = !controllerBranch.isDisabled() && !controlledBranch.isDisabled() && controllerBranch.isPhaseControlEnabled();
 
             // activate/de-activate phase control equation
             equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_P)
                     .orElseThrow()
-                    .setActive(enabled && controllerBranch.isPhaseControlEnabled());
+                    .setActive(controlEnabled);
 
             // de-activate/activate constant A1 equation
             equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
                     .orElseThrow()
-                    .setActive(enabled && !controllerBranch.isPhaseControlEnabled());
+                    .setActive(!controlEnabled && !controllerBranch.isDisabled());
         } else {
             equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
                     .orElseThrow()
@@ -594,7 +595,7 @@ public class AcEquationSystemCreator {
 
     protected static boolean isDeriveA1(LfBranch branch, AcEquationSystemCreationParameters creationParameters) {
         return branch.isPhaseController()
-                || (creationParameters.isForceA1Var() && branch.hasPhaseControllerCapability() && branch.isConnectedAtBothSides());
+                || creationParameters.isForceA1Var() && branch.hasPhaseControllerCapability() && branch.isConnectedAtBothSides();
     }
 
     protected static boolean isDeriveR1(LfBranch branch) {

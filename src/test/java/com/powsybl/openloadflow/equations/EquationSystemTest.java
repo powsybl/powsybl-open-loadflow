@@ -274,9 +274,17 @@ class EquationSystemTest {
                 .create();
         assertEquals(13, equationSystem.getEquations().size());
         assertEquals(3, equationSystem.getEquations(ElementType.BUS, 1).size());
+        assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 0).size());
+        assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 1).size());
+        assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 2).size());
+        assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 3).size());
 
         equationSystem.removeEquation(1, AcEquationType.BUS_TARGET_P);
         assertEquals(12, equationSystem.getEquations().size());
         assertEquals(2, equationSystem.getEquations(ElementType.BUS, 1).size());
+        assertEquals(3, equationSystem.getEquationTerms(ElementType.BRANCH, 0).size());
+        assertEquals(3, equationSystem.getEquationTerms(ElementType.BRANCH, 1).size());
+        assertEquals(3, equationSystem.getEquationTerms(ElementType.BRANCH, 2).size());
+        assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 3).size());
     }
 }

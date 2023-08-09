@@ -147,6 +147,10 @@ public interface LfShunt extends LfElement {
 
     List<Controller> getControllers();
 
+    Evaluable getP();
+
+    void setP(Evaluable evaluable);
+
     Evaluable getQ();
 
     void setQ(Evaluable evaluable);

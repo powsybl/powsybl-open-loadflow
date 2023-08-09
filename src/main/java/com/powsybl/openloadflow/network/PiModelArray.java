@@ -208,8 +208,8 @@ public class PiModelArray implements PiModel {
                 double nextValue = valueGetter.applyAsDouble(models.get(nextTapPositionIndex));
                 currentTapPositionIndex = nextTapPositionIndex;
                 // stop when shift is not enough to go to next position
-                if ((remainingValueShift < 0 && value + remainingValueShift > nextValue)
-                        || (remainingValueShift > 0 && value + remainingValueShift < nextValue)) {
+                if (remainingValueShift < 0 && value + remainingValueShift > nextValue
+                        || remainingValueShift > 0 && value + remainingValueShift < nextValue) {
                     break;
                 }
                 remainingValueShift -= nextValue - value;
@@ -283,16 +283,16 @@ public class PiModelArray implements PiModel {
 
         if (tapPositionIndex < models.size() - 1) {
             double nextA1 = models.get(tapPositionIndex + 1).getA1(); // abs?
-            if ((direction == Direction.INCREASE && nextA1 > currentA1)
-                    || (direction == Direction.DECREASE && nextA1 < currentA1)) {
+            if (direction == Direction.INCREASE && nextA1 > currentA1
+                    || direction == Direction.DECREASE && nextA1 < currentA1) {
                 tapPositionIndex++;
             }
         }
 
         if (tapPositionIndex > 0) {
             double previousA1 = models.get(tapPositionIndex - 1).getA1(); // abs?
-            if ((direction == Direction.INCREASE && previousA1 > currentA1)
-                    || (direction == Direction.DECREASE && previousA1 < currentA1)) {
+            if (direction == Direction.INCREASE && previousA1 > currentA1
+                    || direction == Direction.DECREASE && previousA1 < currentA1) {
                 tapPositionIndex--;
             }
         }

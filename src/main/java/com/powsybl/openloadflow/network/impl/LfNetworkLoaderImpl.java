@@ -648,7 +648,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
         List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
                 .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS
-                        || (pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName())))
+                        || pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName()))
                 .collect(Collectors.toList());
 
         List<LfBus> lfBuses = new ArrayList<>();
@@ -751,10 +751,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                             .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                             .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
                             .collect(Collectors.toCollection((Supplier<Set<LfBus>>) LinkedHashSet::new));
-                    if (controlledBuses.size() != controlZone.getControlUnits().size()) {
-                        LOGGER.debug("{}/{} control units of control zone '{}' have been mapped to a LF bus",
-                                controlledBuses.size(), controlZone.getControlUnits().size(), controlZone.getName());
-                    }
+                    LOGGER.debug("{} control units of control zone '{}' have been mapped to a {} LF buses",
+                            controlZone.getControlUnits().size(), controlZone.getName(), controlledBuses.size());
                     if (!controlledBuses.isEmpty()) {
                         var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, controlledBuses);
                         lfNetwork.addSecondaryVoltageControl(lfSvc);

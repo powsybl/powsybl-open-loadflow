@@ -14,6 +14,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.slf4j.Logger;
@@ -93,13 +95,16 @@ public class AcLoadFlowFromCache {
     }
 
     private static AcLoadFlowResult run(AcLoadFlowContext context) {
-        if (context.getNetwork().isValid() && context.isNetworkUpdated()) {
+        if (!context.getNetwork().isValid()) {
+            return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
+        }
+        if (context.isNetworkUpdated()) {
             AcLoadFlowResult result = new AcloadFlowEngine(context)
                     .run();
             context.setNetworkUpdated(false);
             return result;
         }
-        return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
+        return new AcLoadFlowResult(context.getNetwork(), 0, 0, NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.STABLE, 0d, 0d);
     }
 
     public List<AcLoadFlowResult> run() {
