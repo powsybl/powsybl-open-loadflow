@@ -36,7 +36,7 @@ public class AcIncrementalPhaseControlOuterLoop
         implements AcOuterLoop {
 
     public AcIncrementalPhaseControlOuterLoop() {
-        logger = LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class);
+        super(LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class));
     }
 
     @Override
@@ -89,7 +89,7 @@ public class AcIncrementalPhaseControlOuterLoop
         }
     }
 
-    private static boolean checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
+    private boolean checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
                                                             List<TransformerPhaseControl> currentLimiterPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
 
@@ -130,8 +130,8 @@ public class AcIncrementalPhaseControlOuterLoop
         return updated.booleanValue();
     }
 
-    private static void checkImpactOnOtherPhaseShifters(AcSensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
-                                                        List<TransformerPhaseControl> currentLimiterPhaseControls, double da) {
+    private void checkImpactOnOtherPhaseShifters(AcSensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
+                                                 List<TransformerPhaseControl> currentLimiterPhaseControls, double da) {
         LfBranch controllerBranch = phaseControl.getControllerBranch();
         for (TransformerPhaseControl otherPhaseControl : currentLimiterPhaseControls) {
             if (otherPhaseControl != phaseControl) {

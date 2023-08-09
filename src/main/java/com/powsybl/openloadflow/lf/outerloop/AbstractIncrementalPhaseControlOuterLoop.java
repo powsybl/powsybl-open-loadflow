@@ -37,7 +37,12 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
     public static final double MIN_TARGET_DEADBAND = 1 / PerUnit.SB; // 1 MW
     public static final double SENSI_EPS = 1e-6;
     public static final double PHASE_SHIFT_CROSS_IMPACT_MARGIN = 0.75;
-    protected static Logger logger;
+
+    protected final Logger logger;
+
+    protected AbstractIncrementalPhaseControlOuterLoop(Logger logger) {
+        this.logger = Objects.requireNonNull(logger);
+    }
 
     @Override
     public void initialize(O context) {

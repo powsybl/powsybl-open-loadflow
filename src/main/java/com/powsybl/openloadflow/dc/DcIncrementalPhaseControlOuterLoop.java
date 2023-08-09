@@ -28,7 +28,7 @@ public class DcIncrementalPhaseControlOuterLoop
         extends AbstractIncrementalPhaseControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> {
 
     public DcIncrementalPhaseControlOuterLoop() {
-        logger = LoggerFactory.getLogger(DcIncrementalPhaseControlOuterLoop.class);
+        super(LoggerFactory.getLogger(DcIncrementalPhaseControlOuterLoop.class));
     }
 
     @Override
@@ -64,7 +64,7 @@ public class DcIncrementalPhaseControlOuterLoop
 
         List<LfBranch> controllerBranches = getControllerBranches(network);
 
-        // find list of phase controls that are in current limiter and active power control
+        // find list of phase controls that are in active power control
         List<TransformerPhaseControl> activePowerControlPhaseControls = new ArrayList<>();
         for (LfBranch controllerBranch : controllerBranches) {
             controllerBranch.getPhaseControl().ifPresent(phaseControl -> {
@@ -86,7 +86,6 @@ public class DcIncrementalPhaseControlOuterLoop
                 status = OuterLoopStatus.UNSTABLE;
             }
         }
-        // Current limiter is currently not implemented
 
         return status;
     }
