@@ -263,23 +263,19 @@ public class NewtonRaphson {
                     break;
 
                 case BUS_V_ZERO:
-                    LfAsymBus asymBusVh = network.getBus(v.getElementNum()).getAsym();
-                    asymBusVh.setVz(stateVector.get(v.getRow()));
+                    network.getBus(v.getElementNum()).getAsym().setVz(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI_ZERO:
-                    LfAsymBus asymBusPhiH = network.getBus(v.getElementNum()).getAsym();
-                    asymBusPhiH.setAngleZ(stateVector.get(v.getRow()));
+                    network.getBus(v.getElementNum()).getAsym().setAngleZ(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_V_NEGATIVE:
-                    LfAsymBus asymBusVi = network.getBus(v.getElementNum()).getAsym();
-                    asymBusVi.setVn(stateVector.get(v.getRow()));
+                    network.getBus(v.getElementNum()).getAsym().setVn(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI_NEGATIVE:
-                    LfAsymBus asymBusPhiI = network.getBus(v.getElementNum()).getAsym();
-                    asymBusPhiI.setAngleN(stateVector.get(v.getRow()));
+                    network.getBus(v.getElementNum()).getAsym().setAngleN(stateVector.get(v.getRow()));
                     break;
 
                 case SHUNT_B:

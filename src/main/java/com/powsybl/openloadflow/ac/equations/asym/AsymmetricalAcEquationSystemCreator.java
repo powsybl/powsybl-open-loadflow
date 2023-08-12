@@ -100,10 +100,10 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
     @Override
     protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         // positive sequence
-        EquationTerm<AcVariableType, AcEquationType> p1 = null;
-        EquationTerm<AcVariableType, AcEquationType> q1 = null;
-        EquationTerm<AcVariableType, AcEquationType> p2 = null;
-        EquationTerm<AcVariableType, AcEquationType> q2 = null;
+        EquationTerm<AcVariableType, AcEquationType> p1;
+        EquationTerm<AcVariableType, AcEquationType> q1;
+        EquationTerm<AcVariableType, AcEquationType> p2;
+        EquationTerm<AcVariableType, AcEquationType> q2;
         EquationTerm<AcVariableType, AcEquationType> i1 = null;
         EquationTerm<AcVariableType, AcEquationType> i2 = null;
 

@@ -213,12 +213,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
     protected double v(SequenceType g, Side i) {
 
-        if (variableTypeBus1 == AsymBusVariableType.DELTA && i == Side.ONE && g == SequenceType.ZERO) {
-            //zero sequence called on a delta side
-            return 0.;
-        }
-
-        if (variableTypeBus2 == AsymBusVariableType.DELTA && i == Side.TWO && g == SequenceType.ZERO) {
+        if (variableTypeBus1 == AsymBusVariableType.DELTA && g == SequenceType.ZERO) {
             //zero sequence called on a delta side
             return 0.;
         }

@@ -80,26 +80,6 @@ public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractClosedBran
         return mY.getRealCartesianMatrix();
     }
 
-    public static DenseMatrix getdIdv(Complex y1, Complex y2,
-                                   DenseMatrix mdV, Complex y12,
-                                   Complex r1, Complex r2) {
-
-        // Supposing A2 = 0 and R2 is constant We have:
-        // [dI1x]   [ R1.cos(A1)  R1.sin(A1)     0       0    ] [ g1+g12  -b1-b12   -g12     b12   ] [ R1.cos(A1) -R1.sin(A1)     0       0    ]  [dV1x]
-        // [dI1y]   [-R1.sin(A1)  R1.cos(A1)     0       0    ] [ b1+b12   g1+g12   -b12    -g12   ] [ R1.sin(A1)  R1.cos(A1)     0       0    ]  [dV1y]
-        // [dI2x] = [    0           0           R2      0    ] [  -g21     b21    g2+g21  -b2-b21 ] [    0           0           R2      0    ]* [dV2x]
-        // [dI2y]   [    0           0           0       R2   ] [  -b21    -g21    b2+b21   g2+g21 ] [    0           0           0       R2   ]  [dV2y]
-
-        DenseMatrix mRho = getRhoMatrix(r1, r2);
-        DenseMatrix mRhoConjugate = getRhoMatrix(r1.conjugate(), r2);
-        DenseMatrix mY = getFixedYmatrix(y1, y2, y12);
-
-        DenseMatrix mTmp1 = mRho.times(mdV);
-        DenseMatrix mTmp2 = mY.times(mTmp1);
-
-        return mRhoConjugate.times(mTmp2); // expression of dI/dV
-    }
-
     @Override
     public double eval() {
         return getIvector(new Complex(g1, b1), new Complex(g2, b2), new Complex(g12, b12),
@@ -127,7 +107,7 @@ public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractClosedBran
 
         } else {
             DenseMatrix mdV = getdVdx(variable);
-            return getdIdv(new Complex(g1, b1), new Complex(g2, b2), mdV, new Complex(g12, b12),
+            return getIvector(new Complex(g1, b1), new Complex(g2, b2), new Complex(g12, b12), mdV,
                     ComplexUtils.polar2Complex(r1(), a1()),
                     ComplexUtils.polar2Complex(R2, 0.)).get(getIndexline(flowType), 0);
         }
