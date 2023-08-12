@@ -24,9 +24,9 @@ public class PiModelArray implements PiModel {
 
     private int tapPositionIndex;
 
-    private double a1 = Double.NaN;
+    private double modifiedA1 = Double.NaN;
 
-    private double r1 = Double.NaN;
+    private double modifiedR1 = Double.NaN;
 
     private double continuousR1 = Double.NaN;
 
@@ -101,9 +101,17 @@ public class PiModelArray implements PiModel {
         return getModel().getB2();
     }
 
+    public double getModifiedR1() {
+        return modifiedR1;
+    }
+
+    public double getModifiedA1() {
+        return modifiedA1;
+    }
+
     @Override
     public double getR1() {
-        return Double.isNaN(r1) ? getModel().getR1() : r1;
+        return Double.isNaN(modifiedR1) ? getModel().getR1() : modifiedR1;
     }
 
     @Override
@@ -113,18 +121,18 @@ public class PiModelArray implements PiModel {
 
     @Override
     public double getA1() {
-        return Double.isNaN(a1) ? getModel().getA1() : a1;
+        return Double.isNaN(modifiedA1) ? getModel().getA1() : modifiedA1;
     }
 
     @Override
     public PiModelArray setA1(double a1) {
-        this.a1 = a1;
+        this.modifiedA1 = a1;
         return this;
     }
 
     @Override
     public PiModelArray setR1(double r1) {
-        this.r1 = r1;
+        this.modifiedR1 = r1;
         return this;
     }
 
@@ -251,27 +259,27 @@ public class PiModelArray implements PiModel {
 
     @Override
     public void roundA1ToClosestTap() {
-        if (Double.isNaN(a1)) {
+        if (Double.isNaN(modifiedA1)) {
             return; // nothing to do because a1 has not been modified
         }
 
         // find tap position with the closest a1 value
         updateTapPosition(PiModel::getA1, getAllowedPositionIndexRange(AllowedDirection.BOTH), Integer.MAX_VALUE,
-                new ClosestTapPositionFinder(a1));
-        a1 = Double.NaN;
+                new ClosestTapPositionFinder(modifiedA1));
+        modifiedA1 = Double.NaN;
     }
 
     @Override
     public void roundR1ToClosestTap() {
-        if (Double.isNaN(r1)) {
+        if (Double.isNaN(modifiedR1)) {
             return; // nothing to do because r1 has not been modified
         }
 
         // find tap position with the closest r1 value
         updateTapPosition(PiModel::getR1, getAllowedPositionIndexRange(AllowedDirection.BOTH), Integer.MAX_VALUE,
-                new ClosestTapPositionFinder(r1));
-        continuousR1 = r1;
-        r1 = Double.NaN;
+                new ClosestTapPositionFinder(modifiedR1));
+        continuousR1 = modifiedR1;
+        modifiedR1 = Double.NaN;
     }
 
     @Override
@@ -298,7 +306,7 @@ public class PiModelArray implements PiModel {
         }
 
         if (tapPositionIndex != oldTapPositionIndex) {
-            a1 = Double.NaN;
+            modifiedA1 = Double.NaN;
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
                 listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, lowTapPosition + tapPositionIndex);
             }
@@ -315,7 +323,7 @@ public class PiModelArray implements PiModel {
         Optional<Direction> direction = updateTapPosition(PiModel::getR1, positionIndexRange, maxTapShift,
                 new ClosestTapPositionFinder(newR1));
         if (direction.isPresent()) {
-            r1 = Double.NaN;
+            modifiedR1 = Double.NaN;
         }
         return direction;
     }
@@ -326,7 +334,7 @@ public class PiModelArray implements PiModel {
         Optional<Direction> direction = updateTapPosition(PiModel::getA1, positionIndexRange, maxTapShift,
                 new FirstTapPositionAboveFinder(deltaA1));
         if (direction.isPresent()) {
-            a1 = Double.NaN;
+            modifiedA1 = Double.NaN;
         }
         return direction;
     }
@@ -338,7 +346,7 @@ public class PiModelArray implements PiModel {
         Optional<Direction> direction = updateTapPosition(PiModel::getA1, positionIndexRange, maxTapShift,
                 new ClosestTapPositionFinder(newA1));
         if (direction.isPresent()) {
-            a1 = Double.NaN;
+            modifiedA1 = Double.NaN;
         }
         return direction;
     }
@@ -371,9 +379,9 @@ public class PiModelArray implements PiModel {
         if (tapPosition - lowTapPosition != tapPositionIndex) {
             int oldTapPositionIndex = tapPositionIndex;
             tapPositionIndex = tapPosition - lowTapPosition;
-            r1 = Double.NaN;
+            modifiedR1 = Double.NaN;
             continuousR1 = Double.NaN;
-            a1 = Double.NaN;
+            modifiedA1 = Double.NaN;
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
                 listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, tapPosition);
             }
