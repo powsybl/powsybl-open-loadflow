@@ -361,14 +361,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      */
     private static void setAlphas(DcLoadFlowContext loadFlowContext, Collection<ComputedContingencyElement> contingencyElements, DenseMatrix states,
                                   DenseMatrix contingenciesStates, int columnState, ObjDoubleConsumer<ComputedContingencyElement> setValue) {
-        boolean useTransformerRatio = loadFlowContext.getParameters().getEquationSystemCreationParameters().isUseTransformerRatio();
         if (contingencyElements.size() == 1) {
             ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
             // we solve a*alpha = b
-            PiModel piModel = lfBranch.getPiModel();
-            double a = piModel.getX() / (useTransformerRatio ? piModel.getR1() * R2 : 1) - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getContingencyIndex())
+            double a = calculatePower(loadFlowContext, lfBranch) - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getContingencyIndex())
                     - contingenciesStates.get(p1.getPh2Var().getRow(), element.getContingencyIndex()));
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState);
             setValue.accept(element, b / a);
@@ -386,8 +384,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 for (ComputedContingencyElement element2 : contingencyElements) {
                     double value = 0d;
                     if (element.equals(element2)) {
-                        PiModel piModel = lfBranch.getPiModel();
-                        value = piModel.getX() / (useTransformerRatio ? piModel.getR1() * R2 : 1);
+                        value = calculatePower(loadFlowContext, lfBranch);
                     }
                     value = value - (contingenciesStates.get(p1.getPh1Var().getRow(), element2.getContingencyIndex())
                             - contingenciesStates.get(p1.getPh2Var().getRow(), element2.getContingencyIndex()));
@@ -399,6 +396,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
             contingencyElements.forEach(element -> setValue.accept(element, rhs.get(element.getLocalIndex(), 0)));
         }
+    }
+
+    private static double calculatePower(DcLoadFlowContext loadFlowContext, LfBranch lfBranch) {
+        PiModel piModel = lfBranch.getPiModel();
+        boolean useTransformerRatio = loadFlowContext.getParameters().getEquationSystemCreationParameters().isUseTransformerRatio();
+        return piModel.getX() / (useTransformerRatio ? piModel.getR1() * R2 : 1);
     }
 
     /**
