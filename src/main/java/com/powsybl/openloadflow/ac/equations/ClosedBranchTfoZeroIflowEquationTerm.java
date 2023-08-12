@@ -47,7 +47,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         double epsilon = 0.00000001;
         Complex y1 = new Complex(g1, b1);
         Complex y2 = new Complex(g2, b2);
-        if (isFreeFluxes || (y1.abs() < epsilon && y2.abs() < epsilon)) {
+        if (isFreeFluxes || y1.abs() < epsilon && y2.abs() < epsilon) {
             // magnetizing circuit is open or Y1 or Y2 are zero, leading Ym to zero
             this.z0T1 = new Complex(0, 0);
             this.z0T2 = asymTransfo2W.getZo();
