@@ -2308,10 +2308,11 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 "B1-G",
                 false,
                 ContingencyContext.all()));
+        Contingency cont49And56 = new Contingency(ps49.getId() + " " + ps56.getId(), new BranchContingency(ps49.getId()), new BranchContingency(ps56.getId()));
         List<Contingency> contingencies = List.of(
                 Contingency.twoWindingsTransformer(ps49.getId()),
-                Contingency.twoWindingsTransformer(ps56.getId())
-        );
+                Contingency.twoWindingsTransformer(ps56.getId()),
+                cont49And56);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0");
         sensiParameters.getLoadFlowParameters()
                 .setDcUseTransformerRatio(dcUseTransformerRatio)
@@ -2320,6 +2321,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         double l45p1 = result.getBranchFlow1FunctionReferenceValue(l45.getId());
         double l45p1ContPs49 = result.getBranchFlow1FunctionReferenceValue(ps49.getId(), l45.getId());
         double l45p1ContPs56 = result.getBranchFlow1FunctionReferenceValue(ps56.getId(), l45.getId());
+        double l45p1ContPs49And56 = result.getBranchFlow1FunctionReferenceValue(cont49And56.getId(), l45.getId());
 
         runner.run(network, sensiParameters.getLoadFlowParameters());
         assertActivePowerEquals(l45p1, l45.getTerminal1());
@@ -2335,5 +2337,10 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         ps56.getTerminal2().disconnect();
         runner.run(network, sensiParameters.getLoadFlowParameters());
         assertActivePowerEquals(l45p1ContPs56, l45.getTerminal1());
+
+        ps49.getTerminal1().disconnect();
+        ps49.getTerminal2().disconnect();
+        runner.run(network, sensiParameters.getLoadFlowParameters());
+        assertActivePowerEquals(l45p1ContPs49And56, l45.getTerminal1());
     }
 }
