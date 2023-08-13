@@ -197,7 +197,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }, computationManager.getExecutor());
     }
 
-    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
+    public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
+    }
+
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
         Objects.requireNonNull(resultWriterProvider);
@@ -245,15 +248,14 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reporter)
                 .join();
 
-        return resultWriter;
+        return new ReplayResult<>(resultWriter, factors, contingencies);
     }
 
-    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
         return replay(date, debugDir, resultWriterProvider, Reporter.NO_OP);
     }
 
-    public List<SensitivityValue> replay(DateTime date, Path debugDir) {
-        SensitivityResultModelWriter resultWriter = replay(date, debugDir, SensitivityResultModelWriter::new);
-        return resultWriter.getValues();
+    public ReplayResult<SensitivityResultModelWriter> replay(DateTime date, Path debugDir) {
+        return replay(date, debugDir, SensitivityResultModelWriter::new);
     }
 }
