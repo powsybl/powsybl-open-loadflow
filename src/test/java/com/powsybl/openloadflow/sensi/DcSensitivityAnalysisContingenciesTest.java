@@ -2264,6 +2264,15 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l23", "l23", "l23", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
     }
 
+    /**
+     *                      NHV1_NHV1
+     *              --------------------------
+     *             /                          \
+     * NGEN --- NHV1                           NHV2 --- NLOAD
+     *            \                            /
+     *             ----------- NHV3 -----------
+     *             NHV1_NHV2_1      NHV1_NHV2_2
+     */
     @Test
     void testOneOfTwoSerialLinesContingency() {
         Network network = EurostagTutorialExample1Factory.create();
