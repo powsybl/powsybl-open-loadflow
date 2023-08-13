@@ -178,8 +178,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         private final Set<LfBranch> partialDisabledBranches; // branches disabled because of connectivity loss.
 
-        private ConnectivityAnalysisResult(Set<String> elementsToReconnect, Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors,
-                                           GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork lfNetwork) {
+        private ConnectivityAnalysisResult(Set<String> elementsToReconnect,
+                                           GraphConnectivity<LfBus, LfBranch> connectivity,
+                                           LfNetwork lfNetwork) {
             this.elementsToReconnect = elementsToReconnect;
             slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
             disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
@@ -518,7 +519,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 if (!lfFactors.isEmpty()) {
                     ConnectivityAnalysisResult connectivityAnalysisResult = connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, k -> {
                         Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
-                        return new ConnectivityAnalysisResult(elementsToReconnect, lfFactors, connectivity, lfNetwork);
+                        return new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
                     });
                     connectivityAnalysisResult.getContingencies().addAll(contingencyList);
                 } else {
