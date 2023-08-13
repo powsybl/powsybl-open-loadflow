@@ -1690,7 +1690,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         String dateStr = fileName.substring(14, fileName.length() - 5);
         DateTime date = DateTime.parse(dateStr, DateTimeFormat.forPattern(DebugUtil.DATE_TIME_FORMAT));
 
-        List<SensitivityValue> values2 = sensiProvider.replay(date, fileSystem.getPath(debugDir));
+        List<SensitivityValue> values2 = sensiProvider.replay(date, fileSystem.getPath(debugDir)).resultWriter().getValues();
 
         // assert we have exactly the same result with replay
         assertEquals(result.getValues().size(), values2.size());
