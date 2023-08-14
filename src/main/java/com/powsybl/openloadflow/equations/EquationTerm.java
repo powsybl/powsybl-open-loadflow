@@ -165,6 +165,10 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      */
     double eval();
 
+    default double eval(StateVector sv) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
     /**
      * Get partial derivative.
      *
