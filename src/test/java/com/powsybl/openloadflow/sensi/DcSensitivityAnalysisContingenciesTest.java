@@ -2328,7 +2328,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
         assertEquals(303.5d, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1_2"), LoadFlowAssert.DELTA_POWER);
-        // FIXME strict zero would be expected
-        assertEquals(1.7763568394002505E-13, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1_1", "NHV1_NHV2_1_2"), 0d);
+        assertEquals(0, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1_1", "NHV1_NHV2_1_2"), 0d); // strict zero and not anymore a small value
     }
 }
