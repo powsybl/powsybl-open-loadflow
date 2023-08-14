@@ -22,10 +22,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -48,7 +45,6 @@ import java.util.function.Function;
 import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.network.PiModel.R2;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 
 /**
@@ -368,7 +364,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
             // we solve a*alpha = b
-            double a = calculatePower(loadFlowContext, lfBranch) - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getContingencyIndex())
+            double a = 1d / calculatePower(loadFlowContext, lfBranch) - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getContingencyIndex())
                     - contingenciesStates.get(p1.getPh2Var().getRow(), element.getContingencyIndex()));
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState);
             setValue.accept(element, b / a);
@@ -386,7 +382,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 for (ComputedContingencyElement element2 : contingencyElements) {
                     double value = 0d;
                     if (element.equals(element2)) {
-                        value = calculatePower(loadFlowContext, lfBranch);
+                        value = 1d / calculatePower(loadFlowContext, lfBranch);
                     }
                     value = value - (contingenciesStates.get(p1.getPh1Var().getRow(), element2.getContingencyIndex())
                             - contingenciesStates.get(p1.getPh2Var().getRow(), element2.getContingencyIndex()));
@@ -403,7 +399,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     private static double calculatePower(DcLoadFlowContext loadFlowContext, LfBranch lfBranch) {
         PiModel piModel = lfBranch.getPiModel();
         boolean useTransformerRatio = loadFlowContext.getParameters().getEquationSystemCreationParameters().isUseTransformerRatio();
-        return piModel.getX() / (useTransformerRatio ? piModel.getR1() * R2 : 1);
+        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(useTransformerRatio, piModel);
     }
 
     /**
