@@ -631,9 +631,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
         int factorsGroupCount = factorsGroups.getList().size();
-        if (factorsGroupCount >= Integer.MAX_VALUE / (equationCount * Double.BYTES)) {
-            throw new PowsyblException("So many factors groups (" + factorsGroupCount
-                    + ") is not allowed for a system with " + equationCount + " equations");
+        int maxFactorsGroups = Integer.MAX_VALUE / (equationCount * Double.BYTES);
+        if (factorsGroupCount > maxFactorsGroups) {
+            throw new PowsyblException("Too many factors groups " + factorsGroupCount
+                    + ", maximum is " + maxFactorsGroups + " for a system with " + equationCount + " equations");
         }
 
         DenseMatrix rhs = new DenseMatrix(equationCount, factorsGroupCount);

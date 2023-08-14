@@ -429,9 +429,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
-        if (contingencyElements.size() >= Integer.MAX_VALUE / (equationCount * Double.BYTES)) {
-            throw new PowsyblException("So many contingency elements (" + contingencyElements.size()
-                    + ") is not allowed for a system with " + equationCount + " equations");
+        int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
+        if (contingencyElements.size() > maxContingencyElements) {
+            throw new PowsyblException("Too many contingency elements " + contingencyElements.size()
+                    + ", maximum is " + maxContingencyElements + " for a system with " + equationCount + " equations");
         }
 
         DenseMatrix rhs = new DenseMatrix(equationCount, contingencyElements.size());
