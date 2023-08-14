@@ -111,7 +111,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
     private boolean runPhaseShifterOuterLoop(DcIncrementalPhaseControlOuterLoop outerLoop, DcOuterLoopContext outerLoopContext) {
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getType());
-        DcLoadFlowContext dcLoadFlowContext;
         OuterLoopStatus outerLoopStatus;
         int outerLoopIteration = 0;
         boolean succeeded = true;
@@ -121,29 +120,26 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration);
             outerLoopContext.setLoadFlowContext(context);
-            dcLoadFlowContext = outerLoopContext.getLoadFlowContext();
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getType(), outerLoopStatus);
 
                 // if not yet stable, restart linear system solving
-                try {
-                    double[] targetVectorArray = dcLoadFlowContext.getTargetVector().getArray().clone();
-                    dcLoadFlowContext.getJacobianMatrix().solveTransposed(targetVectorArray);
-                    dcLoadFlowContext.getEquationSystem().getStateVector().set(targetVectorArray);
-                    updateNetwork(outerLoopContext.getNetwork(), dcLoadFlowContext.getEquationSystem(), targetVectorArray);
-                } catch (MatrixException e) {
-                    Reports.reportDcLfSolverFailure(olReporter, e.getMessage());
-                    succeeded = false;
-                    LOGGER.error("Failed to solve linear system for DC load flow", e);
+                double[] targetVectorArray = context.getTargetVector().getArray().clone();
+                succeeded = solve(targetVectorArray, context.getJacobianMatrix(), olReporter);
+
+                if (succeeded) {
+                    context.getEquationSystem().getStateVector().set(targetVectorArray);
+                    updateNetwork(outerLoopContext.getNetwork(), context.getEquationSystem(), targetVectorArray);
                 }
 
                 outerLoopIteration++;
             }
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
                 && succeeded
-                && outerLoopIteration < dcLoadFlowContext.getParameters().getMaxOuterLoopIterations());
+                && outerLoopIteration < context.getParameters().getMaxOuterLoopIterations());
+
         return succeeded;
     }
 

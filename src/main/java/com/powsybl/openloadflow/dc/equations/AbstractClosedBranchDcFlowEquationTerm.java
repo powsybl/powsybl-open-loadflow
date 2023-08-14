@@ -88,6 +88,16 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
 
     protected abstract double calculateSensi(double ph1, double ph2, double a1);
 
+    @Override
+    public double eval() {
+        return calculateSensi(ph1(), ph2(), a1());
+    }
+
+    @Override
+    public double eval(StateVector sv) {
+        return calculateSensi(ph1(sv), ph2(sv), a1(sv));
+    }
+
     protected double a1(StateVector sv) {
         return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
     }

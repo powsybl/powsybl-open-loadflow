@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -38,16 +37,6 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     protected double calculateSensi(double ph1, double ph2, double a1) {
         double deltaPhase = ph2 - ph1 + A2 - a1;
         return -power * deltaPhase;
-    }
-
-    @Override
-    public double eval() {
-        return calculateSensi(ph1(), ph2(), a1());
-    }
-
-    @Override
-    public double eval(StateVector sv) {
-        return calculateSensi(ph1(sv), ph2(sv), a1(sv));
     }
 
     @Override
