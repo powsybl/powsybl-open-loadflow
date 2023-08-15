@@ -212,7 +212,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
             return;
         }
-        if (!checkTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), regulatingTerminal.getVoltageLevel().getNominalV(), parameters, report)) {
+        if (!checkTargetV(getId(), targetV / regulatingTerminal.getVoltageLevel().getNominalV(), regulatingTerminal.getVoltageLevel().getNominalV(), parameters, report)) {
             return;
         }
         this.controlledBusId = controlledBus.getId();
@@ -262,13 +262,15 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         return consistency;
     }
 
-    protected boolean checkTargetV(double targetV, double nominalV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    public static boolean checkTargetV(String generatorId, double targetV, double nominalV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         // check that targetV has a plausible value (wrong nominal voltage issue)
         if (nominalV > parameters.getMinNominalVoltageTargetVoltageCheck() &&
                 (targetV < parameters.getMinPlausibleTargetVoltage() || targetV > parameters.getMaxPlausibleTargetVoltage())) {
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu: generator voltage control discarded",
-                getId(), targetV);
-            report.generatorsWithInconsistentTargetVoltage++;
+                generatorId, targetV);
+            if (report != null) {
+                report.generatorsWithInconsistentTargetVoltage++;
+            }
             return false;
         }
         return true;

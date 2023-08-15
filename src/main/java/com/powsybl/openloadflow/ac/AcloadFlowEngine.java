@@ -150,12 +150,12 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             do {
                 oldNrTotalIterations = runningContext.nrTotalIterations.getValue();
 
-                // outer loops are nested: inner most loop first in the list, outer most loop last
+                // outer loops are nested: innermost loop first in the list, outermost loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
                     runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), newtonRaphson, runningContext);
 
-                    // continue with next outer loop only if last Newton-Raphson succeed
-                    // and we have not reach max number of outer loop iteration
+                    // continue with next outer loop only if last Newton-Raphson succeed,
+                    // and we have not reached max number of outer loop iteration
                     if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED
                             || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
                         break;

@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalPhaseControlOuterLoop.SensitivityContext;
+import com.powsybl.openloadflow.ac.outerloop.AcIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -583,10 +583,10 @@ class AcLoadFlowPhaseShifterTest {
             assertEquals(NewtonRaphsonStatus.CONVERGED, lfResult.getNewtonRaphsonStatus());
             LfBranch ps1 = lfNetwork.getBranchById("PS1");
             List<LfBranch> controllerBranches = List.of(ps1);
-            var sensitivityContext = new SensitivityContext(lfNetwork,
-                                                            controllerBranches,
-                                                            lfContext.getEquationSystem(),
-                                                            lfContext.getJacobianMatrix());
+            var sensitivityContext = new AcIncrementalPhaseControlOuterLoop.AcSensitivityContext(lfNetwork,
+                                                                                                 controllerBranches,
+                                                                                                 lfContext.getEquationSystem(),
+                                                                                                 lfContext.getJacobianMatrix());
             double da10 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(0).getAlpha();
             double da12 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(2).getAlpha();
             double ib = PerUnit.ib(ps1.getBus1().getNominalV());
@@ -621,15 +621,16 @@ class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(-112.019, line2.getTerminal2());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
 
-        line1.setR(0).setX(0);
+        line1.setR(0.0).setX(0.0);
         t2wt.setR(2.0).setX(100.0);
         t2wt.getPhaseTapChanger()
                 .setRegulationTerminal(line1.getTerminal1())
                 .setTapPosition(0);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
-        assertActivePowerEquals(-12.006, line1.getTerminal1());
-        assertActivePowerEquals(112.197, line2.getTerminal1());
-        assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
+        assertTrue(result2.isOk());
+        assertActivePowerEquals(100.0, line1.getTerminal1());
+        assertActivePowerEquals(0.0, line2.getTerminal1());
+        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
     }
 }

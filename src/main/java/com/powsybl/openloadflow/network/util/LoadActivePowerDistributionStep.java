@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfLoad;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,13 +38,13 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     @Override
     public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses) {
         return buses.stream()
-                .filter(bus -> bus.getLoad().getOriginalLoadCount() > 0 && bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
+                .filter(bus -> bus.getLoad().map(LfLoad::getOriginalLoadCount).orElse((double) 0) > 0 && bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .map(bus -> new ParticipatingElement(bus, getParticipationFactor(bus)))
                 .collect(Collectors.toList());
     }
 
     private double getParticipationFactor(LfBus bus) {
-        return bus.getLoad().getAbsVariableTargetP();
+        return bus.getLoad().orElseThrow().getAbsVariableTargetP();
     }
 
     @Override
@@ -89,7 +90,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         // we have to keep the power factor constant by updating targetQ.
         double newLoadTargetQ;
         if (bus.ensurePowerFactorConstantByLoad()) {
-            newLoadTargetQ = bus.getLoad().getTargetQ(newLoadTargetP - bus.getInitialLoadTargetP());
+            newLoadTargetQ = bus.getLoad().orElseThrow().calculateNewTargetQ(newLoadTargetP - bus.getInitialLoadTargetP());
         } else {
             newLoadTargetQ = newLoadTargetP * bus.getLoadTargetQ() / bus.getLoadTargetP();
         }

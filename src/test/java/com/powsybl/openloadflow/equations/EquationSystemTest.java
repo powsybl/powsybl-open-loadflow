@@ -173,7 +173,7 @@ class EquationSystemTest {
         List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
         LfNetwork network = lfNetworks.get(0);
 
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(network, new DcEquationSystemCreationParameters(true, false, true)).create(false);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(network, new DcEquationSystemCreationParameters(true, false, true, false)).create(false);
         String ref = String.join(System.lineSeparator(),
                 "bus_target_φ0 = φ0",
                 "bus_target_p1 = dc_p_2(φ0, φ1) + dc_p_1(φ1, φ2) + dc_p_1(φ1, φ2)",
@@ -274,9 +274,17 @@ class EquationSystemTest {
                 .create();
         assertEquals(13, equationSystem.getEquations().size());
         assertEquals(3, equationSystem.getEquations(ElementType.BUS, 1).size());
+        assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 0).size());
+        assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 1).size());
+        assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 2).size());
+        assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 3).size());
 
         equationSystem.removeEquation(1, AcEquationType.BUS_TARGET_P);
         assertEquals(12, equationSystem.getEquations().size());
         assertEquals(2, equationSystem.getEquations(ElementType.BUS, 1).size());
+        assertEquals(3, equationSystem.getEquationTerms(ElementType.BRANCH, 0).size());
+        assertEquals(3, equationSystem.getEquationTerms(ElementType.BRANCH, 1).size());
+        assertEquals(3, equationSystem.getEquationTerms(ElementType.BRANCH, 2).size());
+        assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 3).size());
     }
 }

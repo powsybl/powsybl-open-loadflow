@@ -55,6 +55,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double generationTargetQ = 0;
 
+    protected QLimitType qLimitType;
+
     protected final List<LfGenerator> generators = new ArrayList<>();
 
     protected LfShunt shunt;
@@ -63,7 +65,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt svcShunt;
 
-    protected final LfLoadImpl load;
+    protected boolean distributedOnConformLoad;
+
+    protected LfLoadImpl load;
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -93,9 +97,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
-        load = new LfLoadImpl(distributedOnConformLoad);
         this.v = v;
         this.angle = angle;
+        this.distributedOnConformLoad = distributedOnConformLoad;
     }
 
     @Override
@@ -234,6 +238,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
         if (p0 < 0 || hasVariableActivePower) {
             ensurePowerFactorConstantByLoad = true;
+        }
+        if (this.load == null) {
+            this.load = new LfLoadImpl(distributedOnConformLoad);
         }
         this.load.add(load, parameters);
     }
@@ -389,6 +396,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public Optional<QLimitType> getQLimitType() {
+        return Optional.ofNullable(this.qLimitType);
+    }
+
+    @Override
+    public void setQLimitType(QLimitType qLimitType) {
+        this.qLimitType = qLimitType;
+    }
+
+    @Override
     public double getV() {
         return v / getNominalV();
     }
@@ -439,8 +456,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public LfLoad getLoad() {
-        return load;
+    public Optional<LfLoad> getLoad() {
+        return Optional.ofNullable(load);
     }
 
     @Override
@@ -493,12 +510,19 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 qToDispatch -= generator.getTargetQ();
             }
         }
-
+        List<LfGenerator> initialGeneratorsThatControlVoltage = new LinkedList<>(generatorsThatControlVoltage);
         for (LfGenerator generator : generatorsThatControlVoltage) {
             generator.setCalculatedQ(0);
         }
         while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
             qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, qToDispatch);
+        }
+        if (!initialGeneratorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
+            // FIXME
+            // We have to much reactive power to dispatch, which is linked to a bus that has been forced to remain PV to
+            // ease the convergence. Updating a generator reactive power outside its reactive limits is a quick fix.
+            // It could be better to return a global failed status.
+            dispatchQ(initialGeneratorsThatControlVoltage, false, qToDispatch);
         }
     }
 
@@ -508,7 +532,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ, parameters.isReactiveLimits());
 
         // update load power
-        load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
+        if (load != null) {
+            load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
+        }
 
         // update lcc converter station power
         for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
