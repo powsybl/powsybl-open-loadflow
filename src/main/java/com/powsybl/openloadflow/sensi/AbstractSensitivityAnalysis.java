@@ -195,28 +195,33 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public EquationTerm<V, E> getFunctionEquationTerm() {
             LfBranch branch;
-            switch (functionType) {
-                case BRANCH_ACTIVE_POWER:
-                case BRANCH_ACTIVE_POWER_1:
-                case BRANCH_ACTIVE_POWER_3:
-                    return (EquationTerm<V, E>) ((LfBranch) functionElement).getP1();
-                case BRANCH_ACTIVE_POWER_2:
+            return (EquationTerm<V, E>) switch (functionType) {
+                case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_3
+                        -> ((LfBranch) functionElement).getP1();
+                case BRANCH_ACTIVE_POWER_2 -> {
                     branch = (LfBranch) functionElement;
-                    return branch instanceof LfLegBranch ? (EquationTerm<V, E>) ((LfBranch) functionElement).getP1() : (EquationTerm<V, E>) ((LfBranch) functionElement).getP2();
-                case BRANCH_CURRENT:
-                case BRANCH_CURRENT_1:
-                case BRANCH_CURRENT_3:
-                    return (EquationTerm<V, E>) ((LfBranch) functionElement).getI1();
-                case BRANCH_CURRENT_2:
+                    yield branch instanceof LfLegBranch ? ((LfBranch) functionElement).getP1()
+                                                        : ((LfBranch) functionElement).getP2();
+                }
+                case BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_3
+                        -> ((LfBranch) functionElement).getQ1();
+                case BRANCH_REACTIVE_POWER_2 -> {
                     branch = (LfBranch) functionElement;
-                    return branch instanceof LfLegBranch ? (EquationTerm<V, E>) ((LfBranch) functionElement).getI1() : (EquationTerm<V, E>) ((LfBranch) functionElement).getI2();
-                case BUS_VOLTAGE:
-                    return (EquationTerm<V, E>) ((LfBus) functionElement).getCalculatedV();
-                default:
-                    throw createFunctionTypeNotSupportedException(functionType);
-            }
+                    yield branch instanceof LfLegBranch ? ((LfBranch) functionElement).getQ1()
+                                                        : ((LfBranch) functionElement).getQ2();
+                }
+                case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3
+                        -> ((LfBranch) functionElement).getI1();
+                case BRANCH_CURRENT_2 -> {
+                    branch = (LfBranch) functionElement;
+                    yield branch instanceof LfLegBranch ? ((LfBranch) functionElement).getI1()
+                                                        : ((LfBranch) functionElement).getI2();
+                }
+                case BUS_VOLTAGE -> ((LfBus) functionElement).getCalculatedV();
+            };
         }
 
         @Override
@@ -1034,7 +1039,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             functionId, functionElement, functionType, injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
                 } else {
                     LfElement functionElement;
-                    LfElement variableElement = null;
+                    LfElement variableElement;
                     if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -1062,12 +1067,15 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         checkBus(network, functionId, busCache, breakers);
                         functionElement = lfNetwork.getBusById(functionId);
                         if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                            checkRegulatingTerminal(network, variableId);
-                            Optional<Terminal> regulatingTerminal = Networks.getEquipmentRegulatingTerminal(network, variableId);
-                            if (regulatingTerminal.isPresent()) { // this cannot fail because it is checked in checkRegulatingTerminal
-                                Bus regulatedBus = breakers ? regulatingTerminal.get().getBusBreakerView().getBus() : regulatingTerminal.get().getBusView().getBus();
-                                variableElement = regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
-                            }
+                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                        } else {
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                        }
+                    } else if (isReactivePowerFunctionType(functionType)) {
+                        LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
+                        functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+                        if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
@@ -1083,11 +1091,25 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return factorHolder;
     }
 
+    protected static LfElement findBusTargetVoltageVariableElement(Network network, String variableId, boolean breakers,
+                                                                   LfNetwork lfNetwork) {
+        checkRegulatingTerminal(network, variableId);
+        Terminal regulatingTerminal = Networks.getEquipmentRegulatingTerminal(network, variableId).orElseThrow(); // this cannot fail because it is checked in checkRegulatingTerminal
+        Bus regulatedBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+        return regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
+    }
+
     private static boolean isActivePowerFunctionType(SensitivityFunctionType functionType) {
         return functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3;
+    }
+
+    private static boolean isReactivePowerFunctionType(SensitivityFunctionType functionType) {
+        return functionType == SensitivityFunctionType.BRANCH_REACTIVE_POWER_1
+                || functionType == SensitivityFunctionType.BRANCH_REACTIVE_POWER_2
+                || functionType == SensitivityFunctionType.BRANCH_REACTIVE_POWER_3;
     }
 
     private static boolean isCurrentFunctionType(SensitivityFunctionType functionType) {
@@ -1129,26 +1151,21 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
      * Base value for per-uniting, depending on the function type
      */
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
-        switch (factor.getFunctionType()) {
-            case BRANCH_ACTIVE_POWER:
-            case BRANCH_ACTIVE_POWER_1:
-            case BRANCH_ACTIVE_POWER_2:
-            case BRANCH_ACTIVE_POWER_3:
-                return PerUnit.SB;
-            case BRANCH_CURRENT:
-            case BRANCH_CURRENT_1:
-            case BRANCH_CURRENT_3:
+        return switch (factor.getFunctionType()) {
+            case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3,
+                    BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_2, BRANCH_REACTIVE_POWER_3
+                    -> PerUnit.SB;
+            case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3 -> {
                 LfBranch branch = (LfBranch) factor.getFunctionElement();
-                return PerUnit.ib(branch.getBus1().getNominalV());
-            case BRANCH_CURRENT_2:
+                yield PerUnit.ib(branch.getBus1().getNominalV());
+            }
+            case BRANCH_CURRENT_2 -> {
                 LfBranch branch2 = (LfBranch) factor.getFunctionElement();
-                return branch2 instanceof LfLegBranch ? PerUnit.ib(branch2.getBus1().getNominalV()) : PerUnit.ib(branch2.getBus2().getNominalV());
-            case BUS_VOLTAGE:
-                LfBus bus = (LfBus) factor.getFunctionElement();
-                return bus.getNominalV();
-            default:
-                throw new IllegalArgumentException("Unknown function type " + factor.getFunctionType());
-        }
+                yield branch2 instanceof LfLegBranch ? PerUnit.ib(branch2.getBus1().getNominalV()) :
+                                                       PerUnit.ib(branch2.getBus2().getNominalV());
+            }
+            case BUS_VOLTAGE -> ((LfBus) factor.getFunctionElement()).getNominalV();
+        };
     }
 
     /**

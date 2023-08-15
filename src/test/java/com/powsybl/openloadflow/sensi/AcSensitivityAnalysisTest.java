@@ -29,6 +29,7 @@ import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -1294,5 +1295,51 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(1, result.getValues().size());
         assertEquals(35.000, result.getBranchFlow1FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testReactivePowerPerTargetVSensi() {
+        Network network = EurostagTutorialExample1Factory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "NLOAD");
+
+        List<SensitivityFactor> factors = List.of(
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_1,
+                                      "NHV2_NLOAD",
+                                      SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                                      "GEN",
+                                      false,
+                                      ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_2,
+                                      "NHV2_NLOAD",
+                                      SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                                      "GEN",
+                                      false,
+                                      ContingencyContext.all())
+        );
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(2, result.getValues().size());
+        assertEquals(-7.959, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
+        assertEquals(274.377, result.getFunctionReferenceValue("NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-200, result.getFunctionReferenceValue("NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2), LoadFlowAssert.DELTA_POWER);
+
+        runAcLf(network);
+
+        // check reference flows are consistents with LF ones
+        var twt = network.getTwoWindingsTransformer("NHV2_NLOAD");
+        assertReactivePowerEquals(274.377, twt.getTerminal1());
+        assertReactivePowerEquals(-200, twt.getTerminal2());
+
+        // check sensi values looks consistent with 2 LF diff
+        Generator gen = network.getGenerator("GEN");
+        gen.setTargetV(gen.getTargetV() + 1);
+
+        runAcLf(network);
+
+        assertReactivePowerEquals(267.095, twt.getTerminal1()); // looks ok
+        assertReactivePowerEquals(-199.998, twt.getTerminal2()); // looks ok
     }
 }
