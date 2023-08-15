@@ -266,13 +266,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 if (bus.isGeneratorVoltageControlEnabled()) {
                     checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
                 } else if (bus.hasGeneratorVoltageControllerCapability()) {
-                    if (!bus.hasGeneratorsWithSlope()) {
-                        // we don't support switching PQ to PV for bus with one controller with slope.
-                        checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
-                    } else {
-                        // we don't support switching PQ to PV for bus with one controller with slope.
-                        LOGGER.warn("Controller bus '{}' wants to control back voltage with slope: not supported", bus.getId());
-                    }
+                    // we don't support switching PQ to PV for bus with one controller with slope.
+                    checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
                 }
             }
         }
