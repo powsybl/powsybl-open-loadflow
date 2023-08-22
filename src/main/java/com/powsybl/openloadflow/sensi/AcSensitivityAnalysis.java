@@ -285,11 +285,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
 
-                // otherwise, defining the rhs matrix will result in integer overflow
-                if (factorGroups.getList().size() >= Integer.MAX_VALUE / (context.getEquationSystem().getIndex().getSortedEquationsToSolve().size() * Double.BYTES)) {
-                    throw new PowsyblException("Too many factors!");
-                }
-
                 // initialize right hand side from valid factors
                 DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, slackParticipationByBus); // this is the rhs for the moment
 

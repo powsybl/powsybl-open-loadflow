@@ -627,13 +627,22 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return participatingElements;
     }
 
-    protected DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), factorsGroups.getList().size());
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
+        // otherwise, defining the rhs matrix will result in integer overflow
+        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int factorsGroupCount = factorsGroups.getList().size();
+        int maxFactorsGroups = Integer.MAX_VALUE / (equationCount * Double.BYTES);
+        if (factorsGroupCount > maxFactorsGroups) {
+            throw new PowsyblException("Too many factors groups " + factorsGroupCount
+                    + ", maximum is " + maxFactorsGroups + " for a system with " + equationCount + " equations");
+        }
+
+        DenseMatrix rhs = new DenseMatrix(equationCount, factorsGroupCount);
         fillRhsSensitivityVariable(factorsGroups, rhs, participationByBus);
         return rhs;
     }
 
-    protected void fillRhsSensitivityVariable(SensitivityFactorGroupList<V, E> factorGroups, Matrix rhs, Map<LfBus, Double> participationByBus) {
+    protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> void fillRhsSensitivityVariable(SensitivityFactorGroupList<V, E> factorGroups, Matrix rhs, Map<LfBus, Double> participationByBus) {
         for (SensitivityFactorGroup<V, E> factorGroup : factorGroups.getList()) {
             factorGroup.fillRhs(rhs, participationByBus);
         }
