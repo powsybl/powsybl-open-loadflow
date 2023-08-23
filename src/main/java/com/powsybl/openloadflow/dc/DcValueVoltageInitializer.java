@@ -49,8 +49,10 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         // modified by slack distribution, so that AC load flow can restart from original state
         List<BusDcState> busStates = distributedSlack ? ElementState.save(network.getBuses(), BusDcState::save) : null;
 
+        boolean isPhaseControl = networkParameters.isPhaseControl();
+        networkParameters.setPhaseControl(false); // not supported yet.
         DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParameters,
-                                                                   new DcEquationSystemCreationParameters(false, false, useTransformerRatio, false),
+                                                                   new DcEquationSystemCreationParameters(false, false, useTransformerRatio),
                                                                    matrixFactory,
                                                                    distributedSlack,
                                                                    balanceType,
@@ -67,6 +69,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         if (busStates != null) {
             ElementState.restore(busStates);
         }
+        networkParameters.setPhaseControl(isPhaseControl); // restoration.
     }
 
     @Override
