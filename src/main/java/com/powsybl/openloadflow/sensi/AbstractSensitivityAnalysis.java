@@ -811,8 +811,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (bus == null) {
                 return null;
             }
-            if (injection instanceof DanglingLine) {
-                return LfDanglingLineBus.getId((DanglingLine) injection);
+            if (injection instanceof DanglingLine dl) {
+                return LfDanglingLineBus.getId(dl);
             } else {
                 return bus.getId();
             }

@@ -47,10 +47,10 @@ public class ParticipatingElement {
     }
 
     public LfBus getLfBus() {
-        if (element instanceof LfGenerator) {
-            return ((LfGenerator) element).getBus();
-        } else if (element instanceof LfBus) {
-            return (LfBus) element;
+        if (element instanceof LfGenerator generator) {
+            return generator.getBus();
+        } else if (element instanceof LfBus bus) {
+            return bus;
         } else {
             return null;
         }

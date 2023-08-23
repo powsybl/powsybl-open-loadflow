@@ -408,9 +408,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         if (parameters.isPhaseControl()) {
             for (Branch<?> branch : loadingContext.branchSet) {
-                if (branch instanceof TwoWindingsTransformer) {
+                if (branch instanceof TwoWindingsTransformer t2wt) {
                     // Create phase controls which link controller -> controlled
-                    TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
                     PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
                     createPhaseControl(lfNetwork, ptc, t2wt.getId(), "", parameters);
                 }
@@ -449,9 +448,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void createTransformersVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext) {
         // Create discrete voltage controls which link controller -> controlled
         for (Branch<?> branch : loadingContext.branchSet) {
-            if (branch instanceof TwoWindingsTransformer) {
-                RatioTapChanger rtc = ((TwoWindingsTransformer) branch).getRatioTapChanger();
-                createTransformerVoltageControl(lfNetwork, rtc, branch.getId(), parameters);
+            if (branch instanceof TwoWindingsTransformer twt) {
+                RatioTapChanger rtc = twt.getRatioTapChanger();
+                createTransformerVoltageControl(lfNetwork, rtc, twt.getId(), parameters);
             }
         }
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {

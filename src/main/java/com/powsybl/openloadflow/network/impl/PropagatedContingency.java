@@ -135,12 +135,12 @@ public class PropagatedContingency {
             Identifiable<?> identifiable = getIdentifiable(network, element);
             if (contingencyPropagation) {
                 ContingencyTripping.createContingencyTripping(network, identifiable).traverse(switchesToOpen, terminalsToDisconnect);
-            } else if (identifiable instanceof BusbarSection) {
-                ContingencyTripping.createBusbarSectionMinimalTripping(network, (BusbarSection) identifiable).traverse(switchesToOpen, terminalsToDisconnect);
+            } else if (identifiable instanceof BusbarSection busbarSection) {
+                ContingencyTripping.createBusbarSectionMinimalTripping(network, busbarSection).traverse(switchesToOpen, terminalsToDisconnect);
             }
             terminalsToDisconnect.addAll(getTerminals(identifiable));
-            if (identifiable instanceof Switch) {
-                switchesToOpen.add((Switch) identifiable);
+            if (identifiable instanceof Switch aSwitch) {
+                switchesToOpen.add(aSwitch);
             }
         }
         return new PropagatedContingency(contingency, index, switchesToOpen, terminalsToDisconnect);
@@ -238,12 +238,10 @@ public class PropagatedContingency {
         if (identifiable instanceof Connectable<?>) {
             return ((Connectable<?>) identifiable).getTerminals();
         }
-        if (identifiable instanceof HvdcLine) {
-            HvdcLine hvdcLine = (HvdcLine) identifiable;
+        if (identifiable instanceof HvdcLine hvdcLine) {
             return List.of(hvdcLine.getConverterStation1().getTerminal(), hvdcLine.getConverterStation2().getTerminal());
         }
-        if (identifiable instanceof TieLine) {
-            TieLine line = (TieLine) identifiable;
+        if (identifiable instanceof TieLine line) {
             return List.of(line.getDanglingLine1().getTerminal(), line.getDanglingLine2().getTerminal());
         }
         if (identifiable instanceof Switch) {

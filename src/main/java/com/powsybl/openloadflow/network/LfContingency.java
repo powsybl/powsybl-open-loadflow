@@ -172,8 +172,8 @@ public class LfContingency {
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
-            if (generator instanceof LfStaticVarCompensator) {
-                ((LfStaticVarCompensator) generator).getStandByAutomatonShunt().ifPresent(svcShunt -> {
+            if (generator instanceof LfStaticVarCompensator lfStaticVarCompensator) {
+                lfStaticVarCompensator.getStandByAutomatonShunt().ifPresent(svcShunt -> {
                     // it means that the generator in contingency is a static var compensator with an active stand by automaton shunt
                     shuntsShift.put(svcShunt, new AdmittanceShift(0, svcShunt.getB()));
                     svcShunt.setB(0);
