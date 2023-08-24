@@ -797,8 +797,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         boolean breakers = !allSwitchesToOpen.isEmpty();
 
         // create the network (we only manage main connected component)
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(),
-                lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), lfParametersExt.getSlackBusCountryFilter());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(),
+                                                                      lfParametersExt.getSlackBusesIds(),
+                                                                      lfParametersExt.getPlausibleActivePowerLimit(),
+                                                                      lfParametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(),
+                                                                      lfParametersExt.getSlackBusCountryFilter());
+        if (lfParameters.isReadSlackBus()) {
+            slackBusSelector = new NetworkSlackBusSelector(network, lfParametersExt.getSlackBusCountryFilter(), slackBusSelector);
+        }
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
