@@ -6,6 +6,8 @@ import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.extensions.iidm.BusAsymmetrical;
 import com.powsybl.openloadflow.network.extensions.iidm.BusAsymmetricalAdder;
 import com.powsybl.openloadflow.network.extensions.iidm.BusVariableType;
+import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2Adder;
+import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
 import com.univocity.parsers.annotations.Parsed;
 import com.univocity.parsers.common.processor.BeanListProcessor;
 import com.univocity.parsers.csv.CsvParser;
@@ -286,6 +288,10 @@ public final class AsymLvFeederParser {
                     .withDeltaQb(deltaQb)
                     .withDeltaPc(deltaPc)
                     .withDeltaQc(deltaQc)
+                    .add();
+
+            l.newExtension(LoadAsymmetrical2Adder.class)
+                    .withLoadType(LoadType.CONSTANT_POWER)
                     .add();
         }
     }
