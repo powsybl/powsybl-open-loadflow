@@ -1,0 +1,3 @@
+Config,SkVA,kV-high,Winding-high,kV-low,Winding-low,R,X
+Substation,5000,115,D,4.16,Gr.Y,1,8
+XFM-1,500,4.16,Gr.W,0.48,Gr.W,1.1,2

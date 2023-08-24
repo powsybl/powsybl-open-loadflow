@@ -216,9 +216,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
                 if (asymBus1 != null) {
                     side1VariableType = asymBus1.getAsymBusVariableType();
+                    if (!asymBus1.isFortescueRepresentation()) {
+                        throw new PowsyblException("A three phase transformer must have its busses in Fortescue representation but bus 1 of  '" + t2w.getId() + "' is in ABC representation");
+                    }
                 }
                 if (asymBus2 != null) {
                     side2VariableType = asymBus2.getAsymBusVariableType();
+                    if (!asymBus2.isFortescueRepresentation()) {
+                        throw new PowsyblException("A three phase transformer must have its busses in Fortescue representation but bus 2 of  '" + t2w.getId() + "' is in ABC representation");
+                    }
                 }
 
                 AsymThreePhaseTransfo asym3phaseTfo = new AsymThreePhaseTransfo(leg1Type, leg2Type, stepLegConnectionType,
