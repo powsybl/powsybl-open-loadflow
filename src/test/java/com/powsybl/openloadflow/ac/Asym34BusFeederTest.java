@@ -923,7 +923,7 @@ public class Asym34BusFeederTest {
         bus832.newExtension(BusAsymmetricalAdder.class)
                 .withBusVariableType(BusVariableType.WYE)
                 .withPositiveSequenceAsCurrent(true)
-                .withFortescueRepresentation(false)
+                .withFortescueRepresentation(true)
                 .add();
 
         double p832 = 0.;
@@ -934,12 +934,12 @@ public class Asym34BusFeederTest {
                 .setP0(p832)
                 .setQ0(q832)
                 .newZipModel()
-                    .setC0p(0.)
+                    .setC0p(1.)
                     .setC1p(0.)
-                    .setC2p(1.)
-                    .setC0q(0.)
+                    .setC2p(0.)
+                    .setC0q(1.)
                     .setC1q(0.)
-                    .setC2q(1.)
+                    .setC2q(0.)
                     .add()
                 .add();
 
@@ -969,7 +969,7 @@ public class Asym34BusFeederTest {
         bus888.newExtension(BusAsymmetricalAdder.class)
                 .withBusVariableType(BusVariableType.WYE)
                 .withPositiveSequenceAsCurrent(true)
-                .withFortescueRepresentation(false)
+                .withFortescueRepresentation(true)
                 .add();
 
         // Bus 890
