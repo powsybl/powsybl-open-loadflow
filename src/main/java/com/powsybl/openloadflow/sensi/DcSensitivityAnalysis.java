@@ -213,8 +213,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                    LoadFlowParameters lfParameters, OpenLoadFlowParameters parametersExt) {
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                 true,
-                lfParameters.isDcUseTransformerRatio(),
-                false);
+                lfParameters.isDcUseTransformerRatio());
 
         return new DcLoadFlowParameters(networkParameters,
                 equationSystemCreationParameters,
