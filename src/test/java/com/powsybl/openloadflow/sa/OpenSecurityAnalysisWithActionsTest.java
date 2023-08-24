@@ -379,9 +379,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(642.805, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
         network.getSwitch("SOO1_SOO1_DJ_OMN").setOpen(true);
-        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
-        openLoadFlowParameters.setMaxOuterLoopIterations(50);
-        parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        OpenLoadFlowParameters.create(parameters)
+                .setMaxOuterLoopIterations(50);
         LoadFlow.run(network, parameters);
         assertEquals(240.523, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
