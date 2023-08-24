@@ -884,7 +884,7 @@ public class Asym34BusFeederTest {
         bus832.newExtension(BusAsymmetricalAdder.class)
                 .withBusVariableType(BusVariableType.WYE)
                 .withPositiveSequenceAsCurrent(true)
-                .withFortescueRepresentation(false)
+                .withFortescueRepresentation(true)
                 .add();
 
         double p832 = 0.;
@@ -907,7 +907,7 @@ public class Asym34BusFeederTest {
                 .add();
 
         load832.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
+                .withLoadType(LoadType.CONSTANT_POWER) // modified because with the transformer the bus must be fortescue and CONSTANT IMPEDANCE DELTA not compatible
                 .add();
 
         // Bus 888
@@ -926,7 +926,7 @@ public class Asym34BusFeederTest {
         bus888.newExtension(BusAsymmetricalAdder.class)
                 .withBusVariableType(BusVariableType.WYE)
                 .withPositiveSequenceAsCurrent(true)
-                .withFortescueRepresentation(false)
+                .withFortescueRepresentation(true)
                 .add();
 
         // Bus 890
