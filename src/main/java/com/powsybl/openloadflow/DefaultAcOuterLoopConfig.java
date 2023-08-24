@@ -6,9 +6,11 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +49,7 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
             case CONTINUOUS_WITH_DISCRETISATION:
                 return new PhaseControlOuterLoop();
             case INCREMENTAL:
-                return new IncrementalPhaseControlOuterLoop();
+                return new AcIncrementalPhaseControlOuterLoop();
             default:
                 throw new IllegalStateException("Unknown phase shifter control mode: " + parametersExt.getPhaseShifterControlMode());
         }
@@ -70,7 +72,18 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
             outerLoops.add(new MonitoringVoltageOuterLoop());
         }
         if (parameters.isUseReactiveLimits()) {
-            outerLoops.add(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch()));
+            final double effectiveMaxReactivePowerMismatch;
+            switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
+                case UNIFORM_CRITERIA:
+                    effectiveMaxReactivePowerMismatch = parametersExt.getNewtonRaphsonConvEpsPerEq();
+                    break;
+                case PER_EQUATION_TYPE_CRITERIA:
+                    effectiveMaxReactivePowerMismatch = parametersExt.getMaxReactivePowerMismatch() / PerUnit.SB;
+                    break;
+                default:
+                    throw new PowsyblException("Unknown Newton Raphson stopping criteria type: " + parametersExt.getNewtonRaphsonStoppingCriteriaType());
+            }
+            outerLoops.add(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch(), effectiveMaxReactivePowerMismatch));
         }
         // phase shifter control
         if (parameters.isPhaseShifterRegulationOn()) {

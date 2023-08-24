@@ -648,7 +648,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
         List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
                 .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS
-                        || (pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName())))
+                        || pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName()))
                 .collect(Collectors.toList());
 
         List<LfBus> lfBuses = new ArrayList<>();

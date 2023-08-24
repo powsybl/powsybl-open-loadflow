@@ -273,7 +273,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         if (specificMonitor != null) {
             specificMonitored = specificMonitor.getBranchIds().contains(branchId);
         }
-        return (contingency == null && noneMonitored) || allMonitored || specificMonitored;
+        return contingency == null && noneMonitored || allMonitored || specificMonitored;
     }
 
     private static double currentActivePower(double activePower, double voltage, double cosPhi) {

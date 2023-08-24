@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
@@ -290,7 +287,8 @@ class DcLoadFlowTest {
                                                                              new DenseMatrixFactory(),
                                                                              true,
                                                                              parameters.getBalanceType(),
-                                                                             false);
+                                                                             false,
+                                                                             1);
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, Collections.emptySet(), Set.of(c1), Reporter.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
@@ -302,5 +300,56 @@ class DcLoadFlowTest {
             assertEquals(100.0, largestNetwork.getBranchById("L2").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
             assertEquals(100.0, largestNetwork.getBranchById("L3").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
         }
+    }
+
+    @Test
+    void outerLoopPhaseShifterTest() {
+        Network network = PhaseShifterTestCaseFactory.create();
+        Line l1 = network.getLine("L1");
+        Line l2 = network.getLine("L2");
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger().getStep(0).setAlpha(-5);
+        ps1.getPhaseTapChanger().getStep(2).setAlpha(5);
+        ps1.getPhaseTapChanger().setTargetDeadband(10);
+        ps1.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL);
+        ps1.getPhaseTapChanger().setRegulating(true);
+
+        parameters.setPhaseShifterRegulationOn(false);
+
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(50, l1.getTerminal1().getP(), 0.01);
+        assertEquals(-50, l1.getTerminal2().getP(), 0.01);
+        assertEquals(50, l2.getTerminal1().getP(), 0.01);
+        assertEquals(-50, l2.getTerminal2().getP(), 0.01);
+        assertEquals(50, ps1.getTerminal1().getP(), 0.01);
+        assertEquals(-50, ps1.getTerminal2().getP(), 0.01);
+
+        parameters.setPhaseShifterRegulationOn(true);
+        ps1.getPhaseTapChanger().setRegulationValue(-80);
+
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(2, ps1.getPhaseTapChanger().getTapPosition());
+        assertEquals(18.5, l1.getTerminal1().getP(), 0.01);
+        assertEquals(-18.5, l1.getTerminal2().getP(), 0.01);
+        assertEquals(81.5, l2.getTerminal1().getP(), 0.01);
+        assertEquals(-81.5, l2.getTerminal2().getP(), 0.01);
+        assertEquals(81.5, ps1.getTerminal1().getP(), 0.01);
+        assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
+
+        ps1.getPhaseTapChanger().setRegulationTerminal(ps1.getTerminal1());
+        ps1.getPhaseTapChanger().setTapPosition(0);
+        ps1.getPhaseTapChanger().setRegulationValue(50);
+
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(1, ps1.getPhaseTapChanger().getTapPosition());
+        assertEquals(50, l1.getTerminal1().getP(), 0.01);
+        assertEquals(-50, l1.getTerminal2().getP(), 0.01);
+        assertEquals(50, l2.getTerminal1().getP(), 0.01);
+        assertEquals(-50, l2.getTerminal2().getP(), 0.01);
+        assertEquals(50, ps1.getTerminal1().getP(), 0.01);
+        assertEquals(-50, ps1.getTerminal2().getP(), 0.01);
     }
 }
