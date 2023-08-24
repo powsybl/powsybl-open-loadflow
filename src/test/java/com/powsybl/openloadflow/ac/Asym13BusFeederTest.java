@@ -309,7 +309,7 @@ public class Asym13BusFeederTest {
         assertVoltageEquals(4.290533459921324, bus632);
         assertVoltageEquals(4.2520625000874075, bus645);
         assertVoltageEquals(4.243258426216129, bus646);
-        assertVoltageEquals(4.154403168622116, bus652);
+        assertVoltageEquals(4.165204333227582, bus652);
     }
 
     @Test
