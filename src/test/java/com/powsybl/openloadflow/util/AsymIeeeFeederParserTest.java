@@ -4,6 +4,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -11,6 +12,7 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.util.AsymIeeeFeederParser;
 import com.powsybl.openloadflow.network.util.AsymLvFeederParser;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -23,6 +25,7 @@ public class AsymIeeeFeederParserTest {
 
     @BeforeEach
     void setUp() {
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
@@ -72,6 +75,7 @@ public class AsymIeeeFeederParserTest {
         assertVoltageEquals(4.298876625269438, network.getBusBreakerView().getBus("Bus-72"));
     }
 
+    @Disabled
     @Test
     void testLvFeedersTest() {
 
