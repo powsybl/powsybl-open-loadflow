@@ -213,6 +213,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createRemoteReactivePowerControl(LfBranch controlledBranch, ControlledSide side, LfBus controllerBus,
                                                          double targetQ) {
+        if (!controlledBranch.isConnectedAtBothSides()) {
+            LOGGER.warn("Controlled branch '{}' must be connected at both sides: remote reactive power control discarded", controlledBranch.getId());
+            return;
+        }
         ReactivePowerControl control = new ReactivePowerControl(controlledBranch, side, controllerBus, targetQ);
         controllerBus.setReactivePowerControl(control);
         controlledBranch.setReactivePowerControl(control);
@@ -231,6 +235,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 if (generators.size() == 1) {
                     LfGenerator lfGenerator = generators.get(0);
                     LfBranch controlledBranch = lfGenerator.getControlledBranch();
+                    if (controlledBranch == null) {
+                        LOGGER.warn("Controlled branch of generator '{}' is out of voltage or in a different synchronous component: remote reactive power control discarded", generators.get(0).getId());
+                        continue;
+                    }
                     Optional<ReactivePowerControl> control = controlledBranch.getReactivePowerControl();
                     if (control.isPresent()) {
                         LOGGER.warn("Branch {} is remotely controlled by a generator: no new remote reactive control created", controlledBranch.getId());
