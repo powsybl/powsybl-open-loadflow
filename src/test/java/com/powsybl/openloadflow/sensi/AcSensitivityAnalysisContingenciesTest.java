@@ -1200,6 +1200,32 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
+    void testPredefinedResults5() {
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators();
+        network.getLine("l25").getTerminal1().disconnect();
+        network.getLine("l25").getTerminal2().disconnect();
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g1"));
+        // no contingency for the moment
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l46"), LoadFlowAssert.DELTA_POWER);
+        // with a contingency
+        List<Contingency> contingencies = Collections.singletonList(new Contingency("l12", new BranchContingency("l12")));
+        factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g1")); // all contingency context.
+        result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l46"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(result.getValues("l12").isEmpty()); // nothing because invalid factor in pre contingency state.
+        // with contingency context specific (no pre contingency state asked...)
+        factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g1", "l12")); // all contingency context.
+        result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l46"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(result.getValues("l12").isEmpty()); // nothing because invalid factor in pre contingency state.
+    }
+
+    @Test
     void testRestoContingencyOnHvdc() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
