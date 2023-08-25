@@ -144,7 +144,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
             AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
                     .run();
 
-            boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+            boolean preContingencyComputationOk = preContingencyLoadFlowResult.isOk();
             var preContingencyLimitViolationManager = new LimitViolationManager();
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
             var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
