@@ -20,16 +20,24 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class DcLoadFlowContext extends AbstractLoadFlowContext<DcVariableType, DcEquationType, DcLoadFlowParameters> {
 
+    private final boolean withEquationSystemListener;
+
     private DcTargetVector targetVector;
 
     public DcLoadFlowContext(LfNetwork network, DcLoadFlowParameters parameters) {
+        this(network, parameters, true);
+    }
+
+    public DcLoadFlowContext(LfNetwork network, DcLoadFlowParameters parameters, boolean withEquationSystemListener) {
         super(network, parameters);
+        this.withEquationSystemListener = withEquationSystemListener;
     }
 
     @Override
     public EquationSystem<DcVariableType, DcEquationType> getEquationSystem() {
         if (equationSystem == null) {
-            equationSystem = new DcEquationSystemCreator(network, parameters.getEquationSystemCreationParameters()).create(true);
+            equationSystem = new DcEquationSystemCreator(network, parameters.getEquationSystemCreationParameters())
+                    .create(withEquationSystemListener);
         }
         return equationSystem;
     }

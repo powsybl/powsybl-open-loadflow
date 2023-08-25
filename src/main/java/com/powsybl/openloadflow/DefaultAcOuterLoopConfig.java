@@ -49,7 +49,7 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
             case CONTINUOUS_WITH_DISCRETISATION:
                 return new PhaseControlOuterLoop();
             case INCREMENTAL:
-                return new IncrementalPhaseControlOuterLoop();
+                return new AcIncrementalPhaseControlOuterLoop();
             default:
                 throw new IllegalStateException("Unknown phase shifter control mode: " + parametersExt.getPhaseShifterControlMode());
         }

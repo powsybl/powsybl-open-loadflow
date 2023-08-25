@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sensi.dc;
+package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
@@ -15,15 +15,17 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.network.BoundaryFactory;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationSystemIndex;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -1007,5 +1009,28 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Branch, tie line, dangling line or leg of 'h1' not found", e.getCause().getMessage());
+    }
+
+    @Test
+    void testTooManyFactorsAndContingencies() {
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = Mockito.mock(EquationSystem.class);
+        EquationSystemIndex<DcVariableType, DcEquationType> equationSystemIndex = Mockito.mock(EquationSystemIndex.class);
+        Mockito.when(equationSystem.getIndex()).thenReturn(equationSystemIndex);
+        List<Equation<DcVariableType, DcEquationType>> equations = Mockito.mock(List.class);
+        Mockito.when(equations.size()).thenReturn(100000);
+        Mockito.when(equationSystemIndex.getSortedEquationsToSolve()).thenReturn(equations);
+        AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorsGroups = Mockito.mock(AbstractSensitivityAnalysis.SensitivityFactorGroupList.class);
+        List<AbstractSensitivityAnalysis.SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroupList = Mockito.mock(List.class);
+        Mockito.when(factorGroupList.size()).thenReturn(3333333);
+        Mockito.when(factorsGroups.getList()).thenReturn(factorGroupList);
+        Map<LfBus, Double> participationByBus = Collections.emptyMap();
+        PowsyblException e = assertThrows(PowsyblException.class, () -> AbstractSensitivityAnalysis.initFactorsRhs(equationSystem, factorsGroups, participationByBus));
+        assertEquals("Too many factors groups 3333333, maximum is 2684 for a system with 100000 equations", e.getMessage());
+
+        LfNetwork network = Mockito.mock(LfNetwork.class);
+        List<DcSensitivityAnalysis.ComputedContingencyElement> contingencyElements = Mockito.mock(List.class);
+        Mockito.when(contingencyElements.size()).thenReturn(999999);
+        e = assertThrows(PowsyblException.class, () -> DcSensitivityAnalysis.initContingencyRhs(network, equationSystem, contingencyElements));
+        assertEquals("Too many contingency elements 999999, maximum is 2684 for a system with 100000 equations", e.getMessage());
     }
 }
