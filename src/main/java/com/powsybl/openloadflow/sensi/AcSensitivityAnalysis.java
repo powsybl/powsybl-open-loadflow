@@ -242,7 +242,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies", allLfFactors.size(), contingencies.size());
 
             // next we only work with valid and valid only for function factors
-            var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter);
+            var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, contingencies);
             var validLfFactors = validFactorHolder.getAllFactors();
 
             // create AC engine
