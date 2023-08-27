@@ -753,7 +753,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         // update branches to open connected with buses in contingency. This is an approximation:
         // these branches are indeed just open at one side.
-        contingency.getBranchIdsToOpen().addAll(PropagatedContingency.addBranchIdsConnectedToLostBuses(lfNetwork, contingency.getBusIdsToLose()));
+        PropagatedContingency.addBranchIdsConnectedToLostBuses(lfNetwork, contingency.getBusIdsToLose(),
+                                                               contingency.getBranchIdsToOpen());
     }
 
     protected void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {

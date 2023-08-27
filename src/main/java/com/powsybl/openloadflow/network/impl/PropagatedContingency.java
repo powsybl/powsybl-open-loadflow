@@ -343,24 +343,22 @@ public class PropagatedContingency {
         return identifiable;
     }
 
-    public static Set<String> addBranchIdsConnectedToLostBuses(LfNetwork network, Set<String> busIdsToLose) {
+    public static void addBranchIdsConnectedToLostBuses(LfNetwork network, Set<String> busIdsToLose, Set<String> branchIdsToOpen) {
         // update branches to open connected with buses in contingency. This is an approximation:
         // these branches are indeed just open at one side.
-        Set<String> branchIds = new HashSet<>();
         for (String busId : busIdsToLose) {
             LfBus bus = network.getBusById(busId);
             if (bus != null && !bus.isSlack()) {
                 // slack bus disabling is not supported
-                bus.getBranches().stream().forEach(branch -> branchIds.add(branch.getId()));
+                bus.getBranches().forEach(branch -> branchIdsToOpen.add(branch.getId()));
             }
         }
-        return branchIds;
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
         // update branches to open connected with buses in contingency. This is an approximation:
         // these branches are indeed just open at one side.
-        branchIdsToOpen.addAll(addBranchIdsConnectedToLostBuses(network, busIdsToLose));
+        addBranchIdsConnectedToLostBuses(network, busIdsToLose, branchIdsToOpen);
 
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
