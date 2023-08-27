@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac.outerloop;
+package com.powsybl.openloadflow.lf.outerloop;
 
 import com.powsybl.openloadflow.network.AllowedDirection;
 import com.powsybl.openloadflow.network.Direction;
@@ -16,13 +16,13 @@ import java.util.Map;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-class IncrementalContextData {
+public class IncrementalContextData {
 
-    static final class ControllerContext {
+    public static final class ControllerContext {
 
         private final int maxDirectionChange;
 
-        ControllerContext(int maxDirectionChange) {
+        public ControllerContext(int maxDirectionChange) {
             this.maxDirectionChange = maxDirectionChange;
         }
 
@@ -30,11 +30,11 @@ class IncrementalContextData {
 
         private AllowedDirection allowedDirection = AllowedDirection.BOTH;
 
-        AllowedDirection getAllowedDirection() {
+        public AllowedDirection getAllowedDirection() {
             return allowedDirection;
         }
 
-        void updateAllowedDirection(Direction direction) {
+        public void updateAllowedDirection(Direction direction) {
             if (directionChangeCount.getValue() <= maxDirectionChange) {
                 if (allowedDirection != direction.getAllowedDirection()) {
                     // both vs increase or decrease
@@ -49,7 +49,7 @@ class IncrementalContextData {
 
     private final Map<String, ControllerContext> controllersContexts = new HashMap<>();
 
-    Map<String, ControllerContext> getControllersContexts() {
+    public Map<String, ControllerContext> getControllersContexts() {
         return controllersContexts;
     }
 }

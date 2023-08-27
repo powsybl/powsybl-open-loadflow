@@ -2107,6 +2107,27 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testWithControlledBranchContingency() {
+        // PST 'PS1' regulates flow on terminal 1 of line 'L1'. Test contingency of L1.
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+        Line line1 = network.getLine("L1");
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(line1.getTerminal1())
+                .setRegulationValue(83);
+        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new LineContingency("L1"))));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setPhaseShifterRegulationOn(true);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertEquals(100.369, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(100.184, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testBusContingency() {
         Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits();
         network.getGenerator("GEN").setMaxP(900).setMinP(0);

@@ -38,7 +38,8 @@ class FullVoltageInitializerTest {
                                                                                                       false,
                                                                                                       LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                                                                                                       true,
-                                                                                                      matrixFactory));
+                                                                                                      matrixFactory,
+                                                                                                      0));
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "VLGEN_0", 1.020833, 0);
         assertBusVoltage(lfNetwork, initializer, "VLHV1_0", 1.074561, -0.043833);

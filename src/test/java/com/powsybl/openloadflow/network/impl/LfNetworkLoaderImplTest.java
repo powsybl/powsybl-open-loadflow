@@ -204,4 +204,17 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
         assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
     }
+
+    @Test
+    void testMinImpedance() {
+        network = EurostagTutorialExample1Factory.create();
+        network.getLine("NHV1_NHV2_1").setR(0.0).setX(0.0).setB1(0.0).setB2(0.0).setG1(0.0).setG2(0.0);
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfBranch line = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
+        assertTrue(line.isZeroImpedance(LoadFlowModel.AC));
+        assertTrue(line.isZeroImpedance(LoadFlowModel.DC));
+        line.setMinZ(10); // for both AC and DC load flow model
+        assertFalse(line.isZeroImpedance(LoadFlowModel.AC));
+        assertFalse(line.isZeroImpedance(LoadFlowModel.DC));
+    }
 }
