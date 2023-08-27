@@ -628,7 +628,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                 .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
                                 .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
                                 .collect(Collectors.toList());
-                        normalizeParticipationFactors(newParticipatingElements, "generator");
+                        normalizeParticipationFactors(newParticipatingElements);
                     } else { // slack distribution on loads
                         newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
                     }
