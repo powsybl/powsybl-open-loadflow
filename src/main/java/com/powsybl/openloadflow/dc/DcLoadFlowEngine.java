@@ -109,7 +109,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
     }
 
-    private boolean runPhaseShifterOuterLoop(DcIncrementalPhaseControlOuterLoop outerLoop, DcOuterLoopContext outerLoopContext) {
+    private boolean runPhaseControlOuterLoop(DcIncrementalPhaseControlOuterLoop outerLoop, DcOuterLoopContext outerLoopContext) {
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getType());
         OuterLoopStatus outerLoopStatus;
         int outerLoopIteration = 0;
@@ -189,7 +189,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         // continue with PST active power control outer loop only if first linear system solution has succeeded
         if (succeeded && parameters.getNetworkParameters().isPhaseControl()) {
-            succeeded = runPhaseShifterOuterLoop(phaseShifterControlOuterLoop, outerLoopContext);
+            succeeded = runPhaseControlOuterLoop(phaseShifterControlOuterLoop, outerLoopContext);
         }
 
         // set all calculated voltages to NaN
