@@ -262,11 +262,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     public double[] runDcLoadFlow(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork,
                                   Reporter reporter) {
         Collection<LfBus> remainingBuses;
-        if (disabledNetwork.buses().isEmpty()) {
+        if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
         } else {
             remainingBuses = new LinkedHashSet<>(loadFlowContext.getNetwork().getBuses());
-            remainingBuses.removeAll(disabledNetwork.buses());
+            remainingBuses.removeAll(disabledNetwork.getBuses());
         }
 
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
@@ -281,17 +281,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // so we need to copy to later the target as it is and reusable for next run
         var targetVectorArray = loadFlowContext.getTargetVector().getArray().clone();
 
-        if (!disabledNetwork.buses().isEmpty()) {
+        if (!disabledNetwork.getBuses().isEmpty()) {
             // set buses injections and transformers to 0
-            disabledNetwork.buses().stream()
+            disabledNetwork.getBuses().stream()
                     .flatMap(lfBus -> loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).stream())
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
         }
 
-        if (!disabledNetwork.branches().isEmpty()) {
+        if (!disabledNetwork.getBranches().isEmpty()) {
             // set transformer phase shift to 0
-            disabledNetwork.branches().stream()
+            disabledNetwork.getBranches().stream()
                     .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);

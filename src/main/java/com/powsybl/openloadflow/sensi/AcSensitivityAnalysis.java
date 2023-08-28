@@ -317,7 +317,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                 Map<LfBus, Double> postContingencySlackParticipationByBus;
                                 Set<LfBus> slackConnectedComponent;
                                 boolean hasChanged = false;
-                                if (lfContingency.getDisabledNetwork().buses().isEmpty()) {
+                                if (lfContingency.getDisabledNetwork().getBuses().isEmpty()) {
                                     // contingency not breaking connectivity
                                     LOGGER.debug("Contingency '{}' without loss of connectivity", lfContingency.getId());
                                     slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
@@ -325,9 +325,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                     // contingency breaking connectivity
                                     LOGGER.debug("Contingency '{}' with loss of connectivity", lfContingency.getId());
                                     // we check if factors are still in the main component
-                                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledNetwork().buses()::contains)).collect(Collectors.toSet());
+                                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledNetwork().getBuses()::contains)).collect(Collectors.toSet());
                                     // we recompute GLSK weights if needed
-                                    hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledNetwork().buses());
+                                    hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledNetwork().getBuses());
                                 }
 
                                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all

@@ -268,9 +268,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         protected boolean isElementConnectedToSlackComponent(LfElement element, DisabledNetwork disabledNetwork) {
             if (element instanceof LfBus) {
-                return !disabledNetwork.buses().contains(element);
+                return !disabledNetwork.getBuses().contains(element);
             } else if (element instanceof LfBranch) {
-                return !disabledNetwork.branches().contains(element);
+                return !disabledNetwork.getBranches().contains(element);
             }
             throw new PowsyblException("Cannot compute connectivity for variable element of class: " + element.getClass().getSimpleName());
         }

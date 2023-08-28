@@ -230,7 +230,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                                                                PreContingencyNetworkResult preContingencyNetworkResult, boolean createResultExtension) {
         LOGGER.info("Start post contingency '{}' simulation on network {}", lfContingency.getId(), network);
         LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
-                lfContingency.getId(), network, lfContingency.getDisabledNetwork().buses(), lfContingency.getDisabledNetwork().branches(), lfContingency.getLostGenerators(),
+                lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranches(), lfContingency.getLostGenerators(),
                 lfContingency.getShuntsShift(), lfContingency.getBusesLoadShift());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
