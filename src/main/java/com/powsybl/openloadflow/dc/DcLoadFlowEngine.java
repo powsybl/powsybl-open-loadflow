@@ -11,10 +11,12 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.equations.TargetVector;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkLoader;
@@ -22,11 +24,12 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -47,7 +50,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         return context;
     }
 
-    private static void distributeSlack(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType) {
+    public static void distributeSlack(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType) {
         double mismatch = getActivePowerMismatch(buses);
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false);
         activePowerDistribution.run(buses, mismatch);
@@ -106,9 +109,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
     }
 
-    private boolean runPhaseShifterOuterLoop(DcIncrementalPhaseControlOuterLoop outerLoop, DcOuterLoopContext outerLoopContext) {
+    private boolean runPhaseControlOuterLoop(DcIncrementalPhaseControlOuterLoop outerLoop, DcOuterLoopContext outerLoopContext) {
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getType());
-        DcLoadFlowContext dcLoadFlowContext;
         OuterLoopStatus outerLoopStatus;
         int outerLoopIteration = 0;
         boolean succeeded = true;
@@ -118,40 +120,45 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration);
             outerLoopContext.setLoadFlowContext(context);
-            dcLoadFlowContext = outerLoopContext.getLoadFlowContext();
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getType(), outerLoopStatus);
 
                 // if not yet stable, restart linear system solving
-                try {
-                    double[] targetVectorArray = dcLoadFlowContext.getTargetVector().getArray().clone();
-                    dcLoadFlowContext.getJacobianMatrix().solveTransposed(targetVectorArray);
-                    dcLoadFlowContext.getEquationSystem().getStateVector().set(targetVectorArray);
-                    updateNetwork(outerLoopContext.getNetwork(), dcLoadFlowContext.getEquationSystem(), targetVectorArray);
-                } catch (MatrixException e) {
-                    Reports.reportDcLfSolverFailure(olReporter, e.getMessage());
-                    succeeded = false;
-                    LOGGER.error("Failed to solve linear system for DC load flow", e);
+                double[] targetVectorArray = context.getTargetVector().getArray().clone();
+                succeeded = solve(targetVectorArray, context.getJacobianMatrix(), olReporter);
+
+                if (succeeded) {
+                    context.getEquationSystem().getStateVector().set(targetVectorArray);
+                    updateNetwork(outerLoopContext.getNetwork(), context.getEquationSystem(), targetVectorArray);
                 }
 
                 outerLoopIteration++;
             }
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
                 && succeeded
-                && outerLoopIteration < dcLoadFlowContext.getParameters().getMaxOuterLoopIterations());
+                && outerLoopIteration < context.getParameters().getMaxOuterLoopIterations());
+
         return succeeded;
     }
 
-    public DcLoadFlowResult run() {
-        boolean succeeded = run(Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
-        return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
+    public static boolean solve(double[] targetVectorArray,
+                                JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix,
+                                Reporter reporter) {
+        try {
+            jacobianMatrix.solveTransposed(targetVectorArray);
+            return true;
+        } catch (MatrixException e) {
+            Reports.reportDcLfSolverFailure(reporter, e.getMessage());
+            LOGGER.error("Failed to solve linear system for DC load flow", e);
+            return false;
+        }
     }
 
-    public Pair<Boolean, double[]> run(Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
-                                       Reporter reporter) {
+    public DcLoadFlowResult run() {
         LfNetwork network = context.getNetwork();
+        Reporter reporter = network.getReporter();
         EquationSystem<DcVariableType, DcEquationType> equationSystem = context.getEquationSystem();
         DcLoadFlowParameters parameters = context.getParameters();
         TargetVector<DcVariableType, DcEquationType> targetVector = context.getTargetVector();
@@ -165,54 +172,24 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
-        Collection<LfBus> remainingBuses = new LinkedHashSet<>(network.getBuses());
-        remainingBuses.removeAll(disabledBuses);
-
         if (parameters.isDistributedSlack()) {
-            distributeSlack(remainingBuses, parameters.getBalanceType());
+            distributeSlack(network.getBuses(), parameters.getBalanceType());
         }
 
-        // we need to copy the target array because:
-        //  - in case of disabled buses or branches some elements could be overwriten to zero
-        //  - JacobianMatrix.solveTransposed take as an input the second member and reuse the array
-        //    to fill with the solution
+        // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
+        // and reuse the array to fill with the solution
         // so we need to copy to later the target as it is and reusable for next run
         var targetVectorArray = targetVector.getArray().clone();
 
-        if (!disabledBuses.isEmpty()) {
-            // set buses injections and transformers to 0
-            disabledBuses.stream()
-                .flatMap(lfBus -> equationSystem.getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).stream())
-                .map(Equation::getColumn)
-                .forEach(column -> targetVectorArray[column] = 0);
-        }
-
-        if (!disabledBranches.isEmpty()) {
-            // set transformer phase shift to 0
-            disabledBranches.stream()
-                .flatMap(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
-                .map(Equation::getColumn)
-                .forEach(column -> targetVectorArray[column] = 0);
-        }
-
         // First linear system solution
-        boolean succeeded;
-        try {
-            context.getJacobianMatrix().solveTransposed(targetVectorArray);
-            succeeded = true;
-        } catch (MatrixException e) {
-            succeeded = false;
-
-            Reports.reportDcLfSolverFailure(reporter, e.getMessage());
-            LOGGER.error("Failed to solve linear system for DC load flow", e);
-        }
+        boolean succeeded = solve(targetVectorArray, context.getJacobianMatrix(), reporter);
 
         equationSystem.getStateVector().set(targetVectorArray);
         updateNetwork(network, equationSystem, targetVectorArray);
 
         // continue with PST active power control outer loop only if first linear system solution has succeeded
         if (succeeded && parameters.getNetworkParameters().isPhaseControl()) {
-            succeeded = runPhaseShifterOuterLoop(phaseShifterControlOuterLoop, outerLoopContext);
+            succeeded = runPhaseControlOuterLoop(phaseShifterControlOuterLoop, outerLoopContext);
         }
 
         // set all calculated voltages to NaN
@@ -225,7 +202,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         Reports.reportDcLfComplete(reporter, succeeded);
         LOGGER.info("DC load flow completed (succeed={})", succeeded);
 
-        return Pair.of(succeeded, targetVectorArray);
+        return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
     }
 
     public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {

@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -232,29 +233,76 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                     List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, List<ParticipatingElement> participatingElements,
                                                     Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                                     Reporter reporter) {
-
         List<BusState> busStates = Collections.emptyList();
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
         if (parameters.isDistributedSlack()) {
             busStates = ElementState.save(participatingElements.stream()
-                .map(ParticipatingElement::getLfBus)
-                .collect(Collectors.toSet()), BusState::save);
+                    .map(ParticipatingElement::getLfBus)
+                    .collect(Collectors.toSet()), BusState::save);
         }
-        // the A1 variables will be set to 0 for disabledBranches, so we need to restore them at the end
-        List<BranchState> branchStates = ElementState.save(disabledBranches, BranchState::save);
 
-        double[] dx = new DcLoadFlowEngine(loadFlowContext).run(disabledBuses, disabledBranches, reporter).getRight();
+        double[] dx = runDcLoadFlow(loadFlowContext, disabledBuses, disabledBranches, reporter);
 
+        StateVector sv = new StateVector(dx);
         for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
-            factor.setFunctionReference(factor.getFunctionEquationTerm().eval());
+            factor.setFunctionReference(factor.getFunctionEquationTerm().eval(sv)); // pass explicitly the previously calculated state vector
         }
 
         if (parameters.isDistributedSlack()) {
             ElementState.restore(busStates);
         }
-        ElementState.restore(branchStates);
 
         return new DenseMatrix(dx.length, 1, dx);
+    }
+
+    /**
+     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling and that do not
+     * update the state vector and the network at the end (because we don't need it to just evaluate a few equations)
+     */
+    public double[] runDcLoadFlow(DcLoadFlowContext loadFlowContext, Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
+                                  Reporter reporter) {
+        Collection<LfBus> remainingBuses;
+        if (disabledBuses.isEmpty()) {
+            remainingBuses = loadFlowContext.getNetwork().getBuses();
+        } else {
+            remainingBuses = new LinkedHashSet<>(loadFlowContext.getNetwork().getBuses());
+            remainingBuses.removeAll(disabledBuses);
+        }
+
+        DcLoadFlowParameters parameters = loadFlowContext.getParameters();
+        if (parameters.isDistributedSlack()) {
+            DcLoadFlowEngine.distributeSlack(remainingBuses, parameters.getBalanceType());
+        }
+
+        // we need to copy the target array because:
+        //  - in case of disabled buses or branches some elements could be overwritten to zero
+        //  - JacobianMatrix.solveTransposed take as an input the second member and reuse the array
+        //    to fill with the solution
+        // so we need to copy to later the target as it is and reusable for next run
+        var targetVectorArray = loadFlowContext.getTargetVector().getArray().clone();
+
+        if (!disabledBuses.isEmpty()) {
+            // set buses injections and transformers to 0
+            disabledBuses.stream()
+                    .flatMap(lfBus -> loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).stream())
+                    .map(Equation::getColumn)
+                    .forEach(column -> targetVectorArray[column] = 0);
+        }
+
+        if (!disabledBranches.isEmpty()) {
+            // set transformer phase shift to 0
+            disabledBranches.stream()
+                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
+                    .map(Equation::getColumn)
+                    .forEach(column -> targetVectorArray[column] = 0);
+        }
+
+        boolean succeeded = DcLoadFlowEngine.solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reporter);
+        if (!succeeded) {
+            throw new PowsyblException("DC solver failed");
+        }
+
+        return targetVectorArray; // now contains dx
     }
 
     /**
