@@ -113,16 +113,16 @@ public class PropagatedContingency {
                               load.getQ0() / PerUnit.SB); // ensurePowerFactorConstant is not supported.
     }
 
-    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen,
-                                                         Set<String> allBusIdsToLose, boolean contingencyPropagation) {
+    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, LfTopoConfig topoConfig,
+                                                         boolean contingencyPropagation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
                     PropagatedContingency.create(network, contingency, index, contingencyPropagation);
             propagatedContingencies.add(propagatedContingency);
-            allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
-            allBusIdsToLose.addAll(propagatedContingency.busIdsToLose);
+            topoConfig.getSwitchesToOpen().addAll(propagatedContingency.switchesToOpen);
+            topoConfig.getBusIdsToLose().addAll(propagatedContingency.busIdsToLose);
         }
         return propagatedContingencies;
     }

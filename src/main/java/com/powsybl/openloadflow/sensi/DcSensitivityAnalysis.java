@@ -12,7 +12,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
@@ -30,6 +29,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -782,8 +782,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
-                        SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen,
-                        Set<String> allBusIdsToLose) {
+                        SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, Reporter reporter,
+                        LfTopoConfig topoConfig) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);
@@ -795,7 +795,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        boolean breakers = !(allSwitchesToOpen.isEmpty() && allBusIdsToLose.isEmpty());
+        boolean breakers = topoConfig.isBreaker();
 
         // create the network (we only manage main connected component)
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(),
@@ -827,7 +827,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setHvdcAcEmulation(false)
                 .setCacheEnabled(false); // force not caching as not supported in sensi analysis
         // create networks including all necessary switches
-        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, Collections.emptySet(), reporter)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
 
             // complete definition of contingencies after network loading
