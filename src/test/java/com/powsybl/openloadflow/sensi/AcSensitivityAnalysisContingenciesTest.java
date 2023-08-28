@@ -1285,10 +1285,15 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                                                   createBranchFlowPerInjectionIncrease("NGEN_NHV1", "LOAD"));
 
         List<Contingency> contingencies = network.getBusBreakerView().getBusStream()
-                .filter(bus -> !bus.getId().equals("NGEN"))
                 .map(bus -> new Contingency(bus.getId(), new BusContingency(bus.getId())))
                 .collect(Collectors.toList());
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.019, result.getBranchFlow1FunctionReferenceValue("NLOAD", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(SensitivityAnalysisResult.Status.FAILURE, result.getContingencyStatus("NHV1")); // status but no outputs.
+        assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("NHV2", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(SensitivityAnalysisResult.Status.FAILURE, result.getContingencyStatus("NGEN")); // status but no outputs.
     }
 }

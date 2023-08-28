@@ -149,6 +149,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         };
 
         Map<String, List<LimitViolation>> violationsPerContingency = new HashMap<>();
+        Map<String, SensitivityAnalysisResult.Status> statusPerContingency = new HashMap<>();
         SensitivityResultWriter valueWriter = new SensitivityResultWriter() {
             @Override
             public void writeSensitivityValue(int factorContext, int contingencyIndex, double value, double functionReference) {
@@ -190,7 +191,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
             @Override
             public void writeContingencyStatus(int i, SensitivityAnalysisResult.Status status) {
-                // Nothing to do
+                Contingency contingency = context.getContingencies().get(i);
+                statusPerContingency.put(contingency.getId(), status);
             }
 
         };
@@ -203,18 +205,18 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 context.getPreContingencyAllBranchResults().values().stream().filter(br -> isBranchMonitored(br.getBranchId(), null)).collect(Collectors.toList()),
                 Collections.emptyList(), Collections.emptyList());
 
-        contingencies.forEach(c -> context.getLimitViolationsPerContingencyId().put(c.getId(),
-                new LimitViolationsResult(new ArrayList<>(violationsPerContingency.get(c.getId())), Collections.emptyList())));
+        contingencies.stream().filter(c -> statusPerContingency.get(c.getId()) != SensitivityAnalysisResult.Status.FAILURE)
+                .forEach(c -> context.getLimitViolationsPerContingencyId().put(c.getId(),
+                        new LimitViolationsResult(new ArrayList<>(violationsPerContingency.get(c.getId())), Collections.emptyList())));
 
         List<OperatorStrategyResult> operatorStrategyResult = createOperatorStrategyResults(context, operatorStrategies, actions);
 
         List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-        for (Contingency contingency : contingencies) {
-            postContingencyResults.add(new PostContingencyResult(contingency, PostContingencyComputationStatus.CONVERGED,
-                    context.getLimitViolationsPerContingencyId().get(contingency.getId()),
-                    context.getBranchResultsPerContingencyId().get(contingency.getId()),
-                    Collections.emptyList(), Collections.emptyList(), context.getConnectivityResultPerContingencyId().get(contingency.getId())));
-        }
+        contingencies.stream().filter(c -> statusPerContingency.get(c.getId()) != SensitivityAnalysisResult.Status.FAILURE)
+                .forEach(contingency -> postContingencyResults.add(new PostContingencyResult(contingency, PostContingencyComputationStatus.CONVERGED,
+                        context.getLimitViolationsPerContingencyId().get(contingency.getId()),
+                        context.getBranchResultsPerContingencyId().get(contingency.getId()),
+                        Collections.emptyList(), Collections.emptyList(), context.getConnectivityResultPerContingencyId().get(contingency.getId()))));
         return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults, operatorStrategyResult));
     }
 

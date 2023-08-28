@@ -14,6 +14,7 @@ import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -2367,5 +2368,31 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         runner.run(network, parameters);
         g.setTargetP(g.getTargetP() - 1);
         return l.getTerminal1().getP() - p1Before;
+    }
+
+    @Test
+    void testBusContingency() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "NGEN", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "LOAD"),
+                createBranchFlowPerInjectionIncrease("NHV1_NHV2_2", "LOAD"),
+                createBranchFlowPerInjectionIncrease("NHV2_NLOAD", "LOAD"),
+                createBranchFlowPerInjectionIncrease("NGEN_NHV1", "LOAD"));
+
+        List<Contingency> contingencies = network.getBusBreakerView().getBusStream()
+                .map(bus -> new Contingency(bus.getId(), new BusContingency(bus.getId())))
+                .collect(Collectors.toList());
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(300.0, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(300.0, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("NLOAD", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER); // isolated slack bus.
+        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getContingencyStatus("NHV1")); // NOT_SUPPORTED in AC.
+        assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("NHV2", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(SensitivityAnalysisResult.Status.FAILURE, result.getContingencyStatus("NGEN")); // no outputs.
     }
 }

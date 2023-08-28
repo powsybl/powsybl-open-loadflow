@@ -51,6 +51,14 @@ public class PropagatedContingency {
 
     private final Set<String> originalPowerShiftIds = new LinkedHashSet<>();
 
+    public enum Status {
+        NO_IMPACT,
+        NOT_SUPPORTED,
+        OTHER
+    }
+
+    private Status status = Status.OTHER;
+
     public Contingency getContingency() {
         return contingency;
     }
@@ -89,6 +97,15 @@ public class PropagatedContingency {
 
     public Set<String> getOriginalPowerShiftIds() {
         return originalPowerShiftIds;
+    }
+
+    public Status getStatus() {
+        if (status == Status.OTHER && branchIdsToOpen.isEmpty() && busIdsToLose.isEmpty() && shuntIdsToShift.isEmpty()
+                && busIdsToShift.isEmpty() && generatorIdsToLose.isEmpty() && hvdcIdsToOpen.isEmpty()) {
+            LOGGER.warn("Contingency '{}' has no impact", contingency.getId());
+            status = Status.NO_IMPACT;
+        }
+        return status;
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect,
@@ -343,27 +360,46 @@ public class PropagatedContingency {
         return identifiable;
     }
 
-    public static void addBranchIdsConnectedToLostBuses(LfNetwork network, String contingencyId, Set<String> busIdsToLose, Set<String> branchIdsToOpen) {
-        // update branches to open connected with buses in contingency. This is an approximation:
+    public void clean(LfNetwork lfNetwork, boolean removeConnectedAtOneSideBranches) {
+        // update branches to open if they are connected to buses in contingency. This is an approximation:
         // these branches are indeed just open at one side.
         for (String busId : busIdsToLose) {
-            LfBus bus = network.getBusById(busId);
+            LfBus bus = lfNetwork.getBusById(busId);
             if (bus != null) {
                 if (bus.isSlack()) {
                     // slack bus disabling is not supported
                     // we keep the slack bus enabled and the connected branches
-                    LOGGER.error("Contingency '{}' leads to the loss of a slack bus: not supported", contingencyId);
+                    LOGGER.error("Contingency '{}' leads to the loss of a slack bus: not supported", contingency.getId());
+                    status = Status.NOT_SUPPORTED;
                 } else {
                     bus.getBranches().forEach(branch -> branchIdsToOpen.add(branch.getId()));
                 }
             }
         }
+
+        // we remove disconnected branches or not present in this synchronous component.
+        // if boolean removeConnectedAtOneSideBranches, we remove the branches connected only at one side.
+        Set<String> branchesToRemove = new HashSet<>();
+        for (String branchId : branchIdsToOpen) {
+            LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+            if (lfBranch == null) {
+                branchesToRemove.add(branchId); // disconnected branch
+                continue;
+            }
+            if (!lfBranch.isConnectedAtBothSides() && removeConnectedAtOneSideBranches) {
+                branchesToRemove.add(branchId); // branch connected only on one side
+            }
+        }
+        branchIdsToOpen.removeAll(branchesToRemove);
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
-        // update branches to open connected with buses in contingency. This is an approximation:
-        // these branches are indeed just open at one side.
-        addBranchIdsConnectedToLostBuses(network, contingency.getId(), busIdsToLose, branchIdsToOpen);
+        // Clean propagated contingency with LfNetwork.
+        clean(network, false);
+
+        if (status != Status.OTHER) {
+            return Optional.empty();
+        }
 
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
@@ -371,7 +407,6 @@ public class PropagatedContingency {
 
         List<LfBranch> branchesToOpen = branchIdsToOpen.stream()
                 .map(network::getBranchById)
-                .filter(Objects::nonNull) // could be in another component
                 .collect(Collectors.toList());
 
         branchesToOpen.stream()
@@ -384,6 +419,7 @@ public class PropagatedContingency {
             // In that case, we have an issue with a different number of variables and equations.
             LOGGER.error("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
             connectivity.undoTemporaryChanges();
+            status = Status.NOT_SUPPORTED;
             return Optional.empty();
         }
 
@@ -453,9 +489,11 @@ public class PropagatedContingency {
                 && generators.isEmpty()
                 && hvdcs.isEmpty()) {
             LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
+            status = Status.NO_IMPACT;
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, buses, branches, shunts, busesLoadShift, generators, hvdcs, originalPowerShiftIds));
+        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, buses, branches, shunts,
+                busesLoadShift, generators, hvdcs, originalPowerShiftIds));
     }
 }
