@@ -21,10 +21,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -105,9 +102,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         void setStatus(Status status);
 
-        boolean isVariableConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
+        boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork);
 
-        boolean isFunctionConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
+        boolean isFunctionConnectedToSlackComponent(DisabledNetwork disabledNetwork);
 
         boolean isVariableInContingency(PropagatedContingency propagatedContingency);
 
@@ -269,11 +266,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             this.status = status;
         }
 
-        protected boolean isElementConnectedToSlackComponent(LfElement element, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
+        protected boolean isElementConnectedToSlackComponent(LfElement element, DisabledNetwork disabledNetwork) {
             if (element instanceof LfBus) {
-                return !disabledBuses.contains(element);
+                return !disabledNetwork.buses().contains(element);
             } else if (element instanceof LfBranch) {
-                return !disabledBranches.contains(element);
+                return !disabledNetwork.branches().contains(element);
             }
             throw new PowsyblException("Cannot compute connectivity for variable element of class: " + element.getClass().getSimpleName());
         }
@@ -325,13 +322,13 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            return isElementConnectedToSlackComponent(variableElement, disabledBuses, disabledBranches);
+        public boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
+            return isElementConnectedToSlackComponent(variableElement, disabledNetwork);
         }
 
         @Override
-        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            return isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches);
+        public boolean isFunctionConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
+            return isElementConnectedToSlackComponent(functionElement, disabledNetwork);
         }
 
         @Override
@@ -386,9 +383,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
+        public boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
             for (LfElement lfElement : getVariableElements()) {
-                if (isElementConnectedToSlackComponent(lfElement, disabledBuses, disabledBranches)) {
+                if (isElementConnectedToSlackComponent(lfElement, disabledNetwork)) {
                     return true;
                 }
             }
@@ -396,8 +393,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
-        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            return isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches);
+        public boolean isFunctionConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
+            return isElementConnectedToSlackComponent(functionElement, disabledNetwork);
         }
 
         @Override
@@ -648,24 +645,24 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> disabledBuses,
-                                        Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, DisabledNetwork disabledNetwork,
+                                        PropagatedContingency propagatedContingency) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledBuses, disabledBranches, propagatedContingency);
+            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledNetwork, propagatedContingency);
             predefinedResults.getLeft().ifPresent(factor::setSensitivityValuePredefinedResult);
             predefinedResults.getRight().ifPresent(factor::setFunctionPredefinedResult);
         }
     }
 
-    protected Pair<Optional<Double>, Optional<Double>> getPredefinedResults(LfSensitivityFactor<V, E> factor, Set<LfBus> disabledBuses,
-                                                                            Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+    protected Pair<Optional<Double>, Optional<Double>> getPredefinedResults(LfSensitivityFactor<V, E> factor, DisabledNetwork disabledNetwork,
+                                                                            PropagatedContingency propagatedContingency) {
         Double sensitivityValuePredefinedResult = null;
         Double functionPredefinedResult = null;
         if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
             // after a contingency, we check if the factor function and the variable are in different connected components
             // or if the variable is in contingency. Note that a branch in contingency is considered as not connected to the slack component.
-            boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches) && !factor.isVariableInContingency(propagatedContingency);
-            boolean functionConnectedToSlackComponent = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
+            boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledNetwork) && !factor.isVariableInContingency(propagatedContingency);
+            boolean functionConnectedToSlackComponent = factor.isFunctionConnectedToSlackComponent(disabledNetwork);
             if (variableConnected) {
                 if (!functionConnectedToSlackComponent) {
                     // ZERO status
@@ -684,7 +681,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             }
         } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
             sensitivityValuePredefinedResult = 0d;
-            if (!factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches)) {
+            if (!factor.isFunctionConnectedToSlackComponent(disabledNetwork)) {
                 functionPredefinedResult = Double.NaN;
             }
         } else {

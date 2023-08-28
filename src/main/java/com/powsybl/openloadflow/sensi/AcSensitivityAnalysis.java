@@ -312,12 +312,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                                 lfContingency.apply(lfParameters.getBalanceType());
 
-                                setPredefinedResults(contingencyFactors, lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches(), contingency);
+                                setPredefinedResults(contingencyFactors, lfContingency.getDisabledNetwork(), contingency);
 
                                 Map<LfBus, Double> postContingencySlackParticipationByBus;
                                 Set<LfBus> slackConnectedComponent;
                                 boolean hasChanged = false;
-                                if (lfContingency.getDisabledBuses().isEmpty()) {
+                                if (lfContingency.getDisabledNetwork().buses().isEmpty()) {
                                     // contingency not breaking connectivity
                                     LOGGER.debug("Contingency '{}' without loss of connectivity", lfContingency.getId());
                                     slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
@@ -325,9 +325,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                     // contingency breaking connectivity
                                     LOGGER.debug("Contingency '{}' with loss of connectivity", lfContingency.getId());
                                     // we check if factors are still in the main component
-                                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledBuses()::contains)).collect(Collectors.toSet());
+                                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledNetwork().buses()::contains)).collect(Collectors.toSet());
                                     // we recompute GLSK weights if needed
-                                    hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledBuses());
+                                    hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledNetwork().buses());
                                 }
 
                                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
