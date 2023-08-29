@@ -83,7 +83,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
-        Set<String> allBusIdsToLose = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig,
                 securityAnalysisParametersExt.isContingencyPropagation());
 
