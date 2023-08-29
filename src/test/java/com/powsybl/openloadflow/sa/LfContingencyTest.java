@@ -20,6 +20,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import org.junit.jupiter.api.AfterEach;
@@ -33,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,7 +74,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
         List<PropagatedContingency> propagatedContingencies =
-            PropagatedContingency.createList(network, Collections.singletonList(contingency), new HashSet<>(), new HashSet<>(), false);
+            PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), false);
         PropagatedContingency.completeList(propagatedContingencies, false, false, false, false);
 
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
@@ -104,7 +104,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String generatorId = "GEN";
         Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new HashSet<>(), new HashSet<>(), true),
+                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), true),
                 "Generator 'GEN' not found in the network");
     }
 
@@ -120,7 +120,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new HashSet<>(), new HashSet<>(), true),
+                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), true),
                 "Load 'LOAD' not found in the network");
     }
 }
