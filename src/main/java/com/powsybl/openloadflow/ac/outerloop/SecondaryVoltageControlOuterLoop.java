@@ -37,15 +37,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final double DV_EPS = 1E-4;
 
-    private final double minPlausibleTargetVoltage;
-
-    private final double maxPlausibleTargetVoltage;
-
-    public SecondaryVoltageControlOuterLoop(double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
-        this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
-        this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
-    }
-
     @Override
     public String getType() {
         return "SecondaryVoltageControl";
@@ -71,8 +62,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                         return !controlledBus.isDisabled()
                                 && !findControllerBuses(controlledBus).isEmpty()
                                 && !voltageControl.isHidden()
-                                && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN
-                                && targetV > minPlausibleTargetVoltage && targetV < maxPlausibleTargetVoltage;
+                                && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN;
                     })
                     .toList();
             if (!activeControlledBuses.isEmpty()) {
@@ -315,18 +305,9 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 var pvc = controllerBus.getGeneratorVoltageControl().orElseThrow();
                 LfBus controlledBus = pvc.getControlledBus();
                 double newPvcTargetV = pvc.getTargetValue() + dv.get(i, 0);
-                String plausibleTargetInfos = "";
-                if (newPvcTargetV > maxPlausibleTargetVoltage) {
-                    newPvcTargetV = maxPlausibleTargetVoltage;
-                    plausibleTargetInfos = " (cut to max plausible target voltage)";
-                }
-                if (newPvcTargetV < minPlausibleTargetVoltage) {
-                    newPvcTargetV = minPlausibleTargetVoltage;
-                    plausibleTargetInfos = " (cut to min plausible target voltage)";
-                }
-                LOGGER.info("Adjust target voltage of controlled bus '{}': {} -> {}{}",
+                LOGGER.info("Adjust target voltage of controlled bus '{}': {} -> {}",
                         controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
-                        newPvcTargetV * controlledBus.getNominalV(), plausibleTargetInfos);
+                        newPvcTargetV * controlledBus.getNominalV());
                 pvc.setTargetValue(newPvcTargetV);
                 adjusted = true;
             }
