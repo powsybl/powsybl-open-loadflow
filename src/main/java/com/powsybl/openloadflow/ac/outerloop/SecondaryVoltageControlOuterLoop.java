@@ -188,7 +188,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 / (controllerBus.getMaxQ() - controllerBus.getMinQ());
     }
 
-    private static double calculateKi(LfBus controllerBus) {
+    private static double calculateK(LfBus controllerBus) {
         double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
         return qToK(q, controllerBus);
     }
@@ -211,7 +211,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         DenseMatrix k0 = new DenseMatrix(n, 1);
         for (LfBus controllerBus : controllerBuses) {
             int i = controllerBusIndex.get(controllerBus.getNum());
-            k0.set(i, 0, calculateKi(controllerBus));
+            k0.set(i, 0, calculateK(controllerBus));
         }
         return k0;
     }
@@ -250,13 +250,20 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return norm2Dv;
     }
 
-    private boolean adjustPrimaryVoltageControlTargets(String zoneName, SensitivityContext sensitivityContext,
-                                                       List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
+    private boolean processSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl, SensitivityContext sensitivityContext,
+                                                   List<LfBus> controlledBuses) {
         boolean adjusted = false;
 
         List<LfBus> controllerBuses = controlledBuses.stream()
                 .flatMap(controlledBus -> findControllerBuses(controlledBus).stream())
                 .toList();
+
+        var pilotBus = secondaryVoltageControl.getPilotBus();
+        double pilotDv = secondaryVoltageControl.getTargetValue() - pilotBus.getV();
+        double[] ks = controllerBuses.stream().mapToDouble(SecondaryVoltageControlOuterLoop::calculateK).toArray();
+        double dkMax = Arrays.stream(ks).max().orElseThrow() - Arrays.stream(ks).min().orElseThrow();
+        LOGGER.debug("Secondary voltage control of zone '{}': pilot point dv is {} kV, controller buses dk max is {}",
+                secondaryVoltageControl.getZoneName(), pilotDv * pilotBus.getNominalV(), dkMax);
 
         var controllerBusIndex = buildBusIndex(controllerBuses);
 
@@ -340,13 +347,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         for (var e : activeSecondaryVoltageControls.entrySet()) {
             var secondaryVoltageControl = e.getKey();
             var controlledBuses = e.getValue();
-            var pilotBus = secondaryVoltageControl.getPilotBus();
-            double svcTargetDv = secondaryVoltageControl.getTargetValue() - pilotBus.getV();
-            LOGGER.debug("Secondary voltage control of zone '{}' needs a pilot point voltage adjustment: {} -> {}",
-                    secondaryVoltageControl.getZoneName(), pilotBus.getV() * pilotBus.getNominalV(),
-                    secondaryVoltageControl.getTargetValue() * pilotBus.getNominalV());
-            boolean adjusted = adjustPrimaryVoltageControlTargets(secondaryVoltageControl.getZoneName(), sensitivityContext, controlledBuses,
-                                                                  pilotBus, svcTargetDv);
+            boolean adjusted = processSecondaryVoltageControl(secondaryVoltageControl, sensitivityContext, controlledBuses);
             if (adjusted) {
                 adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
                 status = OuterLoopStatus.UNSTABLE;
