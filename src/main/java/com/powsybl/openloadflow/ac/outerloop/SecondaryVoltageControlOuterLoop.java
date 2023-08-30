@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -33,16 +32,11 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
-    public static final double SENSI_V_V_EPS_DEFAULT_VALUE = 1e-2;
-
-    private final double sensiVvEps;
-
     private final double minPlausibleTargetVoltage;
 
     private final double maxPlausibleTargetVoltage;
 
-    public SecondaryVoltageControlOuterLoop(double sensiVvEps, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
-        this.sensiVvEps = sensiVvEps;
+    public SecondaryVoltageControlOuterLoop(double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
         this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
     }
@@ -56,14 +50,14 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return controlledBus.getGeneratorVoltageControl().orElseThrow()
                 .getMergedControllerElements().stream()
                 .filter(bus -> !bus.isDisabled() && bus.isGeneratorVoltageControlEnabled())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void findActiveSecondaryVoltageControls(LfNetwork network, Map<LfSecondaryVoltageControl, List<LfBus>> activeSecondaryVoltageControls,
                                                     Set<LfBus> allControlledBusSet) {
         List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls().stream()
                 .filter(control -> !control.getPilotBus().isDisabled())
-                .collect(Collectors.toList());
+                .toList();
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
             List<LfBus> activeControlledBuses = secondaryVoltageControl.getControlledBuses().stream()
                     .filter(controlledBus -> {
@@ -75,7 +69,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                                 && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN
                                 && targetV > minPlausibleTargetVoltage && targetV < maxPlausibleTargetVoltage;
                     })
-                    .collect(Collectors.toList());
+                    .toList();
             if (!activeControlledBuses.isEmpty()) {
                 activeSecondaryVoltageControls.put(secondaryVoltageControl, activeControlledBuses);
                 for (LfBus activeControlledBus : activeControlledBuses) {
@@ -191,7 +185,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         List<LfBus> controllerBuses = controlledBuses.stream()
                 .flatMap(controlledBus -> findControllerBuses(controlledBus).stream())
-                .collect(Collectors.toList());
+                .toList();
 
         var controllerBusIndex = buildBusIndex(controllerBuses);
 

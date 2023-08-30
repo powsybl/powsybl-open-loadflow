@@ -229,23 +229,4 @@ class SecondaryVoltageControlTest {
 //        assertVoltageEquals(b6.getVoltageLevel().getNominalV() * parametersExt.getMinPlausibleTargetVoltage(), b6); // cut to minPlausibleTargetVoltage
 //        assertVoltageEquals(b8.getVoltageLevel().getNominalV() * parametersExt.getMinPlausibleTargetVoltage(), b8); // cut to minPlausibleTargetVoltage
 //    }
-//
-//    @Test
-//    void tooSmallSensiTest() {
-//        parameters.setUseReactiveLimits(false);
-//        parametersExt.setSecondaryVoltageControl(true)
-//                .setControllerToPilotPointVoltageSensiEpsilon(0.5);
-//        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 14.4);
-//        network.newExtension(SecondaryVoltageControlAdder.class)
-//                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-//                        new ControlUnit("B8-G"))))
-//                .add();
-//
-//        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-//        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-//        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
-//        assertVoltageEquals(14.4, b10);
-//        assertVoltageEquals(16.228, b6);
-//        assertVoltageEquals(21.8, b8); // not adjusted because too small sensi
-//    }
 }
