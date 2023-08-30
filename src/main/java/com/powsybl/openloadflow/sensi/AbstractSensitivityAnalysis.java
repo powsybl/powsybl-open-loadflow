@@ -735,6 +735,28 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return validFactorHolder;
     }
 
+    private static void cleanBranchIdsToOpen(LfNetwork lfNetwork, PropagatedContingency contingency) {
+        // Elements have already been checked and found in PropagatedContingency, so there is no need to
+        // check them again
+        Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
+        for (String branchId : contingency.getBranchIdsToOpen()) {
+            LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+            if (lfBranch == null) {
+                branchesToRemove.add(branchId); // disconnected branch
+                continue;
+            }
+            if (!lfBranch.isConnectedAtBothSides()) {
+                branchesToRemove.add(branchId); // branch connected only on one side
+            }
+        }
+        contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
+
+        // update branches to open connected with buses in contingency. This is an approximation:
+        // these branches are indeed just open at one side.
+        PropagatedContingency.addBranchIdsConnectedToLostBuses(lfNetwork, contingency.getContingency().getId(),
+                                                               contingency.getBusIdsToLose(), contingency.getBranchIdsToOpen());
+    }
+
     protected void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
@@ -745,7 +767,16 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             }
             contingenciesIds.add(contingencyId);
 
-            contingency.clean(lfNetwork, true);
+            cleanBranchIdsToOpen(lfNetwork, contingency);
+
+            if (contingency.getBranchIdsToOpen().isEmpty()
+                    && contingency.getHvdcIdsToOpen().isEmpty()
+                    && contingency.getGeneratorIdsToLose().isEmpty()
+                    && contingency.getBusIdsToShift().isEmpty()
+                    && contingency.getShuntIdsToShift().isEmpty()
+                    && contingency.getBusIdsToLose().isEmpty()) {
+                LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
+            }
         }
     }
 

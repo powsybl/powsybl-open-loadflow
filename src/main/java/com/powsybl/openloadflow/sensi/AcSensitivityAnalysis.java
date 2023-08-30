@@ -343,18 +343,14 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                 }
                                 networkState.restore();
                             }, () -> {
-                                if (contingency.getStatus() == PropagatedContingency.Status.NO_IMPACT) {
-                                    // it means that the contingency has no impact or not supported (isolated slack bus)
+                                    // it means that the contingency has no impact.
                                     // we need to force the state vector to be re-initialized from base case network state
                                     NewtonRaphson.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
 
                                     calculateSensitivityValues(validFactorHolder.getFactorsForContingency(contingency.getContingency().getId()), factorGroups, factorsStates, contingency.getIndex(), resultWriter);
                                     // write contingency status
                                     resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
-                                } else if (contingency.getStatus() == PropagatedContingency.Status.NOT_SUPPORTED) {
-                                    resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.FAILURE);
-                                }
-                            });
+                                });
                 });
             }
         }

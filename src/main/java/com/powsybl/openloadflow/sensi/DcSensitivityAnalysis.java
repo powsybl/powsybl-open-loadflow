@@ -883,12 +883,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false, breakers);
 
             checkContingencies(lfNetwork, contingencies);
-            List<PropagatedContingency> notSupportedContingencies = new ArrayList<>();
-            contingencies.stream().filter(c -> c.getStatus() == PropagatedContingency.Status.NOT_SUPPORTED).forEach(c -> {
-                resultWriter.writeContingencyStatus(c.getIndex(), SensitivityAnalysisResult.Status.FAILURE);
-                notSupportedContingencies.add(c);
-            });
-            contingencies.removeAll(notSupportedContingencies);
             checkLoadFlowParameters(lfParameters);
 
             Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
