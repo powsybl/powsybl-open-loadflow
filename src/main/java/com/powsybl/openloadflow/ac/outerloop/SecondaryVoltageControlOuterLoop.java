@@ -19,10 +19,13 @@ import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -179,6 +182,16 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         }
     }
 
+    private static void printMatrix(String name, DenseMatrix m) {
+        if (LOGGER.isDebugEnabled()) {
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            try (PrintStream ps = new PrintStream(os)) {
+                m.print(ps);
+                LOGGER.debug("{}=\n{}", name, new String(os.toByteArray(), StandardCharsets.UTF_8));
+            }
+        }
+    }
+
     private boolean adjustPrimaryVoltageControlTargets(String zoneName, SensitivityContext sensitivityContext,
                                                        List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
         boolean adjusted = false;
@@ -198,20 +211,17 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 a.set(i, j, i == j ? 1d - (1d / n) : -1d / n);
             }
         }
-        System.out.println("a=");
-        a.print(System.out);
+        printMatrix("a", a);
 
         DenseMatrix k0 = new DenseMatrix(n, 1);
         for (LfBus controllerBus : controllerBuses) {
             int i = controllerBusIndex.get(controllerBus.getNum());
             k0.set(i, 0, calculateKi(controllerBus));
         }
-        System.out.println("k0=");
-        k0.print(System.out);
+        printMatrix("k0", k0);
 
         DenseMatrix rhs = a.times(k0, -1);
-        System.out.println("rhs=");
-        rhs.print(System.out);
+        printMatrix("rhs", rhs);
 
         DenseMatrix jK = new DenseMatrix(n, n);
         for (LfBus controllerBus : controllerBuses) {
@@ -222,8 +232,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 jK.set(j, i, sensitivityContext.calculateSensiK(controllerBus, controlledBus2));
             }
         }
-        System.out.println("jK=");
-        jK.print(System.out);
+        printMatrix("jK", jK);
 
         DenseMatrix jVpp = new DenseMatrix(n, 1);
         for (LfBus controllerBus : controllerBuses) {
@@ -231,40 +240,33 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             LfBus controlledBus = controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus();
             jVpp.set(i, 0, sensitivityContext.calculateSensiVpp(controlledBus, pilotBus));
         }
-        System.out.println("jVpp=");
-        jVpp.print(System.out);
+        printMatrix("jVpp", jVpp);
 
         DenseMatrix jVppT = jVpp.transpose();
-        System.out.println("jVppT=");
-        jVppT.print(System.out);
 
         DenseMatrix bt = a.times(jK.transpose());
-        System.out.println("bt=");
-        bt.print(System.out);
+        printMatrix("bt", bt);
 
         // replace last row
         for (int j = 0; j < bt.getColumnCount(); j++) {
             bt.set(bt.getRowCount() - 1, j, jVppT.get(0, j));
         }
         rhs.set(rhs.getRowCount() - 1, 0, pilotDv);
-        System.out.println("bt (modified)=");
-        bt.print(System.out);
-        System.out.println("rhs (modified)=");
-        rhs.print(System.out);
+        printMatrix("bt (modified)", bt);
+        printMatrix("rhs (modified)", rhs);
 
         try (LUDecomposition luDecomposition = bt.decomposeLU()) {
             luDecomposition.solve(rhs);
-            System.out.println("dv=");
-            rhs.print(System.out);
         }
         DenseMatrix dv = rhs;
+        printMatrix("dv", dv);
 
         double norm2Dv = 0;
         for (int i = 0; i < dv.getRowCount(); i++) {
             norm2Dv += FastMath.pow(dv.get(i, 0), 2);
         }
         norm2Dv = FastMath.sqrt(norm2Dv);
-        System.out.println("norm2Dv=" + norm2Dv);
+        LOGGER.debug("norm2Dv={}", norm2Dv);
 
         if (norm2Dv > 0.01) {
             for (LfBus controllerBus : controllerBuses) {
