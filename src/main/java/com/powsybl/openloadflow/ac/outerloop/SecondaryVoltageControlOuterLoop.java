@@ -288,20 +288,21 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         DenseMatrix jVppT = jVpp.transpose();
 
-        DenseMatrix bt = a.times(jK);
-        printMatrix("bt", bt);
+        DenseMatrix b = a.times(jK);
+        printMatrix("b", b);
 
         // replace last row
-        for (int j = 0; j < bt.getColumnCount(); j++) {
-            bt.set(bt.getRowCount() - 1, j, jVppT.get(0, j));
+        for (int j = 0; j < b.getColumnCount(); j++) {
+            b.set(b.getRowCount() - 1, j, jVppT.get(0, j));
         }
         rhs.set(rhs.getRowCount() - 1, 0, pilotDv);
-        printMatrix("bt (modified)", bt);
+        printMatrix("b (modified)", b);
         printMatrix("rhs (modified)", rhs);
 
-        try (LUDecomposition luDecomposition = bt.decomposeLU()) {
+        try (LUDecomposition luDecomposition = b.decomposeLU()) {
             luDecomposition.solve(rhs);
         }
+        @SuppressWarnings("UnnecessaryLocalVariable")
         DenseMatrix dv = rhs;
         printMatrix("dv", dv);
 
