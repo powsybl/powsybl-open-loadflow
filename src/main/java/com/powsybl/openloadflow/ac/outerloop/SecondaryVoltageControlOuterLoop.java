@@ -179,7 +179,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         }
     }
 
-    private boolean adjustPrimaryVoltageControlTargets2(String zoneName, SensitivityContext sensitivityContext,
+    private boolean adjustPrimaryVoltageControlTargets(String zoneName, SensitivityContext sensitivityContext,
                                                        List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
         boolean adjusted = false;
 
@@ -332,7 +332,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             LOGGER.debug("Secondary voltage control of zone '{}' needs a pilot point voltage adjustment: {} -> {}",
                     secondaryVoltageControl.getZoneName(), pilotBus.getV() * pilotBus.getNominalV(),
                     secondaryVoltageControl.getTargetValue() * pilotBus.getNominalV());
-            boolean adjusted = adjustPrimaryVoltageControlTargets2(secondaryVoltageControl.getZoneName(), sensitivityContext, controlledBuses,
+            boolean adjusted = adjustPrimaryVoltageControlTargets(secondaryVoltageControl.getZoneName(), sensitivityContext, controlledBuses,
                                                                   pilotBus, svcTargetDv);
             if (adjusted) {
                 adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
