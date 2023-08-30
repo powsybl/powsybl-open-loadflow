@@ -225,7 +225,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 int i = controllerBusIndex.get(controllerBus.getNum());
                 int j = controllerBusIndex.get(controllerBus2.getNum());
                 LfBus controlledBus2 = controllerBus2.getGeneratorVoltageControl().orElseThrow().getControlledBus();
-                jK.set(i, j, sensitivityContext.calculateSensiK(controllerBus, controlledBus2));
+                jK.set(j, i, sensitivityContext.calculateSensiK(controllerBus, controlledBus2));
             }
         }
         System.out.println("jK=");
@@ -244,7 +244,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         System.out.println("jVppT=");
         jVppT.print(System.out);
 
-        DenseMatrix bt = a.times(jK);
+        DenseMatrix bt = a.times(jK.transpose());
         System.out.println("bt=");
         bt.print(System.out);
 
