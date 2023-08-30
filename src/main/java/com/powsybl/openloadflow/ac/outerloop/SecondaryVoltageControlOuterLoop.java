@@ -204,10 +204,10 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         int n = controllerBuses.size();
         DenseMatrix a = new DenseMatrix(n, n);
-        for (LfBus controllerBus : controllerBuses) {
-            for (LfBus controllerBus2 : controllerBuses) {
-                int i = controllerBusIndex.get(controllerBus.getNum());
-                int j = controllerBusIndex.get(controllerBus2.getNum());
+        for (LfBus controllerBusI : controllerBuses) {
+            for (LfBus controllerBusJ : controllerBuses) {
+                int i = controllerBusIndex.get(controllerBusI.getNum());
+                int j = controllerBusIndex.get(controllerBusJ.getNum());
                 a.set(i, j, i == j ? 1d - (1d / n) : -1d / n);
             }
         }
@@ -224,12 +224,12 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         printMatrix("rhs", rhs);
 
         DenseMatrix jK = new DenseMatrix(n, n);
-        for (LfBus controllerBus : controllerBuses) {
-            for (LfBus controllerBus2 : controllerBuses) {
-                int i = controllerBusIndex.get(controllerBus.getNum());
-                int j = controllerBusIndex.get(controllerBus2.getNum());
-                LfBus controlledBus2 = controllerBus2.getGeneratorVoltageControl().orElseThrow().getControlledBus();
-                jK.set(j, i, sensitivityContext.calculateSensiK(controllerBus, controlledBus2));
+        for (LfBus controllerBusI : controllerBuses) {
+            for (LfBus controllerBusJ : controllerBuses) {
+                int i = controllerBusIndex.get(controllerBusI.getNum());
+                int j = controllerBusIndex.get(controllerBusJ.getNum());
+                LfBus controlledBus2 = controllerBusJ.getGeneratorVoltageControl().orElseThrow().getControlledBus();
+                jK.set(j, i, sensitivityContext.calculateSensiK(controllerBusI, controlledBus2));
             }
         }
         printMatrix("jK", jK);
