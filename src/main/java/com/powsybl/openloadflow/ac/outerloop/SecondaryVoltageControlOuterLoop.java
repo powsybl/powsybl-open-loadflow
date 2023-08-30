@@ -201,7 +201,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             for (LfBus controllerBus2 : controllerBuses) {
                 int i = controllerBusIndex.get(controllerBus.getNum());
                 int j = controllerBusIndex.get(controllerBus2.getNum());
-                a.set(i, j, i == j ? 1d - (1d / n) : - 1d / n);
+                a.set(i, j, i == j ? 1d - (1d / n) : -1d / n);
             }
         }
         System.out.println("a=");
@@ -230,6 +230,15 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         }
         System.out.println("jK=");
         jK.print(System.out);
+        /*
+bt=
+ 18.089209949140823 -18.089209949140823
+ -6.495328778416576   6.495328778416576
+
+ bt=
+  22.183440734043124 -22.183440734043124
+ -2.4010979935142753  2.4010979935142753
+         */
 
         DenseMatrix jVpp = new DenseMatrix(n, 1);
         for (LfBus controllerBus : controllerBuses) {
@@ -244,7 +253,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         System.out.println("jVppT=");
         jVppT.print(System.out);
 
-        DenseMatrix bt = a.times(jK).transpose();
+        DenseMatrix bt = a.times(jK);
         System.out.println("bt=");
         bt.print(System.out);
 
