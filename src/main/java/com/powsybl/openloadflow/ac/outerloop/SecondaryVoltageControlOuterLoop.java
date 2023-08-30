@@ -230,15 +230,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         }
         System.out.println("jK=");
         jK.print(System.out);
-        /*
-bt=
- 18.089209949140823 -18.089209949140823
- -6.495328778416576   6.495328778416576
-
- bt=
-  22.183440734043124 -22.183440734043124
- -2.4010979935142753  2.4010979935142753
-         */
 
         DenseMatrix jVpp = new DenseMatrix(n, 1);
         for (LfBus controllerBus : controllerBuses) {
