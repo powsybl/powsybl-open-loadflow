@@ -58,7 +58,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             List<LfBus> activeControlledBuses = secondaryVoltageControl.getControlledBuses().stream()
                     .filter(controlledBus -> {
                         GeneratorVoltageControl voltageControl = controlledBus.getGeneratorVoltageControl().orElseThrow();
-                        double targetV = voltageControl.getTargetValue();
                         return !controlledBus.isDisabled()
                                 && !findControllerBuses(controlledBus).isEmpty()
                                 && !voltageControl.isHidden()
@@ -179,7 +178,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             try (PrintStream ps = new PrintStream(os)) {
                 m.print(ps);
-                LOGGER.debug("{}=\n{}", name, new String(os.toByteArray(), StandardCharsets.UTF_8));
+                LOGGER.trace("{}=\n{}", name, new String(os.toByteArray(), StandardCharsets.UTF_8));
             }
         }
     }
@@ -297,7 +296,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         printMatrix("dv", dv);
 
         double norm2Dv = calculateNorm2(dv);
-        LOGGER.debug("norm2Dv={}", norm2Dv);
+        LOGGER.trace("||dv||2={}", norm2Dv);
 
         if (norm2Dv > DV_EPS * dv.getRowCount()) {
             for (LfBus controllerBus : controllerBuses) {
