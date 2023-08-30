@@ -769,12 +769,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
             cleanBranchIdsToOpen(lfNetwork, contingency);
 
-            if (contingency.getBranchIdsToOpen().isEmpty()
-                    && contingency.getHvdcIdsToOpen().isEmpty()
-                    && contingency.getGeneratorIdsToLose().isEmpty()
-                    && contingency.getBusIdsToShift().isEmpty()
-                    && contingency.getShuntIdsToShift().isEmpty()
-                    && contingency.getBusIdsToLose().isEmpty()) {
+            if (contingency.hasNoImpact()) {
                 LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
             }
         }

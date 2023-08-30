@@ -1275,20 +1275,32 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testBusContingency() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "NGEN", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "LOAD"),
                                                   createBranchFlowPerInjectionIncrease("NHV1_NHV2_2", "LOAD"),
                                                   createBranchFlowPerInjectionIncrease("NHV2_NLOAD", "LOAD"),
                                                   createBranchFlowPerInjectionIncrease("NGEN_NHV1", "LOAD"));
-
         List<Contingency> contingencies = network.getBusBreakerView().getBusStream()
-                .filter(bus -> !bus.getId().equals("NGEN"))
+                //.filter(bus -> !bus.getId().equals("NGEN"))
                 .map(bus -> new Contingency(bus.getId(), new BusContingency(bus.getId())))
                 .collect(Collectors.toList());
-
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.019, result.getBranchFlow1FunctionReferenceValue("NLOAD", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        // FIXME
+        // Contingency 'NHV1' leads to an isolated slack bus: not supported
+        // we output in that case a NO_IMPACT status with pre contingency state.
+        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getContingencyStatus("NHV1"));
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("NHV2", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
+        // FIXME
+        // Contingency 'NGEN' leads to the loss of a slack bus: slack bus kept
+        // we clean the contingency in order to keep the slack bus in the network, leading to a wrong computation.
+        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getContingencyStatus("NGEN")); // status but no outputs.
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NGEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(605.555, result.getBranchFlow1FunctionReferenceValue("NGEN", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
     }
 }
