@@ -152,16 +152,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     private static boolean runLoadFlow(AcLoadFlowContext context, boolean throwsExceptionIfNoConvergence) {
         AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
-        if (result.getNewtonRaphsonStatus() != NewtonRaphsonStatus.CONVERGED
-                && result.getNewtonRaphsonStatus() != NewtonRaphsonStatus.NO_CALCULATION) {
+        if (result.isOk() || result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.NO_CALCULATION) {
+            return true;
+        } else {
             if (throwsExceptionIfNoConvergence) {
-                throw new PowsyblException("Loadflow diverged with status " + result.getNewtonRaphsonStatus());
+                throw new PowsyblException("Load flow ended with status " + result.getNewtonRaphsonStatus());
             } else {
-                LOGGER.warn("Loadflow diverged with status {}", result.getNewtonRaphsonStatus());
+                LOGGER.warn("Load flow ended with status {}", result.getNewtonRaphsonStatus());
                 return false;
             }
         }
-        return true;
     }
 
     /**
