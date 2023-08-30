@@ -64,6 +64,10 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return distributedActivePower;
     }
 
+    public boolean isOk() {
+        return newtonRaphsonStatus == NewtonRaphsonStatus.CONVERGED && newtonRaphsonIterations > 0 && outerLoopStatus == OuterLoopStatus.STABLE;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
