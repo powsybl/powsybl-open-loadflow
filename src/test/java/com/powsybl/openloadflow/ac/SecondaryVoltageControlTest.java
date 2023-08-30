@@ -102,35 +102,32 @@ class SecondaryVoltageControlTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(13, b10);
         assertVoltageEquals(12.945, b6);
-        assertVoltageEquals(23.858, b8);
-        // not so bad...
-        assertEquals(-0.441, qToK(g6), DELTA_POWER);
-        assertEquals(-0.407, qToK(g8), DELTA_POWER);
+        assertVoltageEquals(23.839, b8);
+        assertEquals(-0.412, qToK(g6), DELTA_POWER);
+        assertEquals(-0.412, qToK(g8), DELTA_POWER);
 
         pilotPoint.setTargetV(13.5);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(13.5, b10);
-        assertVoltageEquals(13.336, b6);
-        assertVoltageEquals(25.674, b8);
-        // not so bad...
-        assertEquals(-0.186, qToK(g6), DELTA_POWER);
-        assertEquals(-0.079, qToK(g8), DELTA_POWER);
+        assertVoltageEquals(13.358, b6);
+        assertVoltageEquals(25.621, b8);
+        assertEquals(-0.094, qToK(g6), DELTA_POWER);
+        assertEquals(-0.094, qToK(g8), DELTA_POWER);
 
         pilotPoint.setTargetV(12);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(12, b10);
-        assertVoltageEquals(12.162, b6);
-        assertVoltageEquals(20.225, b8);
-        // not so bad...
-        assertEquals(-0.883, qToK(g6), DELTA_POWER);
-        assertEquals(-0.940, qToK(g8), DELTA_POWER);
+        assertVoltageEquals(12.151, b6);
+        assertVoltageEquals(20.269, b8);
+        assertEquals(-0.932, qToK(g6), DELTA_POWER);
+        assertEquals(-0.932, qToK(g8), DELTA_POWER);
     }
 
 //    @Test

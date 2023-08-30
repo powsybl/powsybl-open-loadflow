@@ -35,6 +35,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
+    private static final double DV_EPS = 1E-4;
+
     private final double minPlausibleTargetVoltage;
 
     private final double maxPlausibleTargetVoltage;
@@ -268,7 +270,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         norm2Dv = FastMath.sqrt(norm2Dv);
         LOGGER.debug("norm2Dv={}", norm2Dv);
 
-        if (norm2Dv > 0.01) {
+        if (norm2Dv > DV_EPS * dv.getRowCount()) {
             for (LfBus controllerBus : controllerBuses) {
                 int i = controllerBusIndex.get(controllerBus.getNum());
                 var pvc = controllerBus.getGeneratorVoltageControl().orElseThrow();
