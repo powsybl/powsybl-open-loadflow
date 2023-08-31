@@ -11,9 +11,6 @@ import java.util.List;
 
 public abstract class AbstractHvdcAcEmulationFlowEquationTerm<T extends Enum<T> & Quantity, U extends Enum<U> & Quantity> extends AbstractElementEquationTerm<LfHvdc, T, U> {
 
-
-
-
     protected final Variable<T> ph1Var;
 
     protected final Variable<T> ph2Var;
@@ -28,10 +25,6 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm<T extends Enum<T> 
 
     protected final double lossFactor2;
 
-    /**
-     * @return TODO documentation
-     */
-    protected abstract T getBusPhi();
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<T> variableSet) {
         super(hvdc);
         ph1Var = variableSet.getVariable(bus1.getNum(), getBusPhi());
@@ -42,6 +35,11 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm<T extends Enum<T> 
         lossFactor1 = hvdc.getConverterStation1().getLossFactor() / 100;
         lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
     }
+
+    /**
+     * @return TODO documentation
+     */
+    protected abstract T getBusPhi();
 
     protected double ph1() {
         return sv.get(ph1Var.getRow());
