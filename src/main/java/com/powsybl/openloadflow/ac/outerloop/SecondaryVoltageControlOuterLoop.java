@@ -18,7 +18,6 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
-import net.jafama.FastMath;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.slf4j.Logger;
@@ -35,7 +34,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
-    private static final double DV_EPS = 1E-4;
+    private static final double DV_EPS = 1E-2;
+    private static final double DK_DIFF_MAX_EPS = 1E-3;
 
     @Override
     public String getType() {
@@ -241,15 +241,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return jVpp;
     }
 
-    private static double calculateNorm2(DenseMatrix vect) {
-        double norm2Dv = 0;
-        for (int i = 0; i < vect.getRowCount(); i++) {
-            norm2Dv += FastMath.pow(vect.get(i, 0), 2);
-        }
-        norm2Dv = FastMath.sqrt(norm2Dv);
-        return norm2Dv;
-    }
-
     private boolean processSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl, SensitivityContext sensitivityContext,
                                                    List<LfBus> controlledBuses) {
         boolean adjusted = false;
@@ -261,51 +252,49 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         var pilotBus = secondaryVoltageControl.getPilotBus();
         double pilotDv = secondaryVoltageControl.getTargetValue() - pilotBus.getV();
         double[] ks = controllerBuses.stream().mapToDouble(SecondaryVoltageControlOuterLoop::calculateK).toArray();
-        double dkMax = Arrays.stream(ks).max().orElseThrow() - Arrays.stream(ks).min().orElseThrow();
-        LOGGER.debug("Secondary voltage control of zone '{}': pilot point dv is {} kV, controller buses dk max is {}",
-                secondaryVoltageControl.getZoneName(), pilotDv * pilotBus.getNominalV(), dkMax);
+        double dkDiffMax = Arrays.stream(ks).max().orElseThrow() - Arrays.stream(ks).min().orElseThrow();
 
-        var controllerBusIndex = buildBusIndex(controllerBuses);
+        if (Math.abs(pilotDv) > DV_EPS || Math.abs(dkDiffMax) > DK_DIFF_MAX_EPS) {
+            LOGGER.debug("Secondary voltage control of zone '{}': pilot point dv is {} kV, controller buses dk diff max is {}",
+                    secondaryVoltageControl.getZoneName(), pilotDv * pilotBus.getNominalV(), dkDiffMax);
 
-        DenseMatrix a = createA(controllerBuses, controllerBusIndex);
-        printMatrix("a", a);
+            var controllerBusIndex = buildBusIndex(controllerBuses);
 
-        DenseMatrix k0 = createK0(controllerBuses, controllerBusIndex);
-        printMatrix("k0", k0);
+            DenseMatrix a = createA(controllerBuses, controllerBusIndex);
+            printMatrix("a", a);
 
-        DenseMatrix rhs = a.times(k0, -1);
-        printMatrix("rhs", rhs);
+            DenseMatrix k0 = createK0(controllerBuses, controllerBusIndex);
+            printMatrix("k0", k0);
 
-        DenseMatrix jK = createJk(sensitivityContext, controllerBuses, controllerBusIndex);
-        printMatrix("jK", jK);
+            DenseMatrix rhs = a.times(k0, -1);
+            printMatrix("rhs", rhs);
 
-        DenseMatrix jVpp = createJvpp(sensitivityContext, pilotBus, controllerBuses, controllerBusIndex);
-        printMatrix("jVpp", jVpp);
+            DenseMatrix jK = createJk(sensitivityContext, controllerBuses, controllerBusIndex);
+            printMatrix("jK", jK);
 
-        DenseMatrix jVppT = jVpp.transpose();
+            DenseMatrix jVpp = createJvpp(sensitivityContext, pilotBus, controllerBuses, controllerBusIndex);
+            printMatrix("jVpp", jVpp);
 
-        DenseMatrix b = a.times(jK);
-        printMatrix("b", b);
+            DenseMatrix jVppT = jVpp.transpose();
 
-        // replace last row
-        for (int j = 0; j < b.getColumnCount(); j++) {
-            b.set(b.getRowCount() - 1, j, jVppT.get(0, j));
-        }
-        rhs.set(rhs.getRowCount() - 1, 0, pilotDv);
-        printMatrix("b (modified)", b);
-        printMatrix("rhs (modified)", rhs);
+            DenseMatrix b = a.times(jK);
+            printMatrix("b", b);
 
-        try (LUDecomposition luDecomposition = b.decomposeLU()) {
-            luDecomposition.solve(rhs);
-        }
-        @SuppressWarnings("UnnecessaryLocalVariable")
-        DenseMatrix dv = rhs;
-        printMatrix("dv", dv);
+            // replace last row
+            for (int j = 0; j < b.getColumnCount(); j++) {
+                b.set(b.getRowCount() - 1, j, jVppT.get(0, j));
+            }
+            rhs.set(rhs.getRowCount() - 1, 0, pilotDv);
+            printMatrix("b (modified)", b);
+            printMatrix("rhs (modified)", rhs);
 
-        double norm2Dv = calculateNorm2(dv);
-        LOGGER.trace("||dv||2={}", norm2Dv);
+            try (LUDecomposition luDecomposition = b.decomposeLU()) {
+                luDecomposition.solve(rhs);
+            }
+            @SuppressWarnings("UnnecessaryLocalVariable")
+            DenseMatrix dv = rhs;
+            printMatrix("dv", dv);
 
-        if (norm2Dv > DV_EPS * dv.getRowCount()) {
             for (LfBus controllerBus : controllerBuses) {
                 int i = controllerBusIndex.get(controllerBus.getNum());
                 var pvc = controllerBus.getGeneratorVoltageControl().orElseThrow();
