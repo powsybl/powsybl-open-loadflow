@@ -80,7 +80,7 @@ public class DcEquationSystemCreator {
                                              DcEquationSystemCreationParameters creationParameters, LfBranch branch,
                                              LfBus bus1, LfBus bus2) {
         if (bus1 != null && bus2 != null) {
-            boolean deriveA1 = (creationParameters.isForcePhaseControlOffAndAddAngle1Var() || creationParameters.isPhaseShifterRegulationOn()) && branch.hasPhaseControllerCapability();
+            boolean deriveA1 = isDeriveA1(branch, creationParameters);
             ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
             ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
             equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
@@ -105,6 +105,11 @@ public class DcEquationSystemCreator {
         } else if (bus2 != null && creationParameters.isUpdateFlows()) {
             branch.setP2(EvaluableConstants.ZERO);
         }
+    }
+
+    protected static boolean isDeriveA1(LfBranch branch, DcEquationSystemCreationParameters creationParameters) {
+        return branch.isPhaseController()
+                || creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControllerCapability() && branch.isConnectedAtBothSides();
     }
 
     private void createBranches(EquationSystem<DcVariableType, DcEquationType> equationSystem) {

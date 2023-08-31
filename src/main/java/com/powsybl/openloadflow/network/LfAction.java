@@ -273,7 +273,7 @@ public final class LfAction {
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
         connectivity.startTemporaryChanges();
-        contingency.getDisabledBranches().forEach(connectivity::removeEdge);
+        contingency.getDisabledNetwork().getBranches().forEach(connectivity::removeEdge);
 
         // update connectivity according to post action state
         connectivity.startTemporaryChanges();

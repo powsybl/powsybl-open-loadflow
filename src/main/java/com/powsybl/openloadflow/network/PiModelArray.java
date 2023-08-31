@@ -24,9 +24,9 @@ public class PiModelArray implements PiModel {
 
     private int tapPositionIndex;
 
-    private double a1 = Double.NaN;
+    private double a1 = Double.NaN; // override a1 at current tap position if not NaN
 
-    private double r1 = Double.NaN;
+    private double r1 = Double.NaN; // override r1 at current tap position if not NaN
 
     private double continuousR1 = Double.NaN;
 
@@ -99,6 +99,14 @@ public class PiModelArray implements PiModel {
     @Override
     public double getB2() {
         return getModel().getB2();
+    }
+
+    public double getModifiedR1() {
+        return r1;
+    }
+
+    public double getModifiedA1() {
+        return a1;
     }
 
     @Override
