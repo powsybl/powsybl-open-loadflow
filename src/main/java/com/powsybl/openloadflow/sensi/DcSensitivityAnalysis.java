@@ -55,7 +55,7 @@ import static com.powsybl.openloadflow.network.util.ParticipatingElement.normali
 public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariableType, DcEquationType> {
 
     private static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
-    private static final double REFERENCE_FUNCTION_ZER0_THRESHOLD = 1e-13;
+    private static final double FUNCTION_REFERENCE_ZER0_THRESHOLD = 1e-13;
 
     static final class ComputedContingencyElement {
 
@@ -333,7 +333,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
-        functionValue = fixZeroReferenceFunction(contingency, functionValue);
+        functionValue = fixZeroFunctionReference(contingency, functionValue);
 
         double unscaledSensi = unscaleSensitivity(factor, sensitivityValue);
         if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
@@ -345,9 +345,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      * Post contingency reference flow, that should be strictly zero, for numeric reason and because it is computed
      * from shifting pre-contingency non-zero flow, cannot end up to a strict zero: very small values are converted to zero.
      */
-    private static double fixZeroReferenceFunction(PropagatedContingency contingency, double functionValue) {
+    private static double fixZeroFunctionReference(PropagatedContingency contingency, double functionValue) {
         if (contingency != null) {
-            return Math.abs(functionValue) < REFERENCE_FUNCTION_ZER0_THRESHOLD ? 0 : functionValue;
+            return Math.abs(functionValue) < FUNCTION_REFERENCE_ZER0_THRESHOLD ? 0 : functionValue;
         }
         return functionValue;
     }
