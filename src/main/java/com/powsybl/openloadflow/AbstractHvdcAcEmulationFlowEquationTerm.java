@@ -1,12 +1,7 @@
-/**
- * Copyright (c) 2023, RTE (http://www.rte-france.com)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-package com.powsybl.openloadflow.dc.equations;
+package com.powsybl.openloadflow;
 
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
+import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
@@ -14,16 +9,16 @@ import com.powsybl.openloadflow.network.LfHvdc;
 
 import java.util.List;
 
-/**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
- */
-public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractElementEquationTerm<LfHvdc, DcVariableType, DcEquationType> {
+public abstract class AbstractHvdcAcEmulationFlowEquationTerm<T extends Enum<T> & Quantity, U extends Enum<U> & Quantity> extends AbstractElementEquationTerm<LfHvdc, T, U> {
 
-    protected final Variable<DcVariableType> ph1Var;
 
-    protected final Variable<DcVariableType> ph2Var;
 
-    protected final List<Variable<DcVariableType>> variables;
+
+    protected final Variable<T> ph1Var;
+
+    protected final Variable<T> ph2Var;
+
+    protected final List<Variable<T>> variables;
 
     protected final double k;
 
@@ -33,10 +28,14 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected final double lossFactor2;
 
-    protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet) {
+    /**
+     * @return TODO documentation
+     */
+    protected abstract T getBusPhi();
+    protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<T> variableSet) {
         super(hvdc);
-        ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
-        ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
+        ph1Var = variableSet.getVariable(bus1.getNum(), getBusPhi());
+        ph2Var = variableSet.getVariable(bus2.getNum(), getBusPhi());
         variables = List.of(ph1Var, ph2Var);
         k = hvdc.getDroop() * 180 / Math.PI;
         p0 = hvdc.getP0();
@@ -57,7 +56,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
     }
 
     @Override
-    public List<Variable<DcVariableType>> getVariables() {
+    public List<Variable<T>> getVariables() {
         return variables;
     }
 

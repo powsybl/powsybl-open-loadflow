@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import com.powsybl.openloadflow.AbstractHvdcAcEmulationFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
@@ -16,7 +17,12 @@ import java.util.Objects;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEmulationFlowEquationTerm {
+public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEmulationFlowEquationTerm<DcVariableType, DcEquationType> {
+
+    @Override
+    protected DcVariableType getBusPhi() {
+        return DcVariableType.BUS_PHI;
+    }
 
     public HvdcAcEmulationSide1ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet) {
         super(hvdc, bus1, bus2, variableSet);
