@@ -49,8 +49,13 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .toList();
     }
 
-    private void findActiveSecondaryVoltageControls(LfNetwork network, Map<LfSecondaryVoltageControl, List<LfBus>> activeSecondaryVoltageControls,
-                                                    Set<LfBus> allControlledBusSet) {
+    record ActiveSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl,
+                                         List<LfBus> controlledBuses) {
+    }
+
+    private List<ActiveSecondaryVoltageControl> findActiveSecondaryVoltageControls(LfNetwork network) {
+        List<ActiveSecondaryVoltageControl> activeSecondaryVoltageControls = new ArrayList<>();
+
         List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls().stream()
                 .filter(control -> !control.getPilotBus().isDisabled())
                 .toList();
@@ -65,14 +70,11 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                     })
                     .toList();
             if (!activeControlledBuses.isEmpty()) {
-                activeSecondaryVoltageControls.put(secondaryVoltageControl, activeControlledBuses);
-                for (LfBus activeControlledBus : activeControlledBuses) {
-                    if (!allControlledBusSet.add(activeControlledBus)) {
-                        throw new IllegalStateException("Non disjoint secondary voltage control zones");
-                    }
-                }
+                activeSecondaryVoltageControls.add(new ActiveSecondaryVoltageControl(secondaryVoltageControl, activeControlledBuses));
             }
         }
+
+        return activeSecondaryVoltageControls;
     }
 
     private static Map<Integer, Integer> buildBusIndex(List<LfBus> buses) {
@@ -320,26 +322,25 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         LfNetwork network = context.getNetwork();
 
         // find active secondary voltage controls
-        //  - pilot bus should be enabled
-        //  - at least one primary control controlled bus should be enabled
-        Map<LfSecondaryVoltageControl, List<LfBus>> activeSecondaryVoltageControls = new LinkedHashMap<>();
-        Set<LfBus> allControlledBusSet = new LinkedHashSet<>();
-        findActiveSecondaryVoltageControls(network, activeSecondaryVoltageControls, allControlledBusSet);
+        List<ActiveSecondaryVoltageControl> activeSecondaryVoltageControls = findActiveSecondaryVoltageControls(network);
 
         if (activeSecondaryVoltageControls.isEmpty()) {
             return OuterLoopStatus.STABLE;
         }
 
-        List<LfBus> allControlledBusList = new ArrayList<>(allControlledBusSet);
+        List<LfBus> allControlledBuses = activeSecondaryVoltageControls.stream()
+                .flatMap(activeSecondaryVoltageControl -> activeSecondaryVoltageControl.controlledBuses().stream())
+                .distinct()
+                .toList();
 
-        SensitivityContext sensitivityContext = SensitivityContext.create(allControlledBusList, context.getLoadFlowContext());
+        SensitivityContext sensitivityContext = SensitivityContext.create(allControlledBuses, context.getLoadFlowContext());
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<String> adjustedZoneNames = new ArrayList<>();
-        for (var e : activeSecondaryVoltageControls.entrySet()) {
-            var secondaryVoltageControl = e.getKey();
-            var controlledBuses = e.getValue();
+        for (var activeSecondaryVoltageControl : activeSecondaryVoltageControls) {
+            var secondaryVoltageControl = activeSecondaryVoltageControl.secondaryVoltageControl();
+            var controlledBuses = activeSecondaryVoltageControl.controlledBuses();
             boolean adjusted = processSecondaryVoltageControl(secondaryVoltageControl, sensitivityContext, controlledBuses);
             if (adjusted) {
                 adjustedZoneNames.add(secondaryVoltageControl.getZoneName());

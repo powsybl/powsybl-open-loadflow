@@ -769,6 +769,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
             }, () -> LOGGER.warn("None of the pilot buses of control zone '{}' is valid", controlZone.getName()));
         }
+        // FIXME: check all secondary voltage control controlled buses are disjoints
         LOGGER.info("Network {}: {} secondary control zones have been created", lfNetwork, lfNetwork.getSecondaryVoltageControls().size());
     }
 
