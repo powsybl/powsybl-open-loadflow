@@ -50,7 +50,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     }
 
     record ActiveSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl,
-                                         List<LfBus> controlledBuses) {
+                                         List<LfBus> activeControlledBuses) {
     }
 
     private List<ActiveSecondaryVoltageControl> findActiveSecondaryVoltageControls(LfNetwork network) {
@@ -329,7 +329,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         }
 
         List<LfBus> allControlledBuses = activeSecondaryVoltageControls.stream()
-                .flatMap(activeSecondaryVoltageControl -> activeSecondaryVoltageControl.controlledBuses().stream())
+                .flatMap(activeSecondaryVoltageControl -> activeSecondaryVoltageControl.activeControlledBuses().stream())
                 .distinct()
                 .toList();
 
@@ -340,7 +340,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         List<String> adjustedZoneNames = new ArrayList<>();
         for (var activeSecondaryVoltageControl : activeSecondaryVoltageControls) {
             var secondaryVoltageControl = activeSecondaryVoltageControl.secondaryVoltageControl();
-            var controlledBuses = activeSecondaryVoltageControl.controlledBuses();
+            var controlledBuses = activeSecondaryVoltageControl.activeControlledBuses();
             boolean adjusted = processSecondaryVoltageControl(secondaryVoltageControl, sensitivityContext, controlledBuses);
             if (adjusted) {
                 adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
