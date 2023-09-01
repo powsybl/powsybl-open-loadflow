@@ -34,8 +34,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
-    private static final double DV_EPS = 1E-2;
-    private static final double DK_DIFF_MAX_EPS = 1E-3;
+    private static final double DV_EPS = 1E-4; // 0.1 kV
+    private static final double DK_DIFF_MAX_EPS = 1E-3; // 1 MVar
 
     @Override
     public String getType() {
@@ -241,6 +241,11 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return jVpp;
     }
 
+    private static double calculateDkDiffMax(List<LfBus> controllerBuses) {
+        double[] ks = controllerBuses.stream().mapToDouble(SecondaryVoltageControlOuterLoop::calculateK).toArray();
+        return Arrays.stream(ks).max().orElseThrow() - Arrays.stream(ks).min().orElseThrow();
+    }
+
     private boolean processSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl, SensitivityContext sensitivityContext,
                                                    List<LfBus> controlledBuses) {
         boolean adjusted = false;
@@ -251,8 +256,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         var pilotBus = secondaryVoltageControl.getPilotBus();
         double pilotDv = secondaryVoltageControl.getTargetValue() - pilotBus.getV();
-        double[] ks = controllerBuses.stream().mapToDouble(SecondaryVoltageControlOuterLoop::calculateK).toArray();
-        double dkDiffMax = Arrays.stream(ks).max().orElseThrow() - Arrays.stream(ks).min().orElseThrow();
+        double dkDiffMax = calculateDkDiffMax(controllerBuses);
 
         if (Math.abs(pilotDv) > DV_EPS || Math.abs(dkDiffMax) > DK_DIFF_MAX_EPS) {
             LOGGER.debug("Secondary voltage control of zone '{}': pilot point dv is {} kV, controller buses dk diff max is {}",
