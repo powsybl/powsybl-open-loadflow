@@ -45,7 +45,13 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     private static List<LfBus> findControllerBuses(LfBus controlledBus) {
         return controlledBus.getGeneratorVoltageControl().orElseThrow()
                 .getMergedControllerElements().stream()
-                .filter(bus -> !bus.isDisabled() && bus.isGeneratorVoltageControlEnabled())
+                .filter(controllerBus -> !controllerBus.isDisabled())
+                .toList();
+    }
+
+    private static List<LfBus> findVoltageControlEnabledControllerBuses(LfBus controlledBus) {
+        return findControllerBuses(controlledBus).stream()
+                .filter(LfBus::isGeneratorVoltageControlEnabled)
                 .toList();
     }
 
@@ -53,26 +59,31 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                                          List<LfBus> activeControlledBuses) {
     }
 
+    private static boolean filterActiveControlledBus(LfBus controlledBus) {
+        GeneratorVoltageControl voltageControl = controlledBus.getGeneratorVoltageControl().orElseThrow();
+        return !controlledBus.isDisabled()
+                && !voltageControl.isHidden()
+                && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN;
+    }
+
+    private static boolean filterSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
+        return !secondaryVoltageControl.getPilotBus().isDisabled();
+    }
+
     private List<ActiveSecondaryVoltageControl> findActiveSecondaryVoltageControls(LfNetwork network) {
         List<ActiveSecondaryVoltageControl> activeSecondaryVoltageControls = new ArrayList<>();
 
-        List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls().stream()
-                .filter(control -> !control.getPilotBus().isDisabled())
-                .toList();
-        for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
-            List<LfBus> activeControlledBuses = secondaryVoltageControl.getControlledBuses().stream()
-                    .filter(controlledBus -> {
-                        GeneratorVoltageControl voltageControl = controlledBus.getGeneratorVoltageControl().orElseThrow();
-                        return !controlledBus.isDisabled()
-                                && !findControllerBuses(controlledBus).isEmpty()
-                                && !voltageControl.isHidden()
-                                && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN;
-                    })
-                    .toList();
-            if (!activeControlledBuses.isEmpty()) {
-                activeSecondaryVoltageControls.add(new ActiveSecondaryVoltageControl(secondaryVoltageControl, activeControlledBuses));
-            }
-        }
+        network.getSecondaryVoltageControls().stream()
+                .filter(SecondaryVoltageControlOuterLoop::filterSecondaryVoltageControl)
+                .forEach(secondaryVoltageControl -> {
+                    List<LfBus> activeControlledBuses = secondaryVoltageControl.getControlledBuses().stream()
+                            .filter(controlledBus -> filterActiveControlledBus(controlledBus)
+                                    && !findVoltageControlEnabledControllerBuses(controlledBus).isEmpty())
+                            .toList();
+                    if (!activeControlledBuses.isEmpty()) {
+                        activeSecondaryVoltageControls.add(new ActiveSecondaryVoltageControl(secondaryVoltageControl, activeControlledBuses));
+                    }
+                });
 
         return activeSecondaryVoltageControls;
     }
@@ -243,9 +254,18 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return jVpp;
     }
 
-    private static double calculateDkDiffMax(List<LfBus> controllerBuses) {
+    private record KStats(double kAverage, double dkDiffMax) {
+    }
+
+    private static KStats calculateKStats(List<LfBus> controllerBuses) {
         double[] ks = controllerBuses.stream().mapToDouble(SecondaryVoltageControlOuterLoop::calculateK).toArray();
-        return Arrays.stream(ks).max().orElseThrow() - Arrays.stream(ks).min().orElseThrow();
+        double dkDiffMax = Arrays.stream(ks).max().orElseThrow() - Arrays.stream(ks).min().orElseThrow();
+        double kAverage = Arrays.stream(ks).average().orElseThrow();
+        return new KStats(kAverage, dkDiffMax);
+    }
+
+    private static double calculatePilotPointDv(LfSecondaryVoltageControl secondaryVoltageControl) {
+        return secondaryVoltageControl.getTargetValue() - secondaryVoltageControl.getPilotBus().getV();
     }
 
     private boolean processSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl, SensitivityContext sensitivityContext,
@@ -253,16 +273,15 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         boolean adjusted = false;
 
         List<LfBus> controllerBuses = controlledBuses.stream()
-                .flatMap(controlledBus -> findControllerBuses(controlledBus).stream())
+                .flatMap(controlledBus -> findVoltageControlEnabledControllerBuses(controlledBus).stream())
                 .toList();
 
-        var pilotBus = secondaryVoltageControl.getPilotBus();
-        double pilotDv = secondaryVoltageControl.getTargetValue() - pilotBus.getV();
-        double dkDiffMax = calculateDkDiffMax(controllerBuses);
-
-        if (Math.abs(pilotDv) > DV_EPS || Math.abs(dkDiffMax) > DK_DIFF_MAX_EPS) {
-            LOGGER.debug("Secondary voltage control of zone '{}': pilot point dv is {} kV, controller buses dk diff max is {}",
-                    secondaryVoltageControl.getZoneName(), pilotDv * pilotBus.getNominalV(), dkDiffMax);
+        double pilotDv = calculatePilotPointDv(secondaryVoltageControl);
+        KStats kStats = calculateKStats(controllerBuses);
+        if (Math.abs(pilotDv) > DV_EPS || Math.abs(kStats.dkDiffMax()) > DK_DIFF_MAX_EPS) {
+            var pilotBus = secondaryVoltageControl.getPilotBus();
+            LOGGER.debug("Secondary voltage control of zone '{}': pilot point dv is {} kV, controller buses dk diff max is {} (k average is {})",
+                    secondaryVoltageControl.getZoneName(), pilotDv * pilotBus.getNominalV(), kStats.dkDiffMax(), kStats.kAverage());
 
             var controllerBusIndex = buildBusIndex(controllerBuses);
 
@@ -317,6 +336,51 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return adjusted;
     }
 
+    private static void checkIfControllerBusCouldBeReEnabled(LfSecondaryVoltageControl control, LfBus controllerBus, List<LfBus> controllerBusesThatWillBeEnabled,
+                                                             List<LfBus> controllerBusesToEnable) {
+        if (controllerBus.isGeneratorVoltageControlEnabled()) {
+            controllerBusesThatWillBeEnabled.add(controllerBus);
+        }
+        controllerBus.getQLimitType().ifPresent(qLimitType -> {
+            var pilotBus = control.getPilotBus();
+            if (qLimitType == LfBus.QLimitType.MIN_Q) {
+                if (pilotBus.getV() < control.getTargetValue()) {
+                    controllerBusesToEnable.add(controllerBus);
+                    controllerBusesThatWillBeEnabled.add(controllerBus);
+                }
+            } else { // MAX_Q
+                if (pilotBus.getV() > control.getTargetValue()) {
+                    controllerBusesToEnable.add(controllerBus);
+                    controllerBusesThatWillBeEnabled.add(controllerBus);
+                }
+            }
+        });
+    }
+
+    private static void tryToReEnableControllerBuses(LfSecondaryVoltageControl control) {
+        List<LfBus> controllerBusesToEnable = new ArrayList<>();
+        List<LfBus> controllerBusesThatWillBeEnabled = new ArrayList<>(); // includes controller already enabled plus the one that will be re-enabled
+        control.getControlledBuses().stream()
+                .filter(SecondaryVoltageControlOuterLoop::filterActiveControlledBus)
+                .forEach(controlledBus -> findControllerBuses(controlledBus)
+                        .forEach(controllerBus -> checkIfControllerBusCouldBeReEnabled(control, controllerBus, controllerBusesThatWillBeEnabled, controllerBusesToEnable)));
+        // check that controllers are not already aligned
+        if (!controllerBusesToEnable.isEmpty() && calculateKStats(controllerBusesThatWillBeEnabled).dkDiffMax() > DK_DIFF_MAX_EPS) {
+            for (LfBus controllerBus : controllerBusesToEnable) {
+                controllerBus.setGeneratorVoltageControlEnabled(true);
+            }
+            LOGGER.debug("Secondary voltage control of zone '{}': voltage control of controller buses {} has been enabled because might help to reach pilot bus target",
+                    control.getZoneName(), controllerBusesToEnable.stream().map(LfElement::getId).toList());
+        }
+    }
+
+    private static void tryToReEnableControllerBuses(LfNetwork network) {
+        network.getSecondaryVoltageControls().stream()
+                .filter(SecondaryVoltageControlOuterLoop::filterSecondaryVoltageControl)
+                .filter(control -> calculatePilotPointDv(control) > DV_EPS) // skip secondary voltage control that have already reached their pilot point target
+                .forEach(SecondaryVoltageControlOuterLoop::tryToReEnableControllerBuses);
+    }
+
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         LfNetwork network = context.getNetwork();
@@ -327,6 +391,10 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         if (activeSecondaryVoltageControls.isEmpty()) {
             return OuterLoopStatus.STABLE;
         }
+
+        // try to re-enable controller buses that have reached a reactive power limit (so bus switched to PQ) if they
+        // can help to reach pilot point voltage target
+        tryToReEnableControllerBuses(network);
 
         List<LfBus> allControlledBuses = activeSecondaryVoltageControls.stream()
                 .flatMap(activeSecondaryVoltageControl -> activeSecondaryVoltageControl.activeControlledBuses().stream())
