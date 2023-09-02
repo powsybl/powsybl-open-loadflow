@@ -381,6 +381,24 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .forEach(SecondaryVoltageControlOuterLoop::tryToReEnableHelpfulControllerBuses);
     }
 
+    private static void logZonesAtMaxReactivePowerLimit(LfNetwork network) {
+        List<String> zonesAtMaxReactifPowerLimit = network.getSecondaryVoltageControls().stream()
+                .filter(SecondaryVoltageControlOuterLoop::filterSecondaryVoltageControl)
+                .filter(control -> {
+                    List<LfBus> enabledControllerBuses = control.getControlledBuses().stream()
+                            .filter(SecondaryVoltageControlOuterLoop::filterActiveControlledBus)
+                            .flatMap(controlledBus -> findVoltageControlEnabledControllerBuses(controlledBus).stream())
+                            .toList();
+                    return enabledControllerBuses.isEmpty();
+                })
+                .map(LfSecondaryVoltageControl::getZoneName)
+                .toList();
+        if (!zonesAtMaxReactifPowerLimit.isEmpty()) {
+            LOGGER.info("Controller buses of secondary voltage control zones {} cannot provide or absorb more reactive power",
+                    zonesAtMaxReactifPowerLimit);
+        }
+    }
+
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         LfNetwork network = context.getNetwork();
@@ -389,7 +407,11 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         // can help to reach pilot point voltage target
         tryToReEnableHelpfulControllerBuses(network);
 
-        // find active secondary voltage controls
+        // log zones where all controllers have reached reactive limit
+        logZonesAtMaxReactivePowerLimit(network);
+
+        // find active zones, so one that could still try to reach pilot point voltage target
+        // but adjusting voltage target of controller buses
         List<ActiveSecondaryVoltageControl> activeSecondaryVoltageControls = findActiveSecondaryVoltageControls(network);
 
         if (activeSecondaryVoltageControls.isEmpty()) {
