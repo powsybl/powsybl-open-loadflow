@@ -760,17 +760,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                             .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                             .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
                             .collect(Collectors.toCollection((Supplier<Set<LfBus>>) LinkedHashSet::new));
-                    LOGGER.debug("{} control units of control zone '{}' have been mapped to a {} LF buses",
-                            controlZone.getControlUnits().size(), controlZone.getName(), controlledBuses.size());
+                    LOGGER.debug("{} control units of control zone '{}' have been mapped to {} LF buses ({})",
+                            controlZone.getControlUnits().size(), controlZone.getName(), controlledBuses.size(),
+                            controlledBuses.stream().map(LfElement::getId).toList());
                     if (!controlledBuses.isEmpty()) {
                         var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, controlledBuses);
                         lfNetwork.addSecondaryVoltageControl(lfSvc);
                     }
                 }
-            }, () -> LOGGER.warn("None of the pilot buses of control zone '{}' is valid", controlZone.getName()));
+            }, () -> LOGGER.warn("None of the pilot buses of control zone '{}' are valid", controlZone.getName()));
         }
         // FIXME: check all secondary voltage control controlled buses are disjoints
-        LOGGER.info("Network {}: {} secondary control zones have been created", lfNetwork, lfNetwork.getSecondaryVoltageControls().size());
+        LOGGER.info("Network {}: {} secondary control zones have been created ({})", lfNetwork, lfNetwork.getSecondaryVoltageControls().size(),
+                lfNetwork.getSecondaryVoltageControls().stream().map(LfSecondaryVoltageControl::getZoneName).toList());
     }
 
     private static Optional<Bus> findPilotBus(Network network, boolean breaker, List<String> busbarSectionsOrBusesId) {
