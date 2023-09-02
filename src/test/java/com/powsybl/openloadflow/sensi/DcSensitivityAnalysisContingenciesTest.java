@@ -14,6 +14,7 @@ import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -2367,5 +2368,72 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         runner.run(network, parameters);
         g.setTargetP(g.getTargetP() - 1);
         return l.getTerminal1().getP() - p1Before;
+    }
+
+    /**
+     *                      NHV1_NHV1
+     *              --------------------------
+     *             /                          \
+     * NGEN --- NHV1                           NHV2 --- NLOAD
+     *            \                            /
+     *             ----------- NHV3 -----------
+     *             NHV1_NHV2_1      NHV1_NHV2_2
+     */
+    @Test
+    void testOneOfTwoSerialLinesContingency() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getLine("NHV1_NHV2_1").remove();
+        Substation p3 = network.newSubstation()
+                .setId("P3")
+                .setCountry(Country.FR)
+                .add();
+        VoltageLevel vlhv3 = p3.newVoltageLevel()
+                .setId("VLHV3")
+                .setNominalV(380)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vlhv3.getBusBreakerView().newBus()
+                .setId("NHV3")
+                .add();
+        network.newLine()
+                .setId("NHV1_NHV2_1_1")
+                .setVoltageLevel1("VLHV1")
+                .setBus1("NHV1")
+                .setVoltageLevel2("VLHV3")
+                .setBus2("NHV3")
+                .setR(3.0 / 2)
+                .setX(33.0 / 2)
+                .setB1(386E-6 / 4)
+                .setB2(386E-6 / 3)
+                .add();
+        network.newLine()
+                .setId("NHV1_NHV2_1_2")
+                .setVoltageLevel1("VLHV3")
+                .setBus1("NHV3")
+                .setVoltageLevel2("VLHV2")
+                .setBus2("NHV2")
+                .setR(3.0 / 2)
+                .setX(33.0 / 2)
+                .setB1(386E-6 / 4)
+                .setB2(386E-6 / 3)
+                .add();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+
+        List<SensitivityFactor> factors = List.of(new SensitivityFactor(
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                "NHV1_NHV2_1_2",
+                SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                "GEN",
+                false,
+                ContingencyContext.all())
+        );
+
+        List<Contingency> contingencies = List.of(Contingency.line("NHV1_NHV2_1_1"));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        assertEquals(303.5d, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1_2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1_1", "NHV1_NHV2_1_2"), 0d); // strict zero and not anymore a small value
     }
 }
