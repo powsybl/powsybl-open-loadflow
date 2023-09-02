@@ -75,13 +75,13 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         network.getSecondaryVoltageControls().stream()
                 .filter(SecondaryVoltageControlOuterLoop::filterSecondaryVoltageControl)
-                .forEach(secondaryVoltageControl -> {
-                    List<LfBus> activeControlledBuses = secondaryVoltageControl.getControlledBuses().stream()
+                .forEach(control -> {
+                    List<LfBus> activeControlledBuses = control.getControlledBuses().stream()
                             .filter(controlledBus -> filterActiveControlledBus(controlledBus)
                                     && !findVoltageControlEnabledControllerBuses(controlledBus).isEmpty())
                             .toList();
                     if (!activeControlledBuses.isEmpty()) {
-                        activeSecondaryVoltageControls.add(new ActiveSecondaryVoltageControl(secondaryVoltageControl, activeControlledBuses));
+                        activeSecondaryVoltageControls.add(new ActiveSecondaryVoltageControl(control, activeControlledBuses));
                     }
                 });
 
@@ -357,7 +357,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         });
     }
 
-    private static void tryToReEnableControllerBuses(LfSecondaryVoltageControl control) {
+    private static void tryToReEnableHelpfulControllerBuses(LfSecondaryVoltageControl control) {
         List<LfBus> controllerBusesToEnable = new ArrayList<>();
         List<LfBus> controllerBusesThatWillBeEnabled = new ArrayList<>(); // includes controller already enabled plus the one that will be re-enabled
         control.getControlledBuses().stream()
@@ -374,16 +374,20 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         }
     }
 
-    private static void tryToReEnableControllerBuses(LfNetwork network) {
+    private static void tryToReEnableHelpfulControllerBuses(LfNetwork network) {
         network.getSecondaryVoltageControls().stream()
                 .filter(SecondaryVoltageControlOuterLoop::filterSecondaryVoltageControl)
                 .filter(control -> calculatePilotPointDv(control) > DV_EPS) // skip secondary voltage control that have already reached their pilot point target
-                .forEach(SecondaryVoltageControlOuterLoop::tryToReEnableControllerBuses);
+                .forEach(SecondaryVoltageControlOuterLoop::tryToReEnableHelpfulControllerBuses);
     }
 
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         LfNetwork network = context.getNetwork();
+
+        // try to re-enable controller buses that have reached a reactive power limit (so bus switched to PQ) if they
+        // can help to reach pilot point voltage target
+        tryToReEnableHelpfulControllerBuses(network);
 
         // find active secondary voltage controls
         List<ActiveSecondaryVoltageControl> activeSecondaryVoltageControls = findActiveSecondaryVoltageControls(network);
@@ -391,10 +395,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         if (activeSecondaryVoltageControls.isEmpty()) {
             return OuterLoopStatus.STABLE;
         }
-
-        // try to re-enable controller buses that have reached a reactive power limit (so bus switched to PQ) if they
-        // can help to reach pilot point voltage target
-        tryToReEnableControllerBuses(network);
 
         List<LfBus> allControlledBuses = activeSecondaryVoltageControls.stream()
                 .flatMap(activeSecondaryVoltageControl -> activeSecondaryVoltageControl.activeControlledBuses().stream())
