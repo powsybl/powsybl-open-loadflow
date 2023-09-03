@@ -366,9 +366,10 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .forEach(controlledBus -> findControllerBuses(controlledBus)
                         .forEach(controllerBus -> checkIfControllerBusCouldBeReEnabled(control, controllerBus, controllerBusesThatWillBeEnabled, controllerBusesToEnable)));
         // check that controllers are not already aligned
-        if (!controllerBusesToEnable.isEmpty() && calculateKStats(controllerBusesThatWillBeEnabled).dkDiffMax() > DK_DIFF_MAX_EPS) {
+        if (!controllerBusesToEnable.isEmpty()) {
             for (LfBus controllerBus : controllerBusesToEnable) {
                 controllerBus.setGeneratorVoltageControlEnabled(true);
+                controllerBus.setQLimitType(null);
             }
             LOGGER.debug("Secondary voltage control of zone '{}': voltage control of controller buses {} has been enabled because might help to reach pilot bus target",
                     control.getZoneName(), controllerBusesToEnable.stream().map(LfElement::getId).toList());

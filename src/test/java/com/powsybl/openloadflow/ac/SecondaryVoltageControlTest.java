@@ -152,11 +152,37 @@ class SecondaryVoltageControlTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(8, result.getComponentResults().get(0).getIterationCount());
 
-        assertVoltageEquals(11.736, b10);
+        assertVoltageEquals(11.736, b10); // 11.5 kV was not feasible
         assertVoltageEquals(11.924, b6);
         assertVoltageEquals(19.537, b8);
         assertReactivePowerEquals(6, g6.getTerminal()); // [-6, 24] => qmin
         assertReactivePowerEquals(6, g8.getTerminal()); // [-6, 200] => qmin
+    }
+
+    @Test
+    void testUnblockGeneratorFromLimit() {
+        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 15);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
+                        new ControlUnit("B8-G"))))
+                .add();
+
+        // to put g6 and g8 at q min
+        g6.setTargetV(11.8);
+        g8.setTargetV(19.5);
+
+        parametersExt.setSecondaryVoltageControl(true);
+
+        // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(17, result.getComponentResults().get(0).getIterationCount());
+
+        assertVoltageEquals(15, b10);
+        assertVoltageEquals(14.604, b6);
+        assertVoltageEquals(30.744, b8);
+        assertReactivePowerEquals(-24, g6.getTerminal()); // [-6, 24] => qmax
+        assertReactivePowerEquals(-200, g8.getTerminal()); // [-6, 200] => qmax
     }
 
     @Test
