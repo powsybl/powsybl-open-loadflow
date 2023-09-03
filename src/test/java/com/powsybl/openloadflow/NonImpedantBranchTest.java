@@ -366,8 +366,18 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(1).getStatus());
     }
 
+    /**
+     *
+     * g0 (regulate b1)
+     * |                               t23 (regulate b3)
+     * b0 ----- b1 ===== b2 ===== b3 --OO-- b4
+     *          |                 |         |
+     *           ------- b5 ------         ld4
+     *                   |
+     *                   g5
+     */
     @Test
-    void securityAnalysisTest2() {
+    void securityAnalysisNotSameNumberOfVariablesAndEquationsIssueTest() {
         Network network = Network.create("test", "code");
         Bus b0 = createBus(network, "s", "b0");
         Bus b1 = createBus(network, "s", "b1");
