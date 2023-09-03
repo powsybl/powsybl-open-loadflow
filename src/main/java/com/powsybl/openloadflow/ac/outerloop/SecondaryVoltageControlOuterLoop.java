@@ -326,7 +326,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 var pvc = controllerBus.getGeneratorVoltageControl().orElseThrow();
                 LfBus controlledBus = pvc.getControlledBus();
                 double newPvcTargetV = pvc.getTargetValue() + dv.get(i, 0);
-                LOGGER.info("Adjust target voltage of controlled bus '{}': {} -> {}",
+                LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}",
                         controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
                         newPvcTargetV * controlledBus.getNominalV());
                 pvc.setTargetValue(newPvcTargetV);
