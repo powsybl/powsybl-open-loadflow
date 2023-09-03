@@ -382,8 +382,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .forEach(SecondaryVoltageControlOuterLoop::tryToReEnableHelpfulControllerBuses);
     }
 
-    private static void logZonesAtReactivePowerLimit(LfNetwork network) {
-        List<String> zonesAtReactivePowerLimit = network.getSecondaryVoltageControls().stream()
+    private static void logZonesWithAllBusControllersAtReactivePowerLimit(LfNetwork network) {
+        List<String> zoneNames = network.getSecondaryVoltageControls().stream()
                 .filter(SecondaryVoltageControlOuterLoop::filterSecondaryVoltageControl)
                 .filter(control -> {
                     List<LfBus> enabledControllerBuses = control.getControlledBuses().stream()
@@ -394,9 +394,9 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 })
                 .map(LfSecondaryVoltageControl::getZoneName)
                 .toList();
-        if (!zonesAtReactivePowerLimit.isEmpty()) {
+        if (!zoneNames.isEmpty()) {
             LOGGER.info("Controller buses of secondary voltage control zones {} cannot produce or absorb more reactive power",
-                    zonesAtReactivePowerLimit);
+                    zoneNames);
         }
     }
 
@@ -408,8 +408,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         // can help to reach pilot point voltage target
         tryToReEnableHelpfulControllerBuses(network);
 
-        // log zones where all controllers have reached reactive limit
-        logZonesAtReactivePowerLimit(network);
+        // log zones where all controllers have reached reactive power limit
+        logZonesWithAllBusControllersAtReactivePowerLimit(network);
 
         // find active zones, so one that could still try to reach pilot point voltage target
         // but adjusting voltage target of controller buses
