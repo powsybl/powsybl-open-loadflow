@@ -337,8 +337,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return adjusted;
     }
 
-    private static void checkIfControllerBusCouldBeReEnabled(LfSecondaryVoltageControl control, LfBus controllerBus, List<LfBus> controllerBusesThatWillBeEnabled,
-                                                             List<LfBus> controllerBusesToEnable) {
+    private static void tryToReEnableControllerBus(LfSecondaryVoltageControl control, LfBus controllerBus, List<LfBus> controllerBusesThatWillBeEnabled,
+                                                   List<LfBus> controllerBusesToEnable) {
         if (controllerBus.isGeneratorVoltageControlEnabled()) {
             controllerBusesThatWillBeEnabled.add(controllerBus);
         }
@@ -364,7 +364,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         control.getControlledBuses().stream()
                 .filter(SecondaryVoltageControlOuterLoop::filterActiveControlledBus)
                 .forEach(controlledBus -> findControllerBuses(controlledBus)
-                        .forEach(controllerBus -> checkIfControllerBusCouldBeReEnabled(control, controllerBus, controllerBusesThatWillBeEnabled, controllerBusesToEnable)));
+                        .forEach(controllerBus -> tryToReEnableControllerBus(control, controllerBus, controllerBusesThatWillBeEnabled, controllerBusesToEnable)));
         if (!controllerBusesToEnable.isEmpty()) {
             for (LfBus controllerBus : controllerBusesToEnable) {
                 controllerBus.setGeneratorVoltageControlEnabled(true);
