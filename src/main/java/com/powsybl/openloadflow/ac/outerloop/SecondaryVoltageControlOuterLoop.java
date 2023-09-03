@@ -365,7 +365,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .filter(SecondaryVoltageControlOuterLoop::filterActiveControlledBus)
                 .forEach(controlledBus -> findControllerBuses(controlledBus)
                         .forEach(controllerBus -> checkIfControllerBusCouldBeReEnabled(control, controllerBus, controllerBusesThatWillBeEnabled, controllerBusesToEnable)));
-        // check that controllers are not already aligned
         if (!controllerBusesToEnable.isEmpty()) {
             for (LfBus controllerBus : controllerBusesToEnable) {
                 controllerBus.setGeneratorVoltageControlEnabled(true);
