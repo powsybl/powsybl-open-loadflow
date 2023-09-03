@@ -395,7 +395,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .map(LfSecondaryVoltageControl::getZoneName)
                 .toList();
         if (!zonesAtMaxReactifPowerLimit.isEmpty()) {
-            LOGGER.info("Controller buses of secondary voltage control zones {} cannot provide or absorb more reactive power",
+            LOGGER.info("Controller buses of secondary voltage control zones {} cannot produce or absorb more reactive power",
                     zonesAtMaxReactifPowerLimit);
         }
     }
