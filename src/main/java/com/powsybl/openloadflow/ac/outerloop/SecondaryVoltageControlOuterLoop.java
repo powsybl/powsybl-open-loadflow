@@ -254,14 +254,15 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return jVpp;
     }
 
-    private record KStats(double kAverage, double dkDiffMax) {
+    private record KStats(double kAverage, double dkDiffMax, boolean allAtLimits) {
     }
 
     private static KStats calculateKStats(List<LfBus> controllerBuses) {
         double[] ks = controllerBuses.stream().mapToDouble(SecondaryVoltageControlOuterLoop::calculateK).toArray();
         double dkDiffMax = Arrays.stream(ks).max().orElseThrow() - Arrays.stream(ks).min().orElseThrow();
         double kAverage = Arrays.stream(ks).average().orElseThrow();
-        return new KStats(kAverage, dkDiffMax);
+        boolean allAtLimits = Arrays.stream(ks).allMatch(k -> k > 1) || Arrays.stream(ks).allMatch(k -> k < -1);
+        return new KStats(kAverage, dkDiffMax, allAtLimits);
     }
 
     private static double calculatePilotPointDv(LfSecondaryVoltageControl secondaryVoltageControl) {
@@ -278,7 +279,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         double pilotDv = calculatePilotPointDv(secondaryVoltageControl);
         KStats kStats = calculateKStats(controllerBuses);
-        if (Math.abs(pilotDv) > DV_EPS || Math.abs(kStats.dkDiffMax()) > DK_DIFF_MAX_EPS) {
+        if (Math.abs(pilotDv) > DV_EPS || !kStats.allAtLimits() && Math.abs(kStats.dkDiffMax()) > DK_DIFF_MAX_EPS) {
             var pilotBus = secondaryVoltageControl.getPilotBus();
             LOGGER.debug("Secondary voltage control of zone '{}': pilot point dv is {} kV, controller buses dk diff max is {} (k average is {})",
                     secondaryVoltageControl.getZoneName(), pilotDv * pilotBus.getNominalV(), kStats.dkDiffMax(), kStats.kAverage());
