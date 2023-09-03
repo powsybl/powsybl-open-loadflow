@@ -152,16 +152,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     private static boolean runLoadFlow(AcLoadFlowContext context, boolean throwsExceptionIfNoConvergence) {
         AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
-        if (result.getNewtonRaphsonStatus() != NewtonRaphsonStatus.CONVERGED
-                && result.getNewtonRaphsonStatus() != NewtonRaphsonStatus.NO_CALCULATION) {
+        if (result.isOk() || result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.NO_CALCULATION) {
+            return true;
+        } else {
             if (throwsExceptionIfNoConvergence) {
-                throw new PowsyblException("Loadflow diverged with status " + result.getNewtonRaphsonStatus());
+                throw new PowsyblException("Load flow ended with status " + result.getNewtonRaphsonStatus());
             } else {
-                LOGGER.warn("Loadflow diverged with status {}", result.getNewtonRaphsonStatus());
+                LOGGER.warn("Load flow ended with status {}", result.getNewtonRaphsonStatus());
                 return false;
             }
         }
-        return true;
     }
 
     /**
@@ -312,12 +312,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                                 lfContingency.apply(lfParameters.getBalanceType());
 
-                                setPredefinedResults(contingencyFactors, lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches(), contingency);
+                                setPredefinedResults(contingencyFactors, lfContingency.getDisabledNetwork(), contingency);
 
                                 Map<LfBus, Double> postContingencySlackParticipationByBus;
                                 Set<LfBus> slackConnectedComponent;
                                 boolean hasChanged = false;
-                                if (lfContingency.getDisabledBuses().isEmpty()) {
+                                if (lfContingency.getDisabledNetwork().getBuses().isEmpty()) {
                                     // contingency not breaking connectivity
                                     LOGGER.debug("Contingency '{}' without loss of connectivity", lfContingency.getId());
                                     slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
@@ -325,9 +325,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                     // contingency breaking connectivity
                                     LOGGER.debug("Contingency '{}' with loss of connectivity", lfContingency.getId());
                                     // we check if factors are still in the main component
-                                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledBuses()::contains)).collect(Collectors.toSet());
+                                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledNetwork().getBuses()::contains)).collect(Collectors.toSet());
                                     // we recompute GLSK weights if needed
-                                    hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledBuses());
+                                    hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledNetwork().getBuses());
                                 }
 
                                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
