@@ -26,7 +26,7 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements AcOu
 
     protected static List<LfBranch> getControllerBranches(LfNetwork network) {
         return network.getBuses().stream()
-                .filter(bus -> bus.isTransformerVoltageControlled())
+                .filter(LfBus::isTransformerVoltageControlled)
                 .filter(bus -> bus.getTransformerVoltageControl().get().getMergeStatus() == VoltageControl.MergeStatus.MAIN // FIXME: is MAIN status needed as not hidden
                         && !bus.getTransformerVoltageControl().get().isHidden())
                 .flatMap(bus -> bus.getTransformerVoltageControl().get().getMergedControllerElements().stream())
