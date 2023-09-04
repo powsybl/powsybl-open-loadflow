@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PiModel;
-import com.powsybl.openloadflow.network.TransformerVoltageControl;
+import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +25,12 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements AcOu
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
     protected static List<LfBranch> getControllerBranches(LfNetwork network) {
-        return network.getBranches()
-                .stream().filter(branch -> !branch.isDisabled() && branch.isVoltageController())
+        return network.getBuses().stream()
+                .filter(bus -> bus.isTransformerVoltageControlled())
+                .filter(bus -> bus.getTransformerVoltageControl().get().getMergeStatus() == VoltageControl.MergeStatus.MAIN // FIXME: is MAIN status needed as not hidden
+                        && !bus.getTransformerVoltageControl().get().isHidden())
+                .flatMap(bus -> bus.getTransformerVoltageControl().get().getMergedControllerElements().stream())
+                .filter(branch -> !branch.isDisabled())
                 .collect(Collectors.toList());
     }
 

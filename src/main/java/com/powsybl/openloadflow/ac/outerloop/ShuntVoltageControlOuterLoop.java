@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
+import com.powsybl.openloadflow.network.VoltageControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,10 +30,13 @@ public class ShuntVoltageControlOuterLoop implements AcOuterLoop {
         return "Shunt voltage control";
     }
 
-    private static List<LfShunt> getControllerShunts(LfNetwork network) {
+    public static List<LfShunt> getControllerShunts(LfNetwork network) {
         return network.getBuses().stream()
-                .flatMap(bus -> bus.getControllerShunt().stream())
-                .filter(controllerShunt -> !controllerShunt.isDisabled() && controllerShunt.hasVoltageControlCapability())
+                .filter(bus -> bus.isShuntVoltageControlled())
+                .filter(bus -> bus.getShuntVoltageControl().get().getMergeStatus() == VoltageControl.MergeStatus.MAIN // FIXME: is MAIN status needed as not hidden
+                        && !bus.getShuntVoltageControl().get().isHidden())
+                .flatMap(bus -> bus.getShuntVoltageControl().get().getMergedControllerElements().stream())
+                .filter(controllerShunt -> !controllerShunt.isDisabled())
                 .collect(Collectors.toList());
     }
 

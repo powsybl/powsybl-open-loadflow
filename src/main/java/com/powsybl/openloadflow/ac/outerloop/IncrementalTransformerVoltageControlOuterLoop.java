@@ -205,30 +205,30 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         List<LfBus> controlledBuses = network.getBuses().stream()
                 .filter(LfBus::isTransformerVoltageControlled)
+                .filter(bus -> bus.getTransformerVoltageControl().get().getMergeStatus() == VoltageControl.MergeStatus.MAIN // FIXME: is MAIN status needed as not hidden
+                        && !bus.getTransformerVoltageControl().get().isHidden())
                 .collect(Collectors.toList());
 
-        controlledBuses.forEach(controlledBus -> {
+        controlledBuses.stream().forEach(controlledBus -> {
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
-            if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN) {
-                double diffV = getDiffV(voltageControl);
-                double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-                if (Math.abs(diffV) > halfTargetDeadband) {
-                    controlledBusesOutsideOfDeadband.add(controlledBus.getId());
-                    List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
-                            .filter(b -> !b.isDisabled())
-                            .collect(Collectors.toList());
-                    LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
-                            controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
-                    boolean adjusted;
-                    if (controllers.size() == 1) {
-                        adjusted = adjustWithOneController(controllers.get(0), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit);
-                    } else {
-                        adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband, controlledBusesWithAllItsControllersToLimit);
-                    }
-                    if (adjusted) {
-                        controlledBusesAdjusted.add(controlledBus.getId());
-                        status.setValue(OuterLoopStatus.UNSTABLE);
-                    }
+            double diffV = getDiffV(voltageControl);
+            double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+            if (Math.abs(diffV) > halfTargetDeadband) {
+                controlledBusesOutsideOfDeadband.add(controlledBus.getId());
+                List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
+                        .filter(b -> !b.isDisabled())
+                        .collect(Collectors.toList());
+                LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
+                        controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
+                boolean adjusted;
+                if (controllers.size() == 1) {
+                    adjusted = adjustWithOneController(controllers.get(0), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit);
+                } else {
+                    adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband, controlledBusesWithAllItsControllersToLimit);
+                }
+                if (adjusted) {
+                    controlledBusesAdjusted.add(controlledBus.getId());
+                    status.setValue(OuterLoopStatus.UNSTABLE);
                 }
             }
         });

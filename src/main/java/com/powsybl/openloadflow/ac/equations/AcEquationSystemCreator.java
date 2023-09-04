@@ -216,7 +216,7 @@ public class AcEquationSystemCreator {
                 .map(vc -> equationSystem.getEquation(vc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow())
                 .collect(Collectors.toList());
 
-        if (controlledBus.isDisabled() || voltageControl.isDisabledAndAlsoAllItsDependentVoltageControls()) {
+        if (voltageControl.isDisabledAndAlsoAllItsDependentVoltageControls()) {
             // we disable all voltage control equations
             vEq.setActive(false);
             for (T controllerElement : controllerElements) {
