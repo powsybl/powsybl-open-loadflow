@@ -384,6 +384,20 @@ public class PropagatedContingency {
                 .filter(Objects::nonNull) // could be in another component
                 .collect(Collectors.toList());
 
+        // we add the branches connected to buses to lose.
+        busIdsToLose.stream().map(network::getBusById)
+                .filter(Objects::nonNull)
+                .forEach(bus -> {
+                    if (bus.isSlack()) {
+                        // slack bus disabling is not supported
+                        // we keep the slack bus enabled and the connected branches
+                        LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", bus.getId());
+                    } else {
+                        bus.getBranches().forEach(branch -> branchesToOpen.add(branch));
+                    }
+
+                });
+
         branchesToOpen.stream()
                 .filter(LfBranch::isConnectedAtBothSides)
                 .forEach(connectivity::removeEdge);
