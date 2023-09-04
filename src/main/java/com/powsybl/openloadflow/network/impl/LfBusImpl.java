@@ -53,11 +53,11 @@ public class LfBusImpl extends AbstractLfBus {
         this.breakers = parameters.isBreakers();
         country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
         if (bus.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
-            List<String> foundBbsIds = bus.getConnectedTerminalStream().map(Terminal::getConnectable)
-                    .filter(c -> c instanceof BusbarSection).map(Connectable::getId).collect(Collectors.toList());
-            if (foundBbsIds.size() > 0) {
-                bbsIds = foundBbsIds;
-            }
+            bbsIds = bus.getConnectedTerminalStream()
+                    .map(Terminal::getConnectable)
+                    .filter(BusbarSection.class::isInstance)
+                    .map(Connectable::getId)
+                    .collect(Collectors.toList());
         }
     }
 
@@ -148,7 +148,13 @@ public class LfBusImpl extends AbstractLfBus {
     public List<BusResult> createBusResults() {
         var bus = getBus();
         if (breakers) {
-            return List.of(new BusResult(getVoltageLevelId(), bbsIds != null ? bbsIds.toString() : bus.getId(), v, Math.toDegrees(angle)));
+            if (bbsIds.isEmpty()) {
+                return List.of(new BusResult(getVoltageLevelId(), bus.getId(), v, Math.toDegrees(angle)));
+            } else {
+                return bbsIds.stream()
+                        .map(bbsId -> new BusResult(getVoltageLevelId(), bbsId, v, Math.toDegrees(angle)))
+                        .collect(Collectors.toList());
+            }
         } else {
             return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
                     .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, Math.toDegrees(angle))).collect(Collectors.toList());
