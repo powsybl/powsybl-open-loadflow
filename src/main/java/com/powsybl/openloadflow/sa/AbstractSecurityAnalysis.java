@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.action.*;
@@ -255,16 +256,16 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
     }
 
-    protected static void findAllSwitchesToOperate(Network network, List<Action> actions, Set<Switch> allSwitchesToClose, Set<Switch> allSwitchesToOpen) {
+    protected static void findAllSwitchesToOperate(Network network, List<Action> actions, LfTopoConfig topoConfig) {
         actions.stream().filter(action -> action.getType().equals(SwitchAction.NAME))
                 .forEach(action -> {
                     String switchId = ((SwitchAction) action).getSwitchId();
                     Switch sw = network.getSwitch(switchId);
                     boolean toOpen = ((SwitchAction) action).isOpen();
                     if (sw.isOpen() && !toOpen) { // the switch is open and the action will close it.
-                        allSwitchesToClose.add(sw);
+                        topoConfig.getSwitchesToClose().add(sw);
                     } else if (!sw.isOpen() && toOpen) { // the switch is closed and the action will open it.
-                        allSwitchesToOpen.add(sw);
+                        topoConfig.getSwitchesToOpen().add(sw);
                     }
                 });
     }
