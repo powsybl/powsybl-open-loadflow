@@ -1070,4 +1070,159 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         network.getGenerator("g1").setRegulatingTerminal(network.getLine("l12").getTerminal1()); // remote control (g2 -> b1).
         return network;
     }
+
+    /**
+     *   g1     SHUNT2  SHUNT3
+     *   |      |       |
+     *  b1      b2      b3
+     *  |       |       |
+     *  8 tr1   8 tr2   8 tr3
+     *  |       |       |
+     *  b5 -S-  +---b4--+
+     *  |           |
+     *  l5          l4
+     */
+    public static Network createWithShuntSharedRemoteControl2() {
+
+        Network network = Network.create("shunt-remote-control-test", "code");
+
+        Substation s = network.newSubstation()
+                .setId("s")
+                .add();
+        VoltageLevel vl1 = s.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(20)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus b1 = vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        VoltageLevel vl2 = s.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(20)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus b2 = vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        VoltageLevel vl3 = s.newVoltageLevel()
+                .setId("vl3")
+                .setNominalV(20)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus b3 = vl3.getBusBreakerView().newBus()
+                .setId("b3")
+                .add();
+        VoltageLevel vl4 = s.newVoltageLevel()
+                .setId("vl4")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus b4 = vl4.getBusBreakerView().newBus()
+                .setId("b4")
+                .add();
+        Load l4 = vl4.newLoad()
+                .setId("l4")
+                .setBus("b4")
+                .setConnectableBus("b4")
+                .setP0(150.0)
+                .setQ0(0)
+                .add();
+        Bus b5 = vl4.getBusBreakerView().newBus()
+                .setId("b5")
+                .add();
+        Load l5 = vl4.newLoad()
+                .setId("l5")
+                .setBus("b5")
+                .setConnectableBus("b5")
+                .setP0(150.0)
+                .setQ0(0)
+                .add();
+        vl4.getBusBreakerView().newSwitch()
+                .setId("S")
+                .setBus1("b4")
+                .setBus2("b5")
+                .setOpen(true)
+                .add();
+
+        b1.getVoltageLevel()
+                .newGenerator()
+                .setId("g1")
+                .setBus("b1")
+                .setConnectableBus("b1")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .setTargetV(400)
+                .setRegulatingTerminal(l5.getTerminal())
+                .setVoltageRegulatorOn(true)
+                .add();
+        b2.getVoltageLevel().newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(false)
+                .setRegulatingTerminal(l4.getTerminal())
+                .setTargetV(380)
+                .setTargetDeadband(5.0)
+                .newLinearModel()
+                .setMaximumSectionCount(50)
+                .setBPerSection(-1E-2)
+                .setGPerSection(0.0)
+                .add()
+                .add();
+        b3.getVoltageLevel().newShuntCompensator()
+                .setId("SHUNT3")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l4.getTerminal())
+                .setTargetV(380)
+                .setTargetDeadband(5.0)
+                .newLinearModel()
+                .setMaximumSectionCount(50)
+                .setBPerSection(-1E-2)
+                .setGPerSection(0.0)
+                .add()
+                .add();
+        s.newTwoWindingsTransformer()
+                .setId("tr1")
+                .setBus1(b1.getId())
+                .setConnectableBus1(b1.getId())
+                .setBus2(b5.getId())
+                .setConnectableBus2(b5.getId())
+                .setRatedU1(20.5)
+                .setRatedU2(399)
+                .setR(1)
+                .setX(30)
+                .add();
+        s.newTwoWindingsTransformer()
+                .setId("tr2")
+                .setBus1(b2.getId())
+                .setConnectableBus1(b2.getId())
+                .setBus2(b4.getId())
+                .setConnectableBus2(b4.getId())
+                .setRatedU1(20.5)
+                .setRatedU2(399)
+                .setR(1)
+                .setX(30)
+                .add();
+        s.newTwoWindingsTransformer()
+                .setId("tr3")
+                .setBus1(b3.getId())
+                .setConnectableBus1(b3.getId())
+                .setBus2(b4.getId())
+                .setConnectableBus2(b4.getId())
+                .setRatedU1(20.5)
+                .setRatedU2(399)
+                .setR(1)
+                .setX(30)
+                .add();
+        createLine(network, b1, b2, "l12", 0.00);
+
+        return network;
+    }
 }
