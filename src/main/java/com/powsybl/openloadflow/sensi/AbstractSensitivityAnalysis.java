@@ -21,10 +21,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -105,9 +102,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         void setStatus(Status status);
 
-        boolean isVariableConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
+        boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork);
 
-        boolean isFunctionConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
+        boolean isFunctionConnectedToSlackComponent(DisabledNetwork disabledNetwork);
 
         boolean isVariableInContingency(PropagatedContingency propagatedContingency);
 
@@ -274,11 +271,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             this.status = status;
         }
 
-        protected boolean isElementConnectedToSlackComponent(LfElement element, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
+        protected boolean isElementConnectedToSlackComponent(LfElement element, DisabledNetwork disabledNetwork) {
             if (element instanceof LfBus) {
-                return !disabledBuses.contains(element);
+                return !disabledNetwork.getBuses().contains(element);
             } else if (element instanceof LfBranch) {
-                return !disabledBranches.contains(element);
+                return !disabledNetwork.getBranches().contains(element);
             }
             throw new PowsyblException("Cannot compute connectivity for variable element of class: " + element.getClass().getSimpleName());
         }
@@ -330,13 +327,13 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            return isElementConnectedToSlackComponent(variableElement, disabledBuses, disabledBranches);
+        public boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
+            return isElementConnectedToSlackComponent(variableElement, disabledNetwork);
         }
 
         @Override
-        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            return isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches);
+        public boolean isFunctionConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
+            return isElementConnectedToSlackComponent(functionElement, disabledNetwork);
         }
 
         @Override
@@ -391,9 +388,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
+        public boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
             for (LfElement lfElement : getVariableElements()) {
-                if (isElementConnectedToSlackComponent(lfElement, disabledBuses, disabledBranches)) {
+                if (isElementConnectedToSlackComponent(lfElement, disabledNetwork)) {
                     return true;
                 }
             }
@@ -401,8 +398,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
-        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            return isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches);
+        public boolean isFunctionConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
+            return isElementConnectedToSlackComponent(functionElement, disabledNetwork);
         }
 
         @Override
@@ -632,36 +629,45 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return participatingElements;
     }
 
-    protected DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), factorsGroups.getList().size());
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
+        // otherwise, defining the rhs matrix will result in integer overflow
+        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int factorsGroupCount = factorsGroups.getList().size();
+        int maxFactorsGroups = Integer.MAX_VALUE / (equationCount * Double.BYTES);
+        if (factorsGroupCount > maxFactorsGroups) {
+            throw new PowsyblException("Too many factors groups " + factorsGroupCount
+                    + ", maximum is " + maxFactorsGroups + " for a system with " + equationCount + " equations");
+        }
+
+        DenseMatrix rhs = new DenseMatrix(equationCount, factorsGroupCount);
         fillRhsSensitivityVariable(factorsGroups, rhs, participationByBus);
         return rhs;
     }
 
-    protected void fillRhsSensitivityVariable(SensitivityFactorGroupList<V, E> factorGroups, Matrix rhs, Map<LfBus, Double> participationByBus) {
+    protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> void fillRhsSensitivityVariable(SensitivityFactorGroupList<V, E> factorGroups, Matrix rhs, Map<LfBus, Double> participationByBus) {
         for (SensitivityFactorGroup<V, E> factorGroup : factorGroups.getList()) {
             factorGroup.fillRhs(rhs, participationByBus);
         }
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> disabledBuses,
-                                        Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, DisabledNetwork disabledNetwork,
+                                        PropagatedContingency propagatedContingency) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledBuses, disabledBranches, propagatedContingency);
+            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledNetwork, propagatedContingency);
             predefinedResults.getLeft().ifPresent(factor::setSensitivityValuePredefinedResult);
             predefinedResults.getRight().ifPresent(factor::setFunctionPredefinedResult);
         }
     }
 
-    protected Pair<Optional<Double>, Optional<Double>> getPredefinedResults(LfSensitivityFactor<V, E> factor, Set<LfBus> disabledBuses,
-                                                                            Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+    protected Pair<Optional<Double>, Optional<Double>> getPredefinedResults(LfSensitivityFactor<V, E> factor, DisabledNetwork disabledNetwork,
+                                                                            PropagatedContingency propagatedContingency) {
         Double sensitivityValuePredefinedResult = null;
         Double functionPredefinedResult = null;
         if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
             // after a contingency, we check if the factor function and the variable are in different connected components
             // or if the variable is in contingency. Note that a branch in contingency is considered as not connected to the slack component.
-            boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches) && !factor.isVariableInContingency(propagatedContingency);
-            boolean functionConnectedToSlackComponent = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
+            boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledNetwork) && !factor.isVariableInContingency(propagatedContingency);
+            boolean functionConnectedToSlackComponent = factor.isFunctionConnectedToSlackComponent(disabledNetwork);
             if (variableConnected) {
                 if (!functionConnectedToSlackComponent) {
                     // ZERO status
@@ -680,7 +686,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             }
         } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
             sensitivityValuePredefinedResult = 0d;
-            if (!factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches)) {
+            if (!factor.isFunctionConnectedToSlackComponent(disabledNetwork)) {
                 functionPredefinedResult = Double.NaN;
             }
         } else {
@@ -741,11 +747,31 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 branchesToRemove.add(branchId); // disconnected branch
                 continue;
             }
-            if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
+            if (!lfBranch.isConnectedAtBothSides()) {
                 branchesToRemove.add(branchId); // branch connected only on one side
             }
         }
         contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
+
+        // update branches to open connected with buses in contingency. This is an approximation:
+        // these branches are indeed just open at one side.
+        String slackBusId = null;
+        for (String busId : contingency.getBusIdsToLose()) {
+            LfBus bus = lfNetwork.getBusById(busId);
+            if (bus != null) {
+                if (bus.isSlack()) {
+                    // slack bus disabling is not supported
+                    // we keep the slack bus enabled and the connected branches
+                    LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
+                    slackBusId = busId;
+                } else {
+                    bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().add(branch.getId()));
+                }
+            }
+        }
+        if (slackBusId != null) {
+            contingency.getBusIdsToLose().remove(slackBusId);
+        }
     }
 
     protected void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
@@ -760,11 +786,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
             cleanBranchIdsToOpen(lfNetwork, contingency);
 
-            if (contingency.getBranchIdsToOpen().isEmpty()
-                    && contingency.getHvdcIdsToOpen().isEmpty()
-                    && contingency.getGeneratorIdsToLose().isEmpty()
-                    && contingency.getBusIdsToShift().isEmpty()
-                    && contingency.getShuntIdsToShift().isEmpty()) {
+            if (contingency.hasNoImpact()) {
                 LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
             }
         }
@@ -1212,7 +1234,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen);
+                                 SensitivityResultWriter resultWriter, Reporter reporter, LfTopoConfig topoConfig);
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {

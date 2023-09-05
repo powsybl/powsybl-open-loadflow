@@ -41,11 +41,6 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double eval() {
-        return calculateSensi(ph1(), ph2(), a1());
-    }
-
-    @Override
     public double der(Variable<DcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {

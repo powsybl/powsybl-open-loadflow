@@ -134,3 +134,10 @@ We can always increase or improves features and implementations. We have thought
 
 
 For more details, to report bugs or if you need more features, visit our [github](https://github.com/powsybl/powsybl-open-loadflow/issues) and do not hesitate to write new issues.
+
+
+## Using Maven Wrapper
+If you don't have a proper Maven installation, you could use the provided Apache Maven Wrapper scripts.
+They will download a compatible maven distribution and use it automatically.
+
+You can see the [Using Maven Wrapper](https://github.com/powsybl/powsybl-core/tree/main#using-maven-wrapper) section of the [powsybl-core](https://github.com/powsybl/powsybl-core) documentation if you want further information on this subject.
