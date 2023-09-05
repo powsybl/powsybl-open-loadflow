@@ -35,13 +35,15 @@ public class AcIncrementalPhaseControlOuterLoop
         extends AbstractIncrementalPhaseControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
         implements AcOuterLoop {
 
+    public static final String TYPE = "IncrementalPhaseControl";
+
     public AcIncrementalPhaseControlOuterLoop() {
         super(LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class));
     }
 
     @Override
     public String getType() {
-        return "AC Incremental phase control";
+        return TYPE;
     }
 
     @Override

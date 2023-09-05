@@ -16,9 +16,11 @@ import com.powsybl.openloadflow.network.LfBranch;
  */
 public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
+    public static final String TYPE = "SimpleTransformerVoltageControl";
+
     @Override
     public String getType() {
-        return "Simple transformer voltage control";
+        return TYPE;
     }
 
     @Override

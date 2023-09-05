@@ -26,6 +26,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveLimitsOuterLoop.class);
 
+    public static final String TYPE = "ReactiveLimits";
+
     private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(
         pvToPqBus -> pvToPqBus.controllerBus.getGeneratorVoltageControl()
             .map(vc -> -vc.getControlledBus().getNominalV())
@@ -65,7 +67,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
     @Override
     public String getType() {
-        return "Reactive limits";
+        return TYPE;
     }
 
     private enum ReactiveLimitDirection {

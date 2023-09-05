@@ -6,11 +6,8 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +15,7 @@ import java.util.List;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
+public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
 
     private static AcOuterLoop createTransformerVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
         switch (parametersExt.getTransformerVoltageControlMode()) {
@@ -27,7 +24,7 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
             case AFTER_GENERATOR_VOLTAGE_CONTROL:
                 return new TransformerVoltageControlOuterLoop();
             case INCREMENTAL_VOLTAGE_CONTROL:
-                return new IncrementalTransformerVoltageControlOuterLoop(parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+                return createIncrementalTransformerVoltageControlOuterLoop(parametersExt);
             default:
                 throw new IllegalStateException("Unknown transformer voltage control mode: " + parametersExt.getTransformerVoltageControlMode());
         }
@@ -55,11 +52,6 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
         }
     }
 
-    private static AcOuterLoop createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
-        return new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch());
-    }
-
     @Override
     public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         List<AcOuterLoop> outerLoops = new ArrayList<>(5);
@@ -72,18 +64,7 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
             outerLoops.add(new MonitoringVoltageOuterLoop());
         }
         if (parameters.isUseReactiveLimits()) {
-            final double effectiveMaxReactivePowerMismatch;
-            switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
-                case UNIFORM_CRITERIA:
-                    effectiveMaxReactivePowerMismatch = parametersExt.getNewtonRaphsonConvEpsPerEq();
-                    break;
-                case PER_EQUATION_TYPE_CRITERIA:
-                    effectiveMaxReactivePowerMismatch = parametersExt.getMaxReactivePowerMismatch() / PerUnit.SB;
-                    break;
-                default:
-                    throw new PowsyblException("Unknown Newton Raphson stopping criteria type: " + parametersExt.getNewtonRaphsonStoppingCriteriaType());
-            }
-            outerLoops.add(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch(), effectiveMaxReactivePowerMismatch));
+            outerLoops.add(createReactiveLimitsOuterLoop(parametersExt));
         }
         // phase shifter control
         if (parameters.isPhaseShifterRegulationOn()) {
@@ -99,9 +80,7 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
         }
         // secondary voltage control
         if (parametersExt.isSecondaryVoltageControl()) {
-            outerLoops.add(new SecondaryVoltageControlOuterLoop(parametersExt.getControllerToPilotPointVoltageSensiEpsilon(),
-                                                                parametersExt.getMinPlausibleTargetVoltage(),
-                                                                parametersExt.getMaxPlausibleTargetVoltage()));
+            outerLoops.add(createSecondaryVoltageControlOuterLoop(parametersExt));
         }
         return outerLoops;
     }

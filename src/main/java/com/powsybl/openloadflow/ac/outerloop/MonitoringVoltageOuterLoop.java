@@ -28,9 +28,11 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MonitoringVoltageOuterLoop.class);
 
+    public static final String TYPE = "VoltageMonitoring";
+
     @Override
     public String getType() {
-        return "Voltage monitoring";
+        return TYPE;
     }
 
     private enum VoltageLimitDirection {

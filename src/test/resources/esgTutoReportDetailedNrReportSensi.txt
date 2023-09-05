@@ -26,5 +26,5 @@
            Iteration 2 mismatch on TargetQ: 1.0873067915362356E-5, Bus Id: 'VLHV2_0', Bus V: 1.0261840057810543, Bus Phi: -0.0611984592137325
            Iteration 2 mismatch on TargetV: 0.0, Bus Id: 'VLGEN_0', Bus V: 1.0208333333333333, Bus Phi: 0.04069359966489529
            Norm |f(x)|=2.0034253596371782E-5
-      + Outer loop Voltage monitoring
-      + Outer loop Reactive limits
+      + Outer loop VoltageMonitoring
+      + Outer loop ReactiveLimits

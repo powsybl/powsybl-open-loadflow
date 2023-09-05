@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
@@ -17,6 +16,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -35,6 +35,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalShuntVoltageControlOuterLoop.class);
 
+    public static final String TYPE = "IncrementalShuntVoltageControl";
+
     // Maximum number of directional inversions for each controller during incremental outer loop
     private static final int MAX_DIRECTION_CHANGE = 2;
 
@@ -42,7 +44,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements AcOuterLoop {
 
     @Override
     public String getType() {
-        return "Incremental Shunt voltage control";
+        return TYPE;
     }
 
     @Override

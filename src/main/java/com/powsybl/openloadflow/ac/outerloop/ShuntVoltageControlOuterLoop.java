@@ -24,9 +24,11 @@ public class ShuntVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShuntVoltageControlOuterLoop.class);
 
+    public static final String TYPE = "ShuntVoltageControl";
+
     @Override
     public String getType() {
-        return "Shunt voltage control";
+        return TYPE;
     }
 
     private static List<LfShunt> getControllerShunts(LfNetwork network) {
