@@ -11,13 +11,13 @@ import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +25,10 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -161,15 +164,15 @@ class OpenSecurityAnalysisGraphTest {
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
         // try to find all switches impacted by at least one contingency
-        Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, true);
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, true);
 
         LfNetworkParameters networkParameters = new LfNetworkParameters()
                 .setConnectivityFactory(connectivityFactory)
                 .setBreakers(true);
 
         // create networks including all necessary switches
-        LfNetworkList lfNetworks = Networks.load(network, networkParameters, allSwitchesToOpen, Collections.emptySet(), Reporter.NO_OP);
+        LfNetworkList lfNetworks = Networks.load(network, networkParameters, topoConfig, Reporter.NO_OP);
 
         PropagatedContingency.completeList(propagatedContingencies, false, false, false, true);
 
