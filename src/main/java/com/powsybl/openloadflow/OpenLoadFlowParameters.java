@@ -98,7 +98,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final Set<ReportedFeatures> REPORTED_FEATURES_DEFAULT_VALUE = Collections.emptySet();
 
-    public static final List<String> OUTER_LOOP_TYPES_DEFAULT_VALUE = null;
+    protected static final List<String> OUTER_LOOP_TYPES_DEFAULT_VALUE = null;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 

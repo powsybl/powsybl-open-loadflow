@@ -331,6 +331,8 @@ class OpenLoadFlowParametersTest {
         assertEquals(List.of("DistributedSlack", "VoltageMonitoring", "ReactiveLimits"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
         parametersExt.setOuterLoopTypes(List.of("ReactiveLimits", "SecondaryVoltageControl"));
         assertEquals(List.of("ReactiveLimits", "SecondaryVoltageControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+        parametersExt.setOuterLoopTypes(ExplicitAcOuterLoopConfig.TYPES);
+        assertEquals(List.of("IncrementalPhaseControl", "DistributedSlack", "IncrementalShuntVoltageControl", "IncrementalTransformerVoltageControl", "VoltageMonitoring", "PhaseControl", "ReactiveLimits", "SecondaryVoltageControl", "ShuntVoltageControl", "SimpleTransformerVoltageControl", "TransformerVoltageControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
         parametersExt.setOuterLoopTypes(List.of("ReactiveLimits", "Foo"));
         PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt));
         assertEquals("Unknown outer loop 'Foo'", e.getMessage());
