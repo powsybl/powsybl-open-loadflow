@@ -43,7 +43,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
             case ShuntVoltageControlOuterLoop.TYPE -> new ShuntVoltageControlOuterLoop();
             case SimpleTransformerVoltageControlOuterLoop.TYPE -> new SimpleTransformerVoltageControlOuterLoop();
             case TransformerVoltageControlOuterLoop.TYPE -> new TransformerVoltageControlOuterLoop();
-            default -> throw new PowsyblException("Unknown outer loop: " + type);
+            default -> throw new PowsyblException("Unknown outer loop '" + type + "'");
         };
     }
 

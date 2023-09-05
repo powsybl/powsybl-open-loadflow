@@ -192,7 +192,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String ASYMMETRICAL_PARAM_NAME = "asymmetrical";
 
-    private static final String OUTER_LOOP_TYPES_PARAM_NAME = "outerLoopTypes";
+    static final String OUTER_LOOP_TYPES_PARAM_NAME = "outerLoopTypes";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -1221,6 +1221,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
     }
 
+    static List<AcOuterLoop> createOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig()
+                .orElseGet(() -> parametersExt.getOuterLoopTypes() != null ? new ExplicitAcOuterLoopConfig()
+                                                                           : new DefaultAcOuterLoopConfig());
+        return outerLoopConfig.configure(parameters, parametersExt);
+    }
+
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
@@ -1241,10 +1248,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
                 .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
 
-        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig()
-                .orElseGet(() -> parametersExt.getOuterLoopTypes() != null ? new ExplicitAcOuterLoopConfig()
-                                                                           : new DefaultAcOuterLoopConfig());
-        List<AcOuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
+        List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 
         return new AcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,
