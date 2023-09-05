@@ -343,38 +343,12 @@ public class PropagatedContingency {
         return identifiable;
     }
 
-    public static void addBranchIdsConnectedToLostBuses(LfNetwork network, String contingencyId, Set<String> busIdsToLose, Set<String> branchIdsToOpen) {
-        // update branches to open connected with buses in contingency. This is an approximation:
-        // these branches are indeed just open at one side.
-        Optional<String> slackBusId = Optional.empty();
-        for (String busId : busIdsToLose) {
-            LfBus bus = network.getBusById(busId);
-            if (bus != null) {
-                if (bus.isSlack()) {
-                    // slack bus disabling is not supported
-                    // we keep the slack bus enabled and the connected branches
-                    LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingencyId);
-                    slackBusId = Optional.of(busId);
-                } else {
-                    bus.getBranches().forEach(branch -> branchIdsToOpen.add(branch.getId()));
-                }
-            }
-        }
-        if (slackBusId.isPresent()) {
-            busIdsToLose.remove(slackBusId.get());
-        }
-    }
-
     public boolean hasNoImpact() {
         return branchIdsToOpen.isEmpty() && hvdcIdsToOpen.isEmpty() && generatorIdsToLose.isEmpty()
                 && busIdsToShift.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
-        // update branches to open connected with buses in contingency. This is an approximation:
-        // these branches are indeed just open at one side.
-        addBranchIdsConnectedToLostBuses(network, contingency.getId(), busIdsToLose, branchIdsToOpen);
-
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
@@ -393,9 +367,8 @@ public class PropagatedContingency {
                         // we keep the slack bus enabled and the connected branches
                         LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", bus.getId());
                     } else {
-                        bus.getBranches().forEach(branch -> branchesToOpen.add(branch));
+                        branchesToOpen.addAll(bus.getBranches());
                     }
-
                 });
 
         branchesToOpen.stream()
@@ -423,15 +396,6 @@ public class PropagatedContingency {
                 .forEach(branches::add);
         for (LfBus bus : buses) {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
-        }
-
-        for (LfHvdc hvdcLine : network.getHvdcs()) {
-            // FIXME
-            // if we loose a bus with a converter station, the other converter station should be considered to if in the
-            // same synchronous component (hvdc setpoint mode).
-            if (buses.contains(hvdcLine.getBus1()) || buses.contains(hvdcLine.getBus2())) {
-                hvdcIdsToOpen.add(hvdcLine.getId());
-            }
         }
 
         // reset connectivity to discard triggered branches
@@ -469,6 +433,15 @@ public class PropagatedContingency {
                 .map(network::getHvdcById)
                 .filter(Objects::nonNull) // could be in another component
                 .collect(Collectors.toSet());
+
+        for (LfHvdc hvdcLine : network.getHvdcs()) {
+            // FIXME
+            // if we loose a bus with a converter station, the other converter station should be considered to if in the
+            // same synchronous component (hvdc setpoint mode).
+            if (buses.contains(hvdcLine.getBus1()) || buses.contains(hvdcLine.getBus2())) {
+                hvdcs.add(hvdcLine);
+            }
+        }
 
         if (branches.isEmpty()
                 && buses.isEmpty()

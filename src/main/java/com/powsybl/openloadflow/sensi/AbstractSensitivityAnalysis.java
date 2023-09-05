@@ -750,8 +750,23 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         // update branches to open connected with buses in contingency. This is an approximation:
         // these branches are indeed just open at one side.
-        PropagatedContingency.addBranchIdsConnectedToLostBuses(lfNetwork, contingency.getContingency().getId(),
-                                                               contingency.getBusIdsToLose(), contingency.getBranchIdsToOpen());
+        String slackBusId = null;
+        for (String busId : contingency.getBusIdsToLose()) {
+            LfBus bus = lfNetwork.getBusById(busId);
+            if (bus != null) {
+                if (bus.isSlack()) {
+                    // slack bus disabling is not supported
+                    // we keep the slack bus enabled and the connected branches
+                    LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
+                    slackBusId = busId;
+                } else {
+                    bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().add(branch.getId()));
+                }
+            }
+        }
+        if (slackBusId != null) {
+            contingency.getBusIdsToLose().remove(slackBusId);
+        }
     }
 
     protected void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
