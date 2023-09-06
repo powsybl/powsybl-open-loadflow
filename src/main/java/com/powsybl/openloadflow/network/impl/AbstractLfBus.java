@@ -173,11 +173,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public boolean hasGeneratorVoltageControllerCapability() {
-        return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
-    }
-
-    @Override
     public Optional<GeneratorVoltageControl> getGeneratorVoltageControl() {
         return Optional.ofNullable(generatorVoltageControl);
     }
@@ -190,6 +185,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         } else if (!isGeneratorVoltageControlled()) {
             throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
         }
+    }
+
+    private boolean hasGeneratorVoltageControllerCapability() {
+        return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
     }
 
     @Override

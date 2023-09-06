@@ -55,9 +55,6 @@ public interface LfBus extends LfElement {
     Optional<VoltageControl<?>> getHighestPriorityVoltageControl();
 
     // generator voltage control
-
-    boolean hasGeneratorVoltageControllerCapability();
-
     Optional<GeneratorVoltageControl> getGeneratorVoltageControl();
 
     void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl);
