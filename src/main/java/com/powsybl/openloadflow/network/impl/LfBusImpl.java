@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Country;
-import com.powsybl.iidm.network.Load;
-import com.powsybl.iidm.network.Substation;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadAsymmetrical;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -43,6 +40,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final Country country;
 
+    private List<String> bbsIds = null;
+
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
         super(network, v, angle, parameters.isDistributedOnConformLoad());
@@ -53,6 +52,13 @@ public class LfBusImpl extends AbstractLfBus {
         this.participating = participating;
         this.breakers = parameters.isBreakers();
         country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
+        if (bus.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
+            bbsIds = bus.getConnectedTerminalStream()
+                    .map(Terminal::getConnectable)
+                    .filter(BusbarSection.class::isInstance)
+                    .map(Connectable::getId)
+                    .collect(Collectors.toList());
+        }
     }
 
     private static void createAsym(Bus bus, LfBusImpl lfBus) {
@@ -142,7 +148,13 @@ public class LfBusImpl extends AbstractLfBus {
     public List<BusResult> createBusResults() {
         var bus = getBus();
         if (breakers) {
-            return List.of(new BusResult(getVoltageLevelId(), bus.getId(), v, Math.toDegrees(angle)));
+            if (bbsIds.isEmpty()) {
+                return List.of(new BusResult(getVoltageLevelId(), bus.getId(), v, Math.toDegrees(angle)));
+            } else {
+                return bbsIds.stream()
+                        .map(bbsId -> new BusResult(getVoltageLevelId(), bbsId, v, Math.toDegrees(angle)))
+                        .collect(Collectors.toList());
+            }
         } else {
             return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
                     .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, Math.toDegrees(angle))).collect(Collectors.toList());
