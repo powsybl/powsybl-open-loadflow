@@ -742,11 +742,31 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 branchesToRemove.add(branchId); // disconnected branch
                 continue;
             }
-            if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
+            if (!lfBranch.isConnectedAtBothSides()) {
                 branchesToRemove.add(branchId); // branch connected only on one side
             }
         }
         contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
+
+        // update branches to open connected with buses in contingency. This is an approximation:
+        // these branches are indeed just open at one side.
+        String slackBusId = null;
+        for (String busId : contingency.getBusIdsToLose()) {
+            LfBus bus = lfNetwork.getBusById(busId);
+            if (bus != null) {
+                if (bus.isSlack()) {
+                    // slack bus disabling is not supported
+                    // we keep the slack bus enabled and the connected branches
+                    LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
+                    slackBusId = busId;
+                } else {
+                    bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().add(branch.getId()));
+                }
+            }
+        }
+        if (slackBusId != null) {
+            contingency.getBusIdsToLose().remove(slackBusId);
+        }
     }
 
     protected void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
@@ -761,11 +781,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
             cleanBranchIdsToOpen(lfNetwork, contingency);
 
-            if (contingency.getBranchIdsToOpen().isEmpty()
-                    && contingency.getHvdcIdsToOpen().isEmpty()
-                    && contingency.getGeneratorIdsToLose().isEmpty()
-                    && contingency.getBusIdsToShift().isEmpty()
-                    && contingency.getShuntIdsToShift().isEmpty()) {
+            if (contingency.hasNoImpact()) {
                 LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
             }
         }
@@ -1201,7 +1217,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen);
+                                 SensitivityResultWriter resultWriter, Reporter reporter, LfTopoConfig topoConfig);
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {
