@@ -67,6 +67,10 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
         if (parameters.isDistributedSlack()) {
             outerLoops.add(createDistributedSlackOuterLoop(parameters, parametersExt));
         }
+        // secondary voltage control
+        if (parametersExt.isSecondaryVoltageControl()) {
+            outerLoops.add(new SecondaryVoltageControlOuterLoop());
+        }
         // primary voltage control
         if (parametersExt.isSvcVoltageMonitoring()) {
             outerLoops.add(new MonitoringVoltageOuterLoop());
@@ -96,10 +100,6 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
         // shunt compensator voltage control
         if (parameters.isShuntCompensatorVoltageControlOn()) {
             outerLoops.add(createShuntVoltageControlOuterLoop(parametersExt));
-        }
-        // secondary voltage control
-        if (parametersExt.isSecondaryVoltageControl()) {
-            outerLoops.add(new SecondaryVoltageControlOuterLoop());
         }
         return outerLoops;
     }
