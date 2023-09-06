@@ -1074,7 +1074,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
     /**
      *   g1     SHUNT2  SHUNT3
      *   |      |       |
-     *  b1      b2      b3
+     *  b1 ---- b2      b3
      *  |       |       |
      *  8 tr1   8 tr2   8 tr3
      *  |       |       |
