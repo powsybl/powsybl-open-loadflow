@@ -29,6 +29,7 @@ import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertCurrentEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1298,7 +1299,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testReactivePowerPerTargetVSensi() {
+    void testReactivePowerAndCurrentPerTargetVSensi() {
         Network network = EurostagTutorialExample1Factory.create();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "NLOAD");
@@ -1315,14 +1316,28 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                                       SensitivityVariableType.BUS_TARGET_VOLTAGE,
                                       "GEN",
                                       false,
+                                      ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_1,
+                                      "NHV2_NLOAD",
+                                      SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                                      "GEN",
+                                      false,
+                                      ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_2,
+                                      "NHV2_NLOAD",
+                                      SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                                      "GEN",
+                                      false,
                                       ContingencyContext.all())
         );
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
-        assertEquals(2, result.getValues().size());
+        assertEquals(4, result.getValues().size());
         assertEquals(-7.959, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-52.329, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-132.392, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
 
         runAcLf(network);
 
@@ -1332,10 +1347,16 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                                   twt.getTerminal1());
         assertReactivePowerEquals(result.getFunctionReferenceValue("NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2),
                                   twt.getTerminal2());
+        assertCurrentEquals(result.getFunctionReferenceValue("NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_1),
+                            twt.getTerminal1());
+        assertCurrentEquals(result.getFunctionReferenceValue("NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_2),
+                            twt.getTerminal2());
 
         // check sensi values looks consistent with 2 LF diff
         double q1Before = twt.getTerminal1().getQ();
         double q2Before = twt.getTerminal2().getQ();
+        double i1Before = twt.getTerminal1().getI();
+        double i2Before = twt.getTerminal2().getI();
 
         Generator gen = network.getGenerator("GEN");
         gen.setTargetV(gen.getTargetV() + 1);
@@ -1344,5 +1365,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(-7.2817, twt.getTerminal1().getQ() - q1Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -7.959
         assertEquals(0.0007, twt.getTerminal2().getQ() - q2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs 0
+        assertEquals(-49.1009, twt.getTerminal1().getI() - i1Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -52.329
+        assertEquals(-124.2233, twt.getTerminal2().getI() - i2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -132.392
     }
 }

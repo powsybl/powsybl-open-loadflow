@@ -1082,6 +1082,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                 LfBranch leg = lfNetwork.getBranchById(LfLegBranch.getId(variableId, getLegNumber(variableType)));
                                 variableElement = leg != null && leg.getBus1() != null && leg.getBus2() != null ? leg : null;
                                 break;
+                            case BUS_TARGET_VOLTAGE:
+                                variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                                break;
                             default:
                                 throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
