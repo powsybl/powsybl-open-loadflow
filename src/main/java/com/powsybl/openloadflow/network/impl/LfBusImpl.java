@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -40,7 +41,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final Country country;
 
-    private List<String> bbsIds = null;
+    private final List<String> bbsIds;
 
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
@@ -58,6 +59,8 @@ public class LfBusImpl extends AbstractLfBus {
                     .filter(BusbarSection.class::isInstance)
                     .map(Connectable::getId)
                     .collect(Collectors.toList());
+        } else {
+            bbsIds = Collections.emptyList();
         }
     }
 
