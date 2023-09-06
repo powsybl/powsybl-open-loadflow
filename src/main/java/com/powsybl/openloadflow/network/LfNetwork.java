@@ -656,6 +656,28 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return secondaryVoltageControls;
     }
 
+    public List<?> getAllControllerElements(VoltageControl.Type type) {
+        // FIXME
+        // its seems that the condition is MAIN status is not needed as not hidden means never DEPENDENT.
+        return busesByIndex.stream()
+                .filter(bus -> bus.isVoltageControlled(type))
+                .filter(bus -> bus.getVoltageControl(type).get().getMergeStatus() == VoltageControl.MergeStatus.MAIN
+                        && !bus.getVoltageControl(type).get().isHidden())
+                .flatMap(bus -> bus.getVoltageControl(type).get().getMergedControllerElements().stream())
+                .filter(element -> !element.isDisabled())
+                .collect(Collectors.toList());
+    }
+
+    public List<LfBus> getAllControlledBuses(VoltageControl.Type type) {
+        // FIXME
+        // its seems that the condition is MAIN status is not needed as not hidden means never DEPENDENT.
+        return busesByIndex.stream()
+                .filter(bus -> bus.isVoltageControlled(type))
+                .filter(bus -> bus.getVoltageControl(type).get().getMergeStatus() == VoltageControl.MergeStatus.MAIN
+                        && !bus.getVoltageControl(type).get().isHidden())
+                .collect(Collectors.toList());
+    }
+
     @Override
     public String toString() {
         return getId();

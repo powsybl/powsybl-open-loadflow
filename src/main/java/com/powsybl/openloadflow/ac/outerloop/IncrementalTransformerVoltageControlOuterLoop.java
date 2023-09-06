@@ -61,7 +61,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         // All transformer voltage control are disabled as in this outer loop voltage adjustment is not
         // done into the equation system
-        for (LfBranch branch : getControllerBranches(context.getNetwork())) {
+        for (LfBranch branch : (List<LfBranch>) context.getNetwork().getAllControllerElements(VoltageControl.Type.TRANSFORMER)) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
             contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
@@ -194,7 +194,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfBranch> controllerBranches = getControllerBranches(network);
+        List<LfBranch> controllerBranches = (List<LfBranch>) network.getAllControllerElements(VoltageControl.Type.TRANSFORMER);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
@@ -203,11 +203,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         List<String> controlledBusesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
-        List<LfBus> controlledBuses = network.getBuses().stream()
-                .filter(LfBus::isTransformerVoltageControlled)
-                .filter(bus -> bus.getTransformerVoltageControl().get().getMergeStatus() == VoltageControl.MergeStatus.MAIN // FIXME: is MAIN status needed as not hidden
-                        && !bus.getTransformerVoltageControl().get().isHidden())
-                .collect(Collectors.toList());
+        List<LfBus> controlledBuses = network.getAllControlledBuses(VoltageControl.Type.TRANSFORMER);
 
         controlledBuses.stream().forEach(controlledBus -> {
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();

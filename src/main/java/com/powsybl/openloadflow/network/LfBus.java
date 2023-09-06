@@ -44,6 +44,10 @@ public interface LfBus extends LfElement {
      */
     boolean isVoltageControlled();
 
+    boolean isVoltageControlled(VoltageControl.Type type);
+
+    Optional<VoltageControl<?>> getVoltageControl(VoltageControl.Type type);
+
     /**
      * Get the highest priority voltage control connected to a bus of the zero impedance subgraph to which this bus
      * belong.

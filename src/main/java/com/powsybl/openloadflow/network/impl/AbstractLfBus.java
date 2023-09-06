@@ -154,6 +154,20 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public boolean isVoltageControlled(VoltageControl.Type type) {
+        return switch (type) {
+            case GENERATOR -> isGeneratorVoltageControlled();
+            case TRANSFORMER -> isTransformerVoltageControlled();
+            case SHUNT -> isShuntVoltageControlled();
+        };
+    }
+
+    @Override
+    public Optional<VoltageControl<?>> getVoltageControl(VoltageControl.Type type) {
+        return getVoltageControls().stream().filter(vc -> vc.getType() == type).findAny();
+    }
+
+    @Override
     public Optional<VoltageControl<?>> getHighestPriorityVoltageControl() {
         return VoltageControl.findVoltageControlsSortedByPriority(this).stream().findFirst();
     }

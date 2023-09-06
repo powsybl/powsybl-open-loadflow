@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -24,19 +23,9 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements AcOu
 
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
-    protected static List<LfBranch> getControllerBranches(LfNetwork network) {
-        return network.getBuses().stream()
-                .filter(LfBus::isTransformerVoltageControlled)
-                .filter(bus -> bus.getTransformerVoltageControl().get().getMergeStatus() == VoltageControl.MergeStatus.MAIN // FIXME: is MAIN status needed as not hidden
-                        && !bus.getTransformerVoltageControl().get().isHidden())
-                .flatMap(bus -> bus.getTransformerVoltageControl().get().getMergedControllerElements().stream())
-                .filter(branch -> !branch.isDisabled())
-                .collect(Collectors.toList());
-    }
-
     protected OuterLoopStatus roundVoltageRatios(AcOuterLoopContext context) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
-        for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
+        for (LfBranch controllerBranch : (List<LfBranch>) context.getNetwork().getAllControllerElements(VoltageControl.Type.TRANSFORMER)) {
             controllerBranch.setVoltageControlEnabled(false);
 
             // round the rho shift to the closest tap
