@@ -222,8 +222,7 @@ public class AcEquationSystemCreator {
             vEq.setActive(false);
             for (T controllerElement : controllerElements) {
                 equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                        .orElseThrow()
-                        .setActive(false);
+                        .ifPresent(eq -> eq.setActive(false));
                 equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
                         .orElseThrow()
                         .setActive(true);
@@ -232,8 +231,7 @@ public class AcEquationSystemCreator {
             if (voltageControl.isHidden()) {
                 for (T controllerElement : controllerElements) {
                     equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                            .orElseThrow()
-                            .setActive(false);
+                            .ifPresent(eq -> eq.setActive(false));
                     equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
                             .orElseThrow()
                             .setActive(true);
@@ -255,8 +253,7 @@ public class AcEquationSystemCreator {
                 // deactivate distribution equations and reactivate control equations
                 for (T controllerElement : disabledControllerElements) {
                     equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                            .orElseThrow()
-                            .setActive(false);
+                            .ifPresent(eq -> eq.setActive(false));
                     equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
                             .orElseThrow()
                             .setActive(true);
@@ -267,21 +264,13 @@ public class AcEquationSystemCreator {
                     boolean active = i != 0;
                     T controllerElement = enabledControllerElements.get(i);
                     equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                            .orElseThrow()
-                            .setActive(active);
+                            .ifPresent(eq -> eq.setActive(active));
                     equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
                             .orElseThrow()
                             .setActive(false);
                 }
             }
         }
-    }
-
-    static void updateRemoteGeneratorVoltageControlEquations(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // ensure reactive keys are up-to-date
-        voltageControl.updateReactiveKeys();
-
-        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
     }
 
     private static List<EquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus,
@@ -328,27 +317,12 @@ public class AcEquationSystemCreator {
 
     public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         checkNotDependentVoltageControl(voltageControl);
-        LfBus controlledBus = voltageControl.getControlledBus();
-        if (voltageControl.isLocalControl()) {
-            if (voltageControl.isHidden()) {
-                // FIXME: a hidden generator voltage control means a disabled controller(/ed) bus for the moment.
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                        .orElseThrow()
-                        .setActive(false);
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
-                        .orElseThrow()
-                        .setActive(false);
-            } else {
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                        .orElseThrow()
-                        .setActive(controlledBus.isGeneratorVoltageControlEnabled());
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
-                        .orElseThrow()
-                        .setActive(!controlledBus.isGeneratorVoltageControlEnabled());
-            }
-        } else {
-            updateRemoteGeneratorVoltageControlEquations(voltageControl, equationSystem);
-        }
+        System.out.println("updateGeneratorVoltageControl " + voltageControl);
+
+        // ensure reactive keys are up-to-date
+        voltageControl.updateReactiveKeys();
+
+        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
     }
 
     private static <T extends LfElement> void checkNotDependentVoltageControl(VoltageControl<T> voltageControl) {
