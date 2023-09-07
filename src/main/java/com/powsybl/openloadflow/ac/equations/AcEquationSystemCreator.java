@@ -217,7 +217,7 @@ public class AcEquationSystemCreator {
                 .collect(Collectors.toList());
 
         if (voltageControl.isDisabled()
-                && voltageControl.getMergedDependentVoltageControls().stream().allMatch(VoltageControl::isDisabled)) {
+                && (voltageControl.getMergedDependentVoltageControls().isEmpty() || voltageControl.getMergedDependentVoltageControls().stream().allMatch(VoltageControl::isDisabled))) {
             // we disable all voltage control equations
             vEq.setActive(false);
             for (T controllerElement : controllerElements) {
