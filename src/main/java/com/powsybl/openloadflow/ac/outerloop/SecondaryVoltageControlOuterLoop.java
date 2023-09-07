@@ -281,8 +281,13 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         KStats kStats = calculateKStats(controllerBuses);
         if (Math.abs(pilotDv) > DV_EPS || !kStats.allAtLimits() && Math.abs(kStats.dkDiffMax()) > DK_DIFF_MAX_EPS) {
             var pilotBus = secondaryVoltageControl.getPilotBus();
-            LOGGER.debug("Secondary voltage control of zone '{}': pilot point dv is {} kV, controller buses dk diff max is {} (k average is {})",
-                    secondaryVoltageControl.getZoneName(), pilotDv * pilotBus.getNominalV(), kStats.dkDiffMax(), kStats.kAverage());
+            if (LOGGER.isDebugEnabled()) {
+                long allControllerBusesCount = controlledBuses.stream()
+                        .flatMap(controlledBus -> findControllerBuses(controlledBus).stream())
+                        .count();
+                LOGGER.debug("Secondary voltage control of zone '{}': {}/{} controller buses available, pilot point dv is {} kV, controller buses dk diff max is {} (k average is {})",
+                        secondaryVoltageControl.getZoneName(), controllerBuses.size(), allControllerBusesCount, pilotDv * pilotBus.getNominalV(), kStats.dkDiffMax(), kStats.kAverage());
+            }
 
             var controllerBusIndex = buildBusIndex(controllerBuses);
 
@@ -378,7 +383,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     private static void tryToReEnableHelpfulControllerBuses(LfNetwork network) {
         network.getSecondaryVoltageControls().stream()
                 .filter(SecondaryVoltageControlOuterLoop::filterSecondaryVoltageControl)
-                .filter(control -> calculatePilotPointDv(control) > DV_EPS) // skip secondary voltage control that have already reached their pilot point target
                 .forEach(SecondaryVoltageControlOuterLoop::tryToReEnableHelpfulControllerBuses);
     }
 
