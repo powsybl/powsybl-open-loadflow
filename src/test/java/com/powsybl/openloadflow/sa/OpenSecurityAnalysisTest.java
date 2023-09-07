@@ -2175,13 +2175,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
         network.getGenerator("g1").setRegulatingTerminal(network.getLoad("l4").getTerminal()).setTargetV(390);
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("tr2"), new BranchContingency("tr3"))));
-        LoadFlowParameters lfParameters = new LoadFlowParameters();
-        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        lfParameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
-        openLoadFlowParameters.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
-        lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
-        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(lfParameters)
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(lfParameters);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
     }
