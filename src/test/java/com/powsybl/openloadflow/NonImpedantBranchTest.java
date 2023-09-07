@@ -20,6 +20,8 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.impl.OlfBranchResult;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysisParameters;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
 import com.powsybl.security.*;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
@@ -386,7 +388,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         Bus b4 = createBus(network, "s", "b4");
         Bus b5 = createBus(network, "s", "b5");
         Generator g0 = createGenerator(b0, "g0", 2, 1); // 1 kV
-        createGenerator(b4, "g4", 2, 1.1); // 1.1 kV
+        createGenerator(b4, "g4", 2, 1.15); // 1.15 kV
         createLoad(b5, "ld5", 4);
         Line l01 = createLine(network, b0, b1, "l01", 0.1);
         createLine(network, b1, b2, "l12", 0.0);
@@ -394,7 +396,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b1, b5, "l15", 0.1);
         createLine(network, b5, b3, "l53", 0.1);
         g0.setRegulatingTerminal(l01.getTerminal2()); // remote
-        TwoWindingsTransformer t34 = createTransformer(network, "s", b3, b4, "tr34", 0.3, 1);
+        TwoWindingsTransformer t34 = createTransformer(network, "s", b3, b4, "tr34", 0.15, 1);
         t34.newRatioTapChanger()
                 .beginStep()
                     .setRho(0.9)
@@ -408,7 +410,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                 .beginStep()
                     .setRho(1.2)
                 .endStep()
-                .setTapPosition(0)
+                .setTapPosition(1)
                 .setLoadTapChangingCapabilities(true)
                 .setRegulating(true)
                 .setTargetV(1.1)
@@ -423,10 +425,13 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         OpenLoadFlowParameters.create(loadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
                 .setLoadFlowParameters(loadFlowParameters);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters()
+                .setCreateResultExtension(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
         SecurityAnalysisProvider provider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(),
-                Collections.emptySet(),
-                Set.of("b1_vl"),
+                Set.of("tr34"),
+                Set.of("b0_vl", "b1_vl", "b2_vl", "b3_vl", "b4_vl", "b5_vl"),
                 Collections.emptySet()));
         SecurityAnalysisResult result = provider.run(network,
                         network.getVariantManager().getWorkingVariantId(),
@@ -443,8 +448,9 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                 .join()
                 .getResult();
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
-        assertEquals(1d, result.getPreContingencyResult().getNetworkResult().getBusResult("b1").getV(), DELTA_V); // g0 is controlling voltage of b1
+        assertEquals(1d, result.getPreContingencyResult().getNetworkResult().getBusResult("b1").getV(), 1e-6); // g0 is controlling voltage of b1
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
-        assertEquals(1.1d, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b1").getV(), DELTA_V); // tr34 is controlling voltage of b1
+        assertEquals(1.131391d, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b3").getV(), 1e-6); // tr34 is controlling voltage of b1 at tap 0 (ratio 0.9)
+        assertEquals(0.918307d, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), 1e-6);
     }
 }
