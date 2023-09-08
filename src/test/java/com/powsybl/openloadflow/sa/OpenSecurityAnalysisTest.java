@@ -2177,11 +2177,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("tr2"), new BranchContingency("tr3"))));
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(lfParameters)
-                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
                 .setLoadFlowParameters(lfParameters);
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
-        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(390.0, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "contingency");
+        assertEquals(390.0, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
     }
 }
