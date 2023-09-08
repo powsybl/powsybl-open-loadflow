@@ -216,10 +216,14 @@ public class AcEquationSystemCreator {
                 .map(vc -> equationSystem.getEquation(vc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow())
                 .collect(Collectors.toList());
 
-        if (voltageControl.isDisabled()
-                && (voltageControl.getMergedDependentVoltageControls().isEmpty() || voltageControl.getMergedDependentVoltageControls().stream().allMatch(VoltageControl::isDisabled))) {
-            // we disable all voltage control equations
-            vEq.setActive(false);
+        if (voltageControl.isHidden()) {
+            if (voltageControl.getActiveControlledBus().isPresent()) {
+                if (voltageControl.getActiveControlledBus().get() != voltageControl.getControlledBus()) {
+                    vEq.setActive(false);
+                }
+            } else {
+                vEq.setActive(false);
+            }
             for (T controllerElement : controllerElements) {
                 equationSystem.getEquation(controllerElement.getNum(), distrEqType)
                         .ifPresent(eq -> eq.setActive(false));
@@ -228,47 +232,37 @@ public class AcEquationSystemCreator {
                         .setActive(true);
             }
         } else {
-            if (voltageControl.isHidden()) {
-                for (T controllerElement : controllerElements) {
-                    equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                            .ifPresent(eq -> eq.setActive(false));
-                    equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
-                            .orElseThrow()
-                            .setActive(true);
-                }
-            } else {
-                List<T> enabledControllerElements = controllerElements.stream()
-                        .filter(voltageControl::isControllerEnabled).collect(Collectors.toList());
-                List<T> disabledControllerElements = controllerElements.stream()
-                        .filter(Predicate.not(voltageControl::isControllerEnabled)).collect(Collectors.toList());
+            List<T> enabledControllerElements = controllerElements.stream()
+                    .filter(voltageControl::isControllerEnabled).collect(Collectors.toList());
+            List<T> disabledControllerElements = controllerElements.stream()
+                    .filter(Predicate.not(voltageControl::isControllerEnabled)).collect(Collectors.toList());
 
-                // activate voltage control at controlled bus only if at least one controller element is enabled
-                vEq.setActive(!enabledControllerElements.isEmpty());
+            // activate voltage control at controlled bus only if at least one controller element is enabled
+            vEq.setActive(!enabledControllerElements.isEmpty());
 
-                // deactivate voltage control for merged controlled buses
-                for (var vEqMerged : vEqMergedList) {
-                    vEqMerged.setActive(false);
-                }
+            // deactivate voltage control for merged controlled buses
+            for (var vEqMerged : vEqMergedList) {
+                vEqMerged.setActive(false);
+            }
 
-                // deactivate distribution equations and reactivate control equations
-                for (T controllerElement : disabledControllerElements) {
-                    equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                            .ifPresent(eq -> eq.setActive(false));
-                    equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
-                            .orElseThrow()
-                            .setActive(true);
-                }
+            // deactivate distribution equations and reactivate control equations
+            for (T controllerElement : disabledControllerElements) {
+                equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+                        .ifPresent(eq -> eq.setActive(false));
+                equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+                        .orElseThrow()
+                        .setActive(true);
+            }
 
-                // activate distribution equation and deactivate control equation at all enabled controller buses except one (first)
-                for (int i = 0; i < enabledControllerElements.size(); i++) {
-                    boolean active = i != 0;
-                    T controllerElement = enabledControllerElements.get(i);
-                    equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                            .ifPresent(eq -> eq.setActive(active));
-                    equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
-                            .orElseThrow()
-                            .setActive(false);
-                }
+            // activate distribution equation and deactivate control equation at all enabled controller buses except one (first)
+            for (int i = 0; i < enabledControllerElements.size(); i++) {
+                boolean active = i != 0;
+                T controllerElement = enabledControllerElements.get(i);
+                equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+                        .ifPresent(eq -> eq.setActive(active));
+                equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+                        .orElseThrow()
+                        .setActive(false);
             }
         }
     }

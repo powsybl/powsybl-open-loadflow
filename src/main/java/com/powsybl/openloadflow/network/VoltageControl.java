@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
+
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -77,7 +80,7 @@ public class VoltageControl<T extends LfElement> extends Control {
         if (controlledBus.isDisabled()) {
             return true;
         }
-        return controllerElements.stream()
+        return getMergedControllerElements().stream()
                 .allMatch(LfElement::isDisabled);
     }
 
@@ -149,6 +152,19 @@ public class VoltageControl<T extends LfElement> extends Control {
         } else {
             // we should normally have max 3 voltage controls (one of each type) because already merged
             return voltageControls.get(0) != this;
+        }
+    }
+
+    public Optional<LfBus> getActiveControlledBus() {
+        List<VoltageControl<?>> voltageControls = findVoltageControlsSortedByPriority(controlledBus);
+        if (voltageControls.isEmpty()) {
+            return Optional.empty(); // means all disabled
+        }
+        List<VoltageControl> activeVoltageControls = voltageControls.stream().filter(vc -> !vc.isHidden()).collect(Collectors.toList());
+        if (activeVoltageControls.size() == 1) {
+            return Optional.of(activeVoltageControls.get(0).getControlledBus());
+        } else {
+            throw new PowsyblException("Several active controlled buses in a zero impedance network");
         }
     }
 
