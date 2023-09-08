@@ -217,13 +217,11 @@ public class AcEquationSystemCreator {
                 .collect(Collectors.toList());
 
         if (voltageControl.isHidden()) {
-            if (voltageControl.getActiveControlledBus().isPresent()) {
-                if (voltageControl.getActiveControlledBus().get() != voltageControl.getControlledBus()) {
+            voltageControl.getActiveControlledBus().ifPresentOrElse(bus -> {
+                if (bus != voltageControl.getControlledBus()) {
                     vEq.setActive(false);
                 }
-            } else {
-                vEq.setActive(false);
-            }
+            }, () -> vEq.setActive(false));
             for (T controllerElement : controllerElements) {
                 equationSystem.getEquation(controllerElement.getNum(), distrEqType)
                         .ifPresent(eq -> eq.setActive(false));

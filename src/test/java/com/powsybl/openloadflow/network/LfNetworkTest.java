@@ -204,4 +204,24 @@ class LfNetworkTest extends AbstractConverterTest {
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         testGraphViz(network, false, "sim1_disconnected.dot");
     }
+
+    @Test
+    void testDisabledVoltageControl() {
+        Network network = VoltageControlNetworkFactory.createWithDependentVoltageControls();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        lfNetwork.getZeroImpedanceNetworks(LoadFlowModel.AC); // to update.
+        LfBus b1 = lfNetwork.getBusById("b1_vl_0");
+        assertEquals(VoltageControl.MergeStatus.MAIN, b1.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        LfBus b2 = lfNetwork.getBusById("b2_vl_0");
+        assertEquals(VoltageControl.MergeStatus.DEPENDENT, b2.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        LfBus b3 = lfNetwork.getBusById("b3_vl_0");
+        assertEquals(VoltageControl.MergeStatus.DEPENDENT, b3.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        lfNetwork.getBusById("b01_vl_0").setDisabled(true); // only g1
+        assertFalse(b1.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertFalse(b1.getGeneratorVoltageControl().orElseThrow().isHidden());
+        assertTrue(b2.getGeneratorVoltageControl().orElseThrow().isHidden()); // FIXME
+        assertTrue(b3.getGeneratorVoltageControl().orElseThrow().isHidden()); // FIXME
+    }
 }
