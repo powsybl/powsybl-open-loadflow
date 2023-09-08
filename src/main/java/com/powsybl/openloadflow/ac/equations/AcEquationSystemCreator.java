@@ -311,7 +311,6 @@ public class AcEquationSystemCreator {
 
     public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         checkNotDependentVoltageControl(voltageControl);
-        System.out.println("updateGeneratorVoltageControl " + voltageControl);
 
         // ensure reactive keys are up-to-date
         voltageControl.updateReactiveKeys();
