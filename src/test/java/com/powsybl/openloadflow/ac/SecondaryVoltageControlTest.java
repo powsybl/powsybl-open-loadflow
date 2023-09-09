@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
@@ -272,5 +273,21 @@ class SecondaryVoltageControlTest {
 
         CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Control unit 'B9-SH' of zone 'z1' is expected to be either a generator or un VSC station control", e.getCause().getMessage());
+    }
+
+    @Test
+    void disjointControlZoneTest() {
+        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 13);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B99-G"),
+                                                                          new ControlUnit("B8-G"))))
+                .addControlZone(new ControlZone("z2", pilotPoint, List.of(new ControlUnit("B1-G"),
+                                                                          new ControlUnit("B8-G"))))
+                .add();
+
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        LfNetworkLoaderImpl networkLoader = new LfNetworkLoaderImpl();
+        PowsyblException e = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, networkLoader, networkParameters));
+        assertEquals("Controlled bus 'VL8_0' is present in more that one control zone", e.getMessage());
     }
 }

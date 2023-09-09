@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -740,6 +741,21 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return lfNetwork;
     }
 
+    private static void checkControlZonesAreDisjoints(LfNetwork lfNetwork) {
+        Map<String, MutableInt> controlledBusCount = new HashMap<>();
+        for (LfSecondaryVoltageControl lfSvc : lfNetwork.getSecondaryVoltageControls()) {
+            for (LfBus controlledBus : lfSvc.getControlledBuses()) {
+                controlledBusCount.computeIfAbsent(controlledBus.getId(), k -> new MutableInt())
+                        .increment();
+            }
+        }
+        for (var e : controlledBusCount.entrySet()) {
+            if (e.getValue().intValue() > 1) {
+                throw new PowsyblException("Controlled bus '" + e.getKey() + "' is present in more that one control zone");
+            }
+        }
+    }
+
     private static void createSecondaryVoltageControls(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork) {
         if (!parameters.isSecondaryVoltageControl()) {
             return;
@@ -778,7 +794,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
             }, () -> LOGGER.warn("None of the pilot buses of control zone '{}' are valid", controlZone.getName()));
         }
-        // FIXME: check all secondary voltage control controlled buses are disjoints
+
+        checkControlZonesAreDisjoints(lfNetwork);
+
         LOGGER.info("Network {}: {} secondary control zones have been created ({})", lfNetwork, lfNetwork.getSecondaryVoltageControls().size(),
                 lfNetwork.getSecondaryVoltageControls().stream().map(LfSecondaryVoltageControl::getZoneName).toList());
     }
