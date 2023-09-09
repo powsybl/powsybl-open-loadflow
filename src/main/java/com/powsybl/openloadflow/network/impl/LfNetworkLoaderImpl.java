@@ -758,7 +758,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     // filter missing control units and find corresponding primary voltage control, controlled bus
                     Set<LfBus> controlledBuses = controlZone.getControlUnits().stream()
                             .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
-                            .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
+                            .flatMap(regulatingTerminal -> {
+                                Connectable<?> connectable = regulatingTerminal.getConnectable();
+                                if (connectable.getType() != IdentifiableType.GENERATOR
+                                        && connectable.getType() != IdentifiableType.HVDC_CONVERTER_STATION) {
+                                    throw new PowsyblException("Control unit '" + connectable.getId() + "' of zone '"
+                                            + controlZone.getName() + "' is expected to be either a generator or un VSC station control");
+                                }
+                                return Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream();
+                            })
                             .collect(Collectors.toCollection(LinkedHashSet::new));
                     LOGGER.debug("{} control units of control zone '{}' have been mapped to {} LF buses ({})",
                             controlZone.getControlUnits().size(), controlZone.getName(), controlledBuses.size(),

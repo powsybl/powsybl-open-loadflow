@@ -29,10 +29,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -258,5 +258,19 @@ class SecondaryVoltageControlTest {
         List<LfSecondaryVoltageControl> secondaryVoltageControls = lfNetwork.getSecondaryVoltageControls();
         assertEquals(1, secondaryVoltageControls.size());
         assertEquals(1, secondaryVoltageControls.get(0).getControlledBuses().size()); // B99-G not found
+    }
+
+    @Test
+    void testOptionalNoValueIssue() {
+        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 13);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
+                                                                          new ControlUnit("B9-SH")))) // this is a shunt which is not supported
+                .add();
+
+        parametersExt.setSecondaryVoltageControl(true);
+
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Control unit 'B9-SH' of zone 'z1' is expected to be either a generator or un VSC station control", e.getCause().getMessage());
     }
 }
