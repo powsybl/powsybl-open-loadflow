@@ -21,6 +21,10 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +32,7 @@ import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -85,7 +90,7 @@ class SecondaryVoltageControlTest {
         PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 13);
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-                                                                          new ControlUnit("B8-G"))))
+                        new ControlUnit("B8-G"))))
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -134,7 +139,7 @@ class SecondaryVoltageControlTest {
         PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 11.5);
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-                                                                          new ControlUnit("B8-G"))))
+                        new ControlUnit("B8-G"))))
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -214,7 +219,7 @@ class SecondaryVoltageControlTest {
         PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 14.4);
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-                                                                          new ControlUnit("B8-G"))))
+                        new ControlUnit("B8-G"))))
                 .add();
 
         var result = loadFlowRunner.run(network, parameters);
@@ -223,5 +228,35 @@ class SecondaryVoltageControlTest {
         assertVoltageEquals(14.4, b10);
         assertVoltageEquals(14.151, b6);
         assertVoltageEquals(28.913, b8);
+    }
+
+    @Test
+    void pilotPointNotFoundTest() {
+        PilotPoint pilotPoint = new PilotPoint(List.of("XX", "YY"), 13);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
+                                                                          new ControlUnit("B8-G"))))
+                .add();
+
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters);
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertTrue(lfNetwork.getSecondaryVoltageControls().isEmpty());
+    }
+
+    @Test
+    void controlUnitNotFoundTest() {
+        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 13);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B99-G"),
+                                                                          new ControlUnit("B8-G"))))
+                .add();
+
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters);
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        List<LfSecondaryVoltageControl> secondaryVoltageControls = lfNetwork.getSecondaryVoltageControls();
+        assertEquals(1, secondaryVoltageControls.size());
+        assertEquals(1, secondaryVoltageControls.get(0).getControlledBuses().size()); // B99-G not found
     }
 }

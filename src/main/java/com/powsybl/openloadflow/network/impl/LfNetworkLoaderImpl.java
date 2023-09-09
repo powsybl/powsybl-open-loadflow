@@ -759,7 +759,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     Set<LfBus> controlledBuses = controlZone.getControlUnits().stream()
                             .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                             .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
-                            .collect(Collectors.toCollection((Supplier<Set<LfBus>>) LinkedHashSet::new));
+                            .collect(Collectors.toCollection(LinkedHashSet::new));
                     LOGGER.debug("{} control units of control zone '{}' have been mapped to {} LF buses ({})",
                             controlZone.getControlUnits().size(), controlZone.getName(), controlledBuses.size(),
                             controlledBuses.stream().map(LfElement::getId).toList());
