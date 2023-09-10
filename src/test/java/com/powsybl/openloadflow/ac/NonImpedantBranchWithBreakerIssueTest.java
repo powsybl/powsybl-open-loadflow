@@ -11,10 +11,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
@@ -47,7 +44,7 @@ class NonImpedantBranchWithBreakerIssueTest {
             new AcloadFlowEngine(context)
                     .run();
         }
-        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false));
+        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_PROPORTIONAL));
         for (Bus bus : network.getBusView().getBuses()) {
             assertEquals(400, bus.getV(), 0);
             assertEquals(0, bus.getAngle(), 0);
@@ -72,7 +69,7 @@ class NonImpedantBranchWithBreakerIssueTest {
             new AcloadFlowEngine(context)
                     .run();
         }
-        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false));
+        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_PROPORTIONAL));
         assertEquals(-100, network.getGenerator("G1").getTerminal().getQ(), 0);
         assertEquals(-100, network.getGenerator("G2").getTerminal().getQ(), 0);
     }

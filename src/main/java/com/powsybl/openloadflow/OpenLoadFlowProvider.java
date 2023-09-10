@@ -145,7 +145,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                           parameters.isTransformerVoltageControlOn(),
                                                                           parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
                                                                           parameters.isDc(),
-                                                                          acParameters.getNetworkParameters().isBreakers());
+                                                                          acParameters.getNetworkParameters().isBreakers(),
+                                                                          parametersExt.getReactivePowerDispatchMode());
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
@@ -201,7 +202,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       parameters.isTransformerVoltageControlOn(),
                                                                       false,
                                                                       true,
-                                                                      breakers);
+                                                                      breakers,
+                                                                      ReactivePowerDispatchMode.Q_PROPORTIONAL);
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation

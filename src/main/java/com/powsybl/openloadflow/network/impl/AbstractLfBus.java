@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.ToDoubleFunction;
+import java.util.function.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -475,32 +475,77 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         hvdcs.add(Objects.requireNonNull(hvdc));
     }
 
-    protected static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
+    private static ToDoubleFunction<String> splitDispatchQ(List<LfGenerator> generatorsThatControlVoltage, double qToDispatch) {
+        int size = generatorsThatControlVoltage.size();
+        return id -> qToDispatch / size;
+    }
+
+    /**
+     * k is a normalized value of reactive power that ensure that at q min k is -1 and at q max k is + 1
+     * q = 1 / 2 * (k * (qmax - qmin) + qmax + qmin)
+     */
+    private static double kToQ(double k, LfGenerator generator) {
+        double qmin = generator.getMinQ();
+        double qmax = generator.getMaxQ();
+        return 0.5d * (k * (qmax - qmin) + qmax + qmin);
+    }
+
+    /**
+     * Dispatch q ensuring a constant k value.
+     * qToDispatch = q1 + q2 + ...
+     * we have to find the k value for qToDispatch
+     * k = (2 * qToDispatch - qmax1 - qmin1 - qmax2 - qmin2 - ...) / (qmax1 - qmin1 + qmax2 - qmin2 + ...)
+     */
+    private static ToDoubleFunction<String> splitDispatchQWithConstantK(List<LfGenerator> generatorsThatControlVoltage, double qToDispatch) {
+        double k = 2 * qToDispatch;
+        double denom = 0;
+        for (LfGenerator generator : generatorsThatControlVoltage) {
+            k -= generator.getMaxQ() + generator.getMinQ();
+            denom += generator.getMaxQ() - generator.getMinQ();
+        }
+        if (denom != 0) {
+            k /= denom;
+        }
+
+        Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsThatControlVoltage.size());
+        for (LfGenerator generator : generatorsThatControlVoltage) {
+            qToDispatchByGeneratorId.put(generator.getId(), kToQ(k, generator));
+        }
+
+        return qToDispatchByGeneratorId::get;
+    }
+
+    protected static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits,
+                                      ReactivePowerDispatchMode reactivePowerDispatchMode, double qToDispatch) {
         double residueQ = 0;
         if (generatorsThatControlVoltage.isEmpty()) {
             throw new IllegalArgumentException("the generator list to dispatch Q can not be empty");
         }
-        double qToBeDispatchedByGenerator = qToDispatch / generatorsThatControlVoltage.size();
+        ToDoubleFunction<String> qToDispatchByGeneratorId = switch (reactivePowerDispatchMode) {
+            case Q_PROPORTIONAL -> splitDispatchQ(generatorsThatControlVoltage, qToDispatch);
+            case K_PROPORTIONAL -> splitDispatchQWithConstantK(generatorsThatControlVoltage, qToDispatch);
+        };
         Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
         while (itG.hasNext()) {
             LfGenerator generator = itG.next();
             double generatorAlreadyCalculatedQ = generator.getCalculatedQ();
-            if (reactiveLimits && qToBeDispatchedByGenerator + generatorAlreadyCalculatedQ < generator.getMinQ()) {
-                residueQ += qToBeDispatchedByGenerator + generatorAlreadyCalculatedQ - generator.getMinQ();
+            double qToDispatchForThisGenerator = qToDispatchByGeneratorId.applyAsDouble(generator.getId());
+            if (reactiveLimits && qToDispatchForThisGenerator + generatorAlreadyCalculatedQ < generator.getMinQ()) {
+                residueQ += qToDispatchForThisGenerator + generatorAlreadyCalculatedQ - generator.getMinQ();
                 generator.setCalculatedQ(generator.getMinQ());
                 itG.remove();
-            } else if (reactiveLimits && qToBeDispatchedByGenerator + generatorAlreadyCalculatedQ > generator.getMaxQ()) {
-                residueQ += qToBeDispatchedByGenerator + generatorAlreadyCalculatedQ - generator.getMaxQ();
+            } else if (reactiveLimits && qToDispatchForThisGenerator + generatorAlreadyCalculatedQ > generator.getMaxQ()) {
+                residueQ += qToDispatchForThisGenerator + generatorAlreadyCalculatedQ - generator.getMaxQ();
                 generator.setCalculatedQ(generator.getMaxQ());
                 itG.remove();
             } else {
-                generator.setCalculatedQ(generatorAlreadyCalculatedQ + qToBeDispatchedByGenerator);
+                generator.setCalculatedQ(generatorAlreadyCalculatedQ + qToDispatchForThisGenerator);
             }
         }
         return residueQ;
     }
 
-    void updateGeneratorsState(double generationQ, boolean reactiveLimits) {
+    void updateGeneratorsState(double generationQ, boolean reactiveLimits, ReactivePowerDispatchMode reactivePowerDispatchMode) {
         double qToDispatch = generationQ;
         List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
         for (LfGenerator generator : generators) {
@@ -515,21 +560,22 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             generator.setCalculatedQ(0);
         }
         while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
-            qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, qToDispatch);
+            qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, reactivePowerDispatchMode, qToDispatch);
         }
         if (!initialGeneratorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
             // FIXME
             // We have to much reactive power to dispatch, which is linked to a bus that has been forced to remain PV to
             // ease the convergence. Updating a generator reactive power outside its reactive limits is a quick fix.
             // It could be better to return a global failed status.
-            dispatchQ(initialGeneratorsThatControlVoltage, false, qToDispatch);
+            dispatchQ(initialGeneratorsThatControlVoltage, false, reactivePowerDispatchMode, qToDispatch);
         }
     }
 
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ, parameters.isReactiveLimits());
+        updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ,
+                parameters.isReactiveLimits(), parameters.getReactivePowerDispatchMode());
 
         // update load power
         if (load != null) {

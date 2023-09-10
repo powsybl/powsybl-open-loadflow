@@ -135,7 +135,7 @@ class LfBusImplTest {
         lfBus.addStaticVarCompensator(svc2, parameters, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc3, parameters, lfNetworkLoadingReport);
         double generationQ = -6.412103131789854;
-        lfBus.updateGeneratorsState(generationQ, true);
+        lfBus.updateGeneratorsState(generationQ, true, ReactivePowerDispatchMode.Q_PROPORTIONAL);
         double sumQ = 0;
         for (LfGenerator lfGenerator : lfBus.getGenerators()) {
             sumQ += lfGenerator.getCalculatedQ();
@@ -173,7 +173,7 @@ class LfBusImplTest {
         List<LfGenerator> generators = createLfGeneratorsWithInitQ(Arrays.asList(0d, 0d, 0d));
         LfGenerator generatorToRemove = generators.get(1);
         double qToDispatch = 21;
-        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_PROPORTIONAL, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generators.get(1).getCalculatedQ() + generatorToRemove.getCalculatedQ();
         assertEquals(7.0, generators.get(0).getCalculatedQ());
         assertEquals(7.0, generators.get(1).getCalculatedQ());
@@ -189,7 +189,7 @@ class LfBusImplTest {
         LfGenerator generatorToRemove1 = generators.get(1);
         LfGenerator generatorToRemove2 = generators.get(2);
         double qToDispatch = 20;
-        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_PROPORTIONAL, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove1.getCalculatedQ() + generatorToRemove2.getCalculatedQ();
         assertEquals(1, generators.size());
         assertEquals(qToDispatch + qInitial - totalCalculatedQ, residueQ, 0.0001);
@@ -204,7 +204,7 @@ class LfBusImplTest {
         LfGenerator generatorToRemove2 = generators.get(1);
         LfGenerator generatorToRemove3 = generators.get(2);
         double qToDispatch = -21;
-        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_PROPORTIONAL, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove2.getCalculatedQ() + generatorToRemove3.getCalculatedQ();
         assertEquals(-7.0, generators.get(0).getCalculatedQ());
         assertEquals(1, generators.size());
@@ -217,7 +217,7 @@ class LfBusImplTest {
     void dispatchQEmptyListTest() {
         List<LfGenerator> generators = new ArrayList<>();
         double qToDispatch = -21;
-        Assertions.assertThrows(IllegalArgumentException.class, () -> AbstractLfBus.dispatchQ(generators, true, qToDispatch),
+        Assertions.assertThrows(IllegalArgumentException.class, () -> AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_PROPORTIONAL, qToDispatch),
                 "the generator list to dispatch Q can not be empty");
     }
 
