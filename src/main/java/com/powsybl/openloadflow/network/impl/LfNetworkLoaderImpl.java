@@ -756,6 +756,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
+    private static boolean isVsc(Connectable<?> connectable) {
+        return connectable.getType() == IdentifiableType.HVDC_CONVERTER_STATION
+                && ((HvdcConverterStation<?>) connectable).getHvdcType() == HvdcConverterStation.HvdcType.VSC;
+    }
+
     private static void createSecondaryVoltageControls(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork) {
         if (!parameters.isSecondaryVoltageControl()) {
             return;
@@ -776,8 +781,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                             .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                             .flatMap(regulatingTerminal -> {
                                 Connectable<?> connectable = regulatingTerminal.getConnectable();
-                                if (connectable.getType() != IdentifiableType.GENERATOR
-                                        && connectable.getType() != IdentifiableType.HVDC_CONVERTER_STATION) {
+                                if (connectable.getType() != IdentifiableType.GENERATOR && !isVsc(connectable)) {
                                     throw new PowsyblException("Control unit '" + connectable.getId() + "' of zone '"
                                             + controlZone.getName() + "' is expected to be either a generator or un VSC station control");
                                 }
