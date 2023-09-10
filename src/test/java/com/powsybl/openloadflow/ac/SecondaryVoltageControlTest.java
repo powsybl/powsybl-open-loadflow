@@ -182,7 +182,7 @@ class SecondaryVoltageControlTest {
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(13, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(14, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(15, b10);
         assertVoltageEquals(14.604, b6);

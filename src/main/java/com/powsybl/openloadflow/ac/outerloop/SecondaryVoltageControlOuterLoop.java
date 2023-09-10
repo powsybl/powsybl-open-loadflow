@@ -283,8 +283,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             var pilotBus = secondaryVoltageControl.getPilotBus();
             if (LOGGER.isDebugEnabled()) {
                 long allControllerBusesCount = controlledBuses.stream()
-                        .flatMap(controlledBus -> findControllerBuses(controlledBus).stream())
-                        .count();
+                        .mapToLong(controlledBus -> findControllerBuses(controlledBus).size())
+                        .sum();
                 LOGGER.debug("Secondary voltage control of zone '{}': {}/{} controller buses available, pilot point dv is {} kV, controller buses dk diff max is {} (k average is {})",
                         secondaryVoltageControl.getZoneName(), controllerBuses.size(), allControllerBusesCount, pilotDv * pilotBus.getNominalV(), kStats.dkDiffMax(), kStats.kAverage());
             }
@@ -342,41 +342,44 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return adjusted;
     }
 
-    private static void tryToReEnableControllerBus(LfSecondaryVoltageControl control, LfBus controllerBus, List<LfBus> controllerBusesThatWillBeEnabled,
-                                                   List<LfBus> controllerBusesToEnable) {
-        if (controllerBus.isGeneratorVoltageControlEnabled()) {
-            controllerBusesThatWillBeEnabled.add(controllerBus);
-        }
-        controllerBus.getQLimitType().ifPresent(qLimitType -> {
-            var pilotBus = control.getPilotBus();
-            if (qLimitType == LfBus.QLimitType.MIN_Q) {
-                if (pilotBus.getV() < control.getTargetValue()) {
-                    controllerBusesToEnable.add(controllerBus);
-                    controllerBusesThatWillBeEnabled.add(controllerBus);
-                }
-            } else { // MAX_Q
-                if (pilotBus.getV() > control.getTargetValue()) {
-                    controllerBusesToEnable.add(controllerBus);
-                    controllerBusesThatWillBeEnabled.add(controllerBus);
-                }
-            }
-        });
-    }
-
     private static void tryToReEnableHelpfulControllerBuses(LfSecondaryVoltageControl control) {
-        List<LfBus> controllerBusesToEnable = new ArrayList<>();
-        List<LfBus> controllerBusesThatWillBeEnabled = new ArrayList<>(); // includes controller already enabled plus the one that will be re-enabled
+        List<LfBus> controllerBusesToMinQ = new ArrayList<>();
+        List<LfBus> controllerBusesToMaxQ = new ArrayList<>();
+        List<LfBus> allControllerBuses = new ArrayList<>();
         control.getControlledBuses().stream()
                 .filter(SecondaryVoltageControlOuterLoop::filterActiveControlledBus)
                 .forEach(controlledBus -> findControllerBuses(controlledBus)
-                        .forEach(controllerBus -> tryToReEnableControllerBus(control, controllerBus, controllerBusesThatWillBeEnabled, controllerBusesToEnable)));
-        if (!controllerBusesToEnable.isEmpty()) {
-            for (LfBus controllerBus : controllerBusesToEnable) {
+                        .forEach(controllerBus -> {
+                            allControllerBuses.add(controllerBus);
+                            controllerBus.getQLimitType().ifPresent(qLimitType -> {
+                                if (qLimitType == LfBus.QLimitType.MIN_Q) {
+                                    controllerBusesToMinQ.add(controllerBus);
+                                } else { // MAX_Q
+                                    controllerBusesToMaxQ.add(controllerBus);
+                                }
+                            });
+                        }));
+        var pilotBus = control.getPilotBus();
+        if (controllerBusesToMinQ.size() == allControllerBuses.size() && pilotBus.getV() < control.getTargetValue() // all controllers are to min q
+                || controllerBusesToMaxQ.size() == allControllerBuses.size() && pilotBus.getV() > control.getTargetValue()) { // all controllers are to max q
+            for (LfBus controllerBus : allControllerBuses) {
                 controllerBus.setGeneratorVoltageControlEnabled(true);
                 controllerBus.setQLimitType(null);
             }
-            LOGGER.debug("Secondary voltage control of zone '{}': voltage control of controller buses {} has been enabled because might help to reach pilot bus target",
-                    control.getZoneName(), controllerBusesToEnable.stream().map(LfElement::getId).toList());
+            LOGGER.debug("Secondary voltage control of zone '{}': all to limit controller buses have been re-enabled because might help to reach pilot bus target",
+                    control.getZoneName());
+        } else {
+            List<LfBus> controllerBusesToLimit = new ArrayList<>(controllerBusesToMinQ.size() + controllerBusesToMaxQ.size());
+            controllerBusesToLimit.addAll(controllerBusesToMinQ);
+            controllerBusesToLimit.addAll(controllerBusesToMaxQ);
+            if (!controllerBusesToLimit.isEmpty() && controllerBusesToLimit.size() < allControllerBuses.size()) {
+                for (LfBus controllerBus : controllerBusesToLimit) {
+                    controllerBus.setGeneratorVoltageControlEnabled(true);
+                    controllerBus.setQLimitType(null);
+                }
+                LOGGER.debug("Secondary voltage control of zone '{}': controller buses {} have been re-enabled because might help to reach pilot bus target",
+                        control.getZoneName(), controllerBusesToLimit);
+            }
         }
     }
 
