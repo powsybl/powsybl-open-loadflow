@@ -32,7 +32,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
-    public static final String TYPE = "SecondaryVoltageControl";
+    public static final String NAME = "SecondaryVoltageControl";
 
     public static final double SENSI_V_V_EPS_DEFAULT_VALUE = 1e-2;
 
@@ -52,8 +52,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public String getType() {
-        return TYPE;
+    public String getName() {
+        return NAME;
     }
 
     private static boolean isValid(LfBus bus) {

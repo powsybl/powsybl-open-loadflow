@@ -98,7 +98,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final Set<ReportedFeatures> REPORTED_FEATURES_DEFAULT_VALUE = Collections.emptySet();
 
-    protected static final List<String> OUTER_LOOP_TYPES_DEFAULT_VALUE = null;
+    protected static final List<String> OUTER_LOOP_NAMES_DEFAULT_VALUE = null;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -192,7 +192,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String ASYMMETRICAL_PARAM_NAME = "asymmetrical";
 
-    static final String OUTER_LOOP_TYPES_PARAM_NAME = "outerLoopTypes";
+    static final String OUTER_LOOP_NAMES_PARAM_NAME = "outerLoopNames";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -244,7 +244,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE)),
         new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN, "Asymmetrical calculation", LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE),
         new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage for target voltage check", LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE),
-        new Parameter(OUTER_LOOP_TYPES_PARAM_NAME, ParameterType.STRING_LIST, "Ordered explicit list of outer loop types to run among " + String.join(", ", ExplicitAcOuterLoopConfig.TYPES), OUTER_LOOP_TYPES_DEFAULT_VALUE)
+        new Parameter(OUTER_LOOP_NAMES_PARAM_NAME, ParameterType.STRING_LIST, "Ordered explicit list of outer loop names to run among " + String.join(", ", ExplicitAcOuterLoopConfig.NAMES), OUTER_LOOP_NAMES_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -378,7 +378,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
 
-    private List<String> outerLoopTypes = OUTER_LOOP_TYPES_DEFAULT_VALUE;
+    private List<String> outerLoopNames = OUTER_LOOP_NAMES_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -841,12 +841,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public List<String> getOuterLoopTypes() {
-        return outerLoopTypes;
+    public List<String> getOuterLoopNames() {
+        return outerLoopNames;
     }
 
-    public OpenLoadFlowParameters setOuterLoopTypes(List<String> outerLoopTypes) {
-        this.outerLoopTypes = outerLoopTypes;
+    public OpenLoadFlowParameters setOuterLoopNames(List<String> outerLoopNames) {
+        this.outerLoopNames = outerLoopNames;
         return this;
     }
 
@@ -907,7 +907,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setActionableSwitchesIds(new HashSet<>(config.getStringListProperty(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE))))
                 .setAsymmetrical(config.getBooleanProperty(ASYMMETRICAL_PARAM_NAME, LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE))
                 .setMinNominalVoltageTargetVoltageCheck(config.getDoubleProperty(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE))
-                .setOuterLoopTypes(config.getStringListProperty(OUTER_LOOP_TYPES_PARAM_NAME, OUTER_LOOP_TYPES_DEFAULT_VALUE))
+                .setOuterLoopNames(config.getStringListProperty(OUTER_LOOP_NAMES_PARAM_NAME, OUTER_LOOP_NAMES_DEFAULT_VALUE))
             );
         return parameters;
     }
@@ -1016,8 +1016,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setAsymmetrical(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME))
                 .ifPresent(prop -> this.setMinNominalVoltageTargetVoltageCheck(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(OUTER_LOOP_TYPES_PARAM_NAME))
-                .ifPresent(prop -> this.setOuterLoopTypes(parseStringListProp(prop)));
+        Optional.ofNullable(properties.get(OUTER_LOOP_NAMES_PARAM_NAME))
+                .ifPresent(prop -> this.setOuterLoopNames(parseStringListProp(prop)));
         return this;
     }
 
@@ -1069,7 +1069,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, actionableSwitchesIds);
         map.put(ASYMMETRICAL_PARAM_NAME, asymmetrical);
         map.put(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, minNominalVoltageTargetVoltageCheck);
-        map.put(OUTER_LOOP_TYPES_PARAM_NAME, outerLoopTypes);
+        map.put(OUTER_LOOP_NAMES_PARAM_NAME, outerLoopNames);
         return map;
     }
 
@@ -1223,7 +1223,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     static List<AcOuterLoop> createOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig()
-                .orElseGet(() -> parametersExt.getOuterLoopTypes() != null ? new ExplicitAcOuterLoopConfig()
+                .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitAcOuterLoopConfig()
                                                                            : new DefaultAcOuterLoopConfig());
         return outerLoopConfig.configure(parameters, parametersExt);
     }
@@ -1387,7 +1387,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getActionableSwitchesIds().equals(extension2.getActionableSwitchesIds()) &&
                 extension1.isAsymmetrical() == extension2.isAsymmetrical() &&
                 extension1.getMinNominalVoltageTargetVoltageCheck() == extension2.getMinNominalVoltageTargetVoltageCheck() &&
-                Objects.equals(extension1.getOuterLoopTypes(), extension2.getOuterLoopTypes());
+                Objects.equals(extension1.getOuterLoopNames(), extension2.getOuterLoopNames());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1452,7 +1452,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setActionableSwitchesIds(new HashSet<>(extension.getActionableSwitchesIds()))
                     .setAsymmetrical(extension.isAsymmetrical())
                     .setMinNominalVoltageTargetVoltageCheck(extension.getMinNominalVoltageTargetVoltageCheck())
-                    .setOuterLoopTypes(extension.getOuterLoopTypes());
+                    .setOuterLoopNames(extension.getOuterLoopNames());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

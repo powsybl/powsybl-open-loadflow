@@ -20,15 +20,15 @@ import java.util.stream.Collectors;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class ShuntVoltageControlOuterLoop implements AcOuterLoop {
+public class ShuntVoltageControlOuterLoop extends AbstractShuntVoltageControlOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShuntVoltageControlOuterLoop.class);
 
-    public static final String TYPE = "ShuntVoltageControl";
+    public static final String NAME = "ShuntVoltageControl";
 
     @Override
-    public String getType() {
-        return TYPE;
+    public String getName() {
+        return NAME;
     }
 
     private static List<LfShunt> getControllerShunts(LfNetwork network) {

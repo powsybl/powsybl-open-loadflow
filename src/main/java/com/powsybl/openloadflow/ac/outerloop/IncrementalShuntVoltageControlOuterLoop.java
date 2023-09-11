@@ -31,11 +31,11 @@ import java.util.stream.Collectors;
  * @author Hadrien Godard <hadrien.godard at artelys.com>
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class IncrementalShuntVoltageControlOuterLoop implements AcOuterLoop {
+public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltageControlOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalShuntVoltageControlOuterLoop.class);
 
-    public static final String TYPE = "IncrementalShuntVoltageControl";
+    public static final String NAME = "IncrementalShuntVoltageControl";
 
     // Maximum number of directional inversions for each controller during incremental outer loop
     private static final int MAX_DIRECTION_CHANGE = 2;
@@ -43,8 +43,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements AcOuterLoop {
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
     @Override
-    public String getType() {
-        return TYPE;
+    public String getName() {
+        return NAME;
     }
 
     @Override

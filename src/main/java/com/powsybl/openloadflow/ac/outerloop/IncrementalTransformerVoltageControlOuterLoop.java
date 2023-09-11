@@ -39,7 +39,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerVoltageControlOuterLoop.class);
 
-    public static final String TYPE = "IncrementalTransformerVoltageControl";
+    public static final String NAME = "IncrementalTransformerVoltageControl";
 
     public static final int DEFAULT_MAX_TAP_SHIFT = 3;
 
@@ -52,8 +52,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     @Override
-    public String getType() {
-        return TYPE;
+    public String getName() {
+        return NAME;
     }
 
     @Override

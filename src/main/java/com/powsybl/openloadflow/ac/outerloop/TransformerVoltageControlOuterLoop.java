@@ -22,7 +22,7 @@ import java.util.List;
  */
 public class TransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
-    public static final String TYPE = "TransformerVoltageControl";
+    public static final String NAME = "TransformerVoltageControl";
 
     private static final class ContextData {
 
@@ -63,8 +63,8 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     }
 
     @Override
-    public String getType() {
-        return TYPE;
+    public String getName() {
+        return NAME;
     }
 
     @Override

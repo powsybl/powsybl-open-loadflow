@@ -25,7 +25,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOuterLoop.class);
 
-    public static final String TYPE = "DistributedSlack";
+    public static final String NAME = "DistributedSlack";
 
     private final double slackBusPMaxMismatch;
 
@@ -40,8 +40,8 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public String getType() {
-        return TYPE;
+    public String getName() {
+        return NAME;
     }
 
     @Override
