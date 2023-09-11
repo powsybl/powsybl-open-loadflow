@@ -787,6 +787,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                                 }
                                 return Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream();
                             })
+                            .filter(LfBus::isGeneratorVoltageControlled) // might happen to be false, if generator has been discarded from voltage control because of inconsistency (like small reactive limit range)
                             .collect(Collectors.toCollection(LinkedHashSet::new));
                     LOGGER.debug("{} control units of control zone '{}' have been mapped to {} LF buses ({})",
                             controlZone.getControlUnits().size(), controlZone.getName(), controlledBuses.size(),

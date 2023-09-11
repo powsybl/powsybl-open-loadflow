@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlUnit;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
@@ -273,6 +270,24 @@ class SecondaryVoltageControlTest {
 
         CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Control unit 'B9-SH' of zone 'z1' is expected to be either a generator or un VSC station control", e.getCause().getMessage());
+    }
+
+    @Test
+    void testAnotherOptionalNoValueIssue() {
+        Generator g6 = network.getGenerator("B6-G");
+        g6.newMinMaxReactiveLimits()
+                .setMinQ(100)
+                .setMaxQ(100.000001)
+                .add();
+        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 13);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
+                                                                          new ControlUnit("B8-G"))))
+                .add();
+
+        parametersExt.setSecondaryVoltageControl(true);
+
+        assertDoesNotThrow(() -> loadFlowRunner.run(network, parameters));
     }
 
     @Test
