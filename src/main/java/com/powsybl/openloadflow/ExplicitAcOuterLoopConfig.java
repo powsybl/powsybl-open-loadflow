@@ -50,11 +50,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         };
     }
 
-    @Override
-    public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        List<AcOuterLoop> outerLoops = Objects.requireNonNull(parametersExt.getOuterLoopNames()).stream()
-                .map(name -> createOuterLoop(name, parameters, parametersExt))
-                .toList();
+    private static void checkTypeUnicity(List<AcOuterLoop> outerLoops) {
         Map<String, Integer> outerLoopTypesCount = outerLoops.stream().collect(Collectors.toMap(OuterLoop::getType, outerLoop -> 1, Integer::sum));
         for (var e : outerLoopTypesCount.entrySet()) {
             int count = e.getValue();
@@ -63,6 +59,14 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                 throw new PowsyblException("Multiple (" + count + ") outer loops with same type: " + type);
             }
         }
+    }
+
+    @Override
+    public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        List<AcOuterLoop> outerLoops = Objects.requireNonNull(parametersExt.getOuterLoopNames()).stream()
+                .map(name -> createOuterLoop(name, parameters, parametersExt))
+                .toList();
+        checkTypeUnicity(outerLoops);
         return outerLoops;
     }
 }
