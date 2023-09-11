@@ -1368,4 +1368,33 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(-49.1009, twt.getTerminal1().getI() - i1Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -52.329
         assertEquals(-124.2233, twt.getTerminal2().getI() - i2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -132.392
     }
+
+    @Test
+    void testUnsupportedVariablesSensiV() {
+        Network network = EurostagTutorialExample1Factory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "NLOAD");
+        List<Contingency> contingencies = Collections.emptyList();
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+
+        List<SensitivityFactor> factors = List.of(new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_1,
+                                                                        "NHV2_NLOAD",
+                                                                        SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                                                                        "GEN",
+                                                                        false,
+                                                                        ContingencyContext.all()));
+
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        assertEquals("Variable type INJECTION_ACTIVE_POWER not supported with function type BRANCH_REACTIVE_POWER_1", e.getCause().getMessage());
+
+        List<SensitivityFactor> factors2 = List.of(new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE,
+                                                  "NLOAD",
+                                                  SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                                                  "GEN",
+                                                  false,
+                                                  ContingencyContext.all()));
+
+        e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors2, contingencies, variableSets, sensiParameters));
+        assertEquals("Variable type INJECTION_ACTIVE_POWER not supported with function type BUS_VOLTAGE", e.getCause().getMessage());
+    }
 }
