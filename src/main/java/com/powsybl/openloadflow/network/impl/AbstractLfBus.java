@@ -481,16 +481,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     /**
-     * k is a normalized value of reactive power that ensure that at q min k is -1 and at q max k is + 1
-     * q = 1 / 2 * (k * (qmax - qmin) + qmax + qmin)
-     */
-    private static double kToQ(double k, LfGenerator generator) {
-        double qmin = generator.getMinQ();
-        double qmax = generator.getMaxQ();
-        return 0.5d * (k * (qmax - qmin) + qmax + qmin);
-    }
-
-    /**
      * Dispatch q ensuring a constant k value.
      * qToDispatch = q1 + q2 + ...
      * we have to find the k value for qToDispatch
@@ -509,7 +499,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
         Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsThatControlVoltage.size());
         for (LfGenerator generator : generatorsThatControlVoltage) {
-            qToDispatchByGeneratorId.put(generator.getId(), kToQ(k, generator));
+            qToDispatchByGeneratorId.put(generator.getId(), LfGenerator.kToQ(k, generator));
         }
 
         return qToDispatchByGeneratorId::get;

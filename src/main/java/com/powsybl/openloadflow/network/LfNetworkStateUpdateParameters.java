@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -37,7 +39,7 @@ public class LfNetworkStateUpdateParameters {
         this.loadPowerFactorConstant = loadPowerFactorConstant;
         this.dc = dc;
         this.breakers = breakers;
-        this.reactivePowerDispatchMode = reactivePowerDispatchMode;
+        this.reactivePowerDispatchMode = Objects.requireNonNull(reactivePowerDispatchMode);
     }
 
     public boolean isReactiveLimits() {

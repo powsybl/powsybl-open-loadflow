@@ -144,7 +144,10 @@ class LfBusImplTest {
     }
 
     private static List<LfGenerator> createLfGeneratorsWithInitQ(List<Double> initQs) {
-        Network network = FourSubstationsNodeBreakerFactory.create();
+        return createLfGeneratorsWithInitQ(FourSubstationsNodeBreakerFactory.create(), initQs);
+    }
+
+    private static List<LfGenerator> createLfGeneratorsWithInitQ(Network network, List<Double> initQs) {
         LfNetwork lfNetwork = new LfNetwork(0, 0, new FirstSlackBusSelector(), 1, new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LfNetworkParameters parameters1 = new LfNetworkParameters()
                 .setPlausibleActivePowerLimit(100)
@@ -219,6 +222,27 @@ class LfBusImplTest {
         double qToDispatch = -21;
         Assertions.assertThrows(IllegalArgumentException.class, () -> AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_PROPORTIONAL, qToDispatch),
                 "the generator list to dispatch Q can not be empty");
+    }
+
+    @Test
+    void dispatchQwithKproportional() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(0.3d, 0.1d, 0.4d));
+        LfGenerator g0 = generators.get(0);
+        LfGenerator g1 = generators.get(1);
+        LfGenerator g2 = generators.get(2);
+        g0.setCalculatedQ(0);
+        g1.setCalculatedQ(0);
+        g2.setCalculatedQ(0);
+        double qToDispatch = 20;
+        double residueQ = AbstractLfBus.dispatchQ(new ArrayList<>(generators), true, ReactivePowerDispatchMode.K_PROPORTIONAL, qToDispatch);
+        assertEquals(0, residueQ, 0);
+        assertEquals(8.537, g0.getCalculatedQ(), 1e-3);
+        assertEquals(4.985, g1.getCalculatedQ(), 1e-3);
+        assertEquals(6.477, g2.getCalculatedQ(), 1e-3);
+        assertEquals(0.91, LfGenerator.qToK(g0, g0.getCalculatedQ()), 1e-3);
+        assertEquals(0.91, LfGenerator.qToK(g1, g1.getCalculatedQ()), 1e-3);
+        assertEquals(0.91, LfGenerator.qToK(g2, g2.getCalculatedQ()), 1e-3);
     }
 
     @Test
