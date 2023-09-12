@@ -52,7 +52,7 @@ public interface LfBus extends LfElement {
      * Get the highest priority voltage control connected to a bus of the zero impedance subgraph to which this bus
      * belong.
      */
-    Optional<VoltageControl<?>> getHighestPriorityVoltageControl();
+    Optional<VoltageControl<?>> getHighestPriorityMainVoltageControl();
 
     // generator voltage control
     Optional<GeneratorVoltageControl> getGeneratorVoltageControl();

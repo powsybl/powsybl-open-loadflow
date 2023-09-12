@@ -1072,6 +1072,38 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
     }
 
     /**
+     *  g1 (reg b1)  g2 (reg b2)  g3 (reg b3)
+     *  |            |            |
+     *  b01          b02          b03
+     *  |            |            |
+     *  b1 --------- b2 --------- b3
+     *               |
+     *               l
+     */
+    public static Network createWithDependentVoltageControls() {
+        Network network = Network.create("withDependantVoltageControls", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b01 = createBus(network, "b01");
+        Bus b02 = createBus(network, "b02");
+        Bus b03 = createBus(network, "b03");
+        createLine(network, b01, b1, "l011", 0.01);
+        createLine(network, b02, b2, "l022", 0.01);
+        createLine(network, b03, b3, "l033", 0.01);
+        createGenerator(b01, "g1", 2, 1);
+        createGenerator(b02, "g2", 2, 1);
+        createGenerator(b03, "g3", 2, 1);
+        createLoad(b2, "l", 6, 1);
+        createLine(network, b1, b2, "l12", 0.0);
+        createLine(network, b2, b3, "l23", 0.0);
+        network.getGenerator("g1").setRegulatingTerminal(network.getLine("l011").getTerminal2());
+        network.getGenerator("g2").setRegulatingTerminal(network.getLine("l022").getTerminal2());
+        network.getGenerator("g3").setRegulatingTerminal(network.getLine("l033").getTerminal2());
+        return network;
+    }
+
+    /**
      *   g1     SHUNT2  SHUNT3
      *   |      |       |
      *  b1 ---- b2      b3

@@ -168,8 +168,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<VoltageControl<?>> getHighestPriorityVoltageControl() {
-        return VoltageControl.findVoltageControlsSortedByPriority(this).stream().findFirst();
+    public Optional<VoltageControl<?>> getHighestPriorityMainVoltageControl() {
+        return VoltageControl.findMainVoltageControlsSortedByPriority(this).stream().findFirst();
     }
 
     @Override
