@@ -227,6 +227,9 @@ class LfNetworkTest extends AbstractConverterTest {
         assertFalse(b3.getGeneratorVoltageControl().orElseThrow().isHidden());
 
         b1.setDisabled(true);
+        assertSame(VoltageControl.MergeStatus.MAIN, b1.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        assertSame(VoltageControl.MergeStatus.DEPENDENT, b2.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        assertSame(VoltageControl.MergeStatus.DEPENDENT, b3.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
         assertTrue(b1.getGeneratorVoltageControl().orElseThrow().isDisabled()); // FIXME
         assertFalse(b2.getGeneratorVoltageControl().orElseThrow().isDisabled());
         assertFalse(b3.getGeneratorVoltageControl().orElseThrow().isDisabled());
