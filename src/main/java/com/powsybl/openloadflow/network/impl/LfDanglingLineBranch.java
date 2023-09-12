@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.network.*;
@@ -67,7 +66,15 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
+        // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
+        // we follow the convention side 1 for network side and side 2 for boundary side.
+        double flowTransfer = Double.NaN;
+        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
+            flowTransfer = (p1.eval() * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
+        }
+        double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
+        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
+                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), flowTransfer);
     }
 
     @Override
