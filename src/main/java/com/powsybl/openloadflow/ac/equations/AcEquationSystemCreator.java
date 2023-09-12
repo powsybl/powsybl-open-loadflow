@@ -207,18 +207,18 @@ public class AcEquationSystemCreator {
         List<T> controllerElements = voltageControl.getMergedControllerElements()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
-                .collect(Collectors.toList());
+                .toList();
 
         Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
         List<Equation<AcVariableType, AcEquationType>> vEqMergedList = voltageControl.getMergedDependentVoltageControls().stream()
                 .map(vc -> equationSystem.getEquation(vc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow())
-                .collect(Collectors.toList());
+                .toList();
 
         if (voltageControl.isHidden()) {
-            voltageControl.getActiveControlledBus().ifPresentOrElse(bus -> {
-                if (bus != voltageControl.getControlledBus()) {
+            voltageControl.findMainVisibleControlledBus().ifPresentOrElse(mainVisibleControlledBus -> {
+                if (mainVisibleControlledBus != voltageControl.getControlledBus()) {
                     vEq.setActive(false);
                 }
             }, () -> vEq.setActive(false));
@@ -231,9 +231,9 @@ public class AcEquationSystemCreator {
             }
         } else {
             List<T> enabledControllerElements = controllerElements.stream()
-                    .filter(voltageControl::isControllerEnabled).collect(Collectors.toList());
+                    .filter(voltageControl::isControllerEnabled).toList();
             List<T> disabledControllerElements = controllerElements.stream()
-                    .filter(Predicate.not(voltageControl::isControllerEnabled)).collect(Collectors.toList());
+                    .filter(Predicate.not(voltageControl::isControllerEnabled)).toList();
 
             // activate voltage control at controlled bus only if at least one controller element is enabled
             vEq.setActive(!enabledControllerElements.isEmpty());

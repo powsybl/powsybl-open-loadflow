@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.PowsyblException;
-
 import java.util.*;
 
 /**
@@ -75,8 +73,12 @@ public class VoltageControl<T extends LfElement> extends Control {
         return type;
     }
 
+    /**
+     * Check is the merged voltage to which this voltage control belongs is disabled. Disabled means that there is no
+     * more controlled bus or no more controller element.
+     */
     public boolean isDisabled() {
-        if (controlledBus.isDisabled()) {
+        if (getMergedControlledBuses().stream().allMatch(LfElement::isDisabled)) {
             return true;
         }
         return getMergedControllerElements().stream()
@@ -96,6 +98,19 @@ public class VoltageControl<T extends LfElement> extends Control {
                 return (E) mainMergedVoltageControl;
             default:
                 throw new IllegalStateException("Unknown merge status: " + mergeStatus);
+        }
+    }
+
+    public List<LfBus> getMergedControlledBuses() {
+        if (mergedDependentVoltageControls.isEmpty()) {
+            return List.of(controlledBus);
+        } else {
+            List<LfBus> mergedControlledBuses = new ArrayList<>(1);
+            mergedControlledBuses.add(controlledBus);
+            for (var mvc : mergedDependentVoltageControls) {
+                mergedControlledBuses.add(mvc.getControlledBus());
+            }
+            return mergedControlledBuses;
         }
     }
 
@@ -122,6 +137,10 @@ public class VoltageControl<T extends LfElement> extends Control {
         }
     }
 
+    /**
+     * Find the list of voltage control with merge status as main, connected to a given bus (so including by traversing
+     * non impedant branches).
+     */
     public static List<VoltageControl<?>> findMainVoltageControlsSortedByPriority(LfBus bus) {
         List<VoltageControl<?>> voltageControls = new ArrayList<>();
         LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(LoadFlowModel.AC);
@@ -137,33 +156,49 @@ public class VoltageControl<T extends LfElement> extends Control {
     }
 
     /**
+     * Check is the merged voltage to which this voltage control belongs is hidden by another one of a different type
+     * (generator, transformer or shunt). The hidden status includes the disable status so a disable voltage control is
+     * also hidden.
+     *
      * FIXME: take into account controllers status to have a proper definition
      * For generator voltage control, isGeneratorVoltageControlEnabled() should be called.
      * For transformer voltage control, isVoltageControlEnabled() should be called.
      * For shunt voltage control, isVoltageControlEnabled() should be called.
      */
     public boolean isHidden() {
-        // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
-        // from merged ones
+        // collect all main voltage controls connected the same controlled bus
         List<VoltageControl<?>> mainVoltageControls = findMainVoltageControlsSortedByPriority(controlledBus);
         if (mainVoltageControls.isEmpty()) {
             return true; // means all disabled
         } else {
-            // we should normally have max 3 voltage controls (one of each type) because already merged
+            // we should normally have max 3 voltage controls (one of each type) with merge type as main
+            // in order to this method work whatever the voltage control is main or dependent we check against
+            // main voltage control of this
             return mainVoltageControls.get(0) != this.getMainVoltageControl();
         }
     }
 
-    public Optional<LfBus> getActiveControlledBus() {
-        List<VoltageControl<?>> voltageControls = findMainVoltageControlsSortedByPriority(controlledBus);
-        if (voltageControls.isEmpty()) {
+    public boolean isVisible() {
+        return !isHidden();
+    }
+
+    /**
+     * Find controlled bus which is part of:
+     *  - the visible voltage control
+     *  - the main voltage control of the global merged one
+     * This controlled bus is important because this is the one that will be targeted by a voltage equation in the
+     * equation system.
+     */
+    public Optional<LfBus> findMainVisibleControlledBus() {
+        List<VoltageControl<?>> mainVoltageControls = findMainVoltageControlsSortedByPriority(controlledBus);
+        if (mainVoltageControls.isEmpty()) {
             return Optional.empty(); // means all disabled
         }
-        List<VoltageControl<?>> activeVoltageControls = voltageControls.stream().filter(vc -> !vc.isHidden()).toList();
-        if (activeVoltageControls.size() == 1) {
-            return Optional.of(activeVoltageControls.get(0).getControlledBus());
+        List<VoltageControl<?>> visibleMainVoltageControls = mainVoltageControls.stream().filter(VoltageControl::isVisible).toList();
+        if (visibleMainVoltageControls.size() == 1) {
+            return Optional.of(visibleMainVoltageControls.get(0).getControlledBus());
         } else {
-            throw new PowsyblException("Several active controlled buses in a zero impedance network");
+            throw new IllegalStateException("Several visible controlled buses, it should not happen");
         }
     }
 
