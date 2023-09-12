@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -112,7 +111,7 @@ public class VoltageControl<T extends LfElement> extends Control {
         }
     }
 
-    private static void addVoltageControls(List<VoltageControl<?>> voltageControls, LfBus bus) {
+    private static void addMainVoltageControls(List<VoltageControl<?>> voltageControls, LfBus bus) {
         if (bus.isVoltageControlled()) {
             for (VoltageControl<?> vc : bus.getVoltageControls()) {
                 if (vc.isDisabled() || vc.getMergeStatus() == MergeStatus.DEPENDENT) {
@@ -123,15 +122,15 @@ public class VoltageControl<T extends LfElement> extends Control {
         }
     }
 
-    public static List<VoltageControl<?>> findVoltageControlsSortedByPriority(LfBus bus) {
+    public static List<VoltageControl<?>> findMainVoltageControlsSortedByPriority(LfBus bus) {
         List<VoltageControl<?>> voltageControls = new ArrayList<>();
         LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(LoadFlowModel.AC);
         if (zn != null) { // bus is part of a zero impedance graph
             for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
-                addVoltageControls(voltageControls, zb);
+                addMainVoltageControls(voltageControls, zb);
             }
         } else {
-            addVoltageControls(voltageControls, bus);
+            addMainVoltageControls(voltageControls, bus);
         }
         voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
         return voltageControls;
@@ -146,21 +145,21 @@ public class VoltageControl<T extends LfElement> extends Control {
     public boolean isHidden() {
         // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
         // from merged ones
-        List<VoltageControl<?>> voltageControls = findVoltageControlsSortedByPriority(controlledBus);
-        if (voltageControls.isEmpty()) {
+        List<VoltageControl<?>> mainVoltageControls = findMainVoltageControlsSortedByPriority(controlledBus);
+        if (mainVoltageControls.isEmpty()) {
             return true; // means all disabled
         } else {
             // we should normally have max 3 voltage controls (one of each type) because already merged
-            return voltageControls.get(0) != this;
+            return mainVoltageControls.get(0) != this.getMainVoltageControl();
         }
     }
 
     public Optional<LfBus> getActiveControlledBus() {
-        List<VoltageControl<?>> voltageControls = findVoltageControlsSortedByPriority(controlledBus);
+        List<VoltageControl<?>> voltageControls = findMainVoltageControlsSortedByPriority(controlledBus);
         if (voltageControls.isEmpty()) {
             return Optional.empty(); // means all disabled
         }
-        List<VoltageControl> activeVoltageControls = voltageControls.stream().filter(vc -> !vc.isHidden()).collect(Collectors.toList());
+        List<VoltageControl<?>> activeVoltageControls = voltageControls.stream().filter(vc -> !vc.isHidden()).toList();
         if (activeVoltageControls.size() == 1) {
             return Optional.of(activeVoltageControls.get(0).getControlledBus());
         } else {

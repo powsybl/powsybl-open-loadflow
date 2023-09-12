@@ -221,7 +221,7 @@ class LfNetworkTest extends AbstractConverterTest {
         lfNetwork.getBusById("b01_vl_0").setDisabled(true); // only g1
         assertFalse(b1.getGeneratorVoltageControl().orElseThrow().isDisabled());
         assertFalse(b1.getGeneratorVoltageControl().orElseThrow().isHidden());
-        assertTrue(b2.getGeneratorVoltageControl().orElseThrow().isHidden()); // FIXME
-        assertTrue(b3.getGeneratorVoltageControl().orElseThrow().isHidden()); // FIXME
+        assertFalse(b2.getGeneratorVoltageControl().orElseThrow().isHidden());
+        assertFalse(b3.getGeneratorVoltageControl().orElseThrow().isHidden());
     }
 }
