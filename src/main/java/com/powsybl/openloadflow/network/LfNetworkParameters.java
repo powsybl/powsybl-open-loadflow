@@ -53,7 +53,7 @@ public class LfNetworkParameters {
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
-    private boolean generatorVoltageRemoteControl = false;
+    private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
 
