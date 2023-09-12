@@ -76,6 +76,9 @@ public class VoltageControl<T extends LfElement> extends Control {
     /**
      * Check is the merged voltage to which this voltage control belongs is disabled. Disabled means that there is no
      * more controlled bus or no more controller element.
+     * Having a disabled controlled among several controlled bus in a merge voltage control is an open question. Disabling
+     * a controlled bus could also lead to removing the associated controller buses from the merge voltage control. The merge
+     * status could be updated too.
      */
     public boolean isDisabled() {
         if (getMergedControlledBuses().stream().allMatch(LfElement::isDisabled)) {
@@ -156,7 +159,7 @@ public class VoltageControl<T extends LfElement> extends Control {
     }
 
     /**
-     * Check is the merged voltage to which this voltage control belongs is hidden by another one of a different type
+     * Check if the merged voltage to which this voltage control belongs is hidden by another one of a different type
      * (generator, transformer or shunt). The hidden status includes the disable status so a disable voltage control is
      * also hidden.
      *
