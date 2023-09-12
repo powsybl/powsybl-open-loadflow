@@ -342,10 +342,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return adjusted;
     }
 
-    private static void tryToReEnableHelpfulControllerBuses(LfSecondaryVoltageControl control) {
-        List<LfBus> controllerBusesToMinQ = new ArrayList<>();
-        List<LfBus> controllerBusesToMaxQ = new ArrayList<>();
-        List<LfBus> allControllerBuses = new ArrayList<>();
+    private static void classifyControllerBuses(LfSecondaryVoltageControl control, List<LfBus> allControllerBuses,
+                                                List<LfBus> controllerBusesToMinQ, List<LfBus> controllerBusesToMaxQ) {
         control.getControlledBuses().stream()
                 .filter(SecondaryVoltageControlOuterLoop::filterActiveControlledBus)
                 .forEach(controlledBus -> findControllerBuses(controlledBus)
@@ -359,6 +357,14 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                                 }
                             });
                         }));
+    }
+
+    private static void tryToReEnableHelpfulControllerBuses(LfSecondaryVoltageControl control) {
+        List<LfBus> controllerBusesToMinQ = new ArrayList<>();
+        List<LfBus> controllerBusesToMaxQ = new ArrayList<>();
+        List<LfBus> allControllerBuses = new ArrayList<>();
+        classifyControllerBuses(control, allControllerBuses, controllerBusesToMinQ, controllerBusesToMaxQ);
+
         var pilotBus = control.getPilotBus();
         if (controllerBusesToMinQ.size() == allControllerBuses.size() && pilotBus.getV() < control.getTargetValue() // all controllers are to min q
                 || controllerBusesToMaxQ.size() == allControllerBuses.size() && pilotBus.getV() > control.getTargetValue()) { // all controllers are to max q
