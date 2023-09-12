@@ -1071,6 +1071,15 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         return network;
     }
 
+    /**
+     *  g1 (reg b1)  g2 (reg b2)  g3 (reg b3)
+     *  |            |            |
+     *  b01          b02          b03
+     *  |            |            |
+     *  b1 --------- b2 --------- b3
+     *               |
+     *               l
+     */
     public static Network createWithDependentVoltageControls() {
         Network network = Network.create("withDependantVoltageControls", "code");
         Bus b1 = createBus(network, "b1");

@@ -213,15 +213,22 @@ class LfNetworkTest extends AbstractConverterTest {
         LfNetwork lfNetwork = lfNetworks.get(0);
         lfNetwork.getZeroImpedanceNetworks(LoadFlowModel.AC); // to update.
         LfBus b1 = lfNetwork.getBusById("b1_vl_0");
-        assertEquals(VoltageControl.MergeStatus.MAIN, b1.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        assertSame(VoltageControl.MergeStatus.MAIN, b1.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
         LfBus b2 = lfNetwork.getBusById("b2_vl_0");
-        assertEquals(VoltageControl.MergeStatus.DEPENDENT, b2.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        assertSame(VoltageControl.MergeStatus.DEPENDENT, b2.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
         LfBus b3 = lfNetwork.getBusById("b3_vl_0");
-        assertEquals(VoltageControl.MergeStatus.DEPENDENT, b3.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        assertSame(VoltageControl.MergeStatus.DEPENDENT, b3.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
         lfNetwork.getBusById("b01_vl_0").setDisabled(true); // only g1
         assertFalse(b1.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertFalse(b2.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertFalse(b3.getGeneratorVoltageControl().orElseThrow().isDisabled());
         assertFalse(b1.getGeneratorVoltageControl().orElseThrow().isHidden());
         assertFalse(b2.getGeneratorVoltageControl().orElseThrow().isHidden());
         assertFalse(b3.getGeneratorVoltageControl().orElseThrow().isHidden());
+
+        b1.setDisabled(true);
+        assertTrue(b1.getGeneratorVoltageControl().orElseThrow().isDisabled()); // FIXME
+        assertFalse(b2.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertFalse(b3.getGeneratorVoltageControl().orElseThrow().isDisabled());
     }
 }
