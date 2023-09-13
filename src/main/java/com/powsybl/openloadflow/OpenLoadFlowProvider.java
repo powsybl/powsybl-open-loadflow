@@ -203,7 +203,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       false,
                                                                       true,
                                                                       breakers,
-                                                                      ReactivePowerDispatchMode.Q_PROPORTIONAL);
+                                                                      ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation

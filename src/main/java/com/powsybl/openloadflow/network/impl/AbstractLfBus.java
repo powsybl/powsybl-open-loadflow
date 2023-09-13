@@ -499,7 +499,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
      * we have to find the k value for qToDispatch
      * k = (2 * qToDispatch - qmax1 - qmin1 - qmax2 - qmin2 - ...) / (qmax1 - qmin1 + qmax2 - qmin2 + ...)
      */
-    private static ToDoubleFunction<String> splitDispatchQWithConstantK(List<LfGenerator> generatorsThatControlVoltage, double qToDispatch) {
+    private static ToDoubleFunction<String> splitDispatchQWithEqualProportionOfK(List<LfGenerator> generatorsThatControlVoltage, double qToDispatch) {
         double k = 2 * qToDispatch;
         double denom = 0;
         for (LfGenerator generator : generatorsThatControlVoltage) {
@@ -525,8 +525,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             throw new IllegalArgumentException("the generator list to dispatch Q can not be empty");
         }
         ToDoubleFunction<String> qToDispatchByGeneratorId = switch (reactivePowerDispatchMode) {
-            case Q_PROPORTIONAL -> splitDispatchQ(generatorsThatControlVoltage, qToDispatch);
-            case K_PROPORTIONAL -> splitDispatchQWithConstantK(generatorsThatControlVoltage, qToDispatch);
+            case Q_EQUAL_PROPORTION -> splitDispatchQ(generatorsThatControlVoltage, qToDispatch);
+            case K_EQUAL_PROPORTION -> splitDispatchQWithEqualProportionOfK(generatorsThatControlVoltage, qToDispatch);
         };
         Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
         while (itG.hasNext()) {
