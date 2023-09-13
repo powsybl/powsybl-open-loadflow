@@ -14,8 +14,6 @@ import com.powsybl.openloadflow.network.VoltageControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
@@ -30,7 +28,7 @@ public class ShuntVoltageControlOuterLoop implements AcOuterLoop {
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        ((List<LfShunt>) context.getNetwork().getAllControllerElements(VoltageControl.Type.SHUNT))
+        context.getNetwork().<LfShunt>getControllerElements(VoltageControl.Type.SHUNT)
                 .forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(true));
     }
 
@@ -39,7 +37,7 @@ public class ShuntVoltageControlOuterLoop implements AcOuterLoop {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (context.getIteration() == 0) {
-            for (LfShunt controllerShunt : (List<LfShunt>) context.getNetwork().getAllControllerElements(VoltageControl.Type.SHUNT)) {
+            for (LfShunt controllerShunt : context.getNetwork().<LfShunt>getControllerElements(VoltageControl.Type.SHUNT)) {
                 controllerShunt.setVoltageControlEnabled(false);
 
                 // round the susceptance to the closest section

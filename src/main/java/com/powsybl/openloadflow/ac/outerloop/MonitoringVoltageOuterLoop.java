@@ -125,7 +125,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
-        ((List<LfBus>) context.getNetwork().getAllControllerElements(VoltageControl.Type.GENERATOR)).stream()
+        context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).stream()
                 .filter(bus -> !bus.isGeneratorVoltageControlEnabled())
                 .forEach(bus -> getControlledBusVoltageLimits(bus).ifPresent(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits)));
 

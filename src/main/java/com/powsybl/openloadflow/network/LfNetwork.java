@@ -657,21 +657,23 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return secondaryVoltageControls;
     }
 
-    public List<?> getAllControllerElements(VoltageControl.Type type) {
+    @SuppressWarnings("unchecked")
+    public <E extends LfElement> List<E> getControllerElements(VoltageControl.Type type) {
         return busesByIndex.stream()
                 .filter(bus -> bus.isVoltageControlled(type))
-                .filter(bus -> bus.getVoltageControl(type).get().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                .filter(bus -> bus.getVoltageControl(type).get().isVisible())
-                .flatMap(bus -> bus.getVoltageControl(type).get().getMergedControllerElements().stream())
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
+                .flatMap(bus -> bus.getVoltageControl(type).orElseThrow().getMergedControllerElements().stream())
                 .filter(Predicate.not(LfElement::isDisabled))
+                .map(element -> (E) element)
                 .collect(Collectors.toList());
     }
 
-    public List<LfBus> getAllControlledBuses(VoltageControl.Type type) {
+    public List<LfBus> getControlledBuses(VoltageControl.Type type) {
         return busesByIndex.stream()
                 .filter(bus -> bus.isVoltageControlled(type))
-                .filter(bus -> bus.getVoltageControl(type).get().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                .filter(bus -> bus.getVoltageControl(type).get().isVisible())
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
                 .collect(Collectors.toList());
     }
 

@@ -51,7 +51,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements AcOuterLoop {
         context.setData(contextData);
 
         // All shunt voltage control are disabled for the first equation system resolution.
-        for (LfShunt shunt : (List<LfShunt>) context.getNetwork().getAllControllerElements(VoltageControl.Type.SHUNT)) {
+        for (LfShunt shunt : context.getNetwork().<LfShunt>getControllerElements(VoltageControl.Type.SHUNT)) {
             shunt.getVoltageControl().ifPresent(voltageControl -> shunt.setVoltageControlEnabled(false));
             for (LfShunt.Controller lfShuntController : shunt.getControllers()) {
                 contextData.getControllersContexts().put(lfShuntController.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
@@ -146,11 +146,11 @@ public class IncrementalShuntVoltageControlOuterLoop implements AcOuterLoop {
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfShunt> controllerShunts = (List<LfShunt>) network.getAllControllerElements(VoltageControl.Type.SHUNT);
+        List<LfShunt> controllerShunts = network.getControllerElements(VoltageControl.Type.SHUNT);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerShunts,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
-        network.getAllControlledBuses(VoltageControl.Type.SHUNT).stream()
+        network.getControlledBuses(VoltageControl.Type.SHUNT)
                 .forEach(controlledBus -> {
                     ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
                     double diffV = voltageControl.getTargetValue() - voltageControl.getControlledBus().getV();

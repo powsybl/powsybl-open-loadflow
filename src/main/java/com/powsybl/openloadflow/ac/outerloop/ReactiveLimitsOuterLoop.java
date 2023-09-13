@@ -262,7 +262,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         List<LfBus> busesWithUpdatedQLimits = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
 
-        ((List<LfBus>) context.getNetwork().getAllControllerElements(VoltageControl.Type.GENERATOR)).stream().forEach(bus -> {
+        context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).forEach(bus -> {
             if (bus.isGeneratorVoltageControlEnabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
             } else {

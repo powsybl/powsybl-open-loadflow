@@ -61,7 +61,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         // All transformer voltage control are disabled as in this outer loop voltage adjustment is not
         // done into the equation system
-        for (LfBranch branch : (List<LfBranch>) context.getNetwork().getAllControllerElements(VoltageControl.Type.TRANSFORMER)) {
+        for (LfBranch branch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
             contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
@@ -194,7 +194,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfBranch> controllerBranches = (List<LfBranch>) network.getAllControllerElements(VoltageControl.Type.TRANSFORMER);
+        List<LfBranch> controllerBranches = network.getControllerElements(VoltageControl.Type.TRANSFORMER);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
@@ -203,9 +203,9 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         List<String> controlledBusesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
-        List<LfBus> controlledBuses = network.getAllControlledBuses(VoltageControl.Type.TRANSFORMER);
+        List<LfBus> controlledBuses = network.getControlledBuses(VoltageControl.Type.TRANSFORMER);
 
-        controlledBuses.stream().forEach(controlledBus -> {
+        controlledBuses.forEach(controlledBus -> {
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
             double diffV = getDiffV(voltageControl);
             double halfTargetDeadband = getHalfTargetDeadband(voltageControl);

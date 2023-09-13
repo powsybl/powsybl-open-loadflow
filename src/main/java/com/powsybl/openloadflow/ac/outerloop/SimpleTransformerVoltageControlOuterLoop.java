@@ -12,8 +12,6 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.VoltageControl;
 
-import java.util.List;
-
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
@@ -26,7 +24,7 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        for (LfBranch controllerBranch : (List<LfBranch>) context.getNetwork().getAllControllerElements(VoltageControl.Type.TRANSFORMER)) {
+        for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             controllerBranch.setVoltageControlEnabled(true);
         }
         context.getNetwork().fixTransformerVoltageControls();
