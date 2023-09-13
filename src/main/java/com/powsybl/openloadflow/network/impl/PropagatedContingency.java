@@ -418,13 +418,13 @@ public class PropagatedContingency {
             }
         }
 
-        Map<LfBus, PowerShift> busesLoadShift = new HashMap<>(1);
+        Map<LfLoad, PowerShift> loadsShift = new HashMap<>(1);
         for (var e : busIdsToShift.entrySet()) {
             String busId = e.getKey();
             PowerShift shift = e.getValue();
             LfBus bus = network.getBusById(busId);
             if (bus != null) { // could be in another component
-                busesLoadShift.put(bus, shift);
+                loadsShift.put(bus, shift);
             }
         }
 
@@ -446,13 +446,13 @@ public class PropagatedContingency {
         if (branches.isEmpty()
                 && buses.isEmpty()
                 && shunts.isEmpty()
-                && busesLoadShift.isEmpty()
+                && loadsShift.isEmpty()
                 && generators.isEmpty()
                 && hvdcs.isEmpty()) {
             LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(buses, branches, hvdcs), shunts, busesLoadShift, generators, originalPowerShiftIds));
+        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(buses, branches, hvdcs), shunts, loadsShift, generators, originalPowerShiftIds));
     }
 }

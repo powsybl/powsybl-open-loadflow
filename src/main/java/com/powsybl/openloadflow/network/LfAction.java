@@ -334,8 +334,8 @@ public final class LfAction {
             LfLoad load = bus.getLoad().orElseThrow();
             if (!load.isOriginalLoadDisabled(loadId)) {
                 PowerShift shift = loadShift.powerShift;
-                bus.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
-                bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
+                load.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
+                load.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
                 load.setAbsVariableTargetP(load.getAbsVariableTargetP()
                         + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
             }

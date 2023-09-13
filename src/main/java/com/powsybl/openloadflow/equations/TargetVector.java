@@ -34,12 +34,12 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         }
 
         @Override
-        public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
+        public void onLoadActivePowerTargetChange(LfLoad load, double oldLoadTargetP, double newLoadTargetP) {
             invalidateValues();
         }
 
         @Override
-        public void onLoadReactivePowerTargetChange(LfBus bus, double oldLoadTargetQ, double newLoadTargetQ) {
+        public void onLoadReactivePowerTargetChange(LfLoad load, double oldLoadTargetQ, double newLoadTargetQ) {
             invalidateValues();
         }
 

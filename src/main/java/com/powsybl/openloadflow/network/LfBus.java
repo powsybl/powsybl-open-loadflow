@@ -84,13 +84,7 @@ public interface LfBus extends LfElement {
 
     double getInitialLoadTargetP();
 
-    void setLoadTargetP(double loadTargetP);
-
     double getLoadTargetQ();
-
-    void setLoadTargetQ(double loadTargetQ);
-
-    boolean ensurePowerFactorConstantByLoad();
 
     void invalidateGenerationTargetP();
 

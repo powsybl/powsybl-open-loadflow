@@ -69,17 +69,17 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
-    public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
-        LOGGER.trace("onLoadActivePowerTargetChange(busId='{}', oldLoadTargetP={}, newLoadTargetP={})",
-                bus.getId(), oldLoadTargetP, newLoadTargetP);
-        delegate.onLoadActivePowerTargetChange(bus, oldLoadTargetP, newLoadTargetP);
+    public void onLoadActivePowerTargetChange(LfLoad load, double oldLoadTargetP, double newLoadTargetP) {
+        LOGGER.trace("onLoadActivePowerTargetChange(loadId='{}', oldLoadTargetP={}, newLoadTargetP={})",
+                load.getOriginalIds(), oldLoadTargetP, newLoadTargetP);
+        delegate.onLoadActivePowerTargetChange(load, oldLoadTargetP, newLoadTargetP);
     }
 
     @Override
-    public void onLoadReactivePowerTargetChange(LfBus bus, double oldLoadTargetQ, double newLoadTargetQ) {
+    public void onLoadReactivePowerTargetChange(LfLoad load, double oldLoadTargetQ, double newLoadTargetQ) {
         LOGGER.trace("onLoadReactivePowerTargetChange(busId='{}', oldLoadTargetQ={}, newLoadTargetQ={})",
-                bus.getId(), oldLoadTargetQ, newLoadTargetQ);
-        delegate.onLoadReactivePowerTargetChange(bus, oldLoadTargetQ, newLoadTargetQ);
+                load.getOriginalIds(), oldLoadTargetQ, newLoadTargetQ);
+        delegate.onLoadReactivePowerTargetChange(load, oldLoadTargetQ, newLoadTargetQ);
     }
 
     @Override

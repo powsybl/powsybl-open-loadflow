@@ -6,11 +6,11 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.DanglingLine;
+import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
-import com.powsybl.openloadflow.network.AbstractPropertyBag;
-import com.powsybl.openloadflow.network.LfLoad;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
@@ -19,9 +19,21 @@ import java.util.stream.Collectors;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
+public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
+
+    private final LfBus bus;
 
     private final List<Ref<Load>> loadsRefs = new ArrayList<>();
+
+    private final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
+
+    private double loadTargetP = 0;
+
+    private double initialLoadTargetP = 0;
+
+    private double loadTargetQ = 0;
+
+    private boolean ensurePowerFactorConstantByLoad = false;
 
     private final List<Double> loadsAbsVariableTargetP = new ArrayList<>();
 
@@ -31,7 +43,8 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
 
     private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
-    LfLoadImpl(boolean distributedOnConformLoad) {
+    LfLoadImpl(LfBus bus, boolean distributedOnConformLoad) {
+        this.bus = Objects.requireNonNull(bus);
         this.distributedOnConformLoad = distributedOnConformLoad;
     }
 
@@ -40,12 +53,86 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         return loadsRefs.stream().map(r -> r.get().getId()).collect(Collectors.toList());
     }
 
+    @Override
+    public LfBus getBus() {
+        return bus;
+    }
+
     void add(Load load, LfNetworkParameters parameters) {
         loadsRefs.add(Ref.create(load, parameters.isCacheEnabled()));
         loadsDisablingStatus.put(load.getId(), false);
+        double p0 = load.getP0();
+        loadTargetP += p0 / PerUnit.SB;
+        initialLoadTargetP += p0 / PerUnit.SB;
+        loadTargetQ += load.getQ0() / PerUnit.SB;
+        boolean hasVariableActivePower = false;
+        if (parameters.isDistributedOnConformLoad()) {
+            LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+            if (loadDetail != null) {
+                hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
+            }
+        }
+        if (p0 < 0 || hasVariableActivePower) {
+            ensurePowerFactorConstantByLoad = true;
+        }
         double absTargetP = getAbsVariableTargetP(load);
         loadsAbsVariableTargetP.add(absTargetP);
         absVariableTargetP += absTargetP;
+    }
+
+    void add(LccConverterStation lccCs, LfNetworkParameters parameters) {
+        // note that LCC converter station are out of the slack distribution.
+        lccCsRefs.add(Ref.create(lccCs, parameters.isCacheEnabled()));
+        double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers());
+        loadTargetP += targetP / PerUnit.SB;
+        initialLoadTargetP += targetP / PerUnit.SB;
+        loadTargetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()) / PerUnit.SB;
+    }
+
+    public void add(DanglingLine danglingLine) {
+        loadTargetP += danglingLine.getP0() / PerUnit.SB;
+        loadTargetQ += danglingLine.getQ0() / PerUnit.SB;
+    }
+
+    @Override
+    public double getInitialLoadTargetP() {
+        return initialLoadTargetP;
+    }
+
+    @Override
+    public double getLoadTargetP() {
+        return loadTargetP;
+    }
+    @Override
+    public void setLoadTargetP(double loadTargetP) {
+        if (loadTargetP != this.loadTargetP) {
+            double oldLoadTargetP = this.loadTargetP;
+            this.loadTargetP = loadTargetP;
+            for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
+                listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, loadTargetP);
+            }
+        }
+    }
+
+    @Override
+    public double getLoadTargetQ() {
+        return loadTargetQ;
+    }
+
+    @Override
+    public void setLoadTargetQ(double loadTargetQ) {
+        if (loadTargetQ != this.loadTargetQ) {
+            double oldLoadTargetQ = this.loadTargetQ;
+            this.loadTargetQ = loadTargetQ;
+            for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
+                listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, loadTargetQ);
+            }
+        }
+    }
+
+    @Override
+    public boolean ensurePowerFactorConstantByLoad() {
+        return ensurePowerFactorConstantByLoad;
     }
 
     @Override
@@ -83,7 +170,7 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     }
 
     @Override
-    public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
+    public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant, boolean breakers) {
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
             double diffP0 = diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB;
@@ -91,6 +178,16 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
             double updatedQ0 = load.getQ0() + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
             load.getTerminal().setP(updatedP0);
             load.getTerminal().setQ(updatedQ0);
+        }
+
+        // update lcc converter station power
+        for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
+            LccConverterStation lccCs = lccCsRef.get();
+            double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs, breakers); // A LCC station has active losses.
+            double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, breakers); // A LCC station always consumes reactive power.
+            lccCs.getTerminal()
+                    .setP(pCs)
+                    .setQ(qCs);
         }
     }
 
@@ -128,5 +225,4 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     private static double getPowerFactor(Load load) {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
     }
-
 }

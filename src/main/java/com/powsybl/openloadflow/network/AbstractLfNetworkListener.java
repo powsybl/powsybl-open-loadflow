@@ -39,12 +39,12 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
+    public void onLoadActivePowerTargetChange(LfLoad load, double oldLoadTargetP, double newLoadTargetP) {
         // empty
     }
 
     @Override
-    public void onLoadReactivePowerTargetChange(LfBus bus, double oldLoadTargetQ, double newLoadTargetQ) {
+    public void onLoadReactivePowerTargetChange(LfLoad load, double oldLoadTargetQ, double newLoadTargetQ) {
         // empty
     }
 
