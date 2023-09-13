@@ -246,6 +246,50 @@ class LfBusImplTest {
     }
 
     @Test
+    void dispatchQwithKequalProportionWithFallBack() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        network.getGenerator("GH2").newMinMaxReactiveLimits().setMinQ(-9999).setMaxQ(9999).add();
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(0.3d, 0.1d, 0.4d));
+        LfGenerator g0 = generators.get(0);
+        LfGenerator g1 = generators.get(1);
+        LfGenerator g2 = generators.get(2);
+        g0.setCalculatedQ(0);
+        g1.setCalculatedQ(0);
+        g2.setCalculatedQ(0);
+        double qToDispatch = 20;
+        double residueQ = AbstractLfBus.dispatchQ(new ArrayList<>(generators), true, ReactivePowerDispatchMode.K_EQUAL_PROPORTION, qToDispatch);
+        assertEquals(0, residueQ, 0);
+        assertEquals(1.912, g0.getCalculatedQ(), 1e-3);
+        assertEquals(16.777, g1.getCalculatedQ(), 1e-3);
+        assertEquals(1.311, g2.getCalculatedQ(), 1e-3);
+        assertEquals(0.168, LfGenerator.qToK(g0, g0.getCalculatedQ()), 1e-3);
+        assertEquals(0.168, LfGenerator.qToK(g1, g1.getCalculatedQ()), 1e-3);
+        assertEquals(0.168, LfGenerator.qToK(g2, g2.getCalculatedQ()), 1e-3);
+    }
+
+    @Test
+    void dispatchQwithKequalProportionWithFallBack2() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        network.getGenerator("GH2").newMinMaxReactiveLimits().setMinQ(-Double.MAX_VALUE).setMaxQ(Double.MAX_VALUE).add();
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(0.3d, 0.1d, 0.4d));
+        LfGenerator g0 = generators.get(0);
+        LfGenerator g1 = generators.get(1);
+        LfGenerator g2 = generators.get(2);
+        g0.setCalculatedQ(0);
+        g1.setCalculatedQ(0);
+        g2.setCalculatedQ(0);
+        double qToDispatch = 20;
+        double residueQ = AbstractLfBus.dispatchQ(new ArrayList<>(generators), true, ReactivePowerDispatchMode.K_EQUAL_PROPORTION, qToDispatch);
+        assertEquals(0, residueQ, 0);
+        assertEquals(0.415, g0.getCalculatedQ(), 1e-3);
+        assertEquals(0.0, g1.getCalculatedQ(), 1e-3);
+        assertEquals(0.143, g2.getCalculatedQ(), 1e-3);
+        assertEquals(0.0, LfGenerator.qToK(g0, g0.getCalculatedQ()), 1e-3);
+        assertEquals(0.0, LfGenerator.qToK(g1, g1.getCalculatedQ()), 1e-3);
+        assertEquals(0.0, LfGenerator.qToK(g2, g2.getCalculatedQ()), 1e-3);
+    }
+
+    @Test
     void testBusHasCountryAttributeAfterLoading() {
         assertTrue(lfNetwork.getBusById("vl1_0").getCountry().isPresent());
         assertTrue(lfNetwork.getBusById("vl2_0").getCountry().isPresent());
