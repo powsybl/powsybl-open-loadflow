@@ -225,7 +225,7 @@ class LfBusImplTest {
     }
 
     @Test
-    void dispatchQwithKproportional() {
+    void dispatchQwithKequalProportion() {
         Network network = FourSubstationsNodeBreakerFactory.create();
         List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(0.3d, 0.1d, 0.4d));
         LfGenerator g0 = generators.get(0);
