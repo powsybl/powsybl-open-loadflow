@@ -51,7 +51,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements AcOuterLoop {
         context.setData(contextData);
 
         // All shunt voltage control are disabled for the first equation system resolution.
-        for (LfShunt shunt : getControllerShunts(context.getNetwork())) {
+        for (LfShunt shunt : context.getNetwork().<LfShunt>getControllerElements(VoltageControl.Type.SHUNT)) {
             shunt.getVoltageControl().ifPresent(voltageControl -> shunt.setVoltageControlEnabled(false));
             for (LfShunt.Controller lfShuntController : shunt.getControllers()) {
                 contextData.getControllersContexts().put(lfShuntController.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
@@ -104,13 +104,6 @@ public class IncrementalShuntVoltageControlOuterLoop implements AcOuterLoop {
         }
     }
 
-    private static List<LfShunt> getControllerShunts(LfNetwork network) {
-        return network.getBuses().stream()
-                .flatMap(bus -> bus.getControllerShunt().stream())
-                .filter(controllerShunt -> !controllerShunt.isDisabled() && controllerShunt.hasVoltageControlCapability())
-                .collect(Collectors.toList());
-    }
-
     private void adjustB(ShuntVoltageControl voltageControl, List<LfShunt> sortedControllerShunts, LfBus controlledBus, IncrementalContextData contextData,
                          SensitivityContext sensitivityContext, double diffV, MutableObject<OuterLoopStatus> status) {
         // several shunts could control the same bus
@@ -153,22 +146,19 @@ public class IncrementalShuntVoltageControlOuterLoop implements AcOuterLoop {
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfShunt> controllerShunts = getControllerShunts(network);
+        List<LfShunt> controllerShunts = network.getControllerElements(VoltageControl.Type.SHUNT);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerShunts,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
-        network.getBuses().stream()
-                .filter(LfBus::isShuntVoltageControlled)
+        network.getControlledBuses(VoltageControl.Type.SHUNT)
                 .forEach(controlledBus -> {
                     ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
-                    if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN) {
-                        double diffV = voltageControl.getTargetValue() - voltageControl.getControlledBus().getV();
-                        List<LfShunt> sortedControllers = voltageControl.getMergedControllerElements().stream()
-                                .filter(shunt -> !shunt.isDisabled() && shunt.hasVoltageControlCapability())
-                                .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
-                                .collect(Collectors.toList());
-                        adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, status);
-                    }
+                    double diffV = voltageControl.getTargetValue() - voltageControl.getControlledBus().getV();
+                    List<LfShunt> sortedControllers = voltageControl.getMergedControllerElements().stream()
+                            .filter(shunt -> !shunt.isDisabled())
+                            .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
+                            .collect(Collectors.toList());
+                    adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, status);
                 });
         return status.getValue();
     }
