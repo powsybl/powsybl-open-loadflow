@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -657,24 +658,20 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public List<?> getAllControllerElements(VoltageControl.Type type) {
-        // FIXME
-        // its seems that the condition is MAIN status is not needed as not hidden means never DEPENDENT.
         return busesByIndex.stream()
                 .filter(bus -> bus.isVoltageControlled(type))
-                .filter(bus -> bus.getVoltageControl(type).get().getMergeStatus() == VoltageControl.MergeStatus.MAIN
-                        && !bus.getVoltageControl(type).get().isHidden())
+                .filter(bus -> bus.getVoltageControl(type).get().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).get().isVisible())
                 .flatMap(bus -> bus.getVoltageControl(type).get().getMergedControllerElements().stream())
-                .filter(element -> !element.isDisabled())
+                .filter(Predicate.not(LfElement::isDisabled))
                 .collect(Collectors.toList());
     }
 
     public List<LfBus> getAllControlledBuses(VoltageControl.Type type) {
-        // FIXME
-        // its seems that the condition is MAIN status is not needed as not hidden means never DEPENDENT.
         return busesByIndex.stream()
                 .filter(bus -> bus.isVoltageControlled(type))
-                .filter(bus -> bus.getVoltageControl(type).get().getMergeStatus() == VoltageControl.MergeStatus.MAIN
-                        && !bus.getVoltageControl(type).get().isHidden())
+                .filter(bus -> bus.getVoltageControl(type).get().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).get().isVisible())
                 .collect(Collectors.toList());
     }
 
