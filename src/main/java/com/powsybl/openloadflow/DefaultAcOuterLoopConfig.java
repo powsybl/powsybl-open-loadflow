@@ -17,71 +17,22 @@ import java.util.List;
  */
 public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
 
-    private static AcOuterLoop createTransformerVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
-        switch (parametersExt.getTransformerVoltageControlMode()) {
-            case WITH_GENERATOR_VOLTAGE_CONTROL:
-                return new SimpleTransformerVoltageControlOuterLoop();
-            case AFTER_GENERATOR_VOLTAGE_CONTROL:
-                return new TransformerVoltageControlOuterLoop();
-            case INCREMENTAL_VOLTAGE_CONTROL:
-                return createIncrementalTransformerVoltageControlOuterLoop(parametersExt);
-            default:
-                throw new IllegalStateException("Unknown transformer voltage control mode: " + parametersExt.getTransformerVoltageControlMode());
-        }
-    }
-
-    private static AcOuterLoop createShuntVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
-        switch (parametersExt.getShuntVoltageControlMode()) {
-            case WITH_GENERATOR_VOLTAGE_CONTROL:
-                return new ShuntVoltageControlOuterLoop();
-            case INCREMENTAL_VOLTAGE_CONTROL:
-                return new IncrementalShuntVoltageControlOuterLoop();
-            default:
-                throw new IllegalStateException("Unknown shunt voltage control mode: " + parametersExt.getShuntVoltageControlMode());
-        }
-    }
-
-    private static AcOuterLoop createPhaseShifterControlOuterLoop(OpenLoadFlowParameters parametersExt) {
-        switch (parametersExt.getPhaseShifterControlMode()) {
-            case CONTINUOUS_WITH_DISCRETISATION:
-                return new PhaseControlOuterLoop();
-            case INCREMENTAL:
-                return new AcIncrementalPhaseControlOuterLoop();
-            default:
-                throw new IllegalStateException("Unknown phase shifter control mode: " + parametersExt.getPhaseShifterControlMode());
-        }
-    }
-
     @Override
     public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         List<AcOuterLoop> outerLoops = new ArrayList<>(5);
         // primary frequency control
-        if (parameters.isDistributedSlack()) {
-            outerLoops.add(createDistributedSlackOuterLoop(parameters, parametersExt));
-        }
+        createDistributedSlackOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // primary voltage control
-        if (parametersExt.isSvcVoltageMonitoring()) {
-            outerLoops.add(new MonitoringVoltageOuterLoop());
-        }
-        if (parameters.isUseReactiveLimits()) {
-            outerLoops.add(createReactiveLimitsOuterLoop(parametersExt));
-        }
+        createMonitoringVoltageOuterLoop(parametersExt).ifPresent(outerLoops::add);
+        createReactiveLimitsOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // phase shifter control
-        if (parameters.isPhaseShifterRegulationOn()) {
-            outerLoops.add(createPhaseShifterControlOuterLoop(parametersExt));
-        }
+        createPhaseShifterControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // transformer voltage control
-        if (parameters.isTransformerVoltageControlOn()) {
-            outerLoops.add(createTransformerVoltageControlOuterLoop(parametersExt));
-        }
+        createTransformerVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // shunt compensator voltage control
-        if (parameters.isShuntCompensatorVoltageControlOn()) {
-            outerLoops.add(createShuntVoltageControlOuterLoop(parametersExt));
-        }
+        createShuntVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // secondary voltage control
-        if (parametersExt.isSecondaryVoltageControl()) {
-            outerLoops.add(createSecondaryVoltageControlOuterLoop(parametersExt));
-        }
+        createSecondaryVoltageControlOuterLoop(parametersExt).ifPresent(outerLoops::add);
         return outerLoops;
     }
 }

@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -33,19 +34,29 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                      SimpleTransformerVoltageControlOuterLoop.NAME,
                                                      TransformerVoltageControlOuterLoop.NAME);
 
-    private static AcOuterLoop createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return switch (name) {
-            case AcIncrementalPhaseControlOuterLoop.NAME -> new AcIncrementalPhaseControlOuterLoop();
+            case AcIncrementalPhaseControlOuterLoop.NAME -> createPhaseShifterControlOuterLoop(parameters,
+                                                                                               OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
             case DistributedSlackOuterLoop.NAME -> createDistributedSlackOuterLoop(parameters, parametersExt);
-            case IncrementalShuntVoltageControlOuterLoop.NAME -> new IncrementalShuntVoltageControlOuterLoop();
-            case IncrementalTransformerVoltageControlOuterLoop.NAME -> createIncrementalTransformerVoltageControlOuterLoop(parametersExt);
-            case MonitoringVoltageOuterLoop.NAME -> new MonitoringVoltageOuterLoop();
-            case PhaseControlOuterLoop.NAME -> new PhaseControlOuterLoop();
-            case ReactiveLimitsOuterLoop.NAME -> createReactiveLimitsOuterLoop(parametersExt);
+            case IncrementalShuntVoltageControlOuterLoop.NAME -> createShuntVoltageControlOuterLoop(parameters,
+                                                                                                    OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+            case IncrementalTransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
+                                                                                                                OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL,
+                                                                                                                parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+            case MonitoringVoltageOuterLoop.NAME -> createMonitoringVoltageOuterLoop(parametersExt);
+            case PhaseControlOuterLoop.NAME -> createPhaseShifterControlOuterLoop(parameters,
+                                                                                  OpenLoadFlowParameters.PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION);
+            case ReactiveLimitsOuterLoop.NAME -> createReactiveLimitsOuterLoop(parameters, parametersExt);
             case SecondaryVoltageControlOuterLoop.NAME -> createSecondaryVoltageControlOuterLoop(parametersExt);
-            case ShuntVoltageControlOuterLoop.NAME -> new ShuntVoltageControlOuterLoop();
-            case SimpleTransformerVoltageControlOuterLoop.NAME -> new SimpleTransformerVoltageControlOuterLoop();
-            case TransformerVoltageControlOuterLoop.NAME -> new TransformerVoltageControlOuterLoop();
+            case ShuntVoltageControlOuterLoop.NAME -> createShuntVoltageControlOuterLoop(parameters,
+                                                                                         OpenLoadFlowParameters.ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
+            case SimpleTransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
+                                                                                                           OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL,
+                                                                                                           parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+            case TransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
+                                                                                                     OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL,
+                                                                                                     parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
             default -> throw new PowsyblException("Unknown outer loop '" + name + "'");
         };
     }
@@ -64,7 +75,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
     @Override
     public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         List<AcOuterLoop> outerLoops = Objects.requireNonNull(parametersExt.getOuterLoopNames()).stream()
-                .map(name -> createOuterLoop(name, parameters, parametersExt))
+                .flatMap(name -> createOuterLoop(name, parameters, parametersExt).stream())
                 .toList();
         checkTypeUnicity(outerLoops);
         return outerLoops;

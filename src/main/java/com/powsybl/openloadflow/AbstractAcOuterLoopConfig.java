@@ -6,11 +6,12 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
+
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -20,33 +21,87 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     protected AbstractAcOuterLoopConfig() {
     }
 
-    protected static AcOuterLoop createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
-        return new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch());
-    }
-
-    protected static IncrementalTransformerVoltageControlOuterLoop createIncrementalTransformerVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
-        return new IncrementalTransformerVoltageControlOuterLoop(parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
-    }
-
-    protected static ReactiveLimitsOuterLoop createReactiveLimitsOuterLoop(OpenLoadFlowParameters parametersExt) {
-        final double effectiveMaxReactivePowerMismatch;
-        switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
-            case UNIFORM_CRITERIA:
-                effectiveMaxReactivePowerMismatch = parametersExt.getNewtonRaphsonConvEpsPerEq();
-                break;
-            case PER_EQUATION_TYPE_CRITERIA:
-                effectiveMaxReactivePowerMismatch = parametersExt.getMaxReactivePowerMismatch() / PerUnit.SB;
-                break;
-            default:
-                throw new PowsyblException("Unknown Newton Raphson stopping criteria type: " + parametersExt.getNewtonRaphsonStoppingCriteriaType());
+    protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        if (parameters.isDistributedSlack()) {
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
+            return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch()));
         }
-        return new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch(), effectiveMaxReactivePowerMismatch);
+        return Optional.empty();
     }
 
-    protected static SecondaryVoltageControlOuterLoop createSecondaryVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
-        return new SecondaryVoltageControlOuterLoop(parametersExt.getControllerToPilotPointVoltageSensiEpsilon(),
-                                                    parametersExt.getMinPlausibleTargetVoltage(),
-                                                    parametersExt.getMaxPlausibleTargetVoltage());
+    protected static Optional<AcOuterLoop> createReactiveLimitsOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        if (parameters.isUseReactiveLimits()) {
+            double effectiveMaxReactivePowerMismatch = switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
+                case UNIFORM_CRITERIA -> parametersExt.getNewtonRaphsonConvEpsPerEq();
+                case PER_EQUATION_TYPE_CRITERIA -> parametersExt.getMaxReactivePowerMismatch() / PerUnit.SB;
+            };
+            return Optional.of(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch(), effectiveMaxReactivePowerMismatch));
+        }
+        return Optional.empty();
+    }
+
+    protected static Optional<AcOuterLoop> createSecondaryVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isSecondaryVoltageControl()) {
+            return Optional.of(new SecondaryVoltageControlOuterLoop(parametersExt.getControllerToPilotPointVoltageSensiEpsilon(),
+                                                                    parametersExt.getMinPlausibleTargetVoltage(),
+                                                                    parametersExt.getMaxPlausibleTargetVoltage()));
+        }
+        return Optional.empty();
+    }
+
+    protected static Optional<AcOuterLoop> createMonitoringVoltageOuterLoop(OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isSvcVoltageMonitoring()) {
+            return Optional.of(new MonitoringVoltageOuterLoop());
+        }
+        return Optional.empty();
+    }
+
+    protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.TransformerVoltageControlMode controlMode,
+                                                                                    int incrementalTransformerVoltageControlOuterLoopMaxTapShift) {
+        if (parameters.isTransformerVoltageControlOn()) {
+            AcOuterLoop outerLoop = switch (controlMode) {
+                case WITH_GENERATOR_VOLTAGE_CONTROL -> new SimpleTransformerVoltageControlOuterLoop();
+                case AFTER_GENERATOR_VOLTAGE_CONTROL -> new TransformerVoltageControlOuterLoop();
+                case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalTransformerVoltageControlOuterLoop(incrementalTransformerVoltageControlOuterLoopMaxTapShift);
+            };
+            return Optional.of(outerLoop);
+        }
+        return Optional.empty();
+    }
+
+    protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        return createTransformerVoltageControlOuterLoop(parameters,
+                                                        parametersExt.getTransformerVoltageControlMode(),
+                                                        parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+    }
+
+    protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode) {
+        if (parameters.isShuntCompensatorVoltageControlOn()) {
+            AcOuterLoop outerLoop = switch (controlMode) {
+                case WITH_GENERATOR_VOLTAGE_CONTROL -> new ShuntVoltageControlOuterLoop();
+                case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalShuntVoltageControlOuterLoop();
+            };
+            return Optional.of(outerLoop);
+        }
+        return Optional.empty();
+    }
+
+    protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        return createShuntVoltageControlOuterLoop(parameters, parametersExt.getShuntVoltageControlMode());
+    }
+
+    protected static Optional<AcOuterLoop> createPhaseShifterControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.PhaseShifterControlMode controlMode) {
+        if (parameters.isPhaseShifterRegulationOn()) {
+            AcOuterLoop outerLoop = switch (controlMode) {
+                case CONTINUOUS_WITH_DISCRETISATION -> new PhaseControlOuterLoop();
+                case INCREMENTAL -> new AcIncrementalPhaseControlOuterLoop();
+            };
+            return Optional.of(outerLoop);
+        }
+        return Optional.empty();
+    }
+
+    protected static Optional<AcOuterLoop> createPhaseShifterControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        return createPhaseShifterControlOuterLoop(parameters, parametersExt.getPhaseShifterControlMode());
     }
 }

@@ -326,10 +326,12 @@ class OpenLoadFlowParametersTest {
 
     @Test
     void testExplicitOuterLoopsParameter() {
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSecondaryVoltageControl(true);
 
-        assertEquals(List.of("DistributedSlack", "VoltageMonitoring", "ReactiveLimits"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+        assertEquals(List.of("DistributedSlack", "VoltageMonitoring", "ReactiveLimits", "ShuntVoltageControl", "SecondaryVoltageControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("ReactiveLimits", "SecondaryVoltageControl"));
         assertEquals(List.of("ReactiveLimits", "SecondaryVoltageControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
