@@ -30,13 +30,6 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements AcOu
     public String getType() {
         return TYPE;
     }
-    private static final String TYPE = "TransformerVoltageControl";
-
-    @Override
-    public String getType() {
-        return TYPE;
-    }
-
 
     protected OuterLoopStatus roundVoltageRatios(AcOuterLoopContext context) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
