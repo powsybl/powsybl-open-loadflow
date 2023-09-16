@@ -386,7 +386,7 @@ public class PropagatedContingency {
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
 
-        Map<LfShunt, AdmittanceShift> shunts = new LinkedHashMap<>(1);
+        Map<LfShunt, AdmittanceShift> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {
             LfShunt shunt = network.getShuntById(e.getKey());
             if (shunt != null) { // could be in another component
@@ -395,7 +395,7 @@ public class PropagatedContingency {
             }
         }
 
-        Set<LfGenerator> generators = new LinkedHashSet<>(1);
+        Set<LfGenerator> generators = new HashSet<>(1);
         for (String generatorId : generatorIdsToLose) {
             LfGenerator generator = network.getGeneratorById(generatorId);
             if (generator != null) { // could be in another component
@@ -403,7 +403,7 @@ public class PropagatedContingency {
             }
         }
 
-        Map<LfLoad, LfLoadLoss> loads = new LinkedHashMap<>(1);
+        Map<LfLoad, LfLoadLoss> loads = new HashMap<>(1);
         for (var e : loadIdsToLoose.entrySet()) {
             String loadId = e.getKey();
             PowerShift powerShift = e.getValue();
