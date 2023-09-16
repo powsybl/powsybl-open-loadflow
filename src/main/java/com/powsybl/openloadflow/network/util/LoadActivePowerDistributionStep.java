@@ -63,7 +63,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
             LfLoad load = (LfLoad) participatingBus.getElement();
             double factor = participatingBus.getFactor();
 
-            double loadTargetP = load.getLoadTargetP();
+            double loadTargetP = load.getTargetP();
             double newLoadTargetP = loadTargetP - remainingMismatch * factor;
 
             if (newLoadTargetP != loadTargetP) {
@@ -74,7 +74,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
                     ensurePowerFactorConstant(load, newLoadTargetP);
                 }
 
-                load.setLoadTargetP(newLoadTargetP);
+                load.setTargetP(newLoadTargetP);
                 done += loadTargetP - newLoadTargetP;
                 modifiedBuses++;
             }
@@ -91,14 +91,14 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         // we have to keep the power factor constant by updating targetQ.
         double newLoadTargetQ;
         if (load.ensurePowerFactorConstantByLoad()) {
-            newLoadTargetQ = load.calculateNewTargetQ(newLoadTargetP - load.getInitialLoadTargetP());
+            newLoadTargetQ = load.calculateNewTargetQ(newLoadTargetP - load.getInitialTargetP());
         } else {
-            newLoadTargetQ = newLoadTargetP * load.getLoadTargetQ() / load.getLoadTargetP();
+            newLoadTargetQ = newLoadTargetP * load.getTargetQ() / load.getTargetP();
         }
-        if (newLoadTargetQ != load.getLoadTargetQ()) {
+        if (newLoadTargetQ != load.getTargetQ()) {
             LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
-                    load.getId(), load.getLoadTargetQ() * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
-            load.setLoadTargetQ(newLoadTargetQ);
+                    load.getId(), load.getTargetQ() * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
+            load.setTargetQ(newLoadTargetQ);
         }
     }
 }

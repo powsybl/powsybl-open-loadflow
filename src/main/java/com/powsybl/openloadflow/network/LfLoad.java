@@ -18,15 +18,15 @@ public interface LfLoad extends PropertyBag {
 
     LfBus getBus();
 
-    double getInitialLoadTargetP();
+    double getInitialTargetP();
 
-    double getLoadTargetP();
+    double getTargetP();
 
-    void setLoadTargetP(double loadTargetP);
+    void setTargetP(double targetP);
 
-    double getLoadTargetQ();
+    double getTargetQ();
 
-    void setLoadTargetQ(double loadTargetQ);
+    void setTargetQ(double targetQ);
 
     boolean ensurePowerFactorConstantByLoad();
 

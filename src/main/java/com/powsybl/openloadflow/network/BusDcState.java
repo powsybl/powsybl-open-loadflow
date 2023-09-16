@@ -27,7 +27,7 @@ public class BusDcState extends ElementState<LfBus> {
         this.participatingGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isParticipating));
         this.disablingStatusGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isDisabled));
         bus.getLoad().ifPresent(load -> {
-            this.loadTargetP = load.getLoadTargetP();
+            this.loadTargetP = load.getTargetP();
             this.absVariableLoadTargetP = load.getAbsVariableTargetP();
             this.loadsDisablingStatus = load.getOriginalLoadsDisablingStatus();
         });
@@ -40,7 +40,7 @@ public class BusDcState extends ElementState<LfBus> {
         element.getGenerators().forEach(g -> g.setParticipating(participatingGenerators.get(g.getId())));
         element.getGenerators().forEach(g -> g.setDisabled(disablingStatusGenerators.get(g.getId())));
         if (loadTargetP != null) {
-            element.getLoad().orElseThrow().setLoadTargetP(loadTargetP);
+            element.getLoad().orElseThrow().setTargetP(loadTargetP);
         }
         if (absVariableLoadTargetP != null) {
             element.getLoad().orElseThrow().setAbsVariableTargetP(absVariableLoadTargetP);

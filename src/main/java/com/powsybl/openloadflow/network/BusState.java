@@ -31,7 +31,7 @@ public class BusState extends BusDcState {
         super(bus);
         this.angle = bus.getAngle();
         this.voltage = bus.getV();
-        bus.getLoad().ifPresent(load -> this.loadTargetQ = load.getLoadTargetQ());
+        bus.getLoad().ifPresent(load -> this.loadTargetQ = load.getTargetQ());
         this.generationTargetQ = bus.getGenerationTargetQ();
         this.voltageControlEnabled = bus.isGeneratorVoltageControlEnabled();
         LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
@@ -52,7 +52,7 @@ public class BusState extends BusDcState {
         element.setAngle(angle);
         element.setV(voltage);
         if (loadTargetQ != null) {
-            element.getLoad().orElseThrow().setLoadTargetQ(loadTargetQ);
+            element.getLoad().orElseThrow().setTargetQ(loadTargetQ);
         }
         element.setGenerationTargetQ(generationTargetQ);
         element.setGeneratorVoltageControlEnabled(voltageControlEnabled);

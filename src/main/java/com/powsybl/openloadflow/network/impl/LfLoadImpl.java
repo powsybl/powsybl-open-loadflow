@@ -27,11 +27,11 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
 
     private final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
 
-    private double loadTargetP = 0;
+    private double targetP = 0;
 
-    private double initialLoadTargetP = 0;
+    private double initialTargetP = 0;
 
-    private double loadTargetQ = 0;
+    private double targetQ = 0;
 
     private boolean ensurePowerFactorConstantByLoad = false;
 
@@ -69,9 +69,9 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         loadsRefs.add(Ref.create(load, parameters.isCacheEnabled()));
         loadsDisablingStatus.put(load.getId(), false);
         double p0 = load.getP0();
-        loadTargetP += p0 / PerUnit.SB;
-        initialLoadTargetP += p0 / PerUnit.SB;
-        loadTargetQ += load.getQ0() / PerUnit.SB;
+        targetP += p0 / PerUnit.SB;
+        initialTargetP += p0 / PerUnit.SB;
+        targetQ += load.getQ0() / PerUnit.SB;
         boolean hasVariableActivePower = false;
         if (parameters.isDistributedOnConformLoad()) {
             LoadDetail loadDetail = load.getExtension(LoadDetail.class);
@@ -91,49 +91,49 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         // note that LCC converter station are out of the slack distribution.
         lccCsRefs.add(Ref.create(lccCs, parameters.isCacheEnabled()));
         double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers());
-        loadTargetP += targetP / PerUnit.SB;
-        initialLoadTargetP += targetP / PerUnit.SB;
-        loadTargetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()) / PerUnit.SB;
+        this.targetP += targetP / PerUnit.SB;
+        initialTargetP += targetP / PerUnit.SB;
+        targetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()) / PerUnit.SB;
     }
 
     public void add(DanglingLine danglingLine) {
-        loadTargetP += danglingLine.getP0() / PerUnit.SB;
-        loadTargetQ += danglingLine.getQ0() / PerUnit.SB;
+        targetP += danglingLine.getP0() / PerUnit.SB;
+        targetQ += danglingLine.getQ0() / PerUnit.SB;
     }
 
     @Override
-    public double getInitialLoadTargetP() {
-        return initialLoadTargetP;
+    public double getInitialTargetP() {
+        return initialTargetP;
     }
 
     @Override
-    public double getLoadTargetP() {
-        return loadTargetP;
+    public double getTargetP() {
+        return targetP;
     }
 
     @Override
-    public void setLoadTargetP(double loadTargetP) {
-        if (loadTargetP != this.loadTargetP) {
-            double oldLoadTargetP = this.loadTargetP;
-            this.loadTargetP = loadTargetP;
+    public void setTargetP(double targetP) {
+        if (targetP != this.targetP) {
+            double oldLoadTargetP = this.targetP;
+            this.targetP = targetP;
             for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
-                listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, loadTargetP);
+                listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, targetP);
             }
         }
     }
 
     @Override
-    public double getLoadTargetQ() {
-        return loadTargetQ;
+    public double getTargetQ() {
+        return targetQ;
     }
 
     @Override
-    public void setLoadTargetQ(double loadTargetQ) {
-        if (loadTargetQ != this.loadTargetQ) {
-            double oldLoadTargetQ = this.loadTargetQ;
-            this.loadTargetQ = loadTargetQ;
+    public void setTargetQ(double targetQ) {
+        if (targetQ != this.targetQ) {
+            double oldLoadTargetQ = this.targetQ;
+            this.targetQ = targetQ;
             for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
-                listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, loadTargetQ);
+                listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, targetQ);
             }
         }
     }

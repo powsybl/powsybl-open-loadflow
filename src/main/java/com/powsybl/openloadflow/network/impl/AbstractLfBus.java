@@ -324,17 +324,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public double getLoadTargetP() {
-        return load != null ? load.getLoadTargetP() : 0;
+        return load != null ? load.getTargetP() : 0;
     }
 
     @Override
     public double getInitialLoadTargetP() {
-        return load != null ? load.getInitialLoadTargetP() : 0;
+        return load != null ? load.getInitialTargetP() : 0;
     }
 
     @Override
     public double getLoadTargetQ() {
-        return load != null ? load.getLoadTargetQ() : 0;
+        return load != null ? load.getTargetQ() : 0;
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
