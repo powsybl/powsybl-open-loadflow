@@ -414,8 +414,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<LfLoad> getLoad() {
-        return Optional.ofNullable(load);
+    public List<LfLoad> getLoads() {
+        return Optional.ofNullable(load).stream().map(l -> (LfLoad) l).toList();
     }
 
     @Override
