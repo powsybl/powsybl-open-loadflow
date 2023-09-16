@@ -247,13 +247,6 @@ public class PropagatedContingency {
         }
     }
 
-    private static void addPowerShift(Terminal terminal, Map<String, PowerShift> busIdsToShift, PowerShift powerShift, boolean breakers) {
-        Bus bus = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
-        if (bus != null) {
-            busIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift()).add(powerShift);
-        }
-    }
-
     private static List<? extends Terminal> getTerminals(Identifiable<?> identifiable) {
         if (identifiable instanceof Connectable<?>) {
             return ((Connectable<?>) identifiable).getTerminals();
@@ -410,13 +403,13 @@ public class PropagatedContingency {
             }
         }
 
-        Map<LfLoad, LfContingency.LoadLoss> loadsLoss = new LinkedHashMap<>(1);
+        Map<LfLoad, LfLoadLoss> loads = new LinkedHashMap<>(1);
         for (var e : loadIdsToLoose.entrySet()) {
             String loadId = e.getKey();
             PowerShift powerShift = e.getValue();
             LfLoad load = network.getLoadById(loadId);
             if (load != null) { // could be in another component
-                LfContingency.LoadLoss loadLoss = loadsLoss.computeIfAbsent(load, k -> new LfContingency.LoadLoss());
+                LfLoadLoss loadLoss = loads.computeIfAbsent(load, k -> new LfLoadLoss());
                 loadLoss.getPowerShift().add(powerShift);
                 loadLoss.getLostLoadIds().add(loadId);
             }
@@ -440,13 +433,13 @@ public class PropagatedContingency {
         if (branches.isEmpty()
                 && buses.isEmpty()
                 && shunts.isEmpty()
-                && loadsLoss.isEmpty()
+                && loads.isEmpty()
                 && generators.isEmpty()
                 && hvdcs.isEmpty()) {
             LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(buses, branches, hvdcs), shunts, loadsLoss, generators));
+        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(buses, branches, hvdcs), shunts, loads, generators));
     }
 }
