@@ -19,17 +19,13 @@ import java.util.stream.Stream;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
+public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private final LfBus bus;
 
     private final List<Ref<Load>> loadsRefs = new ArrayList<>();
 
     private final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
-
-    private double targetP = 0;
-
-    private double initialTargetP = 0;
 
     private double targetQ = 0;
 
@@ -44,6 +40,7 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
     LfLoadImpl(LfBus bus, boolean distributedOnConformLoad) {
+        super(0, 0);
         this.bus = Objects.requireNonNull(bus);
         this.distributedOnConformLoad = distributedOnConformLoad;
     }
@@ -99,16 +96,6 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     public void add(DanglingLine danglingLine) {
         targetP += danglingLine.getP0() / PerUnit.SB;
         targetQ += danglingLine.getQ0() / PerUnit.SB;
-    }
-
-    @Override
-    public double getInitialTargetP() {
-        return initialTargetP;
-    }
-
-    @Override
-    public double getTargetP() {
-        return targetP;
     }
 
     @Override
