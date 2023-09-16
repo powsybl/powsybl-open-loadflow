@@ -18,6 +18,8 @@ public interface LfLoad extends PropertyBag {
 
     LfBus getBus();
 
+    LfLoadModel getLoadModel();
+
     double getInitialTargetP();
 
     double getTargetP();

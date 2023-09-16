@@ -58,7 +58,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean distributedOnConformLoad;
 
-    protected LfLoadImpl load;
+    protected final List<LfLoad> loads = new ArrayList<>();
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
@@ -224,19 +224,43 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    protected LfLoadImpl getOrCreateLfLoad() {
-        if (load == null) {
-            load = new LfLoadImpl(this, distributedOnConformLoad);
+    private static LfLoadModel createLfLoadModel(LoadModel loadModel) {
+        if (loadModel == null) {
+            return null;
         }
-        return load;
+        if (loadModel.getType() == LoadModelType.ZIP) {
+            ZipLoadModel zipLoadModel = (ZipLoadModel) loadModel;
+            return new LfLoadModel(List.of(new LfLoadModel.Term(0, zipLoadModel.getC0p()),
+                                           new LfLoadModel.Term(1, zipLoadModel.getC1p()),
+                                           new LfLoadModel.Term(2, zipLoadModel.getC2p())),
+                                   List.of(new LfLoadModel.Term(0, zipLoadModel.getC0q()),
+                                           new LfLoadModel.Term(1, zipLoadModel.getC1q()),
+                                           new LfLoadModel.Term(2, zipLoadModel.getC2q())));
+        } else if (loadModel.getType() == LoadModelType.EXPONENTIAL) {
+            ExponentialLoadModel expoLoadModel = (ExponentialLoadModel) loadModel;
+            return new LfLoadModel(List.of(new LfLoadModel.Term(expoLoadModel.getNp(), 1)),
+                                   List.of(new LfLoadModel.Term(expoLoadModel.getNq(), 1)));
+        } else {
+            throw new PowsyblException("Unsupported load model: " + loadModel.getType());
+        }
+    }
+
+    protected LfLoadImpl getOrCreateLfLoad(LoadModel loadModel) {
+        LfLoadModel lfLoadModel = createLfLoadModel(loadModel);
+        return (LfLoadImpl) loads.stream().filter(l -> Objects.equals(l.getLoadModel(), lfLoadModel)).findFirst()
+                .orElseGet(() -> {
+                    LfLoadImpl l = new LfLoadImpl(AbstractLfBus.this, distributedOnConformLoad, lfLoadModel);
+                    loads.add(l);
+                    return l;
+                });
     }
 
     void addLoad(Load load, LfNetworkParameters parameters) {
-        getOrCreateLfLoad().add(load, parameters);
+        getOrCreateLfLoad(load.getExtension(LoadModel.class)).add(load, parameters);
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
-        getOrCreateLfLoad().add(lccCs, parameters);
+        getOrCreateLfLoad(null).add(lccCs, parameters);
     }
 
     protected void add(LfGenerator generator) {
@@ -324,17 +348,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public double getLoadTargetP() {
-        return load != null ? load.getTargetP() : 0;
+        return loads.stream().mapToDouble(LfLoad::getTargetP).sum();
     }
 
     @Override
     public double getInitialLoadTargetP() {
-        return load != null ? load.getInitialTargetP() : 0;
+        return loads.stream().mapToDouble(LfLoad::getInitialTargetP).sum();
     }
 
     @Override
     public double getLoadTargetQ() {
-        return load != null ? load.getTargetQ() : 0;
+        return loads.stream().mapToDouble(LfLoad::getTargetQ).sum();
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
@@ -415,7 +439,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public List<LfLoad> getLoads() {
-        return Optional.ofNullable(load).stream().map(l -> (LfLoad) l).toList();
+        return loads;
     }
 
     @Override
@@ -490,7 +514,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + getLoadTargetQ()) : generationTargetQ, parameters.isReactiveLimits());
 
         // update load power
-        if (load != null) {
+        for (LfLoad load : loads) {
             load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant(),
                     parameters.isBreakers());
         }

@@ -23,6 +23,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private final LfBus bus;
 
+    private final LfLoadModel loadModel;
+
     private final List<Ref<Load>> loadsRefs = new ArrayList<>();
 
     private final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
@@ -39,10 +41,11 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
-    LfLoadImpl(LfBus bus, boolean distributedOnConformLoad) {
+    LfLoadImpl(LfBus bus, boolean distributedOnConformLoad, LfLoadModel loadModel) {
         super(0, 0);
         this.bus = Objects.requireNonNull(bus);
         this.distributedOnConformLoad = distributedOnConformLoad;
+        this.loadModel = loadModel;
     }
 
     @Override
@@ -60,6 +63,11 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     @Override
     public LfBus getBus() {
         return bus;
+    }
+
+    @Override
+    public LfLoadModel getLoadModel() {
+        return loadModel;
     }
 
     void add(Load load, LfNetworkParameters parameters) {
