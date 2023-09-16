@@ -23,9 +23,9 @@ public interface LfNetworkListener {
 
     void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled);
 
-    void onLoadActivePowerTargetChange(LfLoad load, double oldLoadTargetP, double newLoadTargetP);
+    void onLoadActivePowerTargetChange(LfLoad load, double oldTargetP, double newTargetP);
 
-    void onLoadReactivePowerTargetChange(LfLoad load, double oldLoadTargetQ, double newLoadTargetQ);
+    void onLoadReactivePowerTargetChange(LfLoad load, double oldTargetQ, double newTargetQ);
 
     void onGenerationActivePowerTargetChange(LfGenerator generator, double oldGenerationTargetP, double newGenerationTargetP);
 

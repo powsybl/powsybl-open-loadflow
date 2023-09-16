@@ -114,10 +114,10 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     @Override
     public void setTargetP(double targetP) {
         if (targetP != this.targetP) {
-            double oldLoadTargetP = this.targetP;
+            double oldTargetP = this.targetP;
             this.targetP = targetP;
             for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
-                listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, targetP);
+                listener.onLoadActivePowerTargetChange(this, oldTargetP, targetP);
             }
         }
     }
@@ -130,10 +130,10 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     @Override
     public void setTargetQ(double targetQ) {
         if (targetQ != this.targetQ) {
-            double oldLoadTargetQ = this.targetQ;
+            double oldTargetQ = this.targetQ;
             this.targetQ = targetQ;
             for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
-                listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, targetQ);
+                listener.onLoadReactivePowerTargetChange(this, oldTargetQ, targetQ);
             }
         }
     }
