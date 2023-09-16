@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -63,6 +64,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final Map<String, LfShunt> shuntsById = new HashMap<>();
 
     private final Map<String, LfGenerator> generatorsById = new HashMap<>();
+
+    private final Map<String, LfLoad> loadsById = new HashMap<>();
 
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
@@ -170,6 +173,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return branchesById.get(branchId);
     }
 
+    private void addShunt(LfShunt shunt) {
+        shunt.setNum(shuntCount++);
+        shuntsByIndex.add(shunt);
+        shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
+    }
+
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
         bus.setNum(busesByIndex.size());
@@ -178,22 +187,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         invalidateSlack();
         connectivity = null;
 
-        bus.getShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
-        bus.getControllerShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
-        bus.getSvcShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
+        bus.getShunt().ifPresent(this::addShunt);
+        bus.getControllerShunt().ifPresent(this::addShunt);
+        bus.getSvcShunt().ifPresent(this::addShunt);
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
+        bus.getLoad().ifPresent(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
     }
 
     public List<LfBus> getBuses() {
@@ -234,6 +232,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfGenerator getGeneratorById(String id) {
         Objects.requireNonNull(id);
         return generatorsById.get(id);
+    }
+
+    public LfLoad getLoadById(String id) {
+        Objects.requireNonNull(id);
+        return loadsById.get(id);
     }
 
     public void addHvdc(LfHvdc hvdc) {

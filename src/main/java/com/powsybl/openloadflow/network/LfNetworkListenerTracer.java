@@ -71,14 +71,14 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     @Override
     public void onLoadActivePowerTargetChange(LfLoad load, double oldLoadTargetP, double newLoadTargetP) {
         LOGGER.trace("onLoadActivePowerTargetChange(loadId='{}', oldLoadTargetP={}, newLoadTargetP={})",
-                load.getOriginalIds(), oldLoadTargetP, newLoadTargetP);
+                load.getId(), oldLoadTargetP, newLoadTargetP);
         delegate.onLoadActivePowerTargetChange(load, oldLoadTargetP, newLoadTargetP);
     }
 
     @Override
     public void onLoadReactivePowerTargetChange(LfLoad load, double oldLoadTargetQ, double newLoadTargetQ) {
         LOGGER.trace("onLoadReactivePowerTargetChange(busId='{}', oldLoadTargetQ={}, newLoadTargetQ={})",
-                load.getOriginalIds(), oldLoadTargetQ, newLoadTargetQ);
+                load.getId(), oldLoadTargetQ, newLoadTargetQ);
         delegate.onLoadReactivePowerTargetChange(load, oldLoadTargetQ, newLoadTargetQ);
     }
 

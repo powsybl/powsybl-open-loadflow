@@ -68,7 +68,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
 
             if (newLoadTargetP != loadTargetP) {
                 LOGGER.trace("Rescale '{}' active power target: {} -> {}",
-                        load.getOriginalIds(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
+                        load.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
 
                 if (loadPowerFactorConstant) {
                     ensurePowerFactorConstant(load, newLoadTargetP);
@@ -97,7 +97,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         }
         if (newLoadTargetQ != load.getLoadTargetQ()) {
             LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
-                    load.getOriginalIds(), load.getLoadTargetQ() * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
+                    load.getId(), load.getLoadTargetQ() * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
             load.setLoadTargetQ(newLoadTargetQ);
         }
     }

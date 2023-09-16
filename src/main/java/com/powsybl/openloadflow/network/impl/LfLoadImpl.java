@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -49,8 +50,15 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     }
 
     @Override
+    public String getId() {
+        return bus.getId() + "_load";
+    }
+
+    @Override
     public List<String> getOriginalIds() {
-        return loadsRefs.stream().map(r -> r.get().getId()).collect(Collectors.toList());
+        return Stream.concat(loadsRefs.stream().map(r -> r.get().getId()),
+                             lccCsRefs.stream().map(r -> r.get().getId()))
+                .toList();
     }
 
     @Override
@@ -176,8 +184,9 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
             double diffP0 = diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB;
             double updatedP0 = load.getP0() + diffP0;
             double updatedQ0 = load.getQ0() + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
-            load.getTerminal().setP(updatedP0);
-            load.getTerminal().setQ(updatedQ0);
+            load.getTerminal()
+                    .setP(updatedP0)
+                    .setQ(updatedQ0);
         }
 
         // update lcc converter station power

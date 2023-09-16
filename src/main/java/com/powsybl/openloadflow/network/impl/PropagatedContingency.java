@@ -45,11 +45,9 @@ public class PropagatedContingency {
 
     private final Set<String> generatorIdsToLose = new HashSet<>();
 
-    private final Map<String, PowerShift> busIdsToShift = new HashMap<>();
+    private final Map<String, PowerShift> loadIdsToLoose = new HashMap<>();
 
     private final Map<String, AdmittanceShift> shuntIdsToShift = new HashMap<>();
-
-    private final Set<String> originalPowerShiftIds = new LinkedHashSet<>();
 
     public Contingency getContingency() {
         return contingency;
@@ -79,16 +77,12 @@ public class PropagatedContingency {
         return generatorIdsToLose;
     }
 
-    public Map<String, PowerShift> getBusIdsToShift() {
-        return busIdsToShift;
+    public Map<String, PowerShift> getLoadIdsToLoose() {
+        return loadIdsToLoose;
     }
 
     public Map<String, AdmittanceShift> getShuntIdsToShift() {
         return shuntIdsToShift;
-    }
-
-    public Set<String> getOriginalPowerShiftIds() {
-        return originalPowerShiftIds;
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect,
@@ -205,8 +199,7 @@ public class PropagatedContingency {
 
                 case LOAD:
                     Load load = (Load) connectable;
-                    originalPowerShiftIds.add(load.getId());
-                    addPowerShift(load.getTerminal(), busIdsToShift, getLoadPowerShift(load, slackDistributionOnConformLoad), breakers);
+                    loadIdsToLoose.put(load.getId(), getLoadPowerShift(load, slackDistributionOnConformLoad));
                     break;
 
                 case SHUNT_COMPENSATOR:
@@ -233,8 +226,7 @@ public class PropagatedContingency {
                         LccConverterStation lcc = (LccConverterStation) connectable;
                         PowerShift lccPowerShift = new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc, breakers) / PerUnit.SB, 0,
                                 HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc, breakers) / PerUnit.SB);
-                        originalPowerShiftIds.add(lcc.getId());
-                        addPowerShift(lcc.getTerminal(), busIdsToShift, lccPowerShift, breakers);
+                        loadIdsToLoose.put(lcc.getId(), lccPowerShift);
                     }
                     break;
 
@@ -345,7 +337,7 @@ public class PropagatedContingency {
 
     public boolean hasNoImpact() {
         return branchIdsToOpen.isEmpty() && hvdcIdsToOpen.isEmpty() && generatorIdsToLose.isEmpty()
-                && busIdsToShift.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
+                && loadIdsToLoose.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
@@ -401,7 +393,7 @@ public class PropagatedContingency {
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
 
-        Map<LfShunt, AdmittanceShift> shunts = new HashMap<>(1);
+        Map<LfShunt, AdmittanceShift> shunts = new LinkedHashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {
             LfShunt shunt = network.getShuntById(e.getKey());
             if (shunt != null) { // could be in another component
@@ -410,7 +402,7 @@ public class PropagatedContingency {
             }
         }
 
-        Set<LfGenerator> generators = new HashSet<>(1);
+        Set<LfGenerator> generators = new LinkedHashSet<>(1);
         for (String generatorId : generatorIdsToLose) {
             LfGenerator generator = network.getGeneratorById(generatorId);
             if (generator != null) { // could be in another component
@@ -418,13 +410,15 @@ public class PropagatedContingency {
             }
         }
 
-        Map<LfLoad, PowerShift> loadsShift = new HashMap<>(1);
-        for (var e : busIdsToShift.entrySet()) {
-            String busId = e.getKey();
-            PowerShift shift = e.getValue();
-            LfBus bus = network.getBusById(busId);
-            if (bus != null) { // could be in another component
-                loadsShift.put(bus, shift);
+        Map<LfLoad, LfContingency.LoadLoss> loadsLoss = new LinkedHashMap<>(1);
+        for (var e : loadIdsToLoose.entrySet()) {
+            String loadId = e.getKey();
+            PowerShift powerShift = e.getValue();
+            LfLoad load = network.getLoadById(loadId);
+            if (load != null) { // could be in another component
+                LfContingency.LoadLoss loadLoss = loadsLoss.computeIfAbsent(load, k -> new LfContingency.LoadLoss());
+                loadLoss.getPowerShift().add(powerShift);
+                loadLoss.getLostLoadIds().add(loadId);
             }
         }
 
@@ -446,13 +440,13 @@ public class PropagatedContingency {
         if (branches.isEmpty()
                 && buses.isEmpty()
                 && shunts.isEmpty()
-                && loadsShift.isEmpty()
+                && loadsLoss.isEmpty()
                 && generators.isEmpty()
                 && hvdcs.isEmpty()) {
             LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(buses, branches, hvdcs), shunts, loadsShift, generators, originalPowerShiftIds));
+        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(buses, branches, hvdcs), shunts, loadsLoss, generators));
     }
 }

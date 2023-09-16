@@ -31,9 +31,22 @@ public class LfContingency {
 
     private final Map<LfShunt, AdmittanceShift> shuntsShift;
 
-    private final Map<LfLoad, PowerShift> loadsShift;
+    public static class LoadLoss {
 
-    private final Set<String> originalPowerShiftIds;
+        private final PowerShift powerShift = new PowerShift();
+
+        private final Set<String> lostLoadIds = new LinkedHashSet<>();
+
+        public PowerShift getPowerShift() {
+            return powerShift;
+        }
+
+        public Set<String> getLostLoadIds() {
+            return lostLoadIds;
+        }
+    }
+
+    private final Map<LfLoad, LoadLoss> loadsLoss;
 
     private final Set<LfGenerator> lostGenerators;
 
@@ -41,18 +54,17 @@ public class LfContingency {
 
     private double disconnectedGenerationActivePower;
 
-    private Set<String> disconnectedElementIds;
+    private final Set<String> disconnectedElementIds;
 
     public LfContingency(String id, int index, int createdSynchronousComponentsCount, DisabledNetwork disabledNetwork, Map<LfShunt, AdmittanceShift> shuntsShift,
-                         Map<LfLoad, PowerShift> loadsShift, Set<LfGenerator> lostGenerators, Set<String> originalPowerShiftIds) {
+                         Map<LfLoad, LoadLoss> loadsLoss, Set<LfGenerator> lostGenerators) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.createdSynchronousComponentsCount = createdSynchronousComponentsCount;
         this.disabledNetwork = Objects.requireNonNull(disabledNetwork);
         this.shuntsShift = Objects.requireNonNull(shuntsShift);
-        this.loadsShift = Objects.requireNonNull(loadsShift);
+        this.loadsLoss = Objects.requireNonNull(loadsLoss);
         this.lostGenerators = Objects.requireNonNull(lostGenerators);
-        this.originalPowerShiftIds = Objects.requireNonNull(originalPowerShiftIds);
         this.disconnectedLoadActivePower = 0.0;
         this.disconnectedGenerationActivePower = 0.0;
         this.disconnectedElementIds = new HashSet<>();
@@ -65,14 +77,15 @@ public class LfContingency {
             bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
             bus.getShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
         }
-        for (Map.Entry<LfLoad, PowerShift> e : loadsShift.entrySet()) {
-            disconnectedLoadActivePower += e.getValue().getActive();
+        for (Map.Entry<LfLoad, LoadLoss> e : loadsLoss.entrySet()) {
+            LoadLoss loadLoss = e.getValue();
+            disconnectedLoadActivePower += loadLoss.getPowerShift().getActive();
+            disconnectedElementIds.addAll(loadLoss.getLostLoadIds());
         }
         for (LfGenerator generator : lostGenerators) {
             disconnectedGenerationActivePower += generator.getTargetP();
             disconnectedElementIds.add(generator.getId());
         }
-        disconnectedElementIds.addAll(originalPowerShiftIds);
         disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).collect(Collectors.toList()));
         // FIXME: shuntsShift has to be included in the disconnected elements.
     }
@@ -97,8 +110,8 @@ public class LfContingency {
         return shuntsShift;
     }
 
-    public Map<LfLoad, PowerShift> getLoadsShift() {
-        return loadsShift;
+    public Map<LfLoad, LoadLoss> getLoadsLoss() {
+        return loadsLoss;
     }
 
     public Set<LfGenerator> getLostGenerators() {
@@ -136,17 +149,14 @@ public class LfContingency {
             shunt.setG(shunt.getG() - e.getValue().getG());
             shunt.setB(shunt.getB() - e.getValue().getB());
         }
-        for (var e : loadsShift.entrySet()) {
+        for (var e : loadsLoss.entrySet()) {
             LfLoad load = e.getKey();
-            PowerShift shift = e.getValue();
+            LoadLoss loss = e.getValue();
+            PowerShift shift = loss.getPowerShift();
             load.setLoadTargetP(load.getLoadTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive()));
             load.setLoadTargetQ(load.getLoadTargetQ() - shift.getReactive());
-            Set<String> loadsIdsInContingency = originalPowerShiftIds.stream()
-                    .distinct()
-                    .filter(load.getOriginalIds()::contains)
-                    .collect(Collectors.toSet());
             load.setAbsVariableTargetP(load.getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
-            loadsIdsInContingency.forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
+            loss.getLostLoadIds().forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
         }
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
@@ -189,7 +199,7 @@ public class LfContingency {
 
     public Set<LfBus> getLoadAndGeneratorBuses() {
         Set<LfBus> buses = new HashSet<>();
-        for (var e : loadsShift.entrySet()) {
+        for (var e : loadsLoss.entrySet()) {
             LfLoad load = e.getKey();
             LfBus bus = load.getBus();
             if (bus != null) {

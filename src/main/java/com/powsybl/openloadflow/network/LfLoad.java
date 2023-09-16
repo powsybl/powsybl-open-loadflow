@@ -14,6 +14,8 @@ import java.util.Map;
  */
 public interface LfLoad extends PropertyBag {
 
+    String getId();
+
     LfBus getBus();
 
     double getInitialLoadTargetP();
