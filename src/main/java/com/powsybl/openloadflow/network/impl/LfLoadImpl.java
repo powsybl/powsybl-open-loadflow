@@ -90,9 +90,9 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     void add(LccConverterStation lccCs, LfNetworkParameters parameters) {
         // note that LCC converter station are out of the slack distribution.
         lccCsRefs.add(Ref.create(lccCs, parameters.isCacheEnabled()));
-        double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers());
-        this.targetP += targetP / PerUnit.SB;
-        initialTargetP += targetP / PerUnit.SB;
+        double lccTargetP = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers());
+        this.targetP += lccTargetP / PerUnit.SB;
+        initialTargetP += lccTargetP / PerUnit.SB;
         targetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()) / PerUnit.SB;
     }
 
