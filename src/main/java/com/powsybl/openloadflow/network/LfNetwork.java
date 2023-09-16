@@ -28,7 +28,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 

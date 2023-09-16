@@ -10,7 +10,6 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
-import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.List;
 

@@ -8,11 +8,8 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

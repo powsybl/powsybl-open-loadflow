@@ -14,7 +14,6 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -111,6 +110,7 @@ public class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     public double getLoadTargetP() {
         return loadTargetP;
     }
+
     @Override
     public void setLoadTargetP(double loadTargetP) {
         if (loadTargetP != this.loadTargetP) {
