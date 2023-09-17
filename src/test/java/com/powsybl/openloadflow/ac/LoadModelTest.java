@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.cgmes.conformity.CgmesConformity1Catalog;
+import com.powsybl.commons.datasource.ReadOnlyDataSource;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VoltageLevel;
@@ -65,5 +67,17 @@ public class LoadModelTest {
         assertReactivePowerEquals(87.738, zipLoad.getTerminal());
         assertActivePowerEquals(600, load.getTerminal());
         assertReactivePowerEquals(200, load.getTerminal());
+    }
+
+    @Test
+    void microGridNlTest() {
+        ReadOnlyDataSource dataSource = CgmesConformity1Catalog.microGridBaseCaseNL()
+                .dataSource();
+        Network network = Network.read(dataSource);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        Load l = network.getLoad("b1e03a8f-6a11-4454-af58-4a4a680e857f");
+        assertActivePowerEquals(486.712, l.getTerminal());
+        assertReactivePowerEquals(230.337, l.getTerminal());
     }
 }
