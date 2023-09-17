@@ -348,12 +348,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public double getLoadTargetP() {
-        return loads.stream().mapToDouble(LfLoad::getTargetP).sum();
+        return loads.stream()
+                .mapToDouble(load -> load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getTermP(0).map(LfLoadModel.Term::c)).orElse(1d))
+                .sum();
     }
 
     @Override
     public double getLoadTargetQ() {
-        return loads.stream().mapToDouble(LfLoad::getTargetQ).sum();
+        return loads.stream()
+                .mapToDouble(load -> load.getTargetQ() * load.getLoadModel().flatMap(lm -> lm.getTermQ(0).map(LfLoadModel.Term::c)).orElse(1d))
+                .sum();
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {

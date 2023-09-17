@@ -64,8 +64,8 @@ class LoadModelTest {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertActivePowerEquals(48.443, zipLoad.getTerminal());
-        assertReactivePowerEquals(30.566, zipLoad.getTerminal());
+        assertActivePowerEquals(48.765, zipLoad.getTerminal());
+        assertReactivePowerEquals(30.759, zipLoad.getTerminal());
         assertActivePowerEquals(600, load.getTerminal());
         assertReactivePowerEquals(200, load.getTerminal());
     }
@@ -124,10 +124,10 @@ class LoadModelTest {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertActivePowerEquals(46.973, zipLoad.getTerminal());
-        assertReactivePowerEquals(29.684, zipLoad.getTerminal());
-        assertActivePowerEquals(46.418, expLoad.getTerminal());
-        assertReactivePowerEquals(27.851, expLoad.getTerminal());
+        assertActivePowerEquals(47.346, zipLoad.getTerminal());
+        assertReactivePowerEquals(29.907, zipLoad.getTerminal());
+        assertActivePowerEquals(46.873, expLoad.getTerminal());
+        assertReactivePowerEquals(28.124, expLoad.getTerminal());
         assertActivePowerEquals(600, load.getTerminal());
         assertReactivePowerEquals(200, load.getTerminal());
     }
@@ -164,8 +164,8 @@ class LoadModelTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         Load l = network.getLoad("b1e03a8f-6a11-4454-af58-4a4a680e857f");
-        assertActivePowerEquals(488.237, l.getTerminal());
-        assertReactivePowerEquals(208.058, l.getTerminal());
+        assertActivePowerEquals(489.123, l.getTerminal());
+        assertReactivePowerEquals(208.478, l.getTerminal());
         for (Bus bus : network.getBusView().getBuses()) {
             double dv = bus.getV() - vMap.get(bus.getId());
 //            assertEquals(0, dv, 1e-1);
