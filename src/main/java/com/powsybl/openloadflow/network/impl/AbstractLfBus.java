@@ -352,11 +352,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public double getInitialLoadTargetP() {
-        return loads.stream().mapToDouble(LfLoad::getInitialTargetP).sum();
-    }
-
-    @Override
     public double getLoadTargetQ() {
         return loads.stream().mapToDouble(LfLoad::getTargetQ).sum();
     }
