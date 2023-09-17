@@ -165,7 +165,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
-    public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant, boolean breakers) {
+    public void updateState(boolean loadPowerFactorConstant, boolean breakers) {
+        double diffLoadTargetP = targetP - initialTargetP;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
             double diffP0 = diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB;

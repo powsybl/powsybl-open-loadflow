@@ -48,5 +48,5 @@ public interface LfLoad extends PropertyBag {
 
     void setOriginalLoadsDisablingStatus(Map<String, Boolean> originalLoadsDisablingStatus);
 
-    void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant, boolean breakers);
+    void updateState(boolean loadPowerFactorConstant, boolean breakers);
 }

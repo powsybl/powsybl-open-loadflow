@@ -491,7 +491,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
         // update load power
         if (load != null) {
-            load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant(),
+            load.updateState(parameters.isLoadPowerFactorConstant(),
                     parameters.isBreakers());
         }
     }
