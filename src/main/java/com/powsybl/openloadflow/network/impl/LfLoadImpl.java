@@ -11,6 +11,8 @@ import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
@@ -41,6 +43,10 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
+    private Evaluable p = EvaluableConstants.NAN;
+
+    private Evaluable q = EvaluableConstants.NAN;
+
     LfLoadImpl(LfBus bus, boolean distributedOnConformLoad, LfLoadModel loadModel) {
         super(0, 0);
         this.bus = Objects.requireNonNull(bus);
@@ -66,8 +72,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
-    public LfLoadModel getLoadModel() {
-        return loadModel;
+    public Optional<LfLoadModel> getLoadModel() {
+        return Optional.ofNullable(loadModel);
     }
 
     void add(Load load, LfNetworkParameters parameters) {
@@ -173,7 +179,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
-    public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant, boolean breakers) {
+    public void updateState(boolean loadPowerFactorConstant, boolean breakers) {
+        double diffLoadTargetP = targetP - initialTargetP;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
             double diffP0 = diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB;
@@ -228,5 +235,25 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private static double getPowerFactor(Load load) {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
+    }
+
+    @Override
+    public Evaluable getP() {
+        return p;
+    }
+
+    @Override
+    public void setP(Evaluable p) {
+        this.p = p;
+    }
+
+    @Override
+    public Evaluable getQ() {
+        return q;
+    }
+
+    @Override
+    public void setQ(Evaluable q) {
+        this.q = q;
     }
 }

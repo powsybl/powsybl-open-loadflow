@@ -6,8 +6,11 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
+
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -18,7 +21,7 @@ public interface LfLoad extends PropertyBag {
 
     LfBus getBus();
 
-    LfLoadModel getLoadModel();
+    Optional<LfLoadModel> getLoadModel();
 
     double getInitialTargetP();
 
@@ -50,5 +53,13 @@ public interface LfLoad extends PropertyBag {
 
     void setOriginalLoadsDisablingStatus(Map<String, Boolean> originalLoadsDisablingStatus);
 
-    void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant, boolean breakers);
+    void updateState(boolean loadPowerFactorConstant, boolean breakers);
+
+    Evaluable getP();
+
+    void setP(Evaluable p);
+
+    Evaluable getQ();
+
+    void setQ(Evaluable q);
 }

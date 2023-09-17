@@ -247,7 +247,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfLoadImpl getOrCreateLfLoad(LoadModel loadModel) {
         LfLoadModel lfLoadModel = createLfLoadModel(loadModel);
-        return (LfLoadImpl) loads.stream().filter(l -> Objects.equals(l.getLoadModel(), lfLoadModel)).findFirst()
+        return (LfLoadImpl) loads.stream().filter(l -> Objects.equals(l.getLoadModel().orElse(null), lfLoadModel)).findFirst()
                 .orElseGet(() -> {
                     LfLoadImpl l = new LfLoadImpl(AbstractLfBus.this, distributedOnConformLoad, lfLoadModel);
                     loads.add(l);
@@ -256,7 +256,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLoad(Load load, LfNetworkParameters parameters) {
-        getOrCreateLfLoad(load.getExtension(LoadModel.class)).add(load, parameters);
+        getOrCreateLfLoad(load.getModel().orElse(null)).add(load, parameters);
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
@@ -515,7 +515,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
         // update load power
         for (LfLoad load : loads) {
-            load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant(),
+            load.updateState(parameters.isLoadPowerFactorConstant(),
                     parameters.isBreakers());
         }
     }
