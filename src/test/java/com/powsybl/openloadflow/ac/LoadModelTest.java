@@ -70,6 +70,68 @@ public class LoadModelTest {
     }
 
     @Test
+    void expLoadModelTest() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        Load load = network.getLoad("LOAD");
+        VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
+        Load expLoad = vlload.newLoad()
+                .setId("EXPLOAD")
+                .setBus("NLOAD")
+                .setP0(50)
+                .setQ0(30)
+                .newExponentialModel()
+                    .setNp(0.8)
+                    .setNq(0.9)
+                .add()
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertActivePowerEquals(47.768, expLoad.getTerminal());
+        assertReactivePowerEquals(28.661, expLoad.getTerminal());
+        assertActivePowerEquals(600, load.getTerminal());
+        assertReactivePowerEquals(200, load.getTerminal());
+    }
+
+    @Test
+    void zipAndExpLoadModelTest() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        Load load = network.getLoad("LOAD");
+        VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
+        Load zipLoad = vlload.newLoad()
+                .setId("ZIPLOAD")
+                .setBus("NLOAD")
+                .setP0(50)
+                .setQ0(30)
+                .newZipModel()
+                    .setC0p(0.5)
+                    .setC0q(0.55)
+                    .setC1p(0.3)
+                    .setC1q(0.35)
+                    .setC2p(0.2)
+                    .setC2q(0.1)
+                    .add()
+                .add();
+        Load expLoad = vlload.newLoad()
+                .setId("EXPLOAD")
+                .setBus("NLOAD")
+                .setP0(50)
+                .setQ0(30)
+                .newExponentialModel()
+                    .setNp(0.8)
+                    .setNq(0.9)
+                .add()
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertActivePowerEquals(46.973, zipLoad.getTerminal());
+        assertReactivePowerEquals(29.684, zipLoad.getTerminal());
+        assertActivePowerEquals(46.418, expLoad.getTerminal());
+        assertReactivePowerEquals(27.851, expLoad.getTerminal());
+        assertActivePowerEquals(600, load.getTerminal());
+        assertReactivePowerEquals(200, load.getTerminal());
+    }
+
+    @Test
     void dummyZipLoadModelTest() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Load load = network.getLoad("LOAD");
