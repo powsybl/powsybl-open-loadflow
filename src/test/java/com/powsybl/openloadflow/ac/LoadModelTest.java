@@ -63,10 +63,32 @@ public class LoadModelTest {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertActivePowerEquals(146.231, zipLoad.getTerminal());
-        assertReactivePowerEquals(87.738, zipLoad.getTerminal());
+        assertActivePowerEquals(48.443, zipLoad.getTerminal());
+        assertReactivePowerEquals(30.566, zipLoad.getTerminal());
         assertActivePowerEquals(600, load.getTerminal());
         assertReactivePowerEquals(200, load.getTerminal());
+    }
+
+    @Test
+    void dummyZipLoadModelTest() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        Load load = network.getLoad("LOAD");
+        load.remove();
+        VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
+        Load zipLoad = vlload.newLoad()
+                .setId("ZIPLOAD")
+                .setBus("NLOAD")
+                .setP0(600.0)
+                .setQ0(200.0)
+                .newZipModel()
+                    .setC0p(1)
+                    .setC0q(1)
+                    .add()
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertActivePowerEquals(600, zipLoad.getTerminal());
+        assertReactivePowerEquals(200, zipLoad.getTerminal());
     }
 
     @Test
@@ -77,7 +99,7 @@ public class LoadModelTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         Load l = network.getLoad("b1e03a8f-6a11-4454-af58-4a4a680e857f");
-        assertActivePowerEquals(486.712, l.getTerminal());
-        assertReactivePowerEquals(230.337, l.getTerminal());
+        assertActivePowerEquals(488.237, l.getTerminal());
+        assertReactivePowerEquals(208.058, l.getTerminal());
     }
 }

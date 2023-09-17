@@ -178,10 +178,26 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(i) / absVariableTargetP : 0;
     }
 
+    private double evalP() {
+        double value = p.eval();
+        if (loadModel != null) {
+            value += loadModel.getTermP(0).map(term -> targetP * term.getC()).orElse(0d);
+        }
+        return value;
+    }
+
+    private double evalQ() {
+        double value = q.eval();
+        if (loadModel != null) {
+            value += loadModel.getTermQ(0).map(term -> targetQ * term.getC()).orElse(0d);
+        }
+        return value;
+    }
+
     @Override
     public void updateState(boolean loadPowerFactorConstant, boolean breakers) {
-        double pv = p == EvaluableConstants.NAN ? 1 : p.eval() / targetP; // extract part of p that is dependent to voltage
-        double qv = q == EvaluableConstants.NAN ? 1 : q.eval() / targetQ;
+        double pv = p == EvaluableConstants.NAN ? 1 : evalP() / targetP; // extract part of p that is dependent to voltage
+        double qv = q == EvaluableConstants.NAN ? 1 : evalQ() / targetQ;
         double diffLoadTargetP = targetP - initialTargetP;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();

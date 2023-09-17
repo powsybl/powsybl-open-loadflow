@@ -71,10 +71,10 @@ public class LfLoadModel {
 
     private static void addTerm(Map<Double, Term> termsByExponent, Term term) {
         Objects.requireNonNull(term);
-        if (termsByExponent.containsKey(term.getC())) {
-            throw new PowsyblException("A term with exponent " + term.getC() + " already exists");
+        if (termsByExponent.containsKey(term.getN())) {
+            throw new PowsyblException("A term with exponent " + term.getN() + " already exists");
         }
-        termsByExponent.put(term.getC(), term);
+        termsByExponent.put(term.getN(), term);
     }
 
     public Collection<Term> getTermsP() {

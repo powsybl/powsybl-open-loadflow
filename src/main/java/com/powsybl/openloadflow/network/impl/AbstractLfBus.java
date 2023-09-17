@@ -230,16 +230,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
         if (loadModel.getType() == LoadModelType.ZIP) {
             ZipLoadModel zipLoadModel = (ZipLoadModel) loadModel;
-            return new LfLoadModel(List.of(new LfLoadModel.Term(0, zipLoadModel.getC0p()),
-                                           new LfLoadModel.Term(1, zipLoadModel.getC1p()),
-                                           new LfLoadModel.Term(2, zipLoadModel.getC2p())),
-                                   List.of(new LfLoadModel.Term(0, zipLoadModel.getC0q()),
-                                           new LfLoadModel.Term(1, zipLoadModel.getC1q()),
-                                           new LfLoadModel.Term(2, zipLoadModel.getC2q())));
+            return new LfLoadModel(List.of(new LfLoadModel.Term(zipLoadModel.getC0p(), 0),
+                                           new LfLoadModel.Term(zipLoadModel.getC1p(), 1),
+                                           new LfLoadModel.Term(zipLoadModel.getC2p(), 2)),
+                                   List.of(new LfLoadModel.Term(zipLoadModel.getC0q(), 0),
+                                           new LfLoadModel.Term(zipLoadModel.getC1q(), 1),
+                                           new LfLoadModel.Term(zipLoadModel.getC2q(), 2)));
         } else if (loadModel.getType() == LoadModelType.EXPONENTIAL) {
             ExponentialLoadModel expoLoadModel = (ExponentialLoadModel) loadModel;
-            return new LfLoadModel(List.of(new LfLoadModel.Term(expoLoadModel.getNp(), 1)),
-                                   List.of(new LfLoadModel.Term(expoLoadModel.getNq(), 1)));
+            return new LfLoadModel(List.of(new LfLoadModel.Term(1, expoLoadModel.getNp())),
+                                   List.of(new LfLoadModel.Term(1, expoLoadModel.getNq())));
         } else {
             throw new PowsyblException("Unsupported load model: " + loadModel.getType());
         }
