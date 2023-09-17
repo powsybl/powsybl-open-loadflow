@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LoadModelTest {
+class LoadModelTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
