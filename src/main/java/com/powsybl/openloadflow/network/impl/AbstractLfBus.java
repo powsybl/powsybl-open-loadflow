@@ -328,11 +328,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public double getInitialLoadTargetP() {
-        return load != null ? load.getInitialTargetP() : 0;
-    }
-
-    @Override
     public double getLoadTargetQ() {
         return load != null ? load.getTargetQ() : 0;
     }
