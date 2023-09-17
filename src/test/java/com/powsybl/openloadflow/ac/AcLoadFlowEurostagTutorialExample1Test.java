@@ -467,6 +467,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
     @Test
     void zipLoadModelTest() {
+        Load load = network.getLoad("LOAD");
         Load zipLoad = vlload.newLoad()
                 .setId("ZIPLOAD")
                 .setBus("NLOAD")
@@ -483,7 +484,9 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-//        assertActivePowerEquals(147.178, zipLoad.getTerminal());
-//        assertReactivePowerEquals(88.307, zipLoad.getTerminal());
+        assertActivePowerEquals(146.231, zipLoad.getTerminal());
+        assertReactivePowerEquals(87.738, zipLoad.getTerminal());
+        assertActivePowerEquals(600, load.getTerminal());
+        assertReactivePowerEquals(200, load.getTerminal());
     }
 }

@@ -180,6 +180,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     @Override
     public void updateState(boolean loadPowerFactorConstant, boolean breakers) {
+        double pv = p == EvaluableConstants.NAN ? 1 : p.eval() / targetP; // extract part of p that is dependent to voltage
+        double qv = q == EvaluableConstants.NAN ? 1 : q.eval() / targetQ;
         double diffLoadTargetP = targetP - initialTargetP;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
@@ -187,8 +189,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
             double updatedP0 = load.getP0() + diffP0;
             double updatedQ0 = load.getQ0() + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
             load.getTerminal()
-                    .setP(updatedP0)
-                    .setQ(updatedQ0);
+                    .setP(updatedP0 * pv)
+                    .setQ(updatedQ0 * qv);
         }
 
         // update lcc converter station power
