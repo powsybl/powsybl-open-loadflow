@@ -179,19 +179,15 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     private double evalP() {
-        double value = p.eval();
-        if (loadModel != null) {
-            value += loadModel.getTermP(0).map(term -> targetP * term.getC()).orElse(0d);
-        }
-        return value;
+        return p.eval() + getLoadModel()
+                .flatMap(lm -> lm.getTermP(0).map(term -> targetP * term.c()))
+                .orElse(0d);
     }
 
     private double evalQ() {
-        double value = q.eval();
-        if (loadModel != null) {
-            value += loadModel.getTermQ(0).map(term -> targetQ * term.getC()).orElse(0d);
-        }
-        return value;
+        return q.eval() + getLoadModel()
+                .flatMap(lm -> lm.getTermQ(0).map(term -> targetQ * term.c()))
+                .orElse(0d);
     }
 
     @Override

@@ -56,8 +56,8 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
         double value = 0;
         double v = v();
         for (LfLoadModel.Term term : getTerms()) {
-            if (term.getN() != 0) {
-                value += term.getC() * Math.pow(v, term.getN());
+            if (term.n() != 0) {
+                value += term.c() * Math.pow(v, term.n());
             }
         }
         return value * getTarget();
@@ -68,8 +68,8 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
         double value = 0;
         double v = v();
         for (LfLoadModel.Term term : getTerms()) {
-            if (term.getN() != 0) {
-                value += term.getC() * term.getN() * Math.pow(v, term.getN() - 1);
+            if (term.n() != 0) {
+                value += term.c() * term.n() * Math.pow(v, term.n() - 1);
             }
         }
         return value * getTarget();

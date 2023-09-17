@@ -17,41 +17,7 @@ import java.util.*;
  */
 public class LfLoadModel {
 
-    public static class Term {
-
-        private final double c;
-
-        private final double n;
-
-        public Term(double c, double n) {
-            this.c = c;
-            this.n = n;
-        }
-
-        public double getC() {
-            return c;
-        }
-
-        public double getN() {
-            return n;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            Term term = (Term) o;
-            return Double.compare(term.c, c) == 0 && Double.compare(term.n, n) == 0;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(c, n);
-        }
+    public record Term(double c, double n) {
     }
 
     private final Map<Double, Term> pTermsByExponent = new TreeMap<>();
@@ -71,10 +37,10 @@ public class LfLoadModel {
 
     private static void addTerm(Map<Double, Term> termsByExponent, Term term) {
         Objects.requireNonNull(term);
-        if (termsByExponent.containsKey(term.getN())) {
-            throw new PowsyblException("A term with exponent " + term.getN() + " already exists");
+        if (termsByExponent.containsKey(term.n())) {
+            throw new PowsyblException("A term with exponent " + term.n() + " already exists");
         }
-        termsByExponent.put(term.getN(), term);
+        termsByExponent.put(term.n(), term);
     }
 
     public Collection<Term> getTermsP() {
