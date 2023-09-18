@@ -31,6 +31,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private static final double Q_DISPATCH_EPSILON = 1e-3;
 
+    private static final double PLAUSIBLE_REACTIVE_LIMITS = 1000 / PerUnit.SB;
+
     protected boolean slack = false;
 
     protected boolean reference = false;
@@ -518,15 +520,28 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return qToDispatchByGeneratorId::get;
     }
 
+    private static boolean allGeneratorsHavePlausibleReactiveLimits(List<LfGenerator> generators) {
+        for (LfGenerator generator : generators) {
+            if (Math.abs(generator.getMinQ()) > PLAUSIBLE_REACTIVE_LIMITS
+                    || Math.abs(generator.getMaxQ()) > PLAUSIBLE_REACTIVE_LIMITS) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     protected static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits,
                                       ReactivePowerDispatchMode reactivePowerDispatchMode, double qToDispatch) {
         double residueQ = 0;
         if (generatorsThatControlVoltage.isEmpty()) {
             throw new IllegalArgumentException("the generator list to dispatch Q can not be empty");
         }
+        System.out.println(allGeneratorsHavePlausibleReactiveLimits(generatorsThatControlVoltage));
         ToDoubleFunction<String> qToDispatchByGeneratorId = switch (reactivePowerDispatchMode) {
             case Q_EQUAL_PROPORTION -> splitDispatchQ(generatorsThatControlVoltage, qToDispatch);
-            case K_EQUAL_PROPORTION -> splitDispatchQWithEqualProportionOfK(generatorsThatControlVoltage, qToDispatch);
+            case K_EQUAL_PROPORTION -> allGeneratorsHavePlausibleReactiveLimits(generatorsThatControlVoltage)
+                    ? splitDispatchQWithEqualProportionOfK(generatorsThatControlVoltage, qToDispatch)
+                    : splitDispatchQ(generatorsThatControlVoltage, qToDispatch); // fallback to q dispatch
         };
         Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
         while (itG.hasNext()) {
