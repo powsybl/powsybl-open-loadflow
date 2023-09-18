@@ -156,10 +156,7 @@ public class VoltageControl<T extends LfElement> extends Control {
         // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
         // from merged ones
         List<VoltageControl<?>> voltageControls = findVoltageControlsSortedByPriority(controlledBus);
-        if (voltageControls.isEmpty()) {
-            return true; // means all disabled
-        }
-        return false;
+        return voltageControls.isEmpty(); // if true, it means all disabled
     }
 
     @Override
