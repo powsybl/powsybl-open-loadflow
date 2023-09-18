@@ -224,8 +224,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    private static LfLoadModel createLfLoadModel(LoadModel loadModel) {
-        if (loadModel == null) {
+    private static LfLoadModel createLfLoadModel(LoadModel loadModel, LfNetworkParameters parameters) {
+        if (!parameters.isLoadModel() || loadModel == null) {
             return null;
         }
         if (loadModel.getType() == LoadModelType.ZIP) {
@@ -245,8 +245,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    protected LfLoadImpl getOrCreateLfLoad(LoadModel loadModel) {
-        LfLoadModel lfLoadModel = createLfLoadModel(loadModel);
+    protected LfLoadImpl getOrCreateLfLoad(LoadModel loadModel, LfNetworkParameters parameters) {
+        LfLoadModel lfLoadModel = createLfLoadModel(loadModel, parameters);
         return (LfLoadImpl) loads.stream().filter(l -> Objects.equals(l.getLoadModel().orElse(null), lfLoadModel)).findFirst()
                 .orElseGet(() -> {
                     LfLoadImpl l = new LfLoadImpl(AbstractLfBus.this, distributedOnConformLoad, lfLoadModel);
@@ -256,11 +256,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLoad(Load load, LfNetworkParameters parameters) {
-        getOrCreateLfLoad(load.getModel().orElse(null)).add(load, parameters);
+        getOrCreateLfLoad(load.getModel().orElse(null), parameters).add(load, parameters);
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
-        getOrCreateLfLoad(null).add(lccCs, parameters);
+        getOrCreateLfLoad(null, parameters).add(lccCs, parameters);
     }
 
     protected void add(LfGenerator generator) {
