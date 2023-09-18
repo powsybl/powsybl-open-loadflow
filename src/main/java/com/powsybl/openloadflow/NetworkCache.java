@@ -205,14 +205,7 @@ public enum NetworkCache {
             }
             boolean done = false;
             switch (attribute) {
-                case "v":
-                case "angle":
-                case "p":
-                case "q":
-                case "p1":
-                case "q1":
-                case "p2":
-                case "q2":
+                case "v", "angle", "p", "q", "p1", "q1", "p2", "q2":
                     // ignore because it is related to state update and won't affect LF calculation
                     done = true;
                     break;

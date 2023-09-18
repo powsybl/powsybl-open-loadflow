@@ -111,8 +111,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
             case SOLVER_FAILED:
                 return LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
-            case NO_CALCULATION:
-            case UNREALISTIC_STATE:
+            case NO_CALCULATION, UNREALISTIC_STATE:
                 return LoadFlowResult.ComponentResult.Status.FAILED;
             default:
                 throw new PowsyblException("Unsupported Newton Raphson status : " + status);

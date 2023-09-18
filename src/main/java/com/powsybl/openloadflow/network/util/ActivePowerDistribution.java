@@ -93,8 +93,7 @@ public final class ActivePowerDistribution {
     public static Step getStep(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant) {
         Step step;
         switch (balanceType) {
-            case PROPORTIONAL_TO_LOAD:
-            case PROPORTIONAL_TO_CONFORM_LOAD:
+            case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD:
                 step = new LoadActivePowerDistributionStep(loadPowerFactorConstant);
                 break;
             case PROPORTIONAL_TO_GENERATION_P_MAX:

@@ -103,16 +103,13 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
     protected static SequenceType getSequenceType(Variable<AcVariableType> variable) {
         switch (variable.getType()) {
-            case BUS_V:
-            case BUS_PHI:
+            case BUS_V, BUS_PHI:
                 return SequenceType.POSITIVE;
 
-            case BUS_V_NEGATIVE:
-            case BUS_PHI_NEGATIVE:
+            case BUS_V_NEGATIVE, BUS_PHI_NEGATIVE:
                 return SequenceType.NEGATIVE;
 
-            case BUS_V_ZERO:
-            case BUS_PHI_ZERO:
+            case BUS_V_ZERO, BUS_PHI_ZERO:
                 return SequenceType.ZERO;
 
             default:
@@ -122,9 +119,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
     protected static boolean isPhase(Variable<AcVariableType> variable) {
         switch (variable.getType()) {
-            case BUS_PHI:
-            case BUS_PHI_NEGATIVE:
-            case BUS_PHI_ZERO:
+            case BUS_PHI, BUS_PHI_NEGATIVE, BUS_PHI_ZERO:
                 return true;
             default:
                 return false;

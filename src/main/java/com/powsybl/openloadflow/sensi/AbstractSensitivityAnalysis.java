@@ -200,16 +200,12 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         public EquationTerm<V, E> getFunctionEquationTerm() {
             LfBranch branch;
             switch (functionType) {
-                case BRANCH_ACTIVE_POWER:
-                case BRANCH_ACTIVE_POWER_1:
-                case BRANCH_ACTIVE_POWER_3:
+                case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_3:
                     return (EquationTerm<V, E>) ((LfBranch) functionElement).getP1();
                 case BRANCH_ACTIVE_POWER_2:
                     branch = (LfBranch) functionElement;
                     return branch instanceof LfLegBranch ? (EquationTerm<V, E>) ((LfBranch) functionElement).getP1() : (EquationTerm<V, E>) ((LfBranch) functionElement).getP2();
-                case BRANCH_CURRENT:
-                case BRANCH_CURRENT_1:
-                case BRANCH_CURRENT_3:
+                case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3:
                     return (EquationTerm<V, E>) ((LfBranch) functionElement).getI1();
                 case BRANCH_CURRENT_2:
                     branch = (LfBranch) functionElement;
@@ -312,10 +308,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         protected Equation<V, E> getVariableEquation() {
             switch (variableType) {
-                case TRANSFORMER_PHASE:
-                case TRANSFORMER_PHASE_1:
-                case TRANSFORMER_PHASE_2:
-                case TRANSFORMER_PHASE_3:
+                case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                     LfBranch lfBranch = (LfBranch) variableElement;
                     return ((EquationTerm<V, E>) lfBranch.getA1()).getEquation();
                 case BUS_TARGET_VOLTAGE:
@@ -340,8 +333,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         public boolean isVariableInContingency(PropagatedContingency contingency) {
             if (contingency != null) {
                 switch (variableType) {
-                    case INJECTION_ACTIVE_POWER:
-                    case HVDC_LINE_ACTIVE_POWER:
+                    case INJECTION_ACTIVE_POWER, HVDC_LINE_ACTIVE_POWER:
                         // a load, a generator, a dangling line, an LCC or a VSC converter station.
                         return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getOriginalPowerShiftIds().contains(variableId);
                     case BUS_TARGET_VOLTAGE:
@@ -490,10 +482,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         @Override
         public void fillRhs(Matrix rhs, Map<LfBus, Double> participationByBus) {
             switch (variableType) {
-                case TRANSFORMER_PHASE:
-                case TRANSFORMER_PHASE_1:
-                case TRANSFORMER_PHASE_2:
-                case TRANSFORMER_PHASE_3:
+                case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                     if (variableEquation.isActive()) {
                         rhs.set(variableEquation.getColumn(), getIndex(), Math.toRadians(1d));
                     }
@@ -1059,9 +1048,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                 LfBranch twt = lfNetwork.getBranchById(variableId);
                                 variableElement = twt != null && twt.getBus1() != null && twt.getBus2() != null ? twt : null;
                                 break;
-                            case TRANSFORMER_PHASE_1:
-                            case TRANSFORMER_PHASE_2:
-                            case TRANSFORMER_PHASE_3:
+                            case TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                                 checkThreeWindingsTransformerPhaseShifter(network, variableId, variableType);
                                 LfBranch leg = lfNetwork.getBranchById(LfLegBranch.getId(variableId, getLegNumber(variableType)));
                                 variableElement = leg != null && leg.getBus1() != null && leg.getBus2() != null ? leg : null;
@@ -1141,14 +1128,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
      */
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
         switch (factor.getFunctionType()) {
-            case BRANCH_ACTIVE_POWER:
-            case BRANCH_ACTIVE_POWER_1:
-            case BRANCH_ACTIVE_POWER_2:
-            case BRANCH_ACTIVE_POWER_3:
+            case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3:
                 return PerUnit.SB;
-            case BRANCH_CURRENT:
-            case BRANCH_CURRENT_1:
-            case BRANCH_CURRENT_3:
+            case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3:
                 LfBranch branch = (LfBranch) factor.getFunctionElement();
                 return PerUnit.ib(branch.getBus1().getNominalV());
             case BRANCH_CURRENT_2:
@@ -1167,13 +1149,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
      */
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getVariableBaseValue(LfSensitivityFactor<V, E> factor) {
         switch (factor.getVariableType()) {
-            case HVDC_LINE_ACTIVE_POWER:
-            case INJECTION_ACTIVE_POWER:
+            case HVDC_LINE_ACTIVE_POWER, INJECTION_ACTIVE_POWER:
                 return PerUnit.SB;
-            case TRANSFORMER_PHASE:
-            case TRANSFORMER_PHASE_1:
-            case TRANSFORMER_PHASE_2:
-            case TRANSFORMER_PHASE_3:
+            case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                 return 1; //TODO: radians ?
             case BUS_TARGET_VOLTAGE:
                 LfBus bus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
@@ -1210,13 +1188,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {
-            case INJECTION_ACTIVE_POWER:
-            case HVDC_LINE_ACTIVE_POWER:
+            case INJECTION_ACTIVE_POWER, HVDC_LINE_ACTIVE_POWER:
                 return isFlowFunction(function) && Math.abs(value) < parameters.getFlowFlowSensitivityValueThreshold();
-            case TRANSFORMER_PHASE:
-            case TRANSFORMER_PHASE_1:
-            case TRANSFORMER_PHASE_2:
-            case TRANSFORMER_PHASE_3:
+            case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                 return isFlowFunction(function) && Math.abs(value) < parameters.getAngleFlowSensitivityValueThreshold();
             case BUS_TARGET_VOLTAGE:
                 return filterBusTargetVoltageVariable(value, function, parameters);
@@ -1228,9 +1202,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     protected static boolean filterBusTargetVoltageVariable(double value, SensitivityFunctionType function,
                                                             SensitivityAnalysisParameters parameters) {
         switch (function) {
-            case BRANCH_CURRENT_1:
-            case BRANCH_CURRENT_2:
-            case BRANCH_CURRENT_3:
+            case BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3:
                 return Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
             case BUS_VOLTAGE:
                 return Math.abs(value) < parameters.getVoltageVoltageSensitivityValueThreshold();
@@ -1241,12 +1213,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     protected static boolean isFlowFunction(SensitivityFunctionType function) {
         switch (function) {
-            case BRANCH_ACTIVE_POWER_1:
-            case BRANCH_ACTIVE_POWER_2:
-            case BRANCH_ACTIVE_POWER_3:
-            case BRANCH_CURRENT_1:
-            case BRANCH_CURRENT_2:
-            case BRANCH_CURRENT_3:
+            case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3, BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3:
                 return true;
             default:
                 return false;

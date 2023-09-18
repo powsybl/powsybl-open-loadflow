@@ -190,15 +190,11 @@ public class NewtonRaphson {
                     x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getR1();
                     break;
 
-                case DUMMY_P:
-                case DUMMY_Q:
-                case BUS_PHI_ZERO:
-                case BUS_PHI_NEGATIVE:
+                case DUMMY_P, DUMMY_Q, BUS_PHI_ZERO, BUS_PHI_NEGATIVE:
                     x[v.getRow()] = 0;
                     break;
 
-                case BUS_V_ZERO:
-                case BUS_V_NEGATIVE:
+                case BUS_V_ZERO, BUS_V_NEGATIVE:
                     // when balanced, zero and negative sequence should be zero
                     // v_zero and v_negative initially set to zero will bring a singularity to the Jacobian
                     // We chose to set the initial value to a small one, but different from zero
@@ -256,8 +252,7 @@ public class NewtonRaphson {
                     network.getBranch(v.getElementNum()).getPiModel().setR1(stateVector.get(v.getRow()));
                     break;
 
-                case DUMMY_P:
-                case DUMMY_Q:
+                case DUMMY_P, DUMMY_Q:
                     // nothing to do
                     break;
 

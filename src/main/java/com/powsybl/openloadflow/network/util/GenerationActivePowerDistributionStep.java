@@ -134,8 +134,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 return generator.getDroop() != 0;
             case PARTICIPATION_FACTOR:
                 return generator.getParticipationFactor() > 0;
-            case TARGET:
-            case REMAINING_MARGIN:
+            case TARGET, REMAINING_MARGIN:
                 // nothing more to do here: the check whether TargetP is within Pmin-Pmax range
                 // was already made in AbstractLfGenerator#checkActivePowerControl
                 // whose result is reflected in generator.isParticipating()
