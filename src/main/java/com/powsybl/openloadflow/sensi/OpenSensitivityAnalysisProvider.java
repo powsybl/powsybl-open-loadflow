@@ -63,7 +63,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
     private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    private final String jsonExtension = ".json";
+    private static final String JSON_EXTENSION = ".json";
 
     public OpenSensitivityAnalysisProvider() {
         this(new SparseMatrixFactory());
@@ -170,23 +170,23 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 ObjectWriter objectWriter = createObjectMapper()
                         .writerWithDefaultPrettyPrinter();
                 try {
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + jsonExtension), StandardCharsets.UTF_8)) {
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                         ContingencyList contingencyList = new DefaultContingencyList("default", contingencies);
                         objectWriter.writeValue(writer, contingencyList);
                     }
 
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + jsonExtension), StandardCharsets.UTF_8)) {
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                         objectWriter.writeValue(writer, variableSets);
                     }
 
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + jsonExtension), StandardCharsets.UTF_8)) {
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                         objectWriter.writeValue(writer, sensitivityAnalysisParameters);
                     }
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
 
-                decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + jsonExtension));
+                decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + JSON_EXTENSION));
             }
 
             AbstractSensitivityAnalysis<?, ?> analysis;
@@ -218,19 +218,19 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         List<SensitivityVariableSet> variableSets;
         SensitivityAnalysisParameters sensitivityAnalysisParameters;
         try {
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("factors-" + dateStr + jsonExtension), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("factors-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 factors = objectMapper.readValue(reader, new TypeReference<>() {
                 });
             }
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + jsonExtension), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 ContingencyList contingencyList = objectMapper.readValue(reader, DefaultContingencyList.class);
                 contingencies = contingencyList.getContingencies(network);
             }
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("variable-sets-" + dateStr + jsonExtension), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("variable-sets-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 variableSets = objectMapper.readValue(reader, new TypeReference<>() {
                 });
             }
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("parameters-" + dateStr + jsonExtension), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("parameters-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 sensitivityAnalysisParameters = objectMapper.readValue(reader, new TypeReference<>() {
                 });
             }
