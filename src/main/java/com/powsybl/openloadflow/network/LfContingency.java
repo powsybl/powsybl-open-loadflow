@@ -27,11 +27,7 @@ public class LfContingency {
 
     private final int createdSynchronousComponentsCount;
 
-    private final Set<LfBus> disabledBuses;
-
-    private final Set<LfBranch> disabledBranches;
-
-    private final Set<LfHvdc> disabledHvdcs;
+    private final DisabledNetwork disabledNetwork;
 
     private final Map<LfShunt, AdmittanceShift> shuntsShift;
 
@@ -47,14 +43,12 @@ public class LfContingency {
 
     private Set<String> disconnectedElementIds;
 
-    public LfContingency(String id, int index, int createdSynchronousComponentsCount, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Map<LfShunt, AdmittanceShift> shuntsShift,
-                         Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> lostGenerators, Set<LfHvdc> disabledHvdcs, Set<String> originalPowerShiftIds) {
+    public LfContingency(String id, int index, int createdSynchronousComponentsCount, DisabledNetwork disabledNetwork, Map<LfShunt, AdmittanceShift> shuntsShift,
+                         Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> lostGenerators, Set<String> originalPowerShiftIds) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.createdSynchronousComponentsCount = createdSynchronousComponentsCount;
-        this.disabledBuses = Objects.requireNonNull(disabledBuses);
-        this.disabledBranches = Objects.requireNonNull(disabledBranches);
-        this.disabledHvdcs = Objects.requireNonNull(disabledHvdcs);
+        this.disabledNetwork = Objects.requireNonNull(disabledNetwork);
         this.shuntsShift = Objects.requireNonNull(shuntsShift);
         this.busesLoadShift = Objects.requireNonNull(busesLoadShift);
         this.lostGenerators = Objects.requireNonNull(lostGenerators);
@@ -63,7 +57,7 @@ public class LfContingency {
         this.disconnectedGenerationActivePower = 0.0;
         this.disconnectedElementIds = new HashSet<>();
 
-        for (LfBus bus : disabledBuses) {
+        for (LfBus bus : disabledNetwork.getBuses()) {
             disconnectedLoadActivePower += bus.getLoadTargetP();
             disconnectedGenerationActivePower += bus.getGenerationTargetP();
             disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.toList()));
@@ -79,7 +73,7 @@ public class LfContingency {
             disconnectedElementIds.add(generator.getId());
         }
         disconnectedElementIds.addAll(originalPowerShiftIds);
-        disconnectedElementIds.addAll(disabledBranches.stream().map(LfBranch::getId).collect(Collectors.toList()));
+        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).collect(Collectors.toList()));
         // FIXME: shuntsShift has to be included in the disconnected elements.
     }
 
@@ -95,12 +89,8 @@ public class LfContingency {
         return createdSynchronousComponentsCount;
     }
 
-    public Set<LfBus> getDisabledBuses() {
-        return disabledBuses;
-    }
-
-    public Set<LfBranch> getDisabledBranches() {
-        return disabledBranches;
+    public DisabledNetwork getDisabledNetwork() {
+        return disabledNetwork;
     }
 
     public Map<LfShunt, AdmittanceShift> getShuntsShift() {
@@ -132,13 +122,13 @@ public class LfContingency {
     }
 
     public void apply(LoadFlowParameters.BalanceType balanceType) {
-        for (LfBranch branch : disabledBranches) {
+        for (LfBranch branch : disabledNetwork.getBranches()) {
             branch.setDisabled(true);
         }
-        for (LfHvdc hvdc : disabledHvdcs) {
+        for (LfHvdc hvdc : disabledNetwork.getHvdcs()) {
             hvdc.setDisabled(true);
         }
-        for (LfBus bus : disabledBuses) {
+        for (LfBus bus : disabledNetwork.getBuses()) {
             bus.setDisabled(true);
         }
         for (var e : shuntsShift.entrySet()) {
@@ -228,11 +218,11 @@ public class LfContingency {
             jsonGenerator.writeStringField("id", id);
 
             jsonGenerator.writeFieldName("buses");
-            int[] sortedBuses = disabledBuses.stream().mapToInt(LfBus::getNum).sorted().toArray();
+            int[] sortedBuses = disabledNetwork.getBuses().stream().mapToInt(LfBus::getNum).sorted().toArray();
             jsonGenerator.writeArray(sortedBuses, 0, sortedBuses.length);
 
             jsonGenerator.writeFieldName("branches");
-            int[] sortedBranches = disabledBranches.stream().mapToInt(LfBranch::getNum).sorted().toArray();
+            int[] sortedBranches = disabledNetwork.getBranches().stream().mapToInt(LfBranch::getNum).sorted().toArray();
             jsonGenerator.writeArray(sortedBranches, 0, sortedBranches.length);
 
             jsonGenerator.writeEndObject();

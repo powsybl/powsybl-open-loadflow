@@ -154,13 +154,22 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<VoltageControl<?>> getHighestPriorityVoltageControl() {
-        return VoltageControl.findVoltageControlsSortedByPriority(this).stream().findFirst();
+    public boolean isVoltageControlled(VoltageControl.Type type) {
+        return switch (type) {
+            case GENERATOR -> isGeneratorVoltageControlled();
+            case TRANSFORMER -> isTransformerVoltageControlled();
+            case SHUNT -> isShuntVoltageControlled();
+        };
     }
 
     @Override
-    public boolean hasGeneratorVoltageControllerCapability() {
-        return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
+    public Optional<VoltageControl<?>> getVoltageControl(VoltageControl.Type type) {
+        return getVoltageControls().stream().filter(vc -> vc.getType() == type).findAny();
+    }
+
+    @Override
+    public Optional<VoltageControl<?>> getHighestPriorityMainVoltageControl() {
+        return VoltageControl.findMainVoltageControlsSortedByPriority(this).stream().findFirst();
     }
 
     @Override
@@ -176,6 +185,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         } else if (!isGeneratorVoltageControlled()) {
             throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
         }
+    }
+
+    private boolean hasGeneratorVoltageControllerCapability() {
+        return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
     }
 
     @Override

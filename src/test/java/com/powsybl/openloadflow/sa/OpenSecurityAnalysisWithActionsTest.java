@@ -379,6 +379,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(642.805, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
         network.getSwitch("SOO1_SOO1_DJ_OMN").setOpen(true);
+        OpenLoadFlowParameters.create(parameters)
+                .setMaxOuterLoopIterations(50);
         LoadFlow.run(network, parameters);
         assertEquals(240.523, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
@@ -1061,5 +1063,28 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
         assertEquals(400.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBusResult("b3").getV(), LoadFlowAssert.DELTA_V);
         assertEquals(-0.0038, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l34").getQ2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testShuntIncrementalOuterLoop() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl2();
+        List<Contingency> contingencies = List.of(new Contingency("contingency", new LoadContingency("l4")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
+        loadFlowParameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        loadFlowParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(loadFlowParameters);
+        List<Action> actions = List.of(new SwitchAction("closeSwitch", "S", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("contingency"), new TrueCondition(), List.of("closeSwitch")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("b5").getV(), 0.001);
+        assertEquals(385.7, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy");
+        assertEquals(400.0, operatorStrategyResult.getNetworkResult().getBusResult("b5").getV(), 0.001);
+        assertEquals(400.0, operatorStrategyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
     }
 }

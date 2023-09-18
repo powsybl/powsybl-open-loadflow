@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -27,9 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.usefultoys.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -283,13 +282,15 @@ class DcLoadFlowTest {
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setBreakers(true);
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
-                                                                             new DcEquationSystemCreationParameters(true, false, true, false),
+                                                                             new DcEquationSystemCreationParameters(true, false, true),
                                                                              new DenseMatrixFactory(),
                                                                              true,
                                                                              parameters.getBalanceType(),
                                                                              false,
                                                                              1);
-        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, Collections.emptySet(), Set.of(c1), Reporter.NO_OP)) {
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        topoConfig.getSwitchesToClose().add(c1);
+        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, Reporter.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
             try (DcLoadFlowContext context = new DcLoadFlowContext(largestNetwork, dcLoadFlowParameters)) {

@@ -21,10 +21,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -107,9 +104,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         void setStatus(Status status);
 
-        boolean isVariableConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
+        boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork);
 
-        boolean isFunctionConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
+        boolean isFunctionConnectedToSlackComponent(DisabledNetwork disabledNetwork);
 
         boolean isVariableInContingency(PropagatedContingency propagatedContingency);
 
@@ -197,24 +194,33 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public EquationTerm<V, E> getFunctionEquationTerm() {
             LfBranch branch;
-            switch (functionType) {
-                case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_3:
-                    return (EquationTerm<V, E>) ((LfBranch) functionElement).getP1();
-                case BRANCH_ACTIVE_POWER_2:
+            return (EquationTerm<V, E>) switch (functionType) {
+                case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_3
+                        -> ((LfBranch) functionElement).getP1();
+                case BRANCH_ACTIVE_POWER_2 -> {
                     branch = (LfBranch) functionElement;
-                    return branch instanceof LfLegBranch ? (EquationTerm<V, E>) ((LfBranch) functionElement).getP1() : (EquationTerm<V, E>) ((LfBranch) functionElement).getP2();
-                case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3:
-                    return (EquationTerm<V, E>) ((LfBranch) functionElement).getI1();
-                case BRANCH_CURRENT_2:
+                    yield branch instanceof LfLegBranch ? ((LfBranch) functionElement).getP1()
+                                                        : ((LfBranch) functionElement).getP2();
+                }
+                case BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_3
+                        -> ((LfBranch) functionElement).getQ1();
+                case BRANCH_REACTIVE_POWER_2 -> {
                     branch = (LfBranch) functionElement;
-                    return branch instanceof LfLegBranch ? (EquationTerm<V, E>) ((LfBranch) functionElement).getI1() : (EquationTerm<V, E>) ((LfBranch) functionElement).getI2();
-                case BUS_VOLTAGE:
-                    return (EquationTerm<V, E>) ((LfBus) functionElement).getCalculatedV();
-                default:
-                    throw createFunctionTypeNotSupportedException(functionType);
-            }
+                    yield branch instanceof LfLegBranch ? ((LfBranch) functionElement).getQ1()
+                                                        : ((LfBranch) functionElement).getQ2();
+                }
+                case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3
+                        -> ((LfBranch) functionElement).getI1();
+                case BRANCH_CURRENT_2 -> {
+                    branch = (LfBranch) functionElement;
+                    yield branch instanceof LfLegBranch ? ((LfBranch) functionElement).getI1()
+                                                        : ((LfBranch) functionElement).getI2();
+                }
+                case BUS_VOLTAGE -> ((LfBus) functionElement).getCalculatedV();
+            };
         }
 
         @Override
@@ -267,11 +273,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             this.status = status;
         }
 
-        protected boolean isElementConnectedToSlackComponent(LfElement element, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
+        protected boolean isElementConnectedToSlackComponent(LfElement element, DisabledNetwork disabledNetwork) {
             if (element instanceof LfBus) {
-                return !disabledBuses.contains(element);
+                return !disabledNetwork.getBuses().contains(element);
             } else if (element instanceof LfBranch) {
-                return !disabledBranches.contains(element);
+                return !disabledNetwork.getBranches().contains(element);
             }
             throw new PowsyblException("Cannot compute connectivity for variable element of class: " + element.getClass().getSimpleName());
         }
@@ -320,13 +326,13 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            return isElementConnectedToSlackComponent(variableElement, disabledBuses, disabledBranches);
+        public boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
+            return isElementConnectedToSlackComponent(variableElement, disabledNetwork);
         }
 
         @Override
-        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            return isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches);
+        public boolean isFunctionConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
+            return isElementConnectedToSlackComponent(functionElement, disabledNetwork);
         }
 
         @Override
@@ -380,9 +386,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
+        public boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
             for (LfElement lfElement : getVariableElements()) {
-                if (isElementConnectedToSlackComponent(lfElement, disabledBuses, disabledBranches)) {
+                if (isElementConnectedToSlackComponent(lfElement, disabledNetwork)) {
                     return true;
                 }
             }
@@ -390,8 +396,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
-        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            return isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches);
+        public boolean isFunctionConnectedToSlackComponent(DisabledNetwork disabledNetwork) {
+            return isElementConnectedToSlackComponent(functionElement, disabledNetwork);
         }
 
         @Override
@@ -639,24 +645,24 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> disabledBuses,
-                                        Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, DisabledNetwork disabledNetwork,
+                                        PropagatedContingency propagatedContingency) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledBuses, disabledBranches, propagatedContingency);
+            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledNetwork, propagatedContingency);
             predefinedResults.getLeft().ifPresent(factor::setSensitivityValuePredefinedResult);
             predefinedResults.getRight().ifPresent(factor::setFunctionPredefinedResult);
         }
     }
 
-    protected Pair<Optional<Double>, Optional<Double>> getPredefinedResults(LfSensitivityFactor<V, E> factor, Set<LfBus> disabledBuses,
-                                                                            Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+    protected Pair<Optional<Double>, Optional<Double>> getPredefinedResults(LfSensitivityFactor<V, E> factor, DisabledNetwork disabledNetwork,
+                                                                            PropagatedContingency propagatedContingency) {
         Double sensitivityValuePredefinedResult = null;
         Double functionPredefinedResult = null;
         if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
             // after a contingency, we check if the factor function and the variable are in different connected components
             // or if the variable is in contingency. Note that a branch in contingency is considered as not connected to the slack component.
-            boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches) && !factor.isVariableInContingency(propagatedContingency);
-            boolean functionConnectedToSlackComponent = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
+            boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledNetwork) && !factor.isVariableInContingency(propagatedContingency);
+            boolean functionConnectedToSlackComponent = factor.isFunctionConnectedToSlackComponent(disabledNetwork);
             if (variableConnected) {
                 if (!functionConnectedToSlackComponent) {
                     // ZERO status
@@ -675,7 +681,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             }
         } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
             sensitivityValuePredefinedResult = 0d;
-            if (!factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches)) {
+            if (!factor.isFunctionConnectedToSlackComponent(disabledNetwork)) {
                 functionPredefinedResult = Double.NaN;
             }
         } else {
@@ -736,11 +742,31 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 branchesToRemove.add(branchId); // disconnected branch
                 continue;
             }
-            if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
+            if (!lfBranch.isConnectedAtBothSides()) {
                 branchesToRemove.add(branchId); // branch connected only on one side
             }
         }
         contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
+
+        // update branches to open connected with buses in contingency. This is an approximation:
+        // these branches are indeed just open at one side.
+        String slackBusId = null;
+        for (String busId : contingency.getBusIdsToLose()) {
+            LfBus bus = lfNetwork.getBusById(busId);
+            if (bus != null) {
+                if (bus.isSlack()) {
+                    // slack bus disabling is not supported
+                    // we keep the slack bus enabled and the connected branches
+                    LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
+                    slackBusId = busId;
+                } else {
+                    bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().add(branch.getId()));
+                }
+            }
+        }
+        if (slackBusId != null) {
+            contingency.getBusIdsToLose().remove(slackBusId);
+        }
     }
 
     protected void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
@@ -755,11 +781,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
             cleanBranchIdsToOpen(lfNetwork, contingency);
 
-            if (contingency.getBranchIdsToOpen().isEmpty()
-                    && contingency.getHvdcIdsToOpen().isEmpty()
-                    && contingency.getGeneratorIdsToLose().isEmpty()
-                    && contingency.getBusIdsToShift().isEmpty()
-                    && contingency.getShuntIdsToShift().isEmpty()) {
+            if (contingency.hasNoImpact()) {
                 LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
             }
         }
@@ -1034,7 +1056,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             functionId, functionElement, functionType, injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
                 } else {
                     LfElement functionElement;
-                    LfElement variableElement = null;
+                    LfElement variableElement;
                     if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -1053,6 +1075,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                 LfBranch leg = lfNetwork.getBranchById(LfLegBranch.getId(variableId, getLegNumber(variableType)));
                                 variableElement = leg != null && leg.getBus1() != null && leg.getBus2() != null ? leg : null;
                                 break;
+                            case BUS_TARGET_VOLTAGE:
+                                variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                                break;
                             default:
                                 throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
@@ -1060,12 +1085,15 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         checkBus(network, functionId, busCache, breakers);
                         functionElement = lfNetwork.getBusById(functionId);
                         if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                            checkRegulatingTerminal(network, variableId);
-                            Optional<Terminal> regulatingTerminal = Networks.getEquipmentRegulatingTerminal(network, variableId);
-                            if (regulatingTerminal.isPresent()) { // this cannot fail because it is checked in checkRegulatingTerminal
-                                Bus regulatedBus = breakers ? regulatingTerminal.get().getBusBreakerView().getBus() : regulatingTerminal.get().getBusView().getBus();
-                                variableElement = regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
-                            }
+                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                        } else {
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                        }
+                    } else if (isReactivePowerFunctionType(functionType)) {
+                        LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
+                        functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+                        if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
@@ -1081,11 +1109,25 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return factorHolder;
     }
 
+    protected static LfElement findBusTargetVoltageVariableElement(Network network, String variableId, boolean breakers,
+                                                                   LfNetwork lfNetwork) {
+        checkRegulatingTerminal(network, variableId);
+        Terminal regulatingTerminal = Networks.getEquipmentRegulatingTerminal(network, variableId).orElseThrow(); // this cannot fail because it is checked in checkRegulatingTerminal
+        Bus regulatedBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+        return regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
+    }
+
     private static boolean isActivePowerFunctionType(SensitivityFunctionType functionType) {
         return functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3;
+    }
+
+    private static boolean isReactivePowerFunctionType(SensitivityFunctionType functionType) {
+        return functionType == SensitivityFunctionType.BRANCH_REACTIVE_POWER_1
+                || functionType == SensitivityFunctionType.BRANCH_REACTIVE_POWER_2
+                || functionType == SensitivityFunctionType.BRANCH_REACTIVE_POWER_3;
     }
 
     private static boolean isCurrentFunctionType(SensitivityFunctionType functionType) {
@@ -1127,21 +1169,21 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
      * Base value for per-uniting, depending on the function type
      */
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
-        switch (factor.getFunctionType()) {
-            case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3:
-                return PerUnit.SB;
-            case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3:
+        return switch (factor.getFunctionType()) {
+            case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3,
+                    BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_2, BRANCH_REACTIVE_POWER_3
+                    -> PerUnit.SB;
+            case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3 -> {
                 LfBranch branch = (LfBranch) factor.getFunctionElement();
-                return PerUnit.ib(branch.getBus1().getNominalV());
-            case BRANCH_CURRENT_2:
+                yield PerUnit.ib(branch.getBus1().getNominalV());
+            }
+            case BRANCH_CURRENT_2 -> {
                 LfBranch branch2 = (LfBranch) factor.getFunctionElement();
-                return branch2 instanceof LfLegBranch ? PerUnit.ib(branch2.getBus1().getNominalV()) : PerUnit.ib(branch2.getBus2().getNominalV());
-            case BUS_VOLTAGE:
-                LfBus bus = (LfBus) factor.getFunctionElement();
-                return bus.getNominalV();
-            default:
-                throw new IllegalArgumentException("Unknown function type " + factor.getFunctionType());
-        }
+                yield branch2 instanceof LfLegBranch ? PerUnit.ib(branch2.getBus1().getNominalV()) :
+                                                       PerUnit.ib(branch2.getBus2().getNominalV());
+            }
+            case BUS_VOLTAGE -> ((LfBus) factor.getFunctionElement()).getNominalV();
+        };
     }
 
     /**
@@ -1184,7 +1226,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen);
+                                 SensitivityResultWriter resultWriter, Reporter reporter, LfTopoConfig topoConfig);
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {
