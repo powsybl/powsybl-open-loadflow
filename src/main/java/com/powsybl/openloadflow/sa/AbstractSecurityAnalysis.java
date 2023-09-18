@@ -120,12 +120,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     protected static void checkActions(Network network, List<Action> actions) {
+        final String notFound = "' not found";
         for (Action action : actions) {
             switch (action.getType()) {
                 case SwitchAction.NAME: {
                     SwitchAction switchAction = (SwitchAction) action;
                     if (network.getSwitch(switchAction.getSwitchId()) == null) {
-                        throw new PowsyblException("Switch '" + switchAction.getSwitchId() + "' not found");
+                        throw new PowsyblException("Switch '" + switchAction.getSwitchId() + notFound);
                     }
                     break;
                 }
@@ -133,7 +134,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case LineConnectionAction.NAME: {
                     LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
                     if (network.getBranch(lineConnectionAction.getLineId()) == null && network.getTieLine(lineConnectionAction.getLineId()) == null) {
-                        throw new PowsyblException("Branch '" + lineConnectionAction.getLineId() + "' not found");
+                        throw new PowsyblException("Branch '" + lineConnectionAction.getLineId() + notFound);
                     }
                     break;
                 }
@@ -144,7 +145,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         throw new PowsyblException("3 windings transformers not yet supported");
                     }, () -> {
                             if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
-                                throw new PowsyblException("Branch '" + phaseTapChangerTapPositionAction.getTransformerId() + "' not found");
+                                throw new PowsyblException("Branch '" + phaseTapChangerTapPositionAction.getTransformerId() + notFound);
                             }
                         });
                     break;
@@ -153,7 +154,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case LoadAction.NAME: {
                     LoadAction loadAction = (LoadAction) action;
                     if (network.getLoad(loadAction.getLoadId()) == null) {
-                        throw new PowsyblException("Load '" + loadAction.getLoadId() + "' not found");
+                        throw new PowsyblException("Load '" + loadAction.getLoadId() + notFound);
                     }
                     break;
                 }
@@ -161,7 +162,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case GeneratorAction.NAME: {
                     GeneratorAction generatorAction = (GeneratorAction) action;
                     if (network.getGenerator(generatorAction.getGeneratorId()) == null) {
-                        throw new PowsyblException("Generator '" + generatorAction.getGeneratorId() + "' not found");
+                        throw new PowsyblException("Generator '" + generatorAction.getGeneratorId() + notFound);
                     }
                     break;
                 }
@@ -169,7 +170,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case HvdcAction.NAME: {
                     HvdcAction hvdcAction = (HvdcAction) action;
                     if (network.getHvdcLine(hvdcAction.getHvdcId()) == null) {
-                        throw new PowsyblException("Hvdc line '" + hvdcAction.getHvdcId() + "' not found");
+                        throw new PowsyblException("Hvdc line '" + hvdcAction.getHvdcId() + notFound);
                     }
                     break;
                 }

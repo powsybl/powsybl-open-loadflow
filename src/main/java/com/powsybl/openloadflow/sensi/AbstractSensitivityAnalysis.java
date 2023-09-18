@@ -54,6 +54,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     protected SensitivityAnalysisParameters parameters;
 
+    private static final String NOT_FOUND = "' not found";
+
     protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
@@ -848,7 +850,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             return bus.getId();
         }
 
-        throw new PowsyblException("Injection '" + injectionId + "' not found");
+        throw new PowsyblException("Injection '" + injectionId + NOT_FOUND);
     }
 
     private static LfBranch checkAndGetBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
@@ -868,7 +870,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         if (line != null) {
             return lfNetwork.getBranchById(branchId);
         }
-        throw new PowsyblException("Branch, tie line, dangling line or leg of '" + branchId + "' not found");
+        throw new PowsyblException("Branch, tie line, dangling line or leg of '" + branchId + NOT_FOUND);
     }
 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache, boolean breakers) {
@@ -877,14 +879,14 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
         Bus bus = busCache.get(busId);
         if (bus == null) {
-            throw new PowsyblException("Bus '" + busId + "' not found");
+            throw new PowsyblException("Bus '" + busId + NOT_FOUND);
         }
     }
 
     private static void checkPhaseShifter(Network network, String transformerId) {
         TwoWindingsTransformer twt = network.getTwoWindingsTransformer(transformerId);
         if (twt == null) {
-            throw new PowsyblException("Two windings transformer '" + transformerId + "' not found");
+            throw new PowsyblException("Two windings transformer '" + transformerId + NOT_FOUND);
         }
         if (twt.getPhaseTapChanger() == null) {
             throw new PowsyblException("Two windings transformer '" + transformerId + "' is not a phase shifter");
@@ -894,7 +896,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     private static void checkThreeWindingsTransformerPhaseShifter(Network network, String transformerId, SensitivityVariableType type) {
         ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(transformerId);
         if (twt == null) {
-            throw new PowsyblException("Three windings transformer '" + transformerId + "' not found");
+            throw new PowsyblException("Three windings transformer '" + transformerId + NOT_FOUND);
         }
         ThreeWindingsTransformer.Leg l = twt.getLegs().get(getLegNumber(type) - 1);
         if (l.getPhaseTapChanger() == null) {
@@ -905,7 +907,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     private static void checkRegulatingTerminal(Network network, String equipmentId) {
         Optional<Terminal> terminal = Networks.getEquipmentRegulatingTerminal(network, equipmentId);
         if (terminal.isEmpty()) {
-            throw new PowsyblException("Regulating terminal for '" + equipmentId + "' not found");
+            throw new PowsyblException("Regulating terminal for '" + equipmentId + NOT_FOUND);
         }
     }
 
@@ -984,7 +986,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             originalVariableSetIdsByVariableId.put(variableId, originalVariableSetIds);
                             SensitivityVariableSet set = variableSetsById.get(variableId);
                             if (set == null) {
-                                throw new PowsyblException("Variable set '" + variableId + "' not found");
+                                throw new PowsyblException("Variable set '" + variableId + NOT_FOUND);
                             }
                             List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
                             for (WeightedSensitivityVariable variable : set.getVariables()) {
