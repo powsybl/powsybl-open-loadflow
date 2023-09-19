@@ -98,6 +98,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final Set<ReportedFeatures> REPORTED_FEATURES_DEFAULT_VALUE = Collections.emptySet();
 
+    private static final ReactivePowerDispatchMode REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE = ReactivePowerDispatchMode.Q_EQUAL_PROPORTION;
+
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -190,6 +192,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String ASYMMETRICAL_PARAM_NAME = "asymmetrical";
 
+    private static final String REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME = "reactivePowerDispatchMode";
+
     private static final String LOAD_MODEL_PARAM_NAME = "loadModel";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
@@ -242,6 +246,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE)),
         new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN, "Asymmetrical calculation", LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE),
         new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage for target voltage check", LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE),
+        new Parameter(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ParameterType.STRING, "Generators reactive power from bus dispatch mode", REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactivePowerDispatchMode.class)),
         new Parameter(LOAD_MODEL_PARAM_NAME, ParameterType.BOOLEAN, "Load model (with voltage dependency) simulation", LfNetworkParameters.LOAD_MODE_DEFAULT_VALUE)
     );
 
@@ -375,6 +380,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private Set<String> actionableSwitchesIds = ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE;
 
     private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
+
+    private ReactivePowerDispatchMode reactivePowerDispatchMode = REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE;
 
     private boolean loadModel = LfNetworkParameters.LOAD_MODE_DEFAULT_VALUE;
 
@@ -839,6 +846,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public ReactivePowerDispatchMode getReactivePowerDispatchMode() {
+        return reactivePowerDispatchMode;
+    }
+
+    public OpenLoadFlowParameters setReactivePowerDispatchMode(ReactivePowerDispatchMode reactivePowerDispatchMode) {
+        this.reactivePowerDispatchMode = Objects.requireNonNull(reactivePowerDispatchMode);
+        return this;
+    }
+
     public boolean isLoadModel() {
         return loadModel;
     }
@@ -905,6 +921,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setActionableSwitchesIds(new HashSet<>(config.getStringListProperty(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE))))
                 .setAsymmetrical(config.getBooleanProperty(ASYMMETRICAL_PARAM_NAME, LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE))
                 .setMinNominalVoltageTargetVoltageCheck(config.getDoubleProperty(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE))
+                .setReactivePowerDispatchMode(config.getEnumProperty(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ReactivePowerDispatchMode.class, REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE))
                 .setLoadModel(config.getBooleanProperty(LOAD_MODEL_PARAM_NAME, LfNetworkParameters.LOAD_MODE_DEFAULT_VALUE))
             );
         return parameters;
@@ -1014,6 +1031,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setAsymmetrical(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME))
                 .ifPresent(prop -> this.setMinNominalVoltageTargetVoltageCheck(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME))
+                .ifPresent(prop -> this.setReactivePowerDispatchMode(ReactivePowerDispatchMode.valueOf(prop)));
         Optional.ofNullable(properties.get(LOAD_MODEL_PARAM_NAME))
                 .ifPresent(prop -> this.setLoadModel(Boolean.parseBoolean(prop)));
         return this;
@@ -1067,6 +1086,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, actionableSwitchesIds);
         map.put(ASYMMETRICAL_PARAM_NAME, asymmetrical);
         map.put(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, minNominalVoltageTargetVoltageCheck);
+        map.put(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, reactivePowerDispatchMode);
         map.put(LOAD_MODEL_PARAM_NAME, loadModel);
         return map;
     }
@@ -1380,6 +1400,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getActionableSwitchesIds().equals(extension2.getActionableSwitchesIds()) &&
                 extension1.isAsymmetrical() == extension2.isAsymmetrical() &&
                 extension1.getMinNominalVoltageTargetVoltageCheck() == extension2.getMinNominalVoltageTargetVoltageCheck() &&
+                extension1.getReactivePowerDispatchMode() == extension2.getReactivePowerDispatchMode() &&
                 extension1.isLoadModel() == extension2.isLoadModel();
     }
 
@@ -1445,6 +1466,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setActionableSwitchesIds(new HashSet<>(extension.getActionableSwitchesIds()))
                     .setAsymmetrical(extension.isAsymmetrical())
                     .setMinNominalVoltageTargetVoltageCheck(extension.getMinNominalVoltageTargetVoltageCheck())
+                    .setReactivePowerDispatchMode(extension.getReactivePowerDispatchMode())
                     .setLoadModel(extension.isLoadModel());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
