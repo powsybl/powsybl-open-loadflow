@@ -536,7 +536,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (generatorsThatControlVoltage.isEmpty()) {
             throw new IllegalArgumentException("the generator list to dispatch Q can not be empty");
         }
-        System.out.println(allGeneratorsHavePlausibleReactiveLimits(generatorsThatControlVoltage));
         ToDoubleFunction<String> qToDispatchByGeneratorId = switch (reactivePowerDispatchMode) {
             case Q_EQUAL_PROPORTION -> splitDispatchQ(generatorsThatControlVoltage, qToDispatch);
             case K_EQUAL_PROPORTION -> allGeneratorsHavePlausibleReactiveLimits(generatorsThatControlVoltage)
