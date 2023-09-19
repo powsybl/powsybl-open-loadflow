@@ -63,7 +63,7 @@
         "slackBusCountryFilter" : [ ],
         "actionableSwitchesIds" : [ ],
         "asymmetrical" : false,
-        "reactivePowerDispatchMode" : "Q_PROPORTIONAL"
+        "reactivePowerDispatchMode" : "Q_EQUAL_PROPORTION"
       }
     }
   },

@@ -10,6 +10,6 @@ package com.powsybl.openloadflow.network;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public enum ReactivePowerDispatchMode {
-    Q_PROPORTIONAL,
-    K_PROPORTIONAL
+    Q_EQUAL_PROPORTION,
+    K_EQUAL_PROPORTION
 }

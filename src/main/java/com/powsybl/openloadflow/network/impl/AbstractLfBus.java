@@ -31,6 +31,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private static final double Q_DISPATCH_EPSILON = 1e-3;
 
+    private static final double PLAUSIBLE_REACTIVE_LIMITS = 1000 / PerUnit.SB;
+
     protected boolean slack = false;
 
     protected boolean reference = false;
@@ -154,13 +156,22 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<VoltageControl<?>> getHighestPriorityVoltageControl() {
-        return VoltageControl.findVoltageControlsSortedByPriority(this).stream().findFirst();
+    public boolean isVoltageControlled(VoltageControl.Type type) {
+        return switch (type) {
+            case GENERATOR -> isGeneratorVoltageControlled();
+            case TRANSFORMER -> isTransformerVoltageControlled();
+            case SHUNT -> isShuntVoltageControlled();
+        };
     }
 
     @Override
-    public boolean hasGeneratorVoltageControllerCapability() {
-        return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
+    public Optional<VoltageControl<?>> getVoltageControl(VoltageControl.Type type) {
+        return getVoltageControls().stream().filter(vc -> vc.getType() == type).findAny();
+    }
+
+    @Override
+    public Optional<VoltageControl<?>> getHighestPriorityMainVoltageControl() {
+        return VoltageControl.findMainVoltageControlsSortedByPriority(this).stream().findFirst();
     }
 
     @Override
@@ -176,6 +187,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         } else if (!isGeneratorVoltageControlled()) {
             throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
         }
+    }
+
+    private boolean hasGeneratorVoltageControllerCapability() {
+        return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
     }
 
     @Override
@@ -481,22 +496,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     /**
-     * k is a normalized value of reactive power that ensure that at q min k is -1 and at q max k is + 1
-     * q = 1 / 2 * (k * (qmax - qmin) + qmax + qmin)
-     */
-    private static double kToQ(double k, LfGenerator generator) {
-        double qmin = generator.getMinQ();
-        double qmax = generator.getMaxQ();
-        return 0.5d * (k * (qmax - qmin) + qmax + qmin);
-    }
-
-    /**
      * Dispatch q ensuring a constant k value.
      * qToDispatch = q1 + q2 + ...
      * we have to find the k value for qToDispatch
      * k = (2 * qToDispatch - qmax1 - qmin1 - qmax2 - qmin2 - ...) / (qmax1 - qmin1 + qmax2 - qmin2 + ...)
      */
-    private static ToDoubleFunction<String> splitDispatchQWithConstantK(List<LfGenerator> generatorsThatControlVoltage, double qToDispatch) {
+    private static ToDoubleFunction<String> splitDispatchQWithEqualProportionOfK(List<LfGenerator> generatorsThatControlVoltage, double qToDispatch) {
         double k = 2 * qToDispatch;
         double denom = 0;
         for (LfGenerator generator : generatorsThatControlVoltage) {
@@ -509,10 +514,20 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
         Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsThatControlVoltage.size());
         for (LfGenerator generator : generatorsThatControlVoltage) {
-            qToDispatchByGeneratorId.put(generator.getId(), kToQ(k, generator));
+            qToDispatchByGeneratorId.put(generator.getId(), LfGenerator.kToQ(k, generator));
         }
 
         return qToDispatchByGeneratorId::get;
+    }
+
+    private static boolean allGeneratorsHavePlausibleReactiveLimits(List<LfGenerator> generators) {
+        for (LfGenerator generator : generators) {
+            if (Math.abs(generator.getMinQ()) > PLAUSIBLE_REACTIVE_LIMITS
+                    || Math.abs(generator.getMaxQ()) > PLAUSIBLE_REACTIVE_LIMITS) {
+                return false;
+            }
+        }
+        return true;
     }
 
     protected static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits,
@@ -522,8 +537,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             throw new IllegalArgumentException("the generator list to dispatch Q can not be empty");
         }
         ToDoubleFunction<String> qToDispatchByGeneratorId = switch (reactivePowerDispatchMode) {
-            case Q_PROPORTIONAL -> splitDispatchQ(generatorsThatControlVoltage, qToDispatch);
-            case K_PROPORTIONAL -> splitDispatchQWithConstantK(generatorsThatControlVoltage, qToDispatch);
+            case Q_EQUAL_PROPORTION -> splitDispatchQ(generatorsThatControlVoltage, qToDispatch);
+            case K_EQUAL_PROPORTION -> allGeneratorsHavePlausibleReactiveLimits(generatorsThatControlVoltage)
+                    ? splitDispatchQWithEqualProportionOfK(generatorsThatControlVoltage, qToDispatch)
+                    : splitDispatchQ(generatorsThatControlVoltage, qToDispatch); // fallback to q dispatch
         };
         Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
         while (itG.hasNext()) {
