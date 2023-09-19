@@ -62,7 +62,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     private static boolean filterActiveControlledBus(LfBus controlledBus) {
         GeneratorVoltageControl voltageControl = controlledBus.getGeneratorVoltageControl().orElseThrow();
         return !controlledBus.isDisabled()
-                && !voltageControl.isHidden()
+                && voltageControl.isVisible()
                 && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN;
     }
 
