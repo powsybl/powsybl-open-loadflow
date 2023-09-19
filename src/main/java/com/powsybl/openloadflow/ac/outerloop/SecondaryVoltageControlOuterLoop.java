@@ -18,13 +18,10 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
-import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -186,16 +183,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         }
     }
 
-    private static void printMatrix(String name, DenseMatrix m) {
-        if (LOGGER.isDebugEnabled()) {
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-            try (PrintStream ps = new PrintStream(os)) {
-                m.print(ps);
-                LOGGER.trace("{}=\n{}", name, new String(os.toByteArray(), StandardCharsets.UTF_8));
-            }
-        }
-    }
-
     private static double qToK(double q, LfBus controllerBus) {
         return (2 * q - controllerBus.getMaxQ() - controllerBus.getMinQ())
                 / (controllerBus.getMaxQ() - controllerBus.getMinQ());
@@ -292,39 +279,30 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             var controllerBusIndex = buildBusIndex(controllerBuses);
 
             DenseMatrix a = createA(controllerBuses, controllerBusIndex);
-            printMatrix("a", a);
 
             DenseMatrix k0 = createK0(controllerBuses, controllerBusIndex);
-            printMatrix("k0", k0);
 
             DenseMatrix rhs = a.times(k0, -1);
-            printMatrix("rhs", rhs);
 
             DenseMatrix jK = createJk(sensitivityContext, controllerBuses, controllerBusIndex);
-            printMatrix("jK", jK);
 
             DenseMatrix jVpp = createJvpp(sensitivityContext, pilotBus, controllerBuses, controllerBusIndex);
-            printMatrix("jVpp", jVpp);
 
             DenseMatrix jVppT = jVpp.transpose();
 
             DenseMatrix b = a.times(jK);
-            printMatrix("b", b);
 
             // replace last row
             for (int j = 0; j < b.getColumnCount(); j++) {
                 b.set(b.getRowCount() - 1, j, jVppT.get(0, j));
             }
             rhs.set(rhs.getRowCount() - 1, 0, pilotDv);
-            printMatrix("b (modified)", b);
-            printMatrix("rhs (modified)", rhs);
 
             try (LUDecomposition luDecomposition = b.decomposeLU()) {
                 luDecomposition.solve(rhs);
             }
             @SuppressWarnings("UnnecessaryLocalVariable")
             DenseMatrix dv = rhs;
-            printMatrix("dv", dv);
 
             for (LfBus controllerBus : controllerBuses) {
                 int i = controllerBusIndex.get(controllerBus.getNum());
