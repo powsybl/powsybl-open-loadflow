@@ -47,7 +47,7 @@ public class LfNetworkParameters {
 
     public static final boolean ASYMMETRICAL_DEFAULT_VALUE = false;
 
-    public static final boolean LOAD_MODE_DEFAULT_VALUE = true;
+    public static final boolean LOAD_MODE_DEFAULT_VALUE = false;
 
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
 

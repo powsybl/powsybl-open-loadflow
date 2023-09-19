@@ -37,7 +37,8 @@ class LoadModelTest {
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
-        parametersExt = OpenLoadFlowParameters.create(parameters);
+        parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setLoadModel(true);
     }
 
     @Test
