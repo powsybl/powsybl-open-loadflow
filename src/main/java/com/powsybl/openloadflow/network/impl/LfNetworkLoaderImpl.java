@@ -649,7 +649,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
+    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, List<RatioTapChangerHolder> rtcToOperate, List<PhaseTapChangerHolder> pstToOperate, LfNetworkParameters parameters, Reporter reporter) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
                 parameters.getConnectivityFactory(), reporter);
 
@@ -662,6 +662,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);
+        // TODO HG
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters, postProcessors);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
@@ -790,7 +791,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     @Override
-    public List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
+    public List<LfNetwork> load(Network network, List<RatioTapChangerHolder> rtcToOperate, List<PhaseTapChangerHolder> pstToOperate,
+                                LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
@@ -836,8 +838,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numCc = networkKey.getLeft();
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
-                    return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), parameters,
-                            Reports.createLfNetworkReporter(reporter, numCc, numSc));
+                    return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), rtcToOperate, pstToOperate,
+                            parameters, Reports.createLfNetworkReporter(reporter, numCc, numSc));
                 })
                 .collect(Collectors.toList());
 
