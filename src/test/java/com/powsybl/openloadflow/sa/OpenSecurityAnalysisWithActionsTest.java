@@ -608,7 +608,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<OperatorStrategy> operatorStrategies3 = List.of(new OperatorStrategy("strategy3", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies3, actions3, Reporter.NO_OP));
-        assertEquals("Branch 'pst1' not found", exception.getCause().getMessage());
+        assertEquals("Transformer 'pst1' not found", exception.getCause().getMessage());
 
         List<Action> actions4 = Collections.emptyList();
         List<OperatorStrategy> operatorStrategies4 = List.of(new OperatorStrategy("strategy4", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("x")));
@@ -1063,5 +1063,49 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
         assertEquals(400.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBusResult("b3").getV(), LoadFlowAssert.DELTA_V);
         assertEquals(-0.0038, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l34").getQ2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testPhaseTapChangerActionThreeWindingsTransformer() {
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = PhaseControlFactory.createNetworkWithT3wt();
+
+        network.newLine().setId("L3").setConnectableBus1("B2").setBus1("B2").setConnectableBus2("B4").setBus2("B4").setR(2).setX(100).add();
+        network.getThreeWindingsTransformer("PS1").getLeg2().getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.valueOf("ACTIVE_POWER_CONTROL"))
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0);
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parameters.setHvdcAcEmulation(false);
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pst", "PS1", false, 2, ThreeWindingsTransformer.Side.TWO));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("pst")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+        assertEquals(80.00, result.getPreContingencyResult().getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(132.75, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(68.2, getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+
+        LoadFlow.run(network, parameters);
+        assertEquals(80.00, network.getLine("L1").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        network.getLine("L1").getTerminal1().disconnect();
+        network.getLine("L1").getTerminal2().disconnect();
+        LoadFlow.run(network, parameters);
+        assertEquals(132.75, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        network.getThreeWindingsTransformer("PS1").getLeg2().getPhaseTapChanger().setTapPosition(2);
+        LoadFlow.run(network, parameters);
+        assertEquals(68.2, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
     }
 }

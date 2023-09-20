@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Load;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -183,10 +180,27 @@ public final class LfAction {
     }
 
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
-        LfBranch branch = lfNetwork.getBranchById(action.getTransformerId()); // only two windings transformer for the moment.
+
+        LfBranch branch = null;
+        if (action.getSide().isPresent()) {
+            switch (action.getSide().get()) {
+                case ONE -> {
+                    branch = lfNetwork.getBranchById(action.getTransformerId() + "_leg_1");
+                }
+                case TWO -> {
+                    branch = lfNetwork.getBranchById(action.getTransformerId() + "_leg_2");
+                }
+                case THREE -> {
+                    branch = lfNetwork.getBranchById(action.getTransformerId() + "_leg_3");
+                }
+            }
+        } else {
+            branch = lfNetwork.getBranchById(action.getTransformerId());
+        }
+
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
-                throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + action.getTransformerId() + "}");
+                throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + branch.getId() + "}");
             } else {
                 var tapPositionChange = new TapPositionChange(branch, action.getTapPosition(), action.isRelativeValue());
                 return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange, null, null, null));

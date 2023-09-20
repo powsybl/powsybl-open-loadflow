@@ -142,10 +142,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case PhaseTapChangerTapPositionAction.NAME: {
                     PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
                     phaseTapChangerTapPositionAction.getSide().ifPresentOrElse(side -> {
-                        throw new PowsyblException("3 windings transformers not yet supported");
+
+                        if (network.getThreeWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
+                            throw new PowsyblException("Transformer '" + phaseTapChangerTapPositionAction.getTransformerId() + "' not found");
+                        }
                     }, () -> {
                             if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
-                                throw new PowsyblException("Branch '" + phaseTapChangerTapPositionAction.getTransformerId() + "' not found");
+                                throw new PowsyblException("Transformer '" + phaseTapChangerTapPositionAction.getTransformerId() + "' not found");
                             }
                         });
                     break;
