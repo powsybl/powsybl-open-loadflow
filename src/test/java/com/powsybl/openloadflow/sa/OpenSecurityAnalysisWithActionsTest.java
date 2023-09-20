@@ -1087,4 +1087,24 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(400.0, operatorStrategyResult.getNetworkResult().getBusResult("b5").getV(), 0.001);
         assertEquals(400.0, operatorStrategyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
     }
+
+    @Test
+    void testActionOnT2wT() {
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+        network.newLine().setId("L3").setVoltageLevel1("VL1").setConnectableBus1("B1").setBus1("B1").setVoltageLevel2("VL2").setConnectableBus2("B2").setBus2("B2").setR(4.0).setX(200.0).setG1(0.0).setB1(0.0).setG2(0.0).setB2(0.0).add();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        List<Contingency> contingencies = List.of(new Contingency("CL3", new BranchContingency("L3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("Aps1", "PS1", false, 2));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("CL3"), new TrueCondition(), List.of("Aps1")));
+
+        runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+        //TODO HG : run and put some asserts
+    }
+
 }

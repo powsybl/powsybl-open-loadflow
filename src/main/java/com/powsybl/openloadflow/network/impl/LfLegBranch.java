@@ -45,6 +45,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         Objects.requireNonNull(leg);
         Objects.requireNonNull(parameters);
 
+        // TODO HG
         PiModel piModel = null;
 
         double zb = PerUnit.zb(twt.getRatedU0());

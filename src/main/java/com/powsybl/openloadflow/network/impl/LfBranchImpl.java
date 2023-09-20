@@ -71,6 +71,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb,
                                                   LfNetworkParameters parameters) {
+        // TODO HG
         PiModel piModel = null;
 
         double baseRatio = Transformers.getRatioPerUnitBase(twt);

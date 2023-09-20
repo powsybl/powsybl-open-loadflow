@@ -123,6 +123,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                                    ComputationManager computationManager, List<OperatorStrategy> operatorStrategies, List<Action> actions) {
 
         // load contingencies
+        // TODO HG : retain PST in actions
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
         OpenSensitivityAnalysisProvider sensitivityAnalysisProvider = new OpenSensitivityAnalysisProvider(matrixFactory);

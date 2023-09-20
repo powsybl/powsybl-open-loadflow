@@ -94,6 +94,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                 .setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
 
         // create networks including all necessary switches
+        // TODO HG : retain PST in actions
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, saReporter)) {
 
             // complete definition of contingencies after network loading
