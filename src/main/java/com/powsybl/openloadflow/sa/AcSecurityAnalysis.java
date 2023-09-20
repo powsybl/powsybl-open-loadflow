@@ -12,6 +12,8 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.PhaseTapChangerHolder;
+import com.powsybl.iidm.network.RatioTapChangerHolder;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -80,6 +82,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         LfTopoConfig topoConfig = new LfTopoConfig();
         findAllSwitchesToOperate(network, actions, topoConfig);
 
+        // try to find all pst and rtc to retain because involved in pst and rtc actions
+        List<RatioTapChangerHolder> rtcToOperate =  findAllRtcToOperate(network, actions);
+        List<PhaseTapChangerHolder> pstToOperate =  findAllPstToOperate(network, actions);
+
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
@@ -94,7 +100,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                 .setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
 
         // create networks including all necessary switches
-        // TODO HG : retain PST in actions
+        // TODO HG : retain PST in actions : transfer transfo lists
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, saReporter)) {
 
             // complete definition of contingencies after network loading
