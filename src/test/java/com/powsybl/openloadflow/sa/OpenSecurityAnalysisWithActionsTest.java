@@ -610,17 +610,23 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 operatorStrategies3, actions3, Reporter.NO_OP));
         assertEquals("Transformer 'pst1' not found", exception.getCause().getMessage());
 
-        List<Action> actions4 = Collections.emptyList();
-        List<OperatorStrategy> operatorStrategies4 = List.of(new OperatorStrategy("strategy4", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("x")));
+        List<Action> actions4 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst2", false, 1, ThreeWindingsTransformer.Side.ONE));
+        List<OperatorStrategy> operatorStrategies4 = List.of(new OperatorStrategy("strategy4", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies4, actions4, Reporter.NO_OP));
-        assertEquals("Operator strategy 'strategy4' is associated to action 'x' but this action is not present in the list", exception.getCause().getMessage());
+        assertEquals("Transformer 'pst2' not found", exception.getCause().getMessage());
 
-        List<Action> actions5 = List.of(new SwitchAction("openSwitch", "NOD1_NOD1  NE1  1_SC5_0", true));
-        List<OperatorStrategy> operatorStrategies5 = List.of(new OperatorStrategy("strategy5", ContingencyContext.specificContingency("y"), new TrueCondition(), List.of("openSwitch")));
+        List<Action> actions5 = Collections.emptyList();
+        List<OperatorStrategy> operatorStrategies5 = List.of(new OperatorStrategy("strategy5", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("x")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies5, actions5, Reporter.NO_OP));
-        assertEquals("Operator strategy 'strategy5' is associated to contingency 'y' but this contingency is not present in the list", exception.getCause().getMessage());
+        assertEquals("Operator strategy 'strategy5' is associated to action 'x' but this action is not present in the list", exception.getCause().getMessage());
+
+        List<Action> actions6 = List.of(new SwitchAction("openSwitch", "NOD1_NOD1  NE1  1_SC5_0", true));
+        List<OperatorStrategy> operatorStrategies6 = List.of(new OperatorStrategy("strategy6", ContingencyContext.specificContingency("y"), new TrueCondition(), List.of("openSwitch")));
+        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies6, actions6, Reporter.NO_OP));
+        assertEquals("Operator strategy 'strategy6' is associated to contingency 'y' but this contingency is not present in the list", exception.getCause().getMessage());
     }
 
     @Test
@@ -1130,5 +1136,21 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         network.getThreeWindingsTransformer("PS1").getLeg2().getPhaseTapChanger().setTapPosition(2);
         LoadFlow.run(network, parameters);
         assertEquals(68.2, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        //TEST FOR EXCEPTIONS
+        List<Action> actions1 = List.of(new PhaseTapChangerTapPositionAction("pst_leg_1", "PS1", false, 2, ThreeWindingsTransformer.Side.ONE));
+        List<OperatorStrategy> operatorStrategies1 = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("L1"),
+                new TrueCondition(), List.of("pst_leg_1")));
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies1, actions1, Reporter.NO_OP));
+        assertEquals("Phase tap changer tap connection action: only one tap in the branch {PS1_leg_1}", exception.getCause().getMessage());
+
+        List<Action> actions2 = List.of(new PhaseTapChangerTapPositionAction("pst_leg_3", "PS1", false, 2, ThreeWindingsTransformer.Side.THREE));
+        List<OperatorStrategy> operatorStrategies2 = List.of(new OperatorStrategy("strategy2", ContingencyContext.specificContingency("L1"),
+                new TrueCondition(), List.of("pst_leg_3")));
+        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies2, actions2, Reporter.NO_OP));
+        assertEquals("Phase tap changer tap connection action: only one tap in the branch {PS1_leg_3}", exception.getCause().getMessage());
     }
+
 }
