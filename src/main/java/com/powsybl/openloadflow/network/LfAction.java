@@ -186,15 +186,9 @@ public final class LfAction {
         Optional<ThreeWindingsTransformer.Side> side = action.getSide();
         if (side.isPresent()) {
             switch (side.get()) {
-                case ONE -> {
-                    legNumber = "_leg_1";
-                }
-                case TWO -> {
-                    legNumber = "_leg_2";
-                }
-                case THREE -> {
-                    legNumber = "_leg_3";
-                }
+                case ONE -> legNumber = "_leg_1";
+                case TWO -> legNumber = "_leg_2";
+                case THREE -> legNumber = "_leg_3";
             }
         }
         LfBranch branch = lfNetwork.getBranchById(action.getTransformerId() + legNumber);

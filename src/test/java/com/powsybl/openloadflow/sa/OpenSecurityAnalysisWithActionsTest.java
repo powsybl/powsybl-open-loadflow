@@ -1137,7 +1137,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         LoadFlow.run(network, parameters);
         assertEquals(68.2, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
-        //TEST FOR EXCEPTIONS
+        //test for exceptions
         List<Action> actions1 = List.of(new PhaseTapChangerTapPositionAction("pst_leg_1", "PS1", false, 2, ThreeWindingsTransformer.Side.ONE));
         List<OperatorStrategy> operatorStrategies1 = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("L1"),
                 new TrueCondition(), List.of("pst_leg_1")));
