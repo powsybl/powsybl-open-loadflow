@@ -181,23 +181,23 @@ public final class LfAction {
 
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
 
-        LfBranch branch = null;
+        String legNumber = "";
+
         Optional<ThreeWindingsTransformer.Side> side = action.getSide();
         if (side.isPresent()) {
             switch (side.get()) {
                 case ONE -> {
-                    branch = lfNetwork.getBranchById(action.getTransformerId() + "_leg_1");
+                    legNumber = "_leg_1";
                 }
                 case TWO -> {
-                    branch = lfNetwork.getBranchById(action.getTransformerId() + "_leg_2");
+                    legNumber = "_leg_2";
                 }
                 case THREE -> {
-                    branch = lfNetwork.getBranchById(action.getTransformerId() + "_leg_3");
+                    legNumber = "_leg_3";
                 }
             }
-        } else {
-            branch = lfNetwork.getBranchById(action.getTransformerId());
         }
+        LfBranch branch = lfNetwork.getBranchById(action.getTransformerId() + legNumber);
 
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
