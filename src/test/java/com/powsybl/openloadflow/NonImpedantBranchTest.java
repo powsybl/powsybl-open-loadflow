@@ -451,6 +451,6 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(1d, result.getPreContingencyResult().getNetworkResult().getBusResult("b1").getV(), 1e-6); // g0 is controlling voltage of b1
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(1.131391d, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b3").getV(), 1e-6); // tr34 is controlling voltage of b1 at tap 0 (ratio 0.9)
-        assertEquals(0.918307d, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), 1e-6);
+        assertEquals(0.918304d, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), 1e-6);
     }
 }

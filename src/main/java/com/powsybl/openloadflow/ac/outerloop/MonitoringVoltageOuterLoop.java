@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfStaticVarCompensator;
+import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
 import org.slf4j.Logger;
@@ -124,11 +125,9 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.hasGeneratorVoltageControllerCapability() && !bus.isDisabled()) {
-                getControlledBusVoltageLimits(bus).ifPresent(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits));
-            }
-        }
+        context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).stream()
+                .filter(bus -> !bus.isGeneratorVoltageControlEnabled())
+                .forEach(bus -> getControlledBusVoltageLimits(bus).ifPresent(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits)));
 
         if (!pqToPvBuses.isEmpty()) {
             switchPqPv(pqToPvBuses, reporter);

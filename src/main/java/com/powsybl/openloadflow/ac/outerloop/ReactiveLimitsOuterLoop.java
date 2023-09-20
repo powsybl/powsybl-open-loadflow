@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.GeneratorVoltageControl;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -260,14 +261,15 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         List<LfBus> busesWithUpdatedQLimits = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.isGeneratorVoltageControlEnabled() && !bus.isDisabled()) {
+
+        context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).forEach(bus -> {
+            if (bus.isGeneratorVoltageControlEnabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
-            } else if (bus.hasGeneratorVoltageControllerCapability() && !bus.isDisabled()) {
+            } else {
                 // we don't support switching PQ to PV for bus with one controller with slope.
                 checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
             }
-        }
+        });
 
         var contextData = (ContextData) context.getData();
 
