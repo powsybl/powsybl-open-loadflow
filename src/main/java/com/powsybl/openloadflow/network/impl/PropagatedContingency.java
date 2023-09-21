@@ -267,7 +267,9 @@ public class PropagatedContingency {
         Identifiable<?> identifiable;
         String identifiableType;
         switch (element.getType()) {
-            case BRANCH, LINE, TWO_WINDINGS_TRANSFORMER:
+            case BRANCH,
+                 LINE,
+                 TWO_WINDINGS_TRANSFORMER:
                 identifiable = network.getBranch(element.getId());
                 identifiableType = "Branch";
                 break;
