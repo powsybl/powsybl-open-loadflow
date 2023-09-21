@@ -60,11 +60,6 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
-    public String getId() {
-        return bus.getId() + "_load";
-    }
-
-    @Override
     public List<String> getOriginalIds() {
         return Stream.concat(loadsRefs.stream().map(r -> r.get().getId()),
                              lccCsRefs.stream().map(r -> r.get().getId()))
