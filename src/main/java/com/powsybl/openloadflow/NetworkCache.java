@@ -204,32 +204,28 @@ public enum NetworkCache {
                 return;
             }
             boolean done = false;
-            switch (attribute) {
-                case "v", "angle", "p", "q", "p1", "q1", "p2", "q2":
-                    // ignore because it is related to state update and won't affect LF calculation
-                    done = true;
-                    break;
 
-                default:
-                    if (identifiable.getType() == IdentifiableType.GENERATOR) {
-                        Generator generator = (Generator) identifiable;
-                        if (attribute.equals("targetV")
-                                && onGeneratorUpdate(generator, attribute, oldValue, newValue)) {
-                            done = true;
-                        }
-                    } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
-                        ShuntCompensator shunt = (ShuntCompensator) identifiable;
-                        if (attribute.equals("sectionCount")
-                                && onShuntUpdate(shunt, attribute)) {
-                            done = true;
-                        }
-                    } else if (identifiable.getType() == IdentifiableType.SWITCH
-                            && attribute.equals("open")) {
-                        if (onSwitchUpdate(identifiable.getId(), (boolean) newValue)) {
-                            done = true;
-                        }
+            if (List.of("v", "angle", "p", "q", "p1", "q1", "p2", "q2").contains(attribute)) {
+                done = true;
+            } else {
+                if (identifiable.getType() == IdentifiableType.GENERATOR) {
+                    Generator generator = (Generator) identifiable;
+                    if (attribute.equals("targetV")
+                            && onGeneratorUpdate(generator, attribute, oldValue, newValue)) {
+                        done = true;
                     }
-                    break;
+                } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
+                    ShuntCompensator shunt = (ShuntCompensator) identifiable;
+                    if (attribute.equals("sectionCount")
+                            && onShuntUpdate(shunt, attribute)) {
+                        done = true;
+                    }
+                } else if (identifiable.getType() == IdentifiableType.SWITCH
+                        && attribute.equals("open")) {
+                    if (onSwitchUpdate(identifiable.getId(), (boolean) newValue)) {
+                        done = true;
+                    }
+                }
             }
 
             if (!done) {

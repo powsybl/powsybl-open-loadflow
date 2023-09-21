@@ -339,7 +339,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         public boolean isVariableInContingency(PropagatedContingency contingency) {
             if (contingency != null) {
                 switch (variableType) {
-                    case INJECTION_ACTIVE_POWER, HVDC_LINE_ACTIVE_POWER:
+                    case INJECTION_ACTIVE_POWER,
+                         HVDC_LINE_ACTIVE_POWER:
                         // a load, a generator, a dangling line, an LCC or a VSC converter station.
                         return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getLoadIdsToLoose().containsKey(variableId);
                     case BUS_TARGET_VOLTAGE:
@@ -1243,22 +1244,17 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     protected static boolean filterBusTargetVoltageVariable(double value, SensitivityFunctionType function,
                                                             SensitivityAnalysisParameters parameters) {
-        switch (function) {
-            case BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3:
-                return Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
-            case BUS_VOLTAGE:
-                return Math.abs(value) < parameters.getVoltageVoltageSensitivityValueThreshold();
-            default:
-                return false;
-        }
+        return switch (function) {
+            case BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3 -> Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
+            case BUS_VOLTAGE -> Math.abs(value) < parameters.getVoltageVoltageSensitivityValueThreshold();
+            default -> false;
+        };
     }
 
     protected static boolean isFlowFunction(SensitivityFunctionType function) {
-        switch (function) {
-            case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3, BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3:
-                return true;
-            default:
-                return false;
-        }
+        return switch (function) {
+            case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3, BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3 -> true;
+            default -> false;
+        };
     }
 }
