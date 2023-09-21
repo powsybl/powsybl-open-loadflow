@@ -403,15 +403,15 @@ public class PropagatedContingency {
             }
         }
 
-        Map<LfLoad, LfLoadLoss> loads = new HashMap<>(1);
+        Map<LfLoad, LfLostLoad> loads = new HashMap<>(1);
         for (var e : loadIdsToLoose.entrySet()) {
             String loadId = e.getKey();
             PowerShift powerShift = e.getValue();
             LfLoad load = network.getLoadById(loadId);
             if (load != null) { // could be in another component
-                LfLoadLoss loadLoss = loads.computeIfAbsent(load, k -> new LfLoadLoss());
-                loadLoss.getPowerShift().add(powerShift);
-                loadLoss.getLostLoadIds().add(loadId);
+                LfLostLoad lostLoad = loads.computeIfAbsent(load, k -> new LfLostLoad());
+                lostLoad.getPowerShift().add(powerShift);
+                lostLoad.getOriginalIds().add(loadId);
             }
         }
 

@@ -52,8 +52,6 @@ public class ParticipatingElement {
             return generator.getBus();
         } else if (element instanceof LfLoad load) {
             return load.getBus();
-        } else if (element instanceof LfBus bus) {
-            return bus;
         } else {
             return null;
         }

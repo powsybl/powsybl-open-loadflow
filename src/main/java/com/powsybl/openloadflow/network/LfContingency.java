@@ -31,7 +31,7 @@ public class LfContingency {
 
     private final Map<LfShunt, AdmittanceShift> shuntsShift;
 
-    private final Map<LfLoad, LfLoadLoss> loadsLoss;
+    private final Map<LfLoad, LfLostLoad> lostLoads;
 
     private final Set<LfGenerator> lostGenerators;
 
@@ -42,13 +42,13 @@ public class LfContingency {
     private final Set<String> disconnectedElementIds;
 
     public LfContingency(String id, int index, int createdSynchronousComponentsCount, DisabledNetwork disabledNetwork, Map<LfShunt, AdmittanceShift> shuntsShift,
-                         Map<LfLoad, LfLoadLoss> loadsLoss, Set<LfGenerator> lostGenerators) {
+                         Map<LfLoad, LfLostLoad> lostLoads, Set<LfGenerator> lostGenerators) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.createdSynchronousComponentsCount = createdSynchronousComponentsCount;
         this.disabledNetwork = Objects.requireNonNull(disabledNetwork);
         this.shuntsShift = Objects.requireNonNull(shuntsShift);
-        this.loadsLoss = Objects.requireNonNull(loadsLoss);
+        this.lostLoads = Objects.requireNonNull(lostLoads);
         this.lostGenerators = Objects.requireNonNull(lostGenerators);
         this.disconnectedLoadActivePower = 0.0;
         this.disconnectedGenerationActivePower = 0.0;
@@ -62,10 +62,10 @@ public class LfContingency {
             bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
             bus.getShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
         }
-        for (Map.Entry<LfLoad, LfLoadLoss> e : loadsLoss.entrySet()) {
-            LfLoadLoss loadLoss = e.getValue();
-            disconnectedLoadActivePower += loadLoss.getPowerShift().getActive();
-            disconnectedElementIds.addAll(loadLoss.getLostLoadIds());
+        for (Map.Entry<LfLoad, LfLostLoad> e : lostLoads.entrySet()) {
+            LfLostLoad lostLoad = e.getValue();
+            disconnectedLoadActivePower += lostLoad.getPowerShift().getActive();
+            disconnectedElementIds.addAll(lostLoad.getOriginalIds());
         }
         for (LfGenerator generator : lostGenerators) {
             disconnectedGenerationActivePower += generator.getTargetP();
@@ -95,8 +95,8 @@ public class LfContingency {
         return shuntsShift;
     }
 
-    public Map<LfLoad, LfLoadLoss> getLoadsLoss() {
-        return loadsLoss;
+    public Map<LfLoad, LfLostLoad> getLostLoads() {
+        return lostLoads;
     }
 
     public Set<LfGenerator> getLostGenerators() {
@@ -134,14 +134,14 @@ public class LfContingency {
             shunt.setG(shunt.getG() - e.getValue().getG());
             shunt.setB(shunt.getB() - e.getValue().getB());
         }
-        for (var e : loadsLoss.entrySet()) {
+        for (var e : lostLoads.entrySet()) {
             LfLoad load = e.getKey();
-            LfLoadLoss loss = e.getValue();
-            PowerShift shift = loss.getPowerShift();
+            LfLostLoad lostLoad = e.getValue();
+            PowerShift shift = lostLoad.getPowerShift();
             load.setTargetP(load.getTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive()));
             load.setTargetQ(load.getTargetQ() - shift.getReactive());
             load.setAbsVariableTargetP(load.getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
-            loss.getLostLoadIds().forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
+            lostLoad.getOriginalIds().forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
         }
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
@@ -184,7 +184,7 @@ public class LfContingency {
 
     public Set<LfBus> getLoadAndGeneratorBuses() {
         Set<LfBus> buses = new HashSet<>();
-        for (var e : loadsLoss.entrySet()) {
+        for (var e : lostLoads.entrySet()) {
             LfLoad load = e.getKey();
             LfBus bus = load.getBus();
             if (bus != null) {
