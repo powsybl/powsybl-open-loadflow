@@ -359,12 +359,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createBranches(List<LfBus> lfBuses, LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report,
-                                       LfNetworkParameters parameters, List<LfNetworkLoaderPostProcessor> postProcessors) {
+    private static void createBranches(List<LfBus> lfBuses, LfNetwork lfNetwork, List<RatioTapChangerHolder> rtcToOperate,
+                                       List<PhaseTapChangerHolder> pstToOperate, LoadingContext loadingContext,
+                                       LfNetworkLoadingReport report, LfNetworkParameters parameters,
+                                       List<LfNetworkLoaderPostProcessor> postProcessors) {
         for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
-            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters);
+            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, rtcToOperate, pstToOperate, parameters);
             addBranch(lfNetwork, lfBranch, report);
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
@@ -382,17 +384,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     visitedDanglingLinesIds.add(tieLine.getDanglingLine2().getId());
                 }
             }, () -> {
-                    LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
-                    lfNetwork.addBus(lfBus2);
-                    lfBuses.add(lfBus2);
-                    LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
-                    addBranch(lfNetwork, lfBranch, report);
-                    postProcessors.forEach(pp -> {
-                        pp.onBusAdded(danglingLine, lfBus2);
-                        pp.onBranchAdded(danglingLine, lfBranch);
-                    });
+                LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
+                lfNetwork.addBus(lfBus2);
+                lfBuses.add(lfBus2);
+                LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
+                LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
+                addBranch(lfNetwork, lfBranch, report);
+                postProcessors.forEach(pp -> {
+                    pp.onBusAdded(danglingLine, lfBus2);
+                    pp.onBranchAdded(danglingLine, lfBranch);
                 });
+            });
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
@@ -401,9 +403,24 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, parameters.isBreakers());
-            LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), parameters);
-            LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), parameters);
-            LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), parameters);
+            LfLegBranch lfBranch1;
+            LfLegBranch lfBranch2;
+            LfLegBranch lfBranch3;
+            if (rtcToOperate.contains(t3wt.getLeg1()) || pstToOperate.contains(t3wt.getLeg1())) {
+                lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), true, parameters);
+            } else {
+                lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), false, parameters);
+            }
+            if (rtcToOperate.contains(t3wt.getLeg2()) || pstToOperate.contains(t3wt.getLeg2())) {
+                lfBranch2 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg2(), true, parameters);
+            } else {
+                lfBranch2 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg2(), false, parameters);
+            }
+            if (rtcToOperate.contains(t3wt.getLeg3()) || pstToOperate.contains(t3wt.getLeg3())) {
+                lfBranch3 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg3(), true, parameters);
+            } else {
+                lfBranch3 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg3(), false, parameters);
+            }
             addBranch(lfNetwork, lfBranch1, report);
             addBranch(lfNetwork, lfBranch2, report);
             addBranch(lfNetwork, lfBranch3, report);
@@ -662,8 +679,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);
-        // TODO HG
-        createBranches(lfBuses, lfNetwork, loadingContext, report, parameters, postProcessors);
+        createBranches(lfBuses, lfNetwork, rtcToOperate, pstToOperate, loadingContext, report, parameters, postProcessors);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);

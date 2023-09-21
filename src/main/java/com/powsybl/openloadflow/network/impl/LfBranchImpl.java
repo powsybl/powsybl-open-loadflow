@@ -70,16 +70,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb,
-                                                  LfNetworkParameters parameters) {
-        // TODO HG
+                                                  boolean retain, LfNetworkParameters parameters) {
         PiModel piModel = null;
 
         double baseRatio = Transformers.getRatioPerUnitBase(twt);
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
         if (ptc != null
-                && ptc.isRegulating()
-                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+                && ((ptc.isRegulating()
+                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) || retain)) {
             // we have a phase control, whatever we also have a voltage control or not, we create a pi model array
             // based on phase taps mixed with voltage current tap
             Integer rtcPosition = Transformers.getCurrentPosition(twt.getRatioTapChanger());
@@ -92,7 +91,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
-        if (rtc != null && rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) {
+        if (rtc != null && ((rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) || retain)) {
             if (piModel == null) {
                 // we have a voltage control, we create a pi model array based on voltage taps mixed with phase current
                 // tap
@@ -118,7 +117,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters);
     }
 
-    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
+    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, List<RatioTapChangerHolder> rtcToOperate,
+                                      List<PhaseTapChangerHolder> pstToOperate, LfNetworkParameters parameters) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
@@ -128,7 +128,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             return createLine((Line) branch, network, bus1, bus2, zb, parameters);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, network, bus1, bus2, zb, parameters);
+            if (rtcToOperate.contains(twt) || pstToOperate.contains(twt)) {
+                return createTransformer(twt, network, bus1, bus2, zb, true, parameters);
+            } else {
+                return createTransformer(twt, network, bus1, bus2, zb, false, parameters);
+            }
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
