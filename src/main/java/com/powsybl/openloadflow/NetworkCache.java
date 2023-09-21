@@ -206,6 +206,7 @@ public enum NetworkCache {
             boolean done = false;
 
             if (List.of("v", "angle", "p", "q", "p1", "q1", "p2", "q2").contains(attribute)) {
+                // ignore because it is related to state update and won't affect LF calculation
                 done = true;
             } else {
                 if (identifiable.getType() == IdentifiableType.GENERATOR) {
