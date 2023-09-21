@@ -128,7 +128,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             lfNetwork.fixTransformerVoltageControls();
         }
 
-        if (factorGroups.hasMultiVariables() && (!lfContingency.getLoadsLoss().isEmpty() || !lfContingency.getLostGenerators().isEmpty())) {
+        if (factorGroups.hasMultiVariables() && (!lfContingency.getLostLoads().isEmpty() || !lfContingency.getLostGenerators().isEmpty())) {
             // FIXME. It does not work with a contingency that breaks connectivity and loose an isolate injection.
             Set<LfBus> affectedBuses = lfContingency.getLoadAndGeneratorBuses();
             rescaleGlsk(factorGroups, affectedBuses);
