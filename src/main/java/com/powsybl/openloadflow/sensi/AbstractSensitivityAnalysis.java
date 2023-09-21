@@ -343,7 +343,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     case INJECTION_ACTIVE_POWER:
                     case HVDC_LINE_ACTIVE_POWER:
                         // a load, a generator, a dangling line, an LCC or a VSC converter station.
-                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getOriginalPowerShiftIds().contains(variableId);
+                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getLoadIdsToLoose().containsKey(variableId);
                     case BUS_TARGET_VOLTAGE:
                         // a generator or a two windings transformer.
                         // shunt contingency not supported yet.
@@ -405,7 +405,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         @Override
         public boolean isVariableInContingency(PropagatedContingency contingency) {
             if (contingency != null) {
-                int sizeCommonIds = (int) Stream.concat(contingency.getGeneratorIdsToLose().stream(), contingency.getOriginalPowerShiftIds().stream())
+                int sizeCommonIds = (int) Stream.concat(contingency.getGeneratorIdsToLose().stream(), contingency.getLoadIdsToLoose().keySet().stream())
                         .distinct()
                         .filter(originalVariableSetIds::contains)
                         .count();
