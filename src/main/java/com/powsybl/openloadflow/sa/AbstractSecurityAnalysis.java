@@ -26,14 +26,12 @@ import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.action.*;
-import com.powsybl.security.condition.AllViolationCondition;
-import com.powsybl.security.condition.AnyViolationCondition;
-import com.powsybl.security.condition.AtLeastOneViolationCondition;
-import com.powsybl.security.condition.TrueCondition;
+import com.powsybl.security.condition.*;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.NetworkResult;
 import com.powsybl.security.results.OperatorStrategyResult;
+import com.powsybl.security.strategy.ConditionalActions;
 import com.powsybl.security.strategy.OperatorStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -207,14 +205,18 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
         for (OperatorStrategy operatorStrategy : operatorStrategies) {
             if (contingencyIds.contains(operatorStrategy.getContingencyContext().getContingencyId())) {
+                // FIXME(Luma): Dirty solution just to update to core 6.0.0 for entsoe build
+                //  we add all actions of all conditionals, without evaluating the condition
                 // check actions IDs exists
-                for (String actionId : operatorStrategy.getActionIds()) {
-                    Action action = actionsById.get(actionId);
-                    if (action == null) {
-                        throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to action '"
-                                + actionId + "' but this action is not present in the list");
+                for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
+                    for (String actionId : conditionalActions.getActionIds()) {
+                        Action action = actionsById.get(actionId);
+                        if (action == null) {
+                            throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to action '"
+                                    + actionId + "' but this action is not present in the list");
+                        }
+                        neededActions.add(action);
                     }
-                    neededActions.add(action);
                 }
                 operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyContext().getContingencyId(), key -> new ArrayList<>())
                         .add(operatorStrategy);
@@ -230,30 +232,36 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Set<String> limitViolationEquipmentIds = limitViolationsResult.getLimitViolations().stream()
                 .map(LimitViolation::getSubjectId)
                 .collect(Collectors.toSet());
-        switch (operatorStrategy.getCondition().getType()) {
-            case TrueCondition.NAME:
-                return true;
-            case AnyViolationCondition.NAME:
-                return !limitViolationEquipmentIds.isEmpty();
-            case AtLeastOneViolationCondition.NAME: {
-                AtLeastOneViolationCondition atLeastCondition = (AtLeastOneViolationCondition) operatorStrategy.getCondition();
-                Set<String> commonEquipmentIds = atLeastCondition.getViolationIds().stream()
-                        .distinct()
-                        .filter(limitViolationEquipmentIds::contains)
-                        .collect(Collectors.toSet());
-                return !commonEquipmentIds.isEmpty();
+        // FIXME(Luma): Dirty solution just to update to core 6.0.0 for entsoe build
+        //  if any condition is true, return true
+        for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
+            Condition condition = conditionalActions.getCondition();
+            switch (condition.getType()) {
+                case TrueCondition.NAME:
+                    return true;
+                case AnyViolationCondition.NAME:
+                    return !limitViolationEquipmentIds.isEmpty();
+                case AtLeastOneViolationCondition.NAME: {
+                    AtLeastOneViolationCondition atLeastCondition = (AtLeastOneViolationCondition) condition;
+                    Set<String> commonEquipmentIds = atLeastCondition.getViolationIds().stream()
+                            .distinct()
+                            .filter(limitViolationEquipmentIds::contains)
+                            .collect(Collectors.toSet());
+                    return !commonEquipmentIds.isEmpty();
+                }
+                case AllViolationCondition.NAME: {
+                    AllViolationCondition allCondition = (AllViolationCondition) condition;
+                    Set<String> commonEquipmentIds = allCondition.getViolationIds().stream()
+                            .distinct()
+                            .filter(limitViolationEquipmentIds::contains)
+                            .collect(Collectors.toSet());
+                    return commonEquipmentIds.equals(new HashSet<>(allCondition.getViolationIds()));
+                }
+                default:
+                    throw new UnsupportedOperationException("Unsupported condition type: " + condition.getType());
             }
-            case AllViolationCondition.NAME: {
-                AllViolationCondition allCondition = (AllViolationCondition) operatorStrategy.getCondition();
-                Set<String> commonEquipmentIds = allCondition.getViolationIds().stream()
-                        .distinct()
-                        .filter(limitViolationEquipmentIds::contains)
-                        .collect(Collectors.toSet());
-                return commonEquipmentIds.equals(new HashSet<>(allCondition.getViolationIds()));
-            }
-            default:
-                throw new UnsupportedOperationException("Unsupported condition type: " + operatorStrategy.getCondition().getType());
         }
+        return false;
     }
 
     protected static void findAllSwitchesToOperate(Network network, List<Action> actions, LfTopoConfig topoConfig) {
@@ -281,7 +289,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // get LF action for this operator strategy, as all actions have been previously checked against IIDM
         // network, an empty LF action means it is for another component (so another LF network) so we can
         // skip it
-        List<LfAction> operatorStrategyLfActions = operatorStrategy.getActionIds().stream()
+        List<LfAction> operatorStrategyLfActions = operatorStrategy.getConditionalActions().stream()
+                .flatMap(ca -> ca.getActionIds().stream())
                 .map(lfActionById::get)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
