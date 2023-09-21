@@ -14,6 +14,22 @@ import java.util.Map;
  */
 public interface LfLoad extends PropertyBag {
 
+    String getId();
+
+    LfBus getBus();
+
+    double getInitialTargetP();
+
+    double getTargetP();
+
+    void setTargetP(double targetP);
+
+    double getTargetQ();
+
+    void setTargetQ(double targetQ);
+
+    boolean ensurePowerFactorConstantByLoad();
+
     double getAbsVariableTargetP();
 
     void setAbsVariableTargetP(double absVariableTargetP);
@@ -32,5 +48,5 @@ public interface LfLoad extends PropertyBag {
 
     void setOriginalLoadsDisablingStatus(Map<String, Boolean> originalLoadsDisablingStatus);
 
-    void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant);
+    void updateState(boolean loadPowerFactorConstant, boolean breakers);
 }

@@ -88,20 +88,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                             ComputationManager computationManager, List<OperatorStrategy> operatorStrategies, List<Action> actions);
 
     public static PostContingencyComputationStatus postContingencyStatusFromNRStatus(NewtonRaphsonStatus status) {
-        switch (status) {
-            case CONVERGED:
-                return PostContingencyComputationStatus.CONVERGED;
-            case MAX_ITERATION_REACHED:
-                return PostContingencyComputationStatus.MAX_ITERATION_REACHED;
-            case SOLVER_FAILED:
-                return PostContingencyComputationStatus.SOLVER_FAILED;
-            case NO_CALCULATION:
-                return PostContingencyComputationStatus.NO_IMPACT;
-            case UNREALISTIC_STATE:
-                return PostContingencyComputationStatus.FAILED;
-            default:
-                throw new PowsyblException("Unsupported Newton Raphson status : " + status);
-        }
+        return switch (status) {
+            case CONVERGED -> PostContingencyComputationStatus.CONVERGED;
+            case MAX_ITERATION_REACHED -> PostContingencyComputationStatus.MAX_ITERATION_REACHED;
+            case SOLVER_FAILED -> PostContingencyComputationStatus.SOLVER_FAILED;
+            case NO_CALCULATION -> PostContingencyComputationStatus.NO_IMPACT;
+            case UNREALISTIC_STATE -> PostContingencyComputationStatus.FAILED;
+            default -> throw new PowsyblException("Unsupported Newton Raphson status : " + status);
+        };
     }
 
     public static LoadFlowResult.ComponentResult.Status loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus status) {

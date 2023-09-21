@@ -109,18 +109,13 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     private double getParticipationFactor(LfGenerator generator) {
-        switch (participationType) {
-            case MAX:
-                return generator.getMaxP() / generator.getDroop();
-            case TARGET:
-                return Math.abs(generator.getTargetP());
-            case PARTICIPATION_FACTOR:
-                return generator.getParticipationFactor();
-            case REMAINING_MARGIN:
-                return Math.max(0.0, generator.getMaxP() - generator.getTargetP());
-            default:
-                throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
-        }
+        return switch (participationType) {
+            case MAX -> generator.getMaxP() / generator.getDroop();
+            case TARGET -> Math.abs(generator.getTargetP());
+            case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
+            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxP() - generator.getTargetP());
+            default -> throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
+        };
     }
 
     private boolean isParticipating(LfGenerator generator) {

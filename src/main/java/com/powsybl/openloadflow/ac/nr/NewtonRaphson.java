@@ -256,7 +256,8 @@ public class NewtonRaphson {
                     network.getBranch(v.getElementNum()).getPiModel().setR1(stateVector.get(v.getRow()));
                     break;
 
-                case DUMMY_P, DUMMY_Q:
+                case DUMMY_P,
+                     DUMMY_Q:
                     // nothing to do
                     break;
 

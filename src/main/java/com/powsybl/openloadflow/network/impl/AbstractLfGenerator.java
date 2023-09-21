@@ -21,7 +21,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractLfGenerator extends AbstractPropertyBag implements LfGenerator {
+public abstract class AbstractLfGenerator extends AbstractLfInjection implements LfGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
 
@@ -30,10 +30,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected static final double DEFAULT_DROOP = 4; // why not
 
     protected final LfNetwork network;
-
-    protected double initialTargetP;
-
-    protected double targetP;
 
     protected LfBus bus;
 
@@ -56,9 +52,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected LfAsymGenerator asym;
 
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
+        super(targetP, targetP);
         this.network = Objects.requireNonNull(network);
-        this.targetP = targetP;
-        this.initialTargetP = targetP;
     }
 
     @Override
@@ -77,16 +72,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public boolean isFictitious() {
         return false;
-    }
-
-    @Override
-    public double getInitialTargetP() {
-        return initialTargetP;
-    }
-
-    @Override
-    public double getTargetP() {
-        return targetP;
     }
 
     @Override

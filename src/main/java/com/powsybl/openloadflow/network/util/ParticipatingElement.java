@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
+import com.powsybl.openloadflow.network.LfLoad;
 
 import java.util.List;
 
@@ -49,8 +50,8 @@ public class ParticipatingElement {
     public LfBus getLfBus() {
         if (element instanceof LfGenerator generator) {
             return generator.getBus();
-        } else if (element instanceof LfBus bus) {
-            return bus;
+        } else if (element instanceof LfLoad load) {
+            return load.getBus();
         } else {
             return null;
         }
