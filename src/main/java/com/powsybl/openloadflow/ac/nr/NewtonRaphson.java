@@ -105,12 +105,12 @@ public class NewtonRaphson {
     }
 
     private String getEquationTypeDescription(AcEquationType acEquationType) {
-        switch (acEquationType) {
-            case BUS_TARGET_P: return "TargetP";
-            case BUS_TARGET_Q: return "TargetQ";
-            case BUS_TARGET_V: return "TargetV";
-            default: return null; // not implemented for other ac equation types
-        }
+        return switch (acEquationType) {
+            case BUS_TARGET_P -> "TargetP";
+            case BUS_TARGET_Q -> "TargetQ";
+            case BUS_TARGET_V -> "TargetV";
+            default -> null; // not implemented for other ac equation types
+        };
     }
 
     private NewtonRaphsonStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, Reporter reporter) {
@@ -190,11 +190,15 @@ public class NewtonRaphson {
                     x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getR1();
                     break;
 
-                case DUMMY_P, DUMMY_Q, BUS_PHI_ZERO, BUS_PHI_NEGATIVE:
+                case DUMMY_P,
+                     DUMMY_Q,
+                     BUS_PHI_ZERO,
+                     BUS_PHI_NEGATIVE:
                     x[v.getRow()] = 0;
                     break;
 
-                case BUS_V_ZERO, BUS_V_NEGATIVE:
+                case BUS_V_ZERO,
+                     BUS_V_NEGATIVE:
                     // when balanced, zero and negative sequence should be zero
                     // v_zero and v_negative initially set to zero will bring a singularity to the Jacobian
                     // We chose to set the initial value to a small one, but different from zero

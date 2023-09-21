@@ -457,9 +457,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void createTransformersVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext) {
         // Create discrete voltage controls which link controller -> controlled
         for (Branch<?> branch : loadingContext.branchSet) {
-            if (branch instanceof TwoWindingsTransformer twt) {
-                RatioTapChanger rtc = twt.getRatioTapChanger();
-                createTransformerVoltageControl(lfNetwork, rtc, twt.getId(), parameters);
+            if (branch instanceof TwoWindingsTransformer t2wt) {
+                RatioTapChanger rtc = t2wt.getRatioTapChanger();
+                createTransformerVoltageControl(lfNetwork, rtc, t2wt.getId(), parameters);
             }
         }
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {

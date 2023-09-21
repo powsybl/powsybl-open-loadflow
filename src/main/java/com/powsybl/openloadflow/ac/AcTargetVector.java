@@ -101,7 +101,15 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getElementNum()));
                 break;
 
-            case DISTR_RHO, DISTR_SHUNT_B, DUMMY_TARGET_P, DUMMY_TARGET_Q, BUS_DISTR_SLACK_P, BUS_TARGET_IX_ZERO, BUS_TARGET_IY_ZERO, BUS_TARGET_IX_NEGATIVE, BUS_TARGET_IY_NEGATIVE:
+            case DISTR_RHO,
+                 DISTR_SHUNT_B,
+                 DUMMY_TARGET_P,
+                 DUMMY_TARGET_Q,
+                 BUS_DISTR_SLACK_P,
+                 BUS_TARGET_IX_ZERO,
+                 BUS_TARGET_IY_ZERO,
+                 BUS_TARGET_IX_NEGATIVE,
+                 BUS_TARGET_IY_NEGATIVE:
                 targets[equation.getColumn()] = 0;
                 break;
 

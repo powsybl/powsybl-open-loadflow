@@ -184,7 +184,8 @@ public class PropagatedContingency {
         for (Terminal terminal : terminalsToDisconnect) {
             Connectable<?> connectable = terminal.getConnectable();
             switch (connectable.getType()) {
-                case LINE, TWO_WINDINGS_TRANSFORMER:
+                case LINE,
+                     TWO_WINDINGS_TRANSFORMER:
                     branchIdsToOpen.add(connectable.getId());
                     break;
                 case DANGLING_LINE:
@@ -196,7 +197,9 @@ public class PropagatedContingency {
                     }
                     break;
 
-                case GENERATOR, STATIC_VAR_COMPENSATOR, BATTERY:
+                case GENERATOR,
+                     STATIC_VAR_COMPENSATOR,
+                     BATTERY:
                     generatorIdsToLose.add(connectable.getId());
                     break;
 

@@ -176,7 +176,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected static double getScaleForLimitType(LimitType type, LfBus bus) {
         switch (type) {
-            case ACTIVE_POWER, APPARENT_POWER:
+            case ACTIVE_POWER,
+                 APPARENT_POWER:
                 return 1.0 / PerUnit.SB;
             case CURRENT:
                 return 1.0 / PerUnit.ib(bus.getNominalV());
