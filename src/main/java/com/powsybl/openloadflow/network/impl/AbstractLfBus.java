@@ -8,16 +8,14 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.*;
+import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -47,12 +45,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean generatorVoltageControlEnabled = false;
 
-    protected double loadTargetP = 0;
-
-    protected double initialLoadTargetP = 0;
-
-    protected double loadTargetQ = 0;
-
     protected Double generationTargetP;
 
     protected double generationTargetQ = 0;
@@ -70,10 +62,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected boolean distributedOnConformLoad;
 
     protected LfLoadImpl load;
-
-    protected boolean ensurePowerFactorConstantByLoad = false;
-
-    protected final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
@@ -239,34 +227,19 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
+    protected LfLoadImpl getOrCreateLfLoad() {
+        if (load == null) {
+            load = new LfLoadImpl(this, distributedOnConformLoad);
+        }
+        return load;
+    }
+
     void addLoad(Load load, LfNetworkParameters parameters) {
-        double p0 = load.getP0();
-        loadTargetP += p0 / PerUnit.SB;
-        initialLoadTargetP += p0 / PerUnit.SB;
-        loadTargetQ += load.getQ0() / PerUnit.SB;
-        boolean hasVariableActivePower = false;
-        if (parameters.isDistributedOnConformLoad()) {
-            LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-            if (loadDetail != null) {
-                hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
-            }
-        }
-        if (p0 < 0 || hasVariableActivePower) {
-            ensurePowerFactorConstantByLoad = true;
-        }
-        if (this.load == null) {
-            this.load = new LfLoadImpl(distributedOnConformLoad);
-        }
-        this.load.add(load, parameters);
+        getOrCreateLfLoad().add(load, parameters);
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
-        // note that LCC converter station are out of the slack distribution.
-        lccCsRefs.add(Ref.create(lccCs, parameters.isCacheEnabled()));
-        double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers());
-        loadTargetP += targetP / PerUnit.SB;
-        initialLoadTargetP += targetP / PerUnit.SB;
-        loadTargetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()) / PerUnit.SB;
+        getOrCreateLfLoad().add(lccCs, parameters);
     }
 
     protected void add(LfGenerator generator) {
@@ -354,44 +327,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public double getLoadTargetP() {
-        return loadTargetP;
-    }
-
-    @Override
-    public double getInitialLoadTargetP() {
-        return initialLoadTargetP;
-    }
-
-    @Override
-    public void setLoadTargetP(double loadTargetP) {
-        if (loadTargetP != this.loadTargetP) {
-            double oldLoadTargetP = this.loadTargetP;
-            this.loadTargetP = loadTargetP;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, loadTargetP);
-            }
-        }
+        return load != null ? load.getTargetP() : 0;
     }
 
     @Override
     public double getLoadTargetQ() {
-        return loadTargetQ;
-    }
-
-    @Override
-    public void setLoadTargetQ(double loadTargetQ) {
-        if (loadTargetQ != this.loadTargetQ) {
-            double oldLoadTargetQ = this.loadTargetQ;
-            this.loadTargetQ = loadTargetQ;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, loadTargetQ);
-            }
-        }
-    }
-
-    @Override
-    public boolean ensurePowerFactorConstantByLoad() {
-        return this.ensurePowerFactorConstantByLoad;
+        return load != null ? load.getTargetQ() : 0;
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
@@ -591,22 +532,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ,
+        updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + getLoadTargetQ()) : generationTargetQ,
                 parameters.isReactiveLimits(), parameters.getReactivePowerDispatchMode());
 
         // update load power
         if (load != null) {
-            load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
-        }
-
-        // update lcc converter station power
-        for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
-            LccConverterStation lccCs = lccCsRef.get();
-            double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers()); // A LCC station has active losses.
-            double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()); // A LCC station always consumes reactive power.
-            lccCs.getTerminal()
-                    .setP(pCs)
-                    .setQ(qCs);
+            load.updateState(parameters.isLoadPowerFactorConstant(),
+                    parameters.isBreakers());
         }
     }
 
