@@ -20,7 +20,11 @@ public interface OuterLoop<V extends Enum<V> & Quantity,
                            C extends LoadFlowContext<V, E, P>,
                            O extends OuterLoopContext<V, E, P, C>> {
 
-    String getType();
+    String getName();
+
+    default String getType() {
+        return getName();
+    }
 
     default void initialize(O context) {
     }

@@ -29,7 +29,14 @@ public abstract class AbstractPhaseControlOuterLoop<V extends Enum<V> & Quantity
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPhaseControlOuterLoop.class);
 
+    private static final String TYPE = "PhaseControl";
+
     protected AbstractPhaseControlOuterLoop() {
+    }
+
+    @Override
+    public String getType() {
+        return TYPE;
     }
 
     protected static List<LfBranch> getControllerBranches(LfNetwork network) {
