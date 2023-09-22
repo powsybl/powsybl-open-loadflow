@@ -31,6 +31,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
+    public static final String NAME = "SecondaryVoltageControl";
+
     private static final double DV_EPS = 1E-4; // 0.1 kV
     private static final double DK_DIFF_MAX_EPS = 1E-3; // 1 MVar
 
