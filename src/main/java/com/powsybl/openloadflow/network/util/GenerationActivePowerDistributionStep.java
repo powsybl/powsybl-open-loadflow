@@ -114,7 +114,6 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
             case TARGET -> Math.abs(generator.getTargetP());
             case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
             case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxP() - generator.getTargetP());
-            default -> throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
         };
     }
 

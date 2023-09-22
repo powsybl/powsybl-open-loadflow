@@ -118,35 +118,19 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
     }
 
     protected double v(SequenceType g, Side i) {
-        switch (g) {
-            case ZERO:
-                return i == Side.ONE ? sv.get(v1VarZero.getRow()) : sv.get(v2VarZero.getRow());
-
-            case POSITIVE:
-                return i == Side.ONE ? sv.get(v1Var.getRow()) : sv.get(v2Var.getRow());
-
-            case NEGATIVE:
-                return i == Side.ONE ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
-
-            default:
-                throw new IllegalStateException("Unknown sequence type: " + g);
-        }
+        return switch (g) {
+            case ZERO -> i == Side.ONE ? sv.get(v1VarZero.getRow()) : sv.get(v2VarZero.getRow());
+            case POSITIVE -> i == Side.ONE ? sv.get(v1Var.getRow()) : sv.get(v2Var.getRow());
+            case NEGATIVE -> i == Side.ONE ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
+        };
     }
 
     protected double ph(SequenceType g, Side i) {
-        switch (g) {
-            case ZERO:
-                return i == Side.ONE ? sv.get(ph1VarZero.getRow()) : sv.get(ph2VarZero.getRow());
-
-            case POSITIVE:
-                return i == Side.ONE ? sv.get(ph1Var.getRow()) : sv.get(ph2Var.getRow());
-
-            case NEGATIVE:
-                return i == Side.ONE ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
-
-            default:
-                throw new IllegalStateException("Unknown sequence type: " + g);
-        }
+        return switch (g) {
+            case ZERO -> i == Side.ONE ? sv.get(ph1VarZero.getRow()) : sv.get(ph2VarZero.getRow());
+            case POSITIVE -> i == Side.ONE ? sv.get(ph1Var.getRow()) : sv.get(ph2Var.getRow());
+            case NEGATIVE -> i == Side.ONE ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
+        };
     }
 
     protected double r1() {

@@ -29,7 +29,6 @@ public interface StateVectorScaling {
             case NONE -> new NoneStateVectorScaling();
             case LINE_SEARCH -> new LineSearchStateVectorScaling(initialTestResult);
             case MAX_VOLTAGE_CHANGE -> new MaxVoltageChangeStateVectorScaling();
-            default -> throw new IllegalStateException("Unknown state vector scaling mode: " + mode);
         };
     }
 

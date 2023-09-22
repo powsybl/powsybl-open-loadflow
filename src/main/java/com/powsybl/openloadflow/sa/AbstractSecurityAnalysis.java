@@ -96,7 +96,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             case SOLVER_FAILED -> PostContingencyComputationStatus.SOLVER_FAILED;
             case NO_CALCULATION -> PostContingencyComputationStatus.NO_IMPACT;
             case UNREALISTIC_STATE -> PostContingencyComputationStatus.FAILED;
-            default -> throw new PowsyblException("Unsupported Newton Raphson status : " + status);
         };
     }
 
@@ -106,7 +105,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             case MAX_ITERATION_REACHED -> LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
             case SOLVER_FAILED -> LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
             case NO_CALCULATION, UNREALISTIC_STATE -> LoadFlowResult.ComponentResult.Status.FAILED;
-            default -> throw new PowsyblException("Unsupported Newton Raphson status : " + status);
         };
     }
 
