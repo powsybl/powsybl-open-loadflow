@@ -35,8 +35,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     private static final double DK_DIFF_MAX_EPS = 1E-3; // 1 MVar
 
     @Override
-    public String getType() {
-        return "SecondaryVoltageControl";
+    public String getName() {
+        return NAME;
     }
 
     private static List<LfBus> findControllerBuses(LfBus controlledBus) {
