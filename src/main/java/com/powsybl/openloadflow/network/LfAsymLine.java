@@ -85,9 +85,9 @@ public class LfAsymLine {
         this.hasPhaseC2 = hasPhaseC2;
         this.isSide1FortescueRepresentation = isSide1FortescueRepresentation;
         this.isSide2FortescueRepresentation = isSide2FortescueRepresentation;
-        admittanceMatrix = new LfAsymLineAdmittanceMatrix(this);
         this.side1VariableType = side1VariableType;
         this.side2VariableType = side2VariableType;
+        admittanceMatrix = new LfAsymLineAdmittanceMatrix(this);
     }
 
     public LfAsymLineAdmittanceMatrix getAdmittanceMatrix() {
