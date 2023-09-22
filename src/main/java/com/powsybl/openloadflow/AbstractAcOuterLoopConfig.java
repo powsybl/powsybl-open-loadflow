@@ -90,7 +90,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return createShuntVoltageControlOuterLoop(parameters, parametersExt.getShuntVoltageControlMode());
     }
 
-    protected static Optional<AcOuterLoop> createPhaseShifterControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.PhaseShifterControlMode controlMode) {
+    protected static Optional<AcOuterLoop> createPhaseControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.PhaseShifterControlMode controlMode) {
         if (parameters.isPhaseShifterRegulationOn()) {
             AcOuterLoop outerLoop = switch (controlMode) {
                 case CONTINUOUS_WITH_DISCRETISATION -> new PhaseControlOuterLoop();
@@ -101,7 +101,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
-    protected static Optional<AcOuterLoop> createPhaseShifterControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        return createPhaseShifterControlOuterLoop(parameters, parametersExt.getPhaseShifterControlMode());
+    protected static Optional<AcOuterLoop> createPhaseControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        return createPhaseControlOuterLoop(parameters, parametersExt.getPhaseShifterControlMode());
     }
 }

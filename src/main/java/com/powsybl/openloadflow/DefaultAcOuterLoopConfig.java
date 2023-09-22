@@ -26,7 +26,7 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         createMonitoringVoltageOuterLoop(parametersExt).ifPresent(outerLoops::add);
         createReactiveLimitsOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // phase shifter control
-        createPhaseShifterControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
+        createPhaseControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // transformer voltage control
         createTransformerVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // shunt compensator voltage control

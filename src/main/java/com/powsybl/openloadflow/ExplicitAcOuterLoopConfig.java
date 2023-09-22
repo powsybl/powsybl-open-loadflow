@@ -36,7 +36,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
 
     private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return switch (name) {
-            case AcIncrementalPhaseControlOuterLoop.NAME -> createPhaseShifterControlOuterLoop(parameters,
+            case AcIncrementalPhaseControlOuterLoop.NAME -> createPhaseControlOuterLoop(parameters,
                                                                                                OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
             case DistributedSlackOuterLoop.NAME -> createDistributedSlackOuterLoop(parameters, parametersExt);
             case IncrementalShuntVoltageControlOuterLoop.NAME -> createShuntVoltageControlOuterLoop(parameters,
@@ -45,7 +45,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                                                                                 OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL,
                                                                                                                 parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
             case MonitoringVoltageOuterLoop.NAME -> createMonitoringVoltageOuterLoop(parametersExt);
-            case PhaseControlOuterLoop.NAME -> createPhaseShifterControlOuterLoop(parameters,
+            case PhaseControlOuterLoop.NAME -> createPhaseControlOuterLoop(parameters,
                                                                                   OpenLoadFlowParameters.PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION);
             case ReactiveLimitsOuterLoop.NAME -> createReactiveLimitsOuterLoop(parameters, parametersExt);
             case SecondaryVoltageControlOuterLoop.NAME -> createSecondaryVoltageControlOuterLoop(parametersExt);
