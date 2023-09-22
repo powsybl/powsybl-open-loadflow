@@ -100,6 +100,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final ReactivePowerDispatchMode REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE = ReactivePowerDispatchMode.Q_EQUAL_PROPORTION;
 
+    protected static final List<String> OUTER_LOOP_NAMES_DEFAULT_VALUE = null;
+
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -194,6 +196,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME = "reactivePowerDispatchMode";
 
+    static final String OUTER_LOOP_NAMES_PARAM_NAME = "outerLoopNames";
+
     private static final String LOAD_MODEL_PARAM_NAME = "loadModel";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
@@ -247,6 +251,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN, "Asymmetrical calculation", LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE),
         new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage for target voltage check", LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE),
         new Parameter(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ParameterType.STRING, "Generators reactive power from bus dispatch mode", REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactivePowerDispatchMode.class)),
+        new Parameter(OUTER_LOOP_NAMES_PARAM_NAME, ParameterType.STRING_LIST, "Ordered explicit list of outer loop names, supported outer loops are " + String.join(", ", ExplicitAcOuterLoopConfig.NAMES), OUTER_LOOP_NAMES_DEFAULT_VALUE),
         new Parameter(LOAD_MODEL_PARAM_NAME, ParameterType.BOOLEAN, "Load model (with voltage dependency) simulation", LfNetworkParameters.LOAD_MODE_DEFAULT_VALUE)
     );
 
@@ -382,6 +387,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
 
     private ReactivePowerDispatchMode reactivePowerDispatchMode = REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE;
+
+    private List<String> outerLoopNames = OUTER_LOOP_NAMES_DEFAULT_VALUE;
 
     private boolean loadModel = LfNetworkParameters.LOAD_MODE_DEFAULT_VALUE;
 
@@ -855,6 +862,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public List<String> getOuterLoopNames() {
+        return outerLoopNames;
+    }
+
+    public OpenLoadFlowParameters setOuterLoopNames(List<String> outerLoopNames) {
+        this.outerLoopNames = outerLoopNames;
+        return this;
+    }
+
     public boolean isLoadModel() {
         return loadModel;
     }
@@ -922,6 +938,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAsymmetrical(config.getBooleanProperty(ASYMMETRICAL_PARAM_NAME, LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE))
                 .setMinNominalVoltageTargetVoltageCheck(config.getDoubleProperty(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE))
                 .setReactivePowerDispatchMode(config.getEnumProperty(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ReactivePowerDispatchMode.class, REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE))
+                .setOuterLoopNames(config.getStringListProperty(OUTER_LOOP_NAMES_PARAM_NAME, OUTER_LOOP_NAMES_DEFAULT_VALUE))
                 .setLoadModel(config.getBooleanProperty(LOAD_MODEL_PARAM_NAME, LfNetworkParameters.LOAD_MODE_DEFAULT_VALUE))
             );
         return parameters;
@@ -1033,13 +1050,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMinNominalVoltageTargetVoltageCheck(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setReactivePowerDispatchMode(ReactivePowerDispatchMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(OUTER_LOOP_NAMES_PARAM_NAME))
+                .ifPresent(prop -> this.setOuterLoopNames(parseStringListProp(prop)));
         Optional.ofNullable(properties.get(LOAD_MODEL_PARAM_NAME))
                 .ifPresent(prop -> this.setLoadModel(Boolean.parseBoolean(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(46);
+        Map<String, Object> map = new LinkedHashMap<>(47);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
@@ -1087,6 +1106,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(ASYMMETRICAL_PARAM_NAME, asymmetrical);
         map.put(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, minNominalVoltageTargetVoltageCheck);
         map.put(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, reactivePowerDispatchMode);
+        map.put(OUTER_LOOP_NAMES_PARAM_NAME, outerLoopNames);
         map.put(LOAD_MODEL_PARAM_NAME, loadModel);
         return map;
     }
@@ -1240,6 +1260,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
     }
 
+    static List<AcOuterLoop> createOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig()
+                .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitAcOuterLoopConfig()
+                                                                           : new DefaultAcOuterLoopConfig());
+        return outerLoopConfig.configure(parameters, parametersExt);
+    }
+
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
@@ -1260,8 +1287,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
                 .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
 
-        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig(new DefaultAcOuterLoopConfig());
-        List<AcOuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
+        List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 
         return new AcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,
@@ -1401,6 +1427,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isAsymmetrical() == extension2.isAsymmetrical() &&
                 extension1.getMinNominalVoltageTargetVoltageCheck() == extension2.getMinNominalVoltageTargetVoltageCheck() &&
                 extension1.getReactivePowerDispatchMode() == extension2.getReactivePowerDispatchMode() &&
+                Objects.equals(extension1.getOuterLoopNames(), extension2.getOuterLoopNames()) &&
                 extension1.isLoadModel() == extension2.isLoadModel();
     }
 
@@ -1467,6 +1494,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setAsymmetrical(extension.isAsymmetrical())
                     .setMinNominalVoltageTargetVoltageCheck(extension.getMinNominalVoltageTargetVoltageCheck())
                     .setReactivePowerDispatchMode(extension.getReactivePowerDispatchMode())
+                    .setOuterLoopNames(extension.getOuterLoopNames())
                     .setLoadModel(extension.isLoadModel());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

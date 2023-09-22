@@ -17,13 +17,15 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class ShuntVoltageControlOuterLoop implements AcOuterLoop {
+public class ShuntVoltageControlOuterLoop extends AbstractShuntVoltageControlOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShuntVoltageControlOuterLoop.class);
 
+    public static final String NAME = "ShuntVoltageControl";
+
     @Override
-    public String getType() {
-        return "Shunt voltage control";
+    public String getName() {
+        return NAME;
     }
 
     @Override

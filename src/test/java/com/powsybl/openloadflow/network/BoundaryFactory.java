@@ -326,7 +326,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("h1")
                 .setR(0.0)
                 .setX(0.1)
-                .setUcteXnodeCode("xnode")
+                .setPairingKey("xnode")
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
@@ -335,7 +335,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("h2")
                 .setR(0.0)
                 .setX(0.08)
-                .setUcteXnodeCode("xnode")
+                .setPairingKey("xnode")
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
@@ -366,7 +366,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("h1bis")
                 .setR(0.0)
                 .setX(0.1)
-                .setUcteXnodeCode("xnode2")
+                .setPairingKey("xnode2")
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
@@ -375,7 +375,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("h2bis")
                 .setR(0.0)
                 .setX(0.08)
-                .setUcteXnodeCode("xnode2")
+                .setPairingKey("xnode2")
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();

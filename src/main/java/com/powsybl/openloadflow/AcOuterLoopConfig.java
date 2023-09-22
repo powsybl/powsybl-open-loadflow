@@ -12,7 +12,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import org.apache.commons.compress.utils.Lists;
 
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.ServiceLoader;
 
 /**
@@ -22,18 +22,15 @@ public interface AcOuterLoopConfig {
 
     List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt);
 
-    static AcOuterLoopConfig findOuterLoopConfig(AcOuterLoopConfig defaultOuterLoopConfig) {
-        Objects.requireNonNull(defaultOuterLoopConfig);
-        AcOuterLoopConfig outerLoopConfig;
+    static Optional<AcOuterLoopConfig> findOuterLoopConfig() {
         List<AcOuterLoopConfig> outerLoopConfigs = Lists.newArrayList(ServiceLoader.load(AcOuterLoopConfig.class, AcOuterLoopConfig.class.getClassLoader()).iterator());
         if (outerLoopConfigs.isEmpty()) {
-            outerLoopConfig = defaultOuterLoopConfig;
+            return Optional.empty();
         } else {
             if (outerLoopConfigs.size() > 1) {
                 throw new PowsyblException("Only one outer loop config is expected on class path");
             }
-            outerLoopConfig = outerLoopConfigs.get(0);
+            return Optional.of(outerLoopConfigs.get(0));
         }
-        return outerLoopConfig;
     }
 }

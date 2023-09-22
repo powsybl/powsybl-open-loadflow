@@ -20,6 +20,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.AfterEach;
@@ -30,7 +31,10 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
@@ -316,7 +320,31 @@ class OpenLoadFlowParametersTest {
     @Test
     void testToString() {
         OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
-        assertEquals("OpenLoadFlowParameters(slackBusSelectionMode=MOST_MESHED, slackBusesIds=[], throwsExceptionInCaseOfSlackDistributionFailure=false, voltageRemoteControl=true, lowImpedanceBranchMode=REPLACE_BY_ZERO_IMPEDANCE_LINE, loadPowerFactorConstant=false, plausibleActivePowerLimit=5000.0, newtonRaphsonStoppingCriteriaType=UNIFORM_CRITERIA, slackBusPMaxMismatch=1.0, maxActivePowerMismatch=0.01, maxReactivePowerMismatch=0.01, maxVoltageMismatch=1.0E-4, maxAngleMismatch=1.0E-5, maxRatioMismatch=1.0E-5, maxSusceptanceMismatch=1.0E-4, voltagePerReactivePowerControl=false, reactivePowerRemoteControl=false, maxNewtonRaphsonIterations=15, maxOuterLoopIterations=20, newtonRaphsonConvEpsPerEq=1.0E-4, voltageInitModeOverride=NONE, transformerVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, shuntVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, networkCacheEnabled=false, svcVoltageMonitoring=true, stateVectorScalingMode=NONE, maxSlackBusCount=1, debugDir=null, incrementalTransformerVoltageControlOuterLoopMaxTapShift=3, secondaryVoltageControl=false, controllerToPilotPointVoltageSensiEpsilon=0.01, reactiveLimitsMaxPqPvSwitch=3, phaseShifterControlMode=CONTINUOUS_WITH_DISCRETISATION, alwaysUpdateNetwork=false, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile=95.0, reportedFeatures=[], slackBusCountryFilter=[], actionableSwitchesIds=[], asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, reactivePowerDispatchMode=Q_EQUAL_PROPORTION, loadModel=false)",
+        assertEquals("OpenLoadFlowParameters(slackBusSelectionMode=MOST_MESHED, slackBusesIds=[], throwsExceptionInCaseOfSlackDistributionFailure=false, voltageRemoteControl=true, lowImpedanceBranchMode=REPLACE_BY_ZERO_IMPEDANCE_LINE, loadPowerFactorConstant=false, plausibleActivePowerLimit=5000.0, newtonRaphsonStoppingCriteriaType=UNIFORM_CRITERIA, slackBusPMaxMismatch=1.0, maxActivePowerMismatch=0.01, maxReactivePowerMismatch=0.01, maxVoltageMismatch=1.0E-4, maxAngleMismatch=1.0E-5, maxRatioMismatch=1.0E-5, maxSusceptanceMismatch=1.0E-4, voltagePerReactivePowerControl=false, reactivePowerRemoteControl=false, maxNewtonRaphsonIterations=15, maxOuterLoopIterations=20, newtonRaphsonConvEpsPerEq=1.0E-4, voltageInitModeOverride=NONE, transformerVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, shuntVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, networkCacheEnabled=false, svcVoltageMonitoring=true, stateVectorScalingMode=NONE, maxSlackBusCount=1, debugDir=null, incrementalTransformerVoltageControlOuterLoopMaxTapShift=3, secondaryVoltageControl=false, controllerToPilotPointVoltageSensiEpsilon=0.01, reactiveLimitsMaxPqPvSwitch=3, phaseShifterControlMode=CONTINUOUS_WITH_DISCRETISATION, alwaysUpdateNetwork=false, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile=95.0, reportedFeatures=[], slackBusCountryFilter=[], actionableSwitchesIds=[], asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, reactivePowerDispatchMode=Q_EQUAL_PROPORTION, outerLoopNames=null, loadModel=false)",
                      parameters.toString());
+    }
+
+    @Test
+    void testExplicitOuterLoopsParameter() {
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSecondaryVoltageControl(true);
+
+        assertEquals(List.of("DistributedSlack", "VoltageMonitoring", "ReactiveLimits", "ShuntVoltageControl", "SecondaryVoltageControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+
+        parametersExt.setOuterLoopNames(List.of("ReactiveLimits", "SecondaryVoltageControl"));
+        assertEquals(List.of("ReactiveLimits", "SecondaryVoltageControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+
+        parametersExt.setOuterLoopNames(ExplicitAcOuterLoopConfig.NAMES);
+        PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt));
+        assertEquals("Multiple (2) outer loops with same type: ShuntVoltageControl", e.getMessage());
+
+        parametersExt.setOuterLoopNames(List.of("ReactiveLimits", "Foo"));
+        e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt));
+        assertEquals("Unknown outer loop 'Foo'", e.getMessage());
+
+        assertEquals("Ordered explicit list of outer loop names, supported outer loops are IncrementalPhaseControl, DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl",
+                OpenLoadFlowParameters.SPECIFIC_PARAMETERS.stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.OUTER_LOOP_NAMES_PARAM_NAME)).findFirst().orElseThrow().getDescription());
     }
 }
