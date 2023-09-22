@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.util.Fortescue;
 import net.jafama.FastMath;
 
@@ -80,16 +81,34 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         Objects.requireNonNull(variableSet);
         AcVariableType vType = getVoltageMagnitudeType(sequenceType);
         AcVariableType angleType = getVoltageAngleType(sequenceType);
-        v1Var = variableSet.getVariable(bus1.getNum(), vType);
-        v2Var = variableSet.getVariable(bus2.getNum(), vType);
-        ph1Var = variableSet.getVariable(bus1.getNum(), angleType);
-        ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
+
+        // if one side is DELTA, asym zero variables shouldn't be called here
+        if (sequenceType == Fortescue.SequenceType.POSITIVE) {
+            v1Var = variableSet.getVariable(bus1.getNum(), vType);
+            ph1Var = variableSet.getVariable(bus1.getNum(), angleType);
+            v2Var = variableSet.getVariable(bus2.getNum(), vType);
+            ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
+        } else {
+            v1Var = (bus1.getAsym().getAsymBusVariableType() == AsymBusVariableType.WYE || sequenceType != Fortescue.SequenceType.ZERO) ? variableSet.getVariable(bus1.getNum(), vType) : null;
+            ph1Var = (bus1.getAsym().getAsymBusVariableType() == AsymBusVariableType.WYE || sequenceType != Fortescue.SequenceType.ZERO) ? variableSet.getVariable(bus1.getNum(), angleType) : null;
+            v2Var = (bus2.getAsym().getAsymBusVariableType() == AsymBusVariableType.WYE || sequenceType != Fortescue.SequenceType.ZERO) ? variableSet.getVariable(bus2.getNum(), vType) : null;
+            ph2Var = (bus2.getAsym().getAsymBusVariableType() == AsymBusVariableType.WYE || sequenceType != Fortescue.SequenceType.ZERO) ? variableSet.getVariable(bus2.getNum(), angleType) : null;
+        }
+
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
         r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
-        variables.add(v1Var);
-        variables.add(v2Var);
-        variables.add(ph1Var);
-        variables.add(ph2Var);
+        if (v1Var != null) {
+            variables.add(v1Var);
+        }
+        if (v2Var != null) {
+            variables.add(v2Var);
+        }
+        if (ph1Var != null) {
+            variables.add(ph1Var);
+        }
+        if (ph2Var != null) {
+            variables.add(ph2Var);
+        }
         if (a1Var != null) {
             variables.add(a1Var);
         }
@@ -103,18 +122,30 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     protected double v1() {
+        if (v1Var == null) {
+            return 0.;
+        }
         return sv.get(v1Var.getRow());
     }
 
     protected double v2() {
+        if (v2Var == null) {
+            return 0.;
+        }
         return sv.get(v2Var.getRow());
     }
 
     protected double ph1() {
+        if (ph1Var == null) {
+            return 0.;
+        }
         return sv.get(ph1Var.getRow());
     }
 
     protected double ph2() {
+        if (ph2Var == null) {
+            return 0.;
+        }
         return sv.get(ph2Var.getRow());
     }
 
