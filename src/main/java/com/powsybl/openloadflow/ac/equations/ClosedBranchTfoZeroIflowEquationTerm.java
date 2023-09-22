@@ -29,7 +29,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
 
     public ClosedBranchTfoZeroIflowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                     boolean deriveA1, boolean deriveR1, ClosedBranchTfoNegativeIflowEquationTerm.FlowType flowType) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
 
         this.flowType = flowType;
 
@@ -113,14 +113,23 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
                 return getYgYgForcedFluxesAdmittanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1);
             }
         } else {
-            Complex y11;
+            Complex y11 = new Complex(0., 0.);
             Complex y22 = new Complex(0., 0.);
             Complex y12 = y22;
-            if (leg1Type == LegConnectionType.Y_GROUNDED && leg2Type == LegConnectionType.DELTA) {
+            if (leg1Type == LegConnectionType.DELTA && leg2Type == LegConnectionType.Y_GROUNDED) {
+                Complex tmp1 = z0T2.add(y0m.add(z0T1.reciprocal()).reciprocal());
+                y22 = (zG2.multiply(3).add(tmp1)).reciprocal();
+            } else if (leg1Type == LegConnectionType.Y_GROUNDED && leg2Type == LegConnectionType.DELTA) {
                 Complex tmp2 = z0T1.add(y0m.add(z0T2.reciprocal()).reciprocal()).multiply(1 / (r1 * r1));
                 y11 = (zG1.multiply(3).add(tmp2)).reciprocal();
+            } else if (leg1Type == LegConnectionType.Y && leg2Type == LegConnectionType.Y_GROUNDED && !isFreeFluxes) {
+                Complex tmp3 = z0T2.add(y0m.reciprocal());
+                y22 = (zG2.multiply(3).add(tmp3)).reciprocal();
+            } else if (leg1Type == LegConnectionType.Y_GROUNDED && leg2Type == LegConnectionType.Y && !isFreeFluxes) {
+                Complex tmp4 = z0T1.add(y0m.reciprocal()).multiply(1 / (r1 * r1));
+                y11 = (zG1.multiply(3).add(tmp4)).reciprocal();
             } else {
-                throw new IllegalArgumentException("Transfomer with winding config Yg or Y or DELTA not supported in current version of the asymmetric load flow");
+                throw new IllegalArgumentException("Transfomer configuration not supported");
             }
             // if windings are in another configuration we consider it is a zero admittance matrix
             return getMatrixFromBloc44(y11, y22, y12);

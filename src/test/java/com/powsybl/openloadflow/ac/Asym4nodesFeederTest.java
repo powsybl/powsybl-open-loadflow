@@ -46,8 +46,8 @@ public class Asym4nodesFeederTest {
     @Test
     void ygYgUnbalancedTest() {
 
-        Complex zz = new Complex(0.1, 0.01); // 0.0001 , 0.001
-        Complex zn = new Complex(0.1, 0.01); // 0.001 , 0.01
+        Complex zz = new Complex(0.0001, 0.0001); // 0.0001 , 0.001
+        Complex zn = new Complex(0.0001, 0.0001); // 0.001 , 0.01
         Boolean isLoadBalanced = false;
         WindingConnectionType w1 = WindingConnectionType.Y_GROUNDED;
         WindingConnectionType w2 = WindingConnectionType.Y_GROUNDED;
@@ -65,6 +65,7 @@ public class Asym4nodesFeederTest {
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
+                .setMaxNewtonRaphsonIterations(100)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setAsymmetrical(true);
 
@@ -73,12 +74,12 @@ public class Asym4nodesFeederTest {
 
         assertVoltageEquals(7.199557856794634, bus1);
         assertAngleEquals(0., bus1);
-        assertVoltageEquals(7.133584938970962, bus2);
-        assertVoltageEquals(2.3420558121701402, bus3);
-        assertVoltageEquals(2.0966856983831206, bus4);
+        assertVoltageEquals(7.121540042954291, bus2);
+        assertVoltageEquals(2.2440043558129816, bus3);
+        assertVoltageEquals(1.9562695924418882, bus4);
 
         // addition of an extension to have a 3 phase transformer and new load flow:
-        addTfo3PhaseExtension(w2, stepWindingConnectionType, numDisconnectedPhase);
+        addTfo3PhaseExtension(network, w2, stepWindingConnectionType, numDisconnectedPhase);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -92,8 +93,8 @@ public class Asym4nodesFeederTest {
     @Test
     void ygYgTest() {
 
-        Complex zz = new Complex(0.1, 0.01); // 0.0001 , 0.001
-        Complex zn = new Complex(0.1, 0.01); // 0.001 , 0.01
+        Complex zz = new Complex(0.00001, 0.00001); // 0.0001 , 0.001
+        Complex zn = new Complex(0.00001, 0.00001); // 0.001 , 0.01
         Boolean isLoadBalanced = true;
         WindingConnectionType w1 = WindingConnectionType.Y_GROUNDED;
         WindingConnectionType w2 = WindingConnectionType.Y_GROUNDED;
@@ -111,6 +112,7 @@ public class Asym4nodesFeederTest {
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
+                .setMaxNewtonRaphsonIterations(100)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setAsymmetrical(true);
 
@@ -120,11 +122,11 @@ public class Asym4nodesFeederTest {
         assertVoltageEquals(7.199557856794634, bus1);
         assertAngleEquals(0., bus1);
         assertVoltageEquals(7.132278619390253, bus2);
-        assertVoltageEquals(2.344230653528591, bus3);
-        assertVoltageEquals(2.107863958213946, bus4);
+        assertVoltageEquals(2.2643149471277386, bus3);
+        assertVoltageEquals(2.017173369480019, bus4);
 
         // addition of an extension to have a 3 phase transformer and new load flow:
-        addTfo3PhaseExtension(w2, stepWindingConnectionType, numDisconnectedPhase);
+        addTfo3PhaseExtension(network, w2, stepWindingConnectionType, numDisconnectedPhase);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -174,12 +176,12 @@ public class Asym4nodesFeederTest {
 
         assertVoltageEquals(7.199557856794634, bus1);
         assertAngleEquals(0., bus1);
-        assertVoltageEquals(7.015678041873337, bus2);
-        assertVoltageEquals(3.842798277594563, bus3);
-        assertVoltageEquals(3.4440931482904062, bus4);
+        assertVoltageEquals(6.966398471893453, bus2);
+        assertVoltageEquals(3.222022038533233, bus3);
+        assertVoltageEquals(2.716189992104315, bus4);
 
         // addition of an extension to have a 3 phase transformer and new load flow:
-        addTfo3PhaseExtension(w2, stepWindingConnectionType, numDisconnectedPhase);
+        addTfo3PhaseExtension(network, w2, stepWindingConnectionType, numDisconnectedPhase);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -228,12 +230,12 @@ public class Asym4nodesFeederTest {
 
         assertVoltageEquals(12.47, bus1);
         assertAngleEquals(0., bus1);
-        assertVoltageEquals(12.363327843118185, bus2);
-        assertVoltageEquals(3.919374745381408, bus3);
-        assertVoltageEquals(3.5306643903086035, bus4);
+        assertVoltageEquals(12.343319573062105, bus2);
+        assertVoltageEquals(3.3615589948468156, bus3);
+        assertVoltageEquals(2.885485615952693, bus4);
 
         // addition of an extension to have a 3 phase transformer and new load flow:
-        addTfo3PhaseExtension(w2, stepWindingConnectionType, numDisconnectedPhase);
+        addTfo3PhaseExtension(network, w2, stepWindingConnectionType, numDisconnectedPhase);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -282,12 +284,12 @@ public class Asym4nodesFeederTest {
 
         assertVoltageEquals(7.199557856794634, bus1);
         assertAngleEquals(0., bus1);
-        assertVoltageEquals(7.0078109349944375, bus2);
-        assertVoltageEquals(3.8315940839604075, bus3);
-        assertVoltageEquals(3.413967683262305, bus4);
+        assertVoltageEquals(6.937021164658664, bus2);
+        assertVoltageEquals(3.1166742441520894, bus3);
+        assertVoltageEquals(2.547669019028284, bus4);
 
         // addition of an extension to have a 3 phase transformer and new load flow:
-        addTfo3PhaseExtension(w2, stepWindingConnectionType, numDisconnectedPhase);
+        addTfo3PhaseExtension(network, w2, stepWindingConnectionType, numDisconnectedPhase);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -354,17 +356,15 @@ public class Asym4nodesFeederTest {
                 .setBus(bus1.getId())
                 .setMinP(-100.0)
                 .setMaxP(200)
-                .setTargetP(0)
+                .setTargetP(2)
                 .setTargetV(v1nom)
                 .setVoltageRegulatorOn(true)
                 .add();
 
         gen1.newExtension(GeneratorFortescueAdder.class)
                 .withRz(zz.getReal())
-                //.withXz(0.001)
                 .withXz(zz.getImaginary())
                 .withRn(zn.getReal())
-                //.withXn(0.01)
                 .withXn(zn.getImaginary())
                 .add();
 
@@ -388,6 +388,7 @@ public class Asym4nodesFeederTest {
 
         bus2.newExtension(BusAsymmetricalAdder.class)
                 .withBusVariableType(side1VariableType)
+                .withPositiveSequenceAsCurrent(true)
                 .add();
 
         // Bus3
@@ -405,6 +406,7 @@ public class Asym4nodesFeederTest {
 
         bus3.newExtension(BusAsymmetricalAdder.class)
                 .withBusVariableType(side2VariableType)
+                .withPositiveSequenceAsCurrent(true)
                 .add();
 
         // Bus4
@@ -426,6 +428,7 @@ public class Asym4nodesFeederTest {
         bus4.setV(v3nom).setAngle(0.);
 
         bus4.newExtension(BusAsymmetricalAdder.class)
+                .withPositiveSequenceAsCurrent(true)
                 .withBusVariableType(side2VariableType)
                 .add();
 
@@ -563,8 +566,13 @@ public class Asym4nodesFeederTest {
                 .add();
 
         // addition of asymmetrical extensions
+        ComplexMatrix yabc12 = ComplexMatrix.getMatrixScaled(ywyeabc, feetInMile / length1InFeet);
+        if (side1VariableType == BusVariableType.DELTA) {
+            yabc12 = ComplexMatrix.getMatrixScaled(yDeltaabc, feetInMile / length1InFeet);
+        }
+        // addition of asymmetrical extensions
         line12.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(ywyeabc, feetInMile / length1InFeet))
+                .withYabc(yabc12)
                 .add();
 
         line12.newExtension(LineFortescueAdder.class)
@@ -620,8 +628,8 @@ public class Asym4nodesFeederTest {
         }
 
         double zBase = ratedU3 * ratedU3 / sBase;
-        double rT23 = zBase / 3. / 100;
-        double xT23 = 6. * zBase / 3. / 100;
+        double rT23 = zBase / 100;
+        double xT23 = 6. * zBase / 100;
         var t23 = substation23.newTwoWindingsTransformer()
                 .setId("T2W_B2_B3")
                 .setVoltageLevel1(vl2.getId())
@@ -652,7 +660,7 @@ public class Asym4nodesFeederTest {
         return network;
     }
 
-    public void addTfo3PhaseExtension(WindingConnectionType w2, StepWindingConnectionType stepWindingConnectionType, int numDisconnectedPhase) {
+    public static void addTfo3PhaseExtension(Network network, WindingConnectionType w2, StepWindingConnectionType stepWindingConnectionType, int numDisconnectedPhase) {
 
         TwoWindingsTransformer t2w = network.getTwoWindingsTransformer("T2W_B2_B3");
         // step up case, we use Vbase of transformer = Vnom
