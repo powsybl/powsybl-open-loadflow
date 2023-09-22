@@ -657,7 +657,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                        SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder, List<ParticipatingElement> participatingElements,
                                                        DisabledNetwork disabledNetwork, Reporter reporter) {
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
-        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getBusIdsToShift().isEmpty()) {
+        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
             calculateSensitivityValues(loadFlowContext, factors, factorStates, contingenciesStates, flowStates, contingencyElements,
                     contingency, resultWriter, disabledNetwork);
             // write contingency status
@@ -680,7 +680,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             if (lfContingency != null) {
                 lfContingency.apply(lfParameters.getBalanceType());
                 participatingElementsChanged = isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()
-                        || isDistributedSlackOnLoads(lfParameters) && !contingency.getBusIdsToShift().isEmpty();
+                        || isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty();
                 if (factorGroups.hasMultiVariables()) {
                     Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
                     rhsChanged = rescaleGlsk(factorGroups, impactedBuses);
@@ -908,8 +908,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             List<LfSensitivityFactor<DcVariableType, DcEquationType>> allLfFactors = allFactorHolder.getAllFactors();
 
             allLfFactors.stream()
-                    .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER
-                                && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                    .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
                                 && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
                             || lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
                                 && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE

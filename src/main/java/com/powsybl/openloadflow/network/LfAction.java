@@ -23,7 +23,7 @@ import java.util.*;
  */
 public final class LfAction {
 
-    protected static final Logger LOGGER = LoggerFactory.getLogger(LfAction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfAction.class);
 
     private static final class TapPositionChange {
 
@@ -54,15 +54,15 @@ public final class LfAction {
 
     private static final class LoadShift {
 
-        private final LfBus bus;
-
         private final String loadId;
+
+        private final LfLoad load;
 
         private final PowerShift powerShift;
 
-        private LoadShift(LfBus bus, String loadId, PowerShift powerShift) {
-            this.bus = bus;
+        private LoadShift(String loadId, LfLoad load, PowerShift powerShift) {
             this.loadId = loadId;
+            this.load = load;
             this.powerShift = powerShift;
         }
     }
@@ -160,7 +160,6 @@ public final class LfAction {
         Terminal terminal = load.getTerminal();
         Bus bus = Networks.getBus(terminal, breakers);
         if (bus != null) {
-            LfBus lfBus = lfNetwork.getBusById(bus.getId());
             double activePowerShift = 0;
             double reactivePowerShift = 0;
             OptionalDouble activePowerValue = action.getActivePowerValue();
@@ -174,7 +173,10 @@ public final class LfAction {
             // In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
             // of P0 that could be described in a LoadDetail extension.
             PowerShift powerShift = new PowerShift(activePowerShift / PerUnit.SB, activePowerShift / PerUnit.SB, reactivePowerShift / PerUnit.SB);
-            return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(lfBus, load.getId(), powerShift), null, null));
+            LfLoad lfLoad = lfNetwork.getLoadById(load.getId());
+            if (lfLoad != null) {
+                return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(load.getId(), lfLoad, powerShift), null, null));
+            }
         }
         return Optional.empty(); // could be in another component or in contingency.
     }
@@ -338,13 +340,11 @@ public final class LfAction {
         }
 
         if (loadShift != null) {
-            LfBus bus = loadShift.bus;
-            String loadId = loadShift.loadId;
-            LfLoad load = bus.getLoad().orElseThrow();
-            if (!load.isOriginalLoadDisabled(loadId)) {
+            LfLoad load = loadShift.load;
+            if (!load.isOriginalLoadDisabled(loadShift.loadId)) {
                 PowerShift shift = loadShift.powerShift;
-                bus.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
-                bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
+                load.setTargetP(load.getTargetP() + shift.getActive());
+                load.setTargetQ(load.getTargetQ() + shift.getReactive());
                 load.setAbsVariableTargetP(load.getAbsVariableTargetP()
                         + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
             }

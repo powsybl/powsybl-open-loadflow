@@ -24,6 +24,13 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements AcOu
 
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
+    private static final String TYPE = "TransformerVoltageControl";
+
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
     protected OuterLoopStatus roundVoltageRatios(AcOuterLoopContext context) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
