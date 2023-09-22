@@ -276,8 +276,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                                                                  LimitViolationsResult postContingencyLimitViolations, LfNetworkParameters networkParameters) {
         OperatorStrategyResult operatorStrategyResult = null;
 
-        if (checkCondition(operatorStrategy, postContingencyLimitViolations)) {
-            operatorStrategyResult = runActionSimulation(network, context, operatorStrategy, preContingencyLimitViolationManager,
+        List<String> actionIds = checkCondition(operatorStrategy, postContingencyLimitViolations);
+        if (!actionIds.isEmpty()) {
+            operatorStrategyResult = runActionSimulation(network, context, operatorStrategy, actionIds, preContingencyLimitViolationManager,
                     violationsParameters, lfActionById, createResultExtension, contingency, networkParameters);
         }
 
