@@ -9,10 +9,7 @@ package com.powsybl.openloadflow.dc.equations;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.network.LfNetworkListenerTracer;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import java.util.Objects;
@@ -83,7 +80,7 @@ public class DcEquationSystemCreator {
                                              DcEquationSystemCreationParameters creationParameters, LfBranch branch,
                                              LfBus bus1, LfBus bus2) {
         if (bus1 != null && bus2 != null) {
-            boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControllerCapability(); //TODO: phase control outer loop
+            boolean deriveA1 = isDeriveA1(branch, creationParameters);
             ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
             ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
             equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
@@ -93,16 +90,11 @@ public class DcEquationSystemCreator {
                     .orElseThrow()
                     .addTerm(p2);
             if (deriveA1) {
-                if (creationParameters.isForcePhaseControlOffAndAddAngle1Var()) {
-                    // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
-                    EquationTerm<DcVariableType, DcEquationType> a1 = equationSystem.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1)
-                            .createTerm();
-                    branch.setA1(a1);
-                    equationSystem.createEquation(branch, DcEquationType.BRANCH_TARGET_ALPHA1)
-                            .addTerm(a1);
-                } else {
-                    //TODO
-                }
+                EquationTerm<DcVariableType, DcEquationType> a1 = equationSystem.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1)
+                        .createTerm();
+                branch.setA1(a1);
+                equationSystem.createEquation(branch, DcEquationType.BRANCH_TARGET_ALPHA1)
+                        .addTerm(a1);
             }
             if (creationParameters.isUpdateFlows()) {
                 branch.setP1(p1);
@@ -115,12 +107,17 @@ public class DcEquationSystemCreator {
         }
     }
 
+    protected static boolean isDeriveA1(LfBranch branch, DcEquationSystemCreationParameters creationParameters) {
+        return branch.isPhaseController()
+                || creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControllerCapability() && branch.isConnectedAtBothSides();
+    }
+
     private void createBranches(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (branch.isZeroImpedance(true)) {
-                createNonImpedantBranch(equationSystem, branch, bus1, bus2, branch.isSpanningTreeEdge(true));
+            if (branch.isZeroImpedance(LoadFlowModel.DC)) {
+                createNonImpedantBranch(equationSystem, branch, bus1, bus2, branch.isSpanningTreeEdge(LoadFlowModel.DC));
             } else {
                 createImpedantBranch(equationSystem, creationParameters, branch, bus1, bus2);
             }

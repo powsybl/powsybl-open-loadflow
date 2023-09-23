@@ -211,13 +211,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, ControlledSide side, LfBus controllerBus,
-                                                         double targetQ) {
-        ReactivePowerControl control = new ReactivePowerControl(controlledBranch, side, controllerBus, targetQ);
-        controllerBus.setReactivePowerControl(control);
-        controlledBranch.setReactivePowerControl(control);
-    }
-
     private static void createReactivePowerControls(List<LfBus> lfBuses) {
         for (LfBus controllerBus : lfBuses) {
             List<LfGenerator> generators = controllerBus.getGenerators().stream()
@@ -231,17 +224,33 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 if (generators.size() == 1) {
                     LfGenerator lfGenerator = generators.get(0);
                     LfBranch controlledBranch = lfGenerator.getControlledBranch();
-                    Optional<ReactivePowerControl> control = controlledBranch.getReactivePowerControl();
-                    if (control.isPresent()) {
-                        LOGGER.warn("Branch {} is remotely controlled by a generator: no new remote reactive control created", controlledBranch.getId());
-                    } else {
-                        createRemoteReactivePowerControl(lfGenerator.getControlledBranch(), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
-                    }
+                    createRemoteReactivePowerControl(controllerBus, lfGenerator, controlledBranch);
                 } else { // generators.size() > 1 (as > 0 and not equal to 1)
                     LOGGER.warn("Bus {} has more than one generator controlling reactive power remotely: not yet supported", controllerBus.getId());
                 }
             }
         }
+    }
+
+    private static void createRemoteReactivePowerControl(LfBus controllerBus, LfGenerator lfGenerator, LfBranch controlledBranch) {
+        if (controlledBranch == null) {
+            LOGGER.warn("Controlled branch of generator '{}' is out of voltage or in a different synchronous component: remote reactive power control discarded", lfGenerator.getId());
+            return;
+        }
+        if (!controlledBranch.isConnectedAtBothSides()) {
+            LOGGER.warn("Controlled branch '{}' must be connected at both sides: remote reactive power control discarded", controlledBranch.getId());
+            return;
+        }
+        Optional<ReactivePowerControl> optionalControl = controlledBranch.getReactivePowerControl();
+        if (optionalControl.isPresent()) {
+            LOGGER.warn("Branch {} is already remotely controlled by a generator: no new remote reactive control created", controlledBranch.getId());
+            return;
+        }
+        ControlledSide side = lfGenerator.getControlledBranchSide();
+        double targetQ = lfGenerator.getRemoteTargetQ();
+        ReactivePowerControl control = new ReactivePowerControl(controlledBranch, side, controllerBus, targetQ);
+        controllerBus.setReactivePowerControl(control);
+        controlledBranch.setReactivePowerControl(control);
     }
 
     private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,
@@ -342,7 +351,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.trace("Discard branch '{}' because connected to same bus at both ends", lfBranch.getId());
             report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds++;
         } else {
-            if (lfBranch.isZeroImpedance(true) || lfBranch.isZeroImpedance(false)) {
+            if (Arrays.stream(LoadFlowModel.values()).anyMatch(lfBranch::isZeroImpedance)) {
                 LOGGER.trace("Branch {} is non impedant", lfBranch.getId());
                 report.nonImpedantBranches++;
             }
@@ -360,17 +369,30 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
+        Set<String> visitedDanglingLinesIds = new HashSet<>();
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
-            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
-            lfNetwork.addBus(lfBus2);
-            lfBuses.add(lfBus2);
-            LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
-            LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
-            addBranch(lfNetwork, lfBranch, report);
-            postProcessors.forEach(pp -> {
-                pp.onBusAdded(danglingLine, lfBus2);
-                pp.onBranchAdded(danglingLine, lfBranch);
-            });
+            danglingLine.getTieLine().ifPresentOrElse(tieLine -> {
+                if (!visitedDanglingLinesIds.contains(danglingLine.getId())) {
+                    LfBus lfBus1 = getLfBus(tieLine.getDanglingLine1().getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBus lfBus2 = getLfBus(tieLine.getDanglingLine2().getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
+                    addBranch(lfNetwork, lfBranch, report);
+                    postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
+                    visitedDanglingLinesIds.add(tieLine.getDanglingLine1().getId());
+                    visitedDanglingLinesIds.add(tieLine.getDanglingLine2().getId());
+                }
+            }, () -> {
+                    LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
+                    lfNetwork.addBus(lfBus2);
+                    lfBuses.add(lfBus2);
+                    LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
+                    addBranch(lfNetwork, lfBranch, report);
+                    postProcessors.forEach(pp -> {
+                        pp.onBusAdded(danglingLine, lfBus2);
+                        pp.onBranchAdded(danglingLine, lfBranch);
+                    });
+                });
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
@@ -635,14 +657,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
         List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
                 .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS
-                        || (pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName())))
+                        || pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName()))
                 .collect(Collectors.toList());
 
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters, postProcessors);
 
-        if (!parameters.isDc()) {
+        if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);
             if (parameters.isReactivePowerRemoteControl()) {
                 createReactivePowerControls(lfBuses);
@@ -712,7 +734,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             Path debugDir = DebugUtil.getDebugDir(parameters.getDebugDir());
             String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
             lfNetwork.writeJson(debugDir.resolve("lfnetwork-" + dateStr + ".json"));
-            lfNetwork.writeGraphViz(debugDir.resolve("lfnetwork-" + dateStr + ".dot"), parameters.isDc());
+            lfNetwork.writeGraphViz(debugDir.resolve("lfnetwork-" + dateStr + ".dot"), parameters.getLoadFlowModel());
         }
 
         return lfNetwork;
@@ -738,9 +760,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                             .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                             .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
                             .collect(Collectors.toCollection((Supplier<Set<LfBus>>) LinkedHashSet::new));
-                    if (controlledBuses.size() != controlZone.getControlUnits().size()) {
-                        LOGGER.debug("{}/{} control units have been mapped to a LF bus", controlledBuses.size(), controlZone.getControlUnits().size());
-                    }
+                    LOGGER.debug("{} control units of control zone '{}' have been mapped to a {} LF buses",
+                            controlZone.getControlUnits().size(), controlZone.getName(), controlledBuses.size());
                     if (!controlledBuses.isEmpty()) {
                         var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, controlledBuses);
                         lfNetwork.addSecondaryVoltageControl(lfSvc);

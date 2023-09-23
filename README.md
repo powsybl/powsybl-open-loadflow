@@ -82,12 +82,12 @@ dependencies to respectively have access to network model, IEEE test networks an
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>5.2.0</version>
+    <version>5.3.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>5.2.0</version>
+    <version>5.3.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
@@ -106,7 +106,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
@@ -134,3 +134,10 @@ We can always increase or improves features and implementations. We have thought
 
 
 For more details, to report bugs or if you need more features, visit our [github](https://github.com/powsybl/powsybl-open-loadflow/issues) and do not hesitate to write new issues.
+
+
+## Using Maven Wrapper
+If you don't have a proper Maven installation, you could use the provided Apache Maven Wrapper scripts.
+They will download a compatible maven distribution and use it automatically.
+
+You can see the [Using Maven Wrapper](https://github.com/powsybl/powsybl-core/tree/main#using-maven-wrapper) section of the [powsybl-core](https://github.com/powsybl/powsybl-core) documentation if you want further information on this subject.

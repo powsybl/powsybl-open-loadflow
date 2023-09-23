@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +21,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractLfGenerator extends AbstractPropertyBag implements LfGenerator {
+public abstract class AbstractLfGenerator extends AbstractLfInjection implements LfGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
 
@@ -29,10 +30,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected static final double DEFAULT_DROOP = 4; // why not
 
     protected final LfNetwork network;
-
-    protected double initialTargetP;
-
-    protected double targetP;
 
     protected LfBus bus;
 
@@ -52,10 +49,11 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     private boolean disabled;
 
+    protected LfAsymGenerator asym;
+
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
+        super(targetP, targetP);
         this.network = Objects.requireNonNull(network);
-        this.targetP = targetP;
-        this.initialTargetP = targetP;
     }
 
     @Override
@@ -74,16 +72,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public boolean isFictitious() {
         return false;
-    }
-
-    @Override
-    public double getInitialTargetP() {
-        return initialTargetP;
-    }
-
-    @Override
-    public double getTargetP() {
-        return targetP;
     }
 
     @Override
@@ -209,7 +197,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
             return;
         }
-        if (!checkTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), parameters, report)) {
+        if (!checkTargetV(getId(), targetV / regulatingTerminal.getVoltageLevel().getNominalV(), regulatingTerminal.getVoltageLevel().getNominalV(), parameters, report)) {
             return;
         }
         this.controlledBusId = controlledBus.getId();
@@ -259,12 +247,15 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         return consistency;
     }
 
-    protected boolean checkTargetV(double targetV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    public static boolean checkTargetV(String generatorId, double targetV, double nominalV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         // check that targetV has a plausible value (wrong nominal voltage issue)
-        if (targetV < parameters.getMinPlausibleTargetVoltage() || targetV > parameters.getMaxPlausibleTargetVoltage()) {
+        if (nominalV > parameters.getMinNominalVoltageTargetVoltageCheck() &&
+                (targetV < parameters.getMinPlausibleTargetVoltage() || targetV > parameters.getMaxPlausibleTargetVoltage())) {
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu: generator voltage control discarded",
-                getId(), targetV);
-            report.generatorsWithInconsistentTargetVoltage++;
+                generatorId, targetV);
+            if (report != null) {
+                report.generatorsWithInconsistentTargetVoltage++;
+            }
             return false;
         }
         return true;
@@ -370,5 +361,15 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public void setDisabled(boolean disabled) {
         this.disabled = disabled;
+    }
+
+    @Override
+    public LfAsymGenerator getAsym() {
+        return asym;
+    }
+
+    @Override
+    public void setAsym(LfAsymGenerator asym) {
+        this.asym = asym;
     }
 }

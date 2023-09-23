@@ -23,7 +23,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        double targetV = bus.getHighestPriorityVoltageControl()
+        double targetV = bus.getHighestPriorityMainVoltageControl()
                 .map(Control::getTargetValue)
                 .orElseThrow(() -> new IllegalStateException("No active voltage control has been found for bus '" + bus.getId() + "'"));
         if (bus.hasGeneratorsWithSlope()) {
@@ -106,6 +106,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
             case DUMMY_TARGET_P:
             case DUMMY_TARGET_Q:
             case BUS_DISTR_SLACK_P:
+            case BUS_TARGET_IX_ZERO:
+            case BUS_TARGET_IY_ZERO:
+            case BUS_TARGET_IX_NEGATIVE:
+            case BUS_TARGET_IY_NEGATIVE:
                 targets[equation.getColumn()] = 0;
                 break;
 

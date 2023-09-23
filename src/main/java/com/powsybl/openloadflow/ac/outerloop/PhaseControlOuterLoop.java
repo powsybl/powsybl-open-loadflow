@@ -7,10 +7,15 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2CurrentMagnitudeEquationTerm;
+import com.powsybl.openloadflow.lf.outerloop.AbstractPhaseControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,17 +26,21 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class PhaseControlOuterLoop extends AbstractPhaseControlOuterLoop {
+public class PhaseControlOuterLoop
+        extends AbstractPhaseControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
+        implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PhaseControlOuterLoop.class);
 
+    public static final String NAME = "PhaseControl";
+
     @Override
-    public String getType() {
-        return "Phase control";
+    public String getName() {
+        return NAME;
     }
 
     @Override
-    public void initialize(OuterLoopContext context) {
+    public void initialize(AcOuterLoopContext context) {
         List<LfBranch> controllerBranches = getControllerBranches(context.getNetwork());
         for (LfBranch controllerBranch : controllerBranches.stream()
                 .filter(controllerBranch -> controllerBranch.getPhaseControl().orElseThrow().getMode() == TransformerPhaseControl.Mode.CONTROLLER)
@@ -42,7 +51,7 @@ public class PhaseControlOuterLoop extends AbstractPhaseControlOuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         if (context.getIteration() == 0) {
             // at first outer loop iteration:
             // branches with active power control are switched off and taps are rounded
@@ -56,7 +65,7 @@ public class PhaseControlOuterLoop extends AbstractPhaseControlOuterLoop {
         return OuterLoopStatus.STABLE;
     }
 
-    private OuterLoopStatus firstIteration(OuterLoopContext context) {
+    private OuterLoopStatus firstIteration(AcOuterLoopContext context) {
         // all branches with active power control are switched off
         List<LfBranch> controllerBranches = getControllerBranches(context.getNetwork());
         controllerBranches.stream()
@@ -68,7 +77,7 @@ public class PhaseControlOuterLoop extends AbstractPhaseControlOuterLoop {
         return controllerBranches.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
     }
 
-    private OuterLoopStatus nextIteration(OuterLoopContext context) {
+    private OuterLoopStatus nextIteration(AcOuterLoopContext context) {
         // at second outer loop iteration we switch on phase control for branches that are in limiter mode
         // and a current greater than the limit
         // phase control consists in increasing or decreasing tap position to limit the current

@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
+import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -55,6 +56,10 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         }
     }
 
+    public static double calculatePower(boolean useTransformerRatio, PiModel piModel) {
+        return 1d / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
+    }
+
     public Variable<DcVariableType> getPh1Var() {
         return ph1Var;
     }
@@ -72,18 +77,40 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         return calculateSensi(dph1, dph2, da1);
     }
 
-    protected double ph1() {
+    protected double ph1(StateVector sv) {
         return sv.get(ph1Var.getRow());
     }
 
-    protected double ph2() {
+    protected double ph1() {
+        return ph1(sv);
+    }
+
+    protected double ph2(StateVector sv) {
         return sv.get(ph2Var.getRow());
+    }
+
+    protected double ph2() {
+        return ph2(sv);
     }
 
     protected abstract double calculateSensi(double ph1, double ph2, double a1);
 
-    protected double a1() {
+    @Override
+    public double eval() {
+        return calculateSensi(ph1(), ph2(), a1());
+    }
+
+    @Override
+    public double eval(StateVector sv) {
+        return calculateSensi(ph1(sv), ph2(sv), a1(sv));
+    }
+
+    protected double a1(StateVector sv) {
         return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
+    }
+
+    protected double a1() {
+        return a1(sv);
     }
 
     @Override

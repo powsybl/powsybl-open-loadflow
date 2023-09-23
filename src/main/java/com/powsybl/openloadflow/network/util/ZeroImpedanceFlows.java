@@ -6,20 +6,12 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.powsybl.openloadflow.network.*;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Luma Zamarreño <zamarrenolm at aia.es>
@@ -29,24 +21,24 @@ public class ZeroImpedanceFlows {
 
     private final Graph<LfBus, LfBranch> graph;
     private final SpanningTreeAlgorithm.SpanningTree<LfBranch> tree;
-    private final boolean dc;
+    private final LoadFlowModel loadFlowModel;
 
     public ZeroImpedanceFlows(Graph<LfBus, LfBranch> zeroImpedanceSubGraph, SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree,
-                              boolean dc) {
+                              LoadFlowModel loadFlowModel) {
         this.graph = zeroImpedanceSubGraph;
         this.tree = spanningTree;
-        this.dc = dc;
+        this.loadFlowModel = loadFlowModel;
     }
 
     public void compute() {
         Set<LfBus> processed = new HashSet<>();
 
-        graph.vertexSet().forEach(lfBus -> {
+        graph.vertexSet().stream().sorted(Comparator.comparingInt(LfElement::getNum)).forEach(lfBus -> {
             if (processed.contains(lfBus)) {
                 return;
             }
             TreeByLevels treeByLevels = new TreeByLevels(graph, tree, lfBus);
-            treeByLevels.updateFlows(dc);
+            treeByLevels.updateFlows(loadFlowModel);
             processed.addAll(treeByLevels.getProcessedLfBuses());
         });
 
@@ -107,7 +99,7 @@ public class ZeroImpedanceFlows {
             return branch.getBus1().equals(bus) ? branch.getBus2() : branch.getBus1();
         }
 
-        private void updateFlows(boolean dc) {
+        private void updateFlows(LoadFlowModel loadFlowModel) {
             Map<LfBus, PQ> descendantZeroImpedanceFlow = new HashMap<>();
 
             // traverse the tree from leaves to root
@@ -115,7 +107,7 @@ public class ZeroImpedanceFlows {
             int level = levels.size() - 1;
             while (level >= 1) {
                 levels.get(level).forEach(bus -> {
-                    PQ balance = balanceWithImpedance(bus, dc);
+                    PQ balance = balanceWithImpedance(bus, loadFlowModel);
                     PQ z0flow = getDescendantZeroImpedanceFlow(descendantZeroImpedanceFlow, bus);
                     PQ branchFlow = balance.add(z0flow);
 
@@ -127,15 +119,18 @@ public class ZeroImpedanceFlows {
             }
         }
 
-        private PQ balanceWithImpedance(LfBus bus, boolean dc) {
+        private PQ balanceWithImpedance(LfBus bus, LoadFlowModel loadFlowModel) {
             // balance considering injections and flow from lines with impedance
 
+            double pShunt = getPShunt(bus.getShunt()) + getPShunt(bus.getControllerShunt()) + getPShunt(bus.getSvcShunt());
+            double qShunt = getQShunt(bus.getShunt()) + getQShunt(bus.getControllerShunt()) + getQShunt(bus.getSvcShunt());
+
             // take care of the sign
-            PQ balancePQ = new PQ(-bus.getP().eval(), -bus.getQ().eval());
+            PQ balancePQ = new PQ(-bus.getP().eval() + pShunt, -bus.getQ().eval() + qShunt);
 
             // only lines with impedance
             List<LfBranch> adjacentBranchesWithImpedance = bus.getBranches().stream()
-                .filter(branch -> !branch.isZeroImpedance(dc)).collect(Collectors.toList());
+                .filter(branch -> !branch.isZeroImpedance(loadFlowModel)).collect(Collectors.toList());
 
             adjacentBranchesWithImpedance.forEach(branch -> {
                 PQ branchFlow = getBranchFlow(branch, bus);
@@ -144,6 +139,14 @@ public class ZeroImpedanceFlows {
             });
 
             return balancePQ;
+        }
+
+        private static double getPShunt(Optional<LfShunt> optionalLfShunt) {
+            return optionalLfShunt.map(shunt -> shunt.getP().eval()).filter(val -> !Double.isNaN(val)).orElse(0.0);
+        }
+
+        private static double getQShunt(Optional<LfShunt> optionalLfShunt) {
+            return optionalLfShunt.map(shunt -> shunt.getQ().eval()).filter(val -> !Double.isNaN(val)).orElse(0.0);
         }
 
         private PQ getDescendantZeroImpedanceFlow(Map<LfBus, PQ> descendantZeroImpedanceFlow, LfBus bus) {

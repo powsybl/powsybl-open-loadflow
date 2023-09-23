@@ -28,6 +28,9 @@ import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -100,13 +103,20 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
     }
 
+    private GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory(OpenLoadFlowParameters parametersExt) {
+        return parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
+                ? new NaiveGraphConnectivityFactory<>(LfBus::getNum)
+                : connectivityFactory;
+    }
+
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory);
+        GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = getConnectivityFactory(parametersExt);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
         acParameters.getNewtonRaphsonParameters()
                 .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getType).collect(Collectors.toList()));
+            LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getName).collect(Collectors.toList()));
         }
 
         List<AcLoadFlowResult> results;
@@ -128,18 +138,19 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
         for (AcLoadFlowResult result : results) {
             // update network state
-            if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED || parametersExt.isAlwaysUpdateNetwork()) {
+            if (result.isOk() || parametersExt.isAlwaysUpdateNetwork()) {
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
                                                                           parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
                                                                           parameters.isDc(),
-                                                                          acParameters.getNetworkParameters().isBreakers());
+                                                                          acParameters.getNetworkParameters().isBreakers(),
+                                                                          parametersExt.getReactivePowerDispatchMode());
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
-                computeZeroImpedanceFlows(result.getNetwork(), false);
+                computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.AC);
             }
 
             LoadFlowResult.ComponentResult.Status status = convertStatus(result);
@@ -157,9 +168,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private void computeZeroImpedanceFlows(LfNetwork network, boolean dc) {
-        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(dc)) {
-            new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), dc)
+    private void computeZeroImpedanceFlows(LfNetwork network, LoadFlowModel loadFlowModel) {
+        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(loadFlowModel)) {
+            new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), loadFlowModel)
                     .compute();
         }
     }
@@ -191,11 +202,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       parameters.isTransformerVoltageControlOn(),
                                                                       false,
                                                                       true,
-                                                                      breakers);
+                                                                      breakers,
+                                                                      ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
-            computeZeroImpedanceFlows(result.getNetwork(), true);
+            computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.DC);
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(

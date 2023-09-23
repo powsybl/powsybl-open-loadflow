@@ -26,10 +26,10 @@
            Iteration 2 mismatch on TargetQ: 1.0873067915362356E-5, Bus Id: 'VLHV2_0', Bus V: 1.0261840057810543, Bus Phi: -0.0611984592137325
            Iteration 2 mismatch on TargetV: 0.0, Bus Id: 'VLGEN_0', Bus V: 1.0208333333333333, Bus Phi: 0.04069359966489529
            Norm |f(x)|=2.0034253596371782E-5
-      + Outer loop Distributed slack on generation
+      + Outer loop DistributedSlack
          Iteration 0: slack bus active power (-1.4404045651219555 MW) distributed in 1 iterations
          Iteration 1: already balanced
-      + Newton Raphson on Network CC0 SC0 || Outer loop iteration 1 and type `Distributed slack on generation`
+      + Newton Raphson on Network CC0 SC0 || Outer loop iteration 1 and type `DistributedSlack`
         + Initial mismatch
            Initial mismatch on TargetP: 0.014405609240325745, Bus Id: 'VLGEN_0', Bus V: 1.0208333333333333, Bus Phi: 0.04069359966489529
            Initial mismatch on TargetQ: 1.0873067915362356E-5, Bus Id: 'VLHV2_0', Bus V: 1.0261840057810543, Bus Phi: -0.0611984592137325
@@ -40,9 +40,9 @@
            Iteration 0 mismatch on TargetQ: 7.02222821225007E-7, Bus Id: 'VLHV1_0', Bus V: 1.058270597695305, Bus Phi: -1.0929937937293232E-22
            Iteration 0 mismatch on TargetV: 0.0, Bus Id: 'VLGEN_0', Bus V: 1.0208333333333333, Bus Phi: 0.040596030807101224
            Norm |f(x)|=7.102239009042218E-7
-      + Outer loop Voltage monitoring
-      + Outer loop Reactive limits
-      + Outer loop Distributed slack on generation
+      + Outer loop VoltageMonitoring
+      + Outer loop ReactiveLimits
+      + Outer loop DistributedSlack
          Iteration 1: already balanced
-      + Outer loop Voltage monitoring
-      + Outer loop Reactive limits
+      + Outer loop VoltageMonitoring
+      + Outer loop ReactiveLimits

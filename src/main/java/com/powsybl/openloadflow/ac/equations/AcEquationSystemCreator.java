@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
  */
 public class AcEquationSystemCreator {
 
-    private final LfNetwork network;
+    protected final LfNetwork network;
 
-    private final AcEquationSystemCreationParameters creationParameters;
+    protected final AcEquationSystemCreationParameters creationParameters;
 
     public AcEquationSystemCreator(LfNetwork network) {
         this(network, new AcEquationSystemCreationParameters());
@@ -33,7 +33,7 @@ public class AcEquationSystemCreator {
         this.creationParameters = Objects.requireNonNull(creationParameters);
     }
 
-    private void createBusEquation(LfBus bus,
+    protected void createBusEquation(LfBus bus,
                                    EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         var p = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P);
         bus.setP(p);
@@ -109,8 +109,8 @@ public class AcEquationSystemCreator {
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
     }
 
-    private static void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                 boolean deriveA1, boolean deriveR1) {
+    protected static void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                    boolean deriveA1, boolean deriveR1) {
         if (bus1 != null && bus2 != null) {
             branch.getReactivePowerControl().ifPresent(rpc -> {
                 EquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == ControlledSide.ONE
@@ -143,6 +143,7 @@ public class AcEquationSystemCreator {
         shunt.setQ(q);
         ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
+        shunt.setP(p);
     }
 
     private static void createShuntEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
@@ -206,80 +207,62 @@ public class AcEquationSystemCreator {
         List<T> controllerElements = voltageControl.getMergedControllerElements()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
-                .collect(Collectors.toList());
+                .toList();
 
         Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
         List<Equation<AcVariableType, AcEquationType>> vEqMergedList = voltageControl.getMergedDependentVoltageControls().stream()
                 .map(vc -> equationSystem.getEquation(vc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow())
-                .collect(Collectors.toList());
+                .toList();
 
-        if (controlledBus.isDisabled()) {
-            // we disable all voltage control equations
-            vEq.setActive(false);
+        if (voltageControl.isHidden()) {
+            voltageControl.findMainVisibleControlledBus().ifPresentOrElse(mainVisibleControlledBus -> {
+                if (mainVisibleControlledBus != voltageControl.getControlledBus()) {
+                    vEq.setActive(false);
+                }
+            }, () -> vEq.setActive(false));
             for (T controllerElement : controllerElements) {
                 equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                        .orElseThrow()
-                        .setActive(false);
+                        .ifPresent(eq -> eq.setActive(false));
                 equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
                         .orElseThrow()
-                        .setActive(!controllerElement.isDisabled());
+                        .setActive(true);
             }
         } else {
-            if (voltageControl.isHidden()) {
-                for (T controllerElement : controllerElements) {
-                    equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                            .orElseThrow()
-                            .setActive(false);
-                    equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
-                            .orElseThrow()
-                            .setActive(true);
-                }
-            } else {
-                List<T> enabledControllerElements = controllerElements.stream()
-                        .filter(voltageControl::isControllerEnabled).collect(Collectors.toList());
-                List<T> disabledControllerElements = controllerElements.stream()
-                        .filter(Predicate.not(voltageControl::isControllerEnabled)).collect(Collectors.toList());
+            List<T> enabledControllerElements = controllerElements.stream()
+                    .filter(voltageControl::isControllerEnabled).toList();
+            List<T> disabledControllerElements = controllerElements.stream()
+                    .filter(Predicate.not(voltageControl::isControllerEnabled)).toList();
 
-                // activate voltage control at controlled bus only if at least one controller element is enabled
-                vEq.setActive(!enabledControllerElements.isEmpty());
+            // activate voltage control at controlled bus only if at least one controller element is enabled
+            vEq.setActive(!enabledControllerElements.isEmpty());
 
-                // deactivate voltage control for merged controlled buses
-                for (var vEqMerged : vEqMergedList) {
-                    vEqMerged.setActive(false);
-                }
+            // deactivate voltage control for merged controlled buses
+            for (var vEqMerged : vEqMergedList) {
+                vEqMerged.setActive(false);
+            }
 
-                // deactivate distribution equations and reactivate control equations
-                for (T controllerElement : disabledControllerElements) {
-                    equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                            .orElseThrow()
-                            .setActive(false);
-                    equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
-                            .orElseThrow()
-                            .setActive(true);
-                }
+            // deactivate distribution equations and reactivate control equations
+            for (T controllerElement : disabledControllerElements) {
+                equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+                        .ifPresent(eq -> eq.setActive(false));
+                equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+                        .orElseThrow()
+                        .setActive(true);
+            }
 
-                // activate distribution equation and deactivate control equation at all enabled controller buses except one (first)
-                for (int i = 0; i < enabledControllerElements.size(); i++) {
-                    boolean active = i != 0;
-                    T controllerElement = enabledControllerElements.get(i);
-                    equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                            .orElseThrow()
-                            .setActive(active);
-                    equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
-                            .orElseThrow()
-                            .setActive(false);
-                }
+            // activate distribution equation and deactivate control equation at all enabled controller buses except one (first)
+            for (int i = 0; i < enabledControllerElements.size(); i++) {
+                boolean active = i != 0;
+                T controllerElement = enabledControllerElements.get(i);
+                equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+                        .ifPresent(eq -> eq.setActive(active));
+                equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+                        .orElseThrow()
+                        .setActive(false);
             }
         }
-    }
-
-    static void updateRemoteGeneratorVoltageControlEquations(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // ensure reactive keys are up-to-date
-        voltageControl.updateReactiveKeys();
-
-        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
     }
 
     private static List<EquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus,
@@ -288,8 +271,8 @@ public class AcEquationSystemCreator {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm<AcVariableType, AcEquationType> q;
-            if (branch.isZeroImpedance(false)) {
-                if (!branch.isSpanningTreeEdge(false)) {
+            if (branch.isZeroImpedance(LoadFlowModel.AC)) {
+                if (!branch.isSpanningTreeEdge(LoadFlowModel.AC)) {
                     continue;
                 }
                 if (branch.getBus1() == controllerBus) {
@@ -326,26 +309,11 @@ public class AcEquationSystemCreator {
 
     public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         checkNotDependentVoltageControl(voltageControl);
-        LfBus controlledBus = voltageControl.getControlledBus();
-        if (voltageControl.isLocalControl()) {
-            if (voltageControl.isHidden()) {
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                        .orElseThrow()
-                        .setActive(false);
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
-                        .orElseThrow()
-                        .setActive(false);
-            } else {
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                        .orElseThrow()
-                        .setActive(controlledBus.isGeneratorVoltageControlEnabled());
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
-                        .orElseThrow()
-                        .setActive(!controlledBus.isGeneratorVoltageControlEnabled());
-            }
-        } else {
-            updateRemoteGeneratorVoltageControlEquations(voltageControl, equationSystem);
-        }
+
+        // ensure reactive keys are up-to-date
+        voltageControl.updateReactiveKeys();
+
+        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
     }
 
     private static <T extends LfElement> void checkNotDependentVoltageControl(VoltageControl<T> voltageControl) {
@@ -433,8 +401,8 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private static void createTransformerPhaseControlEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                               boolean deriveA1, boolean deriveR1) {
+    protected static void createTransformerPhaseControlEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                 boolean deriveA1, boolean deriveR1) {
         if (deriveA1) {
             EquationTerm<AcVariableType, AcEquationType> a1 = equationSystem.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1)
                     .createTerm();
@@ -465,17 +433,17 @@ public class AcEquationSystemCreator {
         LfBranch controlledBranch = phaseControl.getControlledBranch();
 
         if (phaseControl.getMode() == Mode.CONTROLLER) {
-            boolean enabled = !controllerBranch.isDisabled() && !controlledBranch.isDisabled();
+            boolean controlEnabled = !controllerBranch.isDisabled() && !controlledBranch.isDisabled() && controllerBranch.isPhaseControlEnabled();
 
             // activate/de-activate phase control equation
             equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_P)
                     .orElseThrow()
-                    .setActive(enabled && controllerBranch.isPhaseControlEnabled());
+                    .setActive(controlEnabled);
 
             // de-activate/activate constant A1 equation
             equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
                     .orElseThrow()
-                    .setActive(enabled && !controllerBranch.isPhaseControlEnabled());
+                    .setActive(!controlEnabled && !controllerBranch.isDisabled());
         } else {
             equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
                     .orElseThrow()
@@ -591,17 +559,17 @@ public class AcEquationSystemCreator {
         updateShuntVoltageControlEquations(voltageControl, equationSystem);
     }
 
-    private static boolean isDeriveA1(LfBranch branch, AcEquationSystemCreationParameters creationParameters) {
+    protected static boolean isDeriveA1(LfBranch branch, AcEquationSystemCreationParameters creationParameters) {
         return branch.isPhaseController()
-                || (creationParameters.isForceA1Var() && branch.hasPhaseControllerCapability() && branch.isConnectedAtBothSides());
+                || creationParameters.isForceA1Var() && branch.hasPhaseControllerCapability() && branch.isConnectedAtBothSides();
     }
 
-    private static boolean isDeriveR1(LfBranch branch) {
+    protected static boolean isDeriveR1(LfBranch branch) {
         return branch.isVoltageController();
     }
 
-    private void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
-                                      EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
+                                        EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> q1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
@@ -627,6 +595,17 @@ public class AcEquationSystemCreator {
             i2 = new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
         }
 
+        createBranchEquations(branch, bus1, bus2, equationSystem, p1, q1, p2, q2, i1, i2);
+
+        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+
+        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+    }
+
+    protected static void createBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                EquationTerm<AcVariableType, AcEquationType> p1, EquationTerm<AcVariableType, AcEquationType> q1,
+                                                EquationTerm<AcVariableType, AcEquationType> p2, EquationTerm<AcVariableType, AcEquationType> q2,
+                                                EquationTerm<AcVariableType, AcEquationType> i1, EquationTerm<AcVariableType, AcEquationType> i2) {
         if (p1 != null) {
             equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
                     .orElseThrow()
@@ -661,10 +640,6 @@ public class AcEquationSystemCreator {
             equationSystem.attach(i2);
             branch.setI2(i2);
         }
-
-        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
-
-        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
     }
 
     private static void createHvdcAcEmulationEquations(LfHvdc hvdc, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
@@ -694,8 +669,8 @@ public class AcEquationSystemCreator {
     private void createBranchEquations(LfBranch branch,
                                        EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         // create zero and non zero impedance branch equations
-        if (branch.isZeroImpedance(false)) {
-            createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem, branch.isSpanningTreeEdge(false));
+        if (branch.isZeroImpedance(LoadFlowModel.AC)) {
+            createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem, branch.isSpanningTreeEdge(LoadFlowModel.AC));
         } else {
             createImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem);
         }
@@ -711,8 +686,8 @@ public class AcEquationSystemCreator {
                                                                                           VariableSet<AcVariableType> variableSet) {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : bus.getBranches()) {
-            if (branch.isZeroImpedance(false)) {
-                if (branch.isSpanningTreeEdge(false)) {
+            if (branch.isZeroImpedance(LoadFlowModel.AC)) {
+                if (branch.isSpanningTreeEdge(LoadFlowModel.AC)) {
                     EquationTerm<AcVariableType, AcEquationType> p = variableSet.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
                     if (branch.getBus2() == bus) {
                         p = p.minus();

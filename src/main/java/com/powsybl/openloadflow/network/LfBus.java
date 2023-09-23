@@ -17,6 +17,11 @@ import java.util.*;
  */
 public interface LfBus extends LfElement {
 
+    enum QLimitType {
+        MIN_Q,
+        MAX_Q
+    }
+
     String getVoltageLevelId();
 
     boolean isFictitious();
@@ -39,16 +44,17 @@ public interface LfBus extends LfElement {
      */
     boolean isVoltageControlled();
 
+    boolean isVoltageControlled(VoltageControl.Type type);
+
+    Optional<VoltageControl<?>> getVoltageControl(VoltageControl.Type type);
+
     /**
      * Get the highest priority voltage control connected to a bus of the zero impedance subgraph to which this bus
      * belong.
      */
-    Optional<VoltageControl<?>> getHighestPriorityVoltageControl();
+    Optional<VoltageControl<?>> getHighestPriorityMainVoltageControl();
 
     // generator voltage control
-
-    boolean hasGeneratorVoltageControllerCapability();
-
     Optional<GeneratorVoltageControl> getGeneratorVoltageControl();
 
     void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl);
@@ -77,15 +83,7 @@ public interface LfBus extends LfElement {
 
     double getLoadTargetP();
 
-    double getInitialLoadTargetP();
-
-    void setLoadTargetP(double loadTargetP);
-
     double getLoadTargetQ();
-
-    void setLoadTargetQ(double loadTargetQ);
-
-    boolean ensurePowerFactorConstantByLoad();
 
     void invalidateGenerationTargetP();
 
@@ -98,6 +96,10 @@ public interface LfBus extends LfElement {
     double getMinQ();
 
     double getMaxQ();
+
+    Optional<QLimitType> getQLimitType();
+
+    void setQLimitType(QLimitType qLimitType);
 
     double getV();
 
@@ -133,7 +135,7 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getSvcShunt();
 
-    LfAggregatedLoads getAggregatedLoads();
+    Optional<LfLoad> getLoad();
 
     List<LfBranch> getBranches();
 
@@ -194,7 +196,11 @@ public interface LfBus extends LfElement {
         return Optional.empty();
     }
 
-    void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork);
+    void setZeroImpedanceNetwork(LoadFlowModel loadFlowModel, LfZeroImpedanceNetwork zeroImpedanceNetwork);
 
-    LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc);
+    LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel loadFlowModel);
+
+    LfAsymBus getAsym();
+
+    void setAsym(LfAsymBus asym);
 }

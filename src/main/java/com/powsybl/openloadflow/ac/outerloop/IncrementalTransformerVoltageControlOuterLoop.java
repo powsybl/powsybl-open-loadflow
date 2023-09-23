@@ -8,14 +8,15 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -38,6 +39,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerVoltageControlOuterLoop.class);
 
+    public static final String NAME = "IncrementalTransformerVoltageControl";
+
     public static final int DEFAULT_MAX_TAP_SHIFT = 3;
 
     private static final int MAX_DIRECTION_CHANGE = 2;
@@ -49,18 +52,18 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     @Override
-    public String getType() {
-        return "Incremental transformer voltage control";
+    public String getName() {
+        return NAME;
     }
 
     @Override
-    public void initialize(OuterLoopContext context) {
+    public void initialize(AcOuterLoopContext context) {
         var contextData = new IncrementalContextData();
         context.setData(contextData);
 
         // All transformer voltage control are disabled as in this outer loop voltage adjustment is not
         // done into the equation system
-        for (LfBranch branch : getControllerBranches(context.getNetwork())) {
+        for (LfBranch branch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
             contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
@@ -186,14 +189,14 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         LfNetwork network = context.getNetwork();
-        AcLoadFlowContext loadFlowContext = context.getAcLoadFlowContext();
+        AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfBranch> controllerBranches = getControllerBranches(network);
+        List<LfBranch> controllerBranches = network.getControllerElements(VoltageControl.Type.TRANSFORMER);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
@@ -202,30 +205,28 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         List<String> controlledBusesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
-        List<LfBus> controlledBuses = network.getBuses().stream()
-                .filter(LfBus::isTransformerVoltageControlled)
-                .collect(Collectors.toList());
+        List<LfBus> controlledBuses = network.getControlledBuses(VoltageControl.Type.TRANSFORMER);
 
         controlledBuses.forEach(controlledBus -> {
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
-            if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN) {
-                double diffV = getDiffV(voltageControl);
-                double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-                if (Math.abs(diffV) > halfTargetDeadband) {
-                    controlledBusesOutsideOfDeadband.add(controlledBus.getId());
-                    List<LfBranch> controllers = voltageControl.getMergedControllerElements();
-                    LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
-                            controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
-                    boolean adjusted;
-                    if (controllers.size() == 1) {
-                        adjusted = adjustWithOneController(controllers.get(0), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit);
-                    } else {
-                        adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband, controlledBusesWithAllItsControllersToLimit);
-                    }
-                    if (adjusted) {
-                        controlledBusesAdjusted.add(controlledBus.getId());
-                        status.setValue(OuterLoopStatus.UNSTABLE);
-                    }
+            double diffV = getDiffV(voltageControl);
+            double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+            if (Math.abs(diffV) > halfTargetDeadband) {
+                controlledBusesOutsideOfDeadband.add(controlledBus.getId());
+                List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
+                        .filter(b -> !b.isDisabled())
+                        .collect(Collectors.toList());
+                LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
+                        controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
+                boolean adjusted;
+                if (controllers.size() == 1) {
+                    adjusted = adjustWithOneController(controllers.get(0), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit);
+                } else {
+                    adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband, controlledBusesWithAllItsControllersToLimit);
+                }
+                if (adjusted) {
+                    controlledBusesAdjusted.add(controlledBus.getId());
+                    status.setValue(OuterLoopStatus.UNSTABLE);
                 }
             }
         });

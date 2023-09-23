@@ -135,7 +135,7 @@ class LfBusImplTest {
         lfBus.addStaticVarCompensator(svc2, parameters, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc3, parameters, lfNetworkLoadingReport);
         double generationQ = -6.412103131789854;
-        lfBus.updateGeneratorsState(generationQ, true);
+        lfBus.updateGeneratorsState(generationQ, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
         double sumQ = 0;
         for (LfGenerator lfGenerator : lfBus.getGenerators()) {
             sumQ += lfGenerator.getCalculatedQ();
@@ -144,7 +144,10 @@ class LfBusImplTest {
     }
 
     private static List<LfGenerator> createLfGeneratorsWithInitQ(List<Double> initQs) {
-        Network network = FourSubstationsNodeBreakerFactory.create();
+        return createLfGeneratorsWithInitQ(FourSubstationsNodeBreakerFactory.create(), initQs);
+    }
+
+    private static List<LfGenerator> createLfGeneratorsWithInitQ(Network network, List<Double> initQs) {
         LfNetwork lfNetwork = new LfNetwork(0, 0, new FirstSlackBusSelector(), 1, new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LfNetworkParameters parameters1 = new LfNetworkParameters()
                 .setPlausibleActivePowerLimit(100)
@@ -173,7 +176,7 @@ class LfBusImplTest {
         List<LfGenerator> generators = createLfGeneratorsWithInitQ(Arrays.asList(0d, 0d, 0d));
         LfGenerator generatorToRemove = generators.get(1);
         double qToDispatch = 21;
-        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generators.get(1).getCalculatedQ() + generatorToRemove.getCalculatedQ();
         assertEquals(7.0, generators.get(0).getCalculatedQ());
         assertEquals(7.0, generators.get(1).getCalculatedQ());
@@ -189,7 +192,7 @@ class LfBusImplTest {
         LfGenerator generatorToRemove1 = generators.get(1);
         LfGenerator generatorToRemove2 = generators.get(2);
         double qToDispatch = 20;
-        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove1.getCalculatedQ() + generatorToRemove2.getCalculatedQ();
         assertEquals(1, generators.size());
         assertEquals(qToDispatch + qInitial - totalCalculatedQ, residueQ, 0.0001);
@@ -204,7 +207,7 @@ class LfBusImplTest {
         LfGenerator generatorToRemove2 = generators.get(1);
         LfGenerator generatorToRemove3 = generators.get(2);
         double qToDispatch = -21;
-        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove2.getCalculatedQ() + generatorToRemove3.getCalculatedQ();
         assertEquals(-7.0, generators.get(0).getCalculatedQ());
         assertEquals(1, generators.size());
@@ -217,8 +220,51 @@ class LfBusImplTest {
     void dispatchQEmptyListTest() {
         List<LfGenerator> generators = new ArrayList<>();
         double qToDispatch = -21;
-        Assertions.assertThrows(IllegalArgumentException.class, () -> AbstractLfBus.dispatchQ(generators, true, qToDispatch),
+        Assertions.assertThrows(IllegalArgumentException.class, () -> AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, qToDispatch),
                 "the generator list to dispatch Q can not be empty");
+    }
+
+    @Test
+    void dispatchQwithKequalProportion() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(0.3d, 0.1d, 0.4d));
+        LfGenerator g0 = generators.get(0);
+        LfGenerator g1 = generators.get(1);
+        LfGenerator g2 = generators.get(2);
+        g0.setCalculatedQ(0);
+        g1.setCalculatedQ(0);
+        g2.setCalculatedQ(0);
+        double qToDispatch = 20;
+        double residueQ = AbstractLfBus.dispatchQ(new ArrayList<>(generators), true, ReactivePowerDispatchMode.K_EQUAL_PROPORTION, qToDispatch);
+        assertEquals(0, residueQ, 0);
+        assertEquals(8.537, g0.getCalculatedQ(), 1e-3);
+        assertEquals(4.985, g1.getCalculatedQ(), 1e-3);
+        assertEquals(6.477, g2.getCalculatedQ(), 1e-3);
+        assertEquals(0.91, LfGenerator.qToK(g0, g0.getCalculatedQ()), 1e-3);
+        assertEquals(0.91, LfGenerator.qToK(g1, g1.getCalculatedQ()), 1e-3);
+        assertEquals(0.91, LfGenerator.qToK(g2, g2.getCalculatedQ()), 1e-3);
+    }
+
+    @Test
+    void dispatchQwithKequalProportionWithFallBack() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        network.getGenerator("GH2").newMinMaxReactiveLimits().setMinQ(-9999).setMaxQ(9999).add();
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(0.3d, 0.1d, 0.4d));
+        LfGenerator g0 = generators.get(0);
+        LfGenerator g1 = generators.get(1);
+        LfGenerator g2 = generators.get(2);
+        g0.setCalculatedQ(0);
+        g1.setCalculatedQ(0);
+        g2.setCalculatedQ(0);
+        double qToDispatch = 20;
+        double residueQ = AbstractLfBus.dispatchQ(new ArrayList<>(generators), true, ReactivePowerDispatchMode.K_EQUAL_PROPORTION, qToDispatch);
+        assertEquals(0, residueQ, 0);
+        assertEquals(6.666, g0.getCalculatedQ(), 1e-3);
+        assertEquals(6.666, g1.getCalculatedQ(), 1e-3);
+        assertEquals(6.666, g2.getCalculatedQ(), 1e-3);
+        assertEquals(0.7, LfGenerator.qToK(g0, g0.getCalculatedQ()), 1e-3);
+        assertEquals(0.066, LfGenerator.qToK(g1, g1.getCalculatedQ()), 1e-3);
+        assertEquals(0.937, LfGenerator.qToK(g2, g2.getCalculatedQ()), 1e-3);
     }
 
     @Test

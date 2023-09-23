@@ -11,10 +11,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
@@ -41,12 +38,13 @@ class NonImpedantBranchWithBreakerIssueTest {
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
                                                                              newtonRaphsonParameters, Collections.emptyList(),
                                                                              AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
-                                                                             new DenseMatrixFactory(), new UniformValueVoltageInitializer());
+                                                                             new DenseMatrixFactory(), new UniformValueVoltageInitializer(),
+                                                                             false);
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
             new AcloadFlowEngine(context)
                     .run();
         }
-        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false));
+        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION));
         for (Bus bus : network.getBusView().getBuses()) {
             assertEquals(400, bus.getV(), 0);
             assertEquals(0, bus.getAngle(), 0);
@@ -65,12 +63,13 @@ class NonImpedantBranchWithBreakerIssueTest {
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
                                                                              newtonRaphsonParameters, Collections.emptyList(),
                                                                              AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
-                                                                             new DenseMatrixFactory(), new UniformValueVoltageInitializer());
+                                                                             new DenseMatrixFactory(), new UniformValueVoltageInitializer(),
+                                                                             false);
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
             new AcloadFlowEngine(context)
                     .run();
         }
-        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false));
+        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION));
         assertEquals(-100, network.getGenerator("G1").getTerminal().getQ(), 0);
         assertEquals(-100, network.getGenerator("G2").getTerminal().getQ(), 0);
     }

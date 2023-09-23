@@ -7,8 +7,8 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.VoltageControl;
@@ -21,6 +21,8 @@ import java.util.List;
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public class TransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
+
+    public static final String NAME = "TransformerVoltageControl";
 
     private static final class ContextData {
 
@@ -42,10 +44,10 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     }
 
     @Override
-    public void initialize(OuterLoopContext context) {
+    public void initialize(AcOuterLoopContext context) {
         context.setData(new ContextData());
 
-        for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
+        for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             controllerBranch.setVoltageControlEnabled(false);
         }
 
@@ -61,12 +63,12 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     }
 
     @Override
-    public String getType() {
-        return "Transformer voltage control";
+    public String getName() {
+        return NAME;
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         final MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         var contextData = (ContextData) context.getData();
@@ -77,22 +79,20 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         // the set controlledNominalVoltages are disabled.
         // The transformer voltage controls are enabled.
         if (context.getIteration() == 0) {
-            for (LfBus bus : context.getNetwork().getBuses()) {
-                if (!bus.isDisabled() && bus.isGeneratorVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
+            for (LfBus bus : context.getNetwork().getControlledBuses(VoltageControl.Type.GENERATOR)) {
+                if (bus.getNominalV() <= maxControlledNominalVoltage) {
                     var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
-                    if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN) {
-                        voltageControl.getMergedControllerElements().forEach(controllerBus -> {
-                            if (controllerBus.isGeneratorVoltageControlEnabled()) {
-                                controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
-                                controllerBus.setGeneratorVoltageControlEnabled(false);
-                                contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
-                            }
-                        });
-                        status.setValue(OuterLoopStatus.UNSTABLE);
-                    }
+                    voltageControl.getMergedControllerElements().forEach(controllerBus -> {
+                        if (controllerBus.isGeneratorVoltageControlEnabled()) {
+                            controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
+                            controllerBus.setGeneratorVoltageControlEnabled(false);
+                            contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
+                        }
+                    });
+                    status.setValue(OuterLoopStatus.UNSTABLE);
                 }
             }
-            for (LfBranch branch : getControllerBranches(context.getNetwork())) {
+            for (LfBranch branch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
                 branch.getVoltageControl().ifPresent(voltageControl -> {
                     double targetV = voltageControl.getTargetValue();
                     double v = voltageControl.getControlledBus().getV();

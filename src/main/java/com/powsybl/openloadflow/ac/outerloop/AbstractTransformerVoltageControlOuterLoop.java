@@ -6,37 +6,34 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.openloadflow.ac.OuterLoop;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.TransformerVoltageControl;
+import com.powsybl.openloadflow.network.VoltageControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public abstract class AbstractTransformerVoltageControlOuterLoop implements OuterLoop {
+public abstract class AbstractTransformerVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTransformerVoltageControlOuterLoop.class);
 
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
-    protected static List<LfBranch> getControllerBranches(LfNetwork network) {
-        return network.getBranches()
-                .stream().filter(branch -> !branch.isDisabled() && branch.isVoltageController())
-                .collect(Collectors.toList());
+    private static final String TYPE = "TransformerVoltageControl";
+
+    @Override
+    public String getType() {
+        return TYPE;
     }
 
-    protected OuterLoopStatus roundVoltageRatios(OuterLoopContext context) {
+    protected OuterLoopStatus roundVoltageRatios(AcOuterLoopContext context) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
-        for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
+        for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             controllerBranch.setVoltageControlEnabled(false);
 
             // round the rho shift to the closest tap

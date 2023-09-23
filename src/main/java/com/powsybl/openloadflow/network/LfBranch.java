@@ -28,7 +28,8 @@ public interface LfBranch extends LfElement {
         TRANSFO_3_LEG_2,
         TRANSFO_3_LEG_3,
         DANGLING_LINE,
-        SWITCH
+        SWITCH,
+        TIE_LINE
     }
 
     class LfLimit {
@@ -155,11 +156,11 @@ public interface LfBranch extends LfElement {
 
     double computeApparentPower2();
 
-    boolean isZeroImpedance(boolean dc);
+    boolean isZeroImpedance(LoadFlowModel loadFlowModel);
 
-    void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge);
+    void setSpanningTreeEdge(LoadFlowModel loadFlowModel, boolean spanningTreeEdge);
 
-    boolean isSpanningTreeEdge(boolean dc);
+    boolean isSpanningTreeEdge(LoadFlowModel loadFlowModel);
 
     Evaluable getA1();
 
@@ -191,4 +192,10 @@ public interface LfBranch extends LfElement {
     boolean isConnectedAtBothSides();
 
     void setMinZ(double lowImpedanceThreshold);
+
+    LfAsymLine getAsymLine();
+
+    void setAsymLine(LfAsymLine asymLine);
+
+    boolean isAsymmetric();
 }

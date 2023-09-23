@@ -69,17 +69,17 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
-    public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
-        LOGGER.trace("onLoadActivePowerTargetChange(busId='{}', oldLoadTargetP={}, newLoadTargetP={})",
-                bus.getId(), oldLoadTargetP, newLoadTargetP);
-        delegate.onLoadActivePowerTargetChange(bus, oldLoadTargetP, newLoadTargetP);
+    public void onLoadActivePowerTargetChange(LfLoad load, double oldTargetP, double newTargetP) {
+        LOGGER.trace("onLoadActivePowerTargetChange(loadId='{}', oldTargetP={}, newTargetP={})",
+                load.getId(), oldTargetP, newTargetP);
+        delegate.onLoadActivePowerTargetChange(load, oldTargetP, newTargetP);
     }
 
     @Override
-    public void onLoadReactivePowerTargetChange(LfBus bus, double oldLoadTargetQ, double newLoadTargetQ) {
-        LOGGER.trace("onLoadReactivePowerTargetChange(busId='{}', oldLoadTargetQ={}, newLoadTargetQ={})",
-                bus.getId(), oldLoadTargetQ, newLoadTargetQ);
-        delegate.onLoadReactivePowerTargetChange(bus, oldLoadTargetQ, newLoadTargetQ);
+    public void onLoadReactivePowerTargetChange(LfLoad load, double oldTargetQ, double newTargetQ) {
+        LOGGER.trace("onLoadReactivePowerTargetChange(busId='{}', oldTargetQ={}, newTargetQ={})",
+                load.getId(), oldTargetQ, newTargetQ);
+        delegate.onLoadReactivePowerTargetChange(load, oldTargetQ, newTargetQ);
     }
 
     @Override
@@ -116,21 +116,21 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
-    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
-        LOGGER.trace("onZeroImpedanceNetworkSpanningTreeChange(branchId='{}', dc={}, spanningTree={})",
-                branch, dc, spanningTree);
-        delegate.onZeroImpedanceNetworkSpanningTreeChange(branch, dc, spanningTree);
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, LoadFlowModel loadFlowModel, boolean spanningTree) {
+        LOGGER.trace("onZeroImpedanceNetworkSpanningTreeChange(branchId='{}', loadFlowModel={}, spanningTree={})",
+                branch, loadFlowModel, spanningTree);
+        delegate.onZeroImpedanceNetworkSpanningTreeChange(branch, loadFlowModel, spanningTree);
     }
 
     @Override
-    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc) {
-        LOGGER.trace("onZeroImpedanceNetworkSplit(initialNetwork={}, splitNetworks={}, dc={})", initialNetwork, splitNetworks, dc);
-        delegate.onZeroImpedanceNetworkSplit(initialNetwork, splitNetworks, dc);
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowModel loadFlowModel) {
+        LOGGER.trace("onZeroImpedanceNetworkSplit(initialNetwork={}, splitNetworks={}, loadFlowModel={})", initialNetwork, splitNetworks, loadFlowModel);
+        delegate.onZeroImpedanceNetworkSplit(initialNetwork, splitNetworks, loadFlowModel);
     }
 
     @Override
-    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc) {
-        LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={}, dc={})", network1, network2, mergedNetwork, dc);
-        delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork, dc);
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel) {
+        LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={}, loadFlowModel={})", network1, network2, mergedNetwork, loadFlowModel);
+        delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork, loadFlowModel);
     }
 }

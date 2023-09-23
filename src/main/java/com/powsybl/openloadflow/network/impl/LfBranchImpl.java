@@ -8,7 +8,9 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfAsymLine;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
@@ -80,7 +82,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 .setB1(b1)
                 .setB2(b2);
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
+        LfBranchImpl lfBranch = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
+        if (parameters.isAsymmetrical()) {
+            createLineAsym(line, zb, piModel, lfBranch);
+        }
+        return lfBranch;
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2,
