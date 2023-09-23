@@ -20,6 +20,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.PerUnit;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,6 +31,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class VoltageMagnitudeInitializerTest {
+
+    private LfNetworkParameters networkParameters;
+
+    @BeforeEach
+    void setUp() {
+        networkParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setPiModelPerUnitNominalVoltageCorrectionMode(PerUnit.PiModelNominalVoltageCorrectionMode.RATIO);
+    }
 
     public static void assertBusVoltage(LfNetwork network, VoltageInitializer initializer, String busId, double vRef, double angleRef) {
         LfBus bus = network.getBusById(busId);
@@ -42,7 +53,7 @@ public class VoltageMagnitudeInitializerTest {
     @Test
     void testEsgTuto1() {
         Network network = EurostagTutorialExample1Factory.create();
-        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
         VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(false, new DenseMatrixFactory(), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "VLGEN_0", 1.020833, 0);
@@ -54,7 +65,7 @@ public class VoltageMagnitudeInitializerTest {
     @Test
     void testIeee14() {
         Network network = IeeeCdfNetworkFactory.create14();
-        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
         VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(false, new DenseMatrixFactory(), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
@@ -77,7 +88,7 @@ public class VoltageMagnitudeInitializerTest {
     void testZeroImpedanceBranch() {
         Network network = IeeeCdfNetworkFactory.create14();
         network.getLine("L9-14-1").setX(0);
-        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
         VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(false, new DenseMatrixFactory(), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
@@ -100,7 +111,7 @@ public class VoltageMagnitudeInitializerTest {
     void testZeroImpedanceBranchConnectedToPvBus() {
         Network network = IeeeCdfNetworkFactory.create14();
         network.getLine("L6-11-1").setX(0);
-        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
         VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(false, new DenseMatrixFactory(), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
@@ -134,7 +145,7 @@ public class VoltageMagnitudeInitializerTest {
                 .setR(0)
                 .setX(newX)
                 .add();
-        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
         VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(false, new DenseMatrixFactory(), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
@@ -156,7 +167,7 @@ public class VoltageMagnitudeInitializerTest {
     @Test
     void testZeroImpedanceLoop() {
         Network network = Importers.importData("XIIDM", new ResourceDataSource("init_v_zero_imp_loop", new ResourceSet("/", "init_v_zero_imp_loop.xiidm")), null);
-        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
         VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(false, new DenseMatrixFactory(), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "B_0", 0.982318, 0);
@@ -184,8 +195,7 @@ public class VoltageMagnitudeInitializerTest {
                 .setTargetDeadband(0)
                 .setRegulationTerminal(twt49.getTerminal2())
                 .add();
-        LfNetworkParameters networkParameters = new LfNetworkParameters()
-                .setTransformerVoltageControl(true);
+        networkParameters.setTransformerVoltageControl(true);
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
         VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(true, new DenseMatrixFactory(), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
         initializer.prepare(lfNetwork);
