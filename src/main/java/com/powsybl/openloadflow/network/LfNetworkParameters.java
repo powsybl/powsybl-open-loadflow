@@ -50,8 +50,8 @@ public class LfNetworkParameters {
 
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
 
-    public static final PerUnit.PiModelNominalVoltageCorrectionMode PI_MODEL_NOMINAL_VOLTAGE_CORRECTION_MODE_DEFAULT_VALUE
-            = PerUnit.PiModelNominalVoltageCorrectionMode.IMPEDANCE;
+    public static final PerUnit.CorrectionMode PER_UNIT_CORRECTION_MODE_DEFAULT_VALUE
+            = PerUnit.CorrectionMode.IMPEDANCE;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
@@ -113,8 +113,8 @@ public class LfNetworkParameters {
 
     private boolean asymmetrical = ASYMMETRICAL_DEFAULT_VALUE;
 
-    private PerUnit.PiModelNominalVoltageCorrectionMode piModelPerUnitNominalVoltageCorrectionMode
-            = PI_MODEL_NOMINAL_VOLTAGE_CORRECTION_MODE_DEFAULT_VALUE;
+    private PerUnit.CorrectionMode perUnitCorrectionMode
+            = PER_UNIT_CORRECTION_MODE_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -151,7 +151,7 @@ public class LfNetworkParameters {
         this.secondaryVoltageControl = other.secondaryVoltageControl;
         this.cacheEnabled = other.cacheEnabled;
         this.asymmetrical = other.asymmetrical;
-        this.piModelPerUnitNominalVoltageCorrectionMode = other.piModelPerUnitNominalVoltageCorrectionMode;
+        this.perUnitCorrectionMode = other.perUnitCorrectionMode;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -434,12 +434,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public PerUnit.PiModelNominalVoltageCorrectionMode getPiModelPerUnitNominalVoltageCorrectionMode() {
-        return piModelPerUnitNominalVoltageCorrectionMode;
+    public PerUnit.CorrectionMode getPerUnitCorrectionMode() {
+        return perUnitCorrectionMode;
     }
 
-    public LfNetworkParameters setPiModelPerUnitNominalVoltageCorrectionMode(PerUnit.PiModelNominalVoltageCorrectionMode piModelPerUnitNominalVoltageCorrectionMode) {
-        this.piModelPerUnitNominalVoltageCorrectionMode = Objects.requireNonNull(piModelPerUnitNominalVoltageCorrectionMode);
+    public LfNetworkParameters setPerUnitCorrectionMode(PerUnit.CorrectionMode perUnitCorrectionMode) {
+        this.perUnitCorrectionMode = Objects.requireNonNull(perUnitCorrectionMode);
         return this;
     }
 
@@ -475,7 +475,7 @@ public class LfNetworkParameters {
                 ", cacheEnabled=" + cacheEnabled +
                 ", asymmetrical=" + asymmetrical +
                 ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
-                ", piModelPerUnitNominalVoltageCorrectionMode=" + piModelPerUnitNominalVoltageCorrectionMode +
+                ", piModelPerUnitNominalVoltageCorrectionMode=" + perUnitCorrectionMode +
                 ')';
     }
 }

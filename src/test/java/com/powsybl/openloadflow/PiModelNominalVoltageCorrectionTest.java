@@ -38,11 +38,11 @@ class PiModelNominalVoltageCorrectionTest {
     }
 
     @ParameterizedTest(name = "{index} => piModelNominalVoltageCorrectionMode=''{0}''")
-    @EnumSource(PerUnit.PiModelNominalVoltageCorrectionMode.class)
-    void testAc(PerUnit.PiModelNominalVoltageCorrectionMode piModelNominalVoltageCorrectionMode) {
+    @EnumSource(PerUnit.CorrectionMode.class)
+    void testAc(PerUnit.CorrectionMode correctionMode) {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setPiModelPerUnitNominalVoltageCorrectionMode(piModelNominalVoltageCorrectionMode);
+                .setPerUnitCorrectionMode(correctionMode);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -77,13 +77,13 @@ class PiModelNominalVoltageCorrectionTest {
     }
 
     @ParameterizedTest(name = "{index} => piModelNominalVoltageCorrectionMode=''{0}''")
-    @EnumSource(PerUnit.PiModelNominalVoltageCorrectionMode.class)
-    void testDc(PerUnit.PiModelNominalVoltageCorrectionMode piModelNominalVoltageCorrectionMode) {
+    @EnumSource(PerUnit.CorrectionMode.class)
+    void testDc(PerUnit.CorrectionMode correctionMode) {
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setDc(true)
                 .setDcUseTransformerRatio(true);
         OpenLoadFlowParameters.create(parameters)
-                .setPiModelPerUnitNominalVoltageCorrectionMode(piModelNominalVoltageCorrectionMode);
+                .setPerUnitCorrectionMode(correctionMode);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());

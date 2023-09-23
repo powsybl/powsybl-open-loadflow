@@ -199,8 +199,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     static final String OUTER_LOOP_NAMES_PARAM_NAME = "outerLoopNames";
 
-    private static final String PI_MODEL_PER_UNIT_NOMINAL_VOLTAGE_CORRECTION_MODE_PARAM_NAME
-            = "piModelPerUnitNominalVoltageCorrectionMode";
+    private static final String PER_UNIT_CORRECTION_MODE_PARAM_NAME = "perUnitCorrectionMode";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -255,7 +254,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage for target voltage check", LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE),
         new Parameter(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ParameterType.STRING, "Generators reactive power from bus dispatch mode", REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactivePowerDispatchMode.class)),
         new Parameter(OUTER_LOOP_NAMES_PARAM_NAME, ParameterType.STRING_LIST, "Ordered explicit list of outer loop names, supported outer loops are " + String.join(", ", ExplicitAcOuterLoopConfig.NAMES), OUTER_LOOP_NAMES_DEFAULT_VALUE),
-        new Parameter(PI_MODEL_PER_UNIT_NOMINAL_VOLTAGE_CORRECTION_MODE_PARAM_NAME, ParameterType.STRING, "Correction mode for line PI model with different nominal voltages", LfNetworkParameters.PI_MODEL_NOMINAL_VOLTAGE_CORRECTION_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PerUnit.PiModelNominalVoltageCorrectionMode.class))
+        new Parameter(PER_UNIT_CORRECTION_MODE_PARAM_NAME, ParameterType.STRING, "Correction mode for line PI model per uniting", LfNetworkParameters.PER_UNIT_CORRECTION_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PerUnit.CorrectionMode.class))
     );
 
     public enum VoltageInitModeOverride {
@@ -393,8 +392,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private List<String> outerLoopNames = OUTER_LOOP_NAMES_DEFAULT_VALUE;
 
-    private PerUnit.PiModelNominalVoltageCorrectionMode piModelPerUnitNominalVoltageCorrectionMode
-            = LfNetworkParameters.PI_MODEL_NOMINAL_VOLTAGE_CORRECTION_MODE_DEFAULT_VALUE;
+    private PerUnit.CorrectionMode perUnitCorrectionMode
+            = LfNetworkParameters.PER_UNIT_CORRECTION_MODE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -875,12 +874,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public PerUnit.PiModelNominalVoltageCorrectionMode getPiModelPerUnitNominalVoltageCorrectionMode() {
-        return piModelPerUnitNominalVoltageCorrectionMode;
+    public PerUnit.CorrectionMode getPerUnitCorrectionMode() {
+        return perUnitCorrectionMode;
     }
 
-    public OpenLoadFlowParameters setPiModelPerUnitNominalVoltageCorrectionMode(PerUnit.PiModelNominalVoltageCorrectionMode piModelPerUnitNominalVoltageCorrectionMode) {
-        this.piModelPerUnitNominalVoltageCorrectionMode = Objects.requireNonNull(piModelPerUnitNominalVoltageCorrectionMode);
+    public OpenLoadFlowParameters setPerUnitCorrectionMode(PerUnit.CorrectionMode perUnitCorrectionMode) {
+        this.perUnitCorrectionMode = Objects.requireNonNull(perUnitCorrectionMode);
         return this;
     }
 
@@ -943,7 +942,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinNominalVoltageTargetVoltageCheck(config.getDoubleProperty(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE))
                 .setReactivePowerDispatchMode(config.getEnumProperty(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ReactivePowerDispatchMode.class, REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE))
                 .setOuterLoopNames(config.getStringListProperty(OUTER_LOOP_NAMES_PARAM_NAME, OUTER_LOOP_NAMES_DEFAULT_VALUE))
-                .setPiModelPerUnitNominalVoltageCorrectionMode(config.getEnumProperty(PI_MODEL_PER_UNIT_NOMINAL_VOLTAGE_CORRECTION_MODE_PARAM_NAME, PerUnit.PiModelNominalVoltageCorrectionMode.class, LfNetworkParameters.PI_MODEL_NOMINAL_VOLTAGE_CORRECTION_MODE_DEFAULT_VALUE))
+                .setPerUnitCorrectionMode(config.getEnumProperty(PER_UNIT_CORRECTION_MODE_PARAM_NAME, PerUnit.CorrectionMode.class, LfNetworkParameters.PER_UNIT_CORRECTION_MODE_DEFAULT_VALUE))
             );
         return parameters;
     }
@@ -1056,8 +1055,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setReactivePowerDispatchMode(ReactivePowerDispatchMode.valueOf(prop)));
         Optional.ofNullable(properties.get(OUTER_LOOP_NAMES_PARAM_NAME))
                 .ifPresent(prop -> this.setOuterLoopNames(parseStringListProp(prop)));
-        Optional.ofNullable(properties.get(PI_MODEL_PER_UNIT_NOMINAL_VOLTAGE_CORRECTION_MODE_PARAM_NAME))
-                .ifPresent(prop -> this.setPiModelPerUnitNominalVoltageCorrectionMode(PerUnit.PiModelNominalVoltageCorrectionMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(PER_UNIT_CORRECTION_MODE_PARAM_NAME))
+                .ifPresent(prop -> this.setPerUnitCorrectionMode(PerUnit.CorrectionMode.valueOf(prop)));
         return this;
     }
 
@@ -1111,7 +1110,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, minNominalVoltageTargetVoltageCheck);
         map.put(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, reactivePowerDispatchMode);
         map.put(OUTER_LOOP_NAMES_PARAM_NAME, outerLoopNames);
-        map.put(PI_MODEL_PER_UNIT_NOMINAL_VOLTAGE_CORRECTION_MODE_PARAM_NAME, piModelPerUnitNominalVoltageCorrectionMode);
+        map.put(PER_UNIT_CORRECTION_MODE_PARAM_NAME, perUnitCorrectionMode);
         return map;
     }
 
@@ -1231,7 +1230,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setCacheEnabled(parametersExt.isNetworkCacheEnabled())
                 .setAsymmetrical(parametersExt.isAsymmetrical())
                 .setMinNominalVoltageTargetVoltageCheck(parametersExt.getMinNominalVoltageTargetVoltageCheck())
-                .setPiModelPerUnitNominalVoltageCorrectionMode(parametersExt.getPiModelPerUnitNominalVoltageCorrectionMode());
+                .setPerUnitCorrectionMode(parametersExt.getPerUnitCorrectionMode());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1342,7 +1341,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(false)
                 .setMaxSlackBusCount(1)
-                .setPiModelPerUnitNominalVoltageCorrectionMode(parametersExt.getPiModelPerUnitNominalVoltageCorrectionMode());
+                .setPerUnitCorrectionMode(parametersExt.getPerUnitCorrectionMode());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       forcePhaseControlOffAndAddAngle1Var,
@@ -1433,7 +1432,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMinNominalVoltageTargetVoltageCheck() == extension2.getMinNominalVoltageTargetVoltageCheck() &&
                 extension1.getReactivePowerDispatchMode() == extension2.getReactivePowerDispatchMode() &&
                 Objects.equals(extension1.getOuterLoopNames(), extension2.getOuterLoopNames()) &&
-                extension1.getPiModelPerUnitNominalVoltageCorrectionMode().equals(extension2.getPiModelPerUnitNominalVoltageCorrectionMode());
+                extension1.getPerUnitCorrectionMode().equals(extension2.getPerUnitCorrectionMode());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1500,7 +1499,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMinNominalVoltageTargetVoltageCheck(extension.getMinNominalVoltageTargetVoltageCheck())
                     .setReactivePowerDispatchMode(extension.getReactivePowerDispatchMode())
                     .setOuterLoopNames(extension.getOuterLoopNames())
-                    .setPiModelPerUnitNominalVoltageCorrectionMode(extension.getPiModelPerUnitNominalVoltageCorrectionMode());
+                    .setPerUnitCorrectionMode(extension.getPerUnitCorrectionMode());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

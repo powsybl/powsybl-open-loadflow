@@ -38,7 +38,7 @@ public class VoltageMagnitudeInitializerTest {
     void setUp() {
         networkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(new FirstSlackBusSelector())
-                .setPiModelPerUnitNominalVoltageCorrectionMode(PerUnit.PiModelNominalVoltageCorrectionMode.RATIO);
+                .setPerUnitCorrectionMode(PerUnit.CorrectionMode.RATIO);
     }
 
     public static void assertBusVoltage(LfNetwork network, VoltageInitializer initializer, String busId, double vRef, double angleRef) {

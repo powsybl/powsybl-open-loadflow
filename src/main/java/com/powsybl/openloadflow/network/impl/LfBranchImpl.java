@@ -61,7 +61,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         double g2;
         double b2;
         double zb;
-        if (parameters.getPiModelPerUnitNominalVoltageCorrectionMode() == PerUnit.PiModelNominalVoltageCorrectionMode.RATIO) {
+        if (parameters.getPerUnitCorrectionMode() == PerUnit.CorrectionMode.RATIO) {
             double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
             zb = PerUnit.zb(nominalV2);
             r1 = 1 / Transformers.getRatioPerUnitBase(line);
