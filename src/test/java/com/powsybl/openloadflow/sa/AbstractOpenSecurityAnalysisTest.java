@@ -10,11 +10,15 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
@@ -22,8 +26,11 @@ import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
+import org.junit.jupiter.api.BeforeEach;
+import org.mockito.Mockito;
 
 import java.util.*;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,6 +47,19 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     protected OpenSecurityAnalysisProvider securityAnalysisProvider;
 
     protected OpenLoadFlowProvider loadFlowProvider;
+
+    protected LoadFlow.Runner loadFlowRunner;
+
+    @BeforeEach
+    void setUp() {
+        computationManager = Mockito.mock(ComputationManager.class);
+        Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
+        matrixFactory = new DenseMatrixFactory();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        loadFlowProvider = new OpenLoadFlowProvider(matrixFactory, connectivityFactory);
+        loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
+    }
 
     protected static Network createNodeBreakerNetwork() {
         Network network = NodeBreakerNetworkFactory.create();

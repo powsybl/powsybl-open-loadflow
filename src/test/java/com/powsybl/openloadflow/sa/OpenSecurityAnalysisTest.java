@@ -10,7 +10,6 @@ import com.google.common.collect.ImmutableList;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
-import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
@@ -20,29 +19,21 @@ import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.network.test.SecurityAnalysisTestNetworkFactory;
-import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -55,16 +46,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
-
-    @BeforeEach
-    void setUp() {
-        computationManager = Mockito.mock(ComputationManager.class);
-        Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
-        matrixFactory = new DenseMatrixFactory();
-        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
-        loadFlowProvider = new OpenLoadFlowProvider(matrixFactory, connectivityFactory);
-    }
 
     @Test
     void testCurrentLimitViolations() {
@@ -1586,7 +1567,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getThreeWindingsTransformer("T3wT").getLeg2().getTerminal().disconnect();
         network.getThreeWindingsTransformer("T3wT").getLeg3().getTerminal().disconnect();
         setSlackBusId(parameters, "VL_1");
-        LoadFlow.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
 
         PostContingencyResult contingencyResult = getPostContingencyResult(result, "T3wT");
         assertEquals(network.getLine("LINE_12").getTerminal2().getP(), contingencyResult.getNetworkResult().getBranchResult("LINE_12").getP2(), LoadFlowAssert.DELTA_POWER);
@@ -1753,7 +1734,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // compare with a simple load low
         network.getStaticVarCompensator("svc1").getTerminal().disconnect();
-        LoadFlow.run(network, parameters.getLoadFlowParameters());
+        loadFlowRunner.run(network, parameters.getLoadFlowParameters());
 
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "svc1");
         assertEquals(network.getLine("l1").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l1").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -1785,7 +1766,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // compare with a simple load low
         network.getStaticVarCompensator("svc1").getTerminal().disconnect();
-        LoadFlow.run(network);
+        loadFlowRunner.run(network);
 
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "svc1");
         assertEquals(network.getLine("l1").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l1").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -1796,7 +1777,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // test restore.
         network.getStaticVarCompensator("svc1").getTerminal().connect();
         network.getLoad("ld1").getTerminal().disconnect();
-        LoadFlow.run(network);
+        loadFlowRunner.run(network);
         PostContingencyResult postContingencyResult2 = getPostContingencyResult(result, "ld1");
         assertEquals(network.getLine("l1").getTerminal1().getP(), postContingencyResult2.getNetworkResult().getBranchResult("l1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l1").getTerminal2().getP(), postContingencyResult2.getNetworkResult().getBranchResult("l1").getP2(), LoadFlowAssert.DELTA_POWER);
