@@ -45,10 +45,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1) : null;
-        double ratio = useTransformerRatio
-                || branch.getBranchType() == LfBranch.BranchType.LINE // for lines with a different nominal voltage at both sides
-                ? piModel.getR1() * R2 : 1;
-        power = 1 / piModel.getX() * ratio;
+        power = calculatePower(useTransformerRatio, branch);
         if (a1Var != null) {
             variables = List.of(ph1Var, ph2Var, a1Var);
         } else {
@@ -56,8 +53,12 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         }
     }
 
-    public static double calculatePower(boolean useTransformerRatio, PiModel piModel) {
-        return 1d / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
+    public static double calculatePower(boolean useTransformerRatio, LfBranch branch) {
+        PiModel piModel = branch.getPiModel();
+        double ratio = useTransformerRatio
+                || branch.getBranchType() == LfBranch.BranchType.LINE // for lines with a different nominal voltage at both sides
+                ? piModel.getR1() * R2 : 1;
+        return 1d / piModel.getX() * ratio;
     }
 
     public Variable<DcVariableType> getPh1Var() {

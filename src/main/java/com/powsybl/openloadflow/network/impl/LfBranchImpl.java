@@ -30,6 +30,28 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         this.branchRef = Ref.create(branch, parameters.isCacheEnabled());
     }
 
+    private static void createLineAsym(Line line, double zb, PiModel piModel, LfBranchImpl lfBranch) {
+        var extension = line.getExtension(LineFortescue.class);
+        if (extension != null) {
+            boolean openPhaseA = extension.isOpenPhaseA();
+            boolean openPhaseB = extension.isOpenPhaseB();
+            boolean openPhaseC = extension.isOpenPhaseC();
+            double rz = extension.getRz();
+            double xz = extension.getXz();
+            SimplePiModel piZeroComponent = new SimplePiModel()
+                    .setR(rz / zb)
+                    .setX(xz / zb);
+            SimplePiModel piPositiveComponent = new SimplePiModel()
+                    .setR(piModel.getR())
+                    .setX(piModel.getX());
+            SimplePiModel piNegativeComponent = new SimplePiModel()
+                    .setR(piModel.getR())
+                    .setX(piModel.getX());
+            lfBranch.setAsymLine(new LfAsymLine(piZeroComponent, piPositiveComponent, piNegativeComponent,
+                    openPhaseA, openPhaseB, openPhaseC));
+        }
+    }
+
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
         double r1;
         double r;
@@ -38,9 +60,10 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         double b1;
         double g2;
         double b2;
+        double zb;
         if (parameters.getPiModelPerUnitNominalVoltageCorrectionMode() == PerUnit.PiModelNominalVoltageCorrectionMode.RATIO) {
             double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
-            double zb = PerUnit.zb(nominalV2);
+            zb = PerUnit.zb(nominalV2);
             r1 = 1 / Transformers.getRatioPerUnitBase(line);
             r = line.getR() / zb;
             x = line.getX() / zb;
@@ -58,12 +81,13 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 b1 = 0;
                 g2 = 0;
                 b2 = 0;
+                zb = 0;
             } else {
                 double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
                 double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
                 double g = line.getR() / zSquare;
                 double b = -line.getX() / zSquare;
-                double zb = nominalV1 * nominalV2 / PerUnit.SB;
+                zb = nominalV1 * nominalV2 / PerUnit.SB;
                 r = line.getR() / zb;
                 x = line.getX() / zb;
                 g1 = (line.getG1() * nominalV1 * nominalV1 + g * nominalV1 * (nominalV1 - nominalV2)) / PerUnit.SB;

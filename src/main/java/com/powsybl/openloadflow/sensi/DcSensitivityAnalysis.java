@@ -457,9 +457,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private static double calculatePower(DcLoadFlowContext loadFlowContext, LfBranch lfBranch) {
-        PiModel piModel = lfBranch.getPiModel();
         boolean useTransformerRatio = loadFlowContext.getParameters().getEquationSystemCreationParameters().isUseTransformerRatio();
-        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(useTransformerRatio, piModel);
+        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(useTransformerRatio, lfBranch);
     }
 
     /**
