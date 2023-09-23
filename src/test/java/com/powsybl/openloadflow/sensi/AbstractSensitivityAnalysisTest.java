@@ -49,7 +49,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
     protected final OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(matrixFactory);
 
-    protected final LoadFlow.Runner runner = new LoadFlow.Runner(loadFlowProvider);
+    protected final LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
 
     protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId, boolean distributedSlack) {
         return createParameters(dc, List.of(slackBusId), distributedSlack);
