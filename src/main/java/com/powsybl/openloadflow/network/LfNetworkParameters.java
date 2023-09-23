@@ -475,7 +475,7 @@ public class LfNetworkParameters {
                 ", cacheEnabled=" + cacheEnabled +
                 ", asymmetrical=" + asymmetrical +
                 ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
-                ", piModelPerUnitNominalVoltageCorrectionMode=" + perUnitCorrectionMode +
+                ", perUnitCorrectionMode=" + perUnitCorrectionMode +
                 ')';
     }
 }
