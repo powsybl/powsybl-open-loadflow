@@ -272,7 +272,7 @@ class DcLoadFlowTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setDc(true);
-        LoadFlow.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
 
         assertActivePowerEquals(400.0, network.getLine("L1").getTerminal1());
         assertActivePowerEquals(100.0, network.getLine("L2").getTerminal1());

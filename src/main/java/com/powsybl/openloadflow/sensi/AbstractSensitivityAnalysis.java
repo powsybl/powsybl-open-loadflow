@@ -198,7 +198,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         public EquationTerm<V, E> getFunctionEquationTerm() {
             LfBranch branch;
             return (EquationTerm<V, E>) switch (functionType) {
-                case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_3
+                case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_3
                         -> ((LfBranch) functionElement).getP1();
                 case BRANCH_ACTIVE_POWER_2 -> {
                     branch = (LfBranch) functionElement;
@@ -212,7 +212,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     yield branch instanceof LfLegBranch ? ((LfBranch) functionElement).getQ1()
                                                         : ((LfBranch) functionElement).getQ2();
                 }
-                case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3
+                case BRANCH_CURRENT_1, BRANCH_CURRENT_3
                         -> ((LfBranch) functionElement).getI1();
                 case BRANCH_CURRENT_2 -> {
                     branch = (LfBranch) functionElement;
@@ -1119,8 +1119,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     private static boolean isActivePowerFunctionType(SensitivityFunctionType functionType) {
-        return functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
-                || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+        return functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3;
     }
@@ -1132,8 +1131,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     private static boolean isCurrentFunctionType(SensitivityFunctionType functionType) {
-        return functionType == SensitivityFunctionType.BRANCH_CURRENT
-                || functionType == SensitivityFunctionType.BRANCH_CURRENT_1
+        return functionType == SensitivityFunctionType.BRANCH_CURRENT_1
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_2
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_3;
     }
@@ -1171,10 +1169,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
      */
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
         return switch (factor.getFunctionType()) {
-            case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3,
+            case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3,
                     BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_2, BRANCH_REACTIVE_POWER_3
                     -> PerUnit.SB;
-            case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3 -> {
+            case BRANCH_CURRENT_1, BRANCH_CURRENT_3 -> {
                 LfBranch branch = (LfBranch) factor.getFunctionElement();
                 yield PerUnit.ib(branch.getBus1().getNominalV());
             }

@@ -32,7 +32,7 @@ public class DcIncrementalPhaseControlOuterLoop
     }
 
     @Override
-    public String getType() {
+    public String getName() {
         return "DC Incremental phase control";
     }
 

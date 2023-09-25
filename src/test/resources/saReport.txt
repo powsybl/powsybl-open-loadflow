@@ -6,27 +6,27 @@
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Pre-contingency simulation
          AC load flow complete with NR status 'CONVERGED'
-        + Outer loop Distributed slack on generation
+        + Outer loop DistributedSlack
            Iteration 0: failed to distribute slack bus active power mismatch, -1.4404045651219555 MW remains
-        + Outer loop Voltage monitoring
-        + Outer loop Reactive limits
+        + Outer loop VoltageMonitoring
+        + Outer loop ReactiveLimits
       + Post-contingency simulation 'NHV1_NHV2_1'
          AC load flow complete with NR status 'CONVERGED'
-        + Outer loop Distributed slack on generation
+        + Outer loop DistributedSlack
            Iteration 0: failed to distribute slack bus active power mismatch, 4.366500677028373 MW remains
-        + Outer loop Voltage monitoring
-        + Outer loop Reactive limits
+        + Outer loop VoltageMonitoring
+        + Outer loop ReactiveLimits
       + Post-contingency simulation 'NHV1_NHV2_2'
          AC load flow complete with NR status 'CONVERGED'
-        + Outer loop Distributed slack on generation
+        + Outer loop DistributedSlack
            Iteration 0: failed to distribute slack bus active power mismatch, 4.366500677028373 MW remains
-        + Outer loop Voltage monitoring
-        + Outer loop Reactive limits
+        + Outer loop VoltageMonitoring
+        + Outer loop ReactiveLimits
       + Post-contingency simulation 'NGEN_NHV1'
          AC load flow complete with NR status 'UNREALISTIC_STATE'
       + Post-contingency simulation 'NHV2_NLOAD'
          AC load flow complete with NR status 'CONVERGED'
-        + Outer loop Distributed slack on generation
+        + Outer loop DistributedSlack
            Iteration 0: failed to distribute slack bus active power mismatch, -606.3549396476619 MW remains
-        + Outer loop Voltage monitoring
-        + Outer loop Reactive limits
+        + Outer loop VoltageMonitoring
+        + Outer loop ReactiveLimits
