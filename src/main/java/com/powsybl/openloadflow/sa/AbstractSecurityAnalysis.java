@@ -64,6 +64,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected final Reporter reporter;
 
+    private static final String NOT_FOUND = "' not found";
+
     protected AbstractSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                        List<StateMonitor> stateMonitors, Reporter reporter) {
         this.network = Objects.requireNonNull(network);
@@ -89,36 +91,22 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                             ComputationManager computationManager, List<OperatorStrategy> operatorStrategies, List<Action> actions);
 
     public static PostContingencyComputationStatus postContingencyStatusFromNRStatus(NewtonRaphsonStatus status) {
-        switch (status) {
-            case CONVERGED:
-                return PostContingencyComputationStatus.CONVERGED;
-            case MAX_ITERATION_REACHED:
-                return PostContingencyComputationStatus.MAX_ITERATION_REACHED;
-            case SOLVER_FAILED:
-                return PostContingencyComputationStatus.SOLVER_FAILED;
-            case NO_CALCULATION:
-                return PostContingencyComputationStatus.NO_IMPACT;
-            case UNREALISTIC_STATE:
-                return PostContingencyComputationStatus.FAILED;
-            default:
-                throw new PowsyblException("Unsupported Newton Raphson status : " + status);
-        }
+        return switch (status) {
+            case CONVERGED -> PostContingencyComputationStatus.CONVERGED;
+            case MAX_ITERATION_REACHED -> PostContingencyComputationStatus.MAX_ITERATION_REACHED;
+            case SOLVER_FAILED -> PostContingencyComputationStatus.SOLVER_FAILED;
+            case NO_CALCULATION -> PostContingencyComputationStatus.NO_IMPACT;
+            case UNREALISTIC_STATE -> PostContingencyComputationStatus.FAILED;
+        };
     }
 
     public static LoadFlowResult.ComponentResult.Status loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus status) {
-        switch (status) {
-            case CONVERGED:
-                return LoadFlowResult.ComponentResult.Status.CONVERGED;
-            case MAX_ITERATION_REACHED:
-                return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-            case SOLVER_FAILED:
-                return LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
-            case NO_CALCULATION:
-            case UNREALISTIC_STATE:
-                return LoadFlowResult.ComponentResult.Status.FAILED;
-            default:
-                throw new PowsyblException("Unsupported Newton Raphson status : " + status);
-        }
+        return switch (status) {
+            case CONVERGED -> LoadFlowResult.ComponentResult.Status.CONVERGED;
+            case MAX_ITERATION_REACHED -> LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+            case SOLVER_FAILED -> LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
+            case NO_CALCULATION, UNREALISTIC_STATE -> LoadFlowResult.ComponentResult.Status.FAILED;
+        };
     }
 
     protected static void checkActions(Network network, List<Action> actions) {
@@ -127,7 +115,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case SwitchAction.NAME: {
                     SwitchAction switchAction = (SwitchAction) action;
                     if (network.getSwitch(switchAction.getSwitchId()) == null) {
-                        throw new PowsyblException("Switch '" + switchAction.getSwitchId() + "' not found");
+                        throw new PowsyblException("Switch '" + switchAction.getSwitchId() + NOT_FOUND);
                     }
                     break;
                 }
@@ -135,7 +123,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case LineConnectionAction.NAME: {
                     LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
                     if (network.getBranch(lineConnectionAction.getLineId()) == null && network.getTieLine(lineConnectionAction.getLineId()) == null) {
-                        throw new PowsyblException("Branch '" + lineConnectionAction.getLineId() + "' not found");
+                        throw new PowsyblException("Branch '" + lineConnectionAction.getLineId() + NOT_FOUND);
                     }
                     break;
                 }
@@ -146,7 +134,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         throw new PowsyblException("3 windings transformers not yet supported");
                     }, () -> {
                             if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
-                                throw new PowsyblException("Branch '" + phaseTapChangerTapPositionAction.getTransformerId() + "' not found");
+                                throw new PowsyblException("Branch '" + phaseTapChangerTapPositionAction.getTransformerId() + NOT_FOUND);
                             }
                         });
                     break;
@@ -155,7 +143,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case LoadAction.NAME: {
                     LoadAction loadAction = (LoadAction) action;
                     if (network.getLoad(loadAction.getLoadId()) == null) {
-                        throw new PowsyblException("Load '" + loadAction.getLoadId() + "' not found");
+                        throw new PowsyblException("Load '" + loadAction.getLoadId() + NOT_FOUND);
                     }
                     break;
                 }
@@ -163,7 +151,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case GeneratorAction.NAME: {
                     GeneratorAction generatorAction = (GeneratorAction) action;
                     if (network.getGenerator(generatorAction.getGeneratorId()) == null) {
-                        throw new PowsyblException("Generator '" + generatorAction.getGeneratorId() + "' not found");
+                        throw new PowsyblException("Generator '" + generatorAction.getGeneratorId() + NOT_FOUND);
                     }
                     break;
                 }
@@ -171,7 +159,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case HvdcAction.NAME: {
                     HvdcAction hvdcAction = (HvdcAction) action;
                     if (network.getHvdcLine(hvdcAction.getHvdcId()) == null) {
-                        throw new PowsyblException("Hvdc line '" + hvdcAction.getHvdcId() + "' not found");
+                        throw new PowsyblException("Hvdc line '" + hvdcAction.getHvdcId() + NOT_FOUND);
                     }
                     break;
                 }

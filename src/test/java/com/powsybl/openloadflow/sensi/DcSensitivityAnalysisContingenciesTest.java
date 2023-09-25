@@ -2324,7 +2324,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         double l1011p1ContPs56 = result.getBranchFlow1FunctionReferenceValue(ps56.getId(), l1011.getId());
         double l1011p1ContPs49And56 = result.getBranchFlow1FunctionReferenceValue(cont49And56.getId(), l1011.getId());
 
-        runner.run(network, sensiParameters.getLoadFlowParameters());
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
         assertActivePowerEquals(l1011p1, l1011.getTerminal1());
 
         double epsSensiCompLf = 1E-13;
@@ -2334,7 +2334,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         ps49.getTerminal1().disconnect();
         ps49.getTerminal2().disconnect();
-        runner.run(network, sensiParameters.getLoadFlowParameters());
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
         assertActivePowerEquals(l1011p1ContPs49, l1011.getTerminal1());
 
         assertEquals(calculateSensiFromLf(network, g1, l1011, sensiParameters.getLoadFlowParameters()),
@@ -2345,7 +2345,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         ps49.getTerminal2().connect();
         ps56.getTerminal1().disconnect();
         ps56.getTerminal2().disconnect();
-        runner.run(network, sensiParameters.getLoadFlowParameters());
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
         assertActivePowerEquals(l1011p1ContPs56, l1011.getTerminal1());
 
         assertEquals(calculateSensiFromLf(network, g1, l1011, sensiParameters.getLoadFlowParameters()),
@@ -2354,7 +2354,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         ps49.getTerminal1().disconnect();
         ps49.getTerminal2().disconnect();
-        runner.run(network, sensiParameters.getLoadFlowParameters());
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
         assertActivePowerEquals(l1011p1ContPs49And56, l1011.getTerminal1());
 
         assertEquals(calculateSensiFromLf(network, g1, l1011, sensiParameters.getLoadFlowParameters()),
@@ -2365,7 +2365,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     private double calculateSensiFromLf(Network network, Generator g, Line l, LoadFlowParameters parameters) {
         double p1Before = l.getTerminal1().getP();
         g.setTargetP(g.getTargetP() + 1);
-        runner.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
         g.setTargetP(g.getTargetP() - 1);
         return l.getTerminal1().getP() - p1Before;
     }
