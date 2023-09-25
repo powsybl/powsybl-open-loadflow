@@ -54,6 +54,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         private final SecurityAnalysisParameters parameters;
         private final List<Contingency> contingencies;
         private final DefaultLimitViolationDetector detector;
+        private final LimitViolationFilter filter;
         private final double dcPowerFactor;
         private final Map<String, LimitViolationsResult> limitViolationsPerContingencyId = new LinkedHashMap<>();
         private final Map<String, List<BranchResult>> branchResultsPerContingencyId = new LinkedHashMap<>();
@@ -62,13 +63,14 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         public DcSecurityAnalysisContext(SecurityAnalysisParameters saParameters,
                                          List<Contingency> contingencyList,
                                          DefaultLimitViolationDetector violationDetector,
-                                         double dcPowerFactor) {
+                                         LimitViolationFilter filter, double dcPowerFactor) {
             this.parameters = saParameters;
             this.contingencies = contingencyList;
             this.sensitivityFactors = new ArrayList<>();
             this.preContingencyAllBranchResults = new HashMap<>();
             this.preContingencyLimitViolationsMap = new HashMap<>();
             this.detector = violationDetector;
+            this.filter = filter;
             this.dcPowerFactor = dcPowerFactor;
         }
 
@@ -96,6 +98,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             return detector;
         }
 
+        LimitViolationFilter getFilter() {
+            return filter;
+        }
+
         double getDcPowerFactor() {
             return dcPowerFactor;
         }
@@ -120,7 +126,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
     @Override
     SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
-                                   ComputationManager computationManager, List<OperatorStrategy> operatorStrategies, List<Action> actions) {
+                                   ComputationManager computationManager, LimitViolationFilter limitViolationFilter, List<OperatorStrategy> operatorStrategies, List<Action> actions) {
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
@@ -138,7 +144,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.allOf(LoadingLimitType.class));
 
         // CosPhi for DC power to current conversion
-        DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, loadFlowParameters.getDcPowerFactor());
+        DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, limitViolationFilter, loadFlowParameters.getDcPowerFactor());
         SensitivityFactorReader factorReader = handler -> {
             for (Branch<?> b : network.getBranches()) {
                 SensitivityFactor f = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
@@ -332,7 +338,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                                     distributedMismatch(lfNetwork, DcLoadFlowEngine.getActivePowerMismatch(lfNetwork.getBuses().stream().filter(bus -> !bus.isDisabled()).collect(Collectors.toSet())),
                                             loadFlowParameters, openLoadFlowParameters);
                                     OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, actionIds, preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(),
-                                            lfActionById, createResultExtension, lfContingency, parameters.getNetworkParameters());
+                                            lfActionById, createResultExtension, lfContingency, parameters.getNetworkParameters(), context.getFilter());
                                     operatorStrategyResults.add(result);
                                     networkState.restore();
                                 });

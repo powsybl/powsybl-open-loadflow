@@ -75,18 +75,19 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     public CompletableFuture<SecurityAnalysisReport> run(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters,
                                                          ContingenciesProvider contingenciesProvider, ComputationManager computationManager,
-                                                         List<OperatorStrategy> operatorStrategies, List<Action> actions) {
+                                                         List<OperatorStrategy> operatorStrategies, List<Action> actions,
+                                                         LimitViolationFilter limitViolationFilter) {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
         return CompletableFutureTask.runAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingVariantId);
-            return runSync(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager, operatorStrategies, actions);
+            return runSync(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager, limitViolationFilter, operatorStrategies, actions);
         }, computationManager.getExecutor());
     }
 
     abstract SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
-                                            ComputationManager computationManager, List<OperatorStrategy> operatorStrategies, List<Action> actions);
+                                            ComputationManager computationManager, LimitViolationFilter limitViolationFilter, List<OperatorStrategy> operatorStrategies, List<Action> actions);
 
     public static PostContingencyComputationStatus postContingencyStatusFromNRStatus(NewtonRaphsonStatus status) {
         switch (status) {
@@ -284,16 +285,15 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     protected OperatorStrategyResult runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,
-                                                         List<String> actionsIds,
-                                                         LimitViolationManager preContingencyLimitViolationManager,
+                                                         List<String> actionsIds, LimitViolationManager preContingencyLimitViolationManager,
                                                          SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                          Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
-                                                         LfNetworkParameters networkParameters) {
+                                                         LfNetworkParameters networkParameters, LimitViolationFilter limitViolationFilter) {
         LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
                 operatorStrategy.getContingencyContext().getContingencyId(), network);
 
-        // get LF action for this operator strategy, as all actions have been previously checked against IIDM
-        // network, an empty LF action means it is for another component (so another LF network) so we can
+        // get LfAction for this operator strategy, as all actions have been previously checked against real
+        // network, an empty LfAction means in another component (so another LfNetwork) so we can
         // skip it
         List<LfAction> operatorStrategyLfActions = actionsIds.stream()
                 .map(lfActionById::get)
@@ -306,7 +306,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         // restart LF on post contingency and post actions equation system
         PostContingencyComputationStatus status = runActionLoadFlow(context);
-        var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
+        var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters, limitViolationFilter);
         var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {

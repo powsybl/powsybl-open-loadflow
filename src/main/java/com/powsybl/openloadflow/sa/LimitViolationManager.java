@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.LimitViolation;
+import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.SecurityAnalysisParameters;
 import org.apache.commons.lang3.tuple.Pair;
@@ -33,17 +34,27 @@ public class LimitViolationManager {
 
     private SecurityAnalysisParameters.IncreasedViolationsParameters parameters;
 
+    private Double minNominalVoltage;
+
     private final Map<Pair<String, Branch.Side>, LimitViolation> violations = new LinkedHashMap<>();
 
-    public LimitViolationManager(LimitViolationManager reference, SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
+    public LimitViolationManager(LimitViolationManager reference, SecurityAnalysisParameters.IncreasedViolationsParameters parameters,
+                                 LimitViolationFilter limitViolationFilter) {
         this.reference = reference;
         if (reference != null) {
             this.parameters = Objects.requireNonNull(parameters);
         }
+        if (limitViolationFilter != null) {
+            this.minNominalVoltage = limitViolationFilter.getMinBaseVoltage();
+        }
     }
 
     public LimitViolationManager() {
-        this(null, null);
+        this(null, null, null);
+    }
+
+    public LimitViolationManager(LimitViolationFilter limitViolationFilter) {
+        this(null, null, limitViolationFilter);
     }
 
     public List<LimitViolation> getLimitViolations() {
@@ -61,7 +72,7 @@ public class LimitViolationManager {
         network.getBranches().stream().filter(b -> !b.isDisabled()).forEach(this::detectBranchViolations);
 
         // Detect violation limits on buses
-        network.getBuses().stream().filter(b -> !b.isDisabled()).forEach(this::detectBusViolations);
+        network.getBuses().stream().filter(b -> !b.isDisabled()).forEach(b -> detectBusViolations(b, minNominalVoltage));
     }
 
     private static Pair<String, Branch.Side> getSubjectIdSide(LimitViolation limitViolation) {
@@ -127,11 +138,11 @@ public class LimitViolationManager {
     private void detectBranchViolations(LfBranch branch) {
         // detect violation limits on a branch
         // Only detect the most serious one (findFirst) : limit violations are ordered by severity
-        if (branch.getBus1() != null) {
+        if (branch.getBus1() != null && checkFilter(minNominalVoltage, branch.getBus1().getNominalV())) {
             detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, Branch.Side.ONE);
         }
 
-        if (branch.getBus2() != null) {
+        if (branch.getBus2() != null && checkFilter(minNominalVoltage, branch.getBus2().getNominalV())) {
             detectBranchSideViolations(branch, branch.getBus2(), LfBranch::getLimits2, LfBranch::getI2, LfBranch::getP2, LfBranch::computeApparentPower2, Branch.Side.TWO);
         }
     }
@@ -148,19 +159,21 @@ public class LimitViolationManager {
      * Detect violation limits on one branch and add them to the given list
      * @param bus branch of interest
      */
-    private void detectBusViolations(LfBus bus) {
+    private void detectBusViolations(LfBus bus, Double minNominalVoltage) {
         // detect violation limits on a bus
         double scale = bus.getNominalV();
-        double busV = bus.getV();
-        if (!Double.isNaN(bus.getHighVoltageLimit()) && busV > bus.getHighVoltageLimit()) {
-            LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
-                    (float) 1., busV * scale);
-            addLimitViolation(limitViolation1);
-        }
-        if (!Double.isNaN(bus.getLowVoltageLimit()) && busV < bus.getLowVoltageLimit()) {
-            LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getLowVoltageLimit() * scale,
-                    (float) 1., busV * scale);
-            addLimitViolation(limitViolation2);
+        if (checkFilter(minNominalVoltage, scale)) {
+            double busV = bus.getV();
+            if (!Double.isNaN(bus.getHighVoltageLimit()) && busV > bus.getHighVoltageLimit()) {
+                LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
+                        (float) 1., busV * scale);
+                addLimitViolation(limitViolation1);
+            }
+            if (!Double.isNaN(bus.getLowVoltageLimit()) && busV < bus.getLowVoltageLimit()) {
+                LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getLowVoltageLimit() * scale,
+                        (float) 1., busV * scale);
+                addLimitViolation(limitViolation2);
+            }
         }
     }
 
@@ -197,5 +210,13 @@ public class LimitViolationManager {
 
     private static boolean isFlowViolation(LimitViolation limit) {
         return limit.getLimitType() == LimitViolationType.CURRENT || limit.getLimitType() == LimitViolationType.ACTIVE_POWER || limit.getLimitType() == LimitViolationType.APPARENT_POWER;
+    }
+
+    private static boolean checkFilter(Double minNominalVoltage, double nominalVoltage) {
+        if (minNominalVoltage != null && nominalVoltage < minNominalVoltage) {
+            return false;
+        } else {
+            return true;
+        }
     }
 }
