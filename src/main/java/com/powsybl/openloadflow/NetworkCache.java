@@ -212,9 +212,7 @@ public enum NetworkCache {
                      "p1",
                      "q1",
                      "p2",
-                     "q2" ->
-                    // ignore because it is related to state update and won't affect LF calculation
-                        done = true;
+                     "q2" -> done = true; // ignore because it is related to state update and won't affect LF calculation
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
