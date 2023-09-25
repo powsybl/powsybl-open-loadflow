@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-class PiModelNominalVoltageCorrectionTest {
+class PerUnitCorrectionTest {
 
     private Network network = IeeeCdfNetworkFactory.create14();
 
@@ -37,7 +37,7 @@ class PiModelNominalVoltageCorrectionTest {
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
 
-    @ParameterizedTest(name = "{index} => piModelNominalVoltageCorrectionMode=''{0}''")
+    @ParameterizedTest(name = "{index} => perUnitCorrectionMode=''{0}''")
     @EnumSource(PerUnit.CorrectionMode.class)
     void testAc(PerUnit.CorrectionMode correctionMode) {
         LoadFlowParameters parameters = new LoadFlowParameters();
