@@ -13,7 +13,6 @@ import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
@@ -1012,7 +1011,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setRegulationValue(83);
         SensitivityAnalysisParameters sensiParameters = createParameters(false);
         sensiParameters.getLoadFlowParameters().setPhaseShifterRegulationOn(true);
-        LoadFlow.run(network, sensiParameters.getLoadFlowParameters());
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
                 List.of("L1", "L2", "PS1"), SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("G1"), false, ContingencyContext.none());
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
