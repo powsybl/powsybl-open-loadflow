@@ -76,7 +76,7 @@ class PerUnitCorrectionTest {
         assertAngleEquals(-16.033644, network.getBusView().getBus("VL14_0"));
     }
 
-    @ParameterizedTest(name = "{index} => piModelNominalVoltageCorrectionMode=''{0}''")
+    @ParameterizedTest(name = "{index} => perUnitCorrectionMode=''{0}''")
     @EnumSource(PerUnit.CorrectionMode.class)
     void testDc(PerUnit.CorrectionMode correctionMode) {
         LoadFlowParameters parameters = new LoadFlowParameters()
