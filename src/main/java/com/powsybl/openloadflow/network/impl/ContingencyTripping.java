@@ -99,21 +99,21 @@ public class ContingencyTripping {
 
     public static ContingencyTripping createContingencyTripping(Network network, Identifiable<?> identifiable) {
         switch (identifiable.getType()) {
-            case LINE:
-            case TWO_WINDINGS_TRANSFORMER:
-            case TIE_LINE:
+            case LINE,
+                 TWO_WINDINGS_TRANSFORMER,
+                 TIE_LINE:
                 return ContingencyTripping.createBranchTripping(network, (Branch<?>) identifiable);
-            case DANGLING_LINE:
-            case GENERATOR:
-            case LOAD:
-            case SHUNT_COMPENSATOR:
-            case STATIC_VAR_COMPENSATOR:
-            case BUSBAR_SECTION:
+            case DANGLING_LINE,
+                 GENERATOR,
+                 LOAD,
+                 SHUNT_COMPENSATOR,
+                 STATIC_VAR_COMPENSATOR,
+                 BUSBAR_SECTION:
                 return ContingencyTripping.createInjectionTripping(network, (Injection<?>) identifiable);
             case THREE_WINDINGS_TRANSFORMER:
                 return ContingencyTripping.createThreeWindingsTransformerTripping(network, (ThreeWindingsTransformer) identifiable);
-            case HVDC_LINE:
-            case SWITCH:
+            case HVDC_LINE,
+                 SWITCH:
                 return ContingencyTripping.NO_OP_TRIPPING;
             default:
                 throw new UnsupportedOperationException("Unsupported contingency element type: " + identifiable.getType());
