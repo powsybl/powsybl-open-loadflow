@@ -263,16 +263,14 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
         Connectable<?> connectable = regulatingTerminal.getConnectable();
-        if (connectable instanceof Line) {
-            Line l = (Line) connectable;
+        if (connectable instanceof Line l) {
             this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
                     ControlledSide.ONE : ControlledSide.TWO;
             this.controlledBranchId = l.getId();
-        } else if (connectable instanceof TwoWindingsTransformer) {
-            TwoWindingsTransformer l = (TwoWindingsTransformer) connectable;
-            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+        } else if (connectable instanceof TwoWindingsTransformer t) {
+            this.controlledBranchSide = t.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
                     ControlledSide.ONE : ControlledSide.TWO;
-            this.controlledBranchId = l.getId();
+            this.controlledBranchId = t.getId();
         } else {
             LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
                     getId(), connectable.getClass());
