@@ -65,7 +65,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected final Reporter reporter;
 
-    private static final String NOT_FOUND = "' not found";
+    private static final String NOT_FOUND = "' not found in the network";
 
     protected AbstractSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                        List<StateMonitor> stateMonitors, Reporter reporter) {
@@ -117,7 +117,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case SwitchAction.NAME: {
                     SwitchAction switchAction = (SwitchAction) action;
                     if (network.getSwitch(switchAction.getSwitchId()) == null) {
-                        throw new PowsyblException("Switch '" + switchAction.getSwitchId() + "' not found");
+                        throw new PowsyblException("Switch '" + switchAction.getSwitchId() + NOT_FOUND);
                     }
 
                     break;
@@ -133,13 +133,20 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                 case PhaseTapChangerTapPositionAction.NAME: {
                     PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
-                    phaseTapChangerTapPositionAction.getSide().ifPresentOrElse(side -> {
-                        throw new PowsyblException("3 windings transformers not yet supported");
-                    }, () -> {
-                            if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
-                                throw new PowsyblException("Branch '" + phaseTapChangerTapPositionAction.getTransformerId() + NOT_FOUND);
-                            }
-                        });
+                    Identifiable<?> identifiable;
+                    String identifiableType;
+
+                    if (phaseTapChangerTapPositionAction.getSide().isPresent()) {
+                        identifiable = network.getThreeWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId());
+                        identifiableType = "Three windings transformer '";
+                    } else {
+                        identifiable = network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId());
+                        identifiableType = "Two windings transformer '";
+                    }
+                    if (identifiable == null) {
+                        throw new PowsyblException(identifiableType + phaseTapChangerTapPositionAction.getTransformerId() + NOT_FOUND);
+                    }
+
                     break;
                 }
 
