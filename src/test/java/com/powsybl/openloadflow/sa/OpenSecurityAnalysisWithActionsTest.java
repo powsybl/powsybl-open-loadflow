@@ -11,6 +11,8 @@ import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.xml.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -588,25 +590,25 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")));
         CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP));
-        assertEquals("Switch 'switch' not found", exception.getCause().getMessage());
+        assertEquals("Switch 'switch' not found in the network", exception.getCause().getMessage());
 
         List<Action> actions2 = List.of(new LineConnectionAction("openLine", "line", true, true));
         List<OperatorStrategy> operatorStrategies2 = List.of(new OperatorStrategy("strategy2", ContingencyContext.specificContingency("S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLine")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies2, actions2, Reporter.NO_OP));
-        assertEquals("Branch 'line' not found", exception.getCause().getMessage());
+        assertEquals("Branch 'line' not found in the network", exception.getCause().getMessage());
 
         List<Action> actions3 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst1", false, 1));
         List<OperatorStrategy> operatorStrategies3 = List.of(new OperatorStrategy("strategy3", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies3, actions3, Reporter.NO_OP));
-        assertEquals("Transformer 'pst1' not found", exception.getCause().getMessage());
+        assertEquals("Two windings transformer 'pst1' not found in the network", exception.getCause().getMessage());
 
         List<Action> actions4 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst2", false, 1, ThreeWindingsTransformer.Side.ONE));
         List<OperatorStrategy> operatorStrategies4 = List.of(new OperatorStrategy("strategy4", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies4, actions4, Reporter.NO_OP));
-        assertEquals("Transformer 'pst2' not found", exception.getCause().getMessage());
+        assertEquals("Three windings transformer 'pst2' not found in the network", exception.getCause().getMessage());
 
         List<Action> actions5 = Collections.emptyList();
         List<OperatorStrategy> operatorStrategies5 = List.of(new OperatorStrategy("strategy5", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("x")));
@@ -997,7 +999,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("g5"), new TrueCondition(), List.of("action")));
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         CompletionException e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP));
-        assertEquals("Hvdc line 'hvdc' not found", e.getCause().getMessage());
+        assertEquals("Hvdc line 'hvdc' not found in the network", e.getCause().getMessage());
     }
 
     @Test
@@ -1117,16 +1119,16 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(132.75, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(68.2, getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
 
-        LoadFlow.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
         assertEquals(80.00, network.getLine("L1").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
         network.getLine("L1").getTerminal1().disconnect();
         network.getLine("L1").getTerminal2().disconnect();
-        LoadFlow.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
         assertEquals(132.75, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
         network.getThreeWindingsTransformer("PS1").getLeg2().getPhaseTapChanger().setTapPosition(2);
-        LoadFlow.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
         assertEquals(68.2, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
         //test for exceptions

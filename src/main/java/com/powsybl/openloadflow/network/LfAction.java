@@ -183,17 +183,20 @@ public final class LfAction {
 
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
 
-        String legNumber = "";
-
         Optional<ThreeWindingsTransformer.Side> side = action.getSide();
+        String legNumber;
+        LfBranch branch;
         if (side.isPresent()) {
             switch (side.get()) {
                 case ONE -> legNumber = "_leg_1";
                 case TWO -> legNumber = "_leg_2";
                 case THREE -> legNumber = "_leg_3";
+                default -> throw new IllegalStateException("Three windings transformer " + action.getTransformerId() + " : side  " + side.get() + "does not exist");
             }
+        } else {
+            legNumber = null;
         }
-        LfBranch branch = lfNetwork.getBranchById(action.getTransformerId() + legNumber);
+        branch = lfNetwork.getBranchById(legNumber != null ? action.getTransformerId() + legNumber : action.getTransformerId());
 
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
