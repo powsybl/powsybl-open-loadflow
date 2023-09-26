@@ -730,6 +730,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsWithInconsistentTargetVoltage);
         }
 
+        if (report.generatorsWithZeroRemoteVoltageControlReactivePowerKey > 0) {
+            LOGGER.warn("Network {}: {} generators have a zero remote voltage control reactive power key",
+                    lfNetwork, report.generatorsWithZeroRemoteVoltageControlReactivePowerKey);
+        }
+
         if (parameters.getDebugDir() != null) {
             Path debugDir = DebugUtil.getDebugDir(parameters.getDebugDir());
             String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);

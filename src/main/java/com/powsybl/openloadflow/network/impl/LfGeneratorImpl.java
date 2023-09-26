@@ -17,6 +17,8 @@ import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -27,6 +29,8 @@ import java.util.OptionalDouble;
  */
 public final class LfGeneratorImpl extends AbstractLfGenerator {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfGeneratorImpl.class);
+
     private final Ref<Generator> generatorRef;
 
     private boolean participating;
@@ -34,6 +38,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     private double droop;
 
     private double participationFactor;
+
+    private Double qPercent;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB);
@@ -66,6 +72,16 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
         if (reactivePowerControl != null && reactivePowerControl.isEnabled() && !generator.isVoltageRegulatorOn()) {
             setReactivePowerControl(reactivePowerControl.getRegulatingTerminal(), reactivePowerControl.getTargetQ());
+        }
+
+        CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
+        if (coordinatedReactiveControl != null) {
+            if (coordinatedReactiveControl.getQPercent() == 0) {
+                LOGGER.trace("Generator '{}' remote voltage control reactive power key value is zero", generator.getId());
+                report.generatorsWithZeroRemoteVoltageControlReactivePowerKey++;
+            } else {
+                qPercent = coordinatedReactiveControl.getQPercent();
+            }
         }
     }
 
@@ -130,11 +146,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public OptionalDouble getRemoteControlReactiveKey() {
-        CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
-        if (coordinatedReactiveControl == null) {
-            return OptionalDouble.empty();
-        }
-        return OptionalDouble.of(coordinatedReactiveControl.getQPercent());
+        return qPercent != null ? OptionalDouble.of(qPercent) : OptionalDouble.empty();
     }
 
     @Override
