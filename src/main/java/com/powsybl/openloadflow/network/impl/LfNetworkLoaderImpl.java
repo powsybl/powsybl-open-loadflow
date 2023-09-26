@@ -730,7 +730,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.generatorsWithZeroRemoteVoltageControlReactivePowerKey > 0) {
-            LOGGER.warn("Network {}: {} generators have an zero remote voltage control reactive power key",
+            LOGGER.warn("Network {}: {} generators have a zero remote voltage control reactive power key",
                     lfNetwork, report.generatorsWithZeroRemoteVoltageControlReactivePowerKey);
         }
 
