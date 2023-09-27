@@ -183,7 +183,7 @@ public final class LfAction {
     }
 
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
-        String branchId = action.getSide().map(side -> LfLegBranch.getLegBranchId(side, action.getTransformerId())).orElseGet(() -> action.getTransformerId());
+        String branchId = action.getSide().map(side -> LfLegBranch.getLegBranchId(side, action.getTransformerId())).orElseGet(action::getTransformerId);
         LfBranch branch = lfNetwork.getBranchById(branchId);
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {

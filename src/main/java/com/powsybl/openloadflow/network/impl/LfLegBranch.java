@@ -191,12 +191,4 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
             case THREE -> 3;
         };
     }
-
-    public static String getLegBranchId(ThreeSides side, String transformerId) {
-        return transformerId + "_leg_" + switch (side) {
-            case ONE -> 1;
-            case TWO -> 2;
-            case THREE -> 3;
-        };
-    }
 }

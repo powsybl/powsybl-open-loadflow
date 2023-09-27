@@ -489,11 +489,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                                            LfNetworkParameters parameters) {
         if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
             String controlledBranchId = ptc.getRegulationTerminal().getConnectable().getId();
-            if (ptc.getRegulationTerminal().getConnectable() instanceof ThreeWindingsTransformer) {
-                Optional<ThreeSides> side = Terminal.getConnectableSide(ptc.getRegulationTerminal());
-                if (side.isPresent()) {
-                    controlledBranchId = LfLegBranch.getLegBranchId(side.get(), controlledBranchId);
-                }
+            if (ptc.getRegulationTerminal().getConnectable() instanceof ThreeWindingsTransformer twt) {
+                controlledBranchId = LfLegBranch.getLegBranchId(twt.getSide(ptc.getRegulationTerminal()), controlledBranchId);
             }
             LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
             if (controlledBranch == null) {
