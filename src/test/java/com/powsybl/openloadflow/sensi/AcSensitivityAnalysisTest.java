@@ -13,7 +13,6 @@ import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
@@ -29,6 +28,8 @@ import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertCurrentEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -1010,7 +1011,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setRegulationValue(83);
         SensitivityAnalysisParameters sensiParameters = createParameters(false);
         sensiParameters.getLoadFlowParameters().setPhaseShifterRegulationOn(true);
-        LoadFlow.run(network, sensiParameters.getLoadFlowParameters());
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
                 List.of("L1", "L2", "PS1"), SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("G1"), false, ContingencyContext.none());
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
@@ -1294,5 +1295,105 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(1, result.getValues().size());
         assertEquals(35.000, result.getBranchFlow1FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testReactivePowerAndCurrentPerTargetVSensi() {
+        Network network = EurostagTutorialExample1Factory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "NLOAD");
+
+        List<SensitivityFactor> factors = List.of(
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_1,
+                                      "NHV2_NLOAD",
+                                      SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                                      "GEN",
+                                      false,
+                                      ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_2,
+                                      "NHV2_NLOAD",
+                                      SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                                      "GEN",
+                                      false,
+                                      ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_1,
+                                      "NHV2_NLOAD",
+                                      SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                                      "GEN",
+                                      false,
+                                      ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_2,
+                                      "NHV2_NLOAD",
+                                      SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                                      "GEN",
+                                      false,
+                                      ContingencyContext.all())
+        );
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(4, result.getValues().size());
+        assertEquals(-7.959, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-52.329, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-132.392, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
+
+        runAcLf(network);
+
+        // check reference flows are consistents with LF ones
+        var twt = network.getTwoWindingsTransformer("NHV2_NLOAD");
+        assertReactivePowerEquals(result.getFunctionReferenceValue("NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1),
+                                  twt.getTerminal1());
+        assertReactivePowerEquals(result.getFunctionReferenceValue("NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2),
+                                  twt.getTerminal2());
+        assertCurrentEquals(result.getFunctionReferenceValue("NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_1),
+                            twt.getTerminal1());
+        assertCurrentEquals(result.getFunctionReferenceValue("NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_2),
+                            twt.getTerminal2());
+
+        // check sensi values looks consistent with 2 LF diff
+        double q1Before = twt.getTerminal1().getQ();
+        double q2Before = twt.getTerminal2().getQ();
+        double i1Before = twt.getTerminal1().getI();
+        double i2Before = twt.getTerminal2().getI();
+
+        Generator gen = network.getGenerator("GEN");
+        gen.setTargetV(gen.getTargetV() + 1);
+
+        runAcLf(network);
+
+        assertEquals(-7.2817, twt.getTerminal1().getQ() - q1Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -7.959
+        assertEquals(0.0007, twt.getTerminal2().getQ() - q2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs 0
+        assertEquals(-49.1009, twt.getTerminal1().getI() - i1Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -52.329
+        assertEquals(-124.2233, twt.getTerminal2().getI() - i2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -132.392
+    }
+
+    @Test
+    void testUnsupportedVariablesSensiV() {
+        Network network = EurostagTutorialExample1Factory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "NLOAD");
+        List<Contingency> contingencies = Collections.emptyList();
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+
+        List<SensitivityFactor> factors = List.of(new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_1,
+                                                                        "NHV2_NLOAD",
+                                                                        SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                                                                        "GEN",
+                                                                        false,
+                                                                        ContingencyContext.all()));
+
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        assertEquals("Variable type INJECTION_ACTIVE_POWER not supported with function type BRANCH_REACTIVE_POWER_1", e.getCause().getMessage());
+
+        List<SensitivityFactor> factors2 = List.of(new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE,
+                                                  "NLOAD",
+                                                  SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                                                  "GEN",
+                                                  false,
+                                                  ContingencyContext.all()));
+
+        e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors2, contingencies, variableSets, sensiParameters));
+        assertEquals("Variable type INJECTION_ACTIVE_POWER not supported with function type BUS_VOLTAGE", e.getCause().getMessage());
     }
 }

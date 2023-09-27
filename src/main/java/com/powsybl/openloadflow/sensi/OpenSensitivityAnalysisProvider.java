@@ -21,7 +21,6 @@ import com.powsybl.contingency.contingency.list.ContingencyList;
 import com.powsybl.contingency.contingency.list.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.xml.NetworkXml;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
@@ -31,6 +30,7 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.ProviderConstants;
@@ -47,7 +47,10 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -62,6 +65,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     private final MatrixFactory matrixFactory;
 
     private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+
+    private static final String JSON_EXTENSION = ".json";
 
     public OpenSensitivityAnalysisProvider() {
         this(new SparseMatrixFactory());
@@ -153,8 +158,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
-            Set<Switch> allSwitchesToOpen = new HashSet<>();
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false);
+            LfTopoConfig topoConfig = new LfTopoConfig();
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, false);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 
@@ -168,23 +173,23 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 ObjectWriter objectWriter = createObjectMapper()
                         .writerWithDefaultPrettyPrinter();
                 try {
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                         ContingencyList contingencyList = new DefaultContingencyList("default", contingencies);
                         objectWriter.writeValue(writer, contingencyList);
                     }
 
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                         objectWriter.writeValue(writer, variableSets);
                     }
 
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                         objectWriter.writeValue(writer, sensitivityAnalysisParameters);
                     }
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
 
-                decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + ".json"));
+                decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + JSON_EXTENSION));
             }
 
             AbstractSensitivityAnalysis<?, ?> analysis;
@@ -193,7 +198,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             } else {
                 analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             }
-            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReporter, topoConfig);
         }, computationManager.getExecutor());
     }
 
@@ -216,19 +221,19 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         List<SensitivityVariableSet> variableSets;
         SensitivityAnalysisParameters sensitivityAnalysisParameters;
         try {
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("factors-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("factors-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 factors = objectMapper.readValue(reader, new TypeReference<>() {
                 });
             }
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 ContingencyList contingencyList = objectMapper.readValue(reader, DefaultContingencyList.class);
                 contingencies = contingencyList.getContingencies(network);
             }
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("variable-sets-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 variableSets = objectMapper.readValue(reader, new TypeReference<>() {
                 });
             }
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("parameters-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 sensitivityAnalysisParameters = objectMapper.readValue(reader, new TypeReference<>() {
                 });
             }

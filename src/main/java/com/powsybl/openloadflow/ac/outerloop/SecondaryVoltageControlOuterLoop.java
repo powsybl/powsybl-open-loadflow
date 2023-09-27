@@ -32,6 +32,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
+    public static final String NAME = "SecondaryVoltageControl";
+
     public static final double SENSI_V_V_EPS_DEFAULT_VALUE = 1e-2;
 
     private static final double TARGET_V_DIFF_EPS = 1e-1; // in Kv
@@ -50,12 +52,18 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public String getType() {
-        return "SecondaryVoltageControl";
+    public String getName() {
+        return NAME;
     }
 
-    private static boolean isValid(LfBus bus) {
+    private static boolean isValidControllerBus(LfBus bus) {
         return !bus.isDisabled() && bus.isGeneratorVoltageControlEnabled();
+    }
+
+    private static boolean isValidControlledBus(LfBus bus) {
+        return bus.isGeneratorVoltageControlled()
+                && bus.getGeneratorVoltageControl().filter(voltageControl -> !voltageControl.isHidden() && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .orElseThrow().getMergedControllerElements().stream().anyMatch(element -> isValidControllerBus(element));
     }
 
     private static List<LfBus> getControllerBuses(LfBus controlledBus) {
@@ -63,7 +71,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .orElseThrow()
                 .getMergedControllerElements()
-                .stream().filter(SecondaryVoltageControlOuterLoop::isValid)
+                .stream().filter(SecondaryVoltageControlOuterLoop::isValidControllerBus)
                 .collect(Collectors.toList());
     }
 
@@ -74,7 +82,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .collect(Collectors.toList());
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
             List<LfBus> activeControlledBuses = secondaryVoltageControl.getControlledBuses().stream()
-                    .filter(SecondaryVoltageControlOuterLoop::isValid)
+                    .filter(SecondaryVoltageControlOuterLoop::isValidControlledBus)
                     .filter(controlledBus -> {
                         double targetV = controlledBus.getGeneratorVoltageControl().orElseThrow().getTargetValue();
                         return targetV > minPlausibleTargetVoltage && targetV < maxPlausibleTargetVoltage;
@@ -112,20 +120,20 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             this.sensitivities = Objects.requireNonNull(sensitivities);
         }
 
-        static SensitivityContext create(List<LfBus> buses, AcLoadFlowContext context) {
-            var busNumToSensiColumn = buildBusIndex(buses);
+        static SensitivityContext create(List<LfBus> controlledBuses, AcLoadFlowContext context) {
+            var busNumToSensiColumn = buildBusIndex(controlledBuses);
 
-            DenseMatrix sensitivities = calculateSensitivityValues(buses, busNumToSensiColumn, context.getEquationSystem(),
+            DenseMatrix sensitivities = calculateSensitivityValues(controlledBuses, busNumToSensiColumn, context.getEquationSystem(),
                                                                    context.getJacobianMatrix());
 
             return new SensitivityContext(busNumToSensiColumn, sensitivities);
         }
 
-        private static DenseMatrix calculateSensitivityValues(List<LfBus> controllerBuses, Map<Integer, Integer> busNumToSensiColumn,
+        private static DenseMatrix calculateSensitivityValues(List<LfBus> controlledBuses, Map<Integer, Integer> busNumToSensiColumn,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                               JacobianMatrix<AcVariableType, AcEquationType> j) {
-            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBuses.size());
-            for (LfBus controlledBus : controllerBuses) {
+            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controlledBuses.size());
+            for (LfBus controlledBus : controlledBuses) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                         .ifPresent(equation -> rhs.set(equation.getColumn(), busNumToSensiColumn.get(controlledBus.getNum()), 1d));
             }

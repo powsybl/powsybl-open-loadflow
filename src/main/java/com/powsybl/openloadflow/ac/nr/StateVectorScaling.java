@@ -25,16 +25,11 @@ public interface StateVectorScaling {
     static StateVectorScaling fromMode(StateVectorScalingMode mode, NewtonRaphsonStoppingCriteria.TestResult initialTestResult) {
         Objects.requireNonNull(mode);
         Objects.requireNonNull(initialTestResult);
-        switch (mode) {
-            case NONE:
-                return new NoneStateVectorScaling();
-            case LINE_SEARCH:
-                return new LineSearchStateVectorScaling(initialTestResult);
-            case MAX_VOLTAGE_CHANGE:
-                return new MaxVoltageChangeStateVectorScaling();
-            default:
-                throw new IllegalStateException("Unknown state vector scaling mode: " + mode);
-        }
+        return switch (mode) {
+            case NONE -> new NoneStateVectorScaling();
+            case LINE_SEARCH -> new LineSearchStateVectorScaling(initialTestResult);
+            case MAX_VOLTAGE_CHANGE -> new MaxVoltageChangeStateVectorScaling();
+        };
     }
 
     StateVectorScalingMode getMode();

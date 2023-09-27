@@ -16,7 +16,7 @@ public class BusState extends BusDcState {
 
     private final double angle;
     private final double voltage;
-    private final double loadTargetQ;
+    private Double loadTargetQ;
     private final double generationTargetQ;
     private final boolean voltageControlEnabled;
     private final Boolean shuntVoltageControlEnabled;
@@ -31,7 +31,7 @@ public class BusState extends BusDcState {
         super(bus);
         this.angle = bus.getAngle();
         this.voltage = bus.getV();
-        this.loadTargetQ = bus.getLoadTargetQ();
+        bus.getLoad().ifPresent(load -> this.loadTargetQ = load.getTargetQ());
         this.generationTargetQ = bus.getGenerationTargetQ();
         this.voltageControlEnabled = bus.isGeneratorVoltageControlEnabled();
         LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
@@ -51,7 +51,9 @@ public class BusState extends BusDcState {
         super.restore();
         element.setAngle(angle);
         element.setV(voltage);
-        element.setLoadTargetQ(loadTargetQ);
+        if (loadTargetQ != null) {
+            element.getLoad().orElseThrow().setTargetQ(loadTargetQ);
+        }
         element.setGenerationTargetQ(generationTargetQ);
         element.setGeneratorVoltageControlEnabled(voltageControlEnabled);
         if (shuntVoltageControlEnabled != null) {

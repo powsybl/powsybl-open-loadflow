@@ -21,7 +21,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractLfGenerator extends AbstractPropertyBag implements LfGenerator {
+public abstract class AbstractLfGenerator extends AbstractLfInjection implements LfGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
 
@@ -30,10 +30,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected static final double DEFAULT_DROOP = 4; // why not
 
     protected final LfNetwork network;
-
-    protected double initialTargetP;
-
-    protected double targetP;
 
     protected LfBus bus;
 
@@ -56,9 +52,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected LfAsymGenerator asym;
 
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
+        super(targetP, targetP);
         this.network = Objects.requireNonNull(network);
-        this.targetP = targetP;
-        this.initialTargetP = targetP;
     }
 
     @Override
@@ -77,16 +72,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public boolean isFictitious() {
         return false;
-    }
-
-    @Override
-    public double getInitialTargetP() {
-        return initialTargetP;
-    }
-
-    @Override
-    public double getTargetP() {
-        return targetP;
     }
 
     @Override
@@ -278,16 +263,14 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
         Connectable<?> connectable = regulatingTerminal.getConnectable();
-        if (connectable instanceof Line) {
-            Line l = (Line) connectable;
+        if (connectable instanceof Line l) {
             this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
                     ControlledSide.ONE : ControlledSide.TWO;
             this.controlledBranchId = l.getId();
-        } else if (connectable instanceof TwoWindingsTransformer) {
-            TwoWindingsTransformer l = (TwoWindingsTransformer) connectable;
-            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+        } else if (connectable instanceof TwoWindingsTransformer t) {
+            this.controlledBranchSide = t.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
                     ControlledSide.ONE : ControlledSide.TWO;
-            this.controlledBranchId = l.getId();
+            this.controlledBranchId = t.getId();
         } else {
             LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
                     getId(), connectable.getClass());

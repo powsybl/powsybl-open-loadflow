@@ -116,7 +116,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getType).collect(Collectors.toList()));
+            LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getName).collect(Collectors.toList()));
         }
 
         List<AcLoadFlowResult> results;
@@ -138,14 +138,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
         for (AcLoadFlowResult result : results) {
             // update network state
-            if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED && result.getNewtonRaphsonIterations() > 0 || parametersExt.isAlwaysUpdateNetwork()) {
+            if (result.isOk() || parametersExt.isAlwaysUpdateNetwork()) {
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
                                                                           parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
                                                                           parameters.isDc(),
-                                                                          acParameters.getNetworkParameters().isBreakers());
+                                                                          acParameters.getNetworkParameters().isBreakers(),
+                                                                          parametersExt.getReactivePowerDispatchMode());
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
@@ -201,7 +202,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       parameters.isTransformerVoltageControlOn(),
                                                                       false,
                                                                       true,
-                                                                      breakers);
+                                                                      breakers,
+                                                                      ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation

@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -25,9 +27,11 @@ public class LfNetworkStateUpdateParameters {
 
     private final boolean breakers;
 
+    private final ReactivePowerDispatchMode reactivePowerDispatchMode;
+
     public LfNetworkStateUpdateParameters(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
                                           boolean transformerVoltageControlOn, boolean loadPowerFactorConstant, boolean dc,
-                                          boolean breakers) {
+                                          boolean breakers, ReactivePowerDispatchMode reactivePowerDispatchMode) {
         this.reactiveLimits = reactiveLimits;
         this.writeSlackBus = writeSlackBus;
         this.phaseShifterRegulationOn = phaseShifterRegulationOn;
@@ -35,6 +39,7 @@ public class LfNetworkStateUpdateParameters {
         this.loadPowerFactorConstant = loadPowerFactorConstant;
         this.dc = dc;
         this.breakers = breakers;
+        this.reactivePowerDispatchMode = Objects.requireNonNull(reactivePowerDispatchMode);
     }
 
     public boolean isReactiveLimits() {
@@ -63,5 +68,9 @@ public class LfNetworkStateUpdateParameters {
 
     public boolean isBreakers() {
         return breakers;
+    }
+
+    public ReactivePowerDispatchMode getReactivePowerDispatchMode() {
+        return reactivePowerDispatchMode;
     }
 }
