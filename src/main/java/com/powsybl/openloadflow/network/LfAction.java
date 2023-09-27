@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.action.*;
@@ -182,25 +183,10 @@ public final class LfAction {
     }
 
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
-
-        Optional<ThreeWindingsTransformer.Side> side = action.getSide();
-        String legNumber;
-        LfBranch branch;
-        if (side.isPresent()) {
-            switch (side.get()) {
-                case ONE -> legNumber = "_leg_1";
-                case TWO -> legNumber = "_leg_2";
-                case THREE -> legNumber = "_leg_3";
-                default -> throw new IllegalStateException("Three windings transformer " + action.getTransformerId() + " : side  " + side.get() + "does not exist");
-            }
-        } else {
-            legNumber = null;
-        }
-        branch = lfNetwork.getBranchById(legNumber != null ? action.getTransformerId() + legNumber : action.getTransformerId());
-
+        LfBranch branch = lfNetwork.getBranchById(action.getSide().isPresent() ? LfLegBranch.getLegBranchId(action.getSide().get(), action.getTransformerId()) : action.getTransformerId());
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
-                throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + branch.getId() + "}");
+                throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in branch " + branch.getId());
             } else {
                 var tapPositionChange = new TapPositionChange(branch, action.getTapPosition(), action.isRelativeValue());
                 return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange, null, null, null));

@@ -183,4 +183,20 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         getLeg().getTerminal().setP(p1 * PerUnit.SB)
                 .setQ(q1 * PerUnit.SB);
     }
+
+    public static String getLegBranchId(ThreeWindingsTransformer.Side side, String transformerId) {
+        return transformerId + "_leg_" + switch (side) {
+            case ONE -> 1;
+            case TWO -> 2;
+            case THREE -> 3;
+        };
+    }
+
+    public static String getLegBranchId(ThreeSides side, String transformerId) {
+        return transformerId + "_leg_" + switch (side) {
+            case ONE -> 1;
+            case TWO -> 2;
+            case THREE -> 3;
+        };
+    }
 }

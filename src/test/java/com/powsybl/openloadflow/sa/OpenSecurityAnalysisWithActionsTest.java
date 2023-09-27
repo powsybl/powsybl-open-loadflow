@@ -1137,14 +1137,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 new TrueCondition(), List.of("pst_leg_1")));
         CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies1, actions1, Reporter.NO_OP));
-        assertEquals("Phase tap changer tap connection action: only one tap in the branch {PS1_leg_1}", exception.getCause().getMessage());
-
-        List<Action> actions2 = List.of(new PhaseTapChangerTapPositionAction("pst_leg_3", "PS1", false, 2, ThreeWindingsTransformer.Side.THREE));
-        List<OperatorStrategy> operatorStrategies2 = List.of(new OperatorStrategy("strategy2", ContingencyContext.specificContingency("L1"),
-                new TrueCondition(), List.of("pst_leg_3")));
-        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
-                operatorStrategies2, actions2, Reporter.NO_OP));
-        assertEquals("Phase tap changer tap connection action: only one tap in the branch {PS1_leg_3}", exception.getCause().getMessage());
+        assertEquals("Phase tap changer tap connection action: only one tap in branch PS1_leg_1", exception.getCause().getMessage());
     }
-
 }

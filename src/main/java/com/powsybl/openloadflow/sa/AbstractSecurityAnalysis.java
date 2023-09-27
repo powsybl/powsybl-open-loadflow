@@ -112,14 +112,12 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected static void checkActions(Network network, List<Action> actions) {
         for (Action action : actions) {
-
             switch (action.getType()) {
                 case SwitchAction.NAME: {
                     SwitchAction switchAction = (SwitchAction) action;
                     if (network.getSwitch(switchAction.getSwitchId()) == null) {
                         throw new PowsyblException("Switch '" + switchAction.getSwitchId() + NOT_FOUND);
                     }
-
                     break;
                 }
 
@@ -135,7 +133,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
                     Identifiable<?> identifiable;
                     String identifiableType;
-
                     if (phaseTapChangerTapPositionAction.getSide().isPresent()) {
                         identifiable = network.getThreeWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId());
                         identifiableType = "Three windings transformer '";
@@ -146,7 +143,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     if (identifiable == null) {
                         throw new PowsyblException(identifiableType + phaseTapChangerTapPositionAction.getTransformerId() + NOT_FOUND);
                     }
-
                     break;
                 }
 
@@ -173,6 +169,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     }
                     break;
                 }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }
