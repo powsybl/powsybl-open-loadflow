@@ -15,11 +15,6 @@ public final class PerUnit {
     public static final double SQRT_3 = Math.sqrt(3);
     public static final double BASE_CURRENT_FACTOR = (1000d * SB) / SQRT_3;
 
-    public enum CorrectionMode {
-        IMPEDANCE,
-        RATIO
-    }
-
     /**
      * Base current value for a given nominal voltage.
      */

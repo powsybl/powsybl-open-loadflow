@@ -11,7 +11,6 @@ import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -49,9 +48,6 @@ public class LfNetworkParameters {
     public static final boolean ASYMMETRICAL_DEFAULT_VALUE = false;
 
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
-
-    public static final PerUnit.CorrectionMode PER_UNIT_CORRECTION_MODE_DEFAULT_VALUE
-            = PerUnit.CorrectionMode.IMPEDANCE;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
@@ -113,9 +109,6 @@ public class LfNetworkParameters {
 
     private boolean asymmetrical = ASYMMETRICAL_DEFAULT_VALUE;
 
-    private PerUnit.CorrectionMode perUnitCorrectionMode
-            = PER_UNIT_CORRECTION_MODE_DEFAULT_VALUE;
-
     public LfNetworkParameters() {
     }
 
@@ -151,7 +144,6 @@ public class LfNetworkParameters {
         this.secondaryVoltageControl = other.secondaryVoltageControl;
         this.cacheEnabled = other.cacheEnabled;
         this.asymmetrical = other.asymmetrical;
-        this.perUnitCorrectionMode = other.perUnitCorrectionMode;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -434,15 +426,6 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public PerUnit.CorrectionMode getPerUnitCorrectionMode() {
-        return perUnitCorrectionMode;
-    }
-
-    public LfNetworkParameters setPerUnitCorrectionMode(PerUnit.CorrectionMode perUnitCorrectionMode) {
-        this.perUnitCorrectionMode = Objects.requireNonNull(perUnitCorrectionMode);
-        return this;
-    }
-
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -475,7 +458,6 @@ public class LfNetworkParameters {
                 ", cacheEnabled=" + cacheEnabled +
                 ", asymmetrical=" + asymmetrical +
                 ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
-                ", perUnitCorrectionMode=" + perUnitCorrectionMode +
                 ')';
     }
 }

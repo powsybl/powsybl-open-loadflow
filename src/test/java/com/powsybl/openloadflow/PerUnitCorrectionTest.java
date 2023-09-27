@@ -12,10 +12,8 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -37,12 +35,9 @@ class PerUnitCorrectionTest {
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
 
-    @ParameterizedTest(name = "{index} => perUnitCorrectionMode=''{0}''")
-    @EnumSource(PerUnit.CorrectionMode.class)
-    void testAc(PerUnit.CorrectionMode correctionMode) {
+    @Test
+    void testAc() {
         LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setPerUnitCorrectionMode(correctionMode);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -76,14 +71,12 @@ class PerUnitCorrectionTest {
         assertAngleEquals(-16.033644, network.getBusView().getBus("VL14_0"));
     }
 
-    @ParameterizedTest(name = "{index} => perUnitCorrectionMode=''{0}''")
-    @EnumSource(PerUnit.CorrectionMode.class)
-    void testDc(PerUnit.CorrectionMode correctionMode) {
+    @Test
+    void testDc() {
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setDc(true)
                 .setDcUseTransformerRatio(true);
-        OpenLoadFlowParameters.create(parameters)
-                .setPerUnitCorrectionMode(correctionMode);
+        OpenLoadFlowParameters.create(parameters);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
