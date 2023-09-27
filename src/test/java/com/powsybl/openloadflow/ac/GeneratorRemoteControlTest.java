@@ -17,6 +17,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -642,5 +643,12 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
         assertTrue(result3.isOk());
         assertVoltageEquals(164.88, nload);
+    }
+
+    @Test
+    void testWithZeroReactiveKey() {
+        g1.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(0).add();
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters()).get(0);
+        assertTrue(lfNetwork.getGeneratorById(g1.getId()).getRemoteControlReactiveKey().isEmpty()); // zero is fixed to empty
     }
 }
