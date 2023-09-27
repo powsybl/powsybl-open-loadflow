@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-class PerUnitTest {
+class Ieee14Test {
 
     private Network network = IeeeCdfNetworkFactory.create14();
 
