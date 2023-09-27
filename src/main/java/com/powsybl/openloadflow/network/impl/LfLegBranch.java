@@ -107,6 +107,15 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         return twtId + "_leg_" + legNum;
     }
 
+    public static String getId(ThreeWindingsTransformer.Side side, String transformerId) {
+        int legNum = switch (side) {
+            case ONE -> 1;
+            case TWO -> 2;
+            case THREE -> 3;
+        };
+        return getId(transformerId, legNum);
+    }
+
     @Override
     public String getId() {
         return getId(getTwt().getId(), getLegNum());
@@ -182,13 +191,5 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         // Star bus is always on side 2.
         getLeg().getTerminal().setP(p1 * PerUnit.SB)
                 .setQ(q1 * PerUnit.SB);
-    }
-
-    public static String getLegBranchId(ThreeWindingsTransformer.Side side, String transformerId) {
-        return transformerId + "_leg_" + switch (side) {
-            case ONE -> 1;
-            case TWO -> 2;
-            case THREE -> 3;
-        };
     }
 }
