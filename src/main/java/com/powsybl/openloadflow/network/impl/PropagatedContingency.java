@@ -45,11 +45,9 @@ public class PropagatedContingency {
 
     private final Set<String> generatorIdsToLose = new HashSet<>();
 
-    private final Map<String, PowerShift> busIdsToShift = new HashMap<>();
+    private final Map<String, PowerShift> loadIdsToLoose = new HashMap<>();
 
     private final Map<String, AdmittanceShift> shuntIdsToShift = new HashMap<>();
-
-    private final Set<String> originalPowerShiftIds = new LinkedHashSet<>();
 
     public Contingency getContingency() {
         return contingency;
@@ -79,16 +77,12 @@ public class PropagatedContingency {
         return generatorIdsToLose;
     }
 
-    public Map<String, PowerShift> getBusIdsToShift() {
-        return busIdsToShift;
+    public Map<String, PowerShift> getLoadIdsToLoose() {
+        return loadIdsToLoose;
     }
 
     public Map<String, AdmittanceShift> getShuntIdsToShift() {
         return shuntIdsToShift;
-    }
-
-    public Set<String> getOriginalPowerShiftIds() {
-        return originalPowerShiftIds;
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect,
@@ -184,8 +178,8 @@ public class PropagatedContingency {
         for (Terminal terminal : terminalsToDisconnect) {
             Connectable<?> connectable = terminal.getConnectable();
             switch (connectable.getType()) {
-                case LINE:
-                case TWO_WINDINGS_TRANSFORMER:
+                case LINE,
+                     TWO_WINDINGS_TRANSFORMER:
                     branchIdsToOpen.add(connectable.getId());
                     break;
                 case DANGLING_LINE:
@@ -197,16 +191,15 @@ public class PropagatedContingency {
                     }
                     break;
 
-                case GENERATOR:
-                case STATIC_VAR_COMPENSATOR:
-                case BATTERY:
+                case GENERATOR,
+                     STATIC_VAR_COMPENSATOR,
+                     BATTERY:
                     generatorIdsToLose.add(connectable.getId());
                     break;
 
                 case LOAD:
                     Load load = (Load) connectable;
-                    originalPowerShiftIds.add(load.getId());
-                    addPowerShift(load.getTerminal(), busIdsToShift, getLoadPowerShift(load, slackDistributionOnConformLoad), breakers);
+                    loadIdsToLoose.put(load.getId(), getLoadPowerShift(load, slackDistributionOnConformLoad));
                     break;
 
                 case SHUNT_COMPENSATOR:
@@ -233,8 +226,7 @@ public class PropagatedContingency {
                         LccConverterStation lcc = (LccConverterStation) connectable;
                         PowerShift lccPowerShift = new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc, breakers) / PerUnit.SB, 0,
                                 HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc, breakers) / PerUnit.SB);
-                        originalPowerShiftIds.add(lcc.getId());
-                        addPowerShift(lcc.getTerminal(), busIdsToShift, lccPowerShift, breakers);
+                        loadIdsToLoose.put(lcc.getId(), lccPowerShift);
                     }
                     break;
 
@@ -255,23 +247,14 @@ public class PropagatedContingency {
         }
     }
 
-    private static void addPowerShift(Terminal terminal, Map<String, PowerShift> busIdsToShift, PowerShift powerShift, boolean breakers) {
-        Bus bus = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
-        if (bus != null) {
-            busIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift()).add(powerShift);
-        }
-    }
-
     private static List<? extends Terminal> getTerminals(Identifiable<?> identifiable) {
         if (identifiable instanceof Connectable<?>) {
             return ((Connectable<?>) identifiable).getTerminals();
         }
-        if (identifiable instanceof HvdcLine) {
-            HvdcLine hvdcLine = (HvdcLine) identifiable;
+        if (identifiable instanceof HvdcLine hvdcLine) {
             return List.of(hvdcLine.getConverterStation1().getTerminal(), hvdcLine.getConverterStation2().getTerminal());
         }
-        if (identifiable instanceof TieLine) {
-            TieLine line = (TieLine) identifiable;
+        if (identifiable instanceof TieLine line) {
             return List.of(line.getDanglingLine1().getTerminal(), line.getDanglingLine2().getTerminal());
         }
         if (identifiable instanceof Switch) {
@@ -284,9 +267,9 @@ public class PropagatedContingency {
         Identifiable<?> identifiable;
         String identifiableType;
         switch (element.getType()) {
-            case BRANCH:
-            case LINE:
-            case TWO_WINDINGS_TRANSFORMER:
+            case BRANCH,
+                 LINE,
+                 TWO_WINDINGS_TRANSFORMER:
                 identifiable = network.getBranch(element.getId());
                 identifiableType = "Branch";
                 break;
@@ -345,7 +328,7 @@ public class PropagatedContingency {
 
     public boolean hasNoImpact() {
         return branchIdsToOpen.isEmpty() && hvdcIdsToOpen.isEmpty() && generatorIdsToLose.isEmpty()
-                && busIdsToShift.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
+                && loadIdsToLoose.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
@@ -418,13 +401,15 @@ public class PropagatedContingency {
             }
         }
 
-        Map<LfBus, PowerShift> busesLoadShift = new HashMap<>(1);
-        for (var e : busIdsToShift.entrySet()) {
-            String busId = e.getKey();
-            PowerShift shift = e.getValue();
-            LfBus bus = network.getBusById(busId);
-            if (bus != null) { // could be in another component
-                busesLoadShift.put(bus, shift);
+        Map<LfLoad, LfLostLoad> loads = new HashMap<>(1);
+        for (var e : loadIdsToLoose.entrySet()) {
+            String loadId = e.getKey();
+            PowerShift powerShift = e.getValue();
+            LfLoad load = network.getLoadById(loadId);
+            if (load != null) { // could be in another component
+                LfLostLoad lostLoad = loads.computeIfAbsent(load, k -> new LfLostLoad());
+                lostLoad.getPowerShift().add(powerShift);
+                lostLoad.getOriginalIds().add(loadId);
             }
         }
 
@@ -446,13 +431,13 @@ public class PropagatedContingency {
         if (branches.isEmpty()
                 && buses.isEmpty()
                 && shunts.isEmpty()
-                && busesLoadShift.isEmpty()
+                && loads.isEmpty()
                 && generators.isEmpty()
                 && hvdcs.isEmpty()) {
             LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(buses, branches, hvdcs), shunts, busesLoadShift, generators, originalPowerShiftIds));
+        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(buses, branches, hvdcs), shunts, loads, generators));
     }
 }

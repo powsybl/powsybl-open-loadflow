@@ -51,6 +51,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     protected SensitivityAnalysisParameters parameters;
 
+    private static final String NOT_FOUND = "' not found";
+
     protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
@@ -196,7 +198,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         public EquationTerm<V, E> getFunctionEquationTerm() {
             LfBranch branch;
             return (EquationTerm<V, E>) switch (functionType) {
-                case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_3
+                case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_3
                         -> ((LfBranch) functionElement).getP1();
                 case BRANCH_ACTIVE_POWER_2 -> {
                     branch = (LfBranch) functionElement;
@@ -210,7 +212,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     yield branch instanceof LfLegBranch ? ((LfBranch) functionElement).getQ1()
                                                         : ((LfBranch) functionElement).getQ2();
                 }
-                case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3
+                case BRANCH_CURRENT_1, BRANCH_CURRENT_3
                         -> ((LfBranch) functionElement).getI1();
                 case BRANCH_CURRENT_2 -> {
                     branch = (LfBranch) functionElement;
@@ -312,10 +314,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         protected Equation<V, E> getVariableEquation() {
             switch (variableType) {
-                case TRANSFORMER_PHASE:
-                case TRANSFORMER_PHASE_1:
-                case TRANSFORMER_PHASE_2:
-                case TRANSFORMER_PHASE_3:
+                case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                     LfBranch lfBranch = (LfBranch) variableElement;
                     return ((EquationTerm<V, E>) lfBranch.getA1()).getEquation();
                 case BUS_TARGET_VOLTAGE:
@@ -340,10 +339,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         public boolean isVariableInContingency(PropagatedContingency contingency) {
             if (contingency != null) {
                 switch (variableType) {
-                    case INJECTION_ACTIVE_POWER:
-                    case HVDC_LINE_ACTIVE_POWER:
+                    case INJECTION_ACTIVE_POWER,
+                         HVDC_LINE_ACTIVE_POWER:
                         // a load, a generator, a dangling line, an LCC or a VSC converter station.
-                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getOriginalPowerShiftIds().contains(variableId);
+                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getLoadIdsToLoose().containsKey(variableId);
                     case BUS_TARGET_VOLTAGE:
                         // a generator or a two windings transformer.
                         // shunt contingency not supported yet.
@@ -405,7 +404,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         @Override
         public boolean isVariableInContingency(PropagatedContingency contingency) {
             if (contingency != null) {
-                int sizeCommonIds = (int) Stream.concat(contingency.getGeneratorIdsToLose().stream(), contingency.getOriginalPowerShiftIds().stream())
+                int sizeCommonIds = (int) Stream.concat(contingency.getGeneratorIdsToLose().stream(), contingency.getLoadIdsToLoose().keySet().stream())
                         .distinct()
                         .filter(originalVariableSetIds::contains)
                         .count();
@@ -490,10 +489,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         @Override
         public void fillRhs(Matrix rhs, Map<LfBus, Double> participationByBus) {
             switch (variableType) {
-                case TRANSFORMER_PHASE:
-                case TRANSFORMER_PHASE_1:
-                case TRANSFORMER_PHASE_2:
-                case TRANSFORMER_PHASE_3:
+                case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                     if (variableEquation.isActive()) {
                         rhs.set(variableEquation.getColumn(), getIndex(), Math.toRadians(1d));
                     }
@@ -829,8 +825,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (bus == null) {
                 return null;
             }
-            if (injection instanceof DanglingLine) {
-                return LfDanglingLineBus.getId((DanglingLine) injection);
+            if (injection instanceof DanglingLine dl) {
+                return LfDanglingLineBus.getId(dl);
             } else {
                 return bus.getId();
             }
@@ -866,7 +862,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             return bus.getId();
         }
 
-        throw new PowsyblException("Injection '" + injectionId + "' not found");
+        throw new PowsyblException("Injection '" + injectionId + NOT_FOUND);
     }
 
     private static LfBranch checkAndGetBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
@@ -886,7 +882,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         if (line != null) {
             return lfNetwork.getBranchById(branchId);
         }
-        throw new PowsyblException("Branch, tie line, dangling line or leg of '" + branchId + "' not found");
+        throw new PowsyblException("Branch, tie line, dangling line or leg of '" + branchId + NOT_FOUND);
     }
 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache, boolean breakers) {
@@ -895,14 +891,14 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
         Bus bus = busCache.get(busId);
         if (bus == null) {
-            throw new PowsyblException("Bus '" + busId + "' not found");
+            throw new PowsyblException("Bus '" + busId + NOT_FOUND);
         }
     }
 
     private static void checkPhaseShifter(Network network, String transformerId) {
         TwoWindingsTransformer twt = network.getTwoWindingsTransformer(transformerId);
         if (twt == null) {
-            throw new PowsyblException("Two windings transformer '" + transformerId + "' not found");
+            throw new PowsyblException("Two windings transformer '" + transformerId + NOT_FOUND);
         }
         if (twt.getPhaseTapChanger() == null) {
             throw new PowsyblException("Two windings transformer '" + transformerId + "' is not a phase shifter");
@@ -912,7 +908,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     private static void checkThreeWindingsTransformerPhaseShifter(Network network, String transformerId, SensitivityVariableType type) {
         ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(transformerId);
         if (twt == null) {
-            throw new PowsyblException("Three windings transformer '" + transformerId + "' not found");
+            throw new PowsyblException("Three windings transformer '" + transformerId + NOT_FOUND);
         }
         ThreeWindingsTransformer.Leg l = twt.getLegs().get(getLegNumber(type) - 1);
         if (l.getPhaseTapChanger() == null) {
@@ -923,7 +919,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     private static void checkRegulatingTerminal(Network network, String equipmentId) {
         Optional<Terminal> terminal = Networks.getEquipmentRegulatingTerminal(network, equipmentId);
         if (terminal.isEmpty()) {
-            throw new PowsyblException("Regulating terminal for '" + equipmentId + "' not found");
+            throw new PowsyblException("Regulating terminal for '" + equipmentId + NOT_FOUND);
         }
     }
 
@@ -1002,7 +998,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             originalVariableSetIdsByVariableId.put(variableId, originalVariableSetIds);
                             SensitivityVariableSet set = variableSetsById.get(variableId);
                             if (set == null) {
-                                throw new PowsyblException("Variable set '" + variableId + "' not found");
+                                throw new PowsyblException("Variable set '" + variableId + NOT_FOUND);
                             }
                             List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
                             for (WeightedSensitivityVariable variable : set.getVariables()) {
@@ -1075,9 +1071,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                 LfBranch twt = lfNetwork.getBranchById(variableId);
                                 variableElement = twt != null && twt.getBus1() != null && twt.getBus2() != null ? twt : null;
                                 break;
-                            case TRANSFORMER_PHASE_1:
-                            case TRANSFORMER_PHASE_2:
-                            case TRANSFORMER_PHASE_3:
+                            case TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                                 checkThreeWindingsTransformerPhaseShifter(network, variableId, variableType);
                                 LfBranch leg = lfNetwork.getBranchById(LfLegBranch.getId(variableId, getLegNumber(variableType)));
                                 variableElement = leg != null && leg.getBus1() != null && leg.getBus2() != null ? leg : null;
@@ -1125,8 +1119,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     private static boolean isActivePowerFunctionType(SensitivityFunctionType functionType) {
-        return functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
-                || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+        return functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3;
     }
@@ -1138,8 +1131,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     private static boolean isCurrentFunctionType(SensitivityFunctionType functionType) {
-        return functionType == SensitivityFunctionType.BRANCH_CURRENT
-                || functionType == SensitivityFunctionType.BRANCH_CURRENT_1
+        return functionType == SensitivityFunctionType.BRANCH_CURRENT_1
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_2
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_3;
     }
@@ -1177,10 +1169,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
      */
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
         return switch (factor.getFunctionType()) {
-            case BRANCH_ACTIVE_POWER, BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3,
+            case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3,
                     BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_2, BRANCH_REACTIVE_POWER_3
                     -> PerUnit.SB;
-            case BRANCH_CURRENT, BRANCH_CURRENT_1, BRANCH_CURRENT_3 -> {
+            case BRANCH_CURRENT_1, BRANCH_CURRENT_3 -> {
                 LfBranch branch = (LfBranch) factor.getFunctionElement();
                 yield PerUnit.ib(branch.getBus1().getNominalV());
             }
@@ -1198,13 +1190,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
      */
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getVariableBaseValue(LfSensitivityFactor<V, E> factor) {
         switch (factor.getVariableType()) {
-            case HVDC_LINE_ACTIVE_POWER:
-            case INJECTION_ACTIVE_POWER:
+            case HVDC_LINE_ACTIVE_POWER, INJECTION_ACTIVE_POWER:
                 return PerUnit.SB;
-            case TRANSFORMER_PHASE:
-            case TRANSFORMER_PHASE_1:
-            case TRANSFORMER_PHASE_2:
-            case TRANSFORMER_PHASE_3:
+            case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                 return 1; //TODO: radians ?
             case BUS_TARGET_VOLTAGE:
                 LfBus bus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
@@ -1241,13 +1229,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {
-            case INJECTION_ACTIVE_POWER:
-            case HVDC_LINE_ACTIVE_POWER:
+            case INJECTION_ACTIVE_POWER, HVDC_LINE_ACTIVE_POWER:
                 return isFlowFunction(function) && Math.abs(value) < parameters.getFlowFlowSensitivityValueThreshold();
-            case TRANSFORMER_PHASE:
-            case TRANSFORMER_PHASE_1:
-            case TRANSFORMER_PHASE_2:
-            case TRANSFORMER_PHASE_3:
+            case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                 return isFlowFunction(function) && Math.abs(value) < parameters.getAngleFlowSensitivityValueThreshold();
             case BUS_TARGET_VOLTAGE:
                 return filterBusTargetVoltageVariable(value, function, parameters);
@@ -1258,29 +1242,17 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     protected static boolean filterBusTargetVoltageVariable(double value, SensitivityFunctionType function,
                                                             SensitivityAnalysisParameters parameters) {
-        switch (function) {
-            case BRANCH_CURRENT_1:
-            case BRANCH_CURRENT_2:
-            case BRANCH_CURRENT_3:
-                return Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
-            case BUS_VOLTAGE:
-                return Math.abs(value) < parameters.getVoltageVoltageSensitivityValueThreshold();
-            default:
-                return false;
-        }
+        return switch (function) {
+            case BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3 -> Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
+            case BUS_VOLTAGE -> Math.abs(value) < parameters.getVoltageVoltageSensitivityValueThreshold();
+            default -> false;
+        };
     }
 
     protected static boolean isFlowFunction(SensitivityFunctionType function) {
-        switch (function) {
-            case BRANCH_ACTIVE_POWER_1:
-            case BRANCH_ACTIVE_POWER_2:
-            case BRANCH_ACTIVE_POWER_3:
-            case BRANCH_CURRENT_1:
-            case BRANCH_CURRENT_2:
-            case BRANCH_CURRENT_3:
-                return true;
-            default:
-                return false;
-        }
+        return switch (function) {
+            case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3, BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3 -> true;
+            default -> false;
+        };
     }
 }

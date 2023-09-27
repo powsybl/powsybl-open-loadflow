@@ -124,10 +124,9 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         Objects.requireNonNull(parameters);
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         double zb = PerUnit.zb(nominalV2);
-        if (branch instanceof Line) {
-            return createLine((Line) branch, network, bus1, bus2, zb, parameters);
-        } else if (branch instanceof TwoWindingsTransformer) {
-            TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
+        if (branch instanceof Line line) {
+            return createLine(line, network, bus1, bus2, zb, parameters);
+        } else if (branch instanceof TwoWindingsTransformer twt) {
             if (rtcToOperate.contains(twt) || pstToOperate.contains(twt)) {
                 return createTransformer(twt, network, bus1, bus2, zb, true, parameters);
             } else {

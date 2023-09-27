@@ -32,9 +32,11 @@ public class PhaseControlOuterLoop
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PhaseControlOuterLoop.class);
 
+    public static final String NAME = "PhaseControl";
+
     @Override
-    public String getType() {
-        return "Phase control";
+    public String getName() {
+        return NAME;
     }
 
     @Override

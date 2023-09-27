@@ -39,29 +39,19 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
     private static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
-        switch (sequenceType) {
-            case POSITIVE:
-                return AcVariableType.BUS_V;
-            case NEGATIVE:
-                return AcVariableType.BUS_V_NEGATIVE;
-            case ZERO:
-                return AcVariableType.BUS_V_ZERO;
-            default:
-                throw new IllegalStateException("Unknown sequence type " + sequenceType);
-        }
+        return switch (sequenceType) {
+            case POSITIVE -> AcVariableType.BUS_V;
+            case NEGATIVE -> AcVariableType.BUS_V_NEGATIVE;
+            case ZERO -> AcVariableType.BUS_V_ZERO;
+        };
     }
 
     private static AcVariableType getVoltageAngleType(Fortescue.SequenceType sequenceType) {
-        switch (sequenceType) {
-            case POSITIVE:
-                return AcVariableType.BUS_PHI;
-            case NEGATIVE:
-                return AcVariableType.BUS_PHI_NEGATIVE;
-            case ZERO:
-                return AcVariableType.BUS_PHI_ZERO;
-            default:
-                throw new IllegalStateException("Unknown sequence type " + sequenceType);
-        }
+        return switch (sequenceType) {
+            case POSITIVE -> AcVariableType.BUS_PHI;
+            case NEGATIVE -> AcVariableType.BUS_PHI_NEGATIVE;
+            case ZERO -> AcVariableType.BUS_PHI_ZERO;
+        };
     }
 
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,

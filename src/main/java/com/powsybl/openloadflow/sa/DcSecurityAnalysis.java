@@ -325,13 +325,14 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                     break;
                 }
                 for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-                    if (checkCondition(operatorStrategy, context.getLimitViolationsPerContingencyId().get(propagatedContingency.getContingency().getId()))) {
+                    List<String> actionIds = checkCondition(operatorStrategy, context.getLimitViolationsPerContingencyId().get(propagatedContingency.getContingency().getId()));
+                    if (!actionIds.isEmpty()) {
                         propagatedContingency.toLfContingency(lfNetwork)
                                 .ifPresent(lfContingency -> {
                                     lfContingency.apply(loadFlowParameters.getBalanceType());
                                     distributedMismatch(lfNetwork, DcLoadFlowEngine.getActivePowerMismatch(lfNetwork.getBuses().stream().filter(bus -> !bus.isDisabled()).collect(Collectors.toSet())),
                                             loadFlowParameters, openLoadFlowParameters);
-                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(),
+                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, actionIds, preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(),
                                             lfActionById, createResultExtension, lfContingency, parameters.getNetworkParameters());
                                     operatorStrategyResults.add(result);
                                     networkState.restore();

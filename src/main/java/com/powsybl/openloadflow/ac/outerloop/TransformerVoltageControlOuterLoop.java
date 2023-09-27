@@ -22,6 +22,8 @@ import java.util.List;
  */
 public class TransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
+    public static final String NAME = "TransformerVoltageControl";
+
     private static final class ContextData {
 
         private double maxControlledNominalVoltage = Double.MIN_VALUE;
@@ -61,8 +63,8 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     }
 
     @Override
-    public String getType() {
-        return "Transformer voltage control";
+    public String getName() {
+        return NAME;
     }
 
     @Override

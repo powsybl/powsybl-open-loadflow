@@ -32,6 +32,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
+    public static final String NAME = "SecondaryVoltageControl";
+
     public static final double SENSI_V_V_EPS_DEFAULT_VALUE = 1e-2;
 
     private static final double TARGET_V_DIFF_EPS = 1e-1; // in Kv
@@ -50,8 +52,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public String getType() {
-        return "SecondaryVoltageControl";
+    public String getName() {
+        return NAME;
     }
 
     private static boolean isValidControllerBus(LfBus bus) {
