@@ -46,9 +46,7 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                 equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
                 break;
-            case BRANCH:
-            case HVDC:
-            case SHUNT_COMPENSATOR:
+            case BRANCH, HVDC, SHUNT_COMPENSATOR:
                 // nothing to do.
                 break;
             default:
