@@ -26,19 +26,20 @@ class Ieee14Test {
 
     private Network network = IeeeCdfNetworkFactory.create14();
 
+    private LoadFlowParameters parameters;
+
     private LoadFlow.Runner loadFlowRunner;
 
     @BeforeEach
     void setUp() {
         network = IeeeCdfNetworkFactory.create14();
+        parameters = new LoadFlowParameters();
         OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
 
     @Test
     void testAc() {
-        LoadFlowParameters parameters = new LoadFlowParameters();
-
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertVoltageEquals(143.1, network.getBusView().getBus("VL1_0"));
@@ -73,10 +74,8 @@ class Ieee14Test {
 
     @Test
     void testDc() {
-        LoadFlowParameters parameters = new LoadFlowParameters()
-                .setDc(true)
+        parameters.setDc(true)
                 .setDcUseTransformerRatio(true);
-        OpenLoadFlowParameters.create(parameters);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
