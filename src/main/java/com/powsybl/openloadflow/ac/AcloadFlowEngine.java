@@ -27,10 +27,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -195,7 +192,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     }
 
     public static <T> List<AcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, AcLoadFlowParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter)
+        return LfNetwork.load(network, networkLoader, new ArrayList<>(), new ArrayList<>(), parameters.getNetworkParameters(), reporter)
                 .stream()
                 .map(n -> {
                     if (n.isValid()) {

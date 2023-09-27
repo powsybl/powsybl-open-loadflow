@@ -270,10 +270,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 });
     }
 
-    protected static List<RatioTapChangerHolder> findAllRtcToOperate(Network network, List<Action> actions)
-    {
+    protected static List<RatioTapChangerHolder> findAllRtcToOperate(Network network, List<Action> actions) {
         List<RatioTapChangerHolder> rtcToOperate = new ArrayList<RatioTapChangerHolder>();
-        for(Action action : actions) {
+        for (Action action : actions) {
             if (Objects.equals(action.getType(), "RATIO_TAP_CHANGER_TAP_POSITION")) {
                 RatioTapChangerTapPositionAction rtcAction = (RatioTapChangerTapPositionAction) action;
                 if (rtcAction.getSide().isEmpty()) {
@@ -283,30 +282,26 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 } else {
                     // This is a T3WT
                     ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(rtcAction.getTransformerId());
-                    if (rtcAction.getSide().get().equals(ThreeWindingsTransformer.Side.ONE))
-                    {
+                    if (rtcAction.getSide().get().equals(ThreeWindingsTransformer.Side.ONE)) {
                         rtcToOperate.add(t3wt.getLeg1());
                         continue;
                     }
-                    if (rtcAction.getSide().get().equals(ThreeWindingsTransformer.Side.TWO))
-                    {
+                    if (rtcAction.getSide().get().equals(ThreeWindingsTransformer.Side.TWO)) {
                         rtcToOperate.add(t3wt.getLeg2());
                         continue;
                     }
-                    if (rtcAction.getSide().get().equals(ThreeWindingsTransformer.Side.THREE))
-                    {
+                    if (rtcAction.getSide().get().equals(ThreeWindingsTransformer.Side.THREE)) {
                         rtcToOperate.add(t3wt.getLeg3());
                     }
-                 }
+                }
             }
         }
         return rtcToOperate;
     }
 
-    protected static List<PhaseTapChangerHolder> findAllPstToOperate(Network network, List<Action> actions)
-    {
+    protected static List<PhaseTapChangerHolder> findAllPstToOperate(Network network, List<Action> actions) {
         List<PhaseTapChangerHolder> pstToOperate = new ArrayList<PhaseTapChangerHolder>();
-        for(Action action : actions) {
+        for (Action action : actions) {
             if (Objects.equals(action.getType(), "PHASE_TAP_CHANGER_TAP_POSITION")) {
                 PhaseTapChangerTapPositionAction pstAction = (PhaseTapChangerTapPositionAction) action;
                 if (pstAction.getSide().isEmpty()) {
@@ -316,18 +311,15 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 } else {
                     // This is a T3WT
                     ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(pstAction.getTransformerId());
-                    if (pstAction.getSide().get().equals(ThreeWindingsTransformer.Side.ONE))
-                    {
+                    if (pstAction.getSide().get().equals(ThreeWindingsTransformer.Side.ONE)) {
                         pstToOperate.add(t3wt.getLeg1());
                         continue;
                     }
-                    if (pstAction.getSide().get().equals(ThreeWindingsTransformer.Side.TWO))
-                    {
+                    if (pstAction.getSide().get().equals(ThreeWindingsTransformer.Side.TWO)) {
                         pstToOperate.add(t3wt.getLeg2());
                         continue;
                     }
-                    if (pstAction.getSide().get().equals(ThreeWindingsTransformer.Side.THREE))
-                    {
+                    if (pstAction.getSide().get().equals(ThreeWindingsTransformer.Side.THREE)) {
                         pstToOperate.add(t3wt.getLeg3());
                     }
                 }

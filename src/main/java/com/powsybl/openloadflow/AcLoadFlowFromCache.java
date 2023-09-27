@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -78,7 +79,7 @@ public class AcLoadFlowFromCache {
         // Because of caching, we only need to switch back to working variant but not to remove the variant, thus
         // WorkingVariantReverter is used instead of DefaultVariantCleaner
         try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), topoConfig,
-                LfNetworkList.WorkingVariantReverter::new, reporter)) {
+                new ArrayList<>(), new ArrayList<>(), LfNetworkList.WorkingVariantReverter::new, reporter)) {
             contexts = lfNetworkList.getList()
                     .stream()
                     .map(n -> new AcLoadFlowContext(n, acParameters))

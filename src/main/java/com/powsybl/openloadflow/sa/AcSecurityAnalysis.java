@@ -83,8 +83,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         findAllSwitchesToOperate(network, actions, topoConfig);
 
         // try to find all pst and rtc to retain because involved in pst and rtc actions
-        List<RatioTapChangerHolder> rtcToOperate =  findAllRtcToOperate(network, actions);
-        List<PhaseTapChangerHolder> pstToOperate =  findAllPstToOperate(network, actions);
+        List<RatioTapChangerHolder> rtcToOperate = findAllRtcToOperate(network, actions);
+        List<PhaseTapChangerHolder> pstToOperate = findAllPstToOperate(network, actions);
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);

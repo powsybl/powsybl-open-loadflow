@@ -893,7 +893,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setHvdcAcEmulation(false)
                 .setCacheEnabled(false); // force not caching as not supported in sensi analysis
         // create networks including all necessary switches
-        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reporter)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, new ArrayList<>(), new ArrayList<>(), reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
 
             // complete definition of contingencies after network loading

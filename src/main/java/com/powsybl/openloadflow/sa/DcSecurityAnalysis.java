@@ -249,6 +249,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 .setBreakers(breakers)
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
 
+        // TODO HG
         try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), topoConfig, Reporter.NO_OP)) {
 
             // complete definition of contingencies after network loading
