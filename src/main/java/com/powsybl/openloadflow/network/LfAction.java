@@ -183,7 +183,8 @@ public final class LfAction {
     }
 
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
-        LfBranch branch = lfNetwork.getBranchById(action.getSide().isPresent() ? LfLegBranch.getLegBranchId(action.getSide().get(), action.getTransformerId()) : action.getTransformerId());
+        String branchId = action.getSide().map(side -> LfLegBranch.getLegBranchId(side, action.getTransformerId())).orElseGet(() -> action.getTransformerId());
+        LfBranch branch = lfNetwork.getBranchById(branchId);
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
                 throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in branch " + branch.getId());
