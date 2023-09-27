@@ -1211,9 +1211,10 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
         assertEquals(0.0, result.getBranchFlow1SensitivityValue("g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l46"), LoadFlowAssert.DELTA_POWER);
-        assertTrue(result.getValues("l12").isEmpty()); // nothing because invalid factor in pre contingency state.
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("l12", "g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l12", "l46"), LoadFlowAssert.DELTA_POWER);
         // with contingency context specific (no pre contingency state asked...)
-        factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g1", "l12")); // all contingency context.
+        factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g1", "l12")); // specific contingency context.
         result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
         assertEquals(0.0, result.getBranchFlow1SensitivityValue("l12", "g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l12", "l46"), LoadFlowAssert.DELTA_POWER);
