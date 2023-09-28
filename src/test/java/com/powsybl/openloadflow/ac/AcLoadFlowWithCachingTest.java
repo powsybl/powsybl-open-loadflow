@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
@@ -20,6 +21,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.ShuntNetworkFactory;
+import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -270,7 +272,7 @@ class AcLoadFlowWithCachingTest {
         assertEquals(1, shunt.getSectionCount());
 
         shunt.setSectionCount(1);
-        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
     }
 
     @Test
@@ -413,5 +415,23 @@ class AcLoadFlowWithCachingTest {
             assertFalse(Double.isNaN(bus.getV()));
             assertFalse(Double.isNaN(bus.getAngle()));
         }
+    }
+
+    @Test
+    void fixCacheInvalidationWhenUpdatingTapPosition() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        var t2wt = network.getTwoWindingsTransformer("T2wT");
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+
+        parameters.setTransformerVoltageControlOn(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
     }
 }

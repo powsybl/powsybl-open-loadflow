@@ -42,6 +42,8 @@ public enum NetworkCache {
 
         private List<AcLoadFlowContext> contexts;
 
+        private boolean pause = false;
+
         public Entry(Network network, LoadFlowParameters parameters) {
             Objects.requireNonNull(network);
             this.networkRef = new WeakReference<>(network);
@@ -71,6 +73,10 @@ public enum NetworkCache {
 
         public LoadFlowParameters getParameters() {
             return parameters;
+        }
+
+        public void setPause(boolean pause) {
+            this.pause = pause;
         }
 
         private void reset() {
@@ -200,7 +206,7 @@ public enum NetworkCache {
 
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
-            if (contexts == null) {
+            if (contexts == null || pause) {
                 return;
             }
             boolean done = false;
