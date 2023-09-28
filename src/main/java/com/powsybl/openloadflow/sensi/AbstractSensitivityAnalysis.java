@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -706,24 +707,40 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     /**
      * Write zero or skip factors to output and send a new factor holder containing only other valid ones.
      * IMPORTANT: this is only a base case test (factor status only deal with base case). We do not output anything
-     * on post contingency if factor is already invalid (skip o zero) on base case.
+     * on post contingency if factor is already invalid (skip o zero) on base case. Except for factors with specific
+     * contingency context, we output the invalid status found during base case analysis.
      */
-    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, SensitivityResultWriter resultWriter) {
+    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, SensitivityResultWriter resultWriter,
+                                                                List<PropagatedContingency> contingencies) {
         Set<String> skippedVariables = new LinkedHashSet<>();
         SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
+        Map<String, Integer> contingencyIndexById = new HashMap<>();
+        contingencies.stream().forEach(contingency -> contingencyIndexById.put(contingency.getContingency().getId(), contingency.getIndex()));
         for (var factor : factorHolder.getAllFactors()) {
-            // directly write output for zero and invalid factors
+            Optional<Double> sensitivityVariableToWrite = Optional.empty();
             if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
                 // ZERO status is for factors where variable element is in the main connected component and reference element is not.
                 // Therefore, the sensitivity is known to value 0, but the reference cannot be known and is set to NaN.
                 if (!filterSensitivityValue(0, factor.getVariableType(), factor.getFunctionType(), parameters)) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, 0, Double.NaN);
+                    sensitivityVariableToWrite = Optional.of(0.0);
                 }
             } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
-                resultWriter.writeSensitivityValue(factor.getIndex(), -1, Double.NaN, Double.NaN);
+                sensitivityVariableToWrite = Optional.of(Double.NaN);
                 skippedVariables.add(factor.getVariableId());
             } else {
                 validFactorHolder.addFactor(factor);
+            }
+            if (sensitivityVariableToWrite.isPresent()) {
+                // directly write output for zero and invalid factors
+                double value = sensitivityVariableToWrite.get();
+                if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
+                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, value, Double.NaN);
+                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC) {
+                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndexById.get(factor.getContingencyContext().getContingencyId()), value, Double.NaN);
+                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.ALL) {
+                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, value, Double.NaN);
+                    contingencyIndexById.values().forEach(index -> resultWriter.writeSensitivityValue(factor.getIndex(), index, value, Double.NaN));
+                }
             }
         }
         if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {
