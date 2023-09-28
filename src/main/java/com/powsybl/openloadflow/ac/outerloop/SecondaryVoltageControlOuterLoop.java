@@ -60,9 +60,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static boolean filterActiveControlledBus(LfBus controlledBus) {
         GeneratorVoltageControl voltageControl = controlledBus.getGeneratorVoltageControl().orElseThrow();
-        return !controlledBus.isDisabled()
-                && voltageControl.isVisible()
-                && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN;
+        return voltageControl.isVisible() && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN;
     }
 
     private static boolean filterSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
@@ -414,7 +412,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         List<LfBus> allControlledBuses = activeSecondaryVoltageControls.stream()
                 .flatMap(activeSecondaryVoltageControl -> activeSecondaryVoltageControl.activeControlledBuses().stream())
-                .distinct()
                 .toList();
 
         SensitivityContext sensitivityContext = SensitivityContext.create(allControlledBuses, context.getLoadFlowContext());
