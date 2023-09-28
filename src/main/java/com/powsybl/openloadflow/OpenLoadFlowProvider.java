@@ -133,11 +133,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         // not changed and no calculation update was needed
         if (ok && results.stream().anyMatch(result -> result.getNewtonRaphsonIterations() > 0)) {
             Networks.resetState(network);
-        }
 
-        // reset slack buses if at least one component has converged
-        if (ok && parameters.isWriteSlackBus()) {
-            SlackTerminal.reset(network);
+            // reset slack buses if at least one component has converged
+            if (parameters.isWriteSlackBus()) {
+                SlackTerminal.reset(network);
+            }
         }
 
         List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
