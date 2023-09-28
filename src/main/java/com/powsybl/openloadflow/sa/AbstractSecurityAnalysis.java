@@ -64,7 +64,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected final Reporter reporter;
 
-    private static final String NOT_FOUND = "' not found";
+    private static final String NOT_FOUND = "' not found in the network";
 
     protected AbstractSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                        List<StateMonitor> stateMonitors, Reporter reporter) {
@@ -130,13 +130,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                 case PhaseTapChangerTapPositionAction.NAME: {
                     PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
-                    phaseTapChangerTapPositionAction.getSide().ifPresentOrElse(side -> {
-                        throw new PowsyblException("3 windings transformers not yet supported");
-                    }, () -> {
-                            if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
-                                throw new PowsyblException("Branch '" + phaseTapChangerTapPositionAction.getTransformerId() + NOT_FOUND);
-                            }
-                        });
+                    if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null
+                            && network.getThreeWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
+                        throw new PowsyblException("Transformer '" + phaseTapChangerTapPositionAction.getTransformerId() + NOT_FOUND);
+                    }
                     break;
                 }
 
