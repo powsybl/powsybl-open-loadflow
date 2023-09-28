@@ -27,6 +27,7 @@ import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -206,7 +207,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter)
+        return LfNetwork.load(network, networkLoader, new ArrayList<>(), new ArrayList<>(), parameters.getNetworkParameters(), reporter)
                 .stream()
                 .map(n -> {
                     if (n.isValid()) {

@@ -23,6 +23,8 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -527,7 +529,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), new ArrayList<>(), new ArrayList<>(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));
             assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
@@ -569,7 +571,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), new ArrayList<>(), new ArrayList<>(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));
             assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());

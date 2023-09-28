@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.usefultoys.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
@@ -290,7 +291,7 @@ class DcLoadFlowTest {
                                                                              1);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToClose().add(c1);
-        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, new ArrayList<>(), new ArrayList<>(), Reporter.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
             try (DcLoadFlowContext context = new DcLoadFlowContext(largestNetwork, dcLoadFlowParameters)) {

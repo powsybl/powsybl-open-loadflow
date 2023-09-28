@@ -101,7 +101,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, rtcToOperate, pstToOperate, saReporter)) {
-
             // complete definition of contingencies after network loading
             PropagatedContingency.completeList(propagatedContingencies, lfParameters.isShuntCompensatorVoltageControlOn(),
                     lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, lfParameters.isHvdcAcEmulation(), breakers);

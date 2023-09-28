@@ -61,7 +61,7 @@ class LfActionTest extends AbstractConverterTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToOpen().add(network.getSwitch("C"));
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, new ArrayList<>(), new ArrayList<>(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfAction.create(switchAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
             String loadId = "LOAD";
@@ -96,7 +96,7 @@ class LfActionTest extends AbstractConverterTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), new ArrayList<>(), new ArrayList<>(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
             assertEquals("Generator action: configuration not supported yet.", e.getMessage());
@@ -120,7 +120,7 @@ class LfActionTest extends AbstractConverterTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), new ArrayList<>(), new ArrayList<>(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
             lfAction.apply(acParameters.getNetworkParameters());
@@ -149,7 +149,7 @@ class LfActionTest extends AbstractConverterTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), new ArrayList<>(), new ArrayList<>(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(hvdcAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
             assertEquals("Hvdc action: line is already in AC emulation, not supported yet.", e.getMessage());
@@ -170,7 +170,7 @@ class LfActionTest extends AbstractConverterTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), new ArrayList<>(), new ArrayList<>(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(LfAction.create(hvdcAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
         }

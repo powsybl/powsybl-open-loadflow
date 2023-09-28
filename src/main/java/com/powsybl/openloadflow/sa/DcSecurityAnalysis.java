@@ -11,6 +11,8 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.PhaseTapChangerHolder;
+import com.powsybl.iidm.network.RatioTapChangerHolder;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -123,7 +125,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                                    ComputationManager computationManager, List<OperatorStrategy> operatorStrategies, List<Action> actions) {
 
         // load contingencies
-        // TODO HG : retain PST in actions
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
         OpenSensitivityAnalysisProvider sensitivityAnalysisProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
@@ -237,6 +238,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         LfTopoConfig topoConfig = new LfTopoConfig();
         findAllSwitchesToOperate(network, actions, topoConfig);
 
+        // try to find all pst and rtc to retain because involved in pst and rtc actions
+        List<RatioTapChangerHolder> rtcToOperate = findAllRtcToOperate(network, actions);
+        List<PhaseTapChangerHolder> pstToOperate = findAllPstToOperate(network, actions);
+
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), topoConfig, false);
 
         Map<String, Action> actionsById = indexActionsById(actions);
@@ -249,8 +254,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 .setBreakers(breakers)
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
 
-        // TODO HG
-        try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), topoConfig, Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), topoConfig, rtcToOperate, pstToOperate, Reporter.NO_OP)) {
 
             // complete definition of contingencies after network loading
             PropagatedContingency.completeList(propagatedContingencies, false,

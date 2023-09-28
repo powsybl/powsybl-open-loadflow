@@ -412,14 +412,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), false, parameters);
             }
             if (rtcToOperate.contains(t3wt.getLeg2()) || pstToOperate.contains(t3wt.getLeg2())) {
-                lfBranch2 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg2(), true, parameters);
+                lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), true, parameters);
             } else {
-                lfBranch2 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg2(), false, parameters);
+                lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), false, parameters);
             }
             if (rtcToOperate.contains(t3wt.getLeg3()) || pstToOperate.contains(t3wt.getLeg3())) {
-                lfBranch3 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg3(), true, parameters);
+                lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), true, parameters);
             } else {
-                lfBranch3 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg3(), false, parameters);
+                lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), false, parameters);
             }
             addBranch(lfNetwork, lfBranch1, report);
             addBranch(lfNetwork, lfBranch2, report);

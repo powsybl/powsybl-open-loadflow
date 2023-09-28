@@ -27,6 +27,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
@@ -121,7 +122,7 @@ class NonImpedantBranchDisablingTest {
                                                             false);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToClose().add(c1);
-        try (LfNetworkList lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), topoConfig, Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), topoConfig, new ArrayList<>(), new ArrayList<>(), Reporter.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
             try (AcLoadFlowContext context = new AcLoadFlowContext(largestNetwork, acLoadFlowParameters)) {
