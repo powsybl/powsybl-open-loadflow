@@ -602,13 +602,13 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<OperatorStrategy> operatorStrategies3 = List.of(new OperatorStrategy("strategy3", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies3, actions3, Reporter.NO_OP));
-        assertEquals("Two windings transformer 'pst1' not found in the network", exception.getCause().getMessage());
+        assertEquals("Transformer 'pst1' not found in the network", exception.getCause().getMessage());
 
         List<Action> actions4 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst2", false, 1, ThreeWindingsTransformer.Side.ONE));
         List<OperatorStrategy> operatorStrategies4 = List.of(new OperatorStrategy("strategy4", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies4, actions4, Reporter.NO_OP));
-        assertEquals("Three windings transformer 'pst2' not found in the network", exception.getCause().getMessage());
+        assertEquals("Transformer 'pst2' not found in the network", exception.getCause().getMessage());
 
         List<Action> actions5 = Collections.emptyList();
         List<OperatorStrategy> operatorStrategies5 = List.of(new OperatorStrategy("strategy5", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("x")));

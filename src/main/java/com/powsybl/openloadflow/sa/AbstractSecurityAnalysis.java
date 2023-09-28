@@ -12,7 +12,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
-import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -131,17 +130,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                 case PhaseTapChangerTapPositionAction.NAME: {
                     PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
-                    Identifiable<?> identifiable;
-                    String identifiableType;
-                    if (phaseTapChangerTapPositionAction.getSide().isPresent()) {
-                        identifiable = network.getThreeWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId());
-                        identifiableType = "Three windings transformer '";
-                    } else {
-                        identifiable = network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId());
-                        identifiableType = "Two windings transformer '";
-                    }
-                    if (identifiable == null) {
-                        throw new PowsyblException(identifiableType + phaseTapChangerTapPositionAction.getTransformerId() + NOT_FOUND);
+                    if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null
+                            && network.getThreeWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
+                        throw new PowsyblException("Transformer '" + phaseTapChangerTapPositionAction.getTransformerId() + NOT_FOUND);
                     }
                     break;
                 }
