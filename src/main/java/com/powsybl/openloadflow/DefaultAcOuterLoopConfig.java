@@ -22,6 +22,8 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         List<AcOuterLoop> outerLoops = new ArrayList<>(5);
         // primary frequency control
         createDistributedSlackOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
+        // secondary voltage control
+        createSecondaryVoltageControlOuterLoop(parametersExt).ifPresent(outerLoops::add);
         // primary voltage control
         createMonitoringVoltageOuterLoop(parametersExt).ifPresent(outerLoops::add);
         createReactiveLimitsOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
@@ -31,8 +33,6 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         createTransformerVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // shunt compensator voltage control
         createShuntVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
-        // secondary voltage control
-        createSecondaryVoltageControlOuterLoop(parametersExt).ifPresent(outerLoops::add);
         return outerLoops;
     }
 }
