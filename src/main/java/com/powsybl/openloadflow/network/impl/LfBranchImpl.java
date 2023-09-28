@@ -127,11 +127,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         if (branch instanceof Line line) {
             return createLine(line, network, bus1, bus2, zb, parameters);
         } else if (branch instanceof TwoWindingsTransformer twt) {
-            if (rtcToOperate.contains(twt) || pstToOperate.contains(twt)) {
-                return createTransformer(twt, network, bus1, bus2, zb, true, parameters);
-            } else {
-                return createTransformer(twt, network, bus1, bus2, zb, false, parameters);
-            }
+            return createTransformer(twt, network, bus1, bus2, zb, rtcToOperate.contains(twt) || pstToOperate.contains(twt), parameters);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
