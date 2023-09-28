@@ -269,7 +269,7 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
 
         CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("Control unit 'B9-SH' of zone 'z1' is expected to be either a generator or un VSC station control", e.getCause().getMessage());
+        assertEquals("Control unit 'B9-SH' of zone 'z1' is expected to be either a generator or a VSC converter station", e.getCause().getMessage());
     }
 
     @Test

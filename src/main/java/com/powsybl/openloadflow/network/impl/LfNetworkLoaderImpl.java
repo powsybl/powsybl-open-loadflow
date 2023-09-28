@@ -757,19 +757,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static boolean isVsc(Connectable<?> connectable) {
-        return connectable.getType() == IdentifiableType.HVDC_CONVERTER_STATION
-                && ((HvdcConverterStation<?>) connectable).getHvdcType() == HvdcConverterStation.HvdcType.VSC;
-    }
-
     private static Set<LfBus> findControlZoneControlledBus(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork, ControlZone controlZone) {
         return controlZone.getControlUnits().stream()
                 .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                 .flatMap(regulatingTerminal -> {
                     Connectable<?> connectable = regulatingTerminal.getConnectable();
-                    if (connectable.getType() != IdentifiableType.GENERATOR && !isVsc(connectable)) {
+                    if (connectable.getType() != IdentifiableType.GENERATOR && !HvdcConverterStations.isVsc(connectable)) {
                         throw new PowsyblException("Control unit '" + connectable.getId() + "' of zone '"
-                                + controlZone.getName() + "' is expected to be either a generator or un VSC station control");
+                                + controlZone.getName() + "' is expected to be either a generator or a VSC converter station");
                     }
                     return Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream();
                 })
@@ -781,20 +776,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!parameters.isSecondaryVoltageControl()) {
             return;
         }
-        SecondaryVoltageControl svc = network.getExtension(SecondaryVoltageControl.class);
-        if (svc == null) {
+        SecondaryVoltageControl control = network.getExtension(SecondaryVoltageControl.class);
+        if (control == null) {
             return;
         }
-        for (ControlZone controlZone : svc.getControlZones()) {
+        for (ControlZone controlZone : control.getControlZones()) {
             PilotPoint pilotPoint = controlZone.getPilotPoint();
-            // only keep control zone if its pilot bus is in this LF network
+            // only keep control zone if its pilot bus is in this LfNetwork
             findPilotBus(network, parameters.isBreakers(), pilotPoint.getBusbarSectionsOrBusesIds()).ifPresentOrElse(pilotBus -> {
                 LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
-                if (lfPilotBus != null) { // could be in another LF network (another component)
+                if (lfPilotBus != null) { // could be in another LfNetwork (another component)
                     double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
                     // filter missing control units and find corresponding primary voltage control, controlled bus
                     Set<LfBus> controlledBuses = findControlZoneControlledBus(network, parameters, lfNetwork, controlZone);
-                    LOGGER.debug("{} control units of control zone '{}' have been mapped to {} LF buses ({})",
+                    LOGGER.debug("{} control units of control zone '{}' have been mapped to {} Lf buses ({})",
                             controlZone.getControlUnits().size(), controlZone.getName(), controlledBuses.size(),
                             controlledBuses.stream().map(LfElement::getId).toList());
                     if (!controlledBuses.isEmpty()) {
