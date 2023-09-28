@@ -45,7 +45,7 @@
         <java.version>17</java.version>
 
         <jafama.version>2.3.2</jafama.version>
-        <slf4jtoys.version>1.6.3</slf4jtoys.version>
+        <slf4jtoys.version>1.7.1</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
 
         <powsybl-core.version>6.0.0-RC1</powsybl-core.version>

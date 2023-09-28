@@ -25,8 +25,6 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.usefultoys.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -38,8 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
  */
 class DcLoadFlowTest {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowTest.class);
 
     private LoadFlowParameters parameters;
 
