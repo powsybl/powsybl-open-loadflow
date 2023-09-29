@@ -101,8 +101,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     protected static final List<String> OUTER_LOOP_NAMES_DEFAULT_VALUE = null;
 
-    public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
-
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -250,7 +248,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage for target voltage check", LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE),
         new Parameter(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ParameterType.STRING, "Generators reactive power from bus dispatch mode", REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactivePowerDispatchMode.class)),
         new Parameter(OUTER_LOOP_NAMES_PARAM_NAME, ParameterType.STRING_LIST, "Ordered explicit list of outer loop names, supported outer loops are " + String.join(", ", ExplicitAcOuterLoopConfig.NAMES), OUTER_LOOP_NAMES_DEFAULT_VALUE),
-        new Parameter(USE_ACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Use active power limits in slack distribution", USE_ACTIVE_LIMITS_DEFAULT_VALUE)
+        new Parameter(USE_ACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Use active power limits in slack distribution", LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -386,7 +384,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private List<String> outerLoopNames = OUTER_LOOP_NAMES_DEFAULT_VALUE;
 
-    private boolean useActiveLimits = USE_ACTIVE_LIMITS_DEFAULT_VALUE;
+    private boolean useActiveLimits = LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -925,7 +923,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinNominalVoltageTargetVoltageCheck(config.getDoubleProperty(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE))
                 .setReactivePowerDispatchMode(config.getEnumProperty(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ReactivePowerDispatchMode.class, REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE))
                 .setOuterLoopNames(config.getStringListProperty(OUTER_LOOP_NAMES_PARAM_NAME, OUTER_LOOP_NAMES_DEFAULT_VALUE))
-                .setUseActiveLimits(config.getBooleanProperty(USE_ACTIVE_LIMITS_PARAM_NAME, USE_ACTIVE_LIMITS_DEFAULT_VALUE))
+                .setUseActiveLimits(config.getBooleanProperty(USE_ACTIVE_LIMITS_PARAM_NAME, LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE))
             );
         return parameters;
     }
@@ -1189,6 +1187,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setTwtSplitShuntAdmittance(parameters.isTwtSplitShuntAdmittance())
                 .setBreakers(breakers)
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
+                .setUseActiveLimits(parametersExt.isUseActiveLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
@@ -1307,6 +1306,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setTwtSplitShuntAdmittance(false)
                 .setBreakers(false)
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
+                .setUseActiveLimits(parametersExt.isUseActiveLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
