@@ -204,6 +204,33 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void targetBelowMinAndActivePowerLimitDisabled() {
+        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        g1.setMinP(100); // was 0
+        g1.setTargetP(80);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-97.5, g1.getTerminal()); // allowed to participate even though targetP < minP
+        assertActivePowerEquals(-252.5, g2.getTerminal());
+        assertActivePowerEquals(-107.5, g3.getTerminal());
+        assertActivePowerEquals(-142.5, g4.getTerminal());
+        assertEquals(140, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void targetAboveMaxAndActivePowerLimitDisabled() {
+        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        g1.setTargetP(240); // max is 200
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-237.5, g1.getTerminal()); // allowed to participate even though targetP < minP
+        assertActivePowerEquals(-192.5, g2.getTerminal());
+        assertActivePowerEquals(-87.5, g3.getTerminal());
+        assertActivePowerEquals(-82.5, g4.getTerminal());
+        assertEquals(-20.0, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void zeroParticipatingGeneratorsTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
