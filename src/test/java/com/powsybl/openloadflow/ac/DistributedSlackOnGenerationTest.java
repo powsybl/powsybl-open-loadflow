@@ -174,6 +174,36 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void maxTestActivePowerLimitDisabled() {
+        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        // decrease g1 max limit power, so that distributed slack algo reach the g1 max
+        // Because we disabled active power limits, g1 will exceed max
+        g1.setMaxP(105);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-108.372, g1.getTerminal());
+        assertActivePowerEquals(-247.840, g2.getTerminal());
+        assertActivePowerEquals(-105.946, g3.getTerminal());
+        assertActivePowerEquals(-137.840, g4.getTerminal());
+        assertEquals(120, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void minTestActivePowerLimitDisabled() {
+        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        // increase g1 min limit power and global load so that distributed slack algo reach the g1 min
+        // Because we disabled active power limits, g1 will exceed min
+        g1.setMinP(95);
+        network.getLoad("l1").setP0(400);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-90, g1.getTerminal());
+        assertActivePowerEquals(-170, g2.getTerminal());
+        assertActivePowerEquals(-80, g3.getTerminal());
+        assertActivePowerEquals(-60, g4.getTerminal());
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void zeroParticipatingGeneratorsTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
