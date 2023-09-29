@@ -326,7 +326,7 @@ class DistributedSlackOnGenerationTest {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        // we were getting 132.47279 if computing distributedActivePower as initial NR slack - final NR slack, while difference targetP - P was only 120.1961
+        // we were getting 132.47279 when computing distributedActivePower as initial NR slack - final NR slack, while difference targetP - P was only 120.1961
         var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
         assertEquals(120.1961, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
         assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
@@ -334,5 +334,22 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-245.073, g2.getTerminal());
         assertActivePowerEquals(-105.024, g3.getTerminal());
         assertActivePowerEquals(-135.073, g4.getTerminal());
+    }
+
+    @Test
+    void testDistributedActivePowerSlackDistributionDisabled() {
+        // this test demonstrates the issue https://github.com/powsybl/powsybl-open-loadflow/pull/871
+        // We need a lossy network with losses changing due to PV->PQ switching between first and last NR.
+        // Initial NR has huge losses due to huge reactive flows.
+        parameters.setUseReactiveLimits(true).setDistributedSlack(false);
+        network.getLineStream().forEach(l -> l.setR(0.1));
+        // g2 can only reach 400.18kV with 300MVAr
+        g2.setTargetV(402.0).setVoltageRegulatorOn(true)
+                .newMinMaxReactiveLimits().setMinQ(-300).setMaxQ(300)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        // we were getting 12.307 when computing distributedActivePower as initial NR slack - final NR slack, expecting zero here
+        assertEquals(0.0, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
     }
 }
