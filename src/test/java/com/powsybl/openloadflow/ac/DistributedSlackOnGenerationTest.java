@@ -163,14 +163,14 @@ class DistributedSlackOnGenerationTest {
     @Test
     void minTest() {
         // increase g1 min limit power and global load so that distributed slack algo reach the g1 min
-        g1.setMinP(90);
+        g1.setMinP(95);
         network.getLoad("l1").setP0(400);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(-90, g1.getTerminal());
-        assertActivePowerEquals(-170, g2.getTerminal());
-        assertActivePowerEquals(-80, g3.getTerminal());
-        assertActivePowerEquals(-60, g4.getTerminal());
+        assertActivePowerEquals(-95, g1.getTerminal());
+        assertActivePowerEquals(-167.857, g2.getTerminal());
+        assertActivePowerEquals(-79.285, g3.getTerminal());
+        assertActivePowerEquals(-57.857, g4.getTerminal());
     }
 
     @Test
