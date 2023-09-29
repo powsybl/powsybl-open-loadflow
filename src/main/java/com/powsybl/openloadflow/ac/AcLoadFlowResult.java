@@ -65,7 +65,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
     }
 
     public boolean isOk() {
-        return newtonRaphsonStatus == NewtonRaphsonStatus.CONVERGED && newtonRaphsonIterations > 0 && outerLoopStatus == OuterLoopStatus.STABLE;
+        return newtonRaphsonStatus == NewtonRaphsonStatus.CONVERGED && outerLoopStatus == OuterLoopStatus.STABLE;
     }
 
     @Override

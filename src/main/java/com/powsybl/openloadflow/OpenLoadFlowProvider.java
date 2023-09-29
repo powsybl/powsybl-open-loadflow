@@ -22,8 +22,9 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.*;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -116,7 +117,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getName).collect(Collectors.toList()));
+            LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getName).toList());
         }
 
         List<AcLoadFlowResult> results;
@@ -127,11 +128,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
         }
 
-        boolean ok = results.stream().anyMatch(result -> result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED);
+        boolean atLeastOneComponentHasToBeUpdated = results.stream().anyMatch(result -> result.isOk() && result.getNewtonRaphsonIterations() > 0);
 
         // do not reset state in case all results are ok and no NR iterations because it means that network was just
         // not changed and no calculation update was needed
-        if (ok && results.stream().anyMatch(result -> result.getNewtonRaphsonIterations() > 0)) {
+        if (atLeastOneComponentHasToBeUpdated) {
             Networks.resetState(network);
 
             // reset slack buses if at least one component has converged
@@ -143,7 +144,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
         for (AcLoadFlowResult result : results) {
             // update network state
-            if (result.isOk() || parametersExt.isAlwaysUpdateNetwork()) {
+            if (atLeastOneComponentHasToBeUpdated || parametersExt.isAlwaysUpdateNetwork()) {
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
@@ -170,6 +171,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                             result.getDistributedActivePower() * PerUnit.SB));
         }
 
+        boolean ok = results.stream().anyMatch(AcLoadFlowResult::isOk);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
