@@ -52,7 +52,7 @@ class DcValueVoltageInitializerTest {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), slackBusSelector).get(0);
         VoltageInitializer initializer = new DcValueVoltageInitializer(lfNetworkParameters,
                 false,
-                LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
+                true, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                 true,
                 matrixFactory,
                 1);
@@ -70,7 +70,7 @@ class DcValueVoltageInitializerTest {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), slackBusSelector).get(0);
         VoltageInitializer initializer = new DcValueVoltageInitializer(lfNetworkParameters,
                 false,
-                LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
+                true, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                 true,
                 matrixFactory,
                 1);
@@ -88,7 +88,7 @@ class DcValueVoltageInitializerTest {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), slackBusSelector).get(0);
         VoltageInitializer initializer = new DcValueVoltageInitializer(lfNetworkParameters,
                 false,
-                LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
+                true, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                 true,
                 matrixFactory,
                 1);

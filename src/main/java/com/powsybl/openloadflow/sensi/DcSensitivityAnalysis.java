@@ -223,7 +223,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 lfParameters.isDistributedSlack(),
                 lfParameters.getBalanceType(),
                 true,
-                parametersExt.getMaxOuterLoopIterations());
+                parametersExt.getMaxOuterLoopIterations(),
+                parametersExt.isUseActiveLimits());
     }
 
     /**
@@ -272,7 +273,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
         if (parameters.isDistributedSlack()) {
-            DcLoadFlowEngine.distributeSlack(remainingBuses, parameters.getBalanceType());
+            DcLoadFlowEngine.distributeSlack(remainingBuses, parameters.getBalanceType(), parameters.isUseActiveLimits());
         }
 
         // we need to copy the target array because:
