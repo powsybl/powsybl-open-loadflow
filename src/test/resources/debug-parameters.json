@@ -55,7 +55,6 @@
         "debugDir" : null,
         "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
         "secondaryVoltageControl" : false,
-        "controllerToPilotPointVoltageSensiEpsilon" : 0.01,
         "reactiveLimitsMaxPqPvSwitch" : 3,
         "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
         "alwaysUpdateNetwork" : false,
@@ -63,7 +62,9 @@
         "reportedFeatures" : [ ],
         "slackBusCountryFilter" : [ ],
         "actionableSwitchesIds" : [ ],
-        "asymmetrical" : false
+        "asymmetrical" : false,
+        "reactivePowerDispatchMode" : "Q_EQUAL_PROPORTION",
+        "outerLoopNames" : null
       }
     }
   },

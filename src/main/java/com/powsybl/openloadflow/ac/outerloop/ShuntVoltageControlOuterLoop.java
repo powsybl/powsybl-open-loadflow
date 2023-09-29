@@ -9,36 +9,29 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
+import com.powsybl.openloadflow.network.VoltageControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class ShuntVoltageControlOuterLoop implements AcOuterLoop {
+public class ShuntVoltageControlOuterLoop extends AbstractShuntVoltageControlOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShuntVoltageControlOuterLoop.class);
 
-    @Override
-    public String getType() {
-        return "Shunt voltage control";
-    }
+    public static final String NAME = "ShuntVoltageControl";
 
-    private static List<LfShunt> getControllerShunts(LfNetwork network) {
-        return network.getBuses().stream()
-                .flatMap(bus -> bus.getControllerShunt().stream())
-                .filter(controllerShunt -> !controllerShunt.isDisabled() && controllerShunt.hasVoltageControlCapability())
-                .collect(Collectors.toList());
+    @Override
+    public String getName() {
+        return NAME;
     }
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        getControllerShunts(context.getNetwork()).forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(true));
+        context.getNetwork().<LfShunt>getControllerElements(VoltageControl.Type.SHUNT)
+                .forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(true));
     }
 
     @Override
@@ -46,7 +39,7 @@ public class ShuntVoltageControlOuterLoop implements AcOuterLoop {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (context.getIteration() == 0) {
-            for (LfShunt controllerShunt : getControllerShunts(context.getNetwork())) {
+            for (LfShunt controllerShunt : context.getNetwork().<LfShunt>getControllerElements(VoltageControl.Type.SHUNT)) {
                 controllerShunt.setVoltageControlEnabled(false);
 
                 // round the susceptance to the closest section

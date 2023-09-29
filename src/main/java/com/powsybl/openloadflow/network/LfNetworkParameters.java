@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -52,7 +53,7 @@ public class LfNetworkParameters {
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
-    private boolean generatorVoltageRemoteControl = false;
+    private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
 
@@ -107,6 +108,43 @@ public class LfNetworkParameters {
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
 
     private boolean asymmetrical = ASYMMETRICAL_DEFAULT_VALUE;
+
+    public LfNetworkParameters() {
+    }
+
+    public LfNetworkParameters(LfNetworkParameters other) {
+        Objects.requireNonNull(other);
+        this.slackBusSelector = other.slackBusSelector;
+        this.connectivityFactory = other.connectivityFactory;
+        this.generatorVoltageRemoteControl = other.generatorVoltageRemoteControl;
+        this.minImpedance = other.minImpedance;
+        this.twtSplitShuntAdmittance = other.twtSplitShuntAdmittance;
+        this.breakers = other.breakers;
+        this.plausibleActivePowerLimit = other.plausibleActivePowerLimit;
+        this.computeMainConnectedComponentOnly = other.computeMainConnectedComponentOnly;
+        this.countriesToBalance = new HashSet<>(other.countriesToBalance);
+        this.distributedOnConformLoad = other.distributedOnConformLoad;
+        this.phaseControl = other.phaseControl;
+        this.transformerVoltageControl = other.transformerVoltageControl;
+        this.voltagePerReactivePowerControl = other.voltagePerReactivePowerControl;
+        this.reactivePowerRemoteControl = other.reactivePowerRemoteControl;
+        this.loadFlowModel = other.loadFlowModel;
+        this.shuntVoltageControl = other.shuntVoltageControl;
+        this.reactiveLimits = other.reactiveLimits;
+        this.hvdcAcEmulation = other.hvdcAcEmulation;
+        this.minPlausibleTargetVoltage = other.minPlausibleTargetVoltage;
+        this.maxPlausibleTargetVoltage = other.maxPlausibleTargetVoltage;
+        this.minNominalVoltageTargetVoltageCheck = other.minNominalVoltageTargetVoltageCheck;
+        this.loaderPostProcessorSelection = new HashSet<>(other.loaderPostProcessorSelection);
+        this.reactiveRangeCheckMode = other.reactiveRangeCheckMode;
+        this.lowImpedanceThreshold = other.lowImpedanceThreshold;
+        this.svcVoltageMonitoring = other.svcVoltageMonitoring;
+        this.maxSlackBusCount = other.maxSlackBusCount;
+        this.debugDir = other.debugDir;
+        this.secondaryVoltageControl = other.secondaryVoltageControl;
+        this.cacheEnabled = other.cacheEnabled;
+        this.asymmetrical = other.asymmetrical;
+    }
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
