@@ -15,7 +15,9 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
+import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkLoader;
@@ -27,10 +29,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -123,11 +122,15 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork())))
                 .collect(Collectors.toList());
 
+        Optional<DistributedSlackContextData> distributedSlackContextDataOptional = Optional.empty();
         // outer loops initialization
         for (var outerLoopAndContext : outerLoopsAndContexts) {
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
             outerLoop.initialize(outerLoopContext);
+            if (outerLoop instanceof DistributedSlackOuterLoop) {
+                distributedSlackContextDataOptional = Optional.of((DistributedSlackContextData) outerLoopContext.getData());
+            }
         }
 
         Reporter nrReporter = context.getNetwork().getReporter();
@@ -138,7 +141,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         }
         // run initial Newton-Raphson
         runningContext.lastNrResult = newtonRaphson.run(voltageInitializer, nrReporter);
-        double initialSlackBusActivePowerMismatch = runningContext.lastNrResult.getSlackBusActivePowerMismatch();
 
         runningContext.nrTotalIterations.add(runningContext.lastNrResult.getIterations());
 
@@ -176,13 +178,15 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         OuterLoopStatus outerLoopFinalStatus = runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations()
                 ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
 
+        double distributedActivePower = distributedSlackContextDataOptional.map(DistributedSlackContextData::getDistributedActivePower).orElse(0.0);
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
                                                        runningContext.outerLoopTotalIterations,
                                                        runningContext.nrTotalIterations.getValue(),
                                                        runningContext.lastNrResult.getStatus(),
                                                        outerLoopFinalStatus,
                                                        runningContext.lastNrResult.getSlackBusActivePowerMismatch(),
-                                                       initialSlackBusActivePowerMismatch - runningContext.lastNrResult.getSlackBusActivePowerMismatch());
+                                                       distributedActivePower
+                                                       );
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
