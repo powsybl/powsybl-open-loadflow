@@ -315,15 +315,12 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void testDistributedActivePower() {
-        // this test demonstrates the issue https://github.com/powsybl/powsybl-open-loadflow/pull/871
-        // We need a lossy network with losses changing due to PV->PQ switching between first and last NR.
-        // Initial NR has huge losses due to huge reactive flows.
         parameters.setUseReactiveLimits(true).getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
-        network.getLineStream().forEach(l -> l.setR(0.1));
-        // g2 can only reach 400.18kV with 300MVAr
-        g2.setTargetV(402.0).setVoltageRegulatorOn(true)
-                .newMinMaxReactiveLimits().setMinQ(-300).setMaxQ(300)
-                .add();
+        Network network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        Generator g1 = network.getGenerator("g1");
+        Generator g2 = network.getGenerator("g2");
+        Generator g3 = network.getGenerator("g3");
+        Generator g4 = network.getGenerator("g4");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         // we were getting 132.47279 when computing distributedActivePower as initial NR slack - final NR slack, while difference targetP - P was only 120.1961
@@ -338,15 +335,8 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void testDistributedActivePowerSlackDistributionDisabled() {
-        // this test demonstrates the issue https://github.com/powsybl/powsybl-open-loadflow/pull/871
-        // We need a lossy network with losses changing due to PV->PQ switching between first and last NR.
-        // Initial NR has huge losses due to huge reactive flows.
         parameters.setUseReactiveLimits(true).setDistributedSlack(false);
-        network.getLineStream().forEach(l -> l.setR(0.1));
-        // g2 can only reach 400.18kV with 300MVAr
-        g2.setTargetV(402.0).setVoltageRegulatorOn(true)
-                .newMinMaxReactiveLimits().setMinQ(-300).setMaxQ(300)
-                .add();
+        Network network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         // we were getting 12.307 when computing distributedActivePower as initial NR slack - final NR slack, expecting zero here
