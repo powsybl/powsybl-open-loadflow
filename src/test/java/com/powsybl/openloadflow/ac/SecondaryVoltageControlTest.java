@@ -303,6 +303,6 @@ class SecondaryVoltageControlTest {
         LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
         LfNetworkLoaderImpl networkLoader = new LfNetworkLoaderImpl();
         PowsyblException e = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, networkLoader, networkParameters));
-        assertEquals("Controlled bus 'VL8_0' is present in more that one control zone", e.getMessage());
+        assertEquals("Generator voltage control of controlled bus 'VL8_0' is present in more that one control zone", e.getMessage());
     }
 }

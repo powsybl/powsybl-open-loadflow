@@ -659,6 +659,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return secondaryVoltageControls;
     }
 
+    private static boolean filterSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
+        return !secondaryVoltageControl.getPilotBus().isDisabled();
+    }
+
+    public List<LfSecondaryVoltageControl> getEnabledSecondaryVoltageControls() {
+        return secondaryVoltageControls.stream()
+                .filter(LfNetwork::filterSecondaryVoltageControl)
+                .toList();
+    }
+
     @SuppressWarnings("unchecked")
     public <E extends LfElement> List<E> getControllerElements(VoltageControl.Type type) {
         return busesByIndex.stream()
