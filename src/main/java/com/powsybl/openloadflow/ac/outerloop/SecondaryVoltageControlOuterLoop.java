@@ -149,14 +149,18 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return qToK(q, controllerBus);
     }
 
-    private static DenseMatrix createA(List<LfBus> controllerBuses, Map<Integer, Integer> controllerBusIndex) {
-        int n = controllerBuses.size();
+    private static DenseMatrix createA(List<LfSecondaryVoltageControl> secondaryVoltageControls, Map<Integer, Integer> controllerBusIndex) {
+        int n = controllerBusIndex.size();
         DenseMatrix a = new DenseMatrix(n, n);
-        for (LfBus controllerBusI : controllerBuses) {
-            for (LfBus controllerBusJ : controllerBuses) {
-                int i = controllerBusIndex.get(controllerBusI.getNum());
-                int j = controllerBusIndex.get(controllerBusJ.getNum());
-                a.set(i, j, i == j ? 1d - (1d / n) : -1d / n);
+        for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
+            List<LfBus> controllerBuses = secondaryVoltageControl.getControllerBuses();
+            int n2 = controllerBuses.size();
+            for (LfBus controllerBusI : controllerBuses) {
+                for (LfBus controllerBusJ : controllerBuses) {
+                    int i = controllerBusIndex.get(controllerBusI.getNum());
+                    int j = controllerBusIndex.get(controllerBusJ.getNum());
+                    a.set(i, j, i == j ? 1d - (1d / n2) : -1d / n2);
+                }
             }
         }
         return a;
@@ -186,14 +190,12 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return jK;
     }
 
-    private static DenseMatrix createJvpp(SensitivityContext sensitivityContext, List<LfBus> controllerBuses, Map<Integer, Integer> controllerBusIndex) {
+    private static DenseMatrix createJvpp(SensitivityContext sensitivityContext, LfBus pilotBus, List<LfBus> controllerBuses, Map<Integer, Integer> controllerBusIndex) {
         int n = controllerBuses.size();
         DenseMatrix jVpp = new DenseMatrix(n, 1);
         for (LfBus controllerBus : controllerBuses) {
             int i = controllerBusIndex.get(controllerBus.getNum());
-            GeneratorVoltageControl voltageControl = controllerBus.getGeneratorVoltageControl().orElseThrow();
-            LfBus controlledBus = voltageControl.getControlledBus();
-            LfBus pilotBus = voltageControl.getSecondaryVoltageControl().orElseThrow().getPilotBus();
+            LfBus controlledBus = controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus();
             jVpp.set(i, 0, sensitivityContext.calculateSensiVpp(controlledBus, pilotBus));
         }
         return jVpp;
@@ -214,63 +216,78 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return secondaryVoltageControl.getTargetValue() - secondaryVoltageControl.getPilotBus().getV();
     }
 
-    private boolean processSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl, SensitivityContext sensitivityContext) {
-        boolean adjusted = false;
+    private List<String> processSecondaryVoltageControl(List<LfSecondaryVoltageControl> secondaryVoltageControls,
+                                                        SensitivityContext sensitivityContext) {
+        List<String> adjustedZoneNames = new ArrayList<>();
 
-        List<LfBus> controllerBuses = secondaryVoltageControl.getEnabledControllerBuses();
-
-        double pilotDv = calculatePilotPointDv(secondaryVoltageControl);
-        KStats kStats = calculateKStats(controllerBuses);
-        if (Math.abs(pilotDv) > DV_EPS || !kStats.allAtLimits() && Math.abs(kStats.dkDiffMax()) > DK_DIFF_MAX_EPS) {
-            var pilotBus = secondaryVoltageControl.getPilotBus();
-            if (LOGGER.isDebugEnabled()) {
-                int allControllerBusesCount = secondaryVoltageControl.getControllerBuses().size();
-                LOGGER.debug("Secondary voltage control of zone '{}': {}/{} controller buses available, pilot point dv is {} kV, controller buses dk diff max is {} (k average is {})",
-                        secondaryVoltageControl.getZoneName(), controllerBuses.size(), allControllerBusesCount, pilotDv * pilotBus.getNominalV(), kStats.dkDiffMax(), kStats.kAverage());
-            }
-
-            var controllerBusIndex = buildBusIndex(controllerBuses);
-
-            DenseMatrix a = createA(controllerBuses, controllerBusIndex);
-
-            DenseMatrix k0 = createK0(controllerBuses, controllerBusIndex);
-
-            DenseMatrix rhs = a.times(k0, -1);
-
-            DenseMatrix jK = createJk(sensitivityContext, controllerBuses, controllerBusIndex);
-
-            DenseMatrix b = a.times(jK);
-
-            DenseMatrix jVpp = createJvpp(sensitivityContext, controllerBuses, controllerBusIndex);
-
-            // replace last row
-            LfBus lastControllerBus = controllerBuses.get(0);
-            int i = controllerBusIndex.get(lastControllerBus.getNum());
-            for (int j = 0; j < b.getColumnCount(); j++) {
-                b.set(i, j, jVpp.get(j, 0));
-            }
-            rhs.set(i, 0, pilotDv);
-
-            try (LUDecomposition luDecomposition = b.decomposeLU()) {
-                luDecomposition.solve(rhs);
-            }
-            @SuppressWarnings("UnnecessaryLocalVariable")
-            DenseMatrix dv = rhs;
-
-            for (LfBus controllerBus : controllerBuses) {
-                i = controllerBusIndex.get(controllerBus.getNum());
-                var pvc = controllerBus.getGeneratorVoltageControl().orElseThrow();
-                LfBus controlledBus = pvc.getControlledBus();
-                double newPvcTargetV = pvc.getTargetValue() + dv.get(i, 0);
-                LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}",
-                        controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
-                        newPvcTargetV * controlledBus.getNominalV());
-                pvc.setTargetValue(newPvcTargetV);
-                adjusted = true;
+        for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
+            double pilotDv = calculatePilotPointDv(secondaryVoltageControl);
+            List<LfBus> controllerBuses = secondaryVoltageControl.getControllerBuses();
+            KStats kStats = calculateKStats(controllerBuses);
+            if (Math.abs(pilotDv) > DV_EPS || !kStats.allAtLimits() && Math.abs(kStats.dkDiffMax()) > DK_DIFF_MAX_EPS) {
+                var pilotBus = secondaryVoltageControl.getPilotBus();
+                if (LOGGER.isDebugEnabled()) {
+                    int allControllerBusesCount = secondaryVoltageControl.getControllerBuses().size();
+                    LOGGER.debug("Secondary voltage control of zone '{}': {}/{} controller buses available, pilot point dv is {} kV, controller buses dk diff max is {} (k average is {})",
+                            secondaryVoltageControl.getZoneName(), controllerBuses.size(), allControllerBusesCount, pilotDv * pilotBus.getNominalV(), kStats.dkDiffMax(), kStats.kAverage());
+                }
+                adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
             }
         }
 
-        return adjusted;
+        if (adjustedZoneNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<LfBus> allControllerBuses = secondaryVoltageControls.stream()
+                .flatMap(control -> control.getEnabledControllerBuses().stream())
+                .toList();
+
+        var controllerBusIndex = buildBusIndex(allControllerBuses);
+
+        DenseMatrix a = createA(secondaryVoltageControls, controllerBusIndex);
+
+        DenseMatrix k0 = createK0(allControllerBuses, controllerBusIndex);
+
+        DenseMatrix rhs = a.times(k0, -1);
+
+        DenseMatrix jK = createJk(sensitivityContext, allControllerBuses, controllerBusIndex);
+
+        DenseMatrix b = a.times(jK);
+
+        // replace last row
+        for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
+            List<LfBus> controllerBuses = secondaryVoltageControl.getControllerBuses();
+            LfBus lastControllerBus = controllerBuses.get(controllerBuses.size() - 1);
+            int i = controllerBusIndex.get(lastControllerBus.getNum());
+
+            DenseMatrix jVpp = createJvpp(sensitivityContext, secondaryVoltageControl.getPilotBus(), allControllerBuses, controllerBusIndex);
+            for (int j = 0; j < b.getColumnCount(); j++) {
+                b.set(i, j, jVpp.get(j, 0));
+            }
+
+            double pilotDv = calculatePilotPointDv(secondaryVoltageControl);
+            rhs.set(i, 0, pilotDv);
+        }
+
+        try (LUDecomposition luDecomposition = b.decomposeLU()) {
+            luDecomposition.solve(rhs);
+        }
+        @SuppressWarnings("UnnecessaryLocalVariable")
+        DenseMatrix dv = rhs;
+
+        for (LfBus controllerBus : allControllerBuses) {
+            int i = controllerBusIndex.get(controllerBus.getNum());
+            var pvc = controllerBus.getGeneratorVoltageControl().orElseThrow();
+            LfBus controlledBus = pvc.getControlledBus();
+            double newPvcTargetV = pvc.getTargetValue() + dv.get(i, 0);
+            LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}",
+                    controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
+                    newPvcTargetV * controlledBus.getNominalV());
+            pvc.setTargetValue(newPvcTargetV);
+        }
+
+        return adjustedZoneNames;
     }
 
     private static void classifyControllerBuses(LfSecondaryVoltageControl control, List<LfBus> allControllerBuses,
@@ -363,15 +380,9 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-        List<String> adjustedZoneNames = new ArrayList<>();
-        for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
-            boolean adjusted = processSecondaryVoltageControl(secondaryVoltageControl, sensitivityContext);
-            if (adjusted) {
-                adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
-                status = OuterLoopStatus.UNSTABLE;
-            }
-        }
+        List<String> adjustedZoneNames = processSecondaryVoltageControl(secondaryVoltageControls, sensitivityContext);
         if (!adjustedZoneNames.isEmpty()) {
+            status = OuterLoopStatus.UNSTABLE;
             LOGGER.info("{} secondary voltage control zones have been adjusted: {}",
                     adjustedZoneNames.size(), adjustedZoneNames);
         }
