@@ -353,10 +353,10 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             return OuterLoopStatus.STABLE;
         }
 
+        // compute target voltage sensitivities for all controlled buses
         List<LfBus> allControlledBuses = secondaryVoltageControls.stream()
                 .flatMap(control -> control.getControlledBuses().stream())
                 .toList();
-
         SensitivityContext sensitivityContext = SensitivityContext.create(allControlledBuses, context.getLoadFlowContext());
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
