@@ -152,14 +152,15 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     private static DenseMatrix createA(List<LfSecondaryVoltageControl> secondaryVoltageControls, Map<Integer, Integer> controllerBusIndex) {
         int n = controllerBusIndex.size();
         DenseMatrix a = new DenseMatrix(n, n);
+        // build a block in the global matrix for each of the secondary voltage control
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
             List<LfBus> controllerBuses = secondaryVoltageControl.getControllerBuses();
-            int n2 = controllerBuses.size();
+            int nControl = controllerBuses.size();
             for (LfBus controllerBusI : controllerBuses) {
                 for (LfBus controllerBusJ : controllerBuses) {
                     int i = controllerBusIndex.get(controllerBusI.getNum());
                     int j = controllerBusIndex.get(controllerBusJ.getNum());
-                    a.set(i, j, i == j ? 1d - (1d / n2) : -1d / n2);
+                    a.set(i, j, i == j ? 1d - (1d / nControl) : -1d / nControl);
                 }
             }
         }
@@ -255,7 +256,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         DenseMatrix b = a.times(jK);
 
-        // replace last row
+        // replace last row for each of the secondary voltage control block
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
             List<LfBus> controllerBuses = secondaryVoltageControl.getControllerBuses();
             LfBus lastControllerBus = controllerBuses.get(controllerBuses.size() - 1);
