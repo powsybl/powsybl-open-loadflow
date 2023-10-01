@@ -186,12 +186,14 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return jK;
     }
 
-    private static DenseMatrix createJvpp(SensitivityContext sensitivityContext, LfBus pilotBus, List<LfBus> controllerBuses, Map<Integer, Integer> controllerBusIndex) {
+    private static DenseMatrix createJvpp(SensitivityContext sensitivityContext, List<LfBus> controllerBuses, Map<Integer, Integer> controllerBusIndex) {
         int n = controllerBuses.size();
         DenseMatrix jVpp = new DenseMatrix(n, 1);
         for (LfBus controllerBus : controllerBuses) {
             int i = controllerBusIndex.get(controllerBus.getNum());
-            LfBus controlledBus = controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus();
+            GeneratorVoltageControl voltageControl = controllerBus.getGeneratorVoltageControl().orElseThrow();
+            LfBus controlledBus = voltageControl.getControlledBus();
+            LfBus pilotBus = voltageControl.getSecondaryVoltageControl().orElseThrow().getPilotBus();
             jVpp.set(i, 0, sensitivityContext.calculateSensiVpp(controlledBus, pilotBus));
         }
         return jVpp;
@@ -237,17 +239,17 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
             DenseMatrix jK = createJk(sensitivityContext, controllerBuses, controllerBusIndex);
 
-            DenseMatrix jVpp = createJvpp(sensitivityContext, pilotBus, controllerBuses, controllerBusIndex);
-
-            DenseMatrix jVppT = jVpp.transpose();
-
             DenseMatrix b = a.times(jK);
 
+            DenseMatrix jVpp = createJvpp(sensitivityContext, controllerBuses, controllerBusIndex);
+
             // replace last row
+            LfBus lastControllerBus = controllerBuses.get(0);
+            int i = controllerBusIndex.get(lastControllerBus.getNum());
             for (int j = 0; j < b.getColumnCount(); j++) {
-                b.set(b.getRowCount() - 1, j, jVppT.get(0, j));
+                b.set(i, j, jVpp.get(j, 0));
             }
-            rhs.set(rhs.getRowCount() - 1, 0, pilotDv);
+            rhs.set(i, 0, pilotDv);
 
             try (LUDecomposition luDecomposition = b.decomposeLU()) {
                 luDecomposition.solve(rhs);
@@ -256,7 +258,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             DenseMatrix dv = rhs;
 
             for (LfBus controllerBus : controllerBuses) {
-                int i = controllerBusIndex.get(controllerBus.getNum());
+                i = controllerBusIndex.get(controllerBus.getNum());
                 var pvc = controllerBus.getGeneratorVoltageControl().orElseThrow();
                 LfBus controlledBus = pvc.getControlledBus();
                 double newPvcTargetV = pvc.getTargetValue() + dv.get(i, 0);
