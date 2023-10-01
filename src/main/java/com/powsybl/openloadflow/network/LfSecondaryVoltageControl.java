@@ -46,11 +46,6 @@ public class LfSecondaryVoltageControl {
         return generatorVoltageControls;
     }
 
-    private static boolean filterActiveControlledBus(LfBus controlledBus) {
-        GeneratorVoltageControl voltageControl = controlledBus.getGeneratorVoltageControl().orElseThrow();
-        return voltageControl.isVisible() && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN;
-    }
-
     private static List<LfBus> findControllerBuses(LfBus controlledBus) {
         return controlledBus.getGeneratorVoltageControl().orElseThrow()
                 .getMergedControllerElements().stream()
@@ -58,16 +53,16 @@ public class LfSecondaryVoltageControl {
                 .toList();
     }
 
-    private static List<LfBus> findVoltageControlEnabledControllerBuses(LfBus controlledBus) {
-        return findControllerBuses(controlledBus).stream()
-                .filter(LfBus::isGeneratorVoltageControlEnabled)
+    public List<LfBus> getControlledBuses() {
+        return generatorVoltageControls.stream()
+                .filter(voltageControl -> voltageControl.isVisible() && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .map(VoltageControl::getControlledBus)
                 .toList();
     }
 
-    public List<LfBus> getControlledBuses() {
-        return generatorVoltageControls.stream()
-                .map(VoltageControl::getControlledBus)
-                .filter(LfSecondaryVoltageControl::filterActiveControlledBus)
+    private static List<LfBus> findVoltageControlEnabledControllerBuses(LfBus controlledBus) {
+        return findControllerBuses(controlledBus).stream()
+                .filter(LfBus::isGeneratorVoltageControlEnabled)
                 .toList();
     }
 
