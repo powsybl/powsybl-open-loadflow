@@ -6,12 +6,10 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Load;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.action.*;
@@ -26,7 +24,7 @@ import java.util.*;
  */
 public final class LfAction {
 
-    protected static final Logger LOGGER = LoggerFactory.getLogger(LfAction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfAction.class);
 
     private static final class TapPositionChange {
 
@@ -57,15 +55,15 @@ public final class LfAction {
 
     private static final class LoadShift {
 
-        private final LfBus bus;
-
         private final String loadId;
+
+        private final LfLoad load;
 
         private final PowerShift powerShift;
 
-        private LoadShift(LfBus bus, String loadId, PowerShift powerShift) {
-            this.bus = bus;
+        private LoadShift(String loadId, LfLoad load, PowerShift powerShift) {
             this.loadId = loadId;
+            this.load = load;
             this.powerShift = powerShift;
         }
     }
@@ -163,7 +161,6 @@ public final class LfAction {
         Terminal terminal = load.getTerminal();
         Bus bus = Networks.getBus(terminal, breakers);
         if (bus != null) {
-            LfBus lfBus = lfNetwork.getBusById(bus.getId());
             double activePowerShift = 0;
             double reactivePowerShift = 0;
             OptionalDouble activePowerValue = action.getActivePowerValue();
@@ -177,16 +174,20 @@ public final class LfAction {
             // In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
             // of P0 that could be described in a LoadDetail extension.
             PowerShift powerShift = new PowerShift(activePowerShift / PerUnit.SB, activePowerShift / PerUnit.SB, reactivePowerShift / PerUnit.SB);
-            return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(lfBus, load.getId(), powerShift), null, null));
+            LfLoad lfLoad = lfNetwork.getLoadById(load.getId());
+            if (lfLoad != null) {
+                return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(load.getId(), lfLoad, powerShift), null, null));
+            }
         }
         return Optional.empty(); // could be in another component or in contingency.
     }
 
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
-        LfBranch branch = lfNetwork.getBranchById(action.getTransformerId()); // only two windings transformer for the moment.
+        String branchId = action.getSide().map(side -> LfLegBranch.getId(side, action.getTransformerId())).orElseGet(action::getTransformerId);
+        LfBranch branch = lfNetwork.getBranchById(branchId);
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
-                throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + action.getTransformerId() + "}");
+                throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in branch " + branch.getId());
             } else {
                 var tapPositionChange = new TapPositionChange(branch, action.getTapPosition(), action.isRelativeValue());
                 return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange, null, null, null));
@@ -273,7 +274,7 @@ public final class LfAction {
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
         connectivity.startTemporaryChanges();
-        contingency.getDisabledBranches().forEach(connectivity::removeEdge);
+        contingency.getDisabledNetwork().getBranches().forEach(connectivity::removeEdge);
 
         // update connectivity according to post action state
         connectivity.startTemporaryChanges();
@@ -281,8 +282,15 @@ public final class LfAction {
             action.updateConnectivity(connectivity);
         }
 
-        // add to action description buses and branches that won't be part of the main connected
-        // component in post action state.
+        updateBusesAndBranchStatus(connectivity);
+
+        // reset connectivity to discard post contingency connectivity and post action connectivity
+        connectivity.undoTemporaryChanges();
+        connectivity.undoTemporaryChanges();
+    }
+
+    public static void updateBusesAndBranchStatus(GraphConnectivity<LfBus, LfBranch> connectivity) {
+        // disable buses and branches that won't be part of the main connected component
         Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
         removedBuses.forEach(bus -> bus.setDisabled(true));
         Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
@@ -292,8 +300,7 @@ public final class LfAction {
         }
         removedBranches.forEach(branch -> branch.setDisabled(true));
 
-        // add to action description buses and branches that will be part of the main connected
-        // component in post action state.
+        // enable buses and branches that will be part of the main connected component
         Set<LfBus> addedBuses = connectivity.getVerticesAddedToMainComponent();
         addedBuses.forEach(bus -> bus.setDisabled(false));
         Set<LfBranch> addedBranches = new HashSet<>(connectivity.getEdgesAddedToMainComponent());
@@ -302,10 +309,6 @@ public final class LfAction {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(addedBranches::add);
         }
         addedBranches.forEach(branch -> branch.setDisabled(false));
-
-        // reset connectivity to discard post contingency connectivity and post action connectivity
-        connectivity.undoTemporaryChanges();
-        connectivity.undoTemporaryChanges();
     }
 
     public void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
@@ -327,13 +330,12 @@ public final class LfAction {
         }
 
         if (loadShift != null) {
-            LfBus bus = loadShift.bus;
-            String loadId = loadShift.loadId;
-            if (!bus.getLoad().isOriginalLoadDisabled(loadId)) {
+            LfLoad load = loadShift.load;
+            if (!load.isOriginalLoadDisabled(loadShift.loadId)) {
                 PowerShift shift = loadShift.powerShift;
-                bus.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
-                bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
-                bus.getLoad().setAbsVariableTargetP(bus.getLoad().getAbsVariableTargetP()
+                load.setTargetP(load.getTargetP() + shift.getActive());
+                load.setTargetQ(load.getTargetQ() + shift.getReactive());
+                load.setAbsVariableTargetP(load.getAbsVariableTargetP()
                         + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
             }
         }

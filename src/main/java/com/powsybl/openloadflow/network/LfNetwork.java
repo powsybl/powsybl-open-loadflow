@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -62,6 +63,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final Map<String, LfShunt> shuntsById = new HashMap<>();
 
     private final Map<String, LfGenerator> generatorsById = new HashMap<>();
+
+    private final Map<String, LfLoad> loadsById = new HashMap<>();
 
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
@@ -169,6 +172,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return branchesById.get(branchId);
     }
 
+    private void addShunt(LfShunt shunt) {
+        shunt.setNum(shuntCount++);
+        shuntsByIndex.add(shunt);
+        shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
+    }
+
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
         bus.setNum(busesByIndex.size());
@@ -177,22 +186,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         invalidateSlack();
         connectivity = null;
 
-        bus.getShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
-        bus.getControllerShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
-        bus.getSvcShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
+        bus.getShunt().ifPresent(this::addShunt);
+        bus.getControllerShunt().ifPresent(this::addShunt);
+        bus.getSvcShunt().ifPresent(this::addShunt);
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
+        bus.getLoad().ifPresent(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
     }
 
     public List<LfBus> getBuses() {
@@ -233,6 +231,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfGenerator getGeneratorById(String id) {
         Objects.requireNonNull(id);
         return generatorsById.get(id);
+    }
+
+    public LfLoad getLoadById(String id) {
+        Objects.requireNonNull(id);
+        return loadsById.get(id);
     }
 
     public void addHvdc(LfHvdc hvdc) {
@@ -481,25 +484,27 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 branch.setMinZ(lowImpedanceThreshold);
             }
         } else {
-            // zero impedance controller phase shifter is not supported
+            // zero impedance phase shifter controller or controlled branch is not supported
             branches.stream()
-                    .filter(LfBranch::isPhaseController)
+                    .filter(b -> b.isPhaseController() || b.isPhaseControlled())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
 
     private void validateBuses(LoadFlowModel loadFlowModel, Reporter reporter) {
         if (loadFlowModel == LoadFlowModel.AC) {
-            boolean hasAtLeastOneBusVoltageControlled = false;
+            boolean hasAtLeastOneBusGeneratorVoltageControlEnabled = false;
             for (LfBus bus : busesByIndex) {
-                if (bus.isGeneratorVoltageControlled()) {
-                    hasAtLeastOneBusVoltageControlled = true;
+                if (bus.isGeneratorVoltageControlEnabled()) {
+                    hasAtLeastOneBusGeneratorVoltageControlEnabled = true;
                     break;
                 }
             }
-            if (!hasAtLeastOneBusVoltageControlled) {
-                LOGGER.error("Network {} must have at least one bus voltage controlled", this);
-                Reports.reportNetworkMustHaveAtLeastOneBusVoltageControlled(reporter);
+            if (!hasAtLeastOneBusGeneratorVoltageControlEnabled) {
+                LOGGER.error("Network {} must have at least one bus with generator voltage control enabled", this);
+                if (reporter != null) {
+                    Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reporter);
+                }
                 valid = false;
             }
         }
@@ -652,6 +657,26 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfSecondaryVoltageControl> getSecondaryVoltageControls() {
         return secondaryVoltageControls;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <E extends LfElement> List<E> getControllerElements(VoltageControl.Type type) {
+        return busesByIndex.stream()
+                .filter(bus -> bus.isVoltageControlled(type))
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
+                .flatMap(bus -> bus.getVoltageControl(type).orElseThrow().getMergedControllerElements().stream())
+                .filter(Predicate.not(LfElement::isDisabled))
+                .map(element -> (E) element)
+                .collect(Collectors.toList());
+    }
+
+    public List<LfBus> getControlledBuses(VoltageControl.Type type) {
+        return busesByIndex.stream()
+                .filter(bus -> bus.isVoltageControlled(type))
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
+                .collect(Collectors.toList());
     }
 
     @Override

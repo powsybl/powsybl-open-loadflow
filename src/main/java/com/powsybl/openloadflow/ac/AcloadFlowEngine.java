@@ -63,12 +63,12 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     }
 
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, NewtonRaphson newtonRaphson, RunningContext runningContext) {
-        Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getType());
+        Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getName());
 
         // for each outer loop re-run Newton-Raphson until stabilization
         OuterLoopStatus outerLoopStatus;
         do {
-            MutableInt outerLoopIteration = runningContext.outerLoopIterationByType.computeIfAbsent(outerLoop.getType(), k -> new MutableInt());
+            MutableInt outerLoopIteration = runningContext.outerLoopIterationByType.computeIfAbsent(outerLoop.getName(), k -> new MutableInt());
 
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration.getValue());
@@ -77,14 +77,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
-                LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getType(), runningContext.outerLoopTotalIterations);
+                LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getName(), runningContext.outerLoopTotalIterations);
 
                 Reporter nrReporter = context.getNetwork().getReporter();
                 if (context.getParameters().getNewtonRaphsonParameters().isDetailedReport()) {
                     nrReporter = Reports.createDetailedNewtonRaphsonReporterOuterLoop(nrReporter,
                             context.getNetwork().getNumCC(),
                             context.getNetwork().getNumSC(),
-                            outerLoopIteration.toInteger() + 1, outerLoop.getType());
+                            outerLoopIteration.toInteger() + 1, outerLoop.getName());
                 }
 
                 // if not yet stable, restart Newton-Raphson
@@ -150,12 +150,12 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             do {
                 oldNrTotalIterations = runningContext.nrTotalIterations.getValue();
 
-                // outer loops are nested: inner most loop first in the list, outer most loop last
+                // outer loops are nested: innermost loop first in the list, outermost loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
                     runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), newtonRaphson, runningContext);
 
-                    // continue with next outer loop only if last Newton-Raphson succeed
-                    // and we have not reach max number of outer loop iteration
+                    // continue with next outer loop only if last Newton-Raphson succeed,
+                    // and we have not reached max number of outer loop iteration
                     if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED
                             || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
                         break;

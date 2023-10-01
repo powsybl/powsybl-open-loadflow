@@ -181,8 +181,8 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         if (obj == this) {
             return true;
         }
-        if (obj instanceof Equation) {
-            return compareTo((Equation) obj) == 0;
+        if (obj instanceof Equation equation) {
+            return compareTo(equation) == 0;
         }
         return false;
     }

@@ -6,8 +6,8 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -62,6 +62,10 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public double getDistributedActivePower() {
         return distributedActivePower;
+    }
+
+    public boolean isOk() {
+        return newtonRaphsonStatus == NewtonRaphsonStatus.CONVERGED && newtonRaphsonIterations > 0 && outerLoopStatus == OuterLoopStatus.STABLE;
     }
 
     @Override
