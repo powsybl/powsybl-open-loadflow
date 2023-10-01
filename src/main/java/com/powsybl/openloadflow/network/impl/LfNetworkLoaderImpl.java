@@ -792,9 +792,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     Set<GeneratorVoltageControl> generatorVoltageControls = findControlZoneGeneratorVoltageControl(network, parameters, lfNetwork, controlZone);
                     LOGGER.debug("{} control units of control zone '{}' have been mapped to {} generator voltage control (controlled buses are: {})",
                             controlZone.getControlUnits().size(), controlZone.getName(), generatorVoltageControls.size(),
-                            generatorVoltageControls.stream().map(VoltageControl::getControlledBus).map(LfElement::getId).collect(Collectors.toList()));
+                            generatorVoltageControls.stream().map(VoltageControl::getControlledBus).map(LfElement::getId).toList());
                     if (!generatorVoltageControls.isEmpty()) {
                         var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, generatorVoltageControls);
+                        for (GeneratorVoltageControl gvc : generatorVoltageControls) {
+                            gvc.setSecondaryVoltageControl(lfSvc);
+                        }
                         lfNetwork.addSecondaryVoltageControl(lfSvc);
                     }
                 }
