@@ -74,8 +74,8 @@ public abstract class AbstractNetworkResult {
         LfBranch leg2 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
         LfBranch leg3 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 3));
         double i1Base = leg1.isConnectedAtBothSides() ? PerUnit.ib(leg1.getBus1().getNominalV()) : Double.NaN;
-        double i2Base = leg2.isConnectedAtBothSides() ? PerUnit.ib(leg2.getBus1().getNominalV()) :  Double.NaN;
-        double i3Base = leg3.isConnectedAtBothSides() ? PerUnit.ib(leg3.getBus1().getNominalV()) :  Double.NaN;
+        double i2Base = leg2.isConnectedAtBothSides() ? PerUnit.ib(leg2.getBus1().getNominalV()) : Double.NaN;
+        double i3Base = leg3.isConnectedAtBothSides() ? PerUnit.ib(leg3.getBus1().getNominalV()) : Double.NaN;
         return new ThreeWindingsTransformerResult(threeWindingsTransformerId,
                                                   leg1.getP1().eval() * PerUnit.SB, leg1.getQ1().eval() * PerUnit.SB, leg1.getI1().eval() * i1Base,
                                                   leg2.getP1().eval() * PerUnit.SB, leg2.getQ1().eval() * PerUnit.SB, leg2.getI1().eval() * i2Base,
