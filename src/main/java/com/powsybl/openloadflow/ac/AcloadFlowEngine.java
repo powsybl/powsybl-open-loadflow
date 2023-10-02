@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -120,17 +119,13 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         List<AcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
         List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
                 .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork())))
-                .collect(Collectors.toList());
+                .toList();
 
-        Optional<DistributedSlackContextData> distributedSlackContextDataOptional = Optional.empty();
         // outer loops initialization
         for (var outerLoopAndContext : outerLoopsAndContexts) {
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
             outerLoop.initialize(outerLoopContext);
-            if (outerLoop instanceof DistributedSlackOuterLoop) {
-                distributedSlackContextDataOptional = Optional.of((DistributedSlackContextData) outerLoopContext.getData());
-            }
         }
 
         Reporter nrReporter = context.getNetwork().getReporter();
@@ -168,17 +163,20 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
         }
 
+        double distributedActivePower = 0.0;
         // outer loops finalization (in reverse order to allow correct cleanup)
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
+            if (outerLoop instanceof DistributedSlackOuterLoop) {
+                distributedActivePower = ((DistributedSlackContextData) outerLoopContext.getData()).getDistributedActivePower();
+            }
             outerLoop.cleanup(outerLoopContext);
         }
 
         OuterLoopStatus outerLoopFinalStatus = runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations()
                 ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
 
-        double distributedActivePower = distributedSlackContextDataOptional.map(DistributedSlackContextData::getDistributedActivePower).orElse(0.0);
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
                                                        runningContext.outerLoopTotalIterations,
                                                        runningContext.nrTotalIterations.getValue(),
@@ -210,6 +208,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     }
                     return AcLoadFlowResult.createNoCalculationResult(n);
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 }
