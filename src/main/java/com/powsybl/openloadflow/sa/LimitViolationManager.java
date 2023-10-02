@@ -62,6 +62,8 @@ public class LimitViolationManager {
 
         // Detect violation limits on buses
         network.getBuses().stream().filter(b -> !b.isDisabled()).forEach(this::detectBusViolations);
+
+        // Detect voltage angle limits
     }
 
     private static Pair<String, Branch.Side> getSubjectIdSide(LimitViolation limitViolation) {
