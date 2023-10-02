@@ -448,37 +448,24 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testSaWithStateMonitorLfLeg() {
         Network network = T3wtFactory.create();
+        List<Contingency> contingencies = network.getBranchStream()
+                .limit(1)
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
 
-        // Testing all contingencies at once
-        List<StateMonitor> monitors = List.of(
-            new StateMonitor(ContingencyContext.all(), emptySet(), emptySet(), Collections.singleton("3wt"))
-        );
-
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), emptySet(), emptySet(), Collections.singleton("3wt")));
         SecurityAnalysisResult result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
-
         assertEquals(1, result.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().size());
         assertAlmostEquals(new ThreeWindingsTransformerResult("3wt", 161, 82, 258,
-                                                              -161, -74, 435, 0, 0, 0),
+                        -161, -74, 435, 0, 0, 0),
                 result.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().get(0), 1);
-    }
-
-    @Test
-    void testSaMonitoring3wtWithDisconnectedLeg() {
-        Network network = T3wtFactory.create();
 
         network.getThreeWindingsTransformer("3wt").getLeg3().getTerminal().disconnect();
-
-        // Testing all contingencies at once
-        List<StateMonitor> monitors = List.of(
-                new StateMonitor(ContingencyContext.all(), emptySet(), emptySet(), Collections.singleton("3wt"))
-        );
-
-        SecurityAnalysisResult result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
-
-        assertEquals(1, result.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().size());
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
+        assertEquals(1, result2.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().size());
         assertAlmostEquals(new ThreeWindingsTransformerResult("3wt", 161, 82, 258,
                         -161, -74, 435, NaN, NaN, NaN),
-                result.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().get(0), 1);
+                result2.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().get(0), 1);
     }
 
     @Test
