@@ -223,7 +223,7 @@ class DistributedSlackOnGenerationTest {
         g1.setTargetP(240); // max is 200
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(-237.5, g1.getTerminal()); // allowed to participate even though targetP < minP
+        assertActivePowerEquals(-237.5, g1.getTerminal()); // allowed to participate even though targetP > maxP
         assertActivePowerEquals(-192.5, g2.getTerminal());
         assertActivePowerEquals(-87.5, g3.getTerminal());
         assertActivePowerEquals(-82.5, g4.getTerminal());
