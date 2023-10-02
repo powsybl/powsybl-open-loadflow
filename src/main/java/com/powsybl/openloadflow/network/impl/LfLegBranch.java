@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
+import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 import java.util.*;
 
@@ -191,5 +192,19 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         // Star bus is always on side 2.
         getLeg().getTerminal().setP(p1 * PerUnit.SB)
                 .setQ(q1 * PerUnit.SB);
+    }
+
+    public static ThreeWindingsTransformerResult createThreeWindingsTransformerResult(LfNetwork network, String threeWindingsTransformerId) {
+        LfLegBranch leg1 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 1));
+        LfLegBranch leg2 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
+        LfLegBranch leg3 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 3));
+
+        double i1Base = PerUnit.ib(leg1.legRef.get().getTerminal().getVoltageLevel().getNominalV());
+        double i2Base = PerUnit.ib(leg2.legRef.get().getTerminal().getVoltageLevel().getNominalV());
+        double i3Base = PerUnit.ib(leg3.legRef.get().getTerminal().getVoltageLevel().getNominalV());
+        return new ThreeWindingsTransformerResult(threeWindingsTransformerId,
+                leg1.getP1().eval() * PerUnit.SB, leg1.getQ1().eval() * PerUnit.SB, leg1.getI1().eval() * i1Base,
+                leg2.getP1().eval() * PerUnit.SB, leg2.getQ1().eval() * PerUnit.SB, leg2.getI1().eval() * i2Base,
+                leg3.getP1().eval() * PerUnit.SB, leg3.getQ1().eval() * PerUnit.SB, leg3.getI1().eval() * i3Base);
     }
 }
