@@ -334,7 +334,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             }
             participating = false;
         }
-        if (targetP < minP && minP > 0) {
+        if (targetP < minP) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({} MW) < minP ({} MW)",
                     generatorId, targetP, minP);
             if (report != null) {

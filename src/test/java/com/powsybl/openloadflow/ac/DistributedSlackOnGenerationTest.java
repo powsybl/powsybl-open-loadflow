@@ -231,6 +231,50 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void targetBelowPositiveMinTest() {
+        // g1 targetP below positive minP (e.g. unit starting up / ramping)
+        g1.setMinP(100);
+        g1.setTargetP(80);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-80.0, g1.getTerminal()); // stays at targetP
+        assertActivePowerEquals(-260.0, g2.getTerminal());
+        assertActivePowerEquals(-110.0, g3.getTerminal());
+        assertActivePowerEquals(-150.0, g4.getTerminal());
+        assertEquals(140, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void targetBelowZeroMinTest() {
+        // g1 targetP below zero minP (e.g. unit modelled lumped with station supply and not producing but consuming a little bit)
+        g1.setMinP(0);
+        g1.setTargetP(-20);
+        network.getLoad("l1").setP0(500);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(20.0, g1.getTerminal()); // stays at targetP
+        assertActivePowerEquals(-260.0, g2.getTerminal());
+        assertActivePowerEquals(-110.0, g3.getTerminal());
+        assertActivePowerEquals(-150.0, g4.getTerminal());
+        assertEquals(140, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void targetBelowNegativeMinTest() {
+        // g1 targetP below negative minP (e.g. generator pumping more than tech limit)
+        g1.setMinP(-100);
+        g1.setTargetP(-120);
+        network.getLoad("l1").setP0(400);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(120.0, g1.getTerminal()); // stays at targetP
+        assertActivePowerEquals(-260.0, g2.getTerminal());
+        assertActivePowerEquals(-110.0, g3.getTerminal());
+        assertActivePowerEquals(-150.0, g4.getTerminal());
+        assertEquals(140, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void zeroParticipatingGeneratorsTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
