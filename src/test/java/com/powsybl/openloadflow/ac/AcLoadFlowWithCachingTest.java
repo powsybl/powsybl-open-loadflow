@@ -422,7 +422,7 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
-    void testUpdateWithMultipleSynhcronousComponents() {
+    void testUpdateWithMultipleSynchronousComponents() {
         Network network = HvdcNetworkFactory.createVsc();
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
