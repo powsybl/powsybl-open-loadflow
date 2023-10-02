@@ -454,18 +454,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createTransformersVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext) {
+    private static void createTransformersVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext,
+                                                          LfNetworkLoadingReport report) {
         // Create discrete voltage controls which link controller -> controlled
         for (Branch<?> branch : loadingContext.branchSet) {
             if (branch instanceof TwoWindingsTransformer t2wt) {
                 RatioTapChanger rtc = t2wt.getRatioTapChanger();
-                createTransformerVoltageControl(lfNetwork, rtc, t2wt.getId(), parameters);
+                createTransformerVoltageControl(lfNetwork, rtc, t2wt.getId(), parameters, report);
             }
         }
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
             for (ThreeWindingsTransformer.Side side : ThreeWindingsTransformer.Side.values()) {
                 RatioTapChanger rtc = t3wt.getLeg(side).getRatioTapChanger();
-                createTransformerVoltageControl(lfNetwork, rtc, LfLegBranch.getId(side, t3wt.getId()), parameters);
+                createTransformerVoltageControl(lfNetwork, rtc, LfLegBranch.getId(side, t3wt.getId()), parameters, report);
             }
         }
     }
@@ -541,13 +542,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void createTransformerVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId,
-                                                        LfNetworkParameters parameters) {
+                                                        LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities()) {
             return;
         }
         LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
         if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
-            LOGGER.warn("Voltage controller branch '{}' is open: voltage control discarded", controllerBranch.getId());
+            LOGGER.trace("Voltage controller branch '{}' is open: voltage control discarded", controllerBranch.getId());
+            report.transformerVoltageControlDiscardedBecauseControllerBranchIsOpen++;
             return;
         }
         LfBus controlledBus = getLfBus(rtc.getRegulationTerminal(), lfNetwork, parameters.isBreakers());
@@ -668,7 +670,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             if (parameters.isTransformerVoltageControl()) {
                 // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
-                createTransformersVoltageControls(lfNetwork, parameters, loadingContext);
+                createTransformersVoltageControls(lfNetwork, parameters, loadingContext, report);
             }
             if (parameters.isShuntVoltageControl()) {
                 for (ShuntCompensator shunt : loadingContext.shuntSet) {
@@ -730,6 +732,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (report.generatorsWithZeroRemoteVoltageControlReactivePowerKey > 0) {
             LOGGER.warn("Network {}: {} generators have a zero remote voltage control reactive power key",
                     lfNetwork, report.generatorsWithZeroRemoteVoltageControlReactivePowerKey);
+        }
+
+        if (report.transformerVoltageControlDiscardedBecauseControllerBranchIsOpen > 0) {
+            LOGGER.warn("Network {}: {} transformer voltage controls have been discarded because controller branch is open",
+                    lfNetwork, report.transformerVoltageControlDiscardedBecauseControllerBranchIsOpen);
         }
 
         if (parameters.getDebugDir() != null) {
