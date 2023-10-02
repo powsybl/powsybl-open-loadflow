@@ -199,9 +199,9 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         LfLegBranch leg2 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
         LfLegBranch leg3 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 3));
 
-        double i1Base = leg1.isConnectedAtBothSides() ? PerUnit.ib(leg1.getBus1().getNominalV()) : PerUnit.ib(leg1.legRef.get().getTerminal().getVoltageLevel().getNominalV());
-        double i2Base = leg2.isConnectedAtBothSides() ? PerUnit.ib(leg2.getBus1().getNominalV()) : PerUnit.ib(leg2.legRef.get().getTerminal().getVoltageLevel().getNominalV());
-        double i3Base = leg3.isConnectedAtBothSides() ? PerUnit.ib(leg3.getBus1().getNominalV()) : PerUnit.ib(leg3.legRef.get().getTerminal().getVoltageLevel().getNominalV());
+        double i1Base = PerUnit.ib(leg1.legRef.get().getTerminal().getVoltageLevel().getNominalV());
+        double i2Base = PerUnit.ib(leg2.legRef.get().getTerminal().getVoltageLevel().getNominalV());
+        double i3Base = PerUnit.ib(leg3.legRef.get().getTerminal().getVoltageLevel().getNominalV());
         return new ThreeWindingsTransformerResult(threeWindingsTransformerId,
                 leg1.getP1().eval() * PerUnit.SB, leg1.getQ1().eval() * PerUnit.SB, leg1.getI1().eval() * i1Base,
                 leg2.getP1().eval() * PerUnit.SB, leg2.getQ1().eval() * PerUnit.SB, leg2.getI1().eval() * i2Base,
