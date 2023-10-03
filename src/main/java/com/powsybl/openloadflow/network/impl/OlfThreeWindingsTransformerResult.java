@@ -20,7 +20,7 @@ public class OlfThreeWindingsTransformerResult extends AbstractExtension<ThreeWi
     OlfThreeWindingsTransformerResult(double v1, double v2, double v3, double angle1, double angle2, double angle3) {
         this.v1 = v1;
         this.v2 = v2;
-        this.v3 = v2;
+        this.v3 = v3;
         this.angle1 = angle1;
         this.angle2 = angle2;
         this.angle3 = angle3;
