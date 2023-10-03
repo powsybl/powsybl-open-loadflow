@@ -64,7 +64,8 @@
         "actionableSwitchesIds" : [ ],
         "asymmetrical" : false,
         "reactivePowerDispatchMode" : "Q_EQUAL_PROPORTION",
-        "outerLoopNames" : null
+        "outerLoopNames" : null,
+        "useActiveLimits" : true
       }
     }
   },
