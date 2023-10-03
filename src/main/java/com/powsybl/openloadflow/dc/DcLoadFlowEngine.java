@@ -173,7 +173,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         if (parameters.isDistributedSlack()) {
-            distributeSlack(network.getBuses(), parameters.getBalanceType(), parameters.isUseActiveLimits());
+            distributeSlack(network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
 
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member

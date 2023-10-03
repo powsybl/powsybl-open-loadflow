@@ -23,8 +23,6 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private final boolean distributedSlack;
 
-    private final boolean useActiveLimits;
-
     private final LoadFlowParameters.BalanceType balanceType;
 
     private final boolean setVToNan;
@@ -33,14 +31,13 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     public DcLoadFlowParameters(LfNetworkParameters networkParameters, DcEquationSystemCreationParameters equationSystemCreationParameters,
                                 MatrixFactory matrixFactory, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
-                                boolean setVToNan, int maxOuterLoopIterations, boolean useActiveLimits) {
+                                boolean setVToNan, int maxOuterLoopIterations) {
         super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.distributedSlack = distributedSlack;
         this.balanceType = balanceType;
         this.setVToNan = setVToNan;
         this.maxOuterLoopIterations = maxOuterLoopIterations;
-        this.useActiveLimits = useActiveLimits;
     }
 
     public DcEquationSystemCreationParameters getEquationSystemCreationParameters() {
@@ -63,10 +60,6 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters {
         return setVToNan;
     }
 
-    public boolean isUseActiveLimits() {
-        return useActiveLimits;
-    }
-
     @Override
     public String toString() {
         return "DcLoadFlowParameters(" +
@@ -74,7 +67,6 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", equationSystemCreationParameters=" + equationSystemCreationParameters +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
                 ", distributedSlack=" + distributedSlack +
-                ", useActiveLimits=" + useActiveLimits +
                 ", balanceType=" + balanceType +
                 ", setVToNan=" + setVToNan +
                 ", maxOuterLoopIterations=" + maxOuterLoopIterations +

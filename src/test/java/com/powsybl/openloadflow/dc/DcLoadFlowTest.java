@@ -287,8 +287,7 @@ class DcLoadFlowTest {
                                                                              true,
                                                                              parameters.getBalanceType(),
                                                                              false,
-                                                                             1,
-                                                                             true);
+                                                                             1);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToClose().add(c1);
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, Reporter.NO_OP)) {

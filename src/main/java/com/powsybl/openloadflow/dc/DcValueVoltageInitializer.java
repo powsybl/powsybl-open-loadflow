@@ -25,8 +25,6 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     private final boolean distributedSlack;
 
-    private final boolean useActiveLimits;
-
     private final LoadFlowParameters.BalanceType balanceType;
 
     private final boolean useTransformerRatio;
@@ -35,11 +33,10 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     private final int maxOuterLoopIterations;
 
-    public DcValueVoltageInitializer(LfNetworkParameters networkParameters, boolean distributedSlack, boolean useActiveLimits, LoadFlowParameters.BalanceType balanceType,
+    public DcValueVoltageInitializer(LfNetworkParameters networkParameters, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
                                      boolean useTransformerRatio, MatrixFactory matrixFactory, int maxOuterLoopIterations) {
         this.networkParameters = Objects.requireNonNull(networkParameters);
         this.distributedSlack = distributedSlack;
-        this.useActiveLimits = useActiveLimits;
         this.balanceType = Objects.requireNonNull(balanceType);
         this.useTransformerRatio = useTransformerRatio;
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
@@ -61,8 +58,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
                                                                    distributedSlack,
                                                                    balanceType,
                                                                    false,
-                                                                   maxOuterLoopIterations,
-                                                                   useActiveLimits);
+                                                                   maxOuterLoopIterations);
 
         try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
             DcLoadFlowEngine engine = new DcLoadFlowEngine(context);

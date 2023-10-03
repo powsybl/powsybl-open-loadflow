@@ -1146,7 +1146,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parametersExt.isUseActiveLimits(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
@@ -1165,7 +1165,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 return new FullVoltageInitializer(new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold()),
                         new DcValueVoltageInitializer(networkParameters,
                                                       parameters.isDistributedSlack(),
-                                                      parametersExt.isUseActiveLimits(),
                                                       parameters.getBalanceType(),
                                                       parameters.isDcUseTransformerRatio(),
                                                       matrixFactory,
@@ -1332,8 +1331,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                         parameters.isDistributedSlack(),
                                         parameters.getBalanceType(),
                                         true,
-                                        parametersExt.getMaxOuterLoopIterations(),
-                                        parametersExt.isUseActiveLimits());
+                                        parametersExt.getMaxOuterLoopIterations());
     }
 
     public static boolean equals(LoadFlowParameters parameters1, LoadFlowParameters parameters2) {
