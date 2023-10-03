@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.network.test.SecurityAnalysisTestNetworkFactory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -2215,5 +2216,28 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(390.0, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "contingency");
         assertEquals(390.0, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
+    }
+
+    @Test
+    void testVoltageAngleLimit() {
+        Network network = EurostagTutorialExample1Factory.create();
+        Line line = network.getLine("NHV1_NHV2_1");
+        network.newVoltageAngleLimit().setId("val").from(line.getTerminal1()).to(line.getTerminal2()).setHighLimit(7.0).setLowLimit(-7.0).add();
+        LoadFlow.run(network);
+        LoadFlowAssert.assertAngleEquals(0.0, line.getTerminal1().getBusView().getBus());
+        LoadFlowAssert.assertAngleEquals(-3.506413, line.getTerminal2().getBusView().getBus());
+        network.getLine("NHV1_NHV2_2").getTerminal1().disconnect();
+        network.getLine("NHV1_NHV2_2").getTerminal2().disconnect();
+        LoadFlow.run(network);
+        LoadFlowAssert.assertAngleEquals(0.0, line.getTerminal1().getBusView().getBus());
+        LoadFlowAssert.assertAngleEquals(-7.498849, line.getTerminal2().getBusView().getBus());
+
+        network.getLine("NHV1_NHV2_2").getTerminal1().connect();
+        network.getLine("NHV1_NHV2_2").getTerminal2().connect();
+        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("NHV1_NHV2_2"))));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
+        LimitViolation limit = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
+        assertEquals(LimitViolationType.LOW_VOLTAGE_ANGLE, limit.getLimitType());
+        assertEquals(-7.498849, limit.getValue(), 10E-6);
     }
 }

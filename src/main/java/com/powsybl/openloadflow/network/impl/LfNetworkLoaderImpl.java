@@ -839,7 +839,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus to = getLfBus(voltageAngleLimit.getTerminalTo(), lfNetwork, parameters.isBreakers());
             if (from != null && to != null) {
                 lfNetwork.addVoltageAngleLimit(new LfNetwork.LfVoltageAngleLimit(voltageAngleLimit.getId(), from, to,
-                        voltageAngleLimit.getHighLimit().orElse(Double.NaN), voltageAngleLimit.getLowLimit().orElse(Double.NaN)));
+                        Math.toRadians(voltageAngleLimit.getHighLimit().orElse(Double.NaN)), Math.toRadians(voltageAngleLimit.getLowLimit().orElse(Double.NaN))));
             }
         });
     }
