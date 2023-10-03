@@ -165,7 +165,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
                                             p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
         if (createExtension) {
-            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1()));
+            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
+                    getBus1() != null ? getBus1().getV() : Double.NaN,
+                    getBus2() != null ? getBus2().getV() : Double.NaN,
+                    getBus1() != null ? getBus1().getAngle() : Double.NaN,
+                    getBus2() != null ? getBus2().getAngle() : Double.NaN));
         }
         return branchResult;
     }
