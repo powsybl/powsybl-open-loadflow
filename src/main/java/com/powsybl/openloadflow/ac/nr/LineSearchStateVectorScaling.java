@@ -29,8 +29,8 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
 
     private NewtonRaphsonStoppingCriteria.TestResult lastTestResult;
 
-    private int maxIteration = DEFAULT_MAX_ITERATION;
-    private double stepFold = DEFAULT_STEP_FOLD;
+    private final int maxIteration;
+    private final double stepFold;
 
     public LineSearchStateVectorScaling(NewtonRaphsonStoppingCriteria.TestResult initialTestResult, int maxIteration, double stepFold) {
         this.lastTestResult = Objects.requireNonNull(initialTestResult);

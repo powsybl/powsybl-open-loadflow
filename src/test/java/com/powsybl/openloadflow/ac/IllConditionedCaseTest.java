@@ -88,13 +88,13 @@ class IllConditionedCaseTest {
         assertEquals(8, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
 
-        parametersExt.setMaxVoltageChangeStateVectorScalingMaxDv(0.05);
+        parametersExt.setMaxVoltageChangeVectorScalingMaxDv(0.05);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(10, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
 
-        parametersExt.setMaxVoltageChangeStateVectorScalingMaxDphi(Math.toRadians(6));
+        parametersExt.setMaxVoltageChangeVectorScalingMaxDphi(Math.toRadians(6));
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(14, result.getComponentResults().get(0).getIterationCount());
