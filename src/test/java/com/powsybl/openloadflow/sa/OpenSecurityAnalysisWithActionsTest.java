@@ -1164,37 +1164,9 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
-    void testActionOnRetainedRtc() {
-        Network network = PhaseControlFactory.createNetworkWithT2wt();
+    void testActionOnRetainedT3wtPst() {
+        Network network = PhaseControlFactory.createNetworkWithT3wt();
         network.newLine().setId("L3").setVoltageLevel1("VL1").setConnectableBus1("B1").setBus1("B1").setVoltageLevel2("VL2").setConnectableBus2("B2").setBus2("B2").setR(4.0).setX(200.0).setG1(0.0).setB1(0.0).setG2(0.0).setB2(0.0).add();
-        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
-        ps1.getPhaseTapChanger().remove();
-        ps1.newRatioTapChanger()
-                .setTapPosition(1)
-                .setRegulationTerminal(ps1.getTerminal2())
-                .beginStep()
-                .setRho(0.97)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
-                .endStep()
-                .beginStep()
-                .setRho(1.0)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
-                .endStep()
-                .beginStep()
-                .setRho(1.03)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
-                .endStep()
-                .add();
-
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
         securityAnalysisParameters.setLoadFlowParameters(parameters);
@@ -1202,7 +1174,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
-        List<Action> actions = List.of(new RatioTapChangerTapPositionAction("Aps1", "PS1", false, 2));
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("Aps1", "PS1", false, 2, ThreeWindingsTransformer.Side.TWO));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("CL3"), new TrueCondition(), List.of("Aps1")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
@@ -1211,7 +1183,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         network.getLine("L3").getTerminal1().disconnect();
         network.getLine("L3").getTerminal2().disconnect();
 
-        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(2);
+        network.getThreeWindingsTransformer("PS1").getLeg2().getPhaseTapChanger().setTapPosition(2);
         loadFlowRunner.run(network, parameters);
 
         assertEquals(network.getLine("L1").getTerminal1().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
