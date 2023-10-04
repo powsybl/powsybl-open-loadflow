@@ -157,7 +157,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         // we reset the state if at least one component needs a network update.
-        boolean atLeastOneComponentHasToBeUpdated = results.stream().anyMatch(AcLoadFlowResult::withNetworkUpdate);
+        boolean atLeastOneComponentHasToBeUpdated = results.stream().anyMatch(AcLoadFlowResult::isWithNetworkUpdate);
         if (atLeastOneComponentHasToBeUpdated || parametersExt.isAlwaysUpdateNetwork()) {
             Networks.resetState(network);
 
