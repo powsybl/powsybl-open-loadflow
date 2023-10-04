@@ -275,19 +275,15 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 rtcAction.getSide().ifPresentOrElse(side -> {
                     // This is a T3WT
                     ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(rtcAction.getTransformerId());
-                    if (side.equals(ThreeWindingsTransformer.Side.ONE)) {
-                        rtcToOperate.add(t3wt.getLeg1());
-                    }
-                    if (side.equals(ThreeWindingsTransformer.Side.TWO)) {
-                        rtcToOperate.add(t3wt.getLeg2());
-                    }
-                    if (side.equals(ThreeWindingsTransformer.Side.THREE)) {
-                        rtcToOperate.add(t3wt.getLeg3());
+                    if (t3wt != null) {
+                        rtcToOperate.add(t3wt.getLeg(side));
                     }
                 }, () -> {
                     // This is a T2WT
                     TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(rtcAction.getTransformerId());
-                    rtcToOperate.add(t2wt);
+                    if (t2wt != null) {
+                        rtcToOperate.add(t2wt);
+                    }
                 });
             }
         }
@@ -298,24 +294,20 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         List<PhaseTapChangerHolder> pstToOperate = new ArrayList<>();
         for (Action action : actions) {
             if (Objects.equals(action.getType(), "PHASE_TAP_CHANGER_TAP_POSITION")) {
-                PhaseTapChangerTapPositionAction pstAction = (PhaseTapChangerTapPositionAction) action;
-                if (pstAction.getSide().isPresent()) {
+                PhaseTapChangerTapPositionAction ptcAction = (PhaseTapChangerTapPositionAction) action;
+                ptcAction.getSide().ifPresentOrElse(side -> {
                     // This is a T3WT
-                    ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(pstAction.getTransformerId());
-                    if (pstAction.getSide().get().equals(ThreeWindingsTransformer.Side.ONE)) {
-                        pstToOperate.add(t3wt.getLeg1());
+                    ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(ptcAction.getTransformerId());
+                    if (t3wt != null) {
+                        pstToOperate.add(t3wt.getLeg(side));
                     }
-                    if (pstAction.getSide().get().equals(ThreeWindingsTransformer.Side.TWO)) {
-                        pstToOperate.add(t3wt.getLeg2());
-                    }
-                    if (pstAction.getSide().get().equals(ThreeWindingsTransformer.Side.THREE)) {
-                        pstToOperate.add(t3wt.getLeg3());
-                    }
-                } else {
+                }, () -> {
                     // This is a T2WT
-                    TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(pstAction.getTransformerId());
-                    pstToOperate.add(t2wt);
-                }
+                    TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(ptcAction.getTransformerId());
+                    if (t2wt != null) {
+                        pstToOperate.add(t2wt);
+                    }
+                });
             }
         }
         return pstToOperate;
