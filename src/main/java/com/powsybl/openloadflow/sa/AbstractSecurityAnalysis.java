@@ -272,23 +272,23 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         for (Action action : actions) {
             if (Objects.equals(action.getType(), "RATIO_TAP_CHANGER_TAP_POSITION")) {
                 RatioTapChangerTapPositionAction rtcAction = (RatioTapChangerTapPositionAction) action;
-                if (rtcAction.getSide().isPresent()) {
+                rtcAction.getSide().ifPresentOrElse(side -> {
                     // This is a T3WT
                     ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(rtcAction.getTransformerId());
-                    if (rtcAction.getSide().get().equals(ThreeWindingsTransformer.Side.ONE)) {
+                    if (side.equals(ThreeWindingsTransformer.Side.ONE)) {
                         rtcToOperate.add(t3wt.getLeg1());
                     }
-                    if (rtcAction.getSide().get().equals(ThreeWindingsTransformer.Side.TWO)) {
+                    if (side.equals(ThreeWindingsTransformer.Side.TWO)) {
                         rtcToOperate.add(t3wt.getLeg2());
                     }
-                    if (rtcAction.getSide().get().equals(ThreeWindingsTransformer.Side.THREE)) {
+                    if (side.equals(ThreeWindingsTransformer.Side.THREE)) {
                         rtcToOperate.add(t3wt.getLeg3());
                     }
-                } else {
+                }, () -> {
                     // This is a T2WT
                     TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(rtcAction.getTransformerId());
                     rtcToOperate.add(t2wt);
-                }
+                });
             }
         }
         return rtcToOperate;
