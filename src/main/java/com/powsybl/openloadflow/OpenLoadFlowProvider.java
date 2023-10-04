@@ -127,12 +127,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
         }
 
-        Networks.resetState(network);
-
         boolean ok = results.stream().anyMatch(result -> result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED);
-        // reset slack buses if at least one component has converged
-        if (ok && parameters.isWriteSlackBus()) {
-            SlackTerminal.reset(network);
+
+        // do not reset state in case all results are ok and no NR iterations because it means that network was just
+        // not changed and no calculation update was needed
+        if (ok && results.stream().anyMatch(result -> result.getNewtonRaphsonIterations() > 0)) {
+            Networks.resetState(network);
+
+            // reset slack buses if at least one component has converged
+            if (parameters.isWriteSlackBus()) {
+                SlackTerminal.reset(network);
+            }
         }
 
         List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());

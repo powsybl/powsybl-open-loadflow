@@ -60,7 +60,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
 
         if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                parameters.getPlausibleActivePowerLimit(), report)) {
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }
 

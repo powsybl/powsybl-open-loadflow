@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
@@ -399,5 +400,18 @@ class AcLoadFlowWithCachingTest {
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+    }
+
+    @Test
+    void testUpdateNetworkFix() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        for (Bus bus : network.getBusView().getBuses()) {
+            assertFalse(Double.isNaN(bus.getV()));
+            assertFalse(Double.isNaN(bus.getAngle()));
+        }
     }
 }

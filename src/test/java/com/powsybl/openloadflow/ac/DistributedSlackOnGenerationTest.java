@@ -163,7 +163,37 @@ class DistributedSlackOnGenerationTest {
     @Test
     void minTest() {
         // increase g1 min limit power and global load so that distributed slack algo reach the g1 min
-        g1.setMinP(90);
+        g1.setMinP(95);
+        network.getLoad("l1").setP0(400);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-95, g1.getTerminal());
+        assertActivePowerEquals(-167.857, g2.getTerminal());
+        assertActivePowerEquals(-79.285, g3.getTerminal());
+        assertActivePowerEquals(-57.857, g4.getTerminal());
+    }
+
+    @Test
+    void maxTestActivePowerLimitDisabled() {
+        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        // decrease g1 max limit power, so that distributed slack algo reach the g1 max
+        // Because we disabled active power limits, g1 will exceed max
+        g1.setMaxP(105);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-108.372, g1.getTerminal());
+        assertActivePowerEquals(-247.840, g2.getTerminal());
+        assertActivePowerEquals(-105.946, g3.getTerminal());
+        assertActivePowerEquals(-137.840, g4.getTerminal());
+        assertEquals(120, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void minTestActivePowerLimitDisabled() {
+        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        // increase g1 min limit power and global load so that distributed slack algo reach the g1 min
+        // Because we disabled active power limits, g1 will exceed min
+        g1.setMinP(95);
         network.getLoad("l1").setP0(400);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -171,6 +201,77 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-170, g2.getTerminal());
         assertActivePowerEquals(-80, g3.getTerminal());
         assertActivePowerEquals(-60, g4.getTerminal());
+    }
+
+    @Test
+    void targetBelowMinAndActivePowerLimitDisabled() {
+        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        g1.setMinP(100); // was 0
+        g1.setTargetP(80);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-97.5, g1.getTerminal()); // allowed to participate even though targetP < minP
+        assertActivePowerEquals(-252.5, g2.getTerminal());
+        assertActivePowerEquals(-107.5, g3.getTerminal());
+        assertActivePowerEquals(-142.5, g4.getTerminal());
+        assertEquals(140, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void targetAboveMaxAndActivePowerLimitDisabled() {
+        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        g1.setTargetP(240); // max is 200
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-237.5, g1.getTerminal()); // allowed to participate even though targetP > maxP
+        assertActivePowerEquals(-192.5, g2.getTerminal());
+        assertActivePowerEquals(-87.5, g3.getTerminal());
+        assertActivePowerEquals(-82.5, g4.getTerminal());
+        assertEquals(-20.0, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void targetBelowPositiveMinTest() {
+        // g1 targetP below positive minP (e.g. unit starting up / ramping)
+        g1.setMinP(100);
+        g1.setTargetP(80);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-80.0, g1.getTerminal()); // stays at targetP
+        assertActivePowerEquals(-260.0, g2.getTerminal());
+        assertActivePowerEquals(-110.0, g3.getTerminal());
+        assertActivePowerEquals(-150.0, g4.getTerminal());
+        assertEquals(140, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void targetBelowZeroMinTest() {
+        // g1 targetP below zero minP (e.g. unit modelled lumped with station supply and not producing but consuming a little bit)
+        g1.setMinP(0);
+        g1.setTargetP(-20);
+        network.getLoad("l1").setP0(500);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(20.0, g1.getTerminal()); // stays at targetP
+        assertActivePowerEquals(-260.0, g2.getTerminal());
+        assertActivePowerEquals(-110.0, g3.getTerminal());
+        assertActivePowerEquals(-150.0, g4.getTerminal());
+        assertEquals(140, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void targetBelowNegativeMinTest() {
+        // g1 targetP below negative minP (e.g. generator pumping more than tech limit)
+        g1.setMinP(-100);
+        g1.setTargetP(-120);
+        network.getLoad("l1").setP0(400);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(120.0, g1.getTerminal()); // stays at targetP
+        assertActivePowerEquals(-260.0, g2.getTerminal());
+        assertActivePowerEquals(-110.0, g3.getTerminal());
+        assertActivePowerEquals(-150.0, g4.getTerminal());
+        assertEquals(140, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
