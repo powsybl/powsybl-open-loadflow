@@ -159,7 +159,7 @@ public enum NetworkCache {
         private boolean onShuntUpdate(ShuntCompensator shunt, String attribute) {
             return onInjectionUpdate(shunt, attribute, (context, lfBus) -> {
                 if (attribute.equals("sectionCount")) {
-                    if (!lfBus.getControllerShunt().isPresent()) {
+                    if (lfBus.getControllerShunt().isEmpty()) {
                         LfShunt lfShunt = lfBus.getShunt().orElseThrow();
                         lfShunt.reInit();
                         return true;
