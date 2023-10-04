@@ -27,6 +27,14 @@ public class NewtonRaphsonParameters {
 
     private StateVectorScalingMode stateVectorScalingMode = DEFAULT_STATE_VECTOR_SCALING_MODE;
 
+    private int lineSearchVectorScalingMaxIteration = LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION;
+
+    private double lineSearchStepFold = LineSearchStateVectorScaling.DEFAULT_STEP_FOLD;
+
+    public double maxVoltageChangeStateVectorScalingMaxDv = MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV;
+
+    public double maxVoltageChangeStateVectorScalingMaxDhphi = MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI;
+
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
     private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
@@ -100,6 +108,43 @@ public class NewtonRaphsonParameters {
 
     public NewtonRaphsonParameters setAlwaysUpdateNetwork(boolean alwaysUpdateNetwork) {
         this.alwaysUpdateNetwork = alwaysUpdateNetwork;
+        return this;
+    }
+
+    public int getLineSearchVectorScalingMaxIteration() {
+        return lineSearchVectorScalingMaxIteration;
+    }
+
+    public NewtonRaphsonParameters setLineSearchVectorScalingMaxIteration(int lineSearchVectorScalingMaxIteration) {
+        this.lineSearchVectorScalingMaxIteration = lineSearchVectorScalingMaxIteration;
+        return this;
+
+    }
+
+    public double getLineSearchStepFold() {
+        return lineSearchStepFold;
+    }
+
+    public NewtonRaphsonParameters setLineSearchStepFold(double lineSearchStepFold) {
+        this.lineSearchStepFold = lineSearchStepFold;
+        return this;
+    }
+
+    public double getMaxVoltageChangeStateVectorScalingMaxDv() {
+        return maxVoltageChangeStateVectorScalingMaxDv;
+    }
+
+    public NewtonRaphsonParameters setMaxVoltageChangeStateVectorScalingMaxDv(double maxVoltageChangeStateVectorScalingMaxDv) {
+        this.maxVoltageChangeStateVectorScalingMaxDv = maxVoltageChangeStateVectorScalingMaxDv;
+        return this;
+    }
+
+    public double getMaxVoltageChangeStateVectorScalingMaxDhphi() {
+        return maxVoltageChangeStateVectorScalingMaxDhphi;
+    }
+
+    public NewtonRaphsonParameters setMaxVoltageChangeStateVectorScalingMaxDhphi(double maxVoltageChangeStateVectorScalingMaxDhphi) {
+        this.maxVoltageChangeStateVectorScalingMaxDhphi = maxVoltageChangeStateVectorScalingMaxDhphi;
         return this;
     }
 
