@@ -461,7 +461,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         parameters.setDistributedSlack(true);
         parametersExt.setMaxOuterLoopIterations(1);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertFalse(result.isOk());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
     }
 }
