@@ -65,6 +65,7 @@
         "asymmetrical" : false,
         "reactivePowerDispatchMode" : "Q_EQUAL_PROPORTION",
         "outerLoopNames" : null,
+        "useActiveLimits" : true,
         "lineSearchVectorScalingMaxIteration" : 10,
         "lineSearchVectorScalingStepFold" : 1.3333333333333333,
         "maxVoltageChangeVectorScalingMaxDv" : 0.1,
