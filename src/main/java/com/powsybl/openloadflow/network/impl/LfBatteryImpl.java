@@ -47,7 +47,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         }
 
         if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMinP(), battery.getMaxP(),
-                parameters.getPlausibleActivePowerLimit(), report)) {
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }
     }

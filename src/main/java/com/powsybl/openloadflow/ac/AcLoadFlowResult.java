@@ -68,6 +68,12 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return newtonRaphsonStatus == NewtonRaphsonStatus.CONVERGED && outerLoopStatus == OuterLoopStatus.STABLE;
     }
 
+    public boolean withNetworkUpdate() {
+        // do not reset state in case all results are ok and no NR iterations because it means that the network was
+        // not changed and no calculation update was needed.
+        return isOk() && newtonRaphsonIterations > 0;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations

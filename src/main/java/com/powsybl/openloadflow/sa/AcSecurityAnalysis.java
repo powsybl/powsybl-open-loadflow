@@ -116,7 +116,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters,
                                            OpenLoadFlowParameters openLoadFlowParameters) {
         if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
             activePowerDistribution.run(network, mismatch);
         }
     }
