@@ -109,6 +109,34 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 : connectivityFactory;
     }
 
+    private void updateAcState(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                               AcLoadFlowResult result, AcLoadFlowParameters acParameters) {
+        if (parametersExt.isNetworkCacheEnabled()) {
+            NetworkCache.INSTANCE.findEntry(network).orElseThrow().setPause(true);
+        }
+        try {
+            // update network state
+            if (result.isOk() || parametersExt.isAlwaysUpdateNetwork()) {
+                var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
+                                                                          parameters.isWriteSlackBus(),
+                                                                          parameters.isPhaseShifterRegulationOn(),
+                                                                          parameters.isTransformerVoltageControlOn(),
+                                                                          parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
+                                                                          parameters.isDc(),
+                                                                          acParameters.getNetworkParameters().isBreakers(),
+                                                                          parametersExt.getReactivePowerDispatchMode());
+                result.getNetwork().updateState(updateParameters);
+
+                // zero or low impedance branch flows computation
+                computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.AC);
+            }
+        } finally {
+            if (parametersExt.isNetworkCacheEnabled()) {
+                NetworkCache.INSTANCE.findEntry(network).orElseThrow().setPause(false);
+            }
+        }
+    }
+
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = getConnectivityFactory(parametersExt);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
@@ -142,21 +170,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
         for (AcLoadFlowResult result : results) {
-            // update network state
-            if (result.isOk() || parametersExt.isAlwaysUpdateNetwork()) {
-                var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
-                                                                          parameters.isWriteSlackBus(),
-                                                                          parameters.isPhaseShifterRegulationOn(),
-                                                                          parameters.isTransformerVoltageControlOn(),
-                                                                          parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
-                                                                          parameters.isDc(),
-                                                                          acParameters.getNetworkParameters().isBreakers(),
-                                                                          parametersExt.getReactivePowerDispatchMode());
-                result.getNetwork().updateState(updateParameters);
-
-                // zero or low impedance branch flows computation
-                computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.AC);
-            }
+            updateAcState(network, parameters, parametersExt, result, acParameters);
 
             LoadFlowResult.ComponentResult.Status status = convertStatus(result);
             // FIXME a null slack bus ID should be allowed
