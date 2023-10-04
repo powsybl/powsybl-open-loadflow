@@ -9,10 +9,7 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.contingency.*;
-import com.powsybl.iidm.network.HvdcLine;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.ThreeWindingsTransformer;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.xml.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -39,10 +36,7 @@ import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1141,7 +1135,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
-    void testActionOnT2wT() {
+    void testActionOnRetainedPst() {
         Network network = PhaseControlFactory.createNetworkWithT2wt();
         network.newLine().setId("L3").setVoltageLevel1("VL1").setConnectableBus1("B1").setBus1("B1").setVoltageLevel2("VL2").setConnectableBus2("B2").setBus2("B2").setR(4.0).setX(200.0).setG1(0.0).setB1(0.0).setG2(0.0).setB2(0.0).add();
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
@@ -1169,4 +1163,60 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(network.getLine("L2").getTerminal2().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
+    @Test
+    void testActionOnRetainedRtc() {
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+        network.newLine().setId("L3").setVoltageLevel1("VL1").setConnectableBus1("B1").setBus1("B1").setVoltageLevel2("VL2").setConnectableBus2("B2").setBus2("B2").setR(4.0).setX(200.0).setG1(0.0).setB1(0.0).setG2(0.0).setB2(0.0).add();
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger().remove();
+        ps1.newRatioTapChanger()
+                .setTapPosition(1)
+                .setRegulationTerminal(ps1.getTerminal2())
+                .beginStep()
+                .setRho(0.97)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .beginStep()
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .beginStep()
+                .setRho(1.03)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .add();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        List<Contingency> contingencies = List.of(new Contingency("CL3", new BranchContingency("L3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Action> actions = List.of(new RatioTapChangerTapPositionAction("Aps1", "PS1", false, 2));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("CL3"), new TrueCondition(), List.of("Aps1")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        network.getLine("L3").getTerminal1().disconnect();
+        network.getLine("L3").getTerminal2().disconnect();
+
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(2);
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(network.getLine("L1").getTerminal1().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("L1").getTerminal2().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("L2").getTerminal1().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("L2").getTerminal2().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
 }
