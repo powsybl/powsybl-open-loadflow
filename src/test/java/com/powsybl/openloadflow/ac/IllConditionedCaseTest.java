@@ -73,4 +73,50 @@ class IllConditionedCaseTest {
         assertEquals(7, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
     }
+
+    @Test
+    void convergenceControlParametersTest() {
+        network.getLoad("l1").setP0(3.902); // 3.9 does not need scaling
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+
+        parametersExt.setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(0.6364204826103471, bus2);
+
+        parametersExt.setMaxVoltageChangeVectorScalingMaxDv(0.05);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(10, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(0.6364204826103471, bus2);
+
+        parametersExt.setMaxVoltageChangeVectorScalingMaxDphi(Math.toRadians(6));
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(14, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(0.6364204826103471, bus2);
+
+        parametersExt.setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(7, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(0.6364204826103471, bus2);
+
+        parametersExt.setLineSearchVectorScalingMaxIteration(5);
+        result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isOk());
+        assertEquals(16, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(0.6364204826103471, bus2);
+
+        parametersExt.setLineSearchVectorScalingStepFold(1.7);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(0.6364204826103471, bus2);
+    }
 }
