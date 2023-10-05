@@ -67,4 +67,9 @@ public final class HvdcConverterStations {
         }
         return 0.0;
     }
+
+    public static boolean isVsc(Connectable<?> connectable) {
+        return connectable.getType() == IdentifiableType.HVDC_CONVERTER_STATION
+                && ((HvdcConverterStation<?>) connectable).getHvdcType() == HvdcConverterStation.HvdcType.VSC;
+    }
 }

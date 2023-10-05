@@ -22,8 +22,9 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.*;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -109,36 +110,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 : connectivityFactory;
     }
 
-    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
-        GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = getConnectivityFactory(parametersExt);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
-        acParameters.getNewtonRaphsonParameters()
-                .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
-
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getName).collect(Collectors.toList()));
-        }
-
-        List<AcLoadFlowResult> results;
+    private void updateAcState(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                               AcLoadFlowResult result, AcLoadFlowParameters acParameters, boolean atLeastOneComponentHasToBeUpdated) {
         if (parametersExt.isNetworkCacheEnabled()) {
-            results = new AcLoadFlowFromCache(network, parameters, parametersExt, acParameters, reporter)
-                    .run();
-        } else {
-            results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
+            NetworkCache.INSTANCE.findEntry(network).orElseThrow().setPause(true);
         }
-
-        Networks.resetState(network);
-
-        boolean ok = results.stream().anyMatch(result -> result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED);
-        // reset slack buses if at least one component has converged
-        if (ok && parameters.isWriteSlackBus()) {
-            SlackTerminal.reset(network);
-        }
-
-        List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
-        for (AcLoadFlowResult result : results) {
+        try {
             // update network state
-            if (result.isOk() || parametersExt.isAlwaysUpdateNetwork()) {
+            if (atLeastOneComponentHasToBeUpdated || parametersExt.isAlwaysUpdateNetwork()) {
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
@@ -152,6 +131,45 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 // zero or low impedance branch flows computation
                 computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.AC);
             }
+        } finally {
+            if (parametersExt.isNetworkCacheEnabled()) {
+                NetworkCache.INSTANCE.findEntry(network).orElseThrow().setPause(false);
+            }
+        }
+    }
+
+    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
+        GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = getConnectivityFactory(parametersExt);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
+        acParameters.getNewtonRaphsonParameters()
+                .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getName).toList());
+        }
+
+        List<AcLoadFlowResult> results;
+        if (parametersExt.isNetworkCacheEnabled()) {
+            results = new AcLoadFlowFromCache(network, parameters, parametersExt, acParameters, reporter)
+                    .run();
+        } else {
+            results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
+        }
+
+        // we reset the state if at least one component needs a network update.
+        boolean atLeastOneComponentHasToBeUpdated = results.stream().anyMatch(AcLoadFlowResult::isWithNetworkUpdate);
+        if (atLeastOneComponentHasToBeUpdated || parametersExt.isAlwaysUpdateNetwork()) {
+            Networks.resetState(network);
+
+            // reset slack buses if at least one component has converged
+            if (parameters.isWriteSlackBus()) {
+                SlackTerminal.reset(network);
+            }
+        }
+
+        List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
+        for (AcLoadFlowResult result : results) {
+            updateAcState(network, parameters, parametersExt, result, acParameters, atLeastOneComponentHasToBeUpdated);
 
             LoadFlowResult.ComponentResult.Status status = convertStatus(result);
             // FIXME a null slack bus ID should be allowed
@@ -165,6 +183,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                             result.getDistributedActivePower() * PerUnit.SB));
         }
 
+        boolean ok = results.stream().anyMatch(AcLoadFlowResult::isOk);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 

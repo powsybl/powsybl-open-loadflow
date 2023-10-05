@@ -34,4 +34,6 @@ public class LfNetworkLoadingReport {
     int generatorsWithInconsistentTargetVoltage = 0;
 
     int generatorsWithZeroRemoteVoltageControlReactivePowerKey = 0;
+
+    int transformerVoltageControlDiscardedBecauseControllerBranchIsOpen = 0;
 }

@@ -282,6 +282,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!busesWithUpdatedQLimits.isEmpty()) {
+            LOGGER.info("{} buses blocked to a reactive limit have been adjusted because reactive limit has changed",
+                    busesWithUpdatedQLimits.size());
+
             status = OuterLoopStatus.UNSTABLE;
         }
 

@@ -6,12 +6,10 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Load;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.action.*;
@@ -185,10 +183,11 @@ public final class LfAction {
     }
 
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
-        LfBranch branch = lfNetwork.getBranchById(action.getTransformerId()); // only two windings transformer for the moment.
+        String branchId = action.getSide().map(side -> LfLegBranch.getId(side, action.getTransformerId())).orElseGet(action::getTransformerId);
+        LfBranch branch = lfNetwork.getBranchById(branchId);
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
-                throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + action.getTransformerId() + "}");
+                throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in branch " + branch.getId());
             } else {
                 var tapPositionChange = new TapPositionChange(branch, action.getTapPosition(), action.isRelativeValue());
                 return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange, null, null, null));
@@ -346,7 +345,7 @@ public final class LfAction {
             if (!generator.isDisabled()) {
                 generator.setTargetP(generator.getTargetP() + generatorChange.getDeltaTargetP());
                 if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                        networkParameters.getPlausibleActivePowerLimit(), null)) {
+                        networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
                     generator.setParticipating(false);
                 }
             }

@@ -272,7 +272,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
         if (parameters.isDistributedSlack()) {
-            DcLoadFlowEngine.distributeSlack(remainingBuses, parameters.getBalanceType());
+            DcLoadFlowEngine.distributeSlack(remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
 
         // we need to copy the target array because:
@@ -923,7 +923,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             var dcLoadFlowParameters = createDcLoadFlowParameters(lfNetworkParameters, matrixFactory, lfParameters, lfParametersExt);
 
             // next we only work with valid factors
-            var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter);
+            var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, contingencies);
             var validLfFactors = validFactorHolder.getAllFactors();
             LOGGER.info("{}/{} factors are valid", validLfFactors.size(), allLfFactors.size());
 
