@@ -386,6 +386,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean useActiveLimits = LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE;
 
+    private int lineSearchVectorScalingMaxIteration = LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION;
+
+    private double lineSearchVectorScalingStepFold = LineSearchStateVectorScaling.DEFAULT_STEP_FOLD;
+
+    private double maxVoltageChangeVectorScalingMaxDv = MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV;
+
+    private double maxVoltageChangeVectorScalingMaxDphi = MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI;
+
     @Override
     public String getName() {
         return "open-load-flow-parameters";
@@ -865,6 +873,42 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public int getLineSearchVectorScalingMaxIteration() {
+        return lineSearchVectorScalingMaxIteration;
+    }
+
+    public OpenLoadFlowParameters setLineSearchVectorScalingMaxIteration(int lineSearchVectorScalingMaxIteration) {
+        this.lineSearchVectorScalingMaxIteration = lineSearchVectorScalingMaxIteration;
+        return this;
+    }
+
+    public double getLineSearchVectorScalingStepFold() {
+        return lineSearchVectorScalingStepFold;
+    }
+
+    public OpenLoadFlowParameters setLineSearchVectorScalingStepFold(double stepFold) {
+        this.lineSearchVectorScalingStepFold = stepFold;
+        return this;
+    }
+
+    public double getMaxVoltageChangeVectorScalingMaxDv() {
+        return maxVoltageChangeVectorScalingMaxDv;
+    }
+
+    public OpenLoadFlowParameters setMaxVoltageChangeVectorScalingMaxDv(double maxVoltageChangeVectorScalingMaxDv) {
+        this.maxVoltageChangeVectorScalingMaxDv = maxVoltageChangeVectorScalingMaxDv;
+        return this;
+    }
+
+    public double getMaxVoltageChangeVectorScalingMaxDphi() {
+        return maxVoltageChangeVectorScalingMaxDphi;
+    }
+
+    public OpenLoadFlowParameters setMaxVoltageChangeVectorScalingMaxDphi(double maxVoltageChangeVectorScalingMaxDphi) {
+        this.maxVoltageChangeVectorScalingMaxDphi = maxVoltageChangeVectorScalingMaxDphi;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1266,6 +1310,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
+                .setLineSearchVectorScalingMaxIteration(parametersExt.getLineSearchVectorScalingMaxIteration())
+                .setLineSearchVectorScalingStepFold(parametersExt.getLineSearchVectorScalingStepFold())
+                .setMaxVoltageChangeVectorScalingMaxDv(parametersExt.getMaxVoltageChangeVectorScalingMaxDv())
+                .setMaxVoltageChangeVectorScalingMaxDphi(parametersExt.getMaxVoltageChangeVectorScalingMaxDphi())
                 .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
 
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);

@@ -27,6 +27,14 @@ public class NewtonRaphsonParameters {
 
     private StateVectorScalingMode stateVectorScalingMode = DEFAULT_STATE_VECTOR_SCALING_MODE;
 
+    private int lineSearchVectorScalingMaxIteration = LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION;
+
+    private double lineSearchVectorScalingStepFold = LineSearchStateVectorScaling.DEFAULT_STEP_FOLD;
+
+    private double maxVoltageChangeVectorScalingMaxDv = MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV;
+
+    private double maxVoltageChangeVectorScalingMaxDphi = MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI;
+
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
     private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
@@ -103,6 +111,43 @@ public class NewtonRaphsonParameters {
         return this;
     }
 
+    public int getLineSearchVectorScalingMaxIteration() {
+        return lineSearchVectorScalingMaxIteration;
+    }
+
+    public NewtonRaphsonParameters setLineSearchVectorScalingMaxIteration(int lineSearchVectorScalingMaxIteration) {
+        this.lineSearchVectorScalingMaxIteration = lineSearchVectorScalingMaxIteration;
+        return this;
+
+    }
+
+    public double getLineSearchVectorScalingStepFold() {
+        return lineSearchVectorScalingStepFold;
+    }
+
+    public NewtonRaphsonParameters setLineSearchVectorScalingStepFold(double lineSearchVectorScalingStepFold) {
+        this.lineSearchVectorScalingStepFold = lineSearchVectorScalingStepFold;
+        return this;
+    }
+
+    public double getMaxVoltageChangeVectorScalingMaxDv() {
+        return maxVoltageChangeVectorScalingMaxDv;
+    }
+
+    public NewtonRaphsonParameters setMaxVoltageChangeVectorScalingMaxDv(double maxVoltageChangeVectorScalingMaxDv) {
+        this.maxVoltageChangeVectorScalingMaxDv = maxVoltageChangeVectorScalingMaxDv;
+        return this;
+    }
+
+    public double getMaxVoltageChangeVectorScalingMaxDphi() {
+        return maxVoltageChangeVectorScalingMaxDphi;
+    }
+
+    public NewtonRaphsonParameters setMaxVoltageChangeVectorScalingMaxDphi(double maxVoltageChangeVectorScalingMaxDphi) {
+        this.maxVoltageChangeVectorScalingMaxDphi = maxVoltageChangeVectorScalingMaxDphi;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "NewtonRaphsonParameters(" +
@@ -113,6 +158,10 @@ public class NewtonRaphsonParameters {
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
                 ", detailedNrReport=" + detailedReport +
+                ", lineSearchVectorScalingMaxIteration=" + lineSearchVectorScalingMaxIteration +
+                ", lineSearchVectorScalingStepFold=" + lineSearchVectorScalingStepFold +
+                ", maxVoltageChangeVectorScalingMaxDv=" + maxVoltageChangeVectorScalingMaxDv +
+                ", maxVoltageChangeVectorScalingMaxDphi=" + maxVoltageChangeVectorScalingMaxDphi +
                 ')';
     }
 }
