@@ -64,7 +64,12 @@
         "actionableSwitchesIds" : [ ],
         "asymmetrical" : false,
         "reactivePowerDispatchMode" : "Q_EQUAL_PROPORTION",
-        "outerLoopNames" : null
+        "outerLoopNames" : null,
+        "useActiveLimits" : true,
+        "lineSearchStateVectorScalingMaxIteration" : 10,
+        "lineSearchStateVectorScalingStepFold" : 1.3333333333333333,
+        "maxVoltageChangeStateVectorScalingMaxDv" : 0.1,
+        "maxVoltageChangeStateVectorScalingMaxDphi" : 0.17453292519943295
       }
     }
   },
