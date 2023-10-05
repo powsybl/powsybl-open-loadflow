@@ -413,4 +413,34 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-2, bat1.getTerminal());
         assertActivePowerEquals(0, bat2.getTerminal());
     }
+
+    @Test
+    void testDistributedActivePower() {
+        parameters.setUseReactiveLimits(true).getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
+        Network network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        Generator g1 = network.getGenerator("g1");
+        Generator g2 = network.getGenerator("g2");
+        Generator g3 = network.getGenerator("g3");
+        Generator g4 = network.getGenerator("g4");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        // we were getting 132.47279 when computing distributedActivePower as initial NR slack - final NR slack, while difference targetP - P was only 120.1961
+        var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
+        assertEquals(120.1961, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
+        assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+        assertActivePowerEquals(-115.024, g1.getTerminal());
+        assertActivePowerEquals(-245.073, g2.getTerminal());
+        assertActivePowerEquals(-105.024, g3.getTerminal());
+        assertActivePowerEquals(-135.073, g4.getTerminal());
+    }
+
+    @Test
+    void testDistributedActivePowerSlackDistributionDisabled() {
+        parameters.setUseReactiveLimits(true).setDistributedSlack(false);
+        Network network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        // we were getting 12.307 when computing distributedActivePower as initial NR slack - final NR slack, expecting zero here
+        assertEquals(0.0, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
 }

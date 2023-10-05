@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -45,21 +46,29 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
     }
 
     @Override
+    public void initialize(AcOuterLoopContext context) {
+        var contextData = new DistributedSlackContextData();
+        context.setData(contextData);
+    }
+
+    @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         double slackBusActivePowerMismatch = context.getLastNewtonRaphsonResult().getSlackBusActivePowerMismatch();
         if (Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB) {
-
             ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
-
-            if (Math.abs(result.getRemainingMismatch()) > ActivePowerDistribution.P_RESIDUE_EPS) {
-                Reports.reportMismatchDistributionFailure(reporter, context.getIteration(), result.getRemainingMismatch() * PerUnit.SB);
+            double remainingMismatch = result.getRemainingMismatch();
+            double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;
+            DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
+            contextData.addDistributedActivePower(distributedActivePower);
+            if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
+                Reports.reportMismatchDistributionFailure(reporter, context.getIteration(), remainingMismatch * PerUnit.SB);
 
                 if (throwsExceptionInCaseOfFailure) {
                     throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
-                            + result.getRemainingMismatch() * PerUnit.SB + " MW remains");
+                            + remainingMismatch * PerUnit.SB + " MW remains");
                 }
 
-                LOGGER.error("Failed to distribute slack bus active power mismatch, {} MW remains", result.getRemainingMismatch() * PerUnit.SB);
+                LOGGER.error("Failed to distribute slack bus active power mismatch, {} MW remains", remainingMismatch * PerUnit.SB);
 
                 return OuterLoopStatus.STABLE;
             } else {
