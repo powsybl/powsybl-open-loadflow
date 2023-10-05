@@ -23,11 +23,9 @@ import java.util.Objects;
 public interface StateVectorScaling {
 
     static StateVectorScaling fromMode(NewtonRaphsonParameters parameters, NewtonRaphsonStoppingCriteria.TestResult initialTestResult) {
-        StateVectorScalingMode mode = parameters.getStateVectorScalingMode();
-        Objects.requireNonNull(mode);
+        Objects.requireNonNull(parameters);
         Objects.requireNonNull(initialTestResult);
-
-        return switch (mode) {
+        return switch (parameters.getStateVectorScalingMode()) {
             case NONE -> new NoneStateVectorScaling();
             case LINE_SEARCH -> new LineSearchStateVectorScaling(initialTestResult, parameters.getLineSearchVectorScalingMaxIteration(), parameters.getLineSearchVectorScalingStepFold());
             case MAX_VOLTAGE_CHANGE -> new MaxVoltageChangeStateVectorScaling(parameters.getMaxVoltageChangeVectorScalingMaxDv(), parameters.getMaxVoltageChangeVectorScalingMaxDphi());

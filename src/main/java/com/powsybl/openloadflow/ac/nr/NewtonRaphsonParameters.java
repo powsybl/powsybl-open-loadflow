@@ -158,6 +158,10 @@ public class NewtonRaphsonParameters {
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
                 ", detailedNrReport=" + detailedReport +
+                ", lineSearchVectorScalingMaxIteration=" + lineSearchVectorScalingMaxIteration +
+                ", lineSearchVectorScalingStepFold=" + lineSearchVectorScalingStepFold +
+                ", maxVoltageChangeVectorScalingMaxDv=" + maxVoltageChangeVectorScalingMaxDv +
+                ", maxVoltageChangeVectorScalingMaxDphi=" + maxVoltageChangeVectorScalingMaxDphi +
                 ')';
     }
 }
