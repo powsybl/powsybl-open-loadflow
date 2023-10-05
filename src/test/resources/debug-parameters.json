@@ -66,10 +66,10 @@
         "reactivePowerDispatchMode" : "Q_EQUAL_PROPORTION",
         "outerLoopNames" : null,
         "useActiveLimits" : true,
-        "lineSearchVectorScalingMaxIteration" : 10,
-        "lineSearchVectorScalingStepFold" : 1.3333333333333333,
-        "maxVoltageChangeVectorScalingMaxDv" : 0.1,
-        "maxVoltageChangeVectorScalingMaxDphi" : 0.17453292519943295,
+        "lineSearchStateVectorScalingMaxIteration" : 10,
+        "lineSearchStateVectorScalingStepFold" : 1.3333333333333333,
+        "maxVoltageChangeStateVectorScalingMaxDv" : 0.1,
+        "maxVoltageChangeStateVectorScalingMaxDphi" : 0.17453292519943295
         "loadModel" : false
       }
     }

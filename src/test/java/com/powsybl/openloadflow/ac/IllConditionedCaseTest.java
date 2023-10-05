@@ -88,13 +88,13 @@ class IllConditionedCaseTest {
         assertEquals(8, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
 
-        parametersExt.setMaxVoltageChangeVectorScalingMaxDv(0.05);
+        parametersExt.setMaxVoltageChangeStateVectorScalingMaxDv(0.05);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(10, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
 
-        parametersExt.setMaxVoltageChangeVectorScalingMaxDphi(Math.toRadians(6));
+        parametersExt.setMaxVoltageChangeStateVectorScalingMaxDphi(Math.toRadians(6));
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(14, result.getComponentResults().get(0).getIterationCount());
@@ -107,13 +107,13 @@ class IllConditionedCaseTest {
         assertEquals(7, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
 
-        parametersExt.setLineSearchVectorScalingMaxIteration(5);
+        parametersExt.setLineSearchStateVectorScalingMaxIteration(5);
         result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isOk());
         assertEquals(16, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
 
-        parametersExt.setLineSearchVectorScalingStepFold(1.7);
+        parametersExt.setLineSearchStateVectorScalingStepFold(1.7);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(5, result.getComponentResults().get(0).getIterationCount());
