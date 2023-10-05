@@ -404,24 +404,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, parameters.isBreakers());
-            LfLegBranch lfBranch1;
-            LfLegBranch lfBranch2;
-            LfLegBranch lfBranch3;
-            if (rtcToOperate.contains(t3wt.getLeg1()) || pstToOperate.contains(t3wt.getLeg1())) {
-                lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), true, parameters);
-            } else {
-                lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), false, parameters);
-            }
-            if (rtcToOperate.contains(t3wt.getLeg2()) || pstToOperate.contains(t3wt.getLeg2())) {
-                lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), true, parameters);
-            } else {
-                lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), false, parameters);
-            }
-            if (rtcToOperate.contains(t3wt.getLeg3()) || pstToOperate.contains(t3wt.getLeg3())) {
-                lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), true, parameters);
-            } else {
-                lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), false, parameters);
-            }
+            LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), pstToOperate.contains(t3wt.getLeg1()), rtcToOperate.contains(t3wt.getLeg1()), parameters);
+            LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), pstToOperate.contains(t3wt.getLeg2()), rtcToOperate.contains(t3wt.getLeg2()), parameters);
+            LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), pstToOperate.contains(t3wt.getLeg3()), rtcToOperate.contains(t3wt.getLeg3()), parameters);
             addBranch(lfNetwork, lfBranch1, report);
             addBranch(lfNetwork, lfBranch2, report);
             addBranch(lfNetwork, lfBranch3, report);

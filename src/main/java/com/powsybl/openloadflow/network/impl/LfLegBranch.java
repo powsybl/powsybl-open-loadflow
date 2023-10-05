@@ -40,7 +40,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     public static LfLegBranch create(LfNetwork network, LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt,
-                                     ThreeWindingsTransformer.Leg leg, boolean retain, LfNetworkParameters parameters) {
+                                     ThreeWindingsTransformer.Leg leg, boolean retainPtc, boolean retainRtc, LfNetworkParameters parameters) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
@@ -53,7 +53,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         PhaseTapChanger ptc = leg.getPhaseTapChanger();
         if (ptc != null
                 && (ptc.isRegulating()
-                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP || retain)) {
+                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP || retainPtc)) {
             // we have a phase control, whatever we also have a voltage control or not, we create a pi model array
             // based on phase taps mixed with voltage current tap
             Integer rtcPosition = Transformers.getCurrentPosition(leg.getRatioTapChanger());
@@ -66,7 +66,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         }
 
         RatioTapChanger rtc = leg.getRatioTapChanger();
-        if (rtc != null && (rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities() || retain)) {
+        if (rtc != null && (rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities() || retainRtc)) {
             if (piModel == null) {
                 // we have a voltage control, we create a pi model array based on voltage taps mixed with phase current
                 // tap

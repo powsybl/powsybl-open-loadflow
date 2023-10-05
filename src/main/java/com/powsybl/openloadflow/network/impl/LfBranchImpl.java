@@ -70,7 +70,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb,
-                                                  boolean retain, LfNetworkParameters parameters) {
+                                                  boolean retainPtc, boolean retainRtc, LfNetworkParameters parameters) {
         PiModel piModel = null;
 
         double baseRatio = Transformers.getRatioPerUnitBase(twt);
@@ -78,7 +78,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
         if (ptc != null
                 && (ptc.isRegulating()
-                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP || retain)) {
+                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP || retainPtc)) {
             // we have a phase control, whatever we also have a voltage control or not, we create a pi model array
             // based on phase taps mixed with voltage current tap
             Integer rtcPosition = Transformers.getCurrentPosition(twt.getRatioTapChanger());
@@ -91,7 +91,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
-        if (rtc != null && (rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities() || retain)) {
+        if (rtc != null && (rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities() || retainRtc)) {
             if (piModel == null) {
                 // we have a voltage control, we create a pi model array based on voltage taps mixed with phase current
                 // tap
@@ -127,7 +127,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         if (branch instanceof Line line) {
             return createLine(line, network, bus1, bus2, zb, parameters);
         } else if (branch instanceof TwoWindingsTransformer twt) {
-            return createTransformer(twt, network, bus1, bus2, zb, rtcToOperate.contains(twt) || pstToOperate.contains(twt), parameters);
+            return createTransformer(twt, network, bus1, bus2, zb, pstToOperate.contains(twt), rtcToOperate.contains(twt), parameters);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
