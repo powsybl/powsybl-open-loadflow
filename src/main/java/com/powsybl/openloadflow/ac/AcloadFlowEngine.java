@@ -192,7 +192,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     }
 
     public static <T> List<AcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, AcLoadFlowParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, networkLoader, new ArrayList<>(), new ArrayList<>(), parameters.getNetworkParameters(), reporter)
+        return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter)
                 .stream()
                 .map(n -> {
                     if (n.isValid()) {

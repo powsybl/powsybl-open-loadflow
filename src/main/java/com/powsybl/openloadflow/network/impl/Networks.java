@@ -102,6 +102,10 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters);
     }
 
+    public static List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reporter);
+    }
+
     public static List<LfNetwork> load(Network network, List<RatioTapChangerHolder> rtcToOperate, List<PhaseTapChangerHolder> pstToOperate, LfNetworkParameters parameters, Reporter reporter) {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), rtcToOperate, pstToOperate, parameters, reporter);
     }
@@ -135,6 +139,16 @@ public final class Networks {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
         }
         removedBranches.forEach(branch -> branch.setDisabled(true));
+    }
+
+    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
+                                     LfTopoConfig topoConfig, Reporter reporter) {
+        return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reporter);
+    }
+
+    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
+                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
+        return load(network, networkParameters, topoConfig, new ArrayList<>(), new ArrayList<>(), variantCleanerFactory, reporter);
     }
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,

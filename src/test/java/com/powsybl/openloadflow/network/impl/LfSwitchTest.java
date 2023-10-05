@@ -23,7 +23,6 @@ import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -48,7 +47,7 @@ class LfSwitchTest {
         network = NodeBreakerNetworkFactory.create();
         acLoadFlowParameters = OpenLoadFlowParameters.createAcParameters(network, new LoadFlowParameters(),
                 new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true, false);
-        List<LfNetwork> lfNetworks = Networks.load(network, new ArrayList<>(), new ArrayList<>(), acLoadFlowParameters.getNetworkParameters(), Reporter.NO_OP);
+        List<LfNetwork> lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), Reporter.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");

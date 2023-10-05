@@ -172,7 +172,7 @@ class OpenSecurityAnalysisGraphTest {
                 .setBreakers(true);
 
         // create networks including all necessary switches
-        LfNetworkList lfNetworks = Networks.load(network, networkParameters, topoConfig, new ArrayList<>(), new ArrayList<>(), Reporter.NO_OP);
+        LfNetworkList lfNetworks = Networks.load(network, networkParameters, topoConfig, Reporter.NO_OP);
 
         PropagatedContingency.completeList(propagatedContingencies, false, false, false, true);
 
