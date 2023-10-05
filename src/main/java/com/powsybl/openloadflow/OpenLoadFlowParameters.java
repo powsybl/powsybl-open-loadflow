@@ -1338,10 +1338,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
-                .setLineSearchVectorScalingMaxIteration(parametersExt.getLineSearchStateVectorScalingMaxIteration())
-                .setLineSearchVectorScalingStepFold(parametersExt.getLineSearchStateVectorScalingStepFold())
-                .setMaxVoltageChangeVectorScalingMaxDv(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDv())
-                .setMaxVoltageChangeVectorScalingMaxDphi(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDphi())
+                .setLineSearchStateVectorScalingMaxIteration(parametersExt.getLineSearchStateVectorScalingMaxIteration())
+                .setLineSearchStateVectorScalingStepFold(parametersExt.getLineSearchStateVectorScalingStepFold())
+                .setMaxVoltageChangeStateVectorScalingMaxDv(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDv())
+                .setMaxVoltageChangeStateVectorScalingMaxDphi(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDphi())
                 .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
 
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
