@@ -194,6 +194,14 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
                 .setQ(q1 * PerUnit.SB);
     }
 
+    private double getV() {
+        return this.getBus1() != null ? this.getBus1().getV() : Double.NaN;
+    }
+
+    private double getAngle() {
+        return this.getBus1() != null ? this.getBus1().getAngle() : Double.NaN;
+    }
+
     public static ThreeWindingsTransformerResult createThreeWindingsTransformerResult(LfNetwork network, String threeWindingsTransformerId, boolean createResultExtension) {
         LfLegBranch leg1 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 1));
         LfLegBranch leg2 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
@@ -209,12 +217,12 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
 
         if (createResultExtension) {
             result.addExtension(OlfThreeWindingsTransformerResult.class, new OlfThreeWindingsTransformerResult(
-                    leg1.getBus1() != null ? leg1.getBus1().getV() : Double.NaN,
-                    leg2.getBus1() != null ? leg2.getBus1().getV() : Double.NaN,
-                    leg3.getBus1() != null ? leg3.getBus1().getV() : Double.NaN,
-                    leg1.getBus1() != null ? leg1.getBus1().getAngle() : Double.NaN,
-                    leg2.getBus1() != null ? leg2.getBus1().getAngle() : Double.NaN,
-                    leg3.getBus1() != null ? leg3.getBus1().getAngle() : Double.NaN));
+                    leg1.getV() * leg1.legRef.get().getTerminal().getVoltageLevel().getNominalV(),
+                    leg2.getV() * leg2.legRef.get().getTerminal().getVoltageLevel().getNominalV(),
+                    leg3.getV() * leg3.legRef.get().getTerminal().getVoltageLevel().getNominalV(),
+                    Math.toDegrees(leg1.getAngle()),
+                    Math.toDegrees(leg2.getAngle()),
+                    Math.toDegrees(leg3.getAngle())));
         }
         return result;
     }
