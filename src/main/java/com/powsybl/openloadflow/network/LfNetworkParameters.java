@@ -24,6 +24,8 @@ public class LfNetworkParameters {
 
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
 
+    public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
+
     /**
      * Minimal and maximal plausible target V in p.u
      */
@@ -64,6 +66,8 @@ public class LfNetworkParameters {
     private boolean breakers = false;
 
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
+
+    private boolean useActiveLimits = USE_ACTIVE_LIMITS_DEFAULT_VALUE;
 
     private boolean computeMainConnectedComponentOnly = true;
 
@@ -211,6 +215,15 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setPlausibleActivePowerLimit(double plausibleActivePowerLimit) {
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+        return this;
+    }
+
+    public boolean isUseActiveLimits() {
+        return useActiveLimits;
+    }
+
+    public LfNetworkParameters setUseActiveLimits(boolean useActiveLimits) {
+        this.useActiveLimits = useActiveLimits;
         return this;
     }
 

@@ -35,8 +35,11 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
 
     private final ParticipationType participationType;
 
-    public GenerationActivePowerDistributionStep(ParticipationType pParticipationType) {
+    private final boolean useActiveLimits;
+
+    public GenerationActivePowerDistributionStep(ParticipationType pParticipationType, boolean useActiveLimits) {
         this.participationType = pParticipationType;
+        this.useActiveLimits = useActiveLimits;
     }
 
     @Override
@@ -70,8 +73,8 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
             LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
             double factor = participatingGenerator.getFactor();
 
-            double minP = generator.getMinP();
-            double maxP = generator.getMaxP();
+            double minP = useActiveLimits ? generator.getMinP() : -Double.MAX_VALUE;
+            double maxP = useActiveLimits ? generator.getMaxP() : Double.MAX_VALUE;
             double targetP = generator.getTargetP();
 
             // we don't want to change the generation sign
