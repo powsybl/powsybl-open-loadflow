@@ -167,7 +167,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         if (createExtension) {
             branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
                     getV1() * branch.getTerminal1().getVoltageLevel().getNominalV(),
-                    getV2() * getBus2().getV() * branch.getTerminal2().getVoltageLevel().getNominalV(),
+                    getV2() * branch.getTerminal2().getVoltageLevel().getNominalV(),
                     Math.toDegrees(getAngle1()),
                     Math.toDegrees(getAngle2())));
         }
