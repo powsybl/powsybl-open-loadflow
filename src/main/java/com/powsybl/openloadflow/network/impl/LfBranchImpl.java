@@ -52,37 +52,52 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
-        double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
-        double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
-        double zb = nominalV1 * nominalV2 / PerUnit.SB;
-        double zSquare = line.getR() * line.getR() + line.getX() * line.getX();
+        double r1;
         double r;
         double x;
         double g1;
         double b1;
         double g2;
         double b2;
-        if (zSquare == 0) {
-            r = 0;
-            x = 0;
-            g1 = 0;
-            b1 = 0;
-            g2 = 0;
-            b2 = 0;
-            zb = 0;
-        } else {
-            double g = line.getR() / zSquare;
-            double b = -line.getX() / zSquare;
+        double zb;
+        if (parameters.getLinePerUnitMode() == LinePerUnitMode.RATIO) {
+            double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
+            zb = PerUnit.zb(nominalV2);
+            r1 = 1 / Transformers.getRatioPerUnitBase(line);
             r = line.getR() / zb;
             x = line.getX() / zb;
-            g1 = (line.getG1() * nominalV1 * nominalV1 + g * nominalV1 * (nominalV1 - nominalV2)) / PerUnit.SB;
-            b1 = (line.getB1() * nominalV1 * nominalV1 + b * nominalV1 * (nominalV1 - nominalV2)) / PerUnit.SB;
-            g2 = (line.getG2() * nominalV2 * nominalV2 + g * nominalV2 * (nominalV2 - nominalV1)) / PerUnit.SB;
-            b2 = (line.getB2() * nominalV2 * nominalV2 + b * nominalV2 * (nominalV2 - nominalV1)) / PerUnit.SB;
+            g1 = line.getG1() * zb;
+            g2 = line.getG2() * zb;
+            b1 = line.getB1() * zb;
+            b2 = line.getB2() * zb;
+        } else { // IMPEDANCE
+            r1 = 1;
+            double zSquare = line.getR() * line.getR() + line.getX() * line.getX();
+            if (zSquare == 0) {
+                r = 0;
+                x = 0;
+                g1 = 0;
+                b1 = 0;
+                g2 = 0;
+                b2 = 0;
+                zb = 0;
+            } else {
+                double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
+                double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
+                double g = line.getR() / zSquare;
+                double b = -line.getX() / zSquare;
+                zb = nominalV1 * nominalV2 / PerUnit.SB;
+                r = line.getR() / zb;
+                x = line.getX() / zb;
+                g1 = (line.getG1() * nominalV1 * nominalV1 + g * nominalV1 * (nominalV1 - nominalV2)) / PerUnit.SB;
+                b1 = (line.getB1() * nominalV1 * nominalV1 + b * nominalV1 * (nominalV1 - nominalV2)) / PerUnit.SB;
+                g2 = (line.getG2() * nominalV2 * nominalV2 + g * nominalV2 * (nominalV2 - nominalV1)) / PerUnit.SB;
+                b2 = (line.getB2() * nominalV2 * nominalV2 + b * nominalV2 * (nominalV2 - nominalV1)) / PerUnit.SB;
+            }
         }
 
         PiModel piModel = new SimplePiModel()
-                .setR1(1)
+                .setR1(r1)
                 .setR(r)
                 .setX(x)
                 .setG1(g1)
