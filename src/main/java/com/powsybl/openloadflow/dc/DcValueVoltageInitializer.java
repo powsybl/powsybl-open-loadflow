@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -29,16 +30,19 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     private final boolean useTransformerRatio;
 
+    private final DcApproximationType dcApproximationType;
+
     private final MatrixFactory matrixFactory;
 
     private final int maxOuterLoopIterations;
 
     public DcValueVoltageInitializer(LfNetworkParameters networkParameters, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
-                                     boolean useTransformerRatio, MatrixFactory matrixFactory, int maxOuterLoopIterations) {
+                                     boolean useTransformerRatio, DcApproximationType dcApproximationType, MatrixFactory matrixFactory, int maxOuterLoopIterations) {
         this.networkParameters = Objects.requireNonNull(networkParameters);
         this.distributedSlack = distributedSlack;
         this.balanceType = Objects.requireNonNull(balanceType);
         this.useTransformerRatio = useTransformerRatio;
+        this.dcApproximationType = Objects.requireNonNull(dcApproximationType);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.maxOuterLoopIterations = maxOuterLoopIterations;
     }
@@ -53,7 +57,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
                 .setPhaseControl(false); // not supported yet.
 
         DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParametersDcInit,
-                                                                   new DcEquationSystemCreationParameters(false, false, useTransformerRatio),
+                                                                   new DcEquationSystemCreationParameters(false, false, useTransformerRatio, dcApproximationType),
                                                                    matrixFactory,
                                                                    distributedSlack,
                                                                    balanceType,

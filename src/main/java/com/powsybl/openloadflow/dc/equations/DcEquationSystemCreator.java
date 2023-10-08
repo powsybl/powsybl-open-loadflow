@@ -81,8 +81,8 @@ public class DcEquationSystemCreator {
                                              LfBus bus1, LfBus bus2) {
         if (bus1 != null && bus2 != null) {
             boolean deriveA1 = isDeriveA1(branch, creationParameters);
-            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
-            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
+            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType());
+            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType());
             equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
                     .orElseThrow()
                     .addTerm(p1);

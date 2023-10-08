@@ -36,7 +36,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
     protected final double power;
 
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
-                                                     boolean deriveA1, boolean useTransformerRatio) {
+                                                     boolean deriveA1, boolean useTransformerRatio, DcApproximationType dcApproximationType) {
         super(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getX() == 0) {
@@ -45,7 +45,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1) : null;
-        power = calculatePower(useTransformerRatio, piModel);
+        power = calculatePower(useTransformerRatio, dcApproximationType, piModel);
         if (a1Var != null) {
             variables = List.of(ph1Var, ph2Var, a1Var);
         } else {
@@ -53,8 +53,17 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         }
     }
 
-    public static double calculatePower(boolean useTransformerRatio, PiModel piModel) {
-        return 1d / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
+    public static double calculatePower(boolean useTransformerRatio, DcApproximationType dcApproximationType, PiModel piModel) {
+        // b = – x / (r^2 + x^2)
+        double b = switch (dcApproximationType) {
+            case IGNORE_R -> 1d / piModel.getX();
+            case IGNORE_G -> {
+                double r = piModel.getR();
+                double x = piModel.getX();
+                yield x / (r * r + x * x);
+            }
+        };
+        return b * (useTransformerRatio ? piModel.getR1() * R2 : 1);
     }
 
     public Variable<DcVariableType> getPh1Var() {

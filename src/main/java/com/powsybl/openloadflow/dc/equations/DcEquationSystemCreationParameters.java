@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -21,11 +23,14 @@ public class DcEquationSystemCreationParameters {
 
     private final boolean useTransformerRatio;
 
+    private DcApproximationType dcApproximationType;
+
     public DcEquationSystemCreationParameters(boolean updateFlows, boolean forcePhaseControlOffAndAddAngle1Var,
-                                              boolean useTransformerRatio) {
+                                              boolean useTransformerRatio, DcApproximationType dcApproximationType) {
         this.updateFlows = updateFlows;
         this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
         this.useTransformerRatio = useTransformerRatio;
+        this.dcApproximationType = Objects.requireNonNull(dcApproximationType);
     }
 
     public boolean isUpdateFlows() {
@@ -40,12 +45,17 @@ public class DcEquationSystemCreationParameters {
         return useTransformerRatio;
     }
 
+    public DcApproximationType getDcApproximationType() {
+        return dcApproximationType;
+    }
+
     @Override
     public String toString() {
         return "DcEquationSystemCreationParameters(" +
                 "updateFlows=" + updateFlows +
                 ", forcePhaseControlOffAndAddAngle1Var=" + forcePhaseControlOffAndAddAngle1Var +
                 ", useTransformerRatio=" + useTransformerRatio +
+                ", dcApproximationType=" + dcApproximationType +
                 ')';
     }
 }

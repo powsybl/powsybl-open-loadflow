@@ -16,6 +16,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -282,7 +283,7 @@ class DcLoadFlowTest {
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setBreakers(true);
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
-                                                                             new DcEquationSystemCreationParameters(true, false, true),
+                                                                             new DcEquationSystemCreationParameters(true, false, true, DcApproximationType.IGNORE_R),
                                                                              new DenseMatrixFactory(),
                                                                              true,
                                                                              parameters.getBalanceType(),

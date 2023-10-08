@@ -12,10 +12,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreator;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
@@ -58,7 +55,7 @@ class DcLoadFlowMatrixTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
-        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, true);
+        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, true, DcApproximationType.IGNORE_R);
         EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(mainNetwork, creationParameters).create(false);
 
         for (LfBus b : mainNetwork.getBuses()) {
