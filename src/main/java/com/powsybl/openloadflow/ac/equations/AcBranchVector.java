@@ -155,16 +155,15 @@ public class AcBranchVector {
             bus1Num[i] = bus1 != null ? bus1.getNum() : -1;
             bus2Num[i] = bus2 != null ? bus2.getNum() : -1;
             PiModel piModel = branch.getPiModel();
-//            if (piModel.getR() == 0 && piModel.getX() == 0) {
-//                throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
-//            }
-            y[i] = piModel.getY();
-            // y12 = g12+j.b12 = 1/(r+j.x)
-            g12[i] = piModel.getR() * y[i] * y[i];
-            b12[i] = -piModel.getX() * y[i] * y[i];
-            ksi[i] = piModel.getKsi();
-            cosKsi[i] = FastMath.cos(ksi[i]);
-            sinKsi[i] = FastMath.sin(ksi[i]);
+            if (piModel.getZ() != 0) {
+                y[i] = piModel.getY();
+                // y12 = g12+j.b12 = 1/(r+j.x)
+                g12[i] = piModel.getR() * y[i] * y[i];
+                b12[i] = -piModel.getX() * y[i] * y[i];
+                ksi[i] = piModel.getKsi();
+                cosKsi[i] = FastMath.cos(ksi[i]);
+                sinKsi[i] = FastMath.sin(ksi[i]);
+            }
             b1[i] = piModel.getB1();
             b2[i] = piModel.getB2();
             g1[i] = piModel.getG1();
