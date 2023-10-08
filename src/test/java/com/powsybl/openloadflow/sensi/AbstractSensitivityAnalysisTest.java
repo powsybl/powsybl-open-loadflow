@@ -15,6 +15,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -45,6 +46,10 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     protected final OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
 
     protected final SensitivityAnalysis.Runner sensiRunner = new SensitivityAnalysis.Runner(sensiProvider);
+
+    protected final OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(matrixFactory);
+
+    protected final LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
 
     protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId, boolean distributedSlack) {
         return createParameters(dc, List.of(slackBusId), distributedSlack);

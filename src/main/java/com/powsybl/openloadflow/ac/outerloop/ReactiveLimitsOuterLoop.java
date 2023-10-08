@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.GeneratorVoltageControl;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -25,6 +26,8 @@ import java.util.*;
 public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveLimitsOuterLoop.class);
+
+    public static final String NAME = "ReactiveLimits";
 
     private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(
         pvToPqBus -> pvToPqBus.controllerBus.getGeneratorVoltageControl()
@@ -64,8 +67,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public String getType() {
-        return "Reactive limits";
+    public String getName() {
+        return NAME;
     }
 
     private enum ReactiveLimitDirection {
@@ -223,7 +226,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         double q = controllerCapableBus.getGenerationTargetQ();
         controllerCapableBus.getQLimitType().ifPresent(qLimitType -> {
             if (qLimitType == LfBus.QLimitType.MIN_Q) {
-                if ((getBusV(controllerCapableBus) < getBusTargetV(controllerCapableBus)) && canSwitchPqToPv) {
+                if (getBusV(controllerCapableBus) < getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
                     // bus absorb too much reactive power
                     pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MIN));
                 } else if (Math.abs(minQ - q) > maxReactivePowerMismatch) {
@@ -232,7 +235,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                     busesWithUpdatedQLimits.add(controllerCapableBus);
                 }
             } else if (qLimitType == LfBus.QLimitType.MAX_Q) {
-                if ((getBusV(controllerCapableBus) > getBusTargetV(controllerCapableBus)) && canSwitchPqToPv) {
+                if (getBusV(controllerCapableBus) > getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
                     // bus produce too much reactive power
                     pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MAX));
                 } else if (Math.abs(maxQ - q) > maxReactivePowerMismatch) {
@@ -260,14 +263,15 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         List<LfBus> busesWithUpdatedQLimits = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.isGeneratorVoltageControlEnabled() && !bus.isDisabled()) {
+
+        context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).forEach(bus -> {
+            if (bus.isGeneratorVoltageControlEnabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
-            } else if (bus.hasGeneratorVoltageControllerCapability() && !bus.isDisabled()) {
+            } else {
                 // we don't support switching PQ to PV for bus with one controller with slope.
                 checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
             }
-        }
+        });
 
         var contextData = (ContextData) context.getData();
 
@@ -278,6 +282,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!busesWithUpdatedQLimits.isEmpty()) {
+            LOGGER.info("{} buses blocked to a reactive limit have been adjusted because reactive limit has changed",
+                    busesWithUpdatedQLimits.size());
+
             status = OuterLoopStatus.UNSTABLE;
         }
 
