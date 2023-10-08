@@ -104,15 +104,59 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         }
     }
 
-    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, LfNetworkParameters parameters) {
+    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
+        double r1;
+        double r;
+        double x;
+        double g1;
+        double b1;
+        double g2;
+        double b2;
+        double zb;
+        if (parameters.getLinePerUnitMode() == LinePerUnitMode.RATIO) {
+            double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
+            zb = PerUnit.zb(nominalV2);
+            r1 = 1 / Transformers.getRatioPerUnitBase(line);
+            r = line.getR() / zb;
+            x = line.getX() / zb;
+            g1 = line.getG1() * zb;
+            g2 = line.getG2() * zb;
+            b1 = line.getB1() * zb;
+            b2 = line.getB2() * zb;
+        } else { // IMPEDANCE
+            r1 = 1;
+            double zSquare = line.getR() * line.getR() + line.getX() * line.getX();
+            if (zSquare == 0) {
+                r = 0;
+                x = 0;
+                g1 = 0;
+                b1 = 0;
+                g2 = 0;
+                b2 = 0;
+                zb = 0;
+            } else {
+                double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
+                double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
+                double g = line.getR() / zSquare;
+                double b = -line.getX() / zSquare;
+                zb = nominalV1 * nominalV2 / PerUnit.SB;
+                r = line.getR() / zb;
+                x = line.getX() / zb;
+                g1 = (line.getG1() * nominalV1 * nominalV1 + g * nominalV1 * (nominalV1 - nominalV2)) / PerUnit.SB;
+                b1 = (line.getB1() * nominalV1 * nominalV1 + b * nominalV1 * (nominalV1 - nominalV2)) / PerUnit.SB;
+                g2 = (line.getG2() * nominalV2 * nominalV2 + g * nominalV2 * (nominalV2 - nominalV1)) / PerUnit.SB;
+                b2 = (line.getB2() * nominalV2 * nominalV2 + b * nominalV2 * (nominalV2 - nominalV1)) / PerUnit.SB;
+            }
+        }
+
         PiModel piModel = new SimplePiModel()
-                .setR1(1 / Transformers.getRatioPerUnitBase(line))
-                .setR(line.getR() / zb)
-                .setX(line.getX() / zb)
-                .setG1(line.getG1() * zb)
-                .setG2(line.getG2() * zb)
-                .setB1(line.getB1() * zb)
-                .setB2(line.getB2() * zb);
+                .setR1(r1)
+                .setR(r)
+                .setX(x)
+                .setG1(g1)
+                .setG2(g2)
+                .setB1(b1)
+                .setB2(b2);
 
         LfBranchImpl lfBranchImpl = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
         if (parameters.isAsymmetrical()) {
@@ -248,11 +292,13 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         }
     }
 
-    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb,
+    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2,
                                                   LfNetworkParameters parameters) {
         PiModel piModel = null;
 
         double baseRatio = Transformers.getRatioPerUnitBase(twt);
+        double nominalV2 = twt.getTerminal2().getVoltageLevel().getNominalV();
+        double zb = PerUnit.zb(nominalV2);
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
         if (ptc != null
@@ -304,12 +350,10 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
-        double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
-        double zb = PerUnit.zb(nominalV2);
         if (branch instanceof Line line) {
-            return createLine(line, network, bus1, bus2, zb, parameters);
+            return createLine(line, network, bus1, bus2, parameters);
         } else if (branch instanceof TwoWindingsTransformer twt) {
-            return createTransformer(twt, network, bus1, bus2, zb, parameters);
+            return createTransformer(twt, network, bus1, bus2, parameters);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }

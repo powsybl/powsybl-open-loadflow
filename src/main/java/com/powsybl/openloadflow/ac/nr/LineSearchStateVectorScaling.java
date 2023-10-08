@@ -22,15 +22,20 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LineSearchStateVectorScaling.class);
 
-    private static final int MAX_ITERATION = 10;
-    private static final double STEP_FOLD = 4d / 3;
+    public static final int DEFAULT_MAX_ITERATION = 10;
+    public static final double DEFAULT_STEP_FOLD = 4d / 3;
 
     private double[] lastDx;
 
     private NewtonRaphsonStoppingCriteria.TestResult lastTestResult;
 
-    public LineSearchStateVectorScaling(NewtonRaphsonStoppingCriteria.TestResult initialTestResult) {
+    private final int maxIteration;
+    private final double stepFold;
+
+    public LineSearchStateVectorScaling(NewtonRaphsonStoppingCriteria.TestResult initialTestResult, int maxIteration, double stepFold) {
         this.lastTestResult = Objects.requireNonNull(initialTestResult);
+        this.maxIteration = maxIteration;
+        this.stepFold = stepFold;
     }
 
     @Override
@@ -60,7 +65,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
             NewtonRaphsonStoppingCriteria.TestResult currentTestResult = testResult;
             double[] x = null;
             int iteration = 1;
-            while (currentTestResult.getNorm() >= lastTestResult.getNorm() && iteration <= MAX_ITERATION) {
+            while (currentTestResult.getNorm() >= lastTestResult.getNorm() && iteration <= maxIteration) {
                 if (x == null) {
                     x = stateVector.get();
                 }
@@ -70,7 +75,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
                 // x(i+1)' = x(i) - dx * mu
                 // x(i+1)' = x(i+1) + dx (1 - mu)
                 double[] newX = x.clone();
-                stepSize = 1 / Math.pow(STEP_FOLD, iteration);
+                stepSize = 1 / Math.pow(stepFold, iteration);
                 Vectors.plus(newX, lastDx, 1 - stepSize);
                 stateVector.set(newX);
                 // equation vector has been updated
