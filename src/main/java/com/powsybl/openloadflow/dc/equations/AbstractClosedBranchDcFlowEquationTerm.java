@@ -54,7 +54,6 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
     }
 
     public static double calculatePower(boolean useTransformerRatio, DcApproximationType dcApproximationType, PiModel piModel) {
-        // b = – x / (r^2 + x^2)
         double b = switch (dcApproximationType) {
             case IGNORE_R -> 1d / piModel.getX();
             case IGNORE_G -> {
