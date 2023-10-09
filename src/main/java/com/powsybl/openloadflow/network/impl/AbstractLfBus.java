@@ -69,7 +69,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private GeneratorVoltageControl generatorVoltageControl;
 
-    private ReactivePowerControl reactivePowerControl;
+    private GeneratorReactivePowerControl generatorReactivePowerControl;
 
     protected TransformerVoltageControl transformerVoltageControl;
 
@@ -80,6 +80,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected Evaluable q = NAN;
 
     protected double remoteVoltageControlReactivePercent = Double.NaN;
+
+    protected double remoteReactivePowerControlReactivePercent = Double.NaN;
 
     protected final Map<LoadFlowModel, LfZeroImpedanceNetwork> zeroImpedanceNetwork = new EnumMap<>(LoadFlowModel.class);
 
@@ -182,13 +184,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<ReactivePowerControl> getReactivePowerControl() {
-        return Optional.ofNullable(reactivePowerControl);
+    public Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl() {
+        return Optional.ofNullable(generatorReactivePowerControl);
     }
 
     @Override
-    public void setReactivePowerControl(ReactivePowerControl reactivePowerControl) {
-        this.reactivePowerControl = Objects.requireNonNull(reactivePowerControl);
+    public void setGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl) {
+        this.generatorReactivePowerControl = Objects.requireNonNull(generatorReactivePowerControl);
     }
 
     @Override
@@ -624,6 +626,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent) {
         this.remoteVoltageControlReactivePercent = remoteVoltageControlReactivePercent;
+    }
+
+    @Override
+    public double getRemoteReactivePowerControlReactivePercent() {
+        return remoteReactivePowerControlReactivePercent;
+    }
+
+    @Override
+    public void setRemoteReactivePowerControlReactivePercent(double remoteReactivePowerControlReactivePercent) {
+        this.remoteReactivePowerControlReactivePercent = remoteReactivePowerControlReactivePercent;
     }
 
     @Override

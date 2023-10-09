@@ -19,6 +19,11 @@ public class ReactivePowerControl<T extends LfElement> extends Control {
         GENERATOR,
     }
 
+    public enum MergeStatus {
+        MAIN,
+        DEPENDENT
+    }
+
     protected final ReactivePowerControl.Type type;
 
     protected int priority;
@@ -28,6 +33,12 @@ public class ReactivePowerControl<T extends LfElement> extends Control {
     protected final ControlledSide controlledSide;
 
     protected final List<T> controllerElements = new ArrayList<>();
+
+    protected MergeStatus mergeStatus = MergeStatus.MAIN;
+
+    protected final List<ReactivePowerControl<T>> mergedDependentReactivePowerControls = new ArrayList<>();
+
+    protected ReactivePowerControl<T> mainMergedReactivePowerControl;
 
     public ReactivePowerControl(double targetValue, Type type, int priority, LfBranch controlledBranch, ControlledSide controlledSide) {
         super(targetValue);
@@ -53,11 +64,35 @@ public class ReactivePowerControl<T extends LfElement> extends Control {
         controllerElements.add(Objects.requireNonNull(controllerElement));
     }
 
+    public boolean isControllerEnabled(T controllerElement) {
+        throw new IllegalStateException();
+    }
+
+    public List<ReactivePowerControl<T>> getMergedDependentReactivePowerControls() {
+        return mergedDependentReactivePowerControls;
+    }
+
     protected int getPriority() {
         return priority;
     }
 
     public ReactivePowerControl.Type getType() {
         return type;
+    }
+
+    public List<T> getMergedControllerElements() { // TODO: add merged elements
+        return controllerElements;
+    }
+
+    public ReactivePowerControl.MergeStatus getMergeStatus() {
+        return mergeStatus;
+    }
+
+    public boolean isHidden() {
+        return false;
+    }
+
+    public boolean isVisible() {
+        return !isHidden();
     }
 }

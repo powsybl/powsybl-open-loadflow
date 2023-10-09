@@ -473,6 +473,48 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
+    void testSharedRemoteReactivePowerControl2() {
+        double targetQ = 2.0;
+
+        // generators g1 and g4 both regulate reactive power on line 4->3
+        Network network1 = FourBusNetworkFactory.createWithReactiveController();
+        Generator g4n1 = network1.getGenerator("g4");
+        Generator g1n1 = network1.getGenerator("g1");
+        Line l34n1 = network1.getLine("l34");
+
+        g1n1.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(l34n1.getTerminal(Branch.Side.TWO))
+                .withEnabled(true).add();
+        g4n1.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(l34n1.getTerminal(Branch.Side.TWO))
+                .withEnabled(true).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+        LoadFlowResult result1 = loadFlowRunner.run(network1, parameters);
+        assertTrue(result1.isOk());
+        assertReactivePowerEquals(targetQ, l34n1.getTerminal(Branch.Side.TWO));
+
+        // only generator g1 regulates reactive power on line 4->3
+        Network network2 = FourBusNetworkFactory.createWithReactiveController();
+        Generator g1n2 = network2.getGenerator("g1");
+        Line l34n2 = network2.getLine("l34");
+
+        g1n2.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(l34n2.getTerminal(Branch.Side.TWO))
+                .withEnabled(true).add();
+
+        LoadFlowResult result2 = loadFlowRunner.run(network2, parameters);
+        assertTrue(result2.isOk());
+        assertEquals(targetQ, l34n2.getTerminal(Branch.Side.TWO).getQ(), 1E-2); // lower tolerance
+
+        // compare runs
+        // TODO: how?
+    }
+
+    @Test
     void testNotSupportedRemoteReactivePowerControl() {
         // Create a basic 4-buses network
         Network network = FourBusNetworkFactory.createBaseNetwork();

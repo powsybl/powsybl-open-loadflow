@@ -61,7 +61,8 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
                     break;
                 case BRANCH_TARGET_Q,
                      BUS_TARGET_Q,
-                     DISTR_Q,
+                     DISTR_Q_VOLTAGE_CONTROL,
+                     DISTR_Q_REACTIVE_POWER_CONTROL,
                      DUMMY_TARGET_Q:
                     if (Math.abs(fx[idx]) * PerUnit.SB >= maxReactivePowerMismatch) {
                         return false;

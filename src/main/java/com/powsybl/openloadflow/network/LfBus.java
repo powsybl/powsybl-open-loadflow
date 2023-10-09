@@ -73,9 +73,9 @@ public interface LfBus extends LfElement {
 
     void removeGeneratorSlopes();
 
-    Optional<ReactivePowerControl> getReactivePowerControl();
+    Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl();
 
-    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
+    void setGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl);
 
     double getTargetP();
 
@@ -185,6 +185,10 @@ public interface LfBus extends LfElement {
     double getRemoteVoltageControlReactivePercent();
 
     void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
+
+    double getRemoteReactivePowerControlReactivePercent();
+
+    void setRemoteReactivePowerControlReactivePercent(double remoteReactivePowerControlReactivePercent);
 
     /**
      * Get active power mismatch.

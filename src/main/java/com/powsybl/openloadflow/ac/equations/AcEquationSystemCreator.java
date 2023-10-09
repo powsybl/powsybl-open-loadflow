@@ -110,7 +110,7 @@ public class AcEquationSystemCreator {
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
     }
 
-    protected static void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    protected void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                     boolean deriveA1, boolean deriveR1) {
         if (bus1 != null && bus2 != null) {
             branch.getReactivePowerControl().ifPresent(rpc -> {
@@ -121,10 +121,11 @@ public class AcEquationSystemCreator {
                         .addTerm(q);
 
                 // if bus has both voltage and remote reactive power controls, then only voltage control has been kept
-                // TODO: fix equations
-                equationSystem.createEquation((LfBus) rpc.getControllerElements().get(0), AcEquationType.BUS_TARGET_Q);
+                createGeneratorRemoteReactivePowerControlEquations((GeneratorReactivePowerControl) rpc, equationSystem);
 
-                updateReactivePowerControlBranchEquations(rpc, equationSystem);
+                // TODO: fix equations
+//                equationSystem.createEquation((LfBus) rpc.getControllerElements().get(0), AcEquationType.BUS_TARGET_Q);
+//                updateReactivePowerControlBranchEquations(rpc, equationSystem);
             });
         }
     }
@@ -164,7 +165,7 @@ public class AcEquationSystemCreator {
             // 0 = qPercent_i * sum_j(q_j) - q_i
             // which can be rewritten in a more simple way
             // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
-            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q_VOLTAGE_CONTROL)
                     .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(() -> controllerBus.getRemoteVoltageControlReactivePercent() - 1))
                             .collect(Collectors.toList()));
@@ -182,7 +183,7 @@ public class AcEquationSystemCreator {
                                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                   AcEquationSystemCreationParameters parameters) {
         for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
-            equationSystem.removeEquation(controllerBus.getNum(), AcEquationType.DISTR_Q);
+            equationSystem.removeEquation(controllerBus.getNum(), AcEquationType.DISTR_Q_VOLTAGE_CONTROL);
         }
         if (!voltageControl.isLocalControl()) {
             createReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
@@ -198,6 +199,99 @@ public class AcEquationSystemCreator {
 
         // create reactive power distribution equations at voltage controller buses
         createReactivePowerDistributionEquations(voltageControl, equationSystem, creationParameters);
+    }
+
+    private static void createReactivePowerDistributionEquations(GeneratorReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                 AcEquationSystemCreationParameters creationParameters) {
+        List<LfBus> controllerBuses = reactivePowerControl.getMergedControllerElements();
+        for (LfBus controllerBus : controllerBuses) {
+            // reactive power at controller bus i (supposing this reactive power control is enabled)
+            // q_i = qPercent_i * sum_j(q_j) where j are all the voltage controller buses
+            // 0 = qPercent_i * sum_j(q_j) - q_i
+            // which can be rewritten in a more simple way
+            // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the reactive power controller buses except i
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q_REACTIVE_POWER_CONTROL)
+                    .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
+                            .map(term -> term.multiply(() -> controllerBus.getRemoteReactivePowerControlReactivePercent() - 1))
+                            .collect(Collectors.toList()));
+            for (LfBus otherControllerBus : controllerBuses) {
+                if (otherControllerBus != controllerBus) {
+                    zero.addTerms(createReactiveTerms(otherControllerBus, equationSystem.getVariableSet(), creationParameters).stream()
+                            .map(term -> term.multiply(controllerBus::getRemoteReactivePowerControlReactivePercent))
+                            .collect(Collectors.toList()));
+                }
+            }
+        }
+    }
+
+    private void createGeneratorRemoteReactivePowerControlEquations(GeneratorReactivePowerControl reactivePowerControl,
+                                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (LfBus controllerBus : reactivePowerControl.getMergedControllerElements()) {
+            equationSystem.createEquation(controllerBus, AcEquationType.BUS_TARGET_Q);
+        }
+
+        // ensure reactive keys are up-to-date
+        reactivePowerControl.updateReactiveKeys();
+
+        // create reactive power distribution equations at reactive power controller buses
+        createReactivePowerDistributionEquations(reactivePowerControl, equationSystem, creationParameters);
+
+        // activate and deactivate certain equations
+        updateRemoteReactivePowerControlEquations(reactivePowerControl, equationSystem, AcEquationType.DISTR_Q_REACTIVE_POWER_CONTROL, AcEquationType.BUS_TARGET_Q);
+    }
+
+    static <T extends LfElement> void updateRemoteReactivePowerControlEquations(ReactivePowerControl<T> reactivePowerControl,
+                                                                          EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                          AcEquationType distrEqType, AcEquationType ctrlEqType) {
+        checkNotDependentReactivePowerControl(reactivePowerControl);
+
+        LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
+
+        List<T> controllerElements = reactivePowerControl.getMergedControllerElements()
+                .stream()
+                .filter(b -> !b.isDisabled()) // discard disabled controller elements
+                .toList();
+
+        Equation<AcVariableType, AcEquationType> qEq = equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_Q)
+                .orElseThrow();
+
+        List<Equation<AcVariableType, AcEquationType>> qEqMergedList = reactivePowerControl.getMergedDependentReactivePowerControls().stream()
+                .map(rpc -> equationSystem.getEquation(rpc.getControlledBranch().getNum(), AcEquationType.BRANCH_TARGET_Q).orElseThrow())
+                .toList();
+
+        // TODO: isHidden()
+        List<T> enabledControllerElements = controllerElements.stream()
+                .filter(reactivePowerControl::isControllerEnabled).toList();
+        List<T> disabledControllerElements = controllerElements.stream()
+                .filter(Predicate.not(reactivePowerControl::isControllerEnabled)).toList();
+
+        // activate reactive power control at controlled bus only if at least one controller element is enabled
+        qEq.setActive(!enabledControllerElements.isEmpty());
+
+        // deactivate reactive power control for merged controlled buses
+        for (var qEqMerged : qEqMergedList) {
+            qEqMerged.setActive(false);
+        }
+
+        // deactivate distribution equations and reactivate control equations
+        for (T controllerElement : disabledControllerElements) {
+            equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+                    .ifPresent(eq -> eq.setActive(false));
+            equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+                    .orElseThrow()
+                    .setActive(true);
+        }
+
+        // activate distribution equation and deactivate control equation at all enabled controller buses except one (first)
+        for (int i = 0; i < enabledControllerElements.size(); i++) {
+            boolean active = i != 0;
+            T controllerElement = enabledControllerElements.get(i);
+            equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+                    .ifPresent(eq -> eq.setActive(active));
+            equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+                    .orElseThrow()
+                    .setActive(false);
+        }
     }
 
     static <T extends LfElement> void updateRemoteVoltageControlEquations(VoltageControl<T> voltageControl,
@@ -316,11 +410,17 @@ public class AcEquationSystemCreator {
         // ensure reactive keys are up-to-date
         voltageControl.updateReactiveKeys();
 
-        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
+        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q_VOLTAGE_CONTROL, AcEquationType.BUS_TARGET_Q);
     }
 
     private static <T extends LfElement> void checkNotDependentVoltageControl(VoltageControl<T> voltageControl) {
         if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.DEPENDENT) {
+            throw new IllegalArgumentException("Cannot update a merged dependent voltage control");
+        }
+    }
+
+    private static <T extends LfElement> void checkNotDependentReactivePowerControl(ReactivePowerControl<T> reactivePowerControl) {
+        if (reactivePowerControl.getMergeStatus() == ReactivePowerControl.MergeStatus.DEPENDENT) {
             throw new IllegalArgumentException("Cannot update a merged dependent voltage control");
         }
     }

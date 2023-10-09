@@ -34,12 +34,23 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         return targetV;
     }
 
-    private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
+    private static double getReactivePowerDistributionTargetForVoltageControl(LfNetwork network, int busNum) {
         LfBus controllerBus = network.getBus(busNum);
         double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
         for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getMergedControllerElements()) {
             if (otherControllerBus != controllerBus) {
                 target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
+            }
+        }
+        return target;
+    }
+
+    private static double getReactivePowerDistributionTargetForReactivePowerControl(LfNetwork network, int busNum) {
+        LfBus controllerBus = network.getBus(busNum);
+        double target = (controllerBus.getRemoteReactivePowerControlReactivePercent() - 1) * controllerBus.getTargetQ();
+        for (LfBus otherControllerBus : controllerBus.getGeneratorReactivePowerControl().orElseThrow().getMergedControllerElements()) {
+            if (otherControllerBus != controllerBus) {
+                target += controllerBus.getRemoteReactivePowerControlReactivePercent() * otherControllerBus.getTargetQ();
             }
         }
         return target;
@@ -89,8 +100,12 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getR1();
                 break;
 
-            case DISTR_Q:
-                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getElementNum());
+            case DISTR_Q_VOLTAGE_CONTROL:
+                targets[equation.getColumn()] = getReactivePowerDistributionTargetForVoltageControl(network, equation.getElementNum());
+                break;
+
+            case DISTR_Q_REACTIVE_POWER_CONTROL:
+                targets[equation.getColumn()] = getReactivePowerDistributionTargetForReactivePowerControl(network, equation.getElementNum());
                 break;
 
             case ZERO_V:

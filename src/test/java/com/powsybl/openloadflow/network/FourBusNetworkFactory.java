@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
 
@@ -91,6 +92,19 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Network network = create();
         Bus b2 = network.getBusBreakerView().getBus("b2");
         createGenerator(b2, "g5", 0.5);
+        return network;
+    }
+
+    public static Network createWithReactiveController() {
+        Network network = create();
+
+        network.getLoad("d3").setQ0(1);
+
+        Generator g4 = network.getGenerator("g4");
+        Generator g1 = network.getGenerator("g1");
+
+        g1.setTargetQ(0).setVoltageRegulatorOn(false);
+        g4.setTargetQ(0).setVoltageRegulatorOn(false);
         return network;
     }
 }
