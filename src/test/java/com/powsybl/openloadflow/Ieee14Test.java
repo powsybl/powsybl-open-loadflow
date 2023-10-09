@@ -142,7 +142,7 @@ class Ieee14Test {
     }
 
     @Test
-    void testDcDcApproxIgnoreG() {
+    void testDcApproxIgnoreG() {
         parameters.setDc(true)
                 .setDcUseTransformerRatio(true);
         parametersExt.setDcApproximationType(DcApproximationType.IGNORE_G);

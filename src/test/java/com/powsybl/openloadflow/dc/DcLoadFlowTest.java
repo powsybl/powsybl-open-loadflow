@@ -44,6 +44,8 @@ class DcLoadFlowTest {
 
     private LoadFlowParameters parameters;
 
+    private OpenLoadFlowParameters parametersExt;
+
     private OpenLoadFlowProvider loadFlowProvider;
 
     private LoadFlow.Runner loadFlowRunner;
@@ -52,7 +54,7 @@ class DcLoadFlowTest {
     void setUp() {
         parameters = new LoadFlowParameters()
                 .setDc(true);
-        OpenLoadFlowParameters.create(parameters)
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
@@ -353,5 +355,30 @@ class DcLoadFlowTest {
         assertEquals(-50, l2.getTerminal2().getP(), 0.01);
         assertEquals(50, ps1.getTerminal1().getP(), 0.01);
         assertEquals(-50, ps1.getTerminal2().getP(), 0.01);
+    }
+
+    @Test
+    void testDcApproxIgnoreG() {
+        Network network = EurostagTutorialExample1Factory.create();
+        Line line1 = network.getLine("NHV1_NHV2_1");
+        // to get asymmetric flows
+        line1.setR(line1.getR() * 1.1);
+        line1.setX(line1.getX() * 1.05);
+        Line line2 = network.getLine("NHV1_NHV2_2");
+
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(292.682, line1.getTerminal1().getP(), 0.01);
+        assertEquals(-292.682, line1.getTerminal2().getP(), 0.01);
+        assertEquals(307.317, line2.getTerminal1().getP(), 0.01);
+        assertEquals(-307.317, line2.getTerminal2().getP(), 0.01);
+
+        parametersExt.setDcApproximationType(DcApproximationType.IGNORE_G);
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(292.563, line1.getTerminal1().getP(), 0.01);
+        assertEquals(-292.563, line1.getTerminal2().getP(), 0.01);
+        assertEquals(307.436, line2.getTerminal1().getP(), 0.01);
+        assertEquals(-307.436, line2.getTerminal2().getP(), 0.01);
     }
 }
