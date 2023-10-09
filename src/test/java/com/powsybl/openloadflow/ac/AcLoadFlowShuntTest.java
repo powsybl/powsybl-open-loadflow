@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.cgmes.conformity.CgmesConformity1Catalog;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -597,5 +598,24 @@ class AcLoadFlowShuntTest {
         assertEquals(0, shunt.getSectionCount());
         assertEquals(2, shunt2.getSectionCount());
         assertEquals(2, shunt3.getSectionCount());
+    }
+
+    @Test
+    void testMicroGrid() {
+        Network network = Network.read(CgmesConformity1Catalog.microGridBaseCaseAssembled().dataSource(), null);
+        ShuntCompensator shunt = network.getShuntCompensator("d771118f-36e9-4115-a128-cc3d9ce3e3da");
+        shunt.setTargetV(130.0) // 115.5 for the generator
+                .setVoltageRegulatorOn(true)
+                .setSectionCount(0);
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(lfParameters)
+                .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(0, shunt.getSectionCount());
+        Generator generator = network.getGenerator("3a3b27be-b18b-4385-b557-6735d733baf0");
+        assertReactivePowerEquals(-214.849, generator.getTerminal());
+        assertVoltageEquals(114.033, generator.getRegulatingTerminal().getBusView().getBus());
     }
 }

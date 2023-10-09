@@ -74,9 +74,9 @@ public interface LfShunt extends LfElement {
 
         private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
             return switch (allowedDirection) {
-                case INCREASE -> Range.of(position, sectionsB.size() - 1);
-                case DECREASE -> Range.of(0, position);
-                case BOTH -> Range.of(0, sectionsB.size() - 1);
+                case INCREASE -> Range.between(position, sectionsB.size() - 1);
+                case DECREASE -> Range.between(0, position);
+                case BOTH -> Range.between(0, sectionsB.size() - 1);
             };
         }
 
