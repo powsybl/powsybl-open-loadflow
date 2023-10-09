@@ -55,8 +55,7 @@ class DcLoadFlowMatrixTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
-        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, true, DcApproximationType.IGNORE_R);
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(mainNetwork, creationParameters).create(false);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(mainNetwork).create(false);
 
         for (LfBus b : mainNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), DcEquationType.BUS_TARGET_P);
@@ -106,7 +105,7 @@ class DcLoadFlowMatrixTest {
         lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         mainNetwork = lfNetworks.get(0);
 
-        equationSystem = new DcEquationSystemCreator(mainNetwork, creationParameters).create(false);
+        equationSystem = new DcEquationSystemCreator(mainNetwork).create(false);
 
         try (var j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
             try (DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem)) {

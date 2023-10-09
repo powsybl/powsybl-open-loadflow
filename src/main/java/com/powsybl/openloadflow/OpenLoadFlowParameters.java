@@ -102,8 +102,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     protected static final List<String> OUTER_LOOP_NAMES_DEFAULT_VALUE = null;
 
-    private static final DcApproximationType DC_APPROXIMATION_TYPE_DEFAULT_VALUE = DcApproximationType.IGNORE_R;
-
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -270,7 +268,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, ParameterType.DOUBLE, "Max voltage magnitude change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV),
         new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, ParameterType.DOUBLE, "Max voltage angle change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI),
         new Parameter(LINE_PER_UNIT_MODE_PARAM_NAME, ParameterType.STRING, "Line per unit mode", LinePerUnitMode.IMPEDANCE.name(), getEnumPossibleValues(LinePerUnitMode.class)),
-        new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class))
+        new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class))
     );
 
     public enum VoltageInitModeOverride {
@@ -418,7 +416,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private LinePerUnitMode linePerUnitMode = LfNetworkParameters.LINE_PER_UNIT_MODE_DEFAULT_VALUE;
 
-    private DcApproximationType dcApproximationType = DC_APPROXIMATION_TYPE_DEFAULT_VALUE;
+    private DcApproximationType dcApproximationType = DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -1017,7 +1015,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxVoltageChangeStateVectorScalingMaxDv(config.getDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV))
                 .setMaxVoltageChangeStateVectorScalingMaxDphi(config.getDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI))
                 .setLinePerUnitMode(config.getEnumProperty(LINE_PER_UNIT_MODE_PARAM_NAME, LinePerUnitMode.class, LfNetworkParameters.LINE_PER_UNIT_MODE_DEFAULT_VALUE))
-                .setDcApproximationType(config.getEnumProperty(DC_APPROXIMATION_TYPE_PARAM_NAME, DcApproximationType.class, DC_APPROXIMATION_TYPE_DEFAULT_VALUE))
+                .setDcApproximationType(config.getEnumProperty(DC_APPROXIMATION_TYPE_PARAM_NAME, DcApproximationType.class, DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE))
             );
         return parameters;
     }
@@ -1440,10 +1438,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxSlackBusCount(1)
                 .setLinePerUnitMode(parametersExt.getLinePerUnitMode());
 
-        var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
-                                                                                      forcePhaseControlOffAndAddAngle1Var,
-                                                                                      parameters.isDcUseTransformerRatio(),
-                                                                                      parametersExt.getDcApproximationType());
+        var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
+                .setUpdateFlows(true)
+                .setForcePhaseControlOffAndAddAngle1Var(forcePhaseControlOffAndAddAngle1Var)
+                .setUseTransformerRatio(parameters.isDcUseTransformerRatio())
+                .setDcApproximationType(parametersExt.getDcApproximationType());
 
         return new DcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,

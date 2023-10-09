@@ -213,10 +213,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private static DcLoadFlowParameters createDcLoadFlowParameters(LfNetworkParameters networkParameters, MatrixFactory matrixFactory,
                                                                    LoadFlowParameters lfParameters, OpenLoadFlowParameters parametersExt) {
-        var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
-                                                                                      true,
-                                                                                      lfParameters.isDcUseTransformerRatio(),
-                                                                                      parametersExt.getDcApproximationType());
+        var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
+                .setUpdateFlows(true)
+                .setForcePhaseControlOffAndAddAngle1Var(true)
+                .setUseTransformerRatio(lfParameters.isDcUseTransformerRatio())
+                .setDcApproximationType(parametersExt.getDcApproximationType());
 
         return new DcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,

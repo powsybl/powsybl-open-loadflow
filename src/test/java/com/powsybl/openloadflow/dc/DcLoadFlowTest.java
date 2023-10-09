@@ -285,7 +285,7 @@ class DcLoadFlowTest {
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setBreakers(true);
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
-                                                                             new DcEquationSystemCreationParameters(true, false, true, DcApproximationType.IGNORE_R),
+                                                                             new DcEquationSystemCreationParameters(),
                                                                              new DenseMatrixFactory(),
                                                                              true,
                                                                              parameters.getBalanceType(),

@@ -23,6 +23,10 @@ public class DcEquationSystemCreator {
 
     private final DcEquationSystemCreationParameters creationParameters;
 
+    public DcEquationSystemCreator(LfNetwork network) {
+        this(network, new DcEquationSystemCreationParameters());
+    }
+
     public DcEquationSystemCreator(LfNetwork network, DcEquationSystemCreationParameters creationParameters) {
         this.network = Objects.requireNonNull(network);
         this.creationParameters = Objects.requireNonNull(creationParameters);

@@ -56,8 +56,13 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         LfNetworkParameters networkParametersDcInit = new LfNetworkParameters(networkParameters)
                 .setPhaseControl(false); // not supported yet.
 
+        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters()
+                .setUpdateFlows(false)
+                .setForcePhaseControlOffAndAddAngle1Var(false)
+                .setUseTransformerRatio(useTransformerRatio)
+                .setDcApproximationType(dcApproximationType);
         DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParametersDcInit,
-                                                                   new DcEquationSystemCreationParameters(false, false, useTransformerRatio, dcApproximationType),
+                                                                   creationParameters,
                                                                    matrixFactory,
                                                                    distributedSlack,
                                                                    balanceType,
