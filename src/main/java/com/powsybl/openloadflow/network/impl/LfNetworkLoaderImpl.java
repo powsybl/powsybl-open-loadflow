@@ -44,6 +44,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static final double TARGET_V_EPSILON = 1e-2;
 
+    private static final double TARGET_Q_EPSILON = 0.1; // MW
+
     private static class LoadingContext {
 
         private final Set<Branch<?>> branchSet = new LinkedHashSet<>();
@@ -242,16 +244,47 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Controlled branch '{}' must be connected at both sides: remote reactive power control discarded", controlledBranch.getId());
             return;
         }
-        Optional<ReactivePowerControl> optionalControl = controlledBranch.getReactivePowerControl();
-        if (optionalControl.isPresent()) {
-            LOGGER.warn("Branch {} is already remotely controlled by a generator: no new remote reactive control created", controlledBranch.getId());
-            return;
-        }
         ControlledSide side = lfGenerator.getControlledBranchSide();
         double targetQ = lfGenerator.getRemoteTargetQ();
-        ReactivePowerControl control = new ReactivePowerControl(controlledBranch, side, controllerBus, targetQ);
-        controllerBus.setReactivePowerControl(control);
-        controlledBranch.setReactivePowerControl(control);
+        Optional<ReactivePowerControl> optionalControl = controlledBranch.getReactivePowerControl();
+        if (optionalControl.isPresent()) {
+            if (checkUniqueControlledSideControlledBranch((GeneratorReactivePowerControl) optionalControl.get(), controllerBus, side)) {
+                updateGeneratorReactivePowerControl((GeneratorReactivePowerControl) optionalControl.get(), controllerBus, targetQ);
+            }
+        } else {
+            createGeneratorReactivePowerControl(controlledBranch, controllerBus, side, targetQ);
+        }
+    }
+
+    private static void createGeneratorReactivePowerControl(LfBranch controlledBranch, LfBus controllerBus, ControlledSide controlledSide, double controllerTargetQ) {
+        GeneratorReactivePowerControl reactivePowerControl = new GeneratorReactivePowerControl(controlledBranch, controlledSide, controllerTargetQ);
+        reactivePowerControl.addControllerElement(controllerBus);
+        controlledBranch.setReactivePowerControl(reactivePowerControl);
+    }
+
+    private static void updateGeneratorReactivePowerControl(GeneratorReactivePowerControl reactivePowerControl, LfBus controllerBus, double controllerTargetQ) {
+        reactivePowerControl.addControllerElement(controllerBus);
+        checkUniqueTargetQControlledBranch(controllerTargetQ, controllerBus, reactivePowerControl);
+    }
+
+    private static boolean checkUniqueControlledSideControlledBranch(GeneratorReactivePowerControl reactivePowerControl, LfBus controllerBus, ControlledSide side) {
+        if (!side.equals(reactivePowerControl.getControlledSide())) {
+            LOGGER.error("Bus '{}' is trying to control already controlled branch at a different side, control won't be created. Controlled side {} (kept) {} (rejected).",
+                    controllerBus.getId(), reactivePowerControl.getControlledSide(), side);
+            return false;
+        }
+        return true;
+    }
+
+    private static void checkUniqueTargetQControlledBranch(double controllerTargetQ, LfBus controllerBus, GeneratorReactivePowerControl rpc) {
+        // check if targetQ is consistent with other already existing controller buses
+        double reactivePowerControlTargetQ = rpc.getTargetValue();
+        double deltaTargetQ = FastMath.abs(reactivePowerControlTargetQ - controllerTargetQ);
+        if (deltaTargetQ > TARGET_Q_EPSILON) {
+            String busesId = rpc.getControllerElements().stream().map(LfBus::getId).collect(Collectors.joining(", "));
+            LOGGER.error("Bus '{}' controls reactive power of a branch which is already controlled by buses '{}' with a different targetQ: {} (kept) and {} (ignored)",
+                    controllerBus.getId(), busesId, reactivePowerControlTargetQ, controllerTargetQ);
+        }
     }
 
     private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,

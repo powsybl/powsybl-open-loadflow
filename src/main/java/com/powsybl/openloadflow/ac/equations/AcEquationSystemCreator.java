@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
+import com.powsybl.openloadflow.network.impl.LfBusImpl;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -120,19 +121,21 @@ public class AcEquationSystemCreator {
                         .addTerm(q);
 
                 // if bus has both voltage and remote reactive power controls, then only voltage control has been kept
-                equationSystem.createEquation(rpc.getControllerBus(), AcEquationType.BUS_TARGET_Q);
+                // TODO: fix equations
+                equationSystem.createEquation((LfBus) rpc.getControllerElements().get(0), AcEquationType.BUS_TARGET_Q);
 
                 updateReactivePowerControlBranchEquations(rpc, equationSystem);
             });
         }
     }
 
+    // TODO: fix equations
     public static void updateReactivePowerControlBranchEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         equationSystem.getEquation(reactivePowerControl.getControlledBranch().getNum(), AcEquationType.BRANCH_TARGET_Q)
                 .orElseThrow()
-                .setActive(!reactivePowerControl.getControllerBus().isDisabled()
+                .setActive(!((LfBusImpl) reactivePowerControl.getControllerElements().get(0)).isDisabled()
                         && !reactivePowerControl.getControlledBranch().isDisabled());
-        equationSystem.getEquation(reactivePowerControl.getControllerBus().getNum(), AcEquationType.BUS_TARGET_Q)
+        equationSystem.getEquation(((LfBusImpl) reactivePowerControl.getControllerElements().get(0)).getNum(), AcEquationType.BUS_TARGET_Q)
                 .orElseThrow()
                 .setActive(false);
     }

@@ -6,22 +6,35 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Bertrand Rix <bertrand.rix at artelys.com>
  */
-public class ReactivePowerControl extends Control {
+public class ReactivePowerControl<T extends LfElement> extends Control {
 
-    private final LfBranch controlledBranch;
-    private final ControlledSide controlledSide;
-    private final LfBus controllerBus;
+    public enum Type {
+        GENERATOR,
+    }
 
-    public ReactivePowerControl(LfBranch controlledBranch, ControlledSide controlledSide, LfBus controllerBus, double targetValue) {
+    protected final ReactivePowerControl.Type type;
+
+    protected int priority;
+
+    protected final LfBranch controlledBranch;
+
+    protected final ControlledSide controlledSide;
+
+    protected final List<T> controllerElements = new ArrayList<>();
+
+    public ReactivePowerControl(double targetValue, Type type, int priority, LfBranch controlledBranch, ControlledSide controlledSide) {
         super(targetValue);
+        this.type = Objects.requireNonNull(type);
+        this.priority = priority;
         this.controlledBranch = Objects.requireNonNull(controlledBranch);
         this.controlledSide = Objects.requireNonNull(controlledSide);
-        this.controllerBus = Objects.requireNonNull(controllerBus);
     }
 
     public LfBranch getControlledBranch() {
@@ -32,7 +45,19 @@ public class ReactivePowerControl extends Control {
         return controlledSide;
     }
 
-    public LfBus getControllerBus() {
-        return controllerBus;
+    public List<T> getControllerElements() {
+        return controllerElements;
+    }
+
+    public void addControllerElement(T controllerElement) {
+        controllerElements.add(Objects.requireNonNull(controllerElement));
+    }
+
+    protected int getPriority() {
+        return priority;
+    }
+
+    public ReactivePowerControl.Type getType() {
+        return type;
     }
 }
