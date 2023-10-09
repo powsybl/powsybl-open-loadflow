@@ -23,7 +23,7 @@ public class DcEquationSystemCreationParameters {
 
     private final boolean useTransformerRatio;
 
-    private DcApproximationType dcApproximationType;
+    private final DcApproximationType dcApproximationType;
 
     public DcEquationSystemCreationParameters(boolean updateFlows, boolean forcePhaseControlOffAndAddAngle1Var,
                                               boolean useTransformerRatio, DcApproximationType dcApproximationType) {
