@@ -228,7 +228,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     private static LfLoadModel createLfLoadModel(LoadModel loadModel, LfNetworkParameters parameters) {
-        if (!parameters.isLoadModel() || loadModel == null) {
+        if (!parameters.isUseLoadModel() || loadModel == null) {
             return null;
         }
         if (loadModel.getType() == LoadModelType.ZIP) {
