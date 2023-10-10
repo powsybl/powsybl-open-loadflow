@@ -6,9 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.PowsyblException;
-
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Generic load model as a sum of exponential terms: sum_i(ci * v^ni)
@@ -20,43 +20,29 @@ public class LfLoadModel {
     public record ExpTerm(double c, double n) {
     }
 
-    private final Map<Double, ExpTerm> expTermsP = new TreeMap<>(); // by exponent
+    private final List<ExpTerm> expTermsP;
 
-    private final Map<Double, ExpTerm> expTermsQ = new TreeMap<>(); // by exponent
+    private final List<ExpTerm> expTermsQ;
 
     public LfLoadModel(List<ExpTerm> expTermsP, List<ExpTerm> expTermsQ) {
-        Objects.requireNonNull(expTermsP);
-        Objects.requireNonNull(expTermsQ);
-        for (ExpTerm expTerm : expTermsP) {
-            addExpTerm(this.expTermsP, expTerm);
-        }
-        for (ExpTerm expTerm : expTermsQ) {
-            addExpTerm(this.expTermsQ, expTerm);
-        }
+        this.expTermsP = Objects.requireNonNull(expTermsP);
+        this.expTermsQ = Objects.requireNonNull(expTermsQ);
     }
 
-    private static void addExpTerm(Map<Double, ExpTerm> expTerms, ExpTerm term) {
-        Objects.requireNonNull(term);
-        if (expTerms.containsKey(term.n())) {
-            throw new PowsyblException("A term with exponent " + term.n() + " already exists");
-        }
-        expTerms.put(term.n(), term);
-    }
-
-    public Collection<ExpTerm> getExpTermsP() {
-        return expTermsP.values();
+    public List<ExpTerm> getExpTermsP() {
+        return expTermsP;
     }
 
     public Optional<ExpTerm> getExpTermP(double n) {
-        return Optional.ofNullable(expTermsP.get(n));
+        return expTermsP.stream().filter(expTerm -> expTerm.n == n).findFirst();
     }
 
-    public Collection<ExpTerm> getExpTermsQ() {
-        return expTermsP.values();
+    public List<ExpTerm> getExpTermsQ() {
+        return expTermsQ;
     }
 
     public Optional<ExpTerm> getExpTermQ(double n) {
-        return Optional.ofNullable(expTermsQ.get(n));
+        return expTermsQ.stream().filter(expTerm -> expTerm.n == n).findFirst();
     }
 
     @Override

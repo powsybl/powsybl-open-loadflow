@@ -62,8 +62,8 @@ class LoadModelTest {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertActivePowerEquals(48.765, zipLoad.getTerminal());
-        assertReactivePowerEquals(30.759, zipLoad.getTerminal());
+        assertActivePowerEquals(48.786, zipLoad.getTerminal());
+        assertReactivePowerEquals(29.425, zipLoad.getTerminal());
         assertActivePowerEquals(600, load.getTerminal());
         assertReactivePowerEquals(200, load.getTerminal());
     }
@@ -85,10 +85,10 @@ class LoadModelTest {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertVoltageEquals(141.68, expLoad.getTerminal().getBusView().getBus());
+        assertVoltageEquals(141.692, expLoad.getTerminal().getBusView().getBus());
         assertEquals(150, expLoad.getTerminal().getVoltageLevel().getNominalV(), 0);
-        assertActivePowerEquals(47.768, expLoad.getTerminal()); // < 50MW because v < vnom
-        assertReactivePowerEquals(28.661, expLoad.getTerminal()); // < 30MW because v < vnom
+        assertActivePowerEquals(47.772, expLoad.getTerminal()); // < 50MW because v < vnom
+        assertReactivePowerEquals(28.5, expLoad.getTerminal()); // < 30MW because v < vnom
         assertActivePowerEquals(600, load.getTerminal());
         assertReactivePowerEquals(200, load.getTerminal());
     }
@@ -124,10 +124,10 @@ class LoadModelTest {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertActivePowerEquals(47.346, zipLoad.getTerminal());
-        assertReactivePowerEquals(29.907, zipLoad.getTerminal());
-        assertActivePowerEquals(46.873, expLoad.getTerminal());
-        assertReactivePowerEquals(28.124, expLoad.getTerminal());
+        assertActivePowerEquals(47.369, zipLoad.getTerminal());
+        assertReactivePowerEquals(28.749, zipLoad.getTerminal());
+        assertActivePowerEquals(46.902, expLoad.getTerminal());
+        assertReactivePowerEquals(27.917, expLoad.getTerminal());
         assertActivePowerEquals(600, load.getTerminal());
         assertReactivePowerEquals(200, load.getTerminal());
     }
