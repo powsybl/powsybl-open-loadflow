@@ -318,9 +318,6 @@ public class AsymmetricalLoadFlowTest {
                 .withDeltaQc(0.)
                 .add();
 
-        load4.newExtension(LoadAsymmetrical2Adder.class)
-                .add();
-
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
@@ -356,9 +353,6 @@ public class AsymmetricalLoadFlowTest {
                 .withDeltaQb(0.)
                 .withDeltaPc(21)
                 .withDeltaQc(0.)
-                .add();
-
-        load4.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -399,9 +393,6 @@ public class AsymmetricalLoadFlowTest {
                 .withDeltaPc(21)
                 .withDeltaQc(0.)
                 .withConnectionType(LoadConnectionType.DELTA)
-                .add();
-
-        load4.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
