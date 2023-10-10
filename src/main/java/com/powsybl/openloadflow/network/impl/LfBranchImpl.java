@@ -162,15 +162,16 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters);
     }
 
-    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, List<RatioTapChangerHolder> rtcToOperate,
-                                      List<PhaseTapChangerHolder> pstToOperate, LfNetworkParameters parameters) {
+    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, LfTopoConfig topoConfig,
+                                      LfNetworkParameters parameters) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         if (branch instanceof Line line) {
             return createLine(line, network, bus1, bus2, parameters);
         } else if (branch instanceof TwoWindingsTransformer twt) {
-            return createTransformer(twt, network, bus1, bus2, pstToOperate.contains(twt), rtcToOperate.contains(twt), parameters);
+            return createTransformer(twt, network, bus1, bus2, topoConfig.getBranchIdsWithPtcTapsToRetain().contains(twt.getId()),
+                    topoConfig.getBranchIdsWithRtcTapsToRetain().contains(twt.getId()), parameters);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }

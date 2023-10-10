@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.*;
@@ -267,50 +268,34 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 });
     }
 
-    protected static List<RatioTapChangerHolder> findAllRtcToOperate(Network network, List<Action> actions) {
-        List<RatioTapChangerHolder> rtcToOperate = new ArrayList<>();
-        for (Action action : actions) {
-            if (Objects.equals(action.getType(), "RATIO_TAP_CHANGER_TAP_POSITION")) {
-                RatioTapChangerTapPositionAction rtcAction = (RatioTapChangerTapPositionAction) action;
-                rtcAction.getSide().ifPresentOrElse(side -> {
-                    // This is a T3WT
-                    ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(rtcAction.getTransformerId());
-                    if (t3wt != null) {
-                        rtcToOperate.add(t3wt.getLeg(side));
-                    }
-                }, () -> {
-                    // This is a T2WT
-                    TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(rtcAction.getTransformerId());
-                    if (t2wt != null) {
-                        rtcToOperate.add(t2wt);
-                    }
-                });
-            }
-        }
-        return rtcToOperate;
-    }
-
-    protected static List<PhaseTapChangerHolder> findAllPstToOperate(Network network, List<Action> actions) {
-        List<PhaseTapChangerHolder> pstToOperate = new ArrayList<>();
+    protected static void findAllPtcToOperate(Network network, List<Action> actions, LfTopoConfig topoConfig) {
         for (Action action : actions) {
             if (Objects.equals(action.getType(), "PHASE_TAP_CHANGER_TAP_POSITION")) {
                 PhaseTapChangerTapPositionAction ptcAction = (PhaseTapChangerTapPositionAction) action;
                 ptcAction.getSide().ifPresentOrElse(side -> {
                     // This is a T3WT
-                    ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(ptcAction.getTransformerId());
-                    if (t3wt != null) {
-                        pstToOperate.add(t3wt.getLeg(side));
-                    }
+                    topoConfig.getBranchIdsWithPtcTapsToRetain().add(LfLegBranch.getId(side, ptcAction.getTransformerId()));
                 }, () -> {
                     // This is a T2WT
-                    TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(ptcAction.getTransformerId());
-                    if (t2wt != null) {
-                        pstToOperate.add(t2wt);
-                    }
+                    topoConfig.getBranchIdsWithPtcTapsToRetain().add(ptcAction.getTransformerId());
                 });
             }
         }
-        return pstToOperate;
+    }
+
+    protected static void findAllRtcToOperate(Network network, List<Action> actions, LfTopoConfig topoConfig) {
+        List<RatioTapChangerHolder> rtcToOperate = new ArrayList<>();
+        for (Action action : actions) {
+            if (Objects.equals(action.getType(), "RATIO_TAP_CHANGER_TAP_POSITION")) {
+                RatioTapChangerTapPositionAction rtcAction = (RatioTapChangerTapPositionAction) action;
+                rtcAction.getSide().ifPresentOrElse(side -> {
+                    topoConfig.getBranchIdsWithRtcTapsToRetain().add(LfLegBranch.getId(side, rtcAction.getTransformerId()));
+                }, () -> {
+                    // This is a T2WT
+                    topoConfig.getBranchIdsWithRtcTapsToRetain().add(rtcAction.getTransformerId());
+                });
+            }
+        }
     }
 
     protected OperatorStrategyResult runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,

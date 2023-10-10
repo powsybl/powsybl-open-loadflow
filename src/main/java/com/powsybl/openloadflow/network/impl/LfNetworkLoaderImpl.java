@@ -360,14 +360,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createBranches(List<LfBus> lfBuses, LfNetwork lfNetwork, List<RatioTapChangerHolder> rtcToOperate,
-                                       List<PhaseTapChangerHolder> pstToOperate, LoadingContext loadingContext,
+    private static void createBranches(List<LfBus> lfBuses, LfNetwork lfNetwork, LfTopoConfig topoConfig, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report, LfNetworkParameters parameters,
                                        List<LfNetworkLoaderPostProcessor> postProcessors) {
         for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
-            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, rtcToOperate, pstToOperate, parameters);
+            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, topoConfig, parameters);
             addBranch(lfNetwork, lfBranch, report);
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
@@ -404,9 +403,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, parameters.isBreakers());
-            LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), pstToOperate.contains(t3wt.getLeg1()), rtcToOperate.contains(t3wt.getLeg1()), parameters);
-            LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), pstToOperate.contains(t3wt.getLeg2()), rtcToOperate.contains(t3wt.getLeg2()), parameters);
-            LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), pstToOperate.contains(t3wt.getLeg3()), rtcToOperate.contains(t3wt.getLeg3()), parameters);
+            LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(),
+                    topoConfig.getBranchIdsWithPtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.ONE, t3wt.getId())),
+                    topoConfig.getBranchIdsWithRtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.ONE, t3wt.getId())),
+                    parameters);
+            LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(),
+                    topoConfig.getBranchIdsWithPtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.TWO, t3wt.getId())),
+                    topoConfig.getBranchIdsWithRtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.TWO, t3wt.getId())),
+                    parameters);
+            LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(),
+                    topoConfig.getBranchIdsWithPtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.THREE, t3wt.getId())),
+                    topoConfig.getBranchIdsWithRtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.THREE, t3wt.getId())),
+                    parameters);
             addBranch(lfNetwork, lfBranch1, report);
             addBranch(lfNetwork, lfBranch2, report);
             addBranch(lfNetwork, lfBranch3, report);
@@ -650,7 +658,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, List<RatioTapChangerHolder> rtcToOperate, List<PhaseTapChangerHolder> pstToOperate, LfNetworkParameters parameters, Reporter reporter) {
+    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
                 parameters.getConnectivityFactory(), reporter);
 
@@ -663,7 +671,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);
-        createBranches(lfBuses, lfNetwork, rtcToOperate, pstToOperate, loadingContext, report, parameters, postProcessors);
+        createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);
@@ -833,8 +841,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     @Override
-    public List<LfNetwork> load(Network network, List<RatioTapChangerHolder> rtcToOperate, List<PhaseTapChangerHolder> pstToOperate,
-                                LfNetworkParameters parameters, Reporter reporter) {
+    public List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
@@ -880,7 +887,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numCc = networkKey.getLeft();
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
-                    return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), rtcToOperate, pstToOperate,
+                    return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
                             parameters, Reports.createLfNetworkReporter(reporter, numCc, numSc));
                 })
                 .collect(Collectors.toList());

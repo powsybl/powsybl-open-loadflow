@@ -10,10 +10,9 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.iidm.network.PhaseTapChangerHolder;
-import com.powsybl.iidm.network.RatioTapChangerHolder;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.anarres.graphviz.builder.GraphVizGraph;
@@ -526,18 +525,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
-        return load(network, networkLoader, new ArrayList<>(), new ArrayList<>(), parameters, reporter);
+        return load(network, networkLoader, new LfTopoConfig(), parameters, reporter);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return load(network, networkLoader, new ArrayList<>(), new ArrayList<>(), new LfNetworkParameters().setSlackBusSelector(slackBusSelector), reporter);
-    }
-
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, List<RatioTapChangerHolder> rtcToOperate, List<PhaseTapChangerHolder> pstToOperate, LfNetworkParameters parameters, Reporter reporter) {
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
-        List<LfNetwork> lfNetworks = networkLoader.load(network, rtcToOperate, pstToOperate, parameters, reporter);
+        List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reporter);
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());

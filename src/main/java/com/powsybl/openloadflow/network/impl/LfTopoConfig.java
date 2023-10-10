@@ -22,6 +22,10 @@ public class LfTopoConfig {
 
     private final Set<String> busIdsToLose = new HashSet<>();
 
+    private final Set<String> branchIdsWithPtcTapsToRetain = new HashSet<>();
+
+    private final Set<String> branchIdsWithRtcTapsToRetain = new HashSet<>();
+
     public Set<Switch> getSwitchesToOpen() {
         return switchesToOpen;
     }
@@ -32,6 +36,14 @@ public class LfTopoConfig {
 
     public Set<String> getBusIdsToLose() {
         return busIdsToLose;
+    }
+
+    public Set<String> getBranchIdsWithPtcTapsToRetain() {
+        return branchIdsWithPtcTapsToRetain;
+    }
+
+    public Set<String> getBranchIdsWithRtcTapsToRetain() {
+        return branchIdsWithRtcTapsToRetain;
     }
 
     public boolean isBreaker() {

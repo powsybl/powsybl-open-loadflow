@@ -106,8 +106,8 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reporter);
     }
 
-    public static List<LfNetwork> load(Network network, List<RatioTapChangerHolder> rtcToOperate, List<PhaseTapChangerHolder> pstToOperate, LfNetworkParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, new LfNetworkLoaderImpl(), rtcToOperate, pstToOperate, parameters, reporter);
+    public static List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, parameters, reporter);
     }
 
     private static void retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig) {
@@ -148,19 +148,8 @@ public final class Networks {
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
                                      LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
-        return load(network, networkParameters, topoConfig, new ArrayList<>(), new ArrayList<>(), variantCleanerFactory, reporter);
-    }
-
-    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
-                                     LfTopoConfig topoConfig, List<RatioTapChangerHolder> rtcToOperate, List<PhaseTapChangerHolder> pstToOperate, Reporter reporter) {
-        return load(network, networkParameters, topoConfig, rtcToOperate, pstToOperate, LfNetworkList.DefaultVariantCleaner::new, reporter);
-    }
-
-    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
-                                     List<RatioTapChangerHolder> rtcToOperate, List<PhaseTapChangerHolder> pstToOperate,
-                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
         if (!topoConfig.isBreaker()) {
-            return new LfNetworkList(load(network, rtcToOperate, pstToOperate, networkParameters, reporter));
+            return new LfNetworkList(load(network, topoConfig, networkParameters, reporter));
         } else {
             if (!networkParameters.isBreakers()) {
                 throw new PowsyblException("LF networks have to be built from bus/breaker view");
@@ -175,7 +164,7 @@ public final class Networks {
             // and close switches that could be closed during the simulation
             retainAndCloseNecessarySwitches(network, topoConfig);
 
-            List<LfNetwork> lfNetworks = load(network, rtcToOperate, pstToOperate, networkParameters, reporter);
+            List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reporter);
 
             if (!topoConfig.getSwitchesToClose().isEmpty()) {
                 for (LfNetwork lfNetwork : lfNetworks) {

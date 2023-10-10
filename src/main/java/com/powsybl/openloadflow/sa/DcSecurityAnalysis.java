@@ -11,8 +11,6 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.PhaseTapChangerHolder;
-import com.powsybl.iidm.network.RatioTapChangerHolder;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -238,9 +236,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         LfTopoConfig topoConfig = new LfTopoConfig();
         findAllSwitchesToOperate(network, actions, topoConfig);
 
-        // try to find all pst and rtc to retain because involved in pst and rtc actions
-        List<RatioTapChangerHolder> rtcToOperate = findAllRtcToOperate(network, actions);
-        List<PhaseTapChangerHolder> pstToOperate = findAllPstToOperate(network, actions);
+        // try to find all pst to retain because involved in pst actions
+        findAllPtcToOperate(network, actions, topoConfig);
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), topoConfig, false);
 
@@ -254,7 +251,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 .setBreakers(breakers)
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
 
-        try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), topoConfig, rtcToOperate, pstToOperate, Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), topoConfig, Reporter.NO_OP)) {
 
             // complete definition of contingencies after network loading
             PropagatedContingency.completeList(propagatedContingencies, false,

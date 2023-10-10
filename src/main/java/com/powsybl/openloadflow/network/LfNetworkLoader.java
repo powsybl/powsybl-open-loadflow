@@ -7,8 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.iidm.network.PhaseTapChangerHolder;
-import com.powsybl.iidm.network.RatioTapChangerHolder;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 
 import java.util.List;
 
@@ -26,6 +25,5 @@ public interface LfNetworkLoader<T> {
      * components number (hence sorted by descending connected components size then by descending synchronous components
      * size)
      */
-    List<LfNetwork> load(T network, List<RatioTapChangerHolder> rtcToOperate, List<PhaseTapChangerHolder> pstToOperate,
-                         LfNetworkParameters parameters, Reporter reporter);
+    List<LfNetwork> load(T network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter);
 }
