@@ -6,18 +6,25 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
-    public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
+    public void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
         // empty
     }
 
     @Override
-    public void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled) {
+    public void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage) {
+        // empty
+    }
+
+    @Override
+    public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
         // empty
     }
 
@@ -32,12 +39,12 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
+    public void onLoadActivePowerTargetChange(LfLoad load, double oldTargetP, double newTargetP) {
         // empty
     }
 
     @Override
-    public void onLoadReactivePowerTargetChange(LfBus bus, double oldLoadTargetQ, double newLoadTargetQ) {
+    public void onLoadReactivePowerTargetChange(LfLoad load, double oldTargetQ, double newTargetQ) {
         // empty
     }
 
@@ -52,17 +59,32 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onTransformerPhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
-        // empty
-    }
-
-    @Override
-    public void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
-        // empty
-    }
-
-    @Override
     public void onDisableChange(LfElement element, boolean disabled) {
+        // empty
+    }
+
+    @Override
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+        // empty
+    }
+
+    @Override
+    public void onShuntSusceptanceChange(LfShunt shunt, double b) {
+        // empty
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, LoadFlowModel loadFlowModel, boolean spanningTree) {
+        // empty
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowModel loadFlowModel) {
+        // empty
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel) {
         // empty
     }
 }

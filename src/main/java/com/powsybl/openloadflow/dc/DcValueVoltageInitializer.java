@@ -7,9 +7,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
@@ -33,16 +31,16 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     private final MatrixFactory matrixFactory;
 
-    private final Reporter reporter;
+    private final int maxOuterLoopIterations;
 
     public DcValueVoltageInitializer(LfNetworkParameters networkParameters, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
-                                     boolean useTransformerRatio, MatrixFactory matrixFactory, Reporter reporter) {
+                                     boolean useTransformerRatio, MatrixFactory matrixFactory, int maxOuterLoopIterations) {
         this.networkParameters = Objects.requireNonNull(networkParameters);
         this.distributedSlack = distributedSlack;
         this.balanceType = Objects.requireNonNull(balanceType);
         this.useTransformerRatio = useTransformerRatio;
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.reporter = Objects.requireNonNull(reporter);
+        this.maxOuterLoopIterations = maxOuterLoopIterations;
     }
 
     @Override
@@ -51,15 +49,22 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         // modified by slack distribution, so that AC load flow can restart from original state
         List<BusDcState> busStates = distributedSlack ? ElementState.save(network.getBuses(), BusDcState::save) : null;
 
-        DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParameters,
-                                                                   new DcEquationSystemCreationParameters(false, false, false, useTransformerRatio),
+        LfNetworkParameters networkParametersDcInit = new LfNetworkParameters(networkParameters)
+                .setPhaseControl(false); // not supported yet.
+
+        DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParametersDcInit,
+                                                                   new DcEquationSystemCreationParameters(false, false, useTransformerRatio),
                                                                    matrixFactory,
                                                                    distributedSlack,
                                                                    balanceType,
-                                                                   false);
-        DcLoadFlowEngine engine = new DcLoadFlowEngine(List.of(network), parameters);
-        if (engine.run(reporter).get(0).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
-            throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
+                                                                   false,
+                                                                   maxOuterLoopIterations);
+
+        try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
+            DcLoadFlowEngine engine = new DcLoadFlowEngine(context);
+            if (!engine.run().isSucceeded()) {
+                throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
+            }
         }
 
         if (busStates != null) {

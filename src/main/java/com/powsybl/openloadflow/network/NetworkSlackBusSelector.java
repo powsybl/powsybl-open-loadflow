@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -20,9 +21,7 @@ import java.util.stream.Collectors;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class NetworkSlackBusSelector implements SlackBusSelector {
-
-    private static final SlackBusSelector DEFAULT_FALLBACK_SELECTOR = new MostMeshedSlackBusSelector();
+public class NetworkSlackBusSelector extends AbstractSlackBusSelector {
 
     private static final String SELECTION_METHOD = "Network extension bus";
 
@@ -30,11 +29,8 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
 
     private final Set<String> slackBusIds = new HashSet<>();
 
-    public NetworkSlackBusSelector(Network network) {
-        this(network, DEFAULT_FALLBACK_SELECTOR);
-    }
-
-    public NetworkSlackBusSelector(Network network, SlackBusSelector fallbackSelector) {
+    public NetworkSlackBusSelector(Network network, Set<Country> countries, SlackBusSelector fallbackSelector) {
+        super(countries);
         Objects.requireNonNull(network);
         this.fallbackSelector = Objects.requireNonNull(fallbackSelector);
         for (VoltageLevel vl : network.getVoltageLevels()) {
@@ -53,17 +49,21 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
     }
 
     @Override
-    public SelectedSlackBus select(List<LfBus> buses) {
-        List<LfBus> slackBuses = buses.stream().filter(bus -> !bus.isFictitious() && slackBusIds.contains(bus.getId())).collect(Collectors.toList());
+    public SelectedSlackBus select(List<LfBus> buses, int limit) {
+        List<LfBus> slackBuses = buses.stream()
+                .filter(bus -> !bus.isFictitious())
+                .filter(this::filterByCountry)
+                .filter(bus -> slackBusIds.contains(bus.getId()))
+                .collect(Collectors.toList());
         if (slackBuses.isEmpty()) {
             // fallback to automatic selection
-            return fallbackSelector.select(buses);
-        } else if (slackBuses.size() == 1) {
-            return new SelectedSlackBus(slackBuses.get(0), SELECTION_METHOD);
+            return fallbackSelector.select(buses, limit);
+        } else if (slackBuses.size() <= limit) {
+            return new SelectedSlackBus(slackBuses, SELECTION_METHOD);
         } else {
             // fallback to automatic selection among slack buses
-            var slackBusSelector = fallbackSelector.select(slackBuses);
-            return new SelectedSlackBus(slackBusSelector.getBus(), SELECTION_METHOD + " + " + slackBusSelector.getSelectionMethod());
+            var slackBusSelector = fallbackSelector.select(slackBuses, limit);
+            return new SelectedSlackBus(slackBusSelector.getBuses(), SELECTION_METHOD + " + " + slackBusSelector.getSelectionMethod());
         }
     }
 }

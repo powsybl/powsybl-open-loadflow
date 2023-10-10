@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BusResult;
 
@@ -16,6 +17,11 @@ import java.util.*;
  */
 public interface LfBus extends LfElement {
 
+    enum QLimitType {
+        MIN_Q,
+        MAX_Q
+    }
+
     String getVoltageLevelId();
 
     boolean isFictitious();
@@ -24,34 +30,48 @@ public interface LfBus extends LfElement {
 
     void setSlack(boolean slack);
 
-    boolean hasVoltageControllerCapability();
+    boolean isReference();
 
-    boolean isVoltageControlEnabled();
+    void setReference(boolean reference);
 
+    /**
+     * Get list of all voltage controls (generator + transformer + shunt) linked to this bus.
+     */
+    List<VoltageControl<?>> getVoltageControls();
+
+    /**
+     * Check if this bus is voltage controlled so either by a generator, a transformer or a shunt.
+     */
     boolean isVoltageControlled();
+
+    boolean isVoltageControlled(VoltageControl.Type type);
+
+    Optional<VoltageControl<?>> getVoltageControl(VoltageControl.Type type);
+
+    /**
+     * Get the highest priority voltage control connected to a bus of the zero impedance subgraph to which this bus
+     * belong.
+     */
+    Optional<VoltageControl<?>> getHighestPriorityMainVoltageControl();
+
+    // generator voltage control
+    Optional<GeneratorVoltageControl> getGeneratorVoltageControl();
+
+    void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl);
+
+    boolean isGeneratorVoltageControlled();
+
+    boolean isGeneratorVoltageControlEnabled();
+
+    void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled);
+
+    // generator reactive power control
 
     List<LfGenerator> getGeneratorsControllingVoltageWithSlope();
 
     boolean hasGeneratorsWithSlope();
 
     void removeGeneratorSlopes();
-
-    /**
-     * Get the number of time, voltage control status has be set from true to false.
-     *
-     * @return the number of time, voltage control status has be set from true to false
-     */
-    int getVoltageControlSwitchOffCount();
-
-    void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
-
-    void setVoltageControlEnabled(boolean voltageControlEnabled);
-
-    Optional<VoltageControl> getVoltageControl();
-
-    void removeVoltageControl();
-
-    void setVoltageControl(VoltageControl voltageControl);
 
     Optional<ReactivePowerControl> getReactivePowerControl();
 
@@ -63,15 +83,9 @@ public interface LfBus extends LfElement {
 
     double getLoadTargetP();
 
-    double getInitialLoadTargetP();
-
-    void setLoadTargetP(double loadTargetP);
-
     double getLoadTargetQ();
 
-    void setLoadTargetQ(double loadTargetQ);
-
-    boolean ensurePowerFactorConstantByLoad();
+    void invalidateGenerationTargetP();
 
     double getGenerationTargetP();
 
@@ -82,6 +96,10 @@ public interface LfBus extends LfElement {
     double getMinQ();
 
     double getMaxQ();
+
+    Optional<QLimitType> getQLimitType();
+
+    void setQLimitType(QLimitType qLimitType);
 
     double getV();
 
@@ -115,7 +133,9 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getControllerShunt();
 
-    LfAggregatedLoads getAggregatedLoads();
+    Optional<LfShunt> getSvcShunt();
+
+    Optional<LfLoad> getLoad();
 
     List<LfBranch> getBranches();
 
@@ -123,19 +143,23 @@ public interface LfBus extends LfElement {
 
     void addHvdc(LfHvdc hvdc);
 
-    void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant);
+    void updateState(LfNetworkStateUpdateParameters parameters);
+
+    // transformer voltage control
 
     Optional<TransformerVoltageControl> getTransformerVoltageControl();
 
+    void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl);
+
     boolean isTransformerVoltageControlled();
 
-    void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl);
+    // shunt voltage control
 
     Optional<ShuntVoltageControl> getShuntVoltageControl();
 
-    boolean isShuntVoltageControlled();
-
     void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl);
+
+    boolean isShuntVoltageControlled();
 
     void setP(Evaluable p);
 
@@ -167,4 +191,16 @@ public interface LfBus extends LfElement {
      * Only make sens for slack bus.
      */
     double getMismatchP();
+
+    default Optional<Country> getCountry() {
+        return Optional.empty();
+    }
+
+    void setZeroImpedanceNetwork(LoadFlowModel loadFlowModel, LfZeroImpedanceNetwork zeroImpedanceNetwork);
+
+    LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel loadFlowModel);
+
+    LfAsymBus getAsym();
+
+    void setAsym(LfAsymBus asym);
 }

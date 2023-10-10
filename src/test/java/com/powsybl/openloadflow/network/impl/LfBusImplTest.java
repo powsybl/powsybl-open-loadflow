@@ -10,10 +10,8 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
-import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Fabien Rigaux (https://github.com/frigaux)
@@ -41,6 +41,7 @@ class LfBusImplTest {
         Network network = Network.create("svc", "test");
         Substation s1 = network.newSubstation()
                 .setId("S1")
+                .setCountry(Country.FR)
                 .add();
         VoltageLevel vl1 = s1.newVoltageLevel()
                 .setId("vl1")
@@ -104,16 +105,10 @@ class LfBusImplTest {
                 .setQ0(100)
                 .setP0(0)
                 .add();
-        Line line = network.newLine()
+        network.newLine()
                 .setId("line")
-                .setVoltageLevel1("vl1")
-                .setVoltageLevel2("vl2")
                 .setBus1("b1")
                 .setBus2("b2")
-                .setB1(0)
-                .setB2(0)
-                .setG1(0)
-                .setG2(0)
                 .setR(1)
                 .setX(1)
                 .add();
@@ -132,31 +127,42 @@ class LfBusImplTest {
         List<LfNetwork> networks = Networks.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector());
         LfNetwork mainNetwork = networks.get(0);
 
-        LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, false, true, false);
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setBreakers(true);
+        LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, parameters, true);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
-        lfBus.addStaticVarCompensator(svc1, false, true, true, lfNetworkLoadingReport, 0.8, 1.2);
-        lfBus.addStaticVarCompensator(svc2, false, true, true, lfNetworkLoadingReport, 0.8, 1.2);
-        lfBus.addStaticVarCompensator(svc3, false, true, true, lfNetworkLoadingReport, 0.8, 1.2);
+        lfBus.addStaticVarCompensator(svc1, parameters, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc2, parameters, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc3, parameters, lfNetworkLoadingReport);
         double generationQ = -6.412103131789854;
-        lfBus.updateGeneratorsState(generationQ * PerUnit.SB, true);
+        lfBus.updateGeneratorsState(generationQ, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
         double sumQ = 0;
         for (LfGenerator lfGenerator : lfBus.getGenerators()) {
             sumQ += lfGenerator.getCalculatedQ();
         }
-        Assertions.assertEquals(generationQ, sumQ, DELTA_POWER, "sum of generators calculatedQ should be equals to qToDispatch");
+        assertEquals(generationQ, sumQ, DELTA_POWER, "sum of generators calculatedQ should be equals to qToDispatch");
     }
 
-    private List<LfGenerator> createLfGeneratorsWithInitQ(List<Double> initQs) {
-        Network network = FourSubstationsNodeBreakerFactory.create();
+    private static List<LfGenerator> createLfGeneratorsWithInitQ(List<Double> initQs) {
+        return createLfGeneratorsWithInitQ(FourSubstationsNodeBreakerFactory.create(), initQs);
+    }
+
+    private static List<LfGenerator> createLfGeneratorsWithInitQ(Network network, List<Double> initQs) {
+        LfNetwork lfNetwork = new LfNetwork(0, 0, new FirstSlackBusSelector(), 1, new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LfNetworkParameters parameters1 = new LfNetworkParameters()
+                .setPlausibleActivePowerLimit(100)
+                .setMinPlausibleTargetVoltage(0.9)
+                .setMaxPlausibleTargetVoltage(1.1);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
-        LfGenerator lfGenerator1 = LfGeneratorImpl.create(network.getGenerator("GH1"),
-                false, 100, true, lfNetworkLoadingReport, 0.9, 1.1);
+        LfGenerator lfGenerator1 = LfGeneratorImpl.create(network.getGenerator("GH1"), lfNetwork, parameters1, lfNetworkLoadingReport);
         lfGenerator1.setCalculatedQ(initQs.get(0));
-        LfGenerator lfGenerator2 = LfGeneratorImpl.create(network.getGenerator("GH2"),
-                false, 200, true, lfNetworkLoadingReport, 0.9, 1.1);
+        LfNetworkParameters parameters23 = new LfNetworkParameters()
+                .setPlausibleActivePowerLimit(200)
+                .setMinPlausibleTargetVoltage(0.9)
+                .setMaxPlausibleTargetVoltage(1.1);
+        LfGenerator lfGenerator2 = LfGeneratorImpl.create(network.getGenerator("GH2"), lfNetwork, parameters23, lfNetworkLoadingReport);
         lfGenerator2.setCalculatedQ(initQs.get(1));
-        LfGenerator lfGenerator3 = LfGeneratorImpl.create(network.getGenerator("GH3"),
-                false, 200, true, lfNetworkLoadingReport, 0.9, 1.1);
+        LfGenerator lfGenerator3 = LfGeneratorImpl.create(network.getGenerator("GH3"), lfNetwork, parameters23, lfNetworkLoadingReport);
         lfGenerator3.setCalculatedQ(initQs.get(2));
         List<LfGenerator> generators = new ArrayList<>();
         generators.add(lfGenerator1);
@@ -170,13 +176,13 @@ class LfBusImplTest {
         List<LfGenerator> generators = createLfGeneratorsWithInitQ(Arrays.asList(0d, 0d, 0d));
         LfGenerator generatorToRemove = generators.get(1);
         double qToDispatch = 21;
-        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generators.get(1).getCalculatedQ() + generatorToRemove.getCalculatedQ();
-        Assertions.assertEquals(7.0, generators.get(0).getCalculatedQ());
-        Assertions.assertEquals(7.0, generators.get(1).getCalculatedQ());
-        Assertions.assertEquals(2, generators.size());
-        Assertions.assertEquals(qToDispatch - totalCalculatedQ, residueQ, 0.00001);
-        Assertions.assertEquals(generatorToRemove.getMaxQ(), generatorToRemove.getCalculatedQ());
+        assertEquals(7.0, generators.get(0).getCalculatedQ());
+        assertEquals(7.0, generators.get(1).getCalculatedQ());
+        assertEquals(2, generators.size());
+        assertEquals(qToDispatch - totalCalculatedQ, residueQ, 0.00001);
+        assertEquals(generatorToRemove.getMaxQ(), generatorToRemove.getCalculatedQ());
     }
 
     @Test
@@ -186,13 +192,13 @@ class LfBusImplTest {
         LfGenerator generatorToRemove1 = generators.get(1);
         LfGenerator generatorToRemove2 = generators.get(2);
         double qToDispatch = 20;
-        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove1.getCalculatedQ() + generatorToRemove2.getCalculatedQ();
-        Assertions.assertEquals(1, generators.size());
-        Assertions.assertEquals(qToDispatch + qInitial - totalCalculatedQ, residueQ, 0.0001);
-        Assertions.assertEquals(8.17, generators.get(0).getCalculatedQ(), 0.01);
-        Assertions.assertEquals(generatorToRemove1.getMaxQ(), generatorToRemove1.getCalculatedQ(), 0.01);
-        Assertions.assertEquals(generatorToRemove2.getMaxQ(), generatorToRemove2.getCalculatedQ(), 0.01);
+        assertEquals(1, generators.size());
+        assertEquals(qToDispatch + qInitial - totalCalculatedQ, residueQ, 0.0001);
+        assertEquals(8.17, generators.get(0).getCalculatedQ(), 0.01);
+        assertEquals(generatorToRemove1.getMaxQ(), generatorToRemove1.getCalculatedQ(), 0.01);
+        assertEquals(generatorToRemove2.getMaxQ(), generatorToRemove2.getCalculatedQ(), 0.01);
     }
 
     @Test
@@ -201,20 +207,71 @@ class LfBusImplTest {
         LfGenerator generatorToRemove2 = generators.get(1);
         LfGenerator generatorToRemove3 = generators.get(2);
         double qToDispatch = -21;
-        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove2.getCalculatedQ() + generatorToRemove3.getCalculatedQ();
-        Assertions.assertEquals(-7.0, generators.get(0).getCalculatedQ());
-        Assertions.assertEquals(1, generators.size());
-        Assertions.assertEquals(qToDispatch - totalCalculatedQ, residueQ, 0.00001);
-        Assertions.assertEquals(generatorToRemove2.getMinQ(), generatorToRemove2.getCalculatedQ());
-        Assertions.assertEquals(generatorToRemove3.getMinQ(), generatorToRemove3.getCalculatedQ());
+        assertEquals(-7.0, generators.get(0).getCalculatedQ());
+        assertEquals(1, generators.size());
+        assertEquals(qToDispatch - totalCalculatedQ, residueQ, 0.00001);
+        assertEquals(generatorToRemove2.getMinQ(), generatorToRemove2.getCalculatedQ());
+        assertEquals(generatorToRemove3.getMinQ(), generatorToRemove3.getCalculatedQ());
     }
 
     @Test
     void dispatchQEmptyListTest() {
         List<LfGenerator> generators = new ArrayList<>();
         double qToDispatch = -21;
-        Assertions.assertThrows(IllegalArgumentException.class, () -> AbstractLfBus.dispatchQ(generators, true, qToDispatch),
+        Assertions.assertThrows(IllegalArgumentException.class, () -> AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, qToDispatch),
                 "the generator list to dispatch Q can not be empty");
+    }
+
+    @Test
+    void dispatchQwithKequalProportion() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(0.3d, 0.1d, 0.4d));
+        LfGenerator g0 = generators.get(0);
+        LfGenerator g1 = generators.get(1);
+        LfGenerator g2 = generators.get(2);
+        g0.setCalculatedQ(0);
+        g1.setCalculatedQ(0);
+        g2.setCalculatedQ(0);
+        double qToDispatch = 20;
+        double residueQ = AbstractLfBus.dispatchQ(new ArrayList<>(generators), true, ReactivePowerDispatchMode.K_EQUAL_PROPORTION, qToDispatch);
+        assertEquals(0, residueQ, 0);
+        assertEquals(8.537, g0.getCalculatedQ(), 1e-3);
+        assertEquals(4.985, g1.getCalculatedQ(), 1e-3);
+        assertEquals(6.477, g2.getCalculatedQ(), 1e-3);
+        assertEquals(0.91, LfGenerator.qToK(g0, g0.getCalculatedQ()), 1e-3);
+        assertEquals(0.91, LfGenerator.qToK(g1, g1.getCalculatedQ()), 1e-3);
+        assertEquals(0.91, LfGenerator.qToK(g2, g2.getCalculatedQ()), 1e-3);
+    }
+
+    @Test
+    void dispatchQwithKequalProportionWithFallBack() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        network.getGenerator("GH2").newMinMaxReactiveLimits().setMinQ(-9999).setMaxQ(9999).add();
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(0.3d, 0.1d, 0.4d));
+        LfGenerator g0 = generators.get(0);
+        LfGenerator g1 = generators.get(1);
+        LfGenerator g2 = generators.get(2);
+        g0.setCalculatedQ(0);
+        g1.setCalculatedQ(0);
+        g2.setCalculatedQ(0);
+        double qToDispatch = 20;
+        double residueQ = AbstractLfBus.dispatchQ(new ArrayList<>(generators), true, ReactivePowerDispatchMode.K_EQUAL_PROPORTION, qToDispatch);
+        assertEquals(0, residueQ, 0);
+        assertEquals(6.666, g0.getCalculatedQ(), 1e-3);
+        assertEquals(6.666, g1.getCalculatedQ(), 1e-3);
+        assertEquals(6.666, g2.getCalculatedQ(), 1e-3);
+        assertEquals(0.7, LfGenerator.qToK(g0, g0.getCalculatedQ()), 1e-3);
+        assertEquals(0.066, LfGenerator.qToK(g1, g1.getCalculatedQ()), 1e-3);
+        assertEquals(0.937, LfGenerator.qToK(g2, g2.getCalculatedQ()), 1e-3);
+    }
+
+    @Test
+    void testBusHasCountryAttributeAfterLoading() {
+        assertTrue(lfNetwork.getBusById("vl1_0").getCountry().isPresent());
+        assertTrue(lfNetwork.getBusById("vl2_0").getCountry().isPresent());
+        assertEquals(Country.FR, lfNetwork.getBusById("vl1_0").getCountry().orElseThrow());
+        assertEquals(Country.FR, lfNetwork.getBusById("vl2_0").getCountry().orElseThrow());
     }
 }

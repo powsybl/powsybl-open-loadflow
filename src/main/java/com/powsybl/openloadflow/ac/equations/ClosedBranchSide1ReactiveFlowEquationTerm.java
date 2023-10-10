@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -24,7 +25,12 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
 
     public ClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+    }
+
+    public ClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
@@ -34,10 +40,13 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         double theta = theta1(ksi, ph1(), a1(), ph2());
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
+        double cosKsi = FastMath.cos(ksi);
         return dq1dph1(y, v1, r1, v2, sinTheta) * dph1
                 + dq1dph2(y, v1, r1, v2, sinTheta) * dph2
-                + dq1dv1(y, FastMath.cos(ksi), b1, v1, r1, v2, cosTheta) * dv1
-                + dq1dv2(y, v1, r1, cosTheta) * dv2;
+                + dq1dv1(y, cosKsi, b1, v1, r1, v2, cosTheta) * dv1
+                + dq1dv2(y, v1, r1, cosTheta) * dv2
+                + dq1da1(y, v1, r1, v2, sinTheta) * da1
+                + dq1dr1(y, cosKsi, b1, v1, r1, v2, cosTheta) * dr1;
     }
 
     public static double q1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {
@@ -45,28 +54,28 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
                 - y * R2 * v2 * cosTheta);
     }
 
-    private static double dq1dv1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {
+    public static double dq1dv1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {
         return r1 * (-2 * b1 * r1 * v1 + 2 * y * r1 * v1 * cosKsi
                 - y * R2 * v2 * cosTheta);
     }
 
-    private static double dq1dv2(double y, double v1, double r1, double cosTheta) {
+    public static double dq1dv2(double y, double v1, double r1, double cosTheta) {
         return -y * r1 * R2 * v1 * cosTheta;
     }
 
-    private static double dq1dph1(double y, double v1, double r1, double v2, double sinTheta) {
+    public static double dq1dph1(double y, double v1, double r1, double v2, double sinTheta) {
         return -y * r1 * R2 * v1 * v2 * sinTheta;
     }
 
-    private static double dq1dph2(double y, double v1, double r1, double v2, double sinTheta) {
+    public static double dq1dph2(double y, double v1, double r1, double v2, double sinTheta) {
         return -dq1dph1(y, v1, r1, v2, sinTheta);
     }
 
-    private static double dq1da1(double y, double v1, double r1, double v2, double sinTheta) {
+    public static double dq1da1(double y, double v1, double r1, double v2, double sinTheta) {
         return dq1dph1(y, v1, r1, v2, sinTheta);
     }
 
-    private static double dq1dr1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {
+    public static double dq1dr1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {
         return v1 * (2 * r1 * v1 * (-b1 + y * cosKsi) - y * R2 * v2 * cosTheta);
     }
 

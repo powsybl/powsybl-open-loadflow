@@ -75,30 +75,39 @@ public final class ActivePowerDistribution {
         while (!participatingElements.isEmpty()
                 && Math.abs(remainingMismatch) > P_RESIDUE_EPS) {
 
-            remainingMismatch -= step.run(participatingElements, iteration, remainingMismatch);
-
+            if (ParticipatingElement.participationFactorNorm(participatingElements) > 0.0) {
+                remainingMismatch -= step.run(participatingElements, iteration, remainingMismatch);
+            } else {
+                break;
+            }
             iteration++;
         }
 
         return new Result(iteration, remainingMismatch);
     }
 
-    public static ActivePowerDistribution create(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant) {
-        return new ActivePowerDistribution(getStep(balanceType, loadPowerFactorConstant));
+    public static ActivePowerDistribution create(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits) {
+        return new ActivePowerDistribution(getStep(balanceType, loadPowerFactorConstant, useActiveLimits));
     }
 
-    public static Step getStep(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant) {
+    public static Step getStep(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits) {
         Step step;
         switch (balanceType) {
-            case PROPORTIONAL_TO_LOAD:
-            case PROPORTIONAL_TO_CONFORM_LOAD:
+            case PROPORTIONAL_TO_LOAD,
+                 PROPORTIONAL_TO_CONFORM_LOAD:
                 step = new LoadActivePowerDistributionStep(loadPowerFactorConstant);
                 break;
             case PROPORTIONAL_TO_GENERATION_P_MAX:
-                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX);
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX, useActiveLimits);
                 break;
             case PROPORTIONAL_TO_GENERATION_P:
-                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET);
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET, useActiveLimits);
+                break;
+            case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR:
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.PARTICIPATION_FACTOR, useActiveLimits);
+                break;
+            case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN:
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.REMAINING_MARGIN, useActiveLimits);
                 break;
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + balanceType);

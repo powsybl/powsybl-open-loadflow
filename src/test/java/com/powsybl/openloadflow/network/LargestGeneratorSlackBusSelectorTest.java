@@ -6,8 +6,14 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Country;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.Test;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -40,5 +46,40 @@ class LargestGeneratorSlackBusSelectorTest {
         var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LargestGeneratorSlackBusSelector(5000)).get(0);
         var slackBus = lfNetwork.getSlackBus();
         assertEquals("b3_vl_0", slackBus.getId());
+    }
+
+    @Test
+    void testMultipleSlacks() {
+        var network = DistributedSlackNetworkFactory.create();
+        var parameters = new LfNetworkParameters()
+                .setSlackBusSelector(new LargestGeneratorSlackBusSelector(5000))
+                .setMaxSlackBusCount(3);
+        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters).get(0);
+        var slackBusIds = lfNetwork.getSlackBuses().stream().map(LfBus::getId).collect(Collectors.toList());
+        assertEquals(List.of("b2_vl_0", "b3_vl_0", "b1_vl_0"), slackBusIds);
+    }
+
+    @Test
+    void testCountryToFiler() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
+                new LargestGeneratorSlackBusSelector(5000)).get(0);
+        LfBus slackBus = lfNetwork.getSlackBus();
+        assertEquals("S2VL1_0", slackBus.getId());
+
+        network.getSubstation("S1").setCountry(Country.FR);
+        network.getSubstation("S2").setCountry(Country.BE);
+        network.getSubstation("S3").setCountry(Country.FR);
+        network.getSubstation("S4").setCountry(Country.FR);
+        lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
+                new LargestGeneratorSlackBusSelector(5000, Collections.singleton(Country.FR))).get(0);
+        slackBus = lfNetwork.getSlackBus();
+        assertEquals("S3VL1_0", slackBus.getId());
+
+        lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
+                new LargestGeneratorSlackBusSelector(5000,
+                        Set.of(Country.BE, Country.FR))).get(0);
+        slackBus = lfNetwork.getSlackBus();
+        assertEquals("S2VL1_0", slackBus.getId());
     }
 }

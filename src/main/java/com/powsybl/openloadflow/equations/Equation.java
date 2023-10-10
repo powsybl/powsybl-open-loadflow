@@ -36,6 +36,14 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
+    private final Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+
+    /**
+     * Element index of a two dimensions matrix (equations * variables) indexed by variable index (order of the variable
+     * in {@link @termsByVariable}.
+     */
+    private int[] matrixElementIndexes;
+
     Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
         this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
@@ -66,11 +74,12 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return active;
     }
 
-    public void setActive(boolean active) {
+    public Equation<V, E> setActive(boolean active) {
         if (active != this.active) {
             this.active = active;
             equationSystem.notifyEquationChange(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
         }
+        return this;
     }
 
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {
@@ -80,6 +89,11 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
                     + term.getEquation());
         }
         terms.add(term);
+        for (Variable<V> v : term.getVariables()) {
+            termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
+                    .add(term);
+        }
+        matrixElementIndexes = null;
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
         equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
@@ -98,6 +112,10 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return terms;
     }
 
+    public Map<Variable<V>, List<EquationTerm<V, E>>> getTermsByVariable() {
+        return termsByVariable;
+    }
+
     @Override
     public double eval() {
         double value = 0;
@@ -112,6 +130,47 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return value;
     }
 
+    public interface DerHandler<V extends Enum<V> & Quantity> {
+
+        int onDer(Variable<V> variable, double value, int matrixElementIndex);
+    }
+
+    public void der(DerHandler<V> handler) {
+        Objects.requireNonNull(handler);
+        int variableIndex = 0;
+        for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
+            Variable<V> variable = e.getKey();
+            int row = variable.getRow();
+            if (row != -1) {
+                double value = 0;
+                // create a derivative even if all terms are not active, to allow later reactivation of terms
+                // that won't create a new matrix element and a simple update of the matrix
+                for (EquationTerm<V, E> term : e.getValue()) {
+                    if (term.isActive()) {
+                        value += term.der(variable);
+                    }
+                }
+                int oldMatrixElementIndex = matrixElementIndexes == null ? -1 : matrixElementIndexes[variableIndex];
+                int matrixElementIndex = handler.onDer(variable, value, oldMatrixElementIndex);
+                if (matrixElementIndexes == null) {
+                    matrixElementIndexes = new int[termsByVariable.size()];
+                }
+                matrixElementIndexes[variableIndex] = matrixElementIndex;
+                variableIndex++;
+            }
+        }
+    }
+
+    public double rhs() {
+        double rhs = 0;
+        for (var term : terms) {
+            if (term.isActive() && term.hasRhs()) {
+                rhs += term.rhs();
+            }
+        }
+        return rhs;
+    }
+
     @Override
     public int hashCode() {
         return elementNum + type.hashCode();
@@ -122,8 +181,8 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         if (obj == this) {
             return true;
         }
-        if (obj instanceof Equation) {
-            return compareTo((Equation) obj) == 0;
+        if (obj instanceof Equation equation) {
+            return compareTo(equation) == 0;
         }
         return false;
     }

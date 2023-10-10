@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -19,60 +21,72 @@ import java.util.Optional;
  */
 public final class LfBatteryImpl extends AbstractLfGenerator {
 
-    private final Battery battery;
+    private final Ref<Battery> batteryRef;
 
     private boolean participating;
 
     private double droop;
 
-    private LfBatteryImpl(Battery battery, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
-        super(battery.getTargetP());
-        this.battery = battery;
+    private double participationFactor;
+
+    private LfBatteryImpl(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        super(network, battery.getTargetP() / PerUnit.SB);
+        this.batteryRef = Ref.create(battery, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
         // get participation factor from extension
         ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
-            if (activePowerControl.getDroop() != 0) {
+            participating = activePowerControl.isParticipate();
+            if (!Double.isNaN(activePowerControl.getDroop())) {
                 droop = activePowerControl.getDroop();
+            }
+            if (activePowerControl.getParticipationFactor() > 0) {
+                participationFactor = activePowerControl.getParticipationFactor();
             }
         }
 
-        if (!checkActivePowerControl(battery.getTargetP(), battery.getMinP(), battery.getMaxP(), plausibleActivePowerLimit, report)) {
+        if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMinP(), battery.getMaxP(),
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }
     }
 
-    public static LfBatteryImpl create(Battery generator, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
-        Objects.requireNonNull(generator);
+    public static LfBatteryImpl create(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        Objects.requireNonNull(battery);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        return new LfBatteryImpl(generator, plausibleActivePowerLimit, report);
+        return new LfBatteryImpl(battery, network, parameters, report);
+    }
+
+    private Battery getBattery() {
+        return batteryRef.get();
     }
 
     @Override
     public String getId() {
-        return battery.getId();
+        return getBattery().getId();
     }
 
     @Override
     public double getTargetQ() {
-        return battery.getTargetQ() / PerUnit.SB;
+        return getBattery().getTargetQ() / PerUnit.SB;
     }
 
     @Override
     public double getMinP() {
-        return battery.getMinP() / PerUnit.SB;
+        return getBattery().getMinP() / PerUnit.SB;
     }
 
     @Override
     public double getMaxP() {
-        return battery.getMaxP() / PerUnit.SB;
+        return getBattery().getMaxP() / PerUnit.SB;
     }
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.of(battery.getReactiveLimits());
+        return Optional.of(getBattery().getReactiveLimits());
     }
 
     @Override
@@ -91,9 +105,15 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public double getParticipationFactor() {
+        return participationFactor;
+    }
+
+    @Override
     public void updateState() {
+        var battery = getBattery();
         battery.getTerminal()
-                .setP(-targetP)
+                .setP(-targetP * PerUnit.SB)
                 .setQ(-battery.getTargetQ());
     }
 }

@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.network.*;
@@ -21,19 +20,21 @@ import java.util.Objects;
  */
 public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
-    private final DanglingLine danglingLine;
+    private final Ref<DanglingLine> danglingLineRef;
 
-    protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine) {
-        super(network, bus1, bus2, piModel);
-        this.danglingLine = danglingLine;
+    protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine,
+                                   LfNetworkParameters parameters) {
+        super(network, bus1, bus2, piModel, parameters);
+        this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
     }
 
-    public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2) {
+    public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2,
+                                              LfNetworkParameters parameters) {
         Objects.requireNonNull(danglingLine);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
-        double nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
-        double zb = nominalV * nominalV / PerUnit.SB;
+        Objects.requireNonNull(parameters);
+        double zb = PerUnit.zb(danglingLine.getTerminal().getVoltageLevel().getNominalV());
         PiModel piModel = new SimplePiModel()
                 .setR(danglingLine.getR() / zb)
                 .setX(danglingLine.getX() / zb)
@@ -41,12 +42,16 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
                 .setG2(danglingLine.getG() / 2 * zb)
                 .setB1(danglingLine.getB() / 2 * zb)
                 .setB2(danglingLine.getB() / 2 * zb);
-        return new LfDanglingLineBranch(network, bus1, bus2, piModel, danglingLine);
+        return new LfDanglingLineBranch(network, bus1, bus2, piModel, danglingLine, parameters);
+    }
+
+    private DanglingLine getDanglingLine() {
+        return danglingLineRef.get();
     }
 
     @Override
     public String getId() {
-        return danglingLine.getId();
+        return getDanglingLine().getId();
     }
 
     @Override
@@ -55,17 +60,22 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public boolean hasPhaseControlCapability() {
+    public boolean hasPhaseControllerCapability() {
         return false;
     }
 
     @Override
     public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
+        // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
+        // we follow the convention side 1 for network side and side 2 for boundary side.
+        double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
+        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
+                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN);
     }
 
     @Override
     public List<LfLimit> getLimits1(final LimitType type) {
+        var danglingLine = getDanglingLine();
         switch (type) {
             case ACTIVE_POWER:
                 return getLimits1(type, danglingLine.getActivePowerLimits().orElse(null));
@@ -80,14 +90,14 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
     }
 
     @Override
     public void updateFlows(double p1, double q1, double p2, double q2) {
         // Network side is always on side 1.
-        danglingLine.getTerminal().setP(p1 * PerUnit.SB)
+        getDanglingLine().getTerminal().setP(p1 * PerUnit.SB)
                 .setQ(q1 * PerUnit.SB);
     }
 }

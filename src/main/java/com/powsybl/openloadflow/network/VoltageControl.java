@@ -1,138 +1,217 @@
 /**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+ * Copyright (c) 2023, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.util.PerUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class VoltageControl {
+public class VoltageControl<T extends LfElement> extends Control {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(VoltageControl.class);
-
-    private final LfBus controlled;
-
-    private final Set<LfBus> controllers;
-
-    private final double targetValue;
-
-    public VoltageControl(LfBus controlled, double targetValue) {
-        this.controlled = controlled;
-        this.targetValue = targetValue;
-        this.controllers = new LinkedHashSet<>();
+    public enum Type {
+        GENERATOR,
+        TRANSFORMER,
+        SHUNT
     }
 
-    public double getTargetValue() {
-        return targetValue;
+    public enum MergeStatus {
+        MAIN,
+        DEPENDENT
+    }
+
+    protected final Type type;
+
+    protected int priority;
+
+    protected final LfBus controlledBus;
+
+    protected final List<T> controllerElements = new ArrayList<>();
+
+    protected MergeStatus mergeStatus = MergeStatus.MAIN;
+
+    protected final List<VoltageControl<T>> mergedDependentVoltageControls = new ArrayList<>();
+
+    protected VoltageControl<T> mainMergedVoltageControl;
+
+    protected VoltageControl(double targetValue, Type type, int priority, LfBus controlledBus) {
+        super(targetValue);
+        this.type = Objects.requireNonNull(type);
+        this.priority = priority;
+        this.controlledBus = Objects.requireNonNull(controlledBus);
     }
 
     public LfBus getControlledBus() {
-        return controlled;
+        return controlledBus;
     }
 
-    public Set<LfBus> getControllerBuses() {
-        return controllers;
+    public List<T> getControllerElements() {
+        return controllerElements;
     }
 
-    public void addControllerBus(LfBus controllerBus) {
-        Objects.requireNonNull(controllerBus);
-        controllers.add(controllerBus);
-        controllerBus.setVoltageControl(this);
+    public void addControllerElement(T controllerElement) {
+        controllerElements.add(Objects.requireNonNull(controllerElement));
+    }
+
+    public boolean isControllerEnabled(T controllerElement) {
+        throw new IllegalStateException();
+    }
+
+    public List<VoltageControl<T>> getMergedDependentVoltageControls() {
+        return mergedDependentVoltageControls;
+    }
+
+    protected int getPriority() {
+        return priority;
+    }
+
+    public Type getType() {
+        return type;
     }
 
     /**
-     * Check if the voltage control is ONLY local
-     * @return true if the voltage control is ONLY local, false otherwise
+     * Check is the merged voltage to which this voltage control belongs is disabled. Disabled means that there is no
+     * more controlled bus or no more controller element.
+     * Having a disabled controlled among several controlled bus in a merge voltage control is an open question. Disabling
+     * a controlled bus could also lead to removing the associated controller buses from the merge voltage control. The merge
+     * status could be updated too.
      */
-    public boolean isVoltageControlLocal() {
-        return controllers.size() == 1 && controllers.contains(controlled);
+    public boolean isDisabled() {
+        if (getMergedControlledBuses().stream().allMatch(LfElement::isDisabled)) {
+            return true;
+        }
+        return getMergedControllerElements().stream()
+                .allMatch(LfElement::isDisabled);
+    }
+
+    public MergeStatus getMergeStatus() {
+        return mergeStatus;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <E extends VoltageControl<T>> E getMainVoltageControl() {
+        switch (mergeStatus) {
+            case MAIN:
+                return (E) this;
+            case DEPENDENT:
+                return (E) mainMergedVoltageControl;
+            default:
+                throw new IllegalStateException("Unknown merge status: " + mergeStatus);
+        }
+    }
+
+    public List<LfBus> getMergedControlledBuses() {
+        if (mergedDependentVoltageControls.isEmpty()) {
+            return List.of(controlledBus);
+        } else {
+            List<LfBus> mergedControlledBuses = new ArrayList<>(1);
+            mergedControlledBuses.add(controlledBus);
+            for (var mvc : mergedDependentVoltageControls) {
+                mergedControlledBuses.add(mvc.getControlledBus());
+            }
+            return mergedControlledBuses;
+        }
+    }
+
+    public List<T> getMergedControllerElements() {
+        if (mergedDependentVoltageControls.isEmpty()) {
+            return controllerElements;
+        } else {
+            List<T> mergedControllerElements = new ArrayList<>(controllerElements);
+            for (var mvc : mergedDependentVoltageControls) {
+                mergedControllerElements.addAll(mvc.getControllerElements());
+            }
+            return mergedControllerElements;
+        }
+    }
+
+    private static void addMainVoltageControls(List<VoltageControl<?>> voltageControls, LfBus bus) {
+        if (bus.isVoltageControlled()) {
+            for (VoltageControl<?> vc : bus.getVoltageControls()) {
+                if (vc.isDisabled() || vc.getMergeStatus() == MergeStatus.DEPENDENT) {
+                    continue;
+                }
+                voltageControls.add(vc);
+            }
+        }
     }
 
     /**
-     * Check if the voltage control is shared
-     * @return true if the voltage control is shared, false otherwise
+     * Find the list of voltage control with merge status as main, connected to a given bus (so including by traversing
+     * non impedant branches).
      */
-    public boolean isSharedControl() {
-        return controllers.stream().flatMap(lfBus -> lfBus.getGenerators().stream())
-                .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).count() > 1;
-    }
-
-    public void updateReactiveKeys() {
-        List<LfBus> controllerBuses = new ArrayList<>(controllers);
-
-        double[] reactiveKeys = createReactiveKeys(controllerBuses);
-
-        // no reactive dispatch on PQ buses, so we set the key to 0
-        for (int i = 0; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
-            if (controllerBus.isDisabled() || !controllerBus.isVoltageControlEnabled()) {
-                reactiveKeys[i] = 0d;
+    public static List<VoltageControl<?>> findMainVoltageControlsSortedByPriority(LfBus bus) {
+        List<VoltageControl<?>> voltageControls = new ArrayList<>();
+        LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(LoadFlowModel.AC);
+        if (zn != null) { // bus is part of a zero impedance graph
+            for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
+                addMainVoltageControls(voltageControls, zb);
             }
+        } else {
+            addMainVoltageControls(voltageControls, bus);
         }
+        voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
+        return voltageControls;
+    }
 
-        // update bus reactive keys
-        double reactiveKeysSum = Arrays.stream(reactiveKeys).sum();
-        for (int i = 0; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
-            controllerBus.setRemoteVoltageControlReactivePercent(reactiveKeysSum == 0 ? 0 : reactiveKeys[i] / reactiveKeysSum);
+    /**
+     * Check if the merged voltage to which this voltage control belongs is hidden by another one of a different type
+     * (generator, transformer or shunt). The hidden status includes the disable status so a disable voltage control is
+     * also hidden.
+     *
+     * FIXME: take into account controllers status to have a proper definition
+     * For generator voltage control, isGeneratorVoltageControlEnabled() should be called.
+     * For transformer voltage control, isVoltageControlEnabled() should be called.
+     * For shunt voltage control, isVoltageControlEnabled() should be called.
+     */
+    public boolean isHidden() {
+        // collect all main voltage controls connected the same controlled bus
+        List<VoltageControl<?>> mainVoltageControls = findMainVoltageControlsSortedByPriority(controlledBus);
+        if (mainVoltageControls.isEmpty()) {
+            return true; // means all disabled
+        } else {
+            // we should normally have max 3 voltage controls (one of each type) with merge type as main
+            // in order to this method work whatever the voltage control is main or dependent we check against
+            // main voltage control of this
+            return mainVoltageControls.get(0) != this.getMainVoltageControl();
         }
     }
 
-    private static double[] createUniformReactiveKeys(List<LfBus> controllerBuses) {
-        double[] qKeys = new double[controllerBuses.size()];
-        for (int i = 0; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
-            qKeys[i] = controllerBus.getGenerators().stream()
-                    .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).count();
-        }
-        return qKeys;
+    public boolean isVisible() {
+        return !isHidden();
     }
 
-    private static double[] createReactiveKeysFromMaxReactivePowerRange(List<LfBus> controllerBuses) {
-        double[] qKeys = new double[controllerBuses.size()];
-        // try to build keys from reactive power range
-        for (int i = 0; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
-            for (LfGenerator generator : controllerBus.getGenerators()) {
-                double maxRangeQ = generator.getMaxRangeQ();
-                // if one reactive range is not plausible, we fallback to uniform keys
-                if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || maxRangeQ > PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB) {
-                    return createUniformReactiveKeys(controllerBuses);
-                } else {
-                    qKeys[i] += maxRangeQ;
-                }
-            }
+    /**
+     * Find controlled bus which is part of:
+     *  - the visible voltage control
+     *  - the main voltage control of the global merged one
+     * This controlled bus is important because this is the one that will be targeted by a voltage equation in the
+     * equation system.
+     */
+    public Optional<LfBus> findMainVisibleControlledBus() {
+        List<VoltageControl<?>> mainVoltageControls = findMainVoltageControlsSortedByPriority(controlledBus);
+        if (mainVoltageControls.isEmpty()) {
+            return Optional.empty(); // means all disabled
         }
-        return qKeys;
+        List<VoltageControl<?>> visibleMainVoltageControls = mainVoltageControls.stream().filter(VoltageControl::isVisible).toList();
+        if (visibleMainVoltageControls.size() == 1) {
+            return Optional.of(visibleMainVoltageControls.get(0).getControlledBus());
+        } else {
+            throw new IllegalStateException("Several visible controlled buses, it should not happen");
+        }
     }
 
-    private static double[] createReactiveKeys(List<LfBus> controllerBuses) {
-        double[] qKeys = new double[controllerBuses.size()];
-        for (int i = 0; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
-            for (LfGenerator generator : controllerBus.getGenerators()) {
-                double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
-                if (Double.isNaN(qKey) || qKey == 0) {
-                    if (qKey == 0) {
-                        LOGGER.error("Generator '{}' remote control reactive key value is zero", generator.getId());
-                    }
-                    // in case of one missing key, we fallback to keys based on reactive power range
-                    return createReactiveKeysFromMaxReactivePowerRange(controllerBuses);
-                } else {
-                    qKeys[i] += qKey;
-                }
-            }
-        }
-        return qKeys;
+    @Override
+    public String toString() {
+        return "VoltageControl(type=" + type
+                + ", controlledBus='" + controlledBus
+                + "', controllerElements=" + controllerElements
+                + ", mergeStatus=" + mergeStatus
+                + ", mergedDependentVoltageControlsSize=" + mergedDependentVoltageControls.size()
+                + ")";
     }
 }

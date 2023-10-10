@@ -6,9 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -46,7 +44,7 @@ class AcLoadFlowTwoBusNetworkTest {
         line1 = network.getLine("l12");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
@@ -83,8 +81,8 @@ class AcLoadFlowTwoBusNetworkTest {
         bus2.getVoltageLevel().newBattery()
                 .setId("bt2")
                 .setBus("b2")
-                .setP0(-1)
-                .setQ0(-0.1)
+                .setTargetP(-1)
+                .setTargetQ(-0.1)
                 .setMinP(-1)
                 .setMaxP(0)
                 .add();
@@ -106,8 +104,8 @@ class AcLoadFlowTwoBusNetworkTest {
         bus2.getVoltageLevel().newBattery()
                 .setId("bt2")
                 .setBus("b2")
-                .setP0(-1)
-                .setQ0(-0.1)
+                .setTargetP(-1)
+                .setTargetQ(-0.1)
                 .setMinP(-2)
                 .setMaxP(2)
                 .add();
@@ -133,8 +131,8 @@ class AcLoadFlowTwoBusNetworkTest {
         bus2.getVoltageLevel().newBattery()
                 .setId("bt2")
                 .setBus("b2")
-                .setP0(-1)
-                .setQ0(-0.1)
+                .setTargetP(-1)
+                .setTargetQ(-0.1)
                 .setMinP(-2)
                 .setMaxP(2)
                 .add();
@@ -152,5 +150,47 @@ class AcLoadFlowTwoBusNetworkTest {
         assertActivePowerEquals(-2.600, line1.getTerminal2());
         assertReactivePowerEquals(-1.0999, line1.getTerminal2());
         assertActivePowerEquals(0.600, network.getBattery("bt2").getTerminal());
+    }
+
+    @Test
+    void zeroImpedanceToShuntCompensator() {
+        var network = TwoBusNetworkFactory.createZeroImpedanceToShuntCompensator();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(0.9038788263615884, network.getLine("l23").getTerminal1());
+        assertActivePowerEquals(0.0, network.getLine("l23").getTerminal1());
+    }
+
+    @Test
+    void modifiedLoadCaseTest() {
+        // previous value : l1 (P0, Q0) = (2, 1)
+        // new values :     l1 (P0, Q0) = (0, 1) and
+        //                  l2 (P0, Q0) = (2, 0)
+        network.getLoad("l1").setP0(0);
+        Load l2 = bus2.getVoltageLevel().newLoad()
+                .setId("l2")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setP0(2)
+                .setQ0(0)
+                .add();
+        l2.getTerminal().setP(2).setQ(0);
+
+        parameters = new LoadFlowParameters()
+                .setReadSlackBus(false)
+                .setDistributedSlack(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setLoadPowerFactorConstant(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        Double bus2BalanceQ = bus2.getConnectedTerminalStream().map(Terminal::getQ)
+                .filter(d -> !Double.isNaN(d))
+                .reduce(0.0, Double::sum);
+
+        assertEquals(0.0, bus2BalanceQ, DELTA_POWER);
     }
 }

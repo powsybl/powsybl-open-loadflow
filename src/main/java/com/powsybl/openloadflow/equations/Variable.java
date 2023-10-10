@@ -52,8 +52,8 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
         if (obj == this) {
             return true;
         }
-        if (obj instanceof Variable) {
-            return compareTo((Variable) obj) == 0;
+        if (obj instanceof Variable variable) {
+            return compareTo(variable) == 0;
         }
         return false;
     }
@@ -76,7 +76,7 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
     }
 
     public <E extends Enum<E> & Quantity> EquationTerm<V, E> createTerm() {
-        return new EquationTerm.VariableEquationTerm<>(this);
+        return new VariableEquationTerm<>(this);
     }
 
     @Override

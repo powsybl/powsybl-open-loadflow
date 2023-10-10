@@ -15,7 +15,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -28,40 +28,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 
-    static final class PartialDerivative<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
-
-        private final EquationTerm<V, E> equationTerm;
-
-        private final int elementIndex;
-
-        private final Variable<V> variable;
-
-        PartialDerivative(EquationTerm<V, E> equationTerm, int elementIndex, Variable<V> variable) {
-            this.equationTerm = Objects.requireNonNull(equationTerm);
-            this.elementIndex = elementIndex;
-            this.variable = Objects.requireNonNull(variable);
-        }
-
-        EquationTerm<V, E> getEquationTerm() {
-            return equationTerm;
-        }
-
-        public int getElementIndex() {
-            return elementIndex;
-        }
-
-        Variable<V> getVariable() {
-            return variable;
-        }
-    }
-
     private final EquationSystem<V, E> equationSystem;
 
     private final MatrixFactory matrixFactory;
 
     private Matrix matrix;
-
-    private List<PartialDerivative<V, E>> partialDerivatives;
 
     private LUDecomposition lu;
 
@@ -107,25 +78,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         updateStatus(Status.VALUES_INVALID);
     }
 
-    private void clearLu() {
-        if (lu != null) {
-            lu.close();
-        }
-        lu = null;
-    }
-
-    private Map<Variable<V>, List<EquationTerm<V, E>>> indexTermsByVariable(Equation<V, E> eq) {
-        Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
-        for (EquationTerm<V, E> term : eq.getTerms()) {
-            for (Variable<V> v : term.getVariables()) {
-                termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
-                        .add(term);
-            }
-        }
-        return termsByVariable;
-    }
-
-    private void initMatrix() {
+    private void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         int rowCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
@@ -137,29 +90,42 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
-        partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
 
         for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int column = eq.getColumn();
-            Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = indexTermsByVariable(eq);
-            for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
-                Variable<V> v = e.getKey();
-                int row = v.getRow();
-                if (row != -1) {
-                    for (EquationTerm<V, E> term : e.getValue()) {
-                        // create a derivative for all terms including de-activated ones because could be reactivated
-                        // at jacobian update stage without any equation or variable index change
-                        double value = term.isActive() ? term.der(v) : 0;
-                        int elementIndex = matrix.addAndGetIndex(row, column, value);
-                        partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(term, elementIndex, v));
-                    }
-                }
-            }
+            eq.der((variable, value, matrixElementIndex) -> {
+                int row = variable.getRow();
+                return matrix.addAndGetIndex(row, column, value);
+            });
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+    }
 
+    private void clearLu() {
+        if (lu != null) {
+            lu.close();
+        }
+        lu = null;
+    }
+
+    private void initMatrix() {
+        initDer();
         clearLu();
+    }
+
+    private void updateDer() {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        matrix.reset();
+        for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+            eq.der((variable, value, matrixElementIndex) -> {
+                matrix.addAtIndex(matrixElementIndex, value);
+                return matrixElementIndex; // don't change element index
+            });
+        }
+
+        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
     private void updateLu(boolean allowIncrementalUpdate) {
@@ -173,21 +139,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private void updateValues(boolean allowIncrementalUpdate) {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
-        matrix.reset();
-        for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
-            EquationTerm<V, E> term = partialDerivative.getEquationTerm();
-            if (term.isActive()) {
-                int elementIndex = partialDerivative.getElementIndex();
-                Variable<V> v = partialDerivative.getVariable();
-                double value = term.der(v);
-                matrix.addAtIndex(elementIndex, value);
-            }
-        }
-
-        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
-
+        updateDer();
         updateLu(allowIncrementalUpdate);
     }
 
@@ -247,7 +199,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         equationSystem.getIndex().removeListener(this);
         equationSystem.getStateVector().removeListener(this);
         matrix = null;
-        partialDerivatives = null;
         clearLu();
     }
 }

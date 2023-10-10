@@ -1,5 +1,6 @@
 /**
  * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * Copyright (c) 2023, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Caio Luke <caio.luke at artelys.com>
  */
 public class GenerationActivePowerDistributionStep implements ActivePowerDistribution.Step {
 
@@ -26,13 +28,18 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
 
     public enum ParticipationType {
         MAX,
-        TARGET
+        TARGET,
+        PARTICIPATION_FACTOR,
+        REMAINING_MARGIN
     }
 
-    private ParticipationType participationType;
+    private final ParticipationType participationType;
 
-    public GenerationActivePowerDistributionStep(ParticipationType pParticipationType) {
+    private final boolean useActiveLimits;
+
+    public GenerationActivePowerDistributionStep(ParticipationType pParticipationType, boolean useActiveLimits) {
         this.participationType = pParticipationType;
+        this.useActiveLimits = useActiveLimits;
     }
 
     @Override
@@ -45,7 +52,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         return buses.stream()
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(generator -> generator.isParticipating() && getParticipationFactor(generator) != 0)
+                .filter(generator -> isParticipating(generator) && getParticipationFactor(generator) != 0)
                 .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))
                 .collect(Collectors.toList());
     }
@@ -54,7 +61,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     public double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // generators might have reach a limit and have been discarded
-        ParticipatingElement.normalizeParticipationFactors(participatingElements, "generator");
+        ParticipatingElement.normalizeParticipationFactors(participatingElements);
 
         double done = 0d;
         int modifiedBuses = 0;
@@ -66,8 +73,8 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
             LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
             double factor = participatingGenerator.getFactor();
 
-            double minP = generator.getMinP();
-            double maxP = generator.getMaxP();
+            double minP = useActiveLimits ? generator.getMinP() : -Double.MAX_VALUE;
+            double maxP = useActiveLimits ? generator.getMaxP() : Double.MAX_VALUE;
             double targetP = generator.getTargetP();
 
             // we don't want to change the generation sign
@@ -105,17 +112,33 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     private double getParticipationFactor(LfGenerator generator) {
-        double factor;
+        return switch (participationType) {
+            case MAX -> generator.getMaxP() / generator.getDroop();
+            case TARGET -> Math.abs(generator.getTargetP());
+            case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
+            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxP() - generator.getTargetP());
+        };
+    }
+
+    private boolean isParticipating(LfGenerator generator) {
+        // check first if generator is set to be participating
+        if (!generator.isParticipating()) {
+            return false;
+        }
+        // then depending on participation type, a generator may be found to not participate
         switch (participationType) {
             case MAX:
-                factor = generator.getMaxP() / generator.getDroop();
-                break;
-            case TARGET:
-                factor = Math.abs(generator.getTargetP());
-                break;
+                return generator.getDroop() != 0;
+            case PARTICIPATION_FACTOR:
+                return generator.getParticipationFactor() > 0;
+            case TARGET,
+                 REMAINING_MARGIN:
+                // nothing more to do here: the check whether TargetP is within Pmin-Pmax range
+                // was already made in AbstractLfGenerator#checkActivePowerControl
+                // whose result is reflected in generator.isParticipating()
+                return true;
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
         }
-        return factor;
     }
 }

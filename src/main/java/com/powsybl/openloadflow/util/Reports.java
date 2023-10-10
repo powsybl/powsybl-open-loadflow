@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.reporter.Report;
+import com.powsybl.commons.reporter.ReportBuilder;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
@@ -46,10 +47,10 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportNetworkMustHaveAtLeastOneBusVoltageControlled(Reporter reporter) {
+    public static void reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(Reporter reporter) {
         reporter.report(Report.builder()
-                .withKey("networkMustHaveAtLeastOneBusVoltageControlled")
-                .withDefaultMessage("Network must have at least one bus voltage controlled")
+                .withKey("networkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled")
+                .withDefaultMessage("Network must have at least one bus with generator voltage control enabled")
                 .build());
     }
 
@@ -103,6 +104,16 @@ public final class Reports {
                 .build());
     }
 
+    public static void reportStandByAutomatonActivation(Reporter reporter, String busId, double newTargetV) {
+        reporter.report(Report.builder()
+                .withKey("standByAutomatonActivation")
+                .withDefaultMessage("Activation of voltage control of static var compensator with stand by automaton: bus {busId} switched PQ -> PV with targetV {newTargetV}")
+                .withValue("busId", busId)
+                .withValue("newTargetV", newTargetV)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
     public static void reportDcLfSolverFailure(Reporter reporter, String errorMessage) {
         reporter.report(Report.builder()
                 .withKey("dcLfFailure")
@@ -112,11 +123,11 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportDcLfComplete(Reporter reporter, String lfStatus) {
+    public static void reportDcLfComplete(Reporter reporter, boolean succeeded) {
         reporter.report(Report.builder()
                 .withKey("dcLfComplete")
-                .withDefaultMessage("DC load flow completed (status=${lfStatus})")
-                .withValue("lfStatus", lfStatus)
+                .withDefaultMessage("DC load flow completed (status=${succeeded})")
+                .withValue("succeeded", succeeded)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -126,30 +137,25 @@ public final class Reports {
                 .withKey("generatorsDiscardedFromVoltageControlBecauseNotStarted")
                 .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because not started")
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseStarting(Reporter reporter, int impactedGeneratorCount) {
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(Reporter reporter, int impactedGeneratorCount) {
         reporter.report(Report.builder()
-                .withKey("generatorsDiscardedFromVoltageControlBecauseStarting")
-                .withDefaultMessage("${impactedGeneratorCount} starting generators have been discarded from voltage control")
+                .withKey("generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
+                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because of a too small reactive range")
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall(Reporter reporter, int impactedGeneratorCount) {
-        reporter.report(Report.builder()
-                .withKey("generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall")
-                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because of a too small max reactive range")
-                .withValue("impactedGeneratorCount", impactedGeneratorCount)
-                .build());
-    }
-
-    public static void reportAcLfComplete(Reporter reporter, String nrStatus) {
+    public static void reportAcLfComplete(Reporter reporter, String nrStatus, TypedValue severity) {
         reporter.report(Report.builder()
                 .withKey("acLfComplete")
                 .withDefaultMessage("AC load flow complete with NR status '${nrStatus}'")
                 .withValue("nrStatus", nrStatus)
+                .withSeverity(severity)
                 .build());
     }
 
@@ -189,5 +195,63 @@ public final class Reports {
     public static Reporter createPostContingencySimulation(Reporter reporter, String contingencyId) {
         return reporter.createSubReporter("postContingencySimulation", "Post-contingency simulation '${contingencyId}'",
                 "contingencyId", contingencyId);
+    }
+
+    public static Reporter createDetailedNewtonRaphsonReporter(Reporter reporter, int networkNumCc, int networkNumSc) {
+        return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || No outer loops calculations",
+                Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                        "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+    }
+
+    public static Reporter createDetailedNewtonRaphsonReporterOuterLoop(Reporter reporter, int networkNumCc, int networkNumSc, int outerLoopIteration, String outerLoopType) {
+        return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || Outer loop iteration ${newtonRaphsonOuterLoopIteration} and type `${newtonRaphsonOuterLoopType}`",
+                Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                        "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED),
+                        "newtonRaphsonOuterLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED),
+                        "newtonRaphsonOuterLoopType", new TypedValue(outerLoopType, TypedValue.UNTYPED)));
+    }
+
+    public static Reporter createNewtonRaphsonMismatchReporter(Reporter reporter, int iteration) {
+        if (iteration == -1) {
+            return reporter.createSubReporter("mismatchInitial", "Initial mismatch");
+        } else {
+            return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} mismatch", ITERATION, iteration);
+        }
+    }
+
+    public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, String busId, double busV, double busPhi, int iteration) {
+
+        ReportBuilder reportBuilder = Report.builder();
+        String mismatchDetails = " on ${equationType}: ${mismatch}, Bus Id: '${busId}', Bus V: ${busV}, Bus Phi: ${busPhi}";
+        if (iteration == -1) {
+            reportBuilder.withKey("NRInitialMismatch")
+                    .withDefaultMessage("Initial mismatch" + mismatchDetails);
+        } else {
+            reportBuilder.withKey("NRIterationMismatch")
+                    .withDefaultMessage("Iteration ${iteration} mismatch" + mismatchDetails)
+                    .withValue(ITERATION, iteration);
+        }
+
+        reporter.report(reportBuilder.withValue("equationType", acEquationType)
+                .withTypedValue("mismatch", mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withValue("busId", busId)
+                .withTypedValue("busV", busV, TypedValue.VOLTAGE)
+                .withTypedValue("busPhi", busPhi, TypedValue.ANGLE)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
+    }
+
+    public static void reportNewtonRaphsonNorm(Reporter reporter, double norm, int iteration) {
+        ReportBuilder reportBuilder = Report.builder();
+        if (iteration == -1) {
+            reportBuilder.withKey("NRInitialNorm")
+                    .withDefaultMessage("Norm |f(x0)|=${norm}");
+        } else {
+            reportBuilder.withKey("NRIterationNorm")
+                    .withDefaultMessage("Norm |f(x)|=${norm}");
+        }
+        reporter.report(reportBuilder.withValue("norm", norm)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
     }
 }

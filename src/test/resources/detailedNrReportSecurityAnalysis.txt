@@ -1,0 +1,76 @@
++ Test report of security analysis
+  + AC security analysis on network 'test'
+    + Network CC0 SC0
+      + Post loading processing
+         Network has 2 buses and 2 branches
+         Network balance: active generation=603.77 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+      + Pre-contingency simulation
+         AC load flow complete with NR status 'CONVERGED'
+        + Newton Raphson on Network CC0 SC0 || No outer loops calculations
+          + Initial mismatch
+             Initial mismatch on TargetP: 6.0, Bus Id: 'VL2_0', Bus V: 1.0, Bus Phi: 0.0
+             Initial mismatch on TargetQ: 1.382400000000004, Bus Id: 'VL2_0', Bus V: 1.0, Bus Phi: 0.0
+             Initial mismatch on TargetV: 0.0050000000000000044, Bus Id: 'VL1_0', Bus V: 1.0, Bus Phi: 0.0
+             Norm |f(x0)|=6.157195364774453
+          + Iteration 0 mismatch
+             Iteration 0 mismatch on TargetP: 0.198586549381778, Bus Id: 'VL2_0', Bus V: 0.9747979766262653, Bus Phi: -0.0605498160569332
+             Iteration 0 mismatch on TargetQ: 0.2032848645560701, Bus Id: 'VL2_0', Bus V: 0.9747979766262653, Bus Phi: -0.0605498160569332
+             Iteration 0 mismatch on TargetV: 0.0, Bus Id: 'VL1_0', Bus V: 0.995, Bus Phi: -3.837262538969321E-18
+             Norm |f(x)|=0.2841854214292864
+          + Iteration 1 mismatch
+             Iteration 1 mismatch on TargetP: 5.888575667736262E-4, Bus Id: 'VL2_0', Bus V: 0.9722510849126529, Bus Phi: -0.06262369456754548
+             Iteration 1 mismatch on TargetQ: 7.419850491046098E-4, Bus Id: 'VL2_0', Bus V: 0.9722510849126529, Bus Phi: -0.06262369456754548
+             Iteration 1 mismatch on TargetV: 0.0, Bus Id: 'VL1_0', Bus V: 0.995, Bus Phi: 1.9067248874188215E-19
+             Norm |f(x)|=9.472565898642911E-4
+          + Iteration 2 mismatch
+             Iteration 2 mismatch on TargetP: 6.330032498169658E-9, Bus Id: 'VL2_0', Bus V: 0.9722419525004928, Bus Phi: -0.06262984207097894
+             Iteration 2 mismatch on TargetQ: 8.8904832384884E-9, Bus Id: 'VL2_0', Bus V: 0.9722419525004928, Bus Phi: -0.06262984207097894
+             Iteration 2 mismatch on TargetV: 0.0, Bus Id: 'VL1_0', Bus V: 0.995, Bus Phi: 8.551939024446748E-22
+             Norm |f(x)|=1.0913752958617269E-8
+        + Outer loop DistributedSlack
+           Iteration 0: already balanced
+        + Outer loop VoltageMonitoring
+        + Outer loop ReactiveLimits
+      + Post-contingency simulation 'L2'
+         AC load flow complete with NR status 'CONVERGED'
+        + Newton Raphson on Network CC0 SC0 || No outer loops calculations
+          + Initial mismatch
+             Initial mismatch on TargetP: 3.000000003165016, Bus Id: 'VL2_0', Bus V: 0.9722419525004927, Bus Phi: -0.06262984207097894
+             Initial mismatch on TargetQ: 1.0000000044452348, Bus Id: 'VL2_0', Bus V: 0.9722419525004927, Bus Phi: -0.06262984207097894
+             Initial mismatch on TargetV: 0.0, Bus Id: 'VL1_0', Bus V: 0.995, Bus Phi: 8.551939024446748E-22
+             Norm |f(x0)|=3.1622776645766835
+          + Iteration 0 mismatch
+             Iteration 0 mismatch on TargetP: 0.11845710686545807, Bus Id: 'VL2_0', Bus V: 0.9401501906483334, Bus Phi: -0.12680740376424912
+             Iteration 0 mismatch on TargetQ: 0.1256912940021302, Bus Id: 'VL2_0', Bus V: 0.9401501906483334, Bus Phi: -0.12680740376424912
+             Iteration 0 mismatch on TargetV: 0.0, Bus Id: 'VL1_0', Bus V: 0.995, Bus Phi: 2.9370266603027536E-18
+             Norm |f(x)|=0.17271475777959588
+          + Iteration 1 mismatch
+             Iteration 1 mismatch on TargetP: 5.757800425625348E-4, Bus Id: 'VL2_0', Bus V: 0.9365727773021071, Bus Phi: -0.12966726750633736
+             Iteration 1 mismatch on TargetQ: 6.850519413115208E-4, Bus Id: 'VL2_0', Bus V: 0.9365727773021071, Bus Phi: -0.12966726750633736
+             Iteration 1 mismatch on TargetV: 0.0, Bus Id: 'VL1_0', Bus V: 0.995, Bus Phi: 8.697058116493226E-20
+             Norm |f(x)|=8.948848080663778E-4
+          + Iteration 2 mismatch
+             Iteration 2 mismatch on TargetP: 1.5427132460388293E-8, Bus Id: 'VL2_0', Bus V: 0.9365534403203294, Bus Phi: -0.12968139838112844
+             Iteration 2 mismatch on TargetQ: 1.9380048676964634E-8, Bus Id: 'VL2_0', Bus V: 0.9365534403203294, Bus Phi: -0.12968139838112844
+             Iteration 2 mismatch on TargetV: 0.0, Bus Id: 'VL1_0', Bus V: 0.995, Bus Phi: -2.5754427337441792E-23
+             Norm |f(x)|=2.477060158074254E-8
+        + Outer loop DistributedSlack
+           Iteration 0: slack bus active power (4.564672167502337 MW) distributed in 1 iterations
+           Iteration 1: already balanced
+        + Newton Raphson on Network CC0 SC0 || Outer loop iteration 1 and type `DistributedSlack`
+          + Initial mismatch
+             Initial mismatch on TargetP: 1.5427132460388293E-8, Bus Id: 'VL2_0', Bus V: 0.9365534403203294, Bus Phi: -0.12968139838112844
+             Initial mismatch on TargetQ: 1.9380048676964634E-8, Bus Id: 'VL2_0', Bus V: 0.9365534403203294, Bus Phi: -0.12968139838112844
+             Initial mismatch on TargetV: 0.0, Bus Id: 'VL1_0', Bus V: 0.995, Bus Phi: -2.5754427337441792E-23
+             Norm |f(x0)|=2.477060158074254E-8
+          + Iteration 0 mismatch
+             Iteration 0 mismatch on TargetP: 8.881784197001252E-16, Bus Id: 'VL2_0', Bus V: 0.9365534397778421, Bus Phi: -0.12968139876104615
+             Iteration 0 mismatch on TargetQ: 8.215650382226158E-15, Bus Id: 'VL2_0', Bus V: 0.9365534397778421, Bus Phi: -0.12968139876104615
+             Iteration 0 mismatch on TargetV: 0.0, Bus Id: 'VL1_0', Bus V: 0.995, Bus Phi: 2.3836834369535747E-26
+             Norm |f(x)|=8.263520563790825E-15
+        + Outer loop VoltageMonitoring
+        + Outer loop ReactiveLimits
+        + Outer loop DistributedSlack
+           Iteration 1: already balanced
+        + Outer loop VoltageMonitoring
+        + Outer loop ReactiveLimits

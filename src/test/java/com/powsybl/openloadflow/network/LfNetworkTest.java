@@ -6,8 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.AbstractConverterTest;
-import com.powsybl.commons.ComparisonUtils;
+import com.powsybl.commons.test.AbstractConverterTest;
+import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
@@ -27,9 +27,11 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -120,6 +122,15 @@ class LfNetworkTest extends AbstractConverterTest {
     }
 
     @Test
+    void testVsc() {
+        Network network = HvdcNetworkFactory.createVsc();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(2, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertEquals(0.0, lfNetwork.getGeneratorById("cs2").getParticipationFactor(), 1E-6);
+    }
+
+    @Test
     void testMultipleConnectedComponentsACMainComponent() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -172,5 +183,61 @@ class LfNetworkTest extends AbstractConverterTest {
 
         assertTrue(result.isOk());
         assertEquals(2, result.getComponentResults().size());
+    }
+
+    private static void testGraphViz(Network network, boolean breakers, String ref) throws IOException {
+        LfNetworkParameters parameters = new LfNetworkParameters().setBreakers(breakers);
+        LfNetwork lfNetwork = Networks.load(network, parameters).get(0);
+        try (StringWriter writer = new StringWriter()) {
+            lfNetwork.writeGraphViz(writer, LoadFlowModel.AC);
+            writer.flush();
+            ComparisonUtils.compareTxt(Objects.requireNonNull(LfNetworkTest.class.getResourceAsStream("/" + ref)), writer.toString());
+        }
+    }
+
+    @Test
+    void testGraphViz() throws IOException {
+        testGraphViz(EurostagTutorialExample1Factory.create(), false, "sim1.dot");
+        testGraphViz(NodeBreakerNetworkFactory.create(), true, "nb.dot");
+        // with a disconnected line
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
+        testGraphViz(network, false, "sim1_disconnected.dot");
+    }
+
+    @Test
+    void testDisabledVoltageControl() {
+        Network network = VoltageControlNetworkFactory.createWithDependentVoltageControls();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        lfNetwork.getZeroImpedanceNetworks(LoadFlowModel.AC); // to update.
+        LfBus b1 = lfNetwork.getBusById("b1_vl_0");
+        assertSame(VoltageControl.MergeStatus.MAIN, b1.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        LfBus b2 = lfNetwork.getBusById("b2_vl_0");
+        assertSame(VoltageControl.MergeStatus.DEPENDENT, b2.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        LfBus b3 = lfNetwork.getBusById("b3_vl_0");
+        assertSame(VoltageControl.MergeStatus.DEPENDENT, b3.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        lfNetwork.getBusById("b01_vl_0").setDisabled(true); // only g1
+        assertFalse(b1.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertFalse(b2.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertFalse(b3.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertFalse(b1.getGeneratorVoltageControl().orElseThrow().isHidden());
+        assertFalse(b2.getGeneratorVoltageControl().orElseThrow().isHidden());
+        assertFalse(b3.getGeneratorVoltageControl().orElseThrow().isHidden());
+
+        b1.setDisabled(true);
+        assertSame(VoltageControl.MergeStatus.MAIN, b1.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        assertSame(VoltageControl.MergeStatus.DEPENDENT, b2.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        assertSame(VoltageControl.MergeStatus.DEPENDENT, b3.getGeneratorVoltageControl().orElseThrow().getMergeStatus());
+        assertFalse(b1.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertFalse(b2.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertFalse(b3.getGeneratorVoltageControl().orElseThrow().isDisabled());
+
+        b2.setDisabled(true);
+        b3.setDisabled(true);
+        assertTrue(b1.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertTrue(b2.getGeneratorVoltageControl().orElseThrow().isDisabled());
+        assertTrue(b3.getGeneratorVoltageControl().orElseThrow().isDisabled());
     }
 }

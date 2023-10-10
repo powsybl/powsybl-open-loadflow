@@ -38,13 +38,14 @@ class BridgesTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BridgesTest.class);
 
+    private Network network;
     private LfNetwork lfNetwork;
     private Set<String> bridgesSetReference;
 
     @BeforeEach
     void setUp() {
         long start = System.currentTimeMillis();
-        Network network = EurostagTutorialExample1Factory.create();
+        network = EurostagTutorialExample1Factory.create();
         List<LfNetwork> lfn = Networks.load(network, new FirstSlackBusSelector());
         this.lfNetwork = lfn.get(0);
         LOGGER.info("Reading network of {} buses in {} ms", lfNetwork.getBuses().size(), System.currentTimeMillis() - start);
@@ -96,7 +97,7 @@ class BridgesTest {
 
         BiFunction<Integer, Integer, String> verticesToBranchId = (v1, v2) -> {
             Predicate<? super LfBranch> p = b -> b.getBus1() != null && b.getBus2() != null
-                && ((b.getBus1().getNum() == v1 && b.getBus2().getNum() == v2) || (b.getBus1().getNum() == v2 && b.getBus2().getNum() == v1));
+                && (b.getBus1().getNum() == v1 && b.getBus2().getNum() == v2 || b.getBus1().getNum() == v2 && b.getBus2().getNum() == v1);
             return lfNetwork.getBus(v1).getBranches().stream().filter(p).findFirst().orElseThrow(PowsyblException::new).getId();
         };
         Set<String> set = bridges.stream().collect(HashSet::new, (h, t) -> h.add(verticesToBranchId.apply(t[0], t[1])), HashSet::addAll);

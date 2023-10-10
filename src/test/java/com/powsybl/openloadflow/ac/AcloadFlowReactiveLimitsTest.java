@@ -86,18 +86,14 @@ class AcloadFlowReactiveLimitsTest {
         int zb380 = 380 * 380 / 100;
         ngen2Nhv1 = p1.newTwoWindingsTransformer()
                 .setId("NGEN2_NHV1")
-                .setVoltageLevel1("VLGEN2")
                 .setBus1("NGEN2")
                 .setConnectableBus1("NGEN2")
                 .setRatedU1(24.0)
-                .setVoltageLevel2("VLHV1")
                 .setBus2("NHV1")
                 .setConnectableBus2("NHV1")
                 .setRatedU2(400.0)
                 .setR(0.24 / 1800 * zb380)
                 .setX(Math.sqrt(10 * 10 - 0.24 * 0.24) / 1800 * zb380)
-                .setG(0.0)
-                .setB(0.0)
                 .add();
 
         // fix active power balance
@@ -108,7 +104,7 @@ class AcloadFlowReactiveLimitsTest {
     void setUp() {
         createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(false);
     }
 
@@ -126,14 +122,14 @@ class AcloadFlowReactiveLimitsTest {
 
     @Test
     void test() {
-        parameters.setNoGeneratorReactiveLimits(true);
+        parameters.setUseReactiveLimits(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(-109.228, gen.getTerminal());
         assertReactivePowerEquals(-152.265, gen2.getTerminal());
         assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
 
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setUseReactiveLimits(true);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(-164.315, gen.getTerminal());

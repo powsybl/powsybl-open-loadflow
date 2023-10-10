@@ -23,9 +23,12 @@ public class NetworkState {
 
     private final List<BranchState> branchStates;
 
-    protected NetworkState(List<BusState> busStates, List<BranchState> branchStates) {
+    private final List<HvdcState> hvdcStates;
+
+    protected NetworkState(List<BusState> busStates, List<BranchState> branchStates, List<HvdcState> hvdcStates) {
         this.busStates = Objects.requireNonNull(busStates);
         this.branchStates = Objects.requireNonNull(branchStates);
+        this.hvdcStates = Objects.requireNonNull(hvdcStates);
     }
 
     public static NetworkState save(LfNetwork network) {
@@ -33,12 +36,14 @@ public class NetworkState {
         LOGGER.trace("Saving network state");
         List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
         List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
-        return new NetworkState(busStates, branchStates);
+        List<HvdcState> hvdcStates = ElementState.save(network.getHvdcs(), HvdcState::save);
+        return new NetworkState(busStates, branchStates, hvdcStates);
     }
 
     public void restore() {
         LOGGER.trace("Restoring network state");
         ElementState.restore(busStates);
         ElementState.restore(branchStates);
+        ElementState.restore(hvdcStates);
     }
 }
