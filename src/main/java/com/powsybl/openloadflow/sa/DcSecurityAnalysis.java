@@ -237,7 +237,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         findAllSwitchesToOperate(network, actions, topoConfig);
 
         // try to find all pst to retain because involved in pst actions
-        findAllPtcToOperate(network, actions, topoConfig);
+        findAllPtcToOperate(actions, topoConfig);
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), topoConfig, false);
 
