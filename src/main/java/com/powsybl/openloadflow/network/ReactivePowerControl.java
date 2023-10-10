@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * @author Bertrand Rix <bertrand.rix at artelys.com>
  */
-public class ReactivePowerControl<T extends LfElement> extends Control {
+public class ReactivePowerControl extends Control {
 
     public enum Type {
         GENERATOR,
@@ -26,24 +26,15 @@ public class ReactivePowerControl<T extends LfElement> extends Control {
 
     protected final ReactivePowerControl.Type type;
 
-    protected int priority;
-
     protected final LfBranch controlledBranch;
 
     protected final ControlledSide controlledSide;
 
-    protected final List<T> controllerElements = new ArrayList<>();
+    protected final List<LfBus> controllerElements = new ArrayList<>();
 
-    protected MergeStatus mergeStatus = MergeStatus.MAIN;
-
-    protected final List<ReactivePowerControl<T>> mergedDependentReactivePowerControls = new ArrayList<>();
-
-    protected ReactivePowerControl<T> mainMergedReactivePowerControl;
-
-    public ReactivePowerControl(double targetValue, Type type, int priority, LfBranch controlledBranch, ControlledSide controlledSide) {
+    public ReactivePowerControl(double targetValue, Type type, LfBranch controlledBranch, ControlledSide controlledSide) {
         super(targetValue);
         this.type = Objects.requireNonNull(type);
-        this.priority = priority;
         this.controlledBranch = Objects.requireNonNull(controlledBranch);
         this.controlledSide = Objects.requireNonNull(controlledSide);
     }
@@ -56,43 +47,15 @@ public class ReactivePowerControl<T extends LfElement> extends Control {
         return controlledSide;
     }
 
-    public List<T> getControllerElements() {
+    public List<LfBus> getControllerElements() {
         return controllerElements;
     }
 
-    public void addControllerElement(T controllerElement) {
+    public void addControllerElement(LfBus controllerElement) {
         controllerElements.add(Objects.requireNonNull(controllerElement));
-    }
-
-    public boolean isControllerEnabled(T controllerElement) {
-        throw new IllegalStateException();
-    }
-
-    public List<ReactivePowerControl<T>> getMergedDependentReactivePowerControls() {
-        return mergedDependentReactivePowerControls;
-    }
-
-    protected int getPriority() {
-        return priority;
     }
 
     public ReactivePowerControl.Type getType() {
         return type;
-    }
-
-    public List<T> getMergedControllerElements() { // TODO: add merged elements
-        return controllerElements;
-    }
-
-    public ReactivePowerControl.MergeStatus getMergeStatus() {
-        return mergeStatus;
-    }
-
-    public boolean isHidden() {
-        return false;
-    }
-
-    public boolean isVisible() {
-        return !isHidden();
     }
 }
