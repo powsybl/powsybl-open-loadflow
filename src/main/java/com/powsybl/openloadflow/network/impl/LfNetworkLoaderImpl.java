@@ -246,14 +246,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
         ControlledSide side = lfGenerator.getControlledBranchSide();
         double targetQ = lfGenerator.getRemoteTargetQ();
-        Optional<ReactivePowerControl> optionalControl = controlledBranch.getReactivePowerControl();
-        if (optionalControl.isPresent()) {
-            if (checkUniqueControlledSideControlledBranch((GeneratorReactivePowerControl) optionalControl.get(), controllerBus, side)) {
-                updateGeneratorReactivePowerControl((GeneratorReactivePowerControl) optionalControl.get(), controllerBus, targetQ);
-            }
-        } else {
-            createGeneratorReactivePowerControl(controlledBranch, controllerBus, side, targetQ);
-        }
+        controlledBranch.getReactivePowerControl().ifPresentOrElse(
+                rpc -> {
+                    if (checkUniqueControlledSideControlledBranch(rpc, controllerBus, side)) {
+                        updateGeneratorReactivePowerControl(rpc, controllerBus, targetQ);
+                    }
+                },
+                () -> createGeneratorReactivePowerControl(controlledBranch, controllerBus, side, targetQ)
+        );
+
     }
 
     private static void createGeneratorReactivePowerControl(LfBranch controlledBranch, LfBus controllerBus, ControlledSide controlledSide, double controllerTargetQ) {
@@ -262,12 +263,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         controlledBranch.setReactivePowerControl(reactivePowerControl);
     }
 
-    private static void updateGeneratorReactivePowerControl(GeneratorReactivePowerControl reactivePowerControl, LfBus controllerBus, double controllerTargetQ) {
+    private static void updateGeneratorReactivePowerControl(ReactivePowerControl reactivePowerControl, LfBus controllerBus, double controllerTargetQ) {
         reactivePowerControl.addControllerElement(controllerBus);
         checkUniqueTargetQControlledBranch(controllerTargetQ, controllerBus, reactivePowerControl);
     }
 
-    private static boolean checkUniqueControlledSideControlledBranch(GeneratorReactivePowerControl reactivePowerControl, LfBus controllerBus, ControlledSide side) {
+    private static boolean checkUniqueControlledSideControlledBranch(ReactivePowerControl reactivePowerControl, LfBus controllerBus, ControlledSide side) {
         if (!side.equals(reactivePowerControl.getControlledSide())) {
             LOGGER.error("Bus '{}' is trying to control already controlled branch at a different side, control won't be created. Controlled side {} (kept) {} (rejected).",
                     controllerBus.getId(), reactivePowerControl.getControlledSide(), side);
@@ -276,12 +277,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return true;
     }
 
-    private static void checkUniqueTargetQControlledBranch(double controllerTargetQ, LfBus controllerBus, GeneratorReactivePowerControl rpc) {
+    private static void checkUniqueTargetQControlledBranch(double controllerTargetQ, LfBus controllerBus, ReactivePowerControl reactivePowerControl) {
         // check if targetQ is consistent with other already existing controller buses
-        double reactivePowerControlTargetQ = rpc.getTargetValue();
+        double reactivePowerControlTargetQ = reactivePowerControl.getTargetValue();
         double deltaTargetQ = FastMath.abs(reactivePowerControlTargetQ - controllerTargetQ);
         if (deltaTargetQ > TARGET_Q_EPSILON) {
-            String busesId = rpc.getControllerElements().stream().map(LfBus::getId).collect(Collectors.joining(", "));
+            String busesId = reactivePowerControl.getControllerElements().stream().map(LfBus::getId).collect(Collectors.joining(", "));
             LOGGER.error("Bus '{}' controls reactive power of a branch which is already controlled by buses '{}' with a different targetQ: {} (kept) and {} (ignored)",
                     controllerBus.getId(), busesId, reactivePowerControlTargetQ, controllerTargetQ);
         }

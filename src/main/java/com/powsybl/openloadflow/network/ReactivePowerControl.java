@@ -19,11 +19,6 @@ public class ReactivePowerControl extends Control {
         GENERATOR,
     }
 
-    public enum MergeStatus {
-        MAIN,
-        DEPENDENT
-    }
-
     protected final ReactivePowerControl.Type type;
 
     protected final LfBranch controlledBranch;
