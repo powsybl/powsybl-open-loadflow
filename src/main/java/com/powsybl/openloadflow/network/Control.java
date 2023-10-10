@@ -29,17 +29,17 @@ public class Control {
         this.targetValue = targetValue;
     }
 
-    private static double[] createUniformReactiveKeys(List<LfBus> controllerBuses) {
+    private static double[] createUniformReactiveKeys(List<LfBus> controllerBuses, LfGenerator.GeneratorControlType generatorControlType) {
         double[] qKeys = new double[controllerBuses.size()];
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
             qKeys[i] = controllerBus.getGenerators().stream()
-                    .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).count();
+                    .filter(gen -> gen.getGeneratorControlType() == generatorControlType).count();
         }
         return qKeys;
     }
 
-    private static double[] createReactiveKeysFromMaxReactivePowerRange(List<LfBus> controllerBuses) {
+    private static double[] createReactiveKeysFromMaxReactivePowerRange(List<LfBus> controllerBuses, LfGenerator.GeneratorControlType generatorControlType) {
         double[] qKeys = new double[controllerBuses.size()];
         // try to build keys from reactive power range
         for (int i = 0; i < controllerBuses.size(); i++) {
@@ -48,7 +48,7 @@ public class Control {
                 double maxRangeQ = generator.getRangeQ(LfGenerator.ReactiveRangeMode.MAX);
                 // if one reactive range is not plausible, we fallback to uniform keys
                 if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || maxRangeQ > PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB) {
-                    return createUniformReactiveKeys(controllerBuses);
+                    return createUniformReactiveKeys(controllerBuses, generatorControlType);
                 } else {
                     qKeys[i] += maxRangeQ;
                 }
@@ -57,7 +57,7 @@ public class Control {
         return qKeys;
     }
 
-    static double[] createReactiveKeys(List<LfBus> controllerBuses) {
+    static double[] createReactiveKeys(List<LfBus> controllerBuses, LfGenerator.GeneratorControlType generatorControlType) {
         double[] qKeys = new double[controllerBuses.size()];
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
@@ -65,7 +65,7 @@ public class Control {
                 double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
                 if (Double.isNaN(qKey)) {
                     // in case of one missing key, we fallback to keys based on reactive power range
-                    return createReactiveKeysFromMaxReactivePowerRange(controllerBuses);
+                    return createReactiveKeysFromMaxReactivePowerRange(controllerBuses, generatorControlType);
                 } else {
                     qKeys[i] += qKey;
                 }

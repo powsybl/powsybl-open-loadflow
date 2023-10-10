@@ -20,7 +20,7 @@ public class GeneratorReactivePowerControl extends ReactivePowerControl {
     }
 
     public static void updateReactiveKeys(List<LfBus> controllerBuses) {
-        double[] reactiveKeys = createReactiveKeys(controllerBuses);
+        double[] reactiveKeys = createReactiveKeys(controllerBuses, LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER);
 
         // key is 0 only on disabled controllers
         for (int i = 0; i < controllerBuses.size(); i++) {

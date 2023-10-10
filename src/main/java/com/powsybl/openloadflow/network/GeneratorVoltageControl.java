@@ -66,7 +66,7 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
     }
 
     public static void updateReactiveKeys(List<LfBus> controllerBuses) {
-        double[] reactiveKeys = createReactiveKeys(controllerBuses);
+        double[] reactiveKeys = createReactiveKeys(controllerBuses, LfGenerator.GeneratorControlType.VOLTAGE);
 
         // no reactive dispatch on PQ buses, so we set the key to 0
         for (int i = 0; i < controllerBuses.size(); i++) {
