@@ -752,6 +752,36 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return lfNetwork;
     }
 
+    private static void checkControlZonesAreDisjoints(LfNetwork lfNetwork) {
+        Map<String, MutableInt> controlledBusCount = new HashMap<>();
+        for (LfSecondaryVoltageControl lfSvc : lfNetwork.getSecondaryVoltageControls()) {
+            for (LfBus controlledBus : lfSvc.getControlledBuses()) {
+                controlledBusCount.computeIfAbsent(controlledBus.getId(), k -> new MutableInt())
+                        .increment();
+            }
+        }
+        for (var e : controlledBusCount.entrySet()) {
+            if (e.getValue().intValue() > 1) {
+                throw new PowsyblException("Controlled bus '" + e.getKey() + "' is present in more that one control zone");
+            }
+        }
+    }
+
+    private static Set<LfBus> findControlZoneControlledBus(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork, ControlZone controlZone) {
+        return controlZone.getControlUnits().stream()
+                .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
+                .flatMap(regulatingTerminal -> {
+                    Connectable<?> connectable = regulatingTerminal.getConnectable();
+                    if (connectable.getType() != IdentifiableType.GENERATOR && !HvdcConverterStations.isVsc(connectable)) {
+                        throw new PowsyblException("Control unit '" + connectable.getId() + "' of zone '"
+                                + controlZone.getName() + "' is expected to be either a generator or a VSC converter station");
+                    }
+                    return Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream();
+                })
+                .filter(LfBus::isGeneratorVoltageControlled) // might happen to be false, if generator has been discarded from voltage control because of inconsistency (like small reactive limit range)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
     private static void createSecondaryVoltageControls(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork) {
         if (!parameters.isSecondaryVoltageControl()) {
             return;
@@ -801,36 +831,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
         return Optional.empty();
-    }
-
-    private static void checkControlZonesAreDisjoints(LfNetwork lfNetwork) {
-        Map<String, MutableInt> controlledBusCount = new HashMap<>();
-        for (LfSecondaryVoltageControl lfSvc : lfNetwork.getSecondaryVoltageControls()) {
-            for (LfBus controlledBus : lfSvc.getControlledBuses()) {
-                controlledBusCount.computeIfAbsent(controlledBus.getId(), k -> new MutableInt())
-                        .increment();
-            }
-        }
-        for (var e : controlledBusCount.entrySet()) {
-            if (e.getValue().intValue() > 1) {
-                throw new PowsyblException("Controlled bus '" + e.getKey() + "' is present in more that one control zone");
-            }
-        }
-    }
-
-    private static Set<LfBus> findControlZoneControlledBus(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork, ControlZone controlZone) {
-        return controlZone.getControlUnits().stream()
-                .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
-                .flatMap(regulatingTerminal -> {
-                    Connectable<?> connectable = regulatingTerminal.getConnectable();
-                    if (connectable.getType() != IdentifiableType.GENERATOR && !HvdcConverterStations.isVsc(connectable)) {
-                        throw new PowsyblException("Control unit '" + connectable.getId() + "' of zone '"
-                                + controlZone.getName() + "' is expected to be either a generator or a VSC converter station");
-                    }
-                    return Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream();
-                })
-                .filter(LfBus::isGeneratorVoltageControlled) // might happen to be false, if generator has been discarded from voltage control because of inconsistency (like small reactive limit range)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private static void createVoltageAngleLimits(Network network, LfNetwork lfNetwork, LfNetworkParameters parameters) {

@@ -175,6 +175,7 @@ public class LimitViolationManager {
      */
     private void detectVoltageAngleLimitViolations(LfNetwork.LfVoltageAngleLimit limit) {
         double difference = limit.getTo().getAngle() - limit.getFrom().getAngle();
+        System.out.println(difference);
         if (!Double.isNaN(limit.getHighValue()) && difference > limit.getHighValue()) {
             LimitViolation limitViolation1 = new LimitViolation(limit.getId(), LimitViolationType.HIGH_VOLTAGE_ANGLE, Math.toDegrees(limit.getHighValue()),
                     (float) 1., Math.toDegrees(difference));
