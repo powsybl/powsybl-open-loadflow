@@ -59,7 +59,7 @@ public abstract class AbstractNetworkResult {
         if (!monitor.getThreeWindingsTransformerIds().isEmpty()) {
             monitor.getThreeWindingsTransformerIds().stream()
                     .filter(id -> network.getBusById(LfStarBus.getId(id)) != null && !network.getBusById(LfStarBus.getId(id)).isDisabled())
-                    .forEach(id -> threeWindingsTransformerResults.add(LfLegBranch.createThreeWindingsTransformerResult(network, id)));
+                    .forEach(id -> threeWindingsTransformerResults.add(LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension)));
         }
     }
 
