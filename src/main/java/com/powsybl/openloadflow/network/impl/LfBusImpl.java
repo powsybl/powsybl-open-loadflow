@@ -16,8 +16,6 @@ import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.network.extensions.iidm.BusAsymmetrical;
 import com.powsybl.openloadflow.network.extensions.iidm.BusVariableType;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 import org.apache.commons.math3.complex.Complex;
@@ -80,29 +78,50 @@ public class LfBusImpl extends AbstractLfBus {
 
         for (Load load : bus.getLoads()) {
             var extension = load.getExtension(LoadAsymmetrical.class);
-            var extension2 = load.getExtension(LoadAsymmetrical2.class);
-            if (extension != null && extension2 != null) {
+            if (extension != null) {
 
+                ZipLoadModel zipLoadModel = (ZipLoadModel) load.getModel().orElse(null);
+                double c0p = 0.;
+                double c0q = 0.;
+                double c1p = 0.;
+                double c1q = 0.;
+                double c2p = 0.;
+                double c2q = 0.;
+
+                if (zipLoadModel == null) {
+                    // if zipModel is null, we consider a constant power load
+                    c0p = 1.;
+                    c0q = 1.;
+                } else {
+                    c0p = zipLoadModel.getC0p();
+                    c0q = zipLoadModel.getC0q();
+                    c1p = zipLoadModel.getC1p();
+                    c1q = zipLoadModel.getC1q();
+                    c2p = zipLoadModel.getC2p();
+                    c2q = zipLoadModel.getC2q();
+                }
+
+                double epsilon = 0.00000001;
                 String unknownLoad = "unknown load type at Bus : ";
                 if (extension.getConnectionType() == LoadConnectionType.DELTA) {
-                    if (extension2.getLoadType() == LoadType.CONSTANT_POWER) {
-                        loadDelta0 = addSabcToLoad(lfBus, loadDelta0, extension, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.DELTA);
-                    } else if (extension2.getLoadType() == LoadType.CONSTANT_CURRENT) {
-                        loadDelta1 = addSabcToLoad(lfBus, loadDelta1, extension, AsymBusLoadType.CONSTANT_CURRENT, LegConnectionType.DELTA);
-                    } else if (extension2.getLoadType() == LoadType.CONSTANT_IMPEDANCE) {
-                        loadDelta2 = addSabcToLoad(lfBus, loadDelta2, extension, AsymBusLoadType.CONSTANT_IMPEDANCE, LegConnectionType.DELTA);
-                    } else {
-                        throw new IllegalStateException(unknownLoad + bus.getId());
+                    if (Math.abs(c0p) + Math.abs(c0q) > epsilon) {
+                        loadDelta0 = addSabcToLoad(lfBus, loadDelta0, extension, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.DELTA, c0p, c0q);
+                    }
+                    if (Math.abs(c1p) + Math.abs(c1q) > epsilon) {
+                        loadDelta1 = addSabcToLoad(lfBus, loadDelta1, extension, AsymBusLoadType.CONSTANT_CURRENT, LegConnectionType.DELTA, c1p, c1q);
+                    }
+                    if (Math.abs(c2p) + Math.abs(c2q) > epsilon) {
+                        loadDelta2 = addSabcToLoad(lfBus, loadDelta2, extension, AsymBusLoadType.CONSTANT_IMPEDANCE, LegConnectionType.DELTA, c2p, c2q);
                     }
                 } else if (extension.getConnectionType() == LoadConnectionType.Y) {
-                    if (extension2.getLoadType() == LoadType.CONSTANT_POWER) {
-                        loadWye0 = addSabcToLoad(lfBus, loadWye0, extension, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.Y_GROUNDED);
-                    } else if (extension2.getLoadType() == LoadType.CONSTANT_CURRENT) {
-                        loadWye1 = addSabcToLoad(lfBus, loadWye1, extension, AsymBusLoadType.CONSTANT_CURRENT, LegConnectionType.Y_GROUNDED);
-                    } else if (extension2.getLoadType() == LoadType.CONSTANT_IMPEDANCE) {
-                        loadWye2 = addSabcToLoad(lfBus, loadWye2, extension, AsymBusLoadType.CONSTANT_IMPEDANCE, LegConnectionType.Y_GROUNDED);
-                    } else {
-                        throw new IllegalStateException(unknownLoad + bus.getId());
+                    if (Math.abs(c0p) + Math.abs(c0q) > epsilon) {
+                        loadWye0 = addSabcToLoad(lfBus, loadWye0, extension, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.Y_GROUNDED, c0p, c0q);
+                    }
+                    if (Math.abs(c1p) + Math.abs(c1q) > epsilon) {
+                        loadWye1 = addSabcToLoad(lfBus, loadWye1, extension, AsymBusLoadType.CONSTANT_CURRENT, LegConnectionType.Y_GROUNDED, c1p, c1q);
+                    }
+                    if (Math.abs(c2p) + Math.abs(c2q) > epsilon) {
+                        loadWye2 = addSabcToLoad(lfBus, loadWye2, extension, AsymBusLoadType.CONSTANT_IMPEDANCE, LegConnectionType.Y_GROUNDED, c2p, c2q);
                     }
                 } else {
                     throw new IllegalStateException(unknownLoad + bus.getId());
@@ -157,17 +176,17 @@ public class LfBusImpl extends AbstractLfBus {
                 loadDelta0, loadDelta1, loadDelta2, loadWye0, loadWye1, loadWye2));
     }
 
-    public static LfAsymLoad addSabcToLoad(LfBus lfBus, LfAsymLoad asymLoad, LoadAsymmetrical extension, AsymBusLoadType asymBusLoadType, LegConnectionType legConnectionType) {
+    public static LfAsymLoad addSabcToLoad(LfBus lfBus, LfAsymLoad asymLoad, LoadAsymmetrical extension, AsymBusLoadType asymBusLoadType, LegConnectionType legConnectionType, double cp, double cq) {
         LfAsymLoad asymLoadNew;
         if (asymLoad == null) {
             asymLoadNew = new LfAsymLoad(lfBus, asymBusLoadType, legConnectionType,
-                    new Complex(extension.getDeltaPa() / PerUnit.SB, extension.getDeltaQa() / PerUnit.SB),
-                    new Complex(extension.getDeltaPb() / PerUnit.SB, extension.getDeltaQb() / PerUnit.SB),
-                    new Complex(extension.getDeltaPc() / PerUnit.SB, extension.getDeltaQc() / PerUnit.SB));
+                    new Complex(extension.getDeltaPa() / PerUnit.SB * cp, extension.getDeltaQa() / PerUnit.SB * cq),
+                    new Complex(extension.getDeltaPb() / PerUnit.SB * cp, extension.getDeltaQb() / PerUnit.SB * cq),
+                    new Complex(extension.getDeltaPc() / PerUnit.SB * cp, extension.getDeltaQc() / PerUnit.SB * cq));
         } else {
-            asymLoad.addSabc(new Complex(extension.getDeltaPa() / PerUnit.SB, extension.getDeltaQa() / PerUnit.SB),
-                    new Complex(extension.getDeltaPb() / PerUnit.SB, extension.getDeltaQb() / PerUnit.SB),
-                    new Complex(extension.getDeltaPc() / PerUnit.SB, extension.getDeltaQc() / PerUnit.SB));
+            asymLoad.addSabc(new Complex(extension.getDeltaPa() / PerUnit.SB * cp, extension.getDeltaQa() / PerUnit.SB * cq),
+                    new Complex(extension.getDeltaPb() / PerUnit.SB * cp, extension.getDeltaQb() / PerUnit.SB * cq),
+                    new Complex(extension.getDeltaPc() / PerUnit.SB * cp, extension.getDeltaQc() / PerUnit.SB * cq));
             asymLoadNew = asymLoad;
         }
 

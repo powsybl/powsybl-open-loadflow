@@ -21,7 +21,6 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2Adder;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -316,9 +315,6 @@ public class AsymmetricalLoadFlowTest {
                 .withDeltaQc(0.)
                 .add();
 
-        load4.newExtension(LoadAsymmetrical2Adder.class)
-                .add();
-
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
@@ -354,9 +350,6 @@ public class AsymmetricalLoadFlowTest {
                 .withDeltaQb(0.)
                 .withDeltaPc(21)
                 .withDeltaQc(0.)
-                .add();
-
-        load4.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -397,9 +390,6 @@ public class AsymmetricalLoadFlowTest {
                 .withDeltaPc(21)
                 .withDeltaQc(0.)
                 .withConnectionType(LoadConnectionType.DELTA)
-                .add();
-
-        load4.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));

@@ -19,7 +19,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2Adder;
 import com.powsybl.openloadflow.network.extensions.iidm.*;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
@@ -459,14 +458,9 @@ public class Asym4nodesFeederTest {
                         .withConnectionType(LoadConnectionType.Y)
                         .add();
 
-                load4.newExtension(LoadAsymmetrical2Adder.class)
-                        .add();
-
             } else {
                 load4.newExtension(LoadAsymmetricalAdder.class)
                         .withConnectionType(LoadConnectionType.Y)
-                        .add();
-                load4.newExtension(LoadAsymmetrical2Adder.class)
                         .add();
             }
         } else if (loadConnectionType == WindingConnectionType.DELTA) {
@@ -496,13 +490,9 @@ public class Asym4nodesFeederTest {
                         .withDeltaQc(qc - q)
                         .withConnectionType(LoadConnectionType.DELTA)
                         .add();
-                load4.newExtension(LoadAsymmetrical2Adder.class)
-                        .add();
             } else {
                 load4.newExtension(LoadAsymmetricalAdder.class)
                         .withConnectionType(LoadConnectionType.DELTA)
-                        .add();
-                load4.newExtension(LoadAsymmetrical2Adder.class)
                         .add();
             }
         }

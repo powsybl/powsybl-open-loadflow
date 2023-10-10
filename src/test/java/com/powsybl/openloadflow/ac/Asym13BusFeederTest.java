@@ -18,9 +18,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2Adder;
 import com.powsybl.openloadflow.network.extensions.iidm.*;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.math3.complex.ComplexUtils;
@@ -148,6 +146,14 @@ public class Asym13BusFeederTest {
                 .setBus(bus645.getId())
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(1.)
+                    .setC2p(0.)
+                    .setC0q(0.)
+                    .setC1q(1.)
+                    .setC2q(0.)
+                    .add()
                 .add();
 
         load645Current.newExtension(LoadAsymmetricalAdder.class)
@@ -160,15 +166,19 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load645Current.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_CURRENT)
-                .add();
-
         Load load684Current = network.getVoltageLevel("VL_684").newLoad()
                 .setId("LOAD_684_CURRENT")
                 .setBus(bus684.getId())
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(1.)
+                    .setC2p(0.)
+                    .setC0q(0.)
+                    .setC1q(1.)
+                    .setC2q(0.)
+                    .add()
                 .add();
 
         load684Current.newExtension(LoadAsymmetricalAdder.class)
@@ -179,10 +189,6 @@ public class Asym13BusFeederTest {
                 .withDeltaPc(0.015)
                 .withDeltaQc(0.025)
                 .withConnectionType(LoadConnectionType.Y)
-                .add();
-
-        load684Current.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_CURRENT)
                 .add();
 
         OpenLoadFlowParameters.create(parameters)
@@ -215,6 +221,14 @@ public class Asym13BusFeederTest {
                 .setBus(bus684.getId())
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(0.)
+                    .setC2p(1.)
+                    .setC0q(0.)
+                    .setC1q(0.)
+                    .setC2q(1.)
+                    .add()
                 .add();
 
         load684Impedance.newExtension(LoadAsymmetricalAdder.class)
@@ -225,10 +239,6 @@ public class Asym13BusFeederTest {
                 .withDeltaPc(0.15)
                 .withDeltaQc(0.25)
                 .withConnectionType(LoadConnectionType.Y)
-                .add();
-
-        load684Impedance.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
         OpenLoadFlowParameters.create(parameters)
@@ -261,6 +271,14 @@ public class Asym13BusFeederTest {
                 .setBus(bus684.getId())
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(0.)
+                    .setC2p(1.)
+                    .setC0q(0.)
+                    .setC1q(0.)
+                    .setC2q(1.)
+                    .add()
                 .add();
 
         load684Impedance.newExtension(LoadAsymmetricalAdder.class)
@@ -271,10 +289,6 @@ public class Asym13BusFeederTest {
                 .withDeltaPc(0.15)
                 .withDeltaQc(0.25)
                 .withConnectionType(LoadConnectionType.DELTA)
-                .add();
-
-        load684Impedance.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
         OpenLoadFlowParameters.create(parameters)
@@ -319,10 +333,6 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load684Impedance.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_POWER)
-                .add();
-
         // addition of constant loads at busses
         Load load611Power = network.getVoltageLevel("VL_611").newLoad()
                 .setId("LOAD_611_POWER")
@@ -341,10 +351,6 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load611Power.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_POWER)
-                .add();
-
         bus646.newExtension(BusAsymmetricalAdder.class)
                 .withBusVariableType(BusVariableType.WYE)
                 .withHasPhaseA(false)
@@ -352,9 +358,22 @@ public class Asym13BusFeederTest {
                 .withFortescueRepresentation(false)
                 .add();
 
-        Load load646 = network.getLoad("LOAD_646");
+        Load load646New = network.getVoltageLevel("VL_646").newLoad()
+                .setId("LOAD_646_NEW")
+                .setBus(bus646.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(0.)
+                    .setC2p(1.)
+                    .setC0q(0.)
+                    .setC1q(0.)
+                    .setC2q(1.)
+                    .add()
+                .add();
 
-        load646.newExtension(LoadAsymmetricalAdder.class)
+        load646New.newExtension(LoadAsymmetricalAdder.class)
                 .withDeltaPa(0.)
                 .withDeltaQa(0.)
                 .withDeltaPb(0.230)
@@ -364,9 +383,9 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load646.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
-                .add();
+        // old 646 replaced by new
+        Load load646Old = network.getLoad("LOAD_646");
+        load646Old.remove();
 
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
@@ -398,6 +417,14 @@ public class Asym13BusFeederTest {
                 .setBus(bus645.getId())
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(0.)
+                    .setC2p(1.)
+                    .setC0q(0.)
+                    .setC1q(0.)
+                    .setC2q(1.)
+                    .add()
                 .add();
 
         load645Impedance.newExtension(LoadAsymmetricalAdder.class)
@@ -408,10 +435,6 @@ public class Asym13BusFeederTest {
                 .withDeltaPc(0.)
                 .withDeltaQc(0.)
                 .withConnectionType(LoadConnectionType.DELTA)
-                .add();
-
-        load645Impedance.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
         bus645.newExtension(BusAsymmetricalAdder.class)
@@ -433,10 +456,6 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load645.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_POWER)
-                .add();
-
         bus646.newExtension(BusAsymmetricalAdder.class)
                 .withBusVariableType(BusVariableType.WYE)
                 .withHasPhaseC(false)
@@ -444,9 +463,22 @@ public class Asym13BusFeederTest {
                 .withFortescueRepresentation(false)
                 .add();
 
-        Load load646 = network.getLoad("LOAD_646");
+        Load load646New = network.getVoltageLevel("VL_646").newLoad()
+                .setId("LOAD_646_NEW")
+                .setBus(bus646.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(0.)
+                    .setC2p(1.)
+                    .setC0q(0.)
+                    .setC1q(0.)
+                    .setC2q(1.)
+                    .add()
+                .add();
 
-        load646.newExtension(LoadAsymmetricalAdder.class)
+        load646New.newExtension(LoadAsymmetricalAdder.class)
                 .withDeltaPa(0.08)
                 .withDeltaQa(0.07)
                 .withDeltaPb(0.230)
@@ -456,15 +488,23 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load646.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
-                .add();
+        // old 646 replaced by new
+        Load load646Old = network.getLoad("LOAD_646");
+        load646Old.remove();
 
         Load load646Current = network.getVoltageLevel("VL_646").newLoad()
                 .setId("LOAD_646_CURRENT")
                 .setBus(bus646.getId())
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(1.)
+                    .setC2p(0.)
+                    .setC0q(0.)
+                    .setC1q(1.)
+                    .setC2q(0.)
+                    .add()
                 .add();
 
         load646Current.newExtension(LoadAsymmetricalAdder.class)
@@ -477,13 +517,22 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load646Current.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_CURRENT)
+        Load load652New = network.getVoltageLevel("VL_652").newLoad()
+                .setId("LOAD_652_NEW")
+                .setBus(bus652.getId())
+                .setP0(0.)
+                .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(1.)
+                    .setC2p(0.)
+                    .setC0q(0.)
+                    .setC1q(1.)
+                    .setC2q(0.)
+                    .add()
                 .add();
 
-        Load load652 = network.getLoad("LOAD_652");
-
-        load652.newExtension(LoadAsymmetricalAdder.class)
+        load652New.newExtension(LoadAsymmetricalAdder.class)
                 .withDeltaPa(0.1)
                 .withDeltaQa(0.05)
                 .withDeltaPb(0.)
@@ -493,9 +542,8 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load652.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_CURRENT)
-                .add();
+        Load load652Old = network.getLoad("LOAD_652");
+        load652Old.remove();
 
         double micro = 0.000001;
         double yCoef = 1. / 3.;
@@ -657,9 +705,6 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load632.newExtension(LoadAsymmetrical2Adder.class)
-                .add();
-
         // Bus 645
         Substation substation645 = network.newSubstation()
                 .setId("S645")
@@ -703,9 +748,6 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load645.newExtension(LoadAsymmetrical2Adder.class)
-                .add();
-
         // Bus 646
         Substation substation646 = network.newSubstation()
                 .setId("S646")
@@ -735,6 +777,14 @@ public class Asym13BusFeederTest {
                 .setBus(bus646.getId())
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(0.)
+                    .setC2p(1.)
+                    .setC0q(0.)
+                    .setC1q(0.)
+                    .setC2q(1.)
+                    .add()
                 .add();
 
         load646.newExtension(LoadAsymmetricalAdder.class)
@@ -745,10 +795,6 @@ public class Asym13BusFeederTest {
                 .withDeltaPc(0.)
                 .withDeltaQc(0.)
                 .withConnectionType(LoadConnectionType.DELTA)
-                .add();
-
-        load646.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
         // bus 671
@@ -791,9 +837,6 @@ public class Asym13BusFeederTest {
                 .withDeltaPc(0.170) // equivalent load at 692
                 .withDeltaQc(0.151)
                 .withConnectionType(LoadConnectionType.DELTA)
-                .add();
-
-        load671.newExtension(LoadAsymmetrical2Adder.class)
                 .add();
 
         // bus 684
@@ -850,6 +893,14 @@ public class Asym13BusFeederTest {
                 .setBus(bus611.getId())
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(1.)
+                    .setC2p(0.)
+                    .setC0q(0.)
+                    .setC1q(1.)
+                    .setC2q(0.)
+                    .add()
                 .add();
 
         load611.newExtension(LoadAsymmetricalAdder.class)
@@ -862,15 +913,19 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load611.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_CURRENT)
-                .add();
-
         Load compens611 = vl611.newLoad()
                 .setId("COMPENS_611")
                 .setBus(bus611.getId())
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(0.)
+                    .setC2p(1.)
+                    .setC0q(0.)
+                    .setC1q(0.)
+                    .setC2q(1.)
+                    .add()
                 .add();
 
         compens611.newExtension(LoadAsymmetricalAdder.class)
@@ -881,10 +936,6 @@ public class Asym13BusFeederTest {
                 .withDeltaPc(0.)
                 .withDeltaQc(-0.1)
                 .withConnectionType(LoadConnectionType.Y)
-                .add();
-
-        compens611.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
         // bus 652
@@ -917,6 +968,14 @@ public class Asym13BusFeederTest {
                 .setBus(bus652.getId())
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(0.)
+                    .setC2p(1.)
+                    .setC0q(0.)
+                    .setC1q(0.)
+                    .setC2q(1.)
+                    .add()
                 .add();
 
         load652.newExtension(LoadAsymmetricalAdder.class)
@@ -927,10 +986,6 @@ public class Asym13BusFeederTest {
                 .withDeltaPc(0.)
                 .withDeltaQc(0.)
                 .withConnectionType(LoadConnectionType.Y)
-                .add();
-
-        load652.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
         // bus 680
@@ -1016,9 +1071,6 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load634.newExtension(LoadAsymmetrical2Adder.class)
-                .add();
-
         // bus 675
         Substation substation675 = network.newSubstation()
                 .setId("S675")
@@ -1062,9 +1114,6 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load675.newExtension(LoadAsymmetrical2Adder.class)
-                .add();
-
         // we split the load into 2 parts to test the addition of loads
         Load load675bis = vl675.newLoad()
                 .setId("LOAD_675_bis")
@@ -1083,14 +1132,19 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        load675bis.newExtension(LoadAsymmetrical2Adder.class)
-                .add();
-
         Load compens675 = vl675.newLoad()
                 .setId("COMPENS_675")
                 .setBus(bus675.getId())
                 .setP0(0.)
                 .setQ0(-0.2)
+                .newZipModel()
+                    .setC0p(0.)
+                    .setC1p(0.)
+                    .setC2p(1.)
+                    .setC0q(0.)
+                    .setC1q(0.)
+                    .setC2q(1.)
+                    .add()
                 .add();
 
         compens675.newExtension(LoadAsymmetricalAdder.class)
@@ -1101,10 +1155,6 @@ public class Asym13BusFeederTest {
                 .withDeltaPc(0.)
                 .withDeltaQc(0.)
                 .withConnectionType(LoadConnectionType.Y)
-                .add();
-
-        compens675.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(LoadType.CONSTANT_IMPEDANCE)
                 .add();
 
         double micro = 0.000001;
