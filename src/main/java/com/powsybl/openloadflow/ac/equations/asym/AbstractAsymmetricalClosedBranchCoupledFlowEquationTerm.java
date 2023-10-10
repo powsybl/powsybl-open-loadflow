@@ -186,7 +186,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
             case BUS_V, BUS_PHI -> SequenceType.POSITIVE;
             case BUS_V_NEGATIVE, BUS_PHI_NEGATIVE -> SequenceType.NEGATIVE;
             case BUS_V_ZERO, BUS_PHI_ZERO -> SequenceType.ZERO;
-            default -> throw new IllegalStateException("Unknown variable: " + variable);
+            default -> throw new IllegalStateException(UNKNOWN_VAR + variable);
         };
     }
 
