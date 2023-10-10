@@ -55,6 +55,8 @@ public class LfNetworkParameters {
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
+    public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -112,6 +114,8 @@ public class LfNetworkParameters {
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
 
     private boolean asymmetrical = ASYMMETRICAL_DEFAULT_VALUE;
+
+    private LinePerUnitMode linePerUnitMode = LINE_PER_UNIT_MODE_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -439,6 +443,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public LinePerUnitMode getLinePerUnitMode() {
+        return linePerUnitMode;
+    }
+
+    public LfNetworkParameters setLinePerUnitMode(LinePerUnitMode linePerUnitMode) {
+        this.linePerUnitMode = Objects.requireNonNull(linePerUnitMode);
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -471,6 +484,7 @@ public class LfNetworkParameters {
                 ", cacheEnabled=" + cacheEnabled +
                 ", asymmetrical=" + asymmetrical +
                 ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
+                ", linePerUnitMode=" + linePerUnitMode +
                 ')';
     }
 }

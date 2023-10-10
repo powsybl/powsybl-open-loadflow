@@ -27,8 +27,8 @@ public interface StateVectorScaling {
         Objects.requireNonNull(initialTestResult);
         return switch (parameters.getStateVectorScalingMode()) {
             case NONE -> new NoneStateVectorScaling();
-            case LINE_SEARCH -> new LineSearchStateVectorScaling(initialTestResult, parameters.getLineSearchVectorScalingMaxIteration(), parameters.getLineSearchVectorScalingStepFold());
-            case MAX_VOLTAGE_CHANGE -> new MaxVoltageChangeStateVectorScaling(parameters.getMaxVoltageChangeVectorScalingMaxDv(), parameters.getMaxVoltageChangeVectorScalingMaxDphi());
+            case LINE_SEARCH -> new LineSearchStateVectorScaling(initialTestResult, parameters.getLineSearchStateVectorScalingMaxIteration(), parameters.getLineSearchStateVectorScalingStepFold());
+            case MAX_VOLTAGE_CHANGE -> new MaxVoltageChangeStateVectorScaling(parameters.getMaxVoltageChangeStateVectorScalingMaxDv(), parameters.getMaxVoltageChangeStateVectorScalingMaxDphi());
         };
     }
 
