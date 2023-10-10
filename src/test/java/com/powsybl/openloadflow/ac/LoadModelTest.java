@@ -153,4 +153,32 @@ class LoadModelTest {
         assertActivePowerEquals(600, zipLoad.getTerminal());
         assertReactivePowerEquals(200, zipLoad.getTerminal());
     }
+
+    @Test
+    void zipLoadModelAndDistributedSlackOnLoadTest() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        Load load = network.getLoad("LOAD");
+        VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
+        Load zipLoad = vlload.newLoad()
+                .setId("ZIPLOAD")
+                .setBus("NLOAD")
+                .setP0(50)
+                .setQ0(30)
+                .newZipModel()
+                .setC0p(0.5)
+                .setC0q(0.55)
+                .setC1p(0.3)
+                .setC1q(0.35)
+                .setC2p(0.2)
+                .setC2q(0.1)
+                .add()
+                .add();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertActivePowerEquals(45.326, zipLoad.getTerminal());
+        assertReactivePowerEquals(29.519, zipLoad.getTerminal());
+        assertActivePowerEquals(555.193, load.getTerminal());
+        assertReactivePowerEquals(200, load.getTerminal());
+    }
 }
