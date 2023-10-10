@@ -205,6 +205,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME = "maxVoltageChangeStateVectorScalingMaxDphi";
 
+    private static final String LINE_PER_UNIT_MODE_PARAM_NAME = "linePerUnitMode";
+
     private static final String LOAD_MODEL_PARAM_NAME = "loadModel";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
@@ -264,6 +266,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, ParameterType.DOUBLE, "Step fold for the line search state vector scaling", LineSearchStateVectorScaling.DEFAULT_STEP_FOLD),
         new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, ParameterType.DOUBLE, "Max voltage magnitude change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV),
         new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, ParameterType.DOUBLE, "Max voltage angle change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI),
+        new Parameter(LINE_PER_UNIT_MODE_PARAM_NAME, ParameterType.STRING, "Line per unit mode", LinePerUnitMode.IMPEDANCE.name(), getEnumPossibleValues(LinePerUnitMode.class)),
         new Parameter(LOAD_MODEL_PARAM_NAME, ParameterType.BOOLEAN, "Load model (with voltage dependency) simulation", LfNetworkParameters.LOAD_MODE_DEFAULT_VALUE)
     );
 
@@ -409,6 +412,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double maxVoltageChangeStateVectorScalingMaxDv = MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV;
 
     private double maxVoltageChangeStateVectorScalingMaxDphi = MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI;
+
+    private LinePerUnitMode linePerUnitMode = LfNetworkParameters.LINE_PER_UNIT_MODE_DEFAULT_VALUE;
 
     private boolean loadModel = LfNetworkParameters.LOAD_MODE_DEFAULT_VALUE;
 
@@ -927,6 +932,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public LinePerUnitMode getLinePerUnitMode() {
+        return linePerUnitMode;
+    }
+
+    public OpenLoadFlowParameters setLinePerUnitMode(LinePerUnitMode linePerUnitMode) {
+        this.linePerUnitMode = Objects.requireNonNull(linePerUnitMode);
+        return this;
+    }
+
     public boolean isLoadModel() {
         return loadModel;
     }
@@ -999,6 +1013,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLineSearchStateVectorScalingStepFold(config.getDoubleProperty(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, LineSearchStateVectorScaling.DEFAULT_STEP_FOLD))
                 .setMaxVoltageChangeStateVectorScalingMaxDv(config.getDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV))
                 .setMaxVoltageChangeStateVectorScalingMaxDphi(config.getDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI))
+                .setLinePerUnitMode(config.getEnumProperty(LINE_PER_UNIT_MODE_PARAM_NAME, LinePerUnitMode.class, LfNetworkParameters.LINE_PER_UNIT_MODE_DEFAULT_VALUE))
                 .setLoadModel(config.getBooleanProperty(LOAD_MODEL_PARAM_NAME, LfNetworkParameters.LOAD_MODE_DEFAULT_VALUE))
             );
         return parameters;
@@ -1120,13 +1135,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMaxVoltageChangeStateVectorScalingMaxDv(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxVoltageChangeStateVectorScalingMaxDphi(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(LINE_PER_UNIT_MODE_PARAM_NAME))
+                .ifPresent(prop -> this.setLinePerUnitMode(LinePerUnitMode.valueOf(prop)));
         Optional.ofNullable(properties.get(LOAD_MODEL_PARAM_NAME))
                 .ifPresent(prop -> this.setLoadModel(Boolean.parseBoolean(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(47);
+        Map<String, Object> map = new LinkedHashMap<>(49);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
@@ -1179,6 +1196,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, lineSearchStateVectorScalingStepFold);
         map.put(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, maxVoltageChangeStateVectorScalingMaxDv);
         map.put(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, maxVoltageChangeStateVectorScalingMaxDphi);
+        map.put(LINE_PER_UNIT_MODE_PARAM_NAME, linePerUnitMode);
         map.put(LOAD_MODEL_PARAM_NAME, loadModel);
         return map;
     }
@@ -1300,6 +1318,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setCacheEnabled(parametersExt.isNetworkCacheEnabled())
                 .setAsymmetrical(parametersExt.isAsymmetrical())
                 .setMinNominalVoltageTargetVoltageCheck(parametersExt.getMinNominalVoltageTargetVoltageCheck())
+                .setLinePerUnitMode(parametersExt.getLinePerUnitMode())
                 .setLoadModel(parametersExt.isLoadModel());
     }
 
@@ -1415,7 +1434,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setHvdcAcEmulation(false) // FIXME
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(false)
-                .setMaxSlackBusCount(1);
+                .setMaxSlackBusCount(1)
+                .setLinePerUnitMode(parametersExt.getLinePerUnitMode());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       forcePhaseControlOffAndAddAngle1Var,
@@ -1510,6 +1530,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getLineSearchStateVectorScalingStepFold() == extension2.getLineSearchStateVectorScalingStepFold() &&
                 extension1.getMaxVoltageChangeStateVectorScalingMaxDv() == extension2.getMaxVoltageChangeStateVectorScalingMaxDv() &&
                 extension1.getMaxVoltageChangeStateVectorScalingMaxDphi() == extension2.getMaxVoltageChangeStateVectorScalingMaxDphi() &&
+                extension1.getLinePerUnitMode() == extension2.getLinePerUnitMode() &&
                 extension1.isLoadModel() == extension2.isLoadModel();
     }
 
@@ -1581,6 +1602,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setLineSearchStateVectorScalingStepFold(extension.getLineSearchStateVectorScalingStepFold())
                     .setMaxVoltageChangeStateVectorScalingMaxDv(extension.getMaxVoltageChangeStateVectorScalingMaxDv())
                     .setMaxVoltageChangeStateVectorScalingMaxDphi(extension.getMaxVoltageChangeStateVectorScalingMaxDphi())
+                    .setLinePerUnitMode(extension.getLinePerUnitMode())
                     .setLoadModel(extension.isLoadModel());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

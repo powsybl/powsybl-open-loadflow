@@ -12,8 +12,10 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.network.LinePerUnitMode;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -28,18 +30,23 @@ class Ieee14Test {
 
     private LoadFlowParameters parameters;
 
+    private OpenLoadFlowParameters parametersExt;
+
     private LoadFlow.Runner loadFlowRunner;
 
     @BeforeEach
     void setUp() {
         network = IeeeCdfNetworkFactory.create14();
         parameters = new LoadFlowParameters();
+        parametersExt = OpenLoadFlowParameters.create(parameters);
         OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
 
-    @Test
-    void testAc() {
+    @ParameterizedTest
+    @EnumSource(LinePerUnitMode.class)
+    void testAc(LinePerUnitMode linePerUnitMode) {
+        parametersExt.setLinePerUnitMode(linePerUnitMode);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertVoltageEquals(143.1, network.getBusView().getBus("VL1_0"));
@@ -72,10 +79,12 @@ class Ieee14Test {
         assertAngleEquals(-16.033644, network.getBusView().getBus("VL14_0"));
     }
 
-    @Test
-    void testDc() {
+    @ParameterizedTest
+    @EnumSource(LinePerUnitMode.class)
+    void testDc(LinePerUnitMode linePerUnitMode) {
         parameters.setDc(true)
                 .setDcUseTransformerRatio(true);
+        parametersExt.setLinePerUnitMode(linePerUnitMode);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -98,18 +107,35 @@ class Ieee14Test {
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertAngleEquals(0, network.getBusView().getBus("VL1_0"));
-        assertAngleEquals(-5.0125806, network.getBusView().getBus("VL2_0"));
-        assertAngleEquals(-12.955848, network.getBusView().getBus("VL3_0"));
-        assertAngleEquals(-10.587248, network.getBusView().getBus("VL4_0"));
-        assertAngleEquals(-9.091747, network.getBusView().getBus("VL5_0"));
-        assertAngleEquals(-15.229412, network.getBusView().getBus("VL6_0"));
-        assertAngleEquals(-13.957433, network.getBusView().getBus("VL7_0"));
-        assertAngleEquals(-13.957433, network.getBusView().getBus("VL8_0"));
-        assertAngleEquals(-16.025846, network.getBusView().getBus("VL9_0"));
-        assertAngleEquals(-16.313486, network.getBusView().getBus("VL10_0"));
-        assertAngleEquals(-15.976867, network.getBusView().getBus("VL11_0"));
-        assertAngleEquals(-16.340761, network.getBusView().getBus("VL12_0"));
-        assertAngleEquals(-16.510537, network.getBusView().getBus("VL13_0"));
-        assertAngleEquals(-17.536792, network.getBusView().getBus("VL14_0"));
+        // this is expected to not have the same results with no transformer ratio in DC mode
+        if (linePerUnitMode == LinePerUnitMode.IMPEDANCE) {
+            assertAngleEquals(-5.013434, network.getBusView().getBus("VL2_0"));
+            assertAngleEquals(-12.959124, network.getBusView().getBus("VL3_0"));
+            assertAngleEquals(-10.592617, network.getBusView().getBus("VL4_0"));
+            assertAngleEquals(-9.088529, network.getBusView().getBus("VL5_0"));
+            assertAngleEquals(-15.165267, network.getBusView().getBus("VL6_0"));
+            assertAngleEquals(-14.065521, network.getBusView().getBus("VL7_0"));
+            assertAngleEquals(-14.065521, network.getBusView().getBus("VL8_0"));
+            assertAngleEquals(-15.892482, network.getBusView().getBus("VL9_0"));
+            assertAngleEquals(-16.192424, network.getBusView().getBus("VL10_0"));
+            assertAngleEquals(-15.883766, network.getBusView().getBus("VL11_0"));
+            assertAngleEquals(-16.271146, network.getBusView().getBus("VL12_0"));
+            assertAngleEquals(-16.436648, network.getBusView().getBus("VL13_0"));
+            assertAngleEquals(-17.429432, network.getBusView().getBus("VL14_0"));
+        } else {
+            assertAngleEquals(-5.01258, network.getBusView().getBus("VL2_0"));
+            assertAngleEquals(-12.955848, network.getBusView().getBus("VL3_0"));
+            assertAngleEquals(-10.587248, network.getBusView().getBus("VL4_0"));
+            assertAngleEquals(-9.091747, network.getBusView().getBus("VL5_0"));
+            assertAngleEquals(-15.229412, network.getBusView().getBus("VL6_0"));
+            assertAngleEquals(-13.957433, network.getBusView().getBus("VL7_0"));
+            assertAngleEquals(-13.957433, network.getBusView().getBus("VL8_0"));
+            assertAngleEquals(-16.025846, network.getBusView().getBus("VL9_0"));
+            assertAngleEquals(-16.313486, network.getBusView().getBus("VL10_0"));
+            assertAngleEquals(-15.976867, network.getBusView().getBus("VL11_0"));
+            assertAngleEquals(-16.340761, network.getBusView().getBus("VL12_0"));
+            assertAngleEquals(-16.510537, network.getBusView().getBus("VL13_0"));
+            assertAngleEquals(-17.536792, network.getBusView().getBus("VL14_0"));
+        }
     }
 }
