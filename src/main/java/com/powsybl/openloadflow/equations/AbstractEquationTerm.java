@@ -54,16 +54,12 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     }
 
     @Override
-    public EquationTerm<V, E> setActive(boolean active) {
+    public void setActive(boolean active) {
         if (this.active != active) {
             this.active = active;
-            if (equation != null) {
-                EquationTermEventType eventType = active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
-                                                         : EquationTermEventType.EQUATION_TERM_DEACTIVATED;
-                equation.getEquationSystem().notifyEquationTermChange(self, eventType);
-            }
+            equation.getEquationSystem().notifyEquationTermChange(self, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
+                                                                               : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
         }
-        return this;
     }
 
     @Override
