@@ -6,13 +6,20 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.LoadAsymmetrical;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.openloadflow.network.LfAsymBus;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -20,7 +27,7 @@ import java.util.stream.Collectors;
  */
 public class LfBusImpl extends AbstractLfBus {
 
-    private final Bus bus;
+    private final Ref<Bus> busRef;
 
     private final double nominalV;
 
@@ -32,31 +39,74 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final boolean breakers;
 
-    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean distributedOnConformLoad,
-                        boolean participating, boolean breakers) {
-        super(network, v, angle, distributedOnConformLoad);
-        this.bus = bus;
+    private final Country country;
+
+    private final List<String> bbsIds;
+
+    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
+                        boolean participating) {
+        super(network, v, angle, parameters.isDistributedOnConformLoad());
+        this.busRef = Ref.create(bus, parameters.isCacheEnabled());
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
         this.participating = participating;
-        this.breakers = breakers;
+        this.breakers = parameters.isBreakers();
+        country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
+        if (bus.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
+            bbsIds = bus.getConnectedTerminalStream()
+                    .map(Terminal::getConnectable)
+                    .filter(BusbarSection.class::isInstance)
+                    .map(Connectable::getId)
+                    .collect(Collectors.toList());
+        } else {
+            bbsIds = Collections.emptyList();
+        }
     }
 
-    public static LfBusImpl create(Bus bus, LfNetwork network, boolean distributedOnConformLoad, boolean participating,
-                                   boolean breakers) {
+    private static void createAsym(Bus bus, LfBusImpl lfBus) {
+        double totalDeltaPa = 0;
+        double totalDeltaQa = 0;
+        double totalDeltaPb = 0;
+        double totalDeltaQb = 0;
+        double totalDeltaPc = 0;
+        double totalDeltaQc = 0;
+        for (Load load : bus.getLoads()) {
+            var extension = load.getExtension(LoadAsymmetrical.class);
+            if (extension != null) {
+                totalDeltaPa += extension.getDeltaPa() / PerUnit.SB;
+                totalDeltaQa += extension.getDeltaQa() / PerUnit.SB;
+                totalDeltaPb += extension.getDeltaPb() / PerUnit.SB;
+                totalDeltaQb += extension.getDeltaQb() / PerUnit.SB;
+                totalDeltaPc += extension.getDeltaPc() / PerUnit.SB;
+                totalDeltaQc += extension.getDeltaQc() / PerUnit.SB;
+            }
+        }
+        lfBus.setAsym(new LfAsymBus(totalDeltaPa, totalDeltaQa, totalDeltaPb, totalDeltaQb, totalDeltaPc, totalDeltaQc));
+    }
+
+    public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), distributedOnConformLoad, participating, breakers);
+        Objects.requireNonNull(parameters);
+        var lfBus = new LfBusImpl(bus, network, bus.getV(), Math.toRadians(bus.getAngle()), parameters, participating);
+        if (parameters.isAsymmetrical()) {
+            createAsym(bus, lfBus);
+        }
+        return lfBus;
+    }
+
+    private Bus getBus() {
+        return busRef.get();
     }
 
     @Override
     public String getId() {
-        return bus.getId();
+        return getBus().getId();
     }
 
     @Override
     public String getVoltageLevelId() {
-        return bus.getVoltageLevel().getId();
+        return getBus().getVoltageLevel().getId();
     }
 
     @Override
@@ -80,15 +130,16 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
-        bus.setV(v).setAngle(angle);
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
+        var bus = getBus();
+        bus.setV(Math.max(v, 0.0)).setAngle(Math.toDegrees(angle));
 
         // update slack bus
-        if (slack && writeSlackBus) {
+        if (slack && parameters.isWriteSlackBus()) {
             SlackTerminal.attach(bus);
         }
 
-        super.updateState(reactiveLimits, writeSlackBus, distributedOnConformLoad, loadPowerFactorConstant);
+        super.updateState(parameters);
     }
 
     @Override
@@ -98,11 +149,43 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public List<BusResult> createBusResults() {
+        var bus = getBus();
         if (breakers) {
-            return List.of(new BusResult(getVoltageLevelId(), bus.getId(), v, getAngle()));
+            if (bbsIds.isEmpty()) {
+                return List.of(new BusResult(getVoltageLevelId(), bus.getId(), v, Math.toDegrees(angle)));
+            } else {
+                return bbsIds.stream()
+                        .map(bbsId -> new BusResult(getVoltageLevelId(), bbsId, v, Math.toDegrees(angle)))
+                        .collect(Collectors.toList());
+            }
         } else {
             return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
-                    .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, getAngle())).collect(Collectors.toList());
+                    .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, Math.toDegrees(angle))).collect(Collectors.toList());
         }
+    }
+
+    @Override
+    public Optional<Country> getCountry() {
+        return Optional.ofNullable(country);
+    }
+
+    @Override
+    public double getTargetP() {
+        if (asym != null) {
+            return getGenerationTargetP();
+            // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
+            // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
+        }
+        return super.getTargetP();
+    }
+
+    @Override
+    public double getTargetQ() {
+        if (asym != null) {
+            return getGenerationTargetQ();
+            // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
+            // in this case, load target is set to zero and the constant power load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
+        }
+        return super.getTargetQ();
     }
 }

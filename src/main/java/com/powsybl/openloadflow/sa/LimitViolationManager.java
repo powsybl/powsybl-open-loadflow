@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
@@ -18,6 +19,7 @@ import com.powsybl.security.SecurityAnalysisParameters;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.function.*;
 
 /**
  * Limit violation manager. A reference limit violation manager could be specified to only report violations that
@@ -78,6 +80,46 @@ public class LimitViolationManager {
         }
     }
 
+    private void detectBranchSideViolations(LfBranch branch, LfBus bus,
+                                            BiFunction<LfBranch, LimitType, List<LfBranch.LfLimit>> limitsGetter,
+                                            Function<LfBranch, Evaluable> iGetter,
+                                            Function<LfBranch, Evaluable> pGetter,
+                                            ToDoubleFunction<LfBranch> sGetter,
+                                            Branch.Side side) {
+        List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT);
+        if (!limits.isEmpty()) {
+            double i = iGetter.apply(branch).eval();
+            limits.stream()
+                    .filter(temporaryLimit -> i > temporaryLimit.getValue())
+                    .findFirst()
+                    .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side))
+                    .ifPresent(this::addLimitViolation);
+        }
+
+        limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER);
+        if (!limits.isEmpty()) {
+            double p = pGetter.apply(branch).eval();
+            limits.stream()
+                    .filter(temporaryLimit -> p > temporaryLimit.getValue())
+                    .findFirst()
+                    .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side))
+                    .ifPresent(this::addLimitViolation);
+        }
+
+        limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER);
+        if (!limits.isEmpty()) {
+            //Apparent power is not relevant for fictitious branches and may be NaN
+            double s = sGetter.applyAsDouble(branch);
+            if (!Double.isNaN(s)) {
+                limits.stream()
+                        .filter(temporaryLimit -> s > temporaryLimit.getValue())
+                        .findFirst()
+                        .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side))
+                        .ifPresent(this::addLimitViolation);
+            }
+        }
+    }
+
     /**
      * Detect violation limits on one branch and add them to the given list
      * @param branch branch of interest
@@ -86,66 +128,20 @@ public class LimitViolationManager {
         // detect violation limits on a branch
         // Only detect the most serious one (findFirst) : limit violations are ordered by severity
         if (branch.getBus1() != null) {
-            branch.getLimits1(LimitType.CURRENT).stream()
-                    .filter(temporaryLimit1 -> branch.getI1().eval() > temporaryLimit1.getValue())
-                    .findFirst()
-                    .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.CURRENT, PerUnit.ib(branch.getBus1().getNominalV()), branch.getI1().eval()))
-                    .ifPresent(this::addLimitViolation);
-
-            branch.getLimits1(LimitType.ACTIVE_POWER).stream()
-                    .filter(temporaryLimit1 -> branch.getP1().eval() > temporaryLimit1.getValue())
-                    .findFirst()
-                    .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.ACTIVE_POWER, PerUnit.SB, branch.getP1().eval()))
-                    .ifPresent(this::addLimitViolation);
-
-            //Apparent power is not relevant for fictitious branches and may be NaN
-            double apparentPower1 = branch.computeApparentPower1();
-            if (!Double.isNaN(apparentPower1)) {
-                branch.getLimits1(LimitType.APPARENT_POWER).stream()
-                        .filter(temporaryLimit1 -> apparentPower1 > temporaryLimit1.getValue())
-                        .findFirst()
-                        .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower1))
-                        .ifPresent(this::addLimitViolation);
-            }
-
+            detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, Branch.Side.ONE);
         }
+
         if (branch.getBus2() != null) {
-            branch.getLimits2(LimitType.CURRENT).stream()
-                    .filter(temporaryLimit2 -> branch.getI2().eval() > temporaryLimit2.getValue())
-                    .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                    .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.ib(branch.getBus2().getNominalV()), branch.getI2().eval()))
-                    .ifPresent(this::addLimitViolation);
-
-            branch.getLimits2(LimitType.ACTIVE_POWER).stream()
-                    .filter(temporaryLimit2 -> branch.getP2().eval() > temporaryLimit2.getValue())
-                    .findFirst()
-                    .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.ACTIVE_POWER, PerUnit.SB, branch.getP2().eval()))
-                    .ifPresent(this::addLimitViolation);
-
-            //Apparent power is not relevant for fictitious branches and may be NaN
-            double apparentPower2 = branch.computeApparentPower2();
-            if (!Double.isNaN(apparentPower2)) {
-                branch.getLimits2(LimitType.APPARENT_POWER).stream()
-                        .filter(temporaryLimit2 -> apparentPower2 > temporaryLimit2.getValue())
-                        .findFirst()
-                        .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower2))
-                        .ifPresent(this::addLimitViolation);
-            }
+            detectBranchSideViolations(branch, branch.getBus2(), LfBranch::getLimits2, LfBranch::getI2, LfBranch::getP2, LfBranch::computeApparentPower2, Branch.Side.TWO);
         }
     }
 
-    private static LimitViolation createLimitViolation1(LfBranch branch, LfBranch.LfLimit temporaryLimit1,
-                                                        LimitViolationType type, double scale, double value) {
-        return new LimitViolation(branch.getId(), type, null,
-                temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale,
-                (float) 1., value * scale, Branch.Side.ONE);
-    }
-
-    private static LimitViolation createLimitViolation2(LfBranch branch, LfBranch.LfLimit temporaryLimit2,
-                                                        LimitViolationType type, double scale, double value) {
-        return new LimitViolation(branch.getId(), type, null,
-                temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale,
-                (float) 1., value * scale, Branch.Side.TWO);
+    private static LimitViolation createLimitViolation(LfBranch branch, LfBranch.LfLimit temporaryLimit,
+                                                       LimitViolationType type, double scale, double value,
+                                                       Branch.Side side) {
+        return new LimitViolation(branch.getId(), type, temporaryLimit.getName(),
+                temporaryLimit.getAcceptableDuration(), temporaryLimit.getValue() * scale,
+                1f, value * scale, side);
     }
 
     /**

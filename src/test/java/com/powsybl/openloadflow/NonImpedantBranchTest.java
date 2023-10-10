@@ -6,18 +6,32 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.contingency.BranchContingency;
+import com.powsybl.contingency.ContingenciesProvider;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.impl.OlfBranchResult;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysisParameters;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
+import com.powsybl.security.*;
+import com.powsybl.security.detectors.DefaultLimitViolationDetector;
+import com.powsybl.security.monitor.StateMonitor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -155,6 +169,13 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b3);
     }
 
+    /**
+     *  g1
+     *  |
+     *  b1 === b2 --- b3 --- b4
+     *         |             |
+     *         g2            l1
+     */
     @Test
     void inconsistentTargetVoltagesTest() {
         Network network = Network.create("FourBusesWithNonImpedantLineAndInconsistentTargetVoltages", "code");
@@ -249,8 +270,16 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(0, l12.getTerminal2());
     }
 
+    /**
+     *
+     * g1 (2MW)    g3 (2 MW)
+     * |           |
+     * b1 -- b2 -- b3
+     *       |
+     *       l2 (4 MW, 2 MVar)
+     */
     @Test
-    void nonImpedentNetworkWithTwoPVBusesTest() {
+    void nonImpedantNetworkWithTwoPVBusesTest() {
         Network network = Network.create("TwoPVBusesInNonImpNet", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -281,7 +310,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void nonImpedentNetworkWithCycleTest() {
+    void nonImpedantNetworkWithCycleTest() {
         Network network = Network.create("ThreeBusesNetworkWithCycle", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -302,5 +331,126 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b1);
         assertAngleEquals(0, b2);
         assertAngleEquals(0, b3);
+    }
+
+    @Test
+    void securityAnalysisTest() {
+        Network network = Network.create("test", "code");
+        Bus b0 = createBus(network, "b0");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b5 = createBus(network, "b5");
+        Bus b7 = createBus(network, "b7");
+        Bus b9 = createBus(network, "b9");
+        createGenerator(b1, "g1", 2);
+        createGenerator(b9, "g9", 1);
+        createLoad(b2, "d2", 1);
+        createLoad(b7, "d7", 4);
+        createLine(network, b0, b1, "l01", 0.0);
+        createLine(network, b0, b2, "l02", 0.0);
+        createLine(network, b1, b3, "l13", 0.0);
+        createLine(network, b2, b3, "l23", 0.0);
+        createLine(network, b2, b5, "l25", 0.0);
+        createLine(network, b5, b9, "l59", 0.1);
+        createLine(network, b7, b9, "l79", 0.1);
+
+        List<Contingency> contingencies = List.of(new Contingency("contingency1", List.of(new BranchContingency("l01"), new BranchContingency("l02"))),
+                                                  new Contingency("contingency2", List.of(new BranchContingency("l01"), new BranchContingency("l13"))));
+
+        ContingenciesProvider provider = n -> contingencies;
+        SecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network, network.getVariantManager().getWorkingVariantId(), new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), LocalComputationManager.getDefault(), new SecurityAnalysisParameters(), provider, Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), Reporter.NO_OP).join();
+        assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(0).getStatus());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(1).getStatus());
+    }
+
+    /**
+     *
+     * g0 (regulate b1)                     g4
+     * |                                    | t34 (regulate b3)
+     * b0 ----- b1 ===== b2 ===== b3 --OO-- b4
+     *          |                 |
+     *           ------- b5 ------
+     *                   |
+     *                   ld5
+     */
+    @Test
+    void securityAnalysisNotSameNumberOfVariablesAndEquationsIssueTest() {
+        Network network = Network.create("test", "code");
+        Bus b0 = createBus(network, "s", "b0");
+        Bus b1 = createBus(network, "s", "b1");
+        Bus b2 = createBus(network, "s", "b2");
+        Bus b3 = createBus(network, "s", "b3");
+        Bus b4 = createBus(network, "s", "b4");
+        Bus b5 = createBus(network, "s", "b5");
+        Generator g0 = createGenerator(b0, "g0", 2, 1); // 1 kV
+        createGenerator(b4, "g4", 2, 1.15); // 1.15 kV
+        createLoad(b5, "ld5", 4);
+        Line l01 = createLine(network, b0, b1, "l01", 0.1);
+        createLine(network, b1, b2, "l12", 0.0);
+        createLine(network, b2, b3, "l23", 0.0);
+        createLine(network, b1, b5, "l15", 0.1);
+        createLine(network, b5, b3, "l53", 0.1);
+        g0.setRegulatingTerminal(l01.getTerminal2()); // remote
+        TwoWindingsTransformer t34 = createTransformer(network, "s", b3, b4, "tr34", 0.15, 1);
+        t34.newRatioTapChanger()
+                .beginStep()
+                    .setRho(0.9)
+                .endStep()
+                .beginStep()
+                    .setRho(1)
+                .endStep()
+                .beginStep()
+                    .setRho(1.1)
+                .endStep()
+                .beginStep()
+                    .setRho(1.2)
+                .endStep()
+                .setTapPosition(1)
+                .setLoadTapChangingCapabilities(true)
+                .setRegulating(true)
+                .setTargetV(1.1)
+                .setRegulationTerminal(t34.getTerminal1())
+                .setTargetDeadband(0.01)
+                .add();
+
+        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l01"))));
+
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters.create(loadFlowParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(loadFlowParameters);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters()
+                .setCreateResultExtension(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+        SecurityAnalysisProvider provider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(),
+                Set.of("tr34"),
+                Set.of("b0_vl", "b1_vl", "b2_vl", "b3_vl", "b4_vl", "b5_vl"),
+                Collections.emptySet()));
+        SecurityAnalysisResult result = provider.run(network,
+                        network.getVariantManager().getWorkingVariantId(),
+                        new DefaultLimitViolationDetector(),
+                        new LimitViolationFilter(),
+                        LocalComputationManager.getDefault(),
+                        securityAnalysisParameters,
+                        n -> contingencies,
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        monitors,
+                        Reporter.NO_OP)
+                .join()
+                .getResult();
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(1d, result.getPreContingencyResult().getNetworkResult().getBusResult("b1").getV(), 1e-6); // g0 is controlling voltage of b1
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertEquals(1.131391d, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b3").getV(), 1e-6); // tr34 is controlling voltage of b1 at tap 0 (ratio 0.9)
+        assertEquals(0.918304d, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), 1e-6);
     }
 }

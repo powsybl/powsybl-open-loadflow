@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.DoubleSupplier;
@@ -37,6 +38,11 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
             this.term = Objects.requireNonNull(term);
             this.scalarSupplier = Objects.requireNonNull(scalarSupplier);
             term.setSelf(this);
+        }
+
+        @Override
+        public List<EquationTerm<V, E>> getChildren() {
+            return Collections.singletonList(term);
         }
 
         @Override
@@ -66,12 +72,12 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public ElementType getElementType() {
-            return term.getElementType();
+            return null;
         }
 
         @Override
         public int getElementNum() {
-            return term.getElementNum();
+            return -1;
         }
 
         @Override
@@ -125,53 +131,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         return new MultiplyByScalarEquationTerm<>(term, scalar);
     }
 
-    class VariableEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractEquationTerm<V, E> {
-
-        private final List<Variable<V>> variables;
-
-        VariableEquationTerm(Variable<V> variable) {
-            this.variables = List.of(Objects.requireNonNull(variable));
-        }
-
-        private Variable<V> getVariable() {
-            return variables.get(0);
-        }
-
-        @Override
-        public ElementType getElementType() {
-            return getVariable().getType().getElementType();
-        }
-
-        @Override
-        public int getElementNum() {
-            return getVariable().getElementNum();
-        }
-
-        @Override
-        public List<Variable<V>> getVariables() {
-            return variables;
-        }
-
-        @Override
-        public double eval() {
-            return sv.get(getVariable().getRow());
-        }
-
-        @Override
-        public double der(Variable<V> variable) {
-            return 1;
-        }
-
-        @Override
-        public double calculateSensi(DenseMatrix dx, int column) {
-            return dx.get(getVariable().getRow(), column);
-        }
-
-        @Override
-        public void write(Writer writer) throws IOException {
-            getVariable().write(writer);
-        }
-    }
+    List<EquationTerm<V, E>> getChildren();
 
     Equation<V, E> getEquation();
 
@@ -204,6 +164,14 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * @return value of the equation term
      */
     double eval();
+
+    /**
+     * Evaluate the equation term with an alternative state vector.
+     * @return value of the equation term
+     */
+    default double eval(StateVector sv) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 
     /**
      * Get partial derivative.

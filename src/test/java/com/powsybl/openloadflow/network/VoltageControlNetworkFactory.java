@@ -111,48 +111,36 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr1")
-                .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr2")
-                .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
                 .setConnectableBus1(b2.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.2)
                 .setRatedU2(398)
                 .setR(1)
                 .setX(36)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr3")
-                .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
                 .setConnectableBus1(b3.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(21.3)
                 .setRatedU2(397)
                 .setR(2)
                 .setX(50)
-                .setG(0)
-                .setB(0)
                 .add();
 
         return network;
@@ -245,48 +233,36 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr1")
-                .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr2")
-                .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
                 .setConnectableBus1(b2.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr3")
-                .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
                 .setConnectableBus1(b3.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
 
         return network;
@@ -360,16 +336,11 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         network.newLine()
                 .setId("LINE_12")
-                .setVoltageLevel1("VL_1")
-                .setVoltageLevel2("VL_2")
                 .setBus1("BUS_1")
                 .setBus2("BUS_2")
                 .setR(1.05)
                 .setX(10.0)
                 .setG1(0.0000005)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
         return network;
@@ -391,8 +362,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         TwoWindingsTransformer t2wt = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
                 .setId("T2wT")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_3")
                 .setRatedU1(132.0)
                 .setRatedU2(33.0)
                 .setR(17.0)
@@ -442,11 +411,94 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         return network;
     }
 
+    public static Network createNetworkWithT2wt2() {
+
+        Network network = VoltageControlNetworkFactory.createTransformerBaseNetwork("two-windings-transformer-control");
+
+        TwoWindingsTransformer t2wt = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
+                .setId("T2wT")
+                .setRatedU1(132.0)
+                .setRatedU2(33.0)
+                .setR(17.0)
+                .setX(10.0)
+                .setG(0.00573921028466483)
+                .setB(0.000573921028466483)
+                .setBus1("BUS_2")
+                .setBus2("BUS_3")
+                .add();
+
+        t2wt.newRatioTapChanger()
+                .beginStep()
+                .setRho(1.75)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.7)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.5)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.2)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.1)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.05)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.0)
+                .setR(0.121)
+                .setX(0.0121)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(0.9)
+                .setR(0.1089)
+                .setX(0.01089)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .setRegulating(false)
+                .setTargetV(33.0)
+                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
+                .add();
+
+        return network;
+    }
+
     /**
      * A very small network to test with two T2wt.
      *
-     *     G1        LD2         LD3
-     *     |    L12   |  T2WT2    |
+     *     G1        LD2        LD3
+     *     |    L12   |  T2WT2   |
      *     |  ------- | /     \  |
      *     B1         B2       B3
      *                 \      /
@@ -458,8 +510,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         TwoWindingsTransformer t2wt1 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
                 .setId("T2wT1")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_3")
                 .setRatedU1(132.0)
                 .setRatedU2(33.0)
                 .setR(17.0)
@@ -508,8 +558,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         TwoWindingsTransformer t2wt2 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
                 .setId("T2wT2")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_3")
                 .setRatedU1(132.0)
                 .setRatedU2(33.0)
                 .setR(17.0)
@@ -605,30 +653,21 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .newLeg1()
                 .setR(2.0)
                 .setX(10.0)
-                .setG(0.0)
-                .setB(0.0)
                 .setRatedU(130.0)
-                .setVoltageLevel("VL_2")
                 .setConnectableBus("BUS_2")
                 .setBus("BUS_2")
                 .add()
                 .newLeg2()
                 .setR(2.0)
                 .setX(10.0)
-                .setG(0.0)
-                .setB(0.0)
                 .setRatedU(30.0)
-                .setVoltageLevel("VL_3")
                 .setConnectableBus("BUS_3")
                 .setBus("BUS_3")
                 .add()
                 .newLeg3()
                 .setR(2.0)
                 .setX(10.0)
-                .setG(0.0)
-                .setB(0.0)
                 .setRatedU(10.0)
-                .setVoltageLevel("VL_4")
                 .setConnectableBus("BUS_4")
                 .setBus("BUS_4")
                 .add()
@@ -681,8 +720,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         TwoWindingsTransformer t2wt2 = network.getSubstation("SUBSTATION")
                 .newTwoWindingsTransformer()
                     .setId("T2wT2")
-                    .setVoltageLevel1("VL_2")
-                    .setVoltageLevel2("VL_3")
                     .setRatedU1(132.0)
                     .setRatedU2(33.0)
                     .setR(17.0)
@@ -842,49 +879,381 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr1")
-                .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr2")
-                .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
                 .setConnectableBus1(b2.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr3")
-                .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
                 .setConnectableBus1(b3.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
+
+        return network;
+    }
+
+    /**
+     * SVC test case.
+     *
+     * g1        ld1
+     * |          |
+     * b1---------b2
+     *      l1    |
+     *           svc1
+     */
+    public static Network createWithStaticVarCompensator() {
+        Network network = Network.create("svc", "test");
+        Substation s1 = network.newSubstation()
+                .setId("S1")
+                .add();
+        Substation s2 = network.newSubstation()
+                .setId("S2")
+                .add();
+        VoltageLevel vl1 = s1.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        vl1.newGenerator()
+                .setId("g1")
+                .setConnectableBus("b1")
+                .setBus("b1")
+                .setTargetP(101.3664)
+                .setTargetV(390)
+                .setMinP(0)
+                .setMaxP(150)
+                .setVoltageRegulatorOn(true)
+                .add();
+        VoltageLevel vl2 = s2.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        vl2.newLoad()
+                .setId("ld1")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setP0(101)
+                .setQ0(150)
+                .add();
+        vl2.newStaticVarCompensator()
+                .setId("svc1")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
+                .setBmin(-0.008)
+                .setBmax(0.008)
+                .add();
+        network.newLine()
+                .setId("l1")
+                .setBus1("b1")
+                .setBus2("b2")
+                .setR(1)
+                .setX(3)
+                .add();
+        return network;
+    }
+
+    /**
+     * l1 - b1 ================ b2 - g2
+     *      ||                  |
+     * g3 - b3 ---------------- b4 - g4 (regulating b1)
+     *      |
+     *      l3
+     */
+    public static Network createWithSimpleRemoteControl() {
+        Network network = Network.create("remoteControl", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        createGenerator(b2, "g2", 2, 1);
+        createGenerator(b3, "g3", 2, 1);
+        createGenerator(b4, "g4", 2, 1);
+        createLoad(b3, "l3", 5, 1);
+        createLoad(b1, "l1", 1, 1);
+        createLine(network, b1, b2, "l12", 0.0);
+        createLine(network, b2, b4, "l24", 0.01);
+        createLine(network, b4, b3, "l43", 0.01);
+        createLine(network, b3, b1, "l31", 0.0);
+        network.getGenerator("g4").setRegulatingTerminal(network.getLoad("l1").getTerminal()); // remote control.
+        return network;
+    }
+
+    /**
+     *     b2 - g2          l4                g5
+     *     |                 |                |
+     *     b1 ------------- b4 ------------- b5 - l5
+     *     |
+     *     b3 - g3
+     */
+    public static Network createWithTwoVoltageControls() {
+        Network network = Network.create("twoVoltageControls", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        createGenerator(b2, "g2", 2, 1);
+        createGenerator(b3, "g3", 2, 1);
+        createGenerator(b5, "g5", 2, 1);
+        createLoad(b4, "l4", 5, 1);
+        createLoad(b5, "l5", 1, 1);
+        createLine(network, b1, b2, "l12", 0.01);
+        createLine(network, b1, b3, "l13", 0.01);
+        createLine(network, b1, b4, "l14", 0.01);
+        createLine(network, b4, b5, "l45", 0.01);
+        network.getGenerator("g2").setRegulatingTerminal(network.getLine("l12").getTerminal1()); // remote control (g2 -> b1).
+        network.getGenerator("g3").setRegulatingTerminal(network.getLine("l13").getTerminal1()); // remote control (g3 -> b1).
+        return network;
+    }
+
+    /**
+     *     b2 - g1          l1 + g3
+     *     |                 |
+     *     b1 ------------- b3
+     *     |
+     *     shunt1
+     */
+    public static Network createWithShuntAndGeneratorVoltageControl() {
+        Network network = Network.create("shuntAndGeneratorVoltageControl", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createLine(network, b1, b2, "l12", 0.01);
+        createLine(network, b1, b3, "l13", 0.01);
+        createGenerator(b2, "g1", 2, 1);
+        createLoad(b1, "l1", 2.5, 1);
+        createGenerator(b3, "g3", 1, 1);
+        b3.getVoltageLevel().newShuntCompensator() // hidden voltage control
+                .setId("SHUNT")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(1)
+                .setTargetDeadband(0.1)
+                .newLinearModel()
+                .setMaximumSectionCount(50)
+                .setBPerSection(1E-3)
+                .setGPerSection(0.0)
+                .add()
+                .add();
+        network.getGenerator("g1").setRegulatingTerminal(network.getLine("l12").getTerminal1()); // remote control (g2 -> b1).
+        return network;
+    }
+
+    /**
+     *  g1 (reg b1)  g2 (reg b2)  g3 (reg b3)
+     *  |            |            |
+     *  b01          b02          b03
+     *  |            |            |
+     *  b1 --------- b2 --------- b3
+     *               |
+     *               l
+     */
+    public static Network createWithDependentVoltageControls() {
+        Network network = Network.create("withDependantVoltageControls", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b01 = createBus(network, "b01");
+        Bus b02 = createBus(network, "b02");
+        Bus b03 = createBus(network, "b03");
+        createLine(network, b01, b1, "l011", 0.01);
+        createLine(network, b02, b2, "l022", 0.01);
+        createLine(network, b03, b3, "l033", 0.01);
+        createGenerator(b01, "g1", 2, 1);
+        createGenerator(b02, "g2", 2, 1);
+        createGenerator(b03, "g3", 2, 1);
+        createLoad(b2, "l", 6, 1);
+        createLine(network, b1, b2, "l12", 0.0);
+        createLine(network, b2, b3, "l23", 0.0);
+        network.getGenerator("g1").setRegulatingTerminal(network.getLine("l011").getTerminal2());
+        network.getGenerator("g2").setRegulatingTerminal(network.getLine("l022").getTerminal2());
+        network.getGenerator("g3").setRegulatingTerminal(network.getLine("l033").getTerminal2());
+        return network;
+    }
+
+    /**
+     *   g1     SHUNT2  SHUNT3
+     *   |      |       |
+     *  b1 ---- b2      b3
+     *  |       |       |
+     *  8 tr1   8 tr2   8 tr3
+     *  |       |       |
+     *  b5 -S-  +---b4--+
+     *  |           |
+     *  l5          l4
+     */
+    public static Network createWithShuntSharedRemoteControl2() {
+
+        Network network = Network.create("shunt-remote-control-test", "code");
+
+        Substation s = network.newSubstation()
+                .setId("s")
+                .add();
+        VoltageLevel vl1 = s.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(20)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus b1 = vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        VoltageLevel vl2 = s.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(20)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus b2 = vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        VoltageLevel vl3 = s.newVoltageLevel()
+                .setId("vl3")
+                .setNominalV(20)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus b3 = vl3.getBusBreakerView().newBus()
+                .setId("b3")
+                .add();
+        VoltageLevel vl4 = s.newVoltageLevel()
+                .setId("vl4")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus b4 = vl4.getBusBreakerView().newBus()
+                .setId("b4")
+                .add();
+        Load l4 = vl4.newLoad()
+                .setId("l4")
+                .setBus("b4")
+                .setConnectableBus("b4")
+                .setP0(150.0)
+                .setQ0(0)
+                .add();
+        Bus b5 = vl4.getBusBreakerView().newBus()
+                .setId("b5")
+                .add();
+        Load l5 = vl4.newLoad()
+                .setId("l5")
+                .setBus("b5")
+                .setConnectableBus("b5")
+                .setP0(150.0)
+                .setQ0(0)
+                .add();
+        vl4.getBusBreakerView().newSwitch()
+                .setId("S")
+                .setBus1("b4")
+                .setBus2("b5")
+                .setOpen(true)
+                .add();
+
+        b1.getVoltageLevel()
+                .newGenerator()
+                .setId("g1")
+                .setBus("b1")
+                .setConnectableBus("b1")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .setTargetV(400)
+                .setRegulatingTerminal(l5.getTerminal())
+                .setVoltageRegulatorOn(true)
+                .add();
+        b2.getVoltageLevel().newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(false)
+                .setRegulatingTerminal(l4.getTerminal())
+                .setTargetV(380)
+                .setTargetDeadband(5.0)
+                .newLinearModel()
+                .setMaximumSectionCount(50)
+                .setBPerSection(-1E-2)
+                .setGPerSection(0.0)
+                .add()
+                .add();
+        b3.getVoltageLevel().newShuntCompensator()
+                .setId("SHUNT3")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l4.getTerminal())
+                .setTargetV(380)
+                .setTargetDeadband(5.0)
+                .newLinearModel()
+                .setMaximumSectionCount(50)
+                .setBPerSection(-1E-2)
+                .setGPerSection(0.0)
+                .add()
+                .add();
+        s.newTwoWindingsTransformer()
+                .setId("tr1")
+                .setBus1(b1.getId())
+                .setConnectableBus1(b1.getId())
+                .setBus2(b5.getId())
+                .setConnectableBus2(b5.getId())
+                .setRatedU1(20.5)
+                .setRatedU2(399)
+                .setR(1)
+                .setX(30)
+                .add();
+        s.newTwoWindingsTransformer()
+                .setId("tr2")
+                .setBus1(b2.getId())
+                .setConnectableBus1(b2.getId())
+                .setBus2(b4.getId())
+                .setConnectableBus2(b4.getId())
+                .setRatedU1(20.5)
+                .setRatedU2(399)
+                .setR(1)
+                .setX(30)
+                .add();
+        s.newTwoWindingsTransformer()
+                .setId("tr3")
+                .setBus1(b3.getId())
+                .setConnectableBus1(b3.getId())
+                .setBus2(b4.getId())
+                .setConnectableBus2(b4.getId())
+                .setRatedU1(20.5)
+                .setRatedU2(399)
+                .setR(1)
+                .setX(30)
+                .add();
+        createLine(network, b1, b2, "l12", 0.00);
 
         return network;
     }

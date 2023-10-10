@@ -6,30 +6,40 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface LfNetworkListener {
 
-    void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
+    void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
 
-    void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled);
+    void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage);
+
+    void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled);
 
     void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled);
 
     void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled);
 
-    void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP);
+    void onLoadActivePowerTargetChange(LfLoad load, double oldTargetP, double newTargetP);
 
-    void onLoadReactivePowerTargetChange(LfBus bus, double oldLoadTargetQ, double newLoadTargetQ);
+    void onLoadReactivePowerTargetChange(LfLoad load, double oldTargetQ, double newTargetQ);
 
     void onGenerationActivePowerTargetChange(LfGenerator generator, double oldGenerationTargetP, double newGenerationTargetP);
 
     void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ);
 
-    void onTransformerPhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition);
-
-    void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition);
-
     void onDisableChange(LfElement element, boolean disabled);
+
+    void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition);
+
+    void onShuntSusceptanceChange(LfShunt shunt, double b);
+
+    void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, LoadFlowModel loadFlowModel, boolean spanningTree);
+
+    void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowModel loadFlowModel);
+
+    void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel);
 }

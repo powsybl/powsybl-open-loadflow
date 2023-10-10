@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -23,13 +24,11 @@ import java.util.stream.Collectors;
  */
 public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-    private final boolean indexTerms;
-
     private final Map<Pair<Integer, E>, Equation<V, E>> equations = new HashMap<>();
 
     private final Map<Pair<ElementType, Integer>, List<Equation<V, E>>> equationsByElement = new HashMap<>();
 
-    private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement = new HashMap<>();
+    private Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement;
 
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
@@ -40,16 +39,11 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private final EquationSystemIndex<V, E> index;
 
     public EquationSystem() {
-        this(false);
+        this(new VariableSet<>());
     }
 
-    public EquationSystem(boolean indexTerms) {
-        this(new VariableSet<>(), indexTerms);
-    }
-
-    public EquationSystem(VariableSet<V> variableSet, boolean indexTerms) {
+    public EquationSystem(VariableSet<V> variableSet) {
         this.variableSet = Objects.requireNonNull(variableSet);
-        this.indexTerms = indexTerms;
         index = new EquationSystemIndex<>(this);
     }
 
@@ -73,21 +67,38 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return equations.values();
     }
 
-    void addEquationTerm(EquationTerm<V, E> equationTerm) {
-        if (indexTerms) {
-            Objects.requireNonNull(equationTerm);
-            Pair<ElementType, Integer> element = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
-            equationTermsByElement.computeIfAbsent(element, k -> new ArrayList<>())
-                    .add(equationTerm);
+    private void indexTerm(EquationTerm<V, E> equationTerm) {
+        if (equationTermsByElement != null) {
+            if (equationTerm.getElementType() != null && equationTerm.getElementNum() != -1) {
+                Pair<ElementType, Integer> element = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
+                equationTermsByElement.computeIfAbsent(element, k -> new ArrayList<>())
+                        .add(equationTerm);
+            }
+            for (EquationTerm<V, E> child : equationTerm.getChildren()) {
+                indexTerm(child);
+            }
         }
+    }
+
+    private void indexAllTerms() {
+        if (equationTermsByElement == null) {
+            equationTermsByElement = new HashMap<>();
+            for (var equation : equations.values()) {
+                for (var term : equation.getTerms()) {
+                    indexTerm(term);
+                }
+            }
+        }
+    }
+
+    void addEquationTerm(EquationTerm<V, E> equationTerm) {
+        indexTerm(equationTerm);
         attach(equationTerm);
     }
 
     public List<EquationTerm<V, E>> getEquationTerms(ElementType elementType, int elementNum) {
-        if (!indexTerms) {
-            throw new PowsyblException("Equations terms have not been indexed");
-        }
         Objects.requireNonNull(elementType);
+        indexAllTerms();
         Pair<ElementType, Integer> element = Pair.of(elementType, elementNum);
         return equationTermsByElement.getOrDefault(element, Collections.emptyList());
     }
@@ -99,6 +110,21 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 .map(clazz::cast)
                 .findFirst()
                 .orElseThrow(() -> new PowsyblException("Equation term not found"));
+    }
+
+    public Equation<V, E> createEquation(LfElement element, E type) {
+        Objects.requireNonNull(element);
+        Objects.requireNonNull(type);
+        if (element.getType() != type.getElementType()) {
+            throw new PowsyblException("Incorrect equation type: " + type);
+        }
+        Pair<Integer, E> p = Pair.of(element.getNum(), type);
+        Equation<V, E> equation = equations.get(p);
+        if (equation == null) {
+            equation = addEquation(p)
+                    .setActive(!element.isDisabled());
+        }
+        return equation;
     }
 
     public Equation<V, E> createEquation(int num, E type) {
@@ -120,12 +146,29 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return equations.containsKey(p);
     }
 
+    private void deindexTerm(EquationTerm<V, E> term) {
+        if (term.getElementType() != null && term.getElementNum() != -1) {
+            List<EquationTerm<V, E>> termsForThisElement = equationTermsByElement.get(Pair.of(term.getElementType(), term.getElementNum()));
+            if (termsForThisElement != null) {
+                termsForThisElement.remove(term);
+            }
+        }
+        for (EquationTerm<V, E> child : term.getChildren()) {
+            deindexTerm(child);
+        }
+    }
+
     public Equation<V, E> removeEquation(int num, E type) {
         Pair<Integer, E> p = Pair.of(num, type);
         Equation<V, E> equation = equations.remove(p);
         if (equation != null) {
             Pair<ElementType, Integer> element = Pair.of(type.getElementType(), num);
-            equationsByElement.remove(element);
+            equationsByElement.get(element).remove(equation);
+            if (equationTermsByElement != null) {
+                for (EquationTerm<V, E> term : equation.getTerms()) {
+                    deindexTerm(term);
+                }
+            }
             notifyEquationChange(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;

@@ -16,7 +16,7 @@ public class BusState extends BusDcState {
 
     private final double angle;
     private final double voltage;
-    private final double loadTargetQ;
+    private Double loadTargetQ;
     private final double generationTargetQ;
     private final boolean voltageControlEnabled;
     private final Boolean shuntVoltageControlEnabled;
@@ -24,15 +24,16 @@ public class BusState extends BusDcState {
     private final double shuntG;
     private final double controllerShuntB;
     private final double controllerShuntG;
+    private final double svcShuntB;
     private final Map<String, LfGenerator.GeneratorControlType> generatorsControlType;
 
     public BusState(LfBus bus) {
         super(bus);
         this.angle = bus.getAngle();
         this.voltage = bus.getV();
-        this.loadTargetQ = bus.getLoadTargetQ();
+        bus.getLoad().ifPresent(load -> this.loadTargetQ = load.getTargetQ());
         this.generationTargetQ = bus.getGenerationTargetQ();
-        this.voltageControlEnabled = bus.isVoltageControlEnabled();
+        this.voltageControlEnabled = bus.isGeneratorVoltageControlEnabled();
         LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
         shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
         controllerShuntB = controllerShunt != null ? controllerShunt.getB() : Double.NaN;
@@ -40,6 +41,8 @@ public class BusState extends BusDcState {
         LfShunt shunt = bus.getShunt().orElse(null);
         shuntB = shunt != null ? shunt.getB() : Double.NaN;
         shuntG = shunt != null ? shunt.getG() : Double.NaN;
+        LfShunt svcShunt = bus.getSvcShunt().orElse(null);
+        svcShuntB = svcShunt != null ? svcShunt.getB() : Double.NaN;
         this.generatorsControlType = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getGeneratorControlType));
     }
 
@@ -48,10 +51,11 @@ public class BusState extends BusDcState {
         super.restore();
         element.setAngle(angle);
         element.setV(voltage);
-        element.setLoadTargetQ(loadTargetQ);
+        if (loadTargetQ != null) {
+            element.getLoad().orElseThrow().setTargetQ(loadTargetQ);
+        }
         element.setGenerationTargetQ(generationTargetQ);
-        element.setVoltageControlEnabled(voltageControlEnabled);
-        element.setVoltageControlSwitchOffCount(0);
+        element.setGeneratorVoltageControlEnabled(voltageControlEnabled);
         if (shuntVoltageControlEnabled != null) {
             element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
         }
@@ -66,6 +70,9 @@ public class BusState extends BusDcState {
         }
         if (!Double.isNaN(shuntG)) {
             element.getShunt().orElseThrow().setG(shuntG);
+        }
+        if (!Double.isNaN(svcShuntB)) {
+            element.getSvcShunt().orElseThrow().setB(svcShuntB);
         }
         element.getGenerators().forEach(g -> g.setGeneratorControlType(generatorsControlType.get(g.getId())));
     }

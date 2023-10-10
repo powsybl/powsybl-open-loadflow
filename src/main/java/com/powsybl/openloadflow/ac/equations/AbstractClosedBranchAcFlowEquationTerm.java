@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,16 +38,34 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
+    private static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
+        return switch (sequenceType) {
+            case POSITIVE -> AcVariableType.BUS_V;
+            case NEGATIVE -> AcVariableType.BUS_V_NEGATIVE;
+            case ZERO -> AcVariableType.BUS_V_ZERO;
+        };
+    }
+
+    private static AcVariableType getVoltageAngleType(Fortescue.SequenceType sequenceType) {
+        return switch (sequenceType) {
+            case POSITIVE -> AcVariableType.BUS_PHI;
+            case NEGATIVE -> AcVariableType.BUS_PHI_NEGATIVE;
+            case ZERO -> AcVariableType.BUS_PHI_ZERO;
+        };
+    }
+
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1) {
+                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
-        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
-        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
-        ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
-        ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
+        AcVariableType vType = getVoltageMagnitudeType(sequenceType);
+        AcVariableType angleType = getVoltageAngleType(sequenceType);
+        v1Var = variableSet.getVariable(bus1.getNum(), vType);
+        v2Var = variableSet.getVariable(bus2.getNum(), vType);
+        ph1Var = variableSet.getVariable(bus1.getNum(), angleType);
+        ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
         r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
         variables.add(v1Var);
@@ -59,6 +78,10 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         if (r1Var != null) {
             variables.add(r1Var);
         }
+    }
+
+    public Variable<AcVariableType> getA1Var() {
+        return a1Var;
     }
 
     protected double v1() {
@@ -78,11 +101,11 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     protected double r1() {
-        return r1Var != null ? sv.get(r1Var.getRow()) : branch.getPiModel().getR1();
+        return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
     }
 
     protected double a1() {
-        return a1Var != null ? sv.get(a1Var.getRow()) : branch.getPiModel().getA1();
+        return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
     }
 
     public static double theta1(double ksi, double ph1, double a1, double ph2) {
@@ -102,8 +125,8 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         double dph2 = dx.get(ph2Var.getRow(), column);
         double dv1 = dx.get(v1Var.getRow(), column);
         double dv2 = dx.get(v2Var.getRow(), column);
-        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
-        double dr1 = r1Var != null ? dx.get(r1Var.getRow(), column) : branch.getPiModel().getR1();
+        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : 0;
+        double dr1 = r1Var != null ? dx.get(r1Var.getRow(), column) : 0;
         return calculateSensi(dph1, dph2, dv1, dv2, da1, dr1);
     }
 

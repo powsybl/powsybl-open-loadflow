@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 
@@ -16,13 +17,9 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DcLoadFlowParameters {
-
-    private final LfNetworkParameters networkParameters;
+public class DcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private final DcEquationSystemCreationParameters equationSystemCreationParameters;
-
-    private final MatrixFactory matrixFactory;
 
     private final boolean distributedSlack;
 
@@ -30,27 +27,25 @@ public class DcLoadFlowParameters {
 
     private final boolean setVToNan;
 
+    private final int maxOuterLoopIterations;
+
     public DcLoadFlowParameters(LfNetworkParameters networkParameters, DcEquationSystemCreationParameters equationSystemCreationParameters,
                                 MatrixFactory matrixFactory, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
-                                boolean setVToNan) {
-        this.networkParameters = Objects.requireNonNull(networkParameters);
+                                boolean setVToNan, int maxOuterLoopIterations) {
+        super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
-        this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.distributedSlack = distributedSlack;
         this.balanceType = balanceType;
         this.setVToNan = setVToNan;
-    }
-
-    public LfNetworkParameters getNetworkParameters() {
-        return networkParameters;
+        this.maxOuterLoopIterations = maxOuterLoopIterations;
     }
 
     public DcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
     }
 
-    public MatrixFactory getMatrixFactory() {
-        return matrixFactory;
+    public int getMaxOuterLoopIterations() {
+        return maxOuterLoopIterations;
     }
 
     public boolean isDistributedSlack() {
@@ -74,6 +69,7 @@ public class DcLoadFlowParameters {
                 ", distributedSlack=" + distributedSlack +
                 ", balanceType=" + balanceType +
                 ", setVToNan=" + setVToNan +
+                ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ')';
     }
 }

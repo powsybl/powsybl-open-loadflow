@@ -8,13 +8,13 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.network.*;
 
-import java.util.NavigableSet;
+import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractVector<V, E> {
+public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractVector<V, E> implements AutoCloseable {
 
     @FunctionalInterface
     public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
@@ -29,12 +29,17 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     private final LfNetworkListener networkListener = new AbstractLfNetworkListener() {
 
         @Override
-        public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
+        public void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage) {
             invalidateValues();
         }
 
         @Override
-        public void onLoadReactivePowerTargetChange(LfBus bus, double oldLoadTargetQ, double newLoadTargetQ) {
+        public void onLoadActivePowerTargetChange(LfLoad load, double oldTargetP, double newTargetP) {
+            invalidateValues();
+        }
+
+        @Override
+        public void onLoadReactivePowerTargetChange(LfLoad load, double oldTargetQ, double newTargetQ) {
             invalidateValues();
         }
 
@@ -49,12 +54,12 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         }
 
         @Override
-        public void onTransformerPhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
+        public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
             invalidateValues();
         }
 
         @Override
-        public void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
+        public void onShuntSusceptanceChange(LfShunt shunt, double b) {
             invalidateValues();
         }
     };
@@ -70,7 +75,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         Objects.requireNonNull(network);
         Objects.requireNonNull(equationSystem);
         Objects.requireNonNull(initializer);
-        NavigableSet<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+        List<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
         double[] array = new double[sortedEquationsToSolve.size()];
         for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
@@ -85,9 +90,14 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
     @Override
     protected void updateArray(double[] array) {
-        NavigableSet<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+        List<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
         for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
+    }
+
+    @Override
+    public void close() {
+        network.removeListener(networkListener);
     }
 }

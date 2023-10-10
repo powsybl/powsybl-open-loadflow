@@ -1,0 +1,2 @@
+open-loadflow-default-parameters:
+  lowImpedanceThreshold: 1.0E-2

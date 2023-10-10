@@ -19,6 +19,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
     @BeforeEach
     void setUp() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         genBus = network.getBusBreakerView().getBus("NGEN");
         bus1 = network.getBusBreakerView().getBus("NHV1");
         bus2 = network.getBusBreakerView().getBus("NHV2");
@@ -63,7 +64,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         vlhv2 = network.getVoltageLevel("VLHV2");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
@@ -257,7 +258,6 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
     @Test
     void lineWithDifferentNominalVoltageTest() {
-        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
         network.getVoltageLevel("VLHV2").setNominalV(420);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -288,7 +288,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         ReporterModel postLoadingReporter = createNetworkReporter.getSubReporters().get(0);
         assertEquals("postLoadingProcessing", postLoadingReporter.getTaskKey());
         assertEquals(1, postLoadingReporter.getReports().size());
-        assertEquals("Network must have at least one bus voltage controlled",
+        assertEquals("Network must have at least one bus with generator voltage control enabled",
                 postLoadingReporter.getReports().iterator().next().getDefaultMessage());
     }
 
@@ -300,14 +300,14 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMaxQ(0)
                 .add();
 
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setUseReactiveLimits(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isOk());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
 
         // but if we do not take into account reactive limits in parameters, calculation should be ok
-        parameters.setNoGeneratorReactiveLimits(true);
+        parameters.setUseReactiveLimits(false);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(1, result.getComponentResults().size());
@@ -415,14 +415,14 @@ class AcLoadFlowEurostagTutorialExample1Test {
     @Test
     void testGeneratorReactiveLimits() {
         Network network = EurostagTutorialExample1Factory.create();
-        network.getGenerator("GEN").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(120).add();
+        network.getGenerator("GEN").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(150).add();
         network.getVoltageLevel("VLGEN").newGenerator().setId("GEN1")
                 .setBus("NGEN").setConnectableBus("NGEN")
                 .setMinP(-9999.99D).setMaxP(9999.99D)
                 .setVoltageRegulatorOn(true).setTargetV(24.5D)
                 .setTargetP(607.0D).setTargetQ(301.0D).add();
         network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(160).add();
-        LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
+        LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(false)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         loadFlowRunner.run(network, parameters);
@@ -432,8 +432,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 assertTrue(-gen.getTerminal().getQ() >= ((MinMaxReactiveLimits) gen.getReactiveLimits()).getMinQ());
             }
         });
-        assertEquals(-120, network.getGenerator("GEN").getTerminal().getQ());
-        assertEquals(-160, network.getGenerator("GEN1").getTerminal().getQ(), 0.01);
+        assertEquals(-150, network.getGenerator("GEN").getTerminal().getQ(), 0.01);
+        assertEquals(-153.86, network.getGenerator("GEN1").getTerminal().getQ(), 0.01);
     }
 
     @Test
@@ -456,21 +456,12 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void testWithStartingGenerator() {
-        loadFlowRunner.run(network, parameters);
-        gen.getTerminal().disconnect();
-        loadBus.getVoltageLevel().newGenerator()
-                .setId("g1")
-                .setBus(loadBus.getId())
-                .setConnectableBus(loadBus.getId())
-                .setEnergySource(EnergySource.THERMAL)
-                .setMinP(10)
-                .setMaxP(200)
-                .setTargetP(1)
-                .setTargetV(150)
-                .setVoltageRegulatorOn(true)
-                .add();
+    void maxOuterLoopIterationTest() {
+        gen.setTargetP(1000);
+        parameters.setDistributedSlack(true);
+        parametersExt.setMaxOuterLoopIterations(1);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk()); // no voltage controlled bus
+        assertFalse(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
     }
 }

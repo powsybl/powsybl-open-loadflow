@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import net.jafama.FastMath;
+import org.apache.commons.lang3.Range;
 
 import java.util.Optional;
 
@@ -23,6 +24,8 @@ public class SimplePiModel implements PiModel {
     private double b2 = 0;
     private double r1 = 1;
     private double a1 = 0;
+
+    private static final String NO_TAP_POSITION_ERROR = "No tap position change in simple Pi model implementation";
 
     @Override
     public double getR() {
@@ -138,13 +141,23 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public boolean updateTapPositionA1(Direction direction) {
-        throw new IllegalStateException("No tap position change in simple Pi model implementation");
+    public boolean shiftOneTapPositionToChangeA1(Direction direction) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 
     @Override
-    public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
-        throw new IllegalStateException("No tap position change in simple Pi model implementation");
+    public Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
+    @Override
+    public Optional<Direction> updateTapPositionToExceedNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
+    @Override
+    public Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 
     private void rescaleZ(double z) {
@@ -154,8 +167,8 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public boolean setMinZ(double minZ, boolean dc) {
-        if (dc) {
+    public boolean setMinZ(double minZ, LoadFlowModel loadFlowModel) {
+        if (loadFlowModel == LoadFlowModel.DC) {
             if (FastMath.abs(this.x) < minZ) {
                 this.x = minZ;
                 return true;
@@ -173,5 +186,20 @@ public class SimplePiModel implements PiModel {
     @Override
     public void setBranch(LfBranch branch) {
         // nothing to set
+    }
+
+    @Override
+    public int getTapPosition() {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
+    @Override
+    public PiModel setTapPosition(int tapPosition) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
+    @Override
+    public Range<Integer> getTapPositionRange() {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 }

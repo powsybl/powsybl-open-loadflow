@@ -14,7 +14,27 @@ import java.util.OptionalDouble;
 public interface LfGenerator extends PropertyBag {
 
     enum GeneratorControlType {
-        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE, MONITORING_VOLTAGE
+    }
+
+    enum ReactiveRangeMode {
+        MIN, MAX, TARGET_P
+    }
+
+    /**
+     * k is a normalized value of reactive power that ensure that at q min k is -1 and at q max k is + 1
+     * q = 1 / 2 * (k * (qmax - qmin) + qmax + qmin)
+     */
+    static double kToQ(double k, LfGenerator generator) {
+        double minQ = generator.getMinQ();
+        double maxQ = generator.getMaxQ();
+        return 0.5d * (k * (maxQ - minQ) + maxQ + minQ);
+    }
+
+    static double qToK(LfGenerator generator, double q) {
+        double minQ = generator.getMinQ();
+        double maxQ = generator.getMaxQ();
+        return (2 * q - maxQ - minQ) / (maxQ - minQ);
     }
 
     String getId();
@@ -39,6 +59,8 @@ public interface LfGenerator extends PropertyBag {
 
     double getTargetQ();
 
+    double getInitialTargetP();
+
     double getTargetP();
 
     void setTargetP(double targetP);
@@ -51,7 +73,7 @@ public interface LfGenerator extends PropertyBag {
 
     double getMaxQ();
 
-    double getMaxRangeQ();
+    double getRangeQ(ReactiveRangeMode reactiveRangeMode);
 
     default boolean isParticipating() {
         return false;
@@ -60,6 +82,10 @@ public interface LfGenerator extends PropertyBag {
     void setParticipating(boolean participating);
 
     default double getDroop() {
+        return 0;
+    }
+
+    default double getParticipationFactor() {
         return 0;
     }
 
@@ -81,7 +107,17 @@ public interface LfGenerator extends PropertyBag {
 
     LfBranch getControlledBranch();
 
-    ReactivePowerControl.ControlledSide getControlledBranchSide();
+    ControlledSide getControlledBranchSide();
 
     double getRemoteTargetQ();
+
+    default boolean isDisabled() {
+        return false;
+    }
+
+    void setDisabled(boolean disabled);
+
+    LfAsymGenerator getAsym();
+
+    void setAsym(LfAsymGenerator asym);
 }

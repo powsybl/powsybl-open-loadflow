@@ -88,7 +88,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertFalse(lfNetwork.getBus(0).isVoltageControlEnabled());
+        assertFalse(lfNetwork.getBus(0).isGeneratorVoltageControlEnabled());
     }
 
     @Test
@@ -98,7 +98,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         g.setMinP(1);
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertFalse(lfNetwork.getBus(0).isVoltageControlEnabled());
+        assertFalse(lfNetwork.getBus(0).isGeneratorVoltageControlEnabled());
     }
 
     @Test
@@ -127,6 +127,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfStarBus = mainNetwork.getBusById("3WT_BUS0");
         assertTrue(lfStarBus instanceof LfStarBus);
         assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
+        assertTrue(lfStarBus.getCountry().isEmpty());
     }
 
     @Test
@@ -202,5 +203,18 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         network.getDanglingLine("dl1").setP0(Double.NaN).setQ0(Double.NaN);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
         assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
+    }
+
+    @Test
+    void testMinImpedance() {
+        network = EurostagTutorialExample1Factory.create();
+        network.getLine("NHV1_NHV2_1").setR(0.0).setX(0.0).setB1(0.0).setB2(0.0).setG1(0.0).setG2(0.0);
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfBranch line = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
+        assertTrue(line.isZeroImpedance(LoadFlowModel.AC));
+        assertTrue(line.isZeroImpedance(LoadFlowModel.DC));
+        line.setMinZ(10); // for both AC and DC load flow model
+        assertFalse(line.isZeroImpedance(LoadFlowModel.AC));
+        assertFalse(line.isZeroImpedance(LoadFlowModel.DC));
     }
 }

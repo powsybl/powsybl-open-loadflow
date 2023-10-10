@@ -34,6 +34,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VoltageMagnitudeInitializer.class);
 
+    private final double lowImpedanceThreshold;
+
     public enum InitVmEquationType implements Quantity {
         BUS_TARGET_V("v", ElementType.BUS),
         BUS_ZERO("bus_z", ElementType.BUS);
@@ -81,13 +83,13 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
     }
 
-    public static final class InitVmBusEquationTerm extends AbstractBusEquationTerm<InitVmVariableType, InitVmEquationType> {
+    public static final class InitVmBusEquationTerm extends AbstractElementEquationTerm<LfBus, InitVmVariableType, InitVmEquationType> {
 
         private final List<Variable<InitVmVariableType>> variables;
 
         private final TDoubleArrayList der;
 
-        public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet) {
+        public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet, double lowImpedanceThreshold) {
             super(bus);
 
             Map<LfBus, List<LfBranch>> neighbors = bus.findNeighbors();
@@ -108,7 +110,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 double r = 0;
                 for (LfBranch neighborBranch : neighborBranches) {
                     PiModel piModel = neighborBranch.getPiModel();
-                    double x = Math.max(Math.abs(piModel.getX()), LfBranch.LOW_IMPEDANCE_THRESHOLD); // to void issue with negative reactances
+                    double x = Math.max(Math.abs(piModel.getX()), lowImpedanceThreshold); // to avoid issues with negative reactances
                     b += 1 / x;
                     r += neighborBranch.getBus1() == bus ? 1 / piModel.getR1() : piModel.getR1();
                 }
@@ -157,17 +159,18 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     private final MatrixFactory matrixFactory;
 
-    public VoltageMagnitudeInitializer(boolean transformerVoltageControlOn, MatrixFactory matrixFactory) {
+    public VoltageMagnitudeInitializer(boolean transformerVoltageControlOn, MatrixFactory matrixFactory, double lowImpedanceThreshold) {
         this.transformerVoltageControlOn = transformerVoltageControlOn;
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
     }
 
     private static void initTarget(Equation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_TARGET_V:
                 LfBus bus = network.getBus(equation.getElementNum());
-                targets[equation.getColumn()] = bus.getVoltageControl()
-                        .map(VoltageControl::getTargetValue)
+                targets[equation.getColumn()] = bus.getGeneratorVoltageControl()
+                        .map(GeneratorVoltageControl::getTargetValue)
                         .orElseGet(() -> bus.getTransformerVoltageControl()
                                 .map(DiscreteVoltageControl::getTargetValue)
                                 .orElseThrow());
@@ -197,12 +200,12 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         for (LfBus bus : network.getBuses()) {
             EquationTerm<InitVmVariableType, InitVmEquationType> v = equationSystem.getVariable(bus.getNum(), InitVmVariableType.BUS_V)
                     .createTerm();
-            if (bus.isVoltageControlled() || (transformerVoltageControlOn && bus.isTransformerVoltageControlled())) {
+            if (bus.isGeneratorVoltageControlled() || transformerVoltageControlOn && bus.isTransformerVoltageControlled()) {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
                         .addTerm(v);
             } else {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_ZERO)
-                        .addTerm(new InitVmBusEquationTerm(bus, equationSystem.getVariableSet()))
+                        .addTerm(new InitVmBusEquationTerm(bus, equationSystem.getVariableSet(), lowImpedanceThreshold))
                         .addTerm(v.minus());
             }
         }

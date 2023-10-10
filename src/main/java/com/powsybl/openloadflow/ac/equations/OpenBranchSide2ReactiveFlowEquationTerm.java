@@ -32,15 +32,15 @@ public class OpenBranchSide2ReactiveFlowEquationTerm extends AbstractOpenSide2Br
     }
 
     private double r1() {
-        return branch.getPiModel().getR1();
+        return element.getPiModel().getR1();
     }
 
-    private static double q1(double y, double cosKsi, double sinKsi, double b1, double g2, double b2, double v1, double r1) {
+    public static double q1(double y, double cosKsi, double sinKsi, double b1, double g2, double b2, double v1, double r1) {
         double shunt = shunt(y, cosKsi, sinKsi, g2, b2);
         return -r1 * r1 * v1 * v1 * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * cosKsi / shunt);
     }
 
-    private static double dq1dv1(double y, double cosKsi, double sinKsi, double b1, double g2, double b2, double v1, double r1) {
+    public static double dq1dv1(double y, double cosKsi, double sinKsi, double b1, double g2, double b2, double v1, double r1) {
         double shunt = shunt(y, cosKsi, sinKsi, g2, b2);
         return -2 * v1 * r1 * r1 * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * cosKsi / shunt);
     }

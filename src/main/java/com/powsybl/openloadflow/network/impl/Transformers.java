@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.SimplePiModel;
 
 import java.util.Objects;
+import java.util.OptionalInt;
 
 /**
  * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
@@ -187,13 +188,13 @@ public final class Transformers {
     /**
      * Find the tap position of a ratio tap changer corresponding to a given rho shift.
      */
-    public static int findTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
+    public static OptionalInt findTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
         for (int position = rtc.getLowTapPosition(); position <= rtc.getHighTapPosition(); position++) {
             if (Math.abs(rho - ptcRho * rtc.getStep(position).getRho()) < EPS_ALPHA) {
-                return position;
+                return OptionalInt.of(position);
             }
         }
-        throw new PowsyblException("No tap position found (should never happen)");
+        return OptionalInt.empty();
     }
 
     public static double getRatioPerUnitBase(ThreeWindingsTransformer.Leg leg, ThreeWindingsTransformer twt) {
@@ -205,6 +206,12 @@ public final class Transformers {
     public static double getRatioPerUnitBase(Branch<?> branch) {
         double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
+        return nominalV2 / nominalV1;
+    }
+
+    public static double getRatioPerUnitBase(TieLine line) {
+        double nominalV1 = line.getDanglingLine1().getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV();
         return nominalV2 / nominalV1;
     }
 }

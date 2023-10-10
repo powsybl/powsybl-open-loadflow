@@ -6,11 +6,14 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -21,6 +24,8 @@ public class LfNetworkParameters {
 
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
 
+    public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
+
     /**
      * Minimal and maximal plausible target V in p.u
      */
@@ -28,11 +33,31 @@ public class LfNetworkParameters {
 
     public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
 
-    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
+    public static final double MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE = 20;
+
+    public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = Math.pow(10, -8); // in per unit
+
+    public static final OpenLoadFlowParameters.ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX;
+
+    public static final int DEFAULT_MAX_SLACK_BUS_COUNT = 1;
+
+    public static final String DEBUG_DIR_DEFAULT_VALUE = null;
+
+    public static final boolean SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE = false;
+
+    public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
+
+    public static final boolean ASYMMETRICAL_DEFAULT_VALUE = false;
+
+    public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
+
+    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
-    private boolean generatorVoltageRemoteControl = false;
+    public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
+
+    private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
 
@@ -42,7 +67,7 @@ public class LfNetworkParameters {
 
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
 
-    private boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds = false;
+    private boolean useActiveLimits = USE_ACTIVE_LIMITS_DEFAULT_VALUE;
 
     private boolean computeMainConnectedComponentOnly = true;
 
@@ -58,7 +83,7 @@ public class LfNetworkParameters {
 
     private boolean reactivePowerRemoteControl = false;
 
-    private boolean dc = false;
+    private LoadFlowModel loadFlowModel = LoadFlowModel.AC;
 
     private boolean shuntVoltageControl = false;
 
@@ -70,7 +95,64 @@ public class LfNetworkParameters {
 
     private double maxPlausibleTargetVoltage = MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
+    private double minNominalVoltageTargetVoltageCheck = MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE;
+
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
+
+    private OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode = REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
+
+    private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
+
+    private boolean svcVoltageMonitoring = true;
+
+    private int maxSlackBusCount = DEFAULT_MAX_SLACK_BUS_COUNT;
+
+    private String debugDir = DEBUG_DIR_DEFAULT_VALUE;
+
+    private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
+
+    private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
+
+    private boolean asymmetrical = ASYMMETRICAL_DEFAULT_VALUE;
+
+    private LinePerUnitMode linePerUnitMode = LINE_PER_UNIT_MODE_DEFAULT_VALUE;
+
+    public LfNetworkParameters() {
+    }
+
+    public LfNetworkParameters(LfNetworkParameters other) {
+        Objects.requireNonNull(other);
+        this.slackBusSelector = other.slackBusSelector;
+        this.connectivityFactory = other.connectivityFactory;
+        this.generatorVoltageRemoteControl = other.generatorVoltageRemoteControl;
+        this.minImpedance = other.minImpedance;
+        this.twtSplitShuntAdmittance = other.twtSplitShuntAdmittance;
+        this.breakers = other.breakers;
+        this.plausibleActivePowerLimit = other.plausibleActivePowerLimit;
+        this.computeMainConnectedComponentOnly = other.computeMainConnectedComponentOnly;
+        this.countriesToBalance = new HashSet<>(other.countriesToBalance);
+        this.distributedOnConformLoad = other.distributedOnConformLoad;
+        this.phaseControl = other.phaseControl;
+        this.transformerVoltageControl = other.transformerVoltageControl;
+        this.voltagePerReactivePowerControl = other.voltagePerReactivePowerControl;
+        this.reactivePowerRemoteControl = other.reactivePowerRemoteControl;
+        this.loadFlowModel = other.loadFlowModel;
+        this.shuntVoltageControl = other.shuntVoltageControl;
+        this.reactiveLimits = other.reactiveLimits;
+        this.hvdcAcEmulation = other.hvdcAcEmulation;
+        this.minPlausibleTargetVoltage = other.minPlausibleTargetVoltage;
+        this.maxPlausibleTargetVoltage = other.maxPlausibleTargetVoltage;
+        this.minNominalVoltageTargetVoltageCheck = other.minNominalVoltageTargetVoltageCheck;
+        this.loaderPostProcessorSelection = new HashSet<>(other.loaderPostProcessorSelection);
+        this.reactiveRangeCheckMode = other.reactiveRangeCheckMode;
+        this.lowImpedanceThreshold = other.lowImpedanceThreshold;
+        this.svcVoltageMonitoring = other.svcVoltageMonitoring;
+        this.maxSlackBusCount = other.maxSlackBusCount;
+        this.debugDir = other.debugDir;
+        this.secondaryVoltageControl = other.secondaryVoltageControl;
+        this.cacheEnabled = other.cacheEnabled;
+        this.asymmetrical = other.asymmetrical;
+    }
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -135,12 +217,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
-        return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+    public boolean isUseActiveLimits() {
+        return useActiveLimits;
     }
 
-    public LfNetworkParameters setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
-        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+    public LfNetworkParameters setUseActiveLimits(boolean useActiveLimits) {
+        this.useActiveLimits = useActiveLimits;
         return this;
     }
 
@@ -207,12 +289,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isDc() {
-        return dc;
+    public LoadFlowModel getLoadFlowModel() {
+        return loadFlowModel;
     }
 
-    public LfNetworkParameters setDc(boolean dc) {
-        this.dc = dc;
+    public LfNetworkParameters setLoadFlowModel(LoadFlowModel loadFlowModel) {
+        this.loadFlowModel = Objects.requireNonNull(loadFlowModel);
         return this;
     }
 
@@ -261,12 +343,112 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public double getMinNominalVoltageTargetVoltageCheck() {
+        return minNominalVoltageTargetVoltageCheck;
+    }
+
+    public LfNetworkParameters setMinNominalVoltageTargetVoltageCheck(double minNominalVoltageTargetVoltageCheck) {
+        this.minNominalVoltageTargetVoltageCheck = minNominalVoltageTargetVoltageCheck;
+        return this;
+    }
+
+    public double getLowImpedanceThreshold() {
+        return lowImpedanceThreshold;
+    }
+
+    public LfNetworkParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        if (lowImpedanceThreshold <= 0) {
+            throw new PowsyblException("lowImpedanceThreshold must be greater than 0");
+        }
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
+        return this;
+    }
+
+    public OpenLoadFlowParameters.ReactiveRangeCheckMode getReactiveRangeCheckMode() {
+        return reactiveRangeCheckMode;
+    }
+
+    public LfNetworkParameters setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+        this.reactiveRangeCheckMode = reactiveRangeCheckMode;
+        return this;
+    }
+
+    public boolean isSvcVoltageMonitoring() {
+        return svcVoltageMonitoring;
+    }
+
+    public LfNetworkParameters setSvcVoltageMonitoring(boolean svcVoltageMonitoring) {
+        this.svcVoltageMonitoring = svcVoltageMonitoring;
+        return this;
+    }
+
     public Set<String> getLoaderPostProcessorSelection() {
         return loaderPostProcessorSelection;
     }
 
     public LfNetworkParameters setLoaderPostProcessorSelection(Set<String> loaderPostProcessorSelection) {
         this.loaderPostProcessorSelection = Objects.requireNonNull(loaderPostProcessorSelection);
+        return this;
+    }
+
+    public int getMaxSlackBusCount() {
+        return maxSlackBusCount;
+    }
+
+    public static int checkMaxSlackBusCount(int maxSlackBusCount) {
+        if (maxSlackBusCount < 1) {
+            throw new IllegalArgumentException("Max slack bus count should be >= 1");
+        }
+        return maxSlackBusCount;
+    }
+
+    public LfNetworkParameters setMaxSlackBusCount(int maxSlackBusCount) {
+        this.maxSlackBusCount = checkMaxSlackBusCount(maxSlackBusCount);
+        return this;
+    }
+
+    public String getDebugDir() {
+        return debugDir;
+    }
+
+    public LfNetworkParameters setDebugDir(String debugDir) {
+        this.debugDir = debugDir;
+        return this;
+    }
+
+    public boolean isSecondaryVoltageControl() {
+        return secondaryVoltageControl;
+    }
+
+    public LfNetworkParameters setSecondaryVoltageControl(boolean secondaryVoltageControl) {
+        this.secondaryVoltageControl = secondaryVoltageControl;
+        return this;
+    }
+
+    public boolean isCacheEnabled() {
+        return cacheEnabled;
+    }
+
+    public LfNetworkParameters setCacheEnabled(boolean cacheEnabled) {
+        this.cacheEnabled = cacheEnabled;
+        return this;
+    }
+
+    public boolean isAsymmetrical() {
+        return asymmetrical;
+    }
+
+    public LfNetworkParameters setAsymmetrical(boolean asymmetrical) {
+        this.asymmetrical = asymmetrical;
+        return this;
+    }
+
+    public LinePerUnitMode getLinePerUnitMode() {
+        return linePerUnitMode;
+    }
+
+    public LfNetworkParameters setLinePerUnitMode(LinePerUnitMode linePerUnitMode) {
+        this.linePerUnitMode = Objects.requireNonNull(linePerUnitMode);
         return this;
     }
 
@@ -280,7 +462,6 @@ public class LfNetworkParameters {
                 ", twtSplitShuntAdmittance=" + twtSplitShuntAdmittance +
                 ", breakers=" + breakers +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
-                ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
                 ", computeMainConnectedComponentOnly=" + computeMainConnectedComponentOnly +
                 ", countriesToBalance=" + countriesToBalance +
                 ", distributedOnConformLoad=" + distributedOnConformLoad +
@@ -288,12 +469,22 @@ public class LfNetworkParameters {
                 ", transformerVoltageControl=" + transformerVoltageControl +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
-                ", dc=" + dc +
+                ", loadFlowModel=" + loadFlowModel +
                 ", reactiveLimits=" + reactiveLimits +
                 ", hvdcAcEmulation=" + hvdcAcEmulation +
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", loaderPostProcessorSelection=" + loaderPostProcessorSelection +
+                ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
+                ", lowImpedanceThreshold=" + lowImpedanceThreshold +
+                ", svcVoltageMonitoring=" + svcVoltageMonitoring +
+                ", maxSlackBusCount=" + maxSlackBusCount +
+                ", debugDir=" + debugDir +
+                ", secondaryVoltageControl=" + secondaryVoltageControl +
+                ", cacheEnabled=" + cacheEnabled +
+                ", asymmetrical=" + asymmetrical +
+                ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
+                ", linePerUnitMode=" + linePerUnitMode +
                 ')';
     }
 }

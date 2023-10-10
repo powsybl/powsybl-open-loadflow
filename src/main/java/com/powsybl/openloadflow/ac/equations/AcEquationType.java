@@ -16,7 +16,6 @@ public enum AcEquationType implements Quantity {
     BUS_TARGET_P("bus_target_p", ElementType.BUS), // bus active power target
     BUS_TARGET_Q("bus_target_q", ElementType.BUS), // bus reactive power target
     BUS_TARGET_V("bus_target_v", ElementType.BUS), // bus voltage magnitude control
-    BUS_TARGET_V_WITH_SLOPE("bus_target_v_slope", ElementType.BUS), // V - slop * Q like bus voltage magnitude control
     BUS_TARGET_PHI("bus_target_\u03C6", ElementType.BUS), // slack bus voltage angle target
     SHUNT_TARGET_B("shunt_target_b", ElementType.SHUNT_COMPENSATOR), // shunt susceptance
     BRANCH_TARGET_P("branch_target_p", ElementType.BRANCH), // phase shifter active flow control
@@ -29,7 +28,12 @@ public enum AcEquationType implements Quantity {
     DISTR_RHO("distr_\u03C1", ElementType.BRANCH), // remote transformer voltage control ratio distribution
     DISTR_SHUNT_B("distr_b", ElementType.SHUNT_COMPENSATOR), // shunt remote voltage control susceptance distribution
     DUMMY_TARGET_P("dummy_target_p", ElementType.BRANCH),
-    DUMMY_TARGET_Q("dummy_target_q", ElementType.BRANCH);
+    DUMMY_TARGET_Q("dummy_target_q", ElementType.BRANCH),
+    BUS_DISTR_SLACK_P("bus_distr_slack_p", ElementType.BUS), // multiple slack buses distribution
+    BUS_TARGET_IX_ZERO("bus_target_ix_zero", ElementType.BUS), // bus real part current target for zero sequence
+    BUS_TARGET_IY_ZERO("bus_target_iy_zero", ElementType.BUS), // bus imaginary part current target for zero sequence
+    BUS_TARGET_IX_NEGATIVE("bus_target_ix_negative", ElementType.BUS), // bus real part current target for negative sequence
+    BUS_TARGET_IY_NEGATIVE("bus_target_iy_negative", ElementType.BUS); // bus imaginary part current target for negative sequence
 
     private final String symbol;
 
