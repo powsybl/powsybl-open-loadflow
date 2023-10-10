@@ -11,52 +11,52 @@ import com.powsybl.commons.PowsyblException;
 import java.util.*;
 
 /**
- * Generic load model: sum_n(cn * v^n)
+ * Generic load model as a sum of exponential terms: sum_i(ci * v^ni)
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfLoadModel {
 
-    public record Term(double c, double n) {
+    public record ExpTerm(double c, double n) {
     }
 
-    private final Map<Double, Term> pTermsByExponent = new TreeMap<>();
+    private final Map<Double, ExpTerm> expTermsP = new TreeMap<>(); // by exponent
 
-    private final Map<Double, Term> qTermsByExponent = new TreeMap<>();
+    private final Map<Double, ExpTerm> expTermsQ = new TreeMap<>(); // by exponent
 
-    public LfLoadModel(List<Term> pTerms, List<Term> qTerms) {
-        Objects.requireNonNull(pTerms);
-        Objects.requireNonNull(qTerms);
-        for (Term term : pTerms) {
-            addTerm(pTermsByExponent, term);
+    public LfLoadModel(List<ExpTerm> expTermsP, List<ExpTerm> expTermsQ) {
+        Objects.requireNonNull(expTermsP);
+        Objects.requireNonNull(expTermsQ);
+        for (ExpTerm expTerm : expTermsP) {
+            addExpTerm(this.expTermsP, expTerm);
         }
-        for (Term term : qTerms) {
-            addTerm(qTermsByExponent, term);
+        for (ExpTerm expTerm : expTermsQ) {
+            addExpTerm(this.expTermsQ, expTerm);
         }
     }
 
-    private static void addTerm(Map<Double, Term> termsByExponent, Term term) {
+    private static void addExpTerm(Map<Double, ExpTerm> expTerms, ExpTerm term) {
         Objects.requireNonNull(term);
-        if (termsByExponent.containsKey(term.n())) {
+        if (expTerms.containsKey(term.n())) {
             throw new PowsyblException("A term with exponent " + term.n() + " already exists");
         }
-        termsByExponent.put(term.n(), term);
+        expTerms.put(term.n(), term);
     }
 
-    public Collection<Term> getTermsP() {
-        return pTermsByExponent.values();
+    public Collection<ExpTerm> getExpTermsP() {
+        return expTermsP.values();
     }
 
-    public Optional<Term> getTermP(double n) {
-        return Optional.ofNullable(pTermsByExponent.get(n));
+    public Optional<ExpTerm> getExpTermP(double n) {
+        return Optional.ofNullable(expTermsP.get(n));
     }
 
-    public Collection<Term> getTermsQ() {
-        return pTermsByExponent.values();
+    public Collection<ExpTerm> getExpTermsQ() {
+        return expTermsP.values();
     }
 
-    public Optional<Term> getTermQ(double n) {
-        return Optional.ofNullable(qTermsByExponent.get(n));
+    public Optional<ExpTerm> getExpTermQ(double n) {
+        return Optional.ofNullable(expTermsQ.get(n));
     }
 
     @Override
@@ -68,12 +68,12 @@ public class LfLoadModel {
             return false;
         }
         LfLoadModel that = (LfLoadModel) o;
-        return Objects.equals(pTermsByExponent, that.pTermsByExponent)
-                && Objects.equals(qTermsByExponent, that.qTermsByExponent);
+        return Objects.equals(expTermsP, that.expTermsP)
+                && Objects.equals(expTermsQ, that.expTermsQ);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(pTermsByExponent, qTermsByExponent);
+        return Objects.hash(expTermsP, expTermsQ);
     }
 }

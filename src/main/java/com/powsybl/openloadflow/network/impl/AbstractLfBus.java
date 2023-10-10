@@ -233,16 +233,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
         if (loadModel.getType() == LoadModelType.ZIP) {
             ZipLoadModel zipLoadModel = (ZipLoadModel) loadModel;
-            return new LfLoadModel(List.of(new LfLoadModel.Term(zipLoadModel.getC0p(), 0),
-                                           new LfLoadModel.Term(zipLoadModel.getC1p(), 1),
-                                           new LfLoadModel.Term(zipLoadModel.getC2p(), 2)),
-                                   List.of(new LfLoadModel.Term(zipLoadModel.getC0q(), 0),
-                                           new LfLoadModel.Term(zipLoadModel.getC1q(), 1),
-                                           new LfLoadModel.Term(zipLoadModel.getC2q(), 2)));
+            return new LfLoadModel(List.of(new LfLoadModel.ExpTerm(zipLoadModel.getC0p(), 0),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC1p(), 1),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC2p(), 2)),
+                                   List.of(new LfLoadModel.ExpTerm(zipLoadModel.getC0q(), 0),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC1q(), 1),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC2q(), 2)));
         } else if (loadModel.getType() == LoadModelType.EXPONENTIAL) {
             ExponentialLoadModel expoLoadModel = (ExponentialLoadModel) loadModel;
-            return new LfLoadModel(List.of(new LfLoadModel.Term(1, expoLoadModel.getNp())),
-                                   List.of(new LfLoadModel.Term(1, expoLoadModel.getNq())));
+            return new LfLoadModel(List.of(new LfLoadModel.ExpTerm(1, expoLoadModel.getNp())),
+                                   List.of(new LfLoadModel.ExpTerm(1, expoLoadModel.getNq())));
         } else {
             throw new PowsyblException("Unsupported load model: " + loadModel.getType());
         }
@@ -352,14 +352,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getLoadTargetP() {
         return loads.stream()
-                .mapToDouble(load -> load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getTermP(0).map(LfLoadModel.Term::c)).orElse(1d))
+                .mapToDouble(load -> load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
                 .sum();
     }
 
     @Override
     public double getLoadTargetQ() {
         return loads.stream()
-                .mapToDouble(load -> load.getTargetQ() * load.getLoadModel().flatMap(lm -> lm.getTermQ(0).map(LfLoadModel.Term::c)).orElse(1d))
+                .mapToDouble(load -> load.getTargetQ() * load.getLoadModel().flatMap(lm -> lm.getExpTermQ(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
                 .sum();
     }
 

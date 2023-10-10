@@ -47,7 +47,7 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
         return sv.get(vVar.getRow());
     }
 
-    protected abstract Collection<LfLoadModel.Term> getTerms();
+    protected abstract Collection<LfLoadModel.ExpTerm> getExpTerms();
 
     protected abstract double getTarget();
 
@@ -55,9 +55,9 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
     public double eval() {
         double value = 0;
         double v = v();
-        for (LfLoadModel.Term term : getTerms()) {
-            if (term.n() != 0) {
-                value += term.c() * Math.pow(v, term.n());
+        for (LfLoadModel.ExpTerm expTerm : getExpTerms()) {
+            if (expTerm.n() != 0) {
+                value += expTerm.c() * Math.pow(v, expTerm.n());
             }
         }
         return value * getTarget();
@@ -67,9 +67,9 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
     public double der(Variable<AcVariableType> variable) {
         double value = 0;
         double v = v();
-        for (LfLoadModel.Term term : getTerms()) {
-            if (term.n() != 0) {
-                value += term.c() * term.n() * Math.pow(v, term.n() - 1);
+        for (LfLoadModel.ExpTerm expTerm : getExpTerms()) {
+            if (expTerm.n() != 0) {
+                value += expTerm.c() * expTerm.n() * Math.pow(v, expTerm.n() - 1);
             }
         }
         return value * getTarget();

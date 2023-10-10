@@ -23,8 +23,8 @@ public class LoadModelReactiveFlowEquationTerm extends AbstractLoadModelEquation
     }
 
     @Override
-    protected Collection<LfLoadModel.Term> getTerms() {
-        return loadModel.getTermsQ();
+    protected Collection<LfLoadModel.ExpTerm> getExpTerms() {
+        return loadModel.getExpTermsQ();
     }
 
     @Override

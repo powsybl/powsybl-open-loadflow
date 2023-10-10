@@ -180,13 +180,13 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private double calculateP() {
         return p.eval() + getLoadModel()
-                .flatMap(lm -> lm.getTermP(0).map(term -> targetP * term.c()))
+                .flatMap(lm -> lm.getExpTermP(0).map(term -> targetP * term.c()))
                 .orElse(0d);
     }
 
     private double calculateQ() {
         return q.eval() + getLoadModel()
-                .flatMap(lm -> lm.getTermQ(0).map(term -> targetQ * term.c()))
+                .flatMap(lm -> lm.getExpTermQ(0).map(term -> targetQ * term.c()))
                 .orElse(0d);
     }
 
