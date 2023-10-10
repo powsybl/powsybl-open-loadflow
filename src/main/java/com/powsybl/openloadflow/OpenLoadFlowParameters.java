@@ -97,6 +97,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final Set<ReportedFeatures> REPORTED_FEATURES_DEFAULT_VALUE = Collections.emptySet();
 
+    private static final ReactivePowerDispatchMode REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE = ReactivePowerDispatchMode.Q_EQUAL_PROPORTION;
+
+    protected static final List<String> OUTER_LOOP_NAMES_DEFAULT_VALUE = null;
+
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -151,6 +155,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_REALISTIC_VOLTAGE_PARAM_NAME = "maxRealisticVoltage";
 
+    public static final String MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME = "minNominalVoltageTargetVoltageCheck";
+
     public static final String REACTIVE_RANGE_CHECK_MODE_PARAM_NAME = "reactiveRangeCheckMode";
 
     public static final String LOW_IMPEDANCE_THRESHOLD_PARAM_NAME = "lowImpedanceThreshold";
@@ -184,6 +190,22 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private static final String ACTIONABLE_SWITCHES_IDS_PARAM_NAME = "actionableSwitchesIds";
 
     private static final String ASYMMETRICAL_PARAM_NAME = "asymmetrical";
+
+    private static final String REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME = "reactivePowerDispatchMode";
+
+    static final String OUTER_LOOP_NAMES_PARAM_NAME = "outerLoopNames";
+
+    public static final String USE_ACTIVE_LIMITS_PARAM_NAME = "useActiveLimits";
+
+    private static final String LINE_SEARCH_STATE_VECTOR_SCALING_MAX_IERATION_PARAM_NAME = "lineSearchStateVectorScalingMaxIteration";
+
+    private static final String LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME = "lineSearchStateVectorScalingStepFold";
+
+    private static final String MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME = "maxVoltageChangeStateVectorScalingMaxDv";
+
+    private static final String MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME = "maxVoltageChangeStateVectorScalingMaxDphi";
+
+    private static final String LINE_PER_UNIT_MODE_PARAM_NAME = "linePerUnitMode";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -219,8 +241,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING, "Directory to dump debug files", LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, Collections.emptyList(), ParameterScope.TECHNICAL),
         new Parameter(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental transformer voltage control maximum tap shift per outer loop", IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT),
         new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE),
-        new Parameter(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ParameterType.INTEGER, "Reactive limits maximum Pq Pv switch", ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV),
-        new Parameter(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, ParameterType.STRING, "Newton raphson stopping criteria type", NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(NewtonRaphsonStoppingCriteriaType.class)),
+        new Parameter(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ParameterType.INTEGER, "Reactive limits maximum Pq Pv switch", ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV_DEFAULT_VALUE),
+        new Parameter(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, ParameterType.STRING, "Newton-Raphson stopping criteria type", NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(NewtonRaphsonStoppingCriteriaType.class)),
         new Parameter(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum active power for per equation stopping criteria", MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum reactive power for per equation stopping criteria", MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_VOLTAGE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum voltage for per equation stopping criteria", MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE),
@@ -229,10 +251,20 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
         new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
         new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
-        new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE), new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class)),
-        new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slac bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE)),
+        new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE),
+        new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class)),
+        new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slack bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE)),
         new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE)),
-        new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN, "Asymmetrical calculation", LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE)
+        new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN, "Asymmetrical calculation", LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE),
+        new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage for target voltage check", LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE),
+        new Parameter(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ParameterType.STRING, "Generators reactive power from bus dispatch mode", REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactivePowerDispatchMode.class)),
+        new Parameter(OUTER_LOOP_NAMES_PARAM_NAME, ParameterType.STRING_LIST, "Ordered explicit list of outer loop names, supported outer loops are " + String.join(", ", ExplicitAcOuterLoopConfig.NAMES), OUTER_LOOP_NAMES_DEFAULT_VALUE),
+        new Parameter(USE_ACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Use active power limits in slack distribution", LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE),
+        new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_IERATION_PARAM_NAME, ParameterType.INTEGER, "Max iteration for the line search state vector scaling", LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION),
+        new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, ParameterType.DOUBLE, "Step fold for the line search state vector scaling", LineSearchStateVectorScaling.DEFAULT_STEP_FOLD),
+        new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, ParameterType.DOUBLE, "Max voltage magnitude change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV),
+        new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, ParameterType.DOUBLE, "Max voltage angle change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI),
+        new Parameter(LINE_PER_UNIT_MODE_PARAM_NAME, ParameterType.STRING, "Line per unit mode", LinePerUnitMode.IMPEDANCE.name(), getEnumPossibleValues(LinePerUnitMode.class))
     );
 
     public enum VoltageInitModeOverride {
@@ -318,6 +350,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double maxPlausibleTargetVoltage = LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
+    private double minNominalVoltageTargetVoltageCheck = LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE;
+
     private double minRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
@@ -346,7 +380,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean secondaryVoltageControl = LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
-    private int reactiveLimitsMaxPqPvSwitch = ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV;
+    private int reactiveLimitsMaxPqPvSwitch = ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV_DEFAULT_VALUE;
 
     private PhaseShifterControlMode phaseShifterControlMode = PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE;
 
@@ -361,6 +395,22 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private Set<String> actionableSwitchesIds = ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE;
 
     private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
+
+    private ReactivePowerDispatchMode reactivePowerDispatchMode = REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE;
+
+    private List<String> outerLoopNames = OUTER_LOOP_NAMES_DEFAULT_VALUE;
+
+    private boolean useActiveLimits = LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private int lineSearchStateVectorScalingMaxIteration = LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION;
+
+    private double lineSearchStateVectorScalingStepFold = LineSearchStateVectorScaling.DEFAULT_STEP_FOLD;
+
+    private double maxVoltageChangeStateVectorScalingMaxDv = MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV;
+
+    private double maxVoltageChangeStateVectorScalingMaxDphi = MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI;
+
+    private LinePerUnitMode linePerUnitMode = LfNetworkParameters.LINE_PER_UNIT_MODE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -507,7 +557,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxActivePowerMismatch(double maxActivePowerMismatch) {
         if (maxActivePowerMismatch <= 0) {
-            throw new PowsyblException("maxActivePowerMismatch must be greater to 0");
+            throw new PowsyblException("maxActivePowerMismatch must be greater than 0");
         }
         this.maxActivePowerMismatch = maxActivePowerMismatch;
         return this;
@@ -519,7 +569,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxReactivePowerMismatch(double maxReactivePowerMismatch) {
         if (maxReactivePowerMismatch <= 0) {
-            throw new PowsyblException("maxReactivePowerMismatch must be greater to 0");
+            throw new PowsyblException("maxReactivePowerMismatch must be greater than 0");
         }
         this.maxReactivePowerMismatch = maxReactivePowerMismatch;
         return this;
@@ -531,7 +581,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxVoltageMismatch(double maxVoltageMismatch) {
         if (maxVoltageMismatch <= 0) {
-            throw new PowsyblException("maxVoltageMismatch must be greater to 0");
+            throw new PowsyblException("maxVoltageMismatch must be greater than 0");
         }
         this.maxVoltageMismatch = maxVoltageMismatch;
         return this;
@@ -543,7 +593,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxAngleMismatch(double maxAngleMismatch) {
         if (maxAngleMismatch <= 0) {
-            throw new PowsyblException("maxAngleMismatch must be greater to 0");
+            throw new PowsyblException("maxAngleMismatch must be greater than 0");
         }
         this.maxAngleMismatch = maxAngleMismatch;
         return this;
@@ -555,7 +605,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxRatioMismatch(double maxRatioMismatch) {
         if (maxRatioMismatch <= 0) {
-            throw new PowsyblException("maxRatioMismatch must be greater to 0");
+            throw new PowsyblException("maxRatioMismatch must be greater than 0");
         }
         this.maxRatioMismatch = maxRatioMismatch;
         return this;
@@ -567,7 +617,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxSusceptanceMismatch(double maxSusceptanceMismatch) {
         if (maxSusceptanceMismatch <= 0) {
-            throw new PowsyblException("maxSusceptanceMismatch must be greater to 0");
+            throw new PowsyblException("maxSusceptanceMismatch must be greater than 0");
         }
         this.maxSusceptanceMismatch = maxSusceptanceMismatch;
         return this;
@@ -615,6 +665,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxPlausibleTargetVoltage(double maxPlausibleTargetVoltage) {
         this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
+        return this;
+    }
+
+    public double getMinNominalVoltageTargetVoltageCheck() {
+        return minNominalVoltageTargetVoltageCheck;
+    }
+
+    public OpenLoadFlowParameters setMinNominalVoltageTargetVoltageCheck(double minNominalVoltageTargetVoltageCheck) {
+        this.minNominalVoltageTargetVoltageCheck = minNominalVoltageTargetVoltageCheck;
         return this;
     }
 
@@ -699,6 +758,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setSecondaryVoltageControl(boolean secondaryVoltageControl) {
         this.secondaryVoltageControl = secondaryVoltageControl;
+        return this;
+    }
+
+    public boolean isUseActiveLimits() {
+        return useActiveLimits;
+    }
+
+    public OpenLoadFlowParameters setUseActiveLimits(boolean useActiveLimits) {
+        this.useActiveLimits = useActiveLimits;
         return this;
     }
 
@@ -805,6 +873,69 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public ReactivePowerDispatchMode getReactivePowerDispatchMode() {
+        return reactivePowerDispatchMode;
+    }
+
+    public OpenLoadFlowParameters setReactivePowerDispatchMode(ReactivePowerDispatchMode reactivePowerDispatchMode) {
+        this.reactivePowerDispatchMode = Objects.requireNonNull(reactivePowerDispatchMode);
+        return this;
+    }
+
+    public List<String> getOuterLoopNames() {
+        return outerLoopNames;
+    }
+
+    public OpenLoadFlowParameters setOuterLoopNames(List<String> outerLoopNames) {
+        this.outerLoopNames = outerLoopNames;
+        return this;
+    }
+
+    public int getLineSearchStateVectorScalingMaxIteration() {
+        return lineSearchStateVectorScalingMaxIteration;
+    }
+
+    public OpenLoadFlowParameters setLineSearchStateVectorScalingMaxIteration(int lineSearchStateVectorScalingMaxIteration) {
+        this.lineSearchStateVectorScalingMaxIteration = lineSearchStateVectorScalingMaxIteration;
+        return this;
+    }
+
+    public double getLineSearchStateVectorScalingStepFold() {
+        return lineSearchStateVectorScalingStepFold;
+    }
+
+    public OpenLoadFlowParameters setLineSearchStateVectorScalingStepFold(double stepFold) {
+        this.lineSearchStateVectorScalingStepFold = stepFold;
+        return this;
+    }
+
+    public double getMaxVoltageChangeStateVectorScalingMaxDv() {
+        return maxVoltageChangeStateVectorScalingMaxDv;
+    }
+
+    public OpenLoadFlowParameters setMaxVoltageChangeStateVectorScalingMaxDv(double maxVoltageChangeStateVectorScalingMaxDv) {
+        this.maxVoltageChangeStateVectorScalingMaxDv = maxVoltageChangeStateVectorScalingMaxDv;
+        return this;
+    }
+
+    public double getMaxVoltageChangeStateVectorScalingMaxDphi() {
+        return maxVoltageChangeStateVectorScalingMaxDphi;
+    }
+
+    public OpenLoadFlowParameters setMaxVoltageChangeStateVectorScalingMaxDphi(double maxVoltageChangeStateVectorScalingMaxDphi) {
+        this.maxVoltageChangeStateVectorScalingMaxDphi = maxVoltageChangeStateVectorScalingMaxDphi;
+        return this;
+    }
+
+    public LinePerUnitMode getLinePerUnitMode() {
+        return linePerUnitMode;
+    }
+
+    public OpenLoadFlowParameters setLinePerUnitMode(LinePerUnitMode linePerUnitMode) {
+        this.linePerUnitMode = Objects.requireNonNull(linePerUnitMode);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -852,7 +983,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE))
                 .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT))
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
-                .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV))
+                .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV_DEFAULT_VALUE))
                 .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
                 .setAlwaysUpdateNetwork(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME, NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE))
                 .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(config.getDoubleProperty(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE))
@@ -860,6 +991,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSlackBusCountryFilter(config.getEnumSetProperty(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, Country.class, LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE))
                 .setActionableSwitchesIds(new HashSet<>(config.getStringListProperty(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE))))
                 .setAsymmetrical(config.getBooleanProperty(ASYMMETRICAL_PARAM_NAME, LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE))
+                .setMinNominalVoltageTargetVoltageCheck(config.getDoubleProperty(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE))
+                .setReactivePowerDispatchMode(config.getEnumProperty(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ReactivePowerDispatchMode.class, REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE))
+                .setOuterLoopNames(config.getStringListProperty(OUTER_LOOP_NAMES_PARAM_NAME, OUTER_LOOP_NAMES_DEFAULT_VALUE))
+                .setUseActiveLimits(config.getBooleanProperty(USE_ACTIVE_LIMITS_PARAM_NAME, LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE))
+                .setLineSearchStateVectorScalingMaxIteration(config.getIntProperty(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_IERATION_PARAM_NAME, LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION))
+                .setLineSearchStateVectorScalingStepFold(config.getDoubleProperty(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, LineSearchStateVectorScaling.DEFAULT_STEP_FOLD))
+                .setMaxVoltageChangeStateVectorScalingMaxDv(config.getDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV))
+                .setMaxVoltageChangeStateVectorScalingMaxDphi(config.getDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI))
+                .setLinePerUnitMode(config.getEnumProperty(LINE_PER_UNIT_MODE_PARAM_NAME, LinePerUnitMode.class, LfNetworkParameters.LINE_PER_UNIT_MODE_DEFAULT_VALUE))
             );
         return parameters;
     }
@@ -964,11 +1104,29 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setActionableSwitchesIds(new HashSet<>(parseStringListProp(prop))));
         Optional.ofNullable(properties.get(ASYMMETRICAL_PARAM_NAME))
                 .ifPresent(prop -> this.setAsymmetrical(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME))
+                .ifPresent(prop -> this.setMinNominalVoltageTargetVoltageCheck(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME))
+                .ifPresent(prop -> this.setReactivePowerDispatchMode(ReactivePowerDispatchMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(OUTER_LOOP_NAMES_PARAM_NAME))
+                .ifPresent(prop -> this.setOuterLoopNames(parseStringListProp(prop)));
+        Optional.ofNullable(properties.get(USE_ACTIVE_LIMITS_PARAM_NAME))
+                .ifPresent(prop -> this.setUseActiveLimits(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_IERATION_PARAM_NAME))
+                .ifPresent(prop -> this.setLineSearchStateVectorScalingMaxIteration(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME))
+                .ifPresent(prop -> this.setLineSearchStateVectorScalingStepFold(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxVoltageChangeStateVectorScalingMaxDv(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxVoltageChangeStateVectorScalingMaxDphi(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(LINE_PER_UNIT_MODE_PARAM_NAME))
+                .ifPresent(prop -> this.setLinePerUnitMode(LinePerUnitMode.valueOf(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(44);
+        Map<String, Object> map = new LinkedHashMap<>(48);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
@@ -1013,6 +1171,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, slackBusCountryFilter);
         map.put(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, actionableSwitchesIds);
         map.put(ASYMMETRICAL_PARAM_NAME, asymmetrical);
+        map.put(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, minNominalVoltageTargetVoltageCheck);
+        map.put(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, reactivePowerDispatchMode);
+        map.put(OUTER_LOOP_NAMES_PARAM_NAME, outerLoopNames);
+        map.put(USE_ACTIVE_LIMITS_PARAM_NAME, useActiveLimits);
+        map.put(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_IERATION_PARAM_NAME, lineSearchStateVectorScalingMaxIteration);
+        map.put(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, lineSearchStateVectorScalingStepFold);
+        map.put(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, maxVoltageChangeStateVectorScalingMaxDv);
+        map.put(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, maxVoltageChangeStateVectorScalingMaxDphi);
+        map.put(LINE_PER_UNIT_MODE_PARAM_NAME, linePerUnitMode);
         return map;
     }
 
@@ -1063,14 +1230,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
     }
 
-    static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
+    static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory);
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
@@ -1080,7 +1247,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                             LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
         switch (parametersExt.getVoltageInitModeOverride()) {
             case NONE:
-                return getVoltageInitializer(parameters, networkParameters, matrixFactory);
+                return getVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory);
 
             case VOLTAGE_MAGNITUDE:
                 return new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold());
@@ -1091,7 +1258,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                       parameters.isDistributedSlack(),
                                                       parameters.getBalanceType(),
                                                       parameters.isDcUseTransformerRatio(),
-                                                      matrixFactory));
+                                                      matrixFactory,
+                                                      parametersExt.getMaxOuterLoopIterations()));
 
             default:
                 throw new PowsyblException("Unknown voltage init mode override: " + parametersExt.getVoltageInitModeOverride());
@@ -1109,6 +1277,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setTwtSplitShuntAdmittance(parameters.isTwtSplitShuntAdmittance())
                 .setBreakers(breakers)
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
+                .setUseActiveLimits(parametersExt.isUseActiveLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
@@ -1129,7 +1298,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDebugDir(parametersExt.getDebugDir())
                 .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl())
                 .setCacheEnabled(parametersExt.isNetworkCacheEnabled())
-                .setAsymmetrical(parametersExt.isAsymmetrical());
+                .setAsymmetrical(parametersExt.isAsymmetrical())
+                .setMinNominalVoltageTargetVoltageCheck(parametersExt.getMinNominalVoltageTargetVoltageCheck())
+                .setLinePerUnitMode(parametersExt.getLinePerUnitMode());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1162,6 +1333,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
     }
 
+    static List<AcOuterLoop> createOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig()
+                .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitAcOuterLoopConfig()
+                                                                           : new DefaultAcOuterLoopConfig());
+        return outerLoopConfig.configure(parameters, parametersExt);
+    }
+
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
@@ -1180,10 +1358,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
+                .setLineSearchStateVectorScalingMaxIteration(parametersExt.getLineSearchStateVectorScalingMaxIteration())
+                .setLineSearchStateVectorScalingStepFold(parametersExt.getLineSearchStateVectorScalingStepFold())
+                .setMaxVoltageChangeStateVectorScalingMaxDv(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDv())
+                .setMaxVoltageChangeStateVectorScalingMaxDphi(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDphi())
                 .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
 
-        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig(new DefaultAcOuterLoopConfig());
-        List<AcOuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
+        List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 
         return new AcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,
@@ -1220,10 +1401,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setTwtSplitShuntAdmittance(false)
                 .setBreakers(false)
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
+                .setUseActiveLimits(parametersExt.isUseActiveLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                .setPhaseControl(false)
+                .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(false)
                 .setVoltagePerReactivePowerControl(false)
                 .setReactivePowerRemoteControl(false)
@@ -1231,12 +1413,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
                 .setHvdcAcEmulation(false) // FIXME
-                .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
-                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
-                .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX) // not useful for DC.
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(false)
-                .setMaxSlackBusCount(1);
+                .setMaxSlackBusCount(1)
+                .setLinePerUnitMode(parametersExt.getLinePerUnitMode());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       forcePhaseControlOffAndAddAngle1Var,
@@ -1247,7 +1427,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                         matrixFactory,
                                         parameters.isDistributedSlack(),
                                         parameters.getBalanceType(),
-                                        true);
+                                        true,
+                                        parametersExt.getMaxOuterLoopIterations());
     }
 
     public static boolean equals(LoadFlowParameters parameters1, LoadFlowParameters parameters2) {
@@ -1321,7 +1502,16 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getReportedFeatures().equals(extension2.getReportedFeatures()) &&
                 extension1.getSlackBusCountryFilter().equals(extension2.getSlackBusCountryFilter()) &&
                 extension1.getActionableSwitchesIds().equals(extension2.getActionableSwitchesIds()) &&
-                extension1.isAsymmetrical() == extension2.isAsymmetrical();
+                extension1.isAsymmetrical() == extension2.isAsymmetrical() &&
+                extension1.getMinNominalVoltageTargetVoltageCheck() == extension2.getMinNominalVoltageTargetVoltageCheck() &&
+                extension1.getReactivePowerDispatchMode() == extension2.getReactivePowerDispatchMode() &&
+                Objects.equals(extension1.getOuterLoopNames(), extension2.getOuterLoopNames()) &&
+                extension1.isUseActiveLimits() == extension2.isUseActiveLimits() &&
+                extension1.getLineSearchStateVectorScalingMaxIteration() == extension2.getLineSearchStateVectorScalingMaxIteration() &&
+                extension1.getLineSearchStateVectorScalingStepFold() == extension2.getLineSearchStateVectorScalingStepFold() &&
+                extension1.getMaxVoltageChangeStateVectorScalingMaxDv() == extension2.getMaxVoltageChangeStateVectorScalingMaxDv() &&
+                extension1.getMaxVoltageChangeStateVectorScalingMaxDphi() == extension2.getMaxVoltageChangeStateVectorScalingMaxDphi() &&
+                extension1.getLinePerUnitMode() == extension2.getLinePerUnitMode();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1383,7 +1573,16 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setReportedFeatures(extension.getReportedFeatures())
                     .setSlackBusCountryFilter(new HashSet<>(extension.getSlackBusCountryFilter()))
                     .setActionableSwitchesIds(new HashSet<>(extension.getActionableSwitchesIds()))
-                    .setAsymmetrical(extension.isAsymmetrical());
+                    .setAsymmetrical(extension.isAsymmetrical())
+                    .setMinNominalVoltageTargetVoltageCheck(extension.getMinNominalVoltageTargetVoltageCheck())
+                    .setReactivePowerDispatchMode(extension.getReactivePowerDispatchMode())
+                    .setOuterLoopNames(extension.getOuterLoopNames())
+                    .setUseActiveLimits(extension.isUseActiveLimits())
+                    .setLineSearchStateVectorScalingMaxIteration(extension.getLineSearchStateVectorScalingMaxIteration())
+                    .setLineSearchStateVectorScalingStepFold(extension.getLineSearchStateVectorScalingStepFold())
+                    .setMaxVoltageChangeStateVectorScalingMaxDv(extension.getMaxVoltageChangeStateVectorScalingMaxDv())
+                    .setMaxVoltageChangeStateVectorScalingMaxDphi(extension.getMaxVoltageChangeStateVectorScalingMaxDphi())
+                    .setLinePerUnitMode(extension.getLinePerUnitMode());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

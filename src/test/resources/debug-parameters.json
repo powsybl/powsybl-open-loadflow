@@ -43,6 +43,7 @@
         "shuntVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL",
         "minPlausibleTargetVoltage" : 0.8,
         "maxPlausibleTargetVoltage" : 1.2,
+        "minNominalVoltageTargetVoltageCheck" : 20.0,
         "minRealisticVoltage" : 0.5,
         "maxRealisticVoltage" : 2.0,
         "lowImpedanceThreshold" : 1.0E-8,
@@ -61,7 +62,15 @@
         "reportedFeatures" : [ ],
         "slackBusCountryFilter" : [ ],
         "actionableSwitchesIds" : [ ],
-        "asymmetrical" : false
+        "asymmetrical" : false,
+        "reactivePowerDispatchMode" : "Q_EQUAL_PROPORTION",
+        "outerLoopNames" : null,
+        "useActiveLimits" : true,
+        "lineSearchStateVectorScalingMaxIteration" : 10,
+        "lineSearchStateVectorScalingStepFold" : 1.3333333333333333,
+        "maxVoltageChangeStateVectorScalingMaxDv" : 0.1,
+        "maxVoltageChangeStateVectorScalingMaxDphi" : 0.17453292519943295,
+        "linePerUnitMode" : "IMPEDANCE"
       }
     }
   },

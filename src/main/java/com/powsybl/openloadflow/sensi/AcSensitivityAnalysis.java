@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.sensi;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -25,15 +24,12 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
-import com.powsybl.sensitivity.SensitivityAnalysisResult;
-import com.powsybl.sensitivity.SensitivityFactorReader;
-import com.powsybl.sensitivity.SensitivityResultWriter;
-import com.powsybl.sensitivity.SensitivityVariableSet;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -93,7 +89,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
     }
 
-    protected void setFunctionReferences(List<LfSensitivityFactor<AcVariableType, AcEquationType>> factors) {
+    private void setFunctionReferences(List<LfSensitivityFactor<AcVariableType, AcEquationType>> factors) {
         for (LfSensitivityFactor<AcVariableType, AcEquationType> factor : factors) {
             if (factor.getFunctionPredefinedResult() != null) {
                 factor.setFunctionReference(factor.getFunctionPredefinedResult());
@@ -110,7 +106,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                            int contingencyIndex, SensitivityResultWriter resultWriter,
                                                            boolean hasTransformerBusTargetVoltage) {
         if (lfParameters.isDistributedSlack() && Math.abs(lfContingency.getActivePowerLoss()) > 0) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(lfParameters.getBalanceType(), lfParametersExt.isLoadPowerFactorConstant());
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(lfParameters.getBalanceType(), lfParametersExt.isLoadPowerFactorConstant(), lfParametersExt.isUseActiveLimits());
             activePowerDistribution.run(lfNetwork, lfContingency.getActivePowerLoss());
         }
 
@@ -132,7 +128,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             lfNetwork.fixTransformerVoltageControls();
         }
 
-        if (factorGroups.hasMultiVariables() && (!lfContingency.getBusesLoadShift().isEmpty() || !lfContingency.getLostGenerators().isEmpty())) {
+        if (factorGroups.hasMultiVariables() && (!lfContingency.getLostLoads().isEmpty() || !lfContingency.getLostGenerators().isEmpty())) {
             // FIXME. It does not work with a contingency that breaks connectivity and loose an isolate injection.
             Set<LfBus> affectedBuses = lfContingency.getLoadAndGeneratorBuses();
             rescaleGlsk(factorGroups, affectedBuses);
@@ -152,16 +148,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     private static boolean runLoadFlow(AcLoadFlowContext context, boolean throwsExceptionIfNoConvergence) {
         AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
-        if (result.getNewtonRaphsonStatus() != NewtonRaphsonStatus.CONVERGED
-                && result.getNewtonRaphsonStatus() != NewtonRaphsonStatus.NO_CALCULATION) {
+        if (result.isOk() || result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.NO_CALCULATION) {
+            return true;
+        } else {
             if (throwsExceptionIfNoConvergence) {
-                throw new PowsyblException("Loadflow diverged with status " + result.getNewtonRaphsonStatus());
+                throw new PowsyblException("Load flow ended with status " + result.getNewtonRaphsonStatus());
             } else {
-                LOGGER.warn("Loadflow diverged with status {}", result.getNewtonRaphsonStatus());
+                LOGGER.warn("Load flow ended with status {}", result.getNewtonRaphsonStatus());
                 return false;
             }
         }
-        return true;
     }
 
     /**
@@ -169,7 +165,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
      */
     @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
-                        SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen) {
+                        SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, Reporter reporter,
+                        LfTopoConfig topoConfig) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(factorReader);
@@ -179,7 +176,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
         Pair<Boolean, Boolean> hasBusTargetVoltage = hasBusTargetVoltage(factorReader, network);
-        boolean breakers = !allSwitchesToOpen.isEmpty();
+        boolean breakers = topoConfig.isBreaker();
         if (breakers && Boolean.TRUE.equals(hasBusTargetVoltage.getLeft())) {
             // FIXME
             // a bus voltage function works only on a bus/branch topology and a switch contingency only works on a
@@ -193,8 +190,14 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // voltage control for the AC load flow engine.
             lfParameters.setTransformerVoltageControlOn(true);
         }
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(),
-                lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), lfParametersExt.getSlackBusCountryFilter());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(),
+                                                                      lfParametersExt.getSlackBusesIds(),
+                                                                      lfParametersExt.getPlausibleActivePowerLimit(),
+                                                                      lfParametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(),
+                                                                      lfParametersExt.getSlackBusCountryFilter());
+        if (lfParameters.isReadSlackBus()) {
+            slackBusSelector = new NetworkSlackBusSelector(network, lfParametersExt.getSlackBusCountryFilter(), slackBusSelector);
+        }
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
@@ -216,10 +219,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation())
                 .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage())
+                .setMinNominalVoltageTargetVoltageCheck(lfParametersExt.getMinNominalVoltageTargetVoltageCheck())
                 .setCacheEnabled(false); // force not caching as not supported in sensi analysis
 
         // create networks including all necessary switches
-        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, Collections.emptySet(), reporter)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
 
             // complete definition of contingencies after network loading
@@ -235,7 +239,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies", allLfFactors.size(), contingencies.size());
 
             // next we only work with valid and valid only for function factors
-            var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter);
+            var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, contingencies);
             var validLfFactors = validFactorHolder.getAllFactors();
 
             // create AC engine
@@ -278,11 +282,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
 
-                // otherwise, defining the rhs matrix will result in integer overflow
-                if (factorGroups.getList().size() >= Integer.MAX_VALUE / (context.getEquationSystem().getIndex().getSortedEquationsToSolve().size() * Double.BYTES)) {
-                    throw new PowsyblException("Too many factors!");
-                }
-
                 // initialize right hand side from valid factors
                 DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, slackParticipationByBus); // this is the rhs for the moment
 
@@ -310,12 +309,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                                 lfContingency.apply(lfParameters.getBalanceType());
 
-                                setPredefinedResults(contingencyFactors, lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches(), contingency);
+                                setPredefinedResults(contingencyFactors, lfContingency.getDisabledNetwork(), contingency);
 
                                 Map<LfBus, Double> postContingencySlackParticipationByBus;
                                 Set<LfBus> slackConnectedComponent;
                                 boolean hasChanged = false;
-                                if (lfContingency.getDisabledBuses().isEmpty()) {
+                                if (lfContingency.getDisabledNetwork().getBuses().isEmpty()) {
                                     // contingency not breaking connectivity
                                     LOGGER.debug("Contingency '{}' without loss of connectivity", lfContingency.getId());
                                     slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
@@ -323,9 +322,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                     // contingency breaking connectivity
                                     LOGGER.debug("Contingency '{}' with loss of connectivity", lfContingency.getId());
                                     // we check if factors are still in the main component
-                                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledBuses()::contains)).collect(Collectors.toSet());
+                                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledNetwork().getBuses()::contains)).collect(Collectors.toSet());
                                     // we recompute GLSK weights if needed
-                                    hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledBuses());
+                                    hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledNetwork().getBuses());
                                 }
 
                                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all

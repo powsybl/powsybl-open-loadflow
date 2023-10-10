@@ -180,8 +180,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected static double getScaleForLimitType(LimitType type, LfBus bus) {
         switch (type) {
-            case ACTIVE_POWER:
-            case APPARENT_POWER:
+            case ACTIVE_POWER,
+                 APPARENT_POWER:
                 return 1.0 / PerUnit.SB;
             case CURRENT:
                 return 1.0 / PerUnit.ib(bus.getNominalV());
@@ -282,7 +282,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setMinZ(double lowImpedanceThreshold) {
         for (LoadFlowModel loadFlowModel : List.of(LoadFlowModel.AC, LoadFlowModel.DC)) {
-            if (piModel.setMinZ(lowImpedanceThreshold, loadFlowModel)) {
+            if (piModel.setMinZ(lowImpedanceThreshold, loadFlowModel) ||
+                    LoadFlowModel.DC.equals(loadFlowModel) && isZeroImpedance(loadFlowModel)) {
+                // Note: For DC load flow model, the min impedance has already been set by AC load flow model but
+                //       the zero impedance field must still be updated.
                 LOGGER.trace("Branch {} has a low impedance in {}, set to min {}", getId(), loadFlowModel, lowImpedanceThreshold);
                 zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = false;
             }

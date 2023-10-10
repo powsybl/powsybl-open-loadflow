@@ -8,13 +8,11 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.GeneratorVoltageControl;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +41,8 @@ public enum NetworkCache {
         private final LoadFlowParameters parameters;
 
         private List<AcLoadFlowContext> contexts;
+
+        private boolean pause = false;
 
         public Entry(Network network, LoadFlowParameters parameters) {
             Objects.requireNonNull(network);
@@ -73,6 +73,10 @@ public enum NetworkCache {
 
         public LoadFlowParameters getParameters() {
             return parameters;
+        }
+
+        public void setPause(boolean pause) {
+            this.pause = pause;
         }
 
         private void reset() {
@@ -134,8 +138,18 @@ public enum NetworkCache {
                 if (attribute.equals("targetV")) {
                     double valueShift = (double) newValue - (double) oldValue;
                     GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
-                    double newTargetV = voltageControl.getTargetValue() + valueShift / lfBus.getNominalV();
-                    voltageControl.setTargetValue(newTargetV);
+                    double nominalV = voltageControl.getControlledBus().getNominalV();
+                    double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
+                    LfNetworkParameters networkParameters = context.getParameters().getNetworkParameters();
+                    if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
+                        voltageControl.setTargetValue(newTargetV);
+                    } else {
+                        context.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                        if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
+                            lfBus.setGeneratorVoltageControlEnabled(false);
+                        }
+                    }
+                    context.getNetwork().validate(LoadFlowModel.AC, null);
                     return true;
                 }
                 return false;
@@ -145,7 +159,7 @@ public enum NetworkCache {
         private boolean onShuntUpdate(ShuntCompensator shunt, String attribute) {
             return onInjectionUpdate(shunt, attribute, (context, lfBus) -> {
                 if (attribute.equals("sectionCount")) {
-                    if (!lfBus.getControllerShunt().isPresent()) {
+                    if (lfBus.getControllerShunt().isEmpty()) {
                         LfShunt lfShunt = lfBus.getShunt().orElseThrow();
                         lfShunt.reInit();
                         return true;
@@ -164,7 +178,7 @@ public enum NetworkCache {
                 LfNetwork lfNetwork = context.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
-                    lfBranch.setDisabled(open);
+                    updateSwitch(open, lfNetwork, lfBranch);
                     context.setNetworkUpdated(true);
                     found = true;
                 }
@@ -175,26 +189,37 @@ public enum NetworkCache {
             return found;
         }
 
+        private static void updateSwitch(boolean open, LfNetwork lfNetwork, LfBranch lfBranch) {
+            var connectivity = lfNetwork.getConnectivity();
+            connectivity.startTemporaryChanges();
+            try {
+                if (open) {
+                    connectivity.removeEdge(lfBranch);
+                } else {
+                    connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
+                }
+                LfAction.updateBusesAndBranchStatus(connectivity);
+            } finally {
+                connectivity.undoTemporaryChanges();
+            }
+        }
+
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
-            if (contexts == null) {
+            if (contexts == null || pause) {
                 return;
             }
             boolean done = false;
             switch (attribute) {
-                case "v":
-                case "angle":
-                case "p":
-                case "q":
-                case "p1":
-                case "q1":
-                case "p2":
-                case "q2":
-                    // ignore because it is related to state update and won't affect LF calculation
-                    done = true;
-                    break;
-
-                default:
+                case "v",
+                     "angle",
+                     "p",
+                     "q",
+                     "p1",
+                     "q1",
+                     "p2",
+                     "q2" -> done = true; // ignore because it is related to state update and won't affect LF calculation
+                default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
                         if (attribute.equals("targetV")
@@ -213,7 +238,7 @@ public enum NetworkCache {
                             done = true;
                         }
                     }
-                    break;
+                }
             }
 
             if (!done) {
@@ -347,7 +372,7 @@ public enum NetworkCache {
             for (AcLoadFlowContext context : entry.getContexts()) {
                 AcLoadFlowResult result = context.getResult();
                 if (result != null && result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
-                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
                 }
             }
         } else {

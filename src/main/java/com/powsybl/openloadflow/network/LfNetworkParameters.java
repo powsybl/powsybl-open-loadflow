@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -23,12 +24,16 @@ public class LfNetworkParameters {
 
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
 
+    public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
+
     /**
      * Minimal and maximal plausible target V in p.u
      */
     public static final double MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 0.8;
 
     public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
+
+    public static final double MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE = 20;
 
     public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = Math.pow(10, -8); // in per unit
 
@@ -50,7 +55,9 @@ public class LfNetworkParameters {
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
-    private boolean generatorVoltageRemoteControl = false;
+    public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
+
+    private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
 
@@ -59,6 +66,8 @@ public class LfNetworkParameters {
     private boolean breakers = false;
 
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
+
+    private boolean useActiveLimits = USE_ACTIVE_LIMITS_DEFAULT_VALUE;
 
     private boolean computeMainConnectedComponentOnly = true;
 
@@ -86,6 +95,8 @@ public class LfNetworkParameters {
 
     private double maxPlausibleTargetVoltage = MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
+    private double minNominalVoltageTargetVoltageCheck = MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE;
+
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
 
     private OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode = REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
@@ -103,6 +114,45 @@ public class LfNetworkParameters {
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
 
     private boolean asymmetrical = ASYMMETRICAL_DEFAULT_VALUE;
+
+    private LinePerUnitMode linePerUnitMode = LINE_PER_UNIT_MODE_DEFAULT_VALUE;
+
+    public LfNetworkParameters() {
+    }
+
+    public LfNetworkParameters(LfNetworkParameters other) {
+        Objects.requireNonNull(other);
+        this.slackBusSelector = other.slackBusSelector;
+        this.connectivityFactory = other.connectivityFactory;
+        this.generatorVoltageRemoteControl = other.generatorVoltageRemoteControl;
+        this.minImpedance = other.minImpedance;
+        this.twtSplitShuntAdmittance = other.twtSplitShuntAdmittance;
+        this.breakers = other.breakers;
+        this.plausibleActivePowerLimit = other.plausibleActivePowerLimit;
+        this.computeMainConnectedComponentOnly = other.computeMainConnectedComponentOnly;
+        this.countriesToBalance = new HashSet<>(other.countriesToBalance);
+        this.distributedOnConformLoad = other.distributedOnConformLoad;
+        this.phaseControl = other.phaseControl;
+        this.transformerVoltageControl = other.transformerVoltageControl;
+        this.voltagePerReactivePowerControl = other.voltagePerReactivePowerControl;
+        this.reactivePowerRemoteControl = other.reactivePowerRemoteControl;
+        this.loadFlowModel = other.loadFlowModel;
+        this.shuntVoltageControl = other.shuntVoltageControl;
+        this.reactiveLimits = other.reactiveLimits;
+        this.hvdcAcEmulation = other.hvdcAcEmulation;
+        this.minPlausibleTargetVoltage = other.minPlausibleTargetVoltage;
+        this.maxPlausibleTargetVoltage = other.maxPlausibleTargetVoltage;
+        this.minNominalVoltageTargetVoltageCheck = other.minNominalVoltageTargetVoltageCheck;
+        this.loaderPostProcessorSelection = new HashSet<>(other.loaderPostProcessorSelection);
+        this.reactiveRangeCheckMode = other.reactiveRangeCheckMode;
+        this.lowImpedanceThreshold = other.lowImpedanceThreshold;
+        this.svcVoltageMonitoring = other.svcVoltageMonitoring;
+        this.maxSlackBusCount = other.maxSlackBusCount;
+        this.debugDir = other.debugDir;
+        this.secondaryVoltageControl = other.secondaryVoltageControl;
+        this.cacheEnabled = other.cacheEnabled;
+        this.asymmetrical = other.asymmetrical;
+    }
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -164,6 +214,15 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setPlausibleActivePowerLimit(double plausibleActivePowerLimit) {
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+        return this;
+    }
+
+    public boolean isUseActiveLimits() {
+        return useActiveLimits;
+    }
+
+    public LfNetworkParameters setUseActiveLimits(boolean useActiveLimits) {
+        this.useActiveLimits = useActiveLimits;
         return this;
     }
 
@@ -284,6 +343,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public double getMinNominalVoltageTargetVoltageCheck() {
+        return minNominalVoltageTargetVoltageCheck;
+    }
+
+    public LfNetworkParameters setMinNominalVoltageTargetVoltageCheck(double minNominalVoltageTargetVoltageCheck) {
+        this.minNominalVoltageTargetVoltageCheck = minNominalVoltageTargetVoltageCheck;
+        return this;
+    }
+
     public double getLowImpedanceThreshold() {
         return lowImpedanceThreshold;
     }
@@ -375,6 +443,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public LinePerUnitMode getLinePerUnitMode() {
+        return linePerUnitMode;
+    }
+
+    public LfNetworkParameters setLinePerUnitMode(LinePerUnitMode linePerUnitMode) {
+        this.linePerUnitMode = Objects.requireNonNull(linePerUnitMode);
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -406,6 +483,8 @@ public class LfNetworkParameters {
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", cacheEnabled=" + cacheEnabled +
                 ", asymmetrical=" + asymmetrical +
+                ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
+                ", linePerUnitMode=" + linePerUnitMode +
                 ')';
     }
 }

@@ -4,24 +4,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sensi.ac;
+package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.*;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.Line;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1195,7 +1200,29 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
-    void testRestoContingencyOnHvdc() {
+    void testPredefinedResults5() {
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators();
+        network.getLine("l25").getTerminal1().disconnect();
+        network.getLine("l25").getTerminal2().disconnect();
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        // with contingency context all
+        List<Contingency> contingencies = Collections.singletonList(new Contingency("l12", new BranchContingency("l12")));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g1")); // all contingency context.
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("l12", "g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l12", "l46"), LoadFlowAssert.DELTA_POWER);
+        // with contingency context specific (no pre contingency state asked...)
+        factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g1", "l12")); // specific contingency context.
+        result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("l12", "g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l12", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(result.getValues(null).isEmpty()); // nothing because invalid factor in pre contingency state.
+    }
+
+    @Test
+    void testRestoreAfterContingencyOnHvdc() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
@@ -1211,7 +1238,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 Stream.of("l12", "l25", "l56").map(network::getBranch).collect(Collectors.toList()));
 
         List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")),
-                new Contingency("l45", new BranchContingency("l45")));
+                                                  new Contingency("l45", new BranchContingency("l45")));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
@@ -1265,5 +1292,37 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), parameters);
         assertEquals(387.415, result.getBusVoltageFunctionReferenceValue("b2"), LoadFlowAssert.DELTA_V);
         assertEquals(388.582, result.getBusVoltageFunctionReferenceValue("svc1", "b2"), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testBusContingency() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "NGEN", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "LOAD"),
+                                                  createBranchFlowPerInjectionIncrease("NHV1_NHV2_2", "LOAD"),
+                                                  createBranchFlowPerInjectionIncrease("NHV2_NLOAD", "LOAD"),
+                                                  createBranchFlowPerInjectionIncrease("NGEN_NHV1", "LOAD"));
+        List<Contingency> contingencies = network.getBusBreakerView().getBusStream()
+                //.filter(bus -> !bus.getId().equals("NGEN"))
+                .map(bus -> new Contingency(bus.getId(), new BusContingency(bus.getId())))
+                .collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.019, result.getBranchFlow1FunctionReferenceValue("NLOAD", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        // FIXME
+        // Contingency 'NHV1' leads to an isolated slack bus: not supported
+        // we output in that case a NO_IMPACT status with pre contingency state.
+        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getContingencyStatus("NHV1"));
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("NHV2", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
+        // FIXME
+        // Contingency 'NGEN' leads to the loss of a slack bus: slack bus kept
+        // we clean the contingency in order to keep the slack bus in the network, leading to a wrong computation.
+        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getContingencyStatus("NGEN")); // status but no outputs.
+        assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NGEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(605.555, result.getBranchFlow1FunctionReferenceValue("NGEN", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
     }
 }
