@@ -4,7 +4,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.extensions.iidm.*;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.univocity.parsers.annotations.Parsed;
 import com.univocity.parsers.common.processor.BeanListProcessor;
@@ -356,32 +355,50 @@ public final class AsymIeeeFeederParser {
                 .setBus(getBusId(busName))
                 .setP0(0.)
                 .setQ0(0.)
+                .newZipModel()
+                    .setC0p(1)
+                    .setC0q(1)
+                    .setC1p(0)
+                    .setC1q(0)
+                    .setC2p(0)
+                    .setC2q(0)
+                    .add()
                 .add();
 
         var extensionBus = network.getBusBreakerView().getBus(getBusId(busName)).getExtension(BusAsymmetrical.class);
         LoadConnectionType loadConnectionType;
-        LoadType loadTypeOut;
+        ZipLoadModel zipLoadModel = (ZipLoadModel) load.getModel().orElseThrow();
         if (loadType.equals("Y-PQ")) {
             loadConnectionType = LoadConnectionType.Y;
-            loadTypeOut = LoadType.CONSTANT_POWER;
         } else if (loadType.equals("D-PQ")) {
             loadConnectionType = LoadConnectionType.DELTA;
-            loadTypeOut = LoadType.CONSTANT_POWER;
         } else if (loadType.equals("Y-Z")) {
             loadConnectionType = LoadConnectionType.Y;
-            loadTypeOut = LoadType.CONSTANT_IMPEDANCE;
+            zipLoadModel.setC0p(0);
+            zipLoadModel.setC0q(0);
+            zipLoadModel.setC2p(1);
+            zipLoadModel.setC2q(1);
             extensionBus.setFortescueRepresentation(false);
         } else if (loadType.equals("D-Z")) {
             loadConnectionType = LoadConnectionType.DELTA;
-            loadTypeOut = LoadType.CONSTANT_IMPEDANCE;
+            zipLoadModel.setC0p(0);
+            zipLoadModel.setC0q(0);
+            zipLoadModel.setC2p(1);
+            zipLoadModel.setC2q(1);
             extensionBus.setFortescueRepresentation(false);
         } else if (loadType.equals("Y-I")) {
             loadConnectionType = LoadConnectionType.Y;
-            loadTypeOut = LoadType.CONSTANT_CURRENT;
+            zipLoadModel.setC0p(0);
+            zipLoadModel.setC0q(0);
+            zipLoadModel.setC1p(1);
+            zipLoadModel.setC1q(1);
             extensionBus.setFortescueRepresentation(false);
         } else if (loadType.equals("D-I")) {
             loadConnectionType = LoadConnectionType.DELTA;
-            loadTypeOut = LoadType.CONSTANT_CURRENT;
+            zipLoadModel.setC0p(0);
+            zipLoadModel.setC0q(0);
+            zipLoadModel.setC1p(1);
+            zipLoadModel.setC1q(1);
             extensionBus.setFortescueRepresentation(false);
         } else {
             throw new IllegalStateException("Unknown load type in csv at bus : " + busName);
@@ -395,10 +412,6 @@ public final class AsymIeeeFeederParser {
                 .withDeltaPc(pc / 1000.)
                 .withDeltaQc(qc / 1000.)
                 .withConnectionType(loadConnectionType)
-                .add();
-
-        load.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(loadTypeOut)
                 .add();
 
     }
