@@ -345,7 +345,7 @@ public final class LfAction {
             if (!generator.isDisabled()) {
                 generator.setTargetP(generator.getTargetP() + generatorChange.getDeltaTargetP());
                 if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                        networkParameters.getPlausibleActivePowerLimit(), null)) {
+                        networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
                     generator.setParticipating(false);
                 }
             }

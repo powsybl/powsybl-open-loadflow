@@ -22,13 +22,13 @@ import java.util.Objects;
  */
 public interface StateVectorScaling {
 
-    static StateVectorScaling fromMode(StateVectorScalingMode mode, NewtonRaphsonStoppingCriteria.TestResult initialTestResult) {
-        Objects.requireNonNull(mode);
+    static StateVectorScaling fromMode(NewtonRaphsonParameters parameters, NewtonRaphsonStoppingCriteria.TestResult initialTestResult) {
+        Objects.requireNonNull(parameters);
         Objects.requireNonNull(initialTestResult);
-        return switch (mode) {
+        return switch (parameters.getStateVectorScalingMode()) {
             case NONE -> new NoneStateVectorScaling();
-            case LINE_SEARCH -> new LineSearchStateVectorScaling(initialTestResult);
-            case MAX_VOLTAGE_CHANGE -> new MaxVoltageChangeStateVectorScaling();
+            case LINE_SEARCH -> new LineSearchStateVectorScaling(initialTestResult, parameters.getLineSearchStateVectorScalingMaxIteration(), parameters.getLineSearchStateVectorScalingStepFold());
+            case MAX_VOLTAGE_CHANGE -> new MaxVoltageChangeStateVectorScaling(parameters.getMaxVoltageChangeStateVectorScalingMaxDv(), parameters.getMaxVoltageChangeStateVectorScalingMaxDphi());
         };
     }
 

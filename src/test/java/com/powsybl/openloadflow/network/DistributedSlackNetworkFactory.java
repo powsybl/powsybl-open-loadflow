@@ -93,6 +93,18 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
         return network;
     }
 
+    public static Network createWithLossesAndPvPqTypeSwitch() {
+        // A lossy network with losses changing significantly between first NR and last NR due to PV->PQ switching.
+        // First NR has huge losses due to huge reactive flows when g2 is PV.
+        Network network = create();
+        network.getLineStream().forEach(l -> l.setR(0.1));
+        // g2 can only reach 400.18kV with 300MVAr
+        network.getGenerator("g2")
+                .setTargetV(402.0).setVoltageRegulatorOn(true)
+                .newMinMaxReactiveLimits().setMinQ(-300).setMaxQ(300).add();
+        return network;
+    }
+
     public static Network createNetworkWithLoads() {
         Network network = Network.create("distributed-load-slack-bus", "code");
         Bus b1 = createBus(network, "b1", 400);

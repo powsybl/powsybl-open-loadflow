@@ -24,6 +24,8 @@ public class LfNetworkParameters {
 
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
 
+    public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
+
     /**
      * Minimal and maximal plausible target V in p.u
      */
@@ -53,6 +55,8 @@ public class LfNetworkParameters {
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
+    public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -62,6 +66,8 @@ public class LfNetworkParameters {
     private boolean breakers = false;
 
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
+
+    private boolean useActiveLimits = USE_ACTIVE_LIMITS_DEFAULT_VALUE;
 
     private boolean computeMainConnectedComponentOnly = true;
 
@@ -108,6 +114,8 @@ public class LfNetworkParameters {
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
 
     private boolean asymmetrical = ASYMMETRICAL_DEFAULT_VALUE;
+
+    private LinePerUnitMode linePerUnitMode = LINE_PER_UNIT_MODE_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -206,6 +214,15 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setPlausibleActivePowerLimit(double plausibleActivePowerLimit) {
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+        return this;
+    }
+
+    public boolean isUseActiveLimits() {
+        return useActiveLimits;
+    }
+
+    public LfNetworkParameters setUseActiveLimits(boolean useActiveLimits) {
+        this.useActiveLimits = useActiveLimits;
         return this;
     }
 
@@ -426,6 +443,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public LinePerUnitMode getLinePerUnitMode() {
+        return linePerUnitMode;
+    }
+
+    public LfNetworkParameters setLinePerUnitMode(LinePerUnitMode linePerUnitMode) {
+        this.linePerUnitMode = Objects.requireNonNull(linePerUnitMode);
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -458,6 +484,7 @@ public class LfNetworkParameters {
                 ", cacheEnabled=" + cacheEnabled +
                 ", asymmetrical=" + asymmetrical +
                 ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
+                ", linePerUnitMode=" + linePerUnitMode +
                 ')';
     }
 }
