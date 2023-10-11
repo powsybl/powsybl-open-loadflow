@@ -87,16 +87,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final List<LfVoltageAngleLimit> voltageAngleLimits = new ArrayList<>();
 
     public static class LfVoltageAngleLimit {
-        private String id;
-        private LfBus from;
-        private LfBus to;
-        private double highValue;
-        private double lowValue;
+        private final String id;
+        private final LfBus from;
+        private final LfBus to;
+        private final double highValue;
+        private final double lowValue;
 
         public LfVoltageAngleLimit(String id, LfBus from, LfBus to, double highValue, double lowValue) {
-            this.id = id;
-            this.from = from;
-            this.to = to;
+            this.id = Objects.requireNonNull(id);
+            this.from = Objects.requireNonNull(from);
+            this.to = Objects.requireNonNull(to);
             this.highValue = highValue;
             this.lowValue = lowValue;
         }
