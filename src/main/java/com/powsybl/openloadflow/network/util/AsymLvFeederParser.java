@@ -287,6 +287,7 @@ public final class AsymLvFeederParser {
                     .withDeltaPc(deltaPc)
                     .withDeltaQc(deltaQc)
                     .add();
+
         }
     }
 
