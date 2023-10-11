@@ -2246,5 +2246,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LimitViolation limit2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
         assertEquals(LimitViolationType.HIGH_VOLTAGE_ANGLE, limit2.getLimitType());
         assertEquals(7.498849, limit2.getValue(), 10E-6);
+
+        network.getVoltageAngleLimit("val").remove();
+        network.newVoltageAngleLimit().setId("val").from(line.getTerminal2()).to(line.getTerminal1()).setLowLimit(-7.0).add();
+        SecurityAnalysisResult result3 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
+        assertTrue(result3.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().isEmpty());
     }
 }
