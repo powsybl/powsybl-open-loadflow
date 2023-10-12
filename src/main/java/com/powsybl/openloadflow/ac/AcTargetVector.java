@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -34,26 +35,34 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         return targetV;
     }
 
-    private static double getReactivePowerDistributionTargetForVoltageControl(LfNetwork network, int busNum) {
+    private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
         LfBus controllerBus = network.getBus(busNum);
-        double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
-        for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getMergedControllerElements()) {
-            if (otherControllerBus != controllerBus) {
-                target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
-            }
-        }
-        return target;
-    }
 
-    private static double getReactivePowerDistributionTargetForReactivePowerControl(LfNetwork network, int busNum) {
-        LfBus controllerBus = network.getBus(busNum);
-        double target = (controllerBus.getRemoteReactivePowerControlReactivePercent() - 1) * controllerBus.getTargetQ();
-        for (LfBus otherControllerBus : controllerBus.getGeneratorReactivePowerControl().orElseThrow().getControllerElements()) {
-            if (otherControllerBus != controllerBus) {
-                target += controllerBus.getRemoteReactivePowerControlReactivePercent() * otherControllerBus.getTargetQ();
+        // voltage control has priority over reactive power control
+        // a bus won't have both controls
+        Optional<GeneratorVoltageControl> generatorVoltageControl = controllerBus.getGeneratorVoltageControl();
+        if (generatorVoltageControl.isPresent()) {
+            double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
+            for (LfBus otherControllerBus : generatorVoltageControl.get().getMergedControllerElements()) {
+                if (otherControllerBus != controllerBus) {
+                    target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
+                }
             }
+            return target;
         }
-        return target;
+
+        Optional<GeneratorReactivePowerControl> generatorReactivePowerControl = controllerBus.getGeneratorReactivePowerControl();
+        if (generatorReactivePowerControl.isPresent()) {
+            double target = (controllerBus.getRemoteReactivePowerControlReactivePercent() - 1) * controllerBus.getTargetQ();
+            for (LfBus otherControllerBus : generatorReactivePowerControl.get().getControllerElements()) {
+                if (otherControllerBus != controllerBus) {
+                    target += controllerBus.getRemoteReactivePowerControlReactivePercent() * otherControllerBus.getTargetQ();
+                }
+            }
+            return target;
+        }
+
+        throw new PowsyblException("Tried to create a distribute Q equation for bus '" + controllerBus.getId() + "' but it does not have any generator controls.");
     }
 
     private static double getReactivePowerControlTarget(LfBranch branch) {
@@ -100,12 +109,8 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getR1();
                 break;
 
-            case DISTR_Q_VOLTAGE_CONTROL:
-                targets[equation.getColumn()] = getReactivePowerDistributionTargetForVoltageControl(network, equation.getElementNum());
-                break;
-
-            case DISTR_Q_REACTIVE_POWER_CONTROL:
-                targets[equation.getColumn()] = getReactivePowerDistributionTargetForReactivePowerControl(network, equation.getElementNum());
+            case DISTR_Q:
+                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getElementNum());
                 break;
 
             case ZERO_V:

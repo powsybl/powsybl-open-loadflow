@@ -161,7 +161,7 @@ public class AcEquationSystemCreator {
             // 0 = qPercent_i * sum_j(q_j) - q_i
             // which can be rewritten in a more simple way
             // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
-            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q_VOLTAGE_CONTROL)
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
                     .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(() -> controllerBus.getRemoteVoltageControlReactivePercent() - 1))
                             .collect(Collectors.toList()));
@@ -179,7 +179,7 @@ public class AcEquationSystemCreator {
                                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                   AcEquationSystemCreationParameters parameters) {
         for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
-            equationSystem.removeEquation(controllerBus.getNum(), AcEquationType.DISTR_Q_VOLTAGE_CONTROL);
+            equationSystem.removeEquation(controllerBus.getNum(), AcEquationType.DISTR_Q);
         }
         if (!voltageControl.isLocalControl()) {
             createReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
@@ -206,7 +206,7 @@ public class AcEquationSystemCreator {
             // 0 = qPercent_i * sum_j(q_j) - q_i
             // which can be rewritten in a more simple way
             // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the reactive power controller buses except i
-            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q_REACTIVE_POWER_CONTROL)
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
                     .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(() -> controllerBus.getRemoteReactivePowerControlReactivePercent() - 1))
                             .collect(Collectors.toList()));
@@ -233,7 +233,7 @@ public class AcEquationSystemCreator {
         createReactivePowerDistributionEquations(reactivePowerControl, equationSystem, creationParameters);
 
         // activate and deactivate certain equations
-        updateRemoteReactivePowerControlEquations(reactivePowerControl, equationSystem, AcEquationType.DISTR_Q_REACTIVE_POWER_CONTROL, AcEquationType.BUS_TARGET_Q);
+        updateRemoteReactivePowerControlEquations(reactivePowerControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
     }
 
     static void updateRemoteReactivePowerControlEquations(ReactivePowerControl reactivePowerControl,
@@ -382,7 +382,7 @@ public class AcEquationSystemCreator {
         // ensure reactive keys are up-to-date
         voltageControl.updateReactiveKeys();
 
-        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q_VOLTAGE_CONTROL, AcEquationType.BUS_TARGET_Q);
+        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
     }
 
     private static <T extends LfElement> void checkNotDependentVoltageControl(VoltageControl<T> voltageControl) {

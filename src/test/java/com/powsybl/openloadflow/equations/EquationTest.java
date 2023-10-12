@@ -68,6 +68,6 @@ class EquationTest {
     @Test
     void testToString() {
         assertEquals("Equation(elementNum=0, type=BUS_TARGET_P, column=-1)", new Equation<>(0, AcEquationType.BUS_TARGET_P, equationSystem).toString());
-        assertEquals("Equation(elementNum=1, type=DISTR_Q_VOLTAGE_CONTROL, column=-1)", new Equation<>(1, AcEquationType.DISTR_Q_VOLTAGE_CONTROL, equationSystem).toString());
+        assertEquals("Equation(elementNum=1, type=DISTR_Q, column=-1)", new Equation<>(1, AcEquationType.DISTR_Q, equationSystem).toString());
     }
 }
