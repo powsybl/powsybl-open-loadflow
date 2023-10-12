@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
-import com.powsybl.openloadflow.network.impl.LfBusImpl;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -126,13 +125,12 @@ public class AcEquationSystemCreator {
         }
     }
 
-    // TODO: fix equations
     public static void updateReactivePowerControlBranchEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         equationSystem.getEquation(reactivePowerControl.getControlledBranch().getNum(), AcEquationType.BRANCH_TARGET_Q)
                 .orElseThrow()
-                .setActive(!((LfBusImpl) reactivePowerControl.getControllerElements().get(0)).isDisabled()
+                .setActive(!reactivePowerControl.getControllerElements().get(0).isDisabled()
                         && !reactivePowerControl.getControlledBranch().isDisabled());
-        equationSystem.getEquation(((LfBusImpl) reactivePowerControl.getControllerElements().get(0)).getNum(), AcEquationType.BUS_TARGET_Q)
+        equationSystem.getEquation(reactivePowerControl.getControllerElements().get(0).getNum(), AcEquationType.BUS_TARGET_Q)
                 .orElseThrow()
                 .setActive(false);
     }
@@ -198,8 +196,7 @@ public class AcEquationSystemCreator {
         createReactivePowerDistributionEquations(voltageControl.getMergedControllerElements(), true, equationSystem, creationParameters);
     }
 
-    private void createGeneratorRemoteReactivePowerControlEquations(GeneratorReactivePowerControl reactivePowerControl,
-                                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createGeneratorRemoteReactivePowerControlEquations(GeneratorReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfBus controllerBus : reactivePowerControl.getControllerElements()) {
             equationSystem.createEquation(controllerBus, AcEquationType.BUS_TARGET_Q);
         }

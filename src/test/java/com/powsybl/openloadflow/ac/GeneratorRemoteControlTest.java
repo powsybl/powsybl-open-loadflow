@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static com.powsybl.openloadflow.network.LfShunt.LOGGER;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
@@ -717,5 +718,40 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         g1.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(0).add();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters()).get(0);
         assertTrue(lfNetwork.getGeneratorById(g1.getId()).getRemoteControlReactiveKey().isEmpty()); // zero is fixed to empty
+    }
+
+    @Test
+    void testRemoteReactivePowerControlHG() {
+        // create a basic 4-buses network
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        Generator g4 = network.getGenerator("g4");
+        Line l34 = network.getLine("l34");
+
+        double targetQ = 4.0;
+
+        // disable voltage control on g4
+        g4.setTargetQ(0.0).setVoltageRegulatorOn(false);
+
+        // first test: generator g4 regulates reactive power on line 4->3 (on side of g4)
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withEnabled(true).add();
+
+        g4.newMinMaxReactiveLimits().setMinQ(-1.0).setMaxQ(1.0).add();
+
+        parameters.setUseReactiveLimits(true);
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        // TODO solve PQ problem
+        network.getBusView().getBusStream().filter(b -> Math.abs(b.getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()) >= 0.1).forEach(bus -> {
+            LOGGER.warn("Bus: " + bus.getNameOrId());
+            LOGGER.warn("\tCC: " + bus.getConnectedComponent().getNum());
+            LOGGER.warn("\tBus Q: " + bus.getQ());
+            LOGGER.warn("\tBus sumQ: " + bus.getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum());
+        });
     }
 }

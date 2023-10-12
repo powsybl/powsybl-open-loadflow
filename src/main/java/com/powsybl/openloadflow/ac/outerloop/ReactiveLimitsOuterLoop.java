@@ -9,9 +9,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.GeneratorVoltageControl;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -272,6 +270,11 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
             }
         });
+
+        context.getNetwork().getControllerElements(ReactivePowerControl.Type.GENERATOR).forEach(bus ->
+            // a bus that has a reactive generator power control can't switch PV
+            checkPqBus((LfBus) bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, false)
+        );
 
         var contextData = (ContextData) context.getData();
 
