@@ -639,6 +639,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public double getRemoteControlReactivePercent(boolean isVoltageControl) {
+        return isVoltageControl ? remoteVoltageControlReactivePercent : remoteReactivePowerControlReactivePercent;
+    }
+
+    @Override
     public double getMismatchP() {
         return p.eval() - getTargetP(); // slack bus can also have real injection connected
     }

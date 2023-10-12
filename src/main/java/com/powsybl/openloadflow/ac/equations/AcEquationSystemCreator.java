@@ -152,9 +152,8 @@ public class AcEquationSystemCreator {
         bus.getSvcShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
     }
 
-    private static void createReactivePowerDistributionEquations(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    private static void createReactivePowerDistributionEquations(List<LfBus> controllerBuses, boolean isVoltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                  AcEquationSystemCreationParameters creationParameters) {
-        List<LfBus> controllerBuses = voltageControl.getMergedControllerElements();
         for (LfBus controllerBus : controllerBuses) {
             // reactive power at controller bus i (supposing this voltage control is enabled)
             // q_i = qPercent_i * sum_j(q_j) where j are all the voltage controller buses
@@ -163,12 +162,14 @@ public class AcEquationSystemCreator {
             // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
                     .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
-                            .map(term -> term.multiply(() -> controllerBus.getRemoteVoltageControlReactivePercent() - 1))
+                            .map(term -> term.multiply(() ->
+                                    controllerBus.getRemoteControlReactivePercent(isVoltageControl) - 1))
                             .collect(Collectors.toList()));
             for (LfBus otherControllerBus : controllerBuses) {
                 if (otherControllerBus != controllerBus) {
                     zero.addTerms(createReactiveTerms(otherControllerBus, equationSystem.getVariableSet(), creationParameters).stream()
-                            .map(term -> term.multiply(controllerBus::getRemoteVoltageControlReactivePercent))
+                            .map(term -> term.multiply(() ->
+                                    controllerBus.getRemoteControlReactivePercent(isVoltageControl)))
                             .collect(Collectors.toList()));
                 }
             }
@@ -182,7 +183,7 @@ public class AcEquationSystemCreator {
             equationSystem.removeEquation(controllerBus.getNum(), AcEquationType.DISTR_Q);
         }
         if (!voltageControl.isLocalControl()) {
-            createReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
+            createReactivePowerDistributionEquations(voltageControl.getMergedControllerElements(), true, equationSystem, parameters);
         }
         updateGeneratorVoltageControl(voltageControl, equationSystem);
     }
@@ -194,30 +195,7 @@ public class AcEquationSystemCreator {
         }
 
         // create reactive power distribution equations at voltage controller buses
-        createReactivePowerDistributionEquations(voltageControl, equationSystem, creationParameters);
-    }
-
-    private static void createReactivePowerDistributionEquations(GeneratorReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                 AcEquationSystemCreationParameters creationParameters) {
-        List<LfBus> controllerBuses = reactivePowerControl.getControllerElements();
-        for (LfBus controllerBus : controllerBuses) {
-            // reactive power at controller bus i (supposing this reactive power control is enabled)
-            // q_i = qPercent_i * sum_j(q_j) where j are all the voltage controller buses
-            // 0 = qPercent_i * sum_j(q_j) - q_i
-            // which can be rewritten in a more simple way
-            // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the reactive power controller buses except i
-            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
-                    .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
-                            .map(term -> term.multiply(() -> controllerBus.getRemoteReactivePowerControlReactivePercent() - 1))
-                            .collect(Collectors.toList()));
-            for (LfBus otherControllerBus : controllerBuses) {
-                if (otherControllerBus != controllerBus) {
-                    zero.addTerms(createReactiveTerms(otherControllerBus, equationSystem.getVariableSet(), creationParameters).stream()
-                            .map(term -> term.multiply(controllerBus::getRemoteReactivePowerControlReactivePercent))
-                            .collect(Collectors.toList()));
-                }
-            }
-        }
+        createReactivePowerDistributionEquations(voltageControl.getMergedControllerElements(), true, equationSystem, creationParameters);
     }
 
     private void createGeneratorRemoteReactivePowerControlEquations(GeneratorReactivePowerControl reactivePowerControl,
@@ -230,7 +208,7 @@ public class AcEquationSystemCreator {
         reactivePowerControl.updateReactiveKeys();
 
         // create reactive power distribution equations at reactive power controller buses
-        createReactivePowerDistributionEquations(reactivePowerControl, equationSystem, creationParameters);
+        createReactivePowerDistributionEquations(reactivePowerControl.getControllerElements(), false, equationSystem, creationParameters);
 
         // activate and deactivate certain equations
         updateRemoteReactivePowerControlEquations(reactivePowerControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);

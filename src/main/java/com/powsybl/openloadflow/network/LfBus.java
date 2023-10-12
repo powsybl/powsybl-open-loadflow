@@ -190,6 +190,8 @@ public interface LfBus extends LfElement {
 
     void setRemoteReactivePowerControlReactivePercent(double remoteReactivePowerControlReactivePercent);
 
+    double getRemoteControlReactivePercent(boolean isVoltageControl);
+
     /**
      * Get active power mismatch.
      * Only make sens for slack bus.
