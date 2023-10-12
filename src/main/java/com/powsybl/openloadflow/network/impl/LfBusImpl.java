@@ -14,8 +14,9 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.AsymBusLoadType;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
-import com.powsybl.openloadflow.network.extensions.iidm.BusAsymmetrical;
+import com.powsybl.openloadflow.network.extensions.iidm.AsymmetricalBranchConnector;
 import com.powsybl.openloadflow.network.extensions.iidm.BusVariableType;
+import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 import org.apache.commons.math3.complex.Complex;
@@ -141,28 +142,46 @@ public class LfBusImpl extends AbstractLfBus {
 
         AsymBusVariableType asymBusVariableType = AsymBusVariableType.WYE;
         for (Bus busi : bus.getVoltageLevel().getBusBreakerView().getBuses()) {
-            var extensionBus = busi.getExtension(BusAsymmetrical.class);
-            if (extensionBus != null) {
-                isFortescueRep = extensionBus.isFortescueRepresentation();
-                isPositiveSequenceAsCurrent = extensionBus.isPositiveSequenceAsCurrent();
-                if (extensionBus.getBusVariableType() == BusVariableType.DELTA) {
+
+            AsymmetricalBranchConnector connector = null;
+            for (Line line : busi.getLines()) {
+                var extension = line.getExtension(LineAsymmetrical.class);
+                if (extension == null) {
+                    continue;
+                }
+                // search for AsymmetricalBranchConnector attached to lines that will be used to set asymmetrical info to LfBus
+                if (line.getTerminal1().getBusBreakerView().getBus() == busi) {
+                    connector = extension.getAsymConnectorBus1();
+                } else if (line.getTerminal2().getBusBreakerView().getBus() == busi) {
+                    connector = extension.getAsymConnectorBus2();
+                }
+                if (connector != null) {
+                    break;
+                }
+            }
+            // TODO : if null, search in tfos
+
+            if (connector != null) {
+                isFortescueRep = connector.isFortescueRepresentation();
+                isPositiveSequenceAsCurrent = connector.isPositiveSequenceAsCurrent();
+                if (connector.getBusVariableType() == BusVariableType.DELTA) {
                     asymBusVariableType = AsymBusVariableType.DELTA;
-                    if (!extensionBus.isHasPhaseA() || !extensionBus.isHasPhaseB() || !extensionBus.isHasPhaseC()) {
+                    if (!connector.isHasPhaseA() || !connector.isHasPhaseB() || !connector.isHasPhaseC()) {
                         throw new IllegalStateException("Bus with both missing phases and delta variables not yet handled for Bus : " + bus.getId());
                     }
                     if (!isFortescueRep) {
                         throw new IllegalStateException("Bus with both missing phases and 3 phase representation not yet handled for Bus : " + bus.getId());
                     }
                 } else {
-                    if (!extensionBus.isHasPhaseA()) {
+                    if (!connector.isHasPhaseA()) {
                         hasPhaseA = false;
                         isFortescueRep = false;
                     }
-                    if (!extensionBus.isHasPhaseB()) {
+                    if (!connector.isHasPhaseB()) {
                         hasPhaseB = false;
                         isFortescueRep = false;
                     }
-                    if (!extensionBus.isHasPhaseC()) {
+                    if (!connector.isHasPhaseC()) {
                         hasPhaseC = false;
                         isFortescueRep = false;
                     }

@@ -346,9 +346,8 @@ public class Asym4nodesFeederTest {
                 .add();
         bus1.setV(v1nom).setAngle(0.);
 
-        bus1.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(side1VariableType)
-                .add();
+        AsymmetricalBranchConnector c1 = new AsymmetricalBranchConnector(side1VariableType,
+                true, true, true, true, false);
 
         // Generator modeling infinite feeder
         Generator gen1 = vl1.newGenerator()
@@ -386,10 +385,8 @@ public class Asym4nodesFeederTest {
                 .add();
         bus2.setV(v1nom).setAngle(0.);
 
-        bus2.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(side1VariableType)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c2 = new AsymmetricalBranchConnector(side1VariableType,
+                true, true, true, true, true);
 
         // Bus3
         VoltageLevel vl3 = substation23.newVoltageLevel()
@@ -404,10 +401,8 @@ public class Asym4nodesFeederTest {
                 .add();
         bus3.setV(v3nom).setAngle(0.);
 
-        bus3.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(side2VariableType)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c3 = new AsymmetricalBranchConnector(side2VariableType,
+                true, true, true, true, true);
 
         // Bus4
         Substation substation4 = network.newSubstation()
@@ -427,10 +422,8 @@ public class Asym4nodesFeederTest {
                 .add();
         bus4.setV(v3nom).setAngle(0.);
 
-        bus4.newExtension(BusAsymmetricalAdder.class)
-                .withPositiveSequenceAsCurrent(true)
-                .withBusVariableType(side2VariableType)
-                .add();
+        AsymmetricalBranchConnector c4 = new AsymmetricalBranchConnector(side2VariableType,
+                true, true, true, true, true);
 
         double p;
         double q;
@@ -573,6 +566,8 @@ public class Asym4nodesFeederTest {
         // addition of asymmetrical extensions
         line12.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(yabc12)
+                .withAsymConnector1(c1)
+                .withAsymConnector2(c2)
                 .add();
 
         line12.newExtension(LineFortescueAdder.class)
@@ -606,6 +601,8 @@ public class Asym4nodesFeederTest {
         }
         line34.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(yabc34)
+                .withAsymConnector1(c3)
+                .withAsymConnector2(c4)
                 .add();
 
         line34.newExtension(LineFortescueAdder.class)

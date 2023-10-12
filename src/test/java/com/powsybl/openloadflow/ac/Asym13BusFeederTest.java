@@ -351,12 +351,14 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        bus646.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withHasPhaseA(false)
-                .withPositiveSequenceAsCurrent(true)
-                .withFortescueRepresentation(false)
-                .add();
+        AsymmetricalBranchConnector c646 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                false, true, true, false, true);
+
+        Line line645y646 = network.getLine("645y646");
+        var extension645y646 = line645y646.getExtension(LineAsymmetrical.class);
+        if (extension645y646 != null) {
+            extension645y646.setAsymConnectorBus2(c646);
+        }
 
         Load load646New = network.getVoltageLevel("VL_646").newLoad()
                 .setId("LOAD_646_NEW")
@@ -437,12 +439,8 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.DELTA)
                 .add();
 
-        bus645.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withHasPhaseC(false)
-                .withPositiveSequenceAsCurrent(true)
-                .withFortescueRepresentation(false)
-                .add();
+        AsymmetricalBranchConnector c645 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, true, false, false, true);
 
         Load load645 = network.getLoad("LOAD_645");
 
@@ -456,12 +454,8 @@ public class Asym13BusFeederTest {
                 .withConnectionType(LoadConnectionType.Y)
                 .add();
 
-        bus646.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withHasPhaseC(false)
-                .withPositiveSequenceAsCurrent(true)
-                .withFortescueRepresentation(false)
-                .add();
+        AsymmetricalBranchConnector c646 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, true, false, false, true);
 
         Load load646New = network.getVoltageLevel("VL_646").newLoad()
                 .setId("LOAD_646_NEW")
@@ -581,6 +575,7 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc632y645 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, false, length632y645InFeet / feetInMile);
         line632y645.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc632y645, yCoef))
+                .withAsymConnector2(c645)
                 .add();
 
         // line 645y646
@@ -589,6 +584,8 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc645y646 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, false, length645y646InFeet / feetInMile);
         line645y646.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc645y646, yCoef))
+                .withAsymConnector1(c645)
+                .withAsymConnector2(c646)
                 .add();
 
         OpenLoadFlowParameters.create(parameters)
@@ -642,9 +639,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus650.setV(vBase).setAngle(0.);
 
-        bus650.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .add();
+        AsymmetricalBranchConnector c650 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, true, true, true, false);
 
         Generator gen650 = vl650.newGenerator()
                 .setId("G650")
@@ -681,10 +677,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus632.setV(vBase).setAngle(0.);
 
-        bus632.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c632 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, true, true, true, true);
 
         double p0 = 0.017;
         double q0 = 0.01;
@@ -723,11 +717,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus645.setV(vBase).setAngle(0.);
 
-        bus645.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withHasPhaseA(false)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c645 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                false, true, true, true, true);
 
         double p645 = 0.0;
         double q645 = 0.0;
@@ -766,11 +757,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus646.setV(vBase).setAngle(0.);
 
-        bus646.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withHasPhaseA(false)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c646 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                false, true, true, true, true);
 
         Load load646 = vl646.newLoad()
                 .setId("LOAD_646")
@@ -815,10 +803,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus671.setV(vBase).setAngle(0.);
 
-        bus671.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c671 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, true, true, true, true);
 
         double p671 = 0.385;
         double q671 = 0.220;
@@ -857,11 +843,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus684.setV(vBase).setAngle(0.);
 
-        bus684.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withHasPhaseB(false)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c684 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, false, true, true, true);
 
         // bus 611
         Substation substation611 = network.newSubstation()
@@ -881,12 +864,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus611.setV(vBase).setAngle(0.);
 
-        bus611.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withHasPhaseB(false)
-                .withHasPhaseA(false)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c611 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                false, false, true, true, true);
 
         Load load611 = vl611.newLoad()
                 .setId("LOAD_611")
@@ -956,12 +935,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus652.setV(vBase).setAngle(0.);
 
-        bus652.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withHasPhaseB(false)
-                .withHasPhaseC(false)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c652 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, false, false, true, true);
 
         Load load652 = vl652.newLoad()
                 .setId("LOAD_652")
@@ -1006,10 +981,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus680.setV(vBase).setAngle(0.);
 
-        bus680.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c680 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, true, true, true, true);
 
         // Bus 633
         Substation substation633 = network.newSubstation()
@@ -1029,10 +1002,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus633.setV(vBase).setAngle(0.);
 
-        bus633.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c633 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, true, true, true, true);
 
         // Bus 634
         VoltageLevel vl634 = substation633.newVoltageLevel()
@@ -1047,10 +1018,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus634.setV(vBase).setAngle(0.);
 
-        bus634.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withPositiveSequenceAsCurrent(true)
-                .add();
+        AsymmetricalBranchConnector c634 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, true, true, true, true);
 
         double p634 = 0.120;
         double q634 = 0.090;
@@ -1089,11 +1058,8 @@ public class Asym13BusFeederTest {
                 .add();
         bus675.setV(vBase).setAngle(0.);
 
-        bus675.newExtension(BusAsymmetricalAdder.class)
-                .withBusVariableType(BusVariableType.WYE)
-                .withPositiveSequenceAsCurrent(true)
-                .withFortescueRepresentation(false)
-                .add();
+        AsymmetricalBranchConnector c675 = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                true, true, true, false, true);
 
         double p675 = 0.;
         double q675 = 0.;
@@ -1381,6 +1347,8 @@ public class Asym13BusFeederTest {
 
         line650y632.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabcRg60, yCoef))
+                .withAsymConnector1(c650)
+                .withAsymConnector2(c632)
                 .add();
 
         line650y632.newExtension(LineFortescueAdder.class)
@@ -1411,6 +1379,8 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc632y645 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy603, b603, false, true, true, length632y645InFeet / feetInMile);
         line632y645.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc632y645, yCoef))
+                .withAsymConnector1(c632)
+                .withAsymConnector2(c645)
                 .add();
 
         line632y645.newExtension(LineFortescueAdder.class)
@@ -1441,6 +1411,8 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc645y646 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy603, b603, false, true, true, length645y646InFeet / feetInMile);
         line645y646.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc645y646, yCoef))
+                .withAsymConnector1(c645)
+                .withAsymConnector2(c646)
                 .add();
         line645y646.newExtension(LineFortescueAdder.class)
                 .withOpenPhaseA(false)
@@ -1473,6 +1445,8 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc632y671 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, true, length632y671InFeet / feetInMile);
         line632y671.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc632y671, yCoef))
+                .withAsymConnector1(c632)
+                .withAsymConnector2(c671)
                 .add();
 
         line632y671.newExtension(LineFortescueAdder.class)
@@ -1506,6 +1480,8 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc671y684 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy604, b604, true, false, true, length671y684InFeet / feetInMile);
         line671y684.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc671y684, yCoef))
+                .withAsymConnector1(c671)
+                .withAsymConnector2(c684)
                 .add();
 
         line671y684.newExtension(LineFortescueAdder.class)
@@ -1539,6 +1515,8 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc684y611 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy605, b605, false, false, true, length684y611InFeet / feetInMile);
         line684y611.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc684y611, yCoef))
+                .withAsymConnector1(c684)
+                .withAsymConnector2(c611)
                 .add();
 
         line684y611.newExtension(LineFortescueAdder.class)
@@ -1572,6 +1550,8 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc684y652 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy607, b607, true, false, false, length684y652InFeet / feetInMile);
         line684y652.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc684y652, yCoef))
+                .withAsymConnector1(c684)
+                .withAsymConnector2(c652)
                 .add();
 
         line684y652.newExtension(LineFortescueAdder.class)
@@ -1605,6 +1585,8 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc671y680 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, true, length671y680InFeet / feetInMile);
         line671y680.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc671y680, yCoef))
+                .withAsymConnector1(c671)
+                .withAsymConnector2(c680)
                 .add();
 
         line671y680.newExtension(LineFortescueAdder.class)
@@ -1638,6 +1620,8 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc632y633 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy602, b602, true, true, true, length632y633InFeet / feetInMile);
         line632y633.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc632y633, yCoef))
+                .withAsymConnector1(c632)
+                .withAsymConnector2(c633)
                 .add();
 
         line632y633.newExtension(LineFortescueAdder.class)
@@ -1671,6 +1655,8 @@ public class Asym13BusFeederTest {
         ComplexMatrix yabc671y675 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy606, b606, true, true, true, length671y675InFeet / feetInMile);
         line671y675.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(ComplexMatrix.getMatrixScaled(yabc671y675, yCoef))
+                .withAsymConnector1(c671)
+                .withAsymConnector2(c675)
                 .add();
 
         line671y675.newExtension(LineFortescueAdder.class)
