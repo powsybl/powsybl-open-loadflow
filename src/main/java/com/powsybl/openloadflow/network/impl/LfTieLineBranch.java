@@ -78,7 +78,11 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
                                             p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
         if (createExtension) {
-            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1()));
+            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
+                    getV1() * getHalf1().getTerminal().getVoltageLevel().getNominalV(),
+                    getV2() * getHalf2().getTerminal().getVoltageLevel().getNominalV(),
+                    Math.toDegrees(getAngle1()),
+                    Math.toDegrees(getAngle2())));
         }
         return branchResult;
     }

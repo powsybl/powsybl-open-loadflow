@@ -27,15 +27,11 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MaxVoltageChangeStateVectorScaling.class);
 
-    private static final double DEFAULT_MAX_DV = 0.1;
-    private static final double DEFAULT_MAX_DPHI = Math.toRadians(10);
+    public static final double DEFAULT_MAX_DV = 0.1;
+    public static final double DEFAULT_MAX_DPHI = Math.toRadians(10);
 
     private final double maxDv;
     private final double maxDphi;
-
-    public MaxVoltageChangeStateVectorScaling() {
-        this(DEFAULT_MAX_DV, DEFAULT_MAX_DPHI);
-    }
 
     public MaxVoltageChangeStateVectorScaling(double maxDv, double maxDphi) {
         this.maxDv = maxDv;
