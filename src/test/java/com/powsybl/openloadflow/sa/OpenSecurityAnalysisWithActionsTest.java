@@ -1135,7 +1135,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
-    void testActionOnRetainedPst() {
+    void testActionOnRetainedPtc() {
         Network network = PhaseControlFactory.createNetworkWithT2wt();
         network.newLine()
                 .setId("L3")
@@ -1147,20 +1147,17 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 .setX(200.0)
                 .add();
 
-        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        securityAnalysisParameters.setLoadFlowParameters(parameters);
         List<Contingency> contingencies = List.of(new Contingency("CL3", new BranchContingency("L3")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("Aps1", "PS1", false, 2));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("CL3"), new TrueCondition(), List.of("Aps1")));
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
                 operatorStrategies, actions, Reporter.NO_OP);
 
         network.getLine("L3").getTerminal1().disconnect();
         network.getLine("L3").getTerminal2().disconnect();
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(2);
-        loadFlowRunner.run(network, parameters);
+        loadFlowRunner.run(network);
 
         assertEquals(network.getLine("L1").getTerminal1().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("L1").getTerminal2().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
@@ -1169,7 +1166,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
-    void testActionOnRetainedT3wtPst() {
+    void testActionOnRetainedT3wtPtc() {
         Network network = PhaseControlFactory.createNetworkWithT3wt();
         network.newLine()
                 .setId("L3")
@@ -1181,24 +1178,33 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 .setX(200.0)
                 .add();
 
-        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        securityAnalysisParameters.setLoadFlowParameters(parameters);
         List<Contingency> contingencies = List.of(new Contingency("CL3", new BranchContingency("L3")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("Aps1", "PS1", false, 2, ThreeWindingsTransformer.Side.TWO));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("CL3"), new TrueCondition(), List.of("Aps1")));
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
                 operatorStrategies, actions, Reporter.NO_OP);
 
         network.getLine("L3").getTerminal1().disconnect();
         network.getLine("L3").getTerminal2().disconnect();
         network.getThreeWindingsTransformer("PS1").getLeg2().getPhaseTapChanger().setTapPosition(2);
-        loadFlowRunner.run(network, parameters);
+        loadFlowRunner.run(network);
 
         assertEquals(network.getLine("L1").getTerminal1().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("L1").getTerminal2().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("L2").getTerminal1().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("L2").getTerminal2().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testActionOnRetainedRtc() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        List<Contingency> contingencies = List.of(new Contingency("contingency", new LoadContingency("LOAD_2")));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Action> actions = List.of(new RatioTapChangerTapPositionAction("action", "T2wT", false, 2));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("contingency"), new TrueCondition(), List.of("action")));
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
+                operatorStrategies, actions, Reporter.NO_OP));
+        assertEquals("Unsupported action type: RATIO_TAP_CHANGER_TAP_POSITION", exception.getCause().getMessage());
     }
 }
