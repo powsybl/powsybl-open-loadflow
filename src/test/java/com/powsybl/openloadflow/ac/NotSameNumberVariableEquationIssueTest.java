@@ -67,7 +67,7 @@ class NotSameNumberVariableEquationIssueTest {
                 .setB2(0)
                 .add();
         loadFlowRunner.run(network);
-        assertVoltageEquals(24.5, network.getBusBreakerView().getBus("NGEN"));
-        assertVoltageEquals(148, network.getBusBreakerView().getBus("NLOAD"));
+        assertVoltageEquals(24.554, network.getBusBreakerView().getBus("NGEN"));
+        assertVoltageEquals(148.0, network.getBusBreakerView().getBus("NLOAD"));
     }
 }

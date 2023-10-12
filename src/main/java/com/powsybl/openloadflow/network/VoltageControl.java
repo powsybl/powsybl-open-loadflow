@@ -21,7 +21,8 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     public enum MergeStatus {
         MAIN,
-        DEPENDENT
+        DEPENDENT,
+        NOT_SUPPORTED
     }
 
     protected final Type type;
@@ -86,6 +87,10 @@ public class VoltageControl<T extends LfElement> extends Control {
         }
         return getMergedControllerElements().stream()
                 .allMatch(LfElement::isDisabled);
+    }
+
+    public void setNotSupported() {
+        this.mergeStatus = MergeStatus.NOT_SUPPORTED;
     }
 
     public MergeStatus getMergeStatus() {
