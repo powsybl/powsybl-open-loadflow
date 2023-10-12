@@ -3,9 +3,9 @@ package com.powsybl.openloadflow.network.util;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
-import com.powsybl.openloadflow.network.extensions.iidm.BusAsymmetrical;
-import com.powsybl.openloadflow.network.extensions.iidm.BusAsymmetricalAdder;
+import com.powsybl.openloadflow.network.extensions.iidm.AsymmetricalBranchConnector;
 import com.powsybl.openloadflow.network.extensions.iidm.BusVariableType;
+import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
 import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2Adder;
 import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
 import com.univocity.parsers.annotations.Parsed;
@@ -185,7 +185,7 @@ public final class AsymLvFeederParser {
         double resistance;
     }
 
-    private static void createBuses(Network network, String path) {
+    private static void createBuses(Network network, String path, Map<String, AsymmetricalBranchConnector> bus2Connector) {
         for (BusCoord busCoord : parseCsv(path + "Buscoords.csv", BusCoord.class)) {
             String substationId = getSubstationId(busCoord.busName);
             Substation s = network.getSubstation(substationId);
@@ -203,19 +203,15 @@ public final class AsymLvFeederParser {
                     .setId(getBusId(busCoord.busName))
                     .add();
 
-            // default settings for bus extensions, will be modified depending on the type of connected equipment :
-            bus.newExtension(BusAsymmetricalAdder.class)
-                    .withBusVariableType(BusVariableType.WYE)
-                    .withHasPhaseA(true)
-                    .withHasPhaseB(true)
-                    .withHasPhaseC(true)
-                    .withPositiveSequenceAsCurrent(true)
-                    .withFortescueRepresentation(true)
-                    .add();
+            // default settings for connectors, will be modified depending on the type of connected equipment :
+            AsymmetricalBranchConnector connector = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                    true, true, true, true, true);
+
+            bus2Connector.put(bus.getId(), connector);
         }
     }
 
-    private static void createLines(Network network, String path) {
+    private static void createLines(Network network, String path, Map<String, AsymmetricalBranchConnector> bus2Connector) {
         Map<String, LineCode> lineCodes = new HashMap<>();
         for (LineCode lineCode : parseCsv(path + "LineCodes.csv", LineCode.class)) {
             lineCodes.put(lineCode.name, lineCode);
@@ -235,6 +231,10 @@ public final class AsymLvFeederParser {
             l.newExtension(LineFortescueAdder.class)
                     .withRz(lineCode.r0 * line.length * coeff)
                     .withXz(lineCode.x0 * line.length * coeff)
+                    .add();
+            l.newExtension(LineAsymmetricalAdder.class)
+                    .withAsymConnector1(bus2Connector.get(getBusId(line.bus1)))
+                    .withAsymConnector2(bus2Connector.get(getBusId(line.bus2)))
                     .add();
         }
     }
@@ -296,7 +296,7 @@ public final class AsymLvFeederParser {
         }
     }
 
-    private static void createSource(Network network) {
+    private static void createSource(Network network, Map<String, AsymmetricalBranchConnector> bus2Connector) {
         int busName = 1;
         VoltageLevel vl = network.getVoltageLevel(getVoltageLevelId(busName));
         Generator generator = vl.newGenerator()
