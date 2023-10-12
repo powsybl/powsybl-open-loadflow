@@ -270,11 +270,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected static void findAllPtcToOperate(List<Action> actions, LfTopoConfig topoConfig) {
         for (Action action : actions) {
-            if (Objects.equals(action.getType(), "PHASE_TAP_CHANGER_TAP_POSITION")) {
+            if (action.getType().equals("PHASE_TAP_CHANGER_TAP_POSITION")) {
                 PhaseTapChangerTapPositionAction ptcAction = (PhaseTapChangerTapPositionAction) action;
                 ptcAction.getSide().ifPresentOrElse(
-                        side -> topoConfig.getBranchIdsWithPtcTapsToRetain().add(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
-                        () -> topoConfig.getBranchIdsWithPtcTapsToRetain().add(ptcAction.getTransformerId()) // T2WT
+                        side -> topoConfig.getBranchIdsWithPtcToRetain().add(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
+                        () -> topoConfig.getBranchIdsWithPtcToRetain().add(ptcAction.getTransformerId()) // T2WT
                 );
             }
         }
@@ -282,11 +282,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected static void findAllRtcToOperate(List<Action> actions, LfTopoConfig topoConfig) {
         for (Action action : actions) {
-            if (Objects.equals(action.getType(), "RATIO_TAP_CHANGER_TAP_POSITION")) {
+            if (action.getType().equals("RATIO_TAP_CHANGER_TAP_POSITION")) {
                 RatioTapChangerTapPositionAction rtcAction = (RatioTapChangerTapPositionAction) action;
                 rtcAction.getSide().ifPresentOrElse(
-                        side -> topoConfig.getBranchIdsWithRtcTapsToRetain().add(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
-                        () -> topoConfig.getBranchIdsWithRtcTapsToRetain().add(rtcAction.getTransformerId())// T2WT
+                        side -> topoConfig.getBranchIdsWithRtcToRetain().add(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
+                        () -> topoConfig.getBranchIdsWithRtcToRetain().add(rtcAction.getTransformerId())// T2WT
                 );
             }
         }

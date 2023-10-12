@@ -384,16 +384,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     visitedDanglingLinesIds.add(tieLine.getDanglingLine2().getId());
                 }
             }, () -> {
-                LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
-                lfNetwork.addBus(lfBus2);
-                lfBuses.add(lfBus2);
-                LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
-                LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
-                addBranch(lfNetwork, lfBranch, report);
-                postProcessors.forEach(pp -> {
-                    pp.onBusAdded(danglingLine, lfBus2);
-                    pp.onBranchAdded(danglingLine, lfBranch);
-                });
+                    LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
+                    lfNetwork.addBus(lfBus2);
+                    lfBuses.add(lfBus2);
+                    LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
+                    addBranch(lfNetwork, lfBranch, report);
+                    postProcessors.forEach(pp -> {
+                        pp.onBusAdded(danglingLine, lfBus2);
+                        pp.onBranchAdded(danglingLine, lfBranch);
+                    });
             });
         }
 
@@ -404,16 +404,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, parameters.isBreakers());
             LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(),
-                    topoConfig.getBranchIdsWithPtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.ONE, t3wt.getId())),
-                    topoConfig.getBranchIdsWithRtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.ONE, t3wt.getId())),
+                    topoConfig.retainPtc(LfLegBranch.getId(ThreeWindingsTransformer.Side.ONE, t3wt.getId())),
+                    topoConfig.retainRtc(LfLegBranch.getId(ThreeWindingsTransformer.Side.ONE, t3wt.getId())),
                     parameters);
             LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(),
-                    topoConfig.getBranchIdsWithPtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.TWO, t3wt.getId())),
-                    topoConfig.getBranchIdsWithRtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.TWO, t3wt.getId())),
+                    topoConfig.retainPtc(LfLegBranch.getId(ThreeWindingsTransformer.Side.TWO, t3wt.getId())),
+                    topoConfig.retainRtc(LfLegBranch.getId(ThreeWindingsTransformer.Side.TWO, t3wt.getId())),
                     parameters);
             LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(),
-                    topoConfig.getBranchIdsWithPtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.THREE, t3wt.getId())),
-                    topoConfig.getBranchIdsWithRtcTapsToRetain().contains(LfLegBranch.getId(ThreeWindingsTransformer.Side.THREE, t3wt.getId())),
+                    topoConfig.retainPtc(LfLegBranch.getId(ThreeWindingsTransformer.Side.THREE, t3wt.getId())),
+                    topoConfig.retainRtc(LfLegBranch.getId(ThreeWindingsTransformer.Side.THREE, t3wt.getId())),
                     parameters);
             addBranch(lfNetwork, lfBranch1, report);
             addBranch(lfNetwork, lfBranch2, report);

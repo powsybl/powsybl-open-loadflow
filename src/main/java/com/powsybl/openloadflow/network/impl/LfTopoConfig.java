@@ -22,9 +22,9 @@ public class LfTopoConfig {
 
     private final Set<String> busIdsToLose = new HashSet<>();
 
-    private final Set<String> branchIdsWithPtcTapsToRetain = new HashSet<>();
+    private final Set<String> branchIdsWithPtcToRetain = new HashSet<>();
 
-    private final Set<String> branchIdsWithRtcTapsToRetain = new HashSet<>();
+    private final Set<String> branchIdsWithRtcToRetain = new HashSet<>();
 
     public Set<Switch> getSwitchesToOpen() {
         return switchesToOpen;
@@ -38,15 +38,23 @@ public class LfTopoConfig {
         return busIdsToLose;
     }
 
-    public Set<String> getBranchIdsWithPtcTapsToRetain() {
-        return branchIdsWithPtcTapsToRetain;
+    public Set<String> getBranchIdsWithPtcToRetain() {
+        return branchIdsWithPtcToRetain;
     }
 
-    public Set<String> getBranchIdsWithRtcTapsToRetain() {
-        return branchIdsWithRtcTapsToRetain;
+    public Set<String> getBranchIdsWithRtcToRetain() {
+        return branchIdsWithRtcToRetain;
     }
 
     public boolean isBreaker() {
         return !(switchesToOpen.isEmpty() && switchesToClose.isEmpty() && busIdsToLose.isEmpty());
+    }
+
+    public boolean retainPtc(String branchId) {
+        return branchIdsWithPtcToRetain.contains(branchId);
+    }
+
+    public boolean retainRtc(String branchId) {
+        return branchIdsWithRtcToRetain.contains(branchId);
     }
 }
