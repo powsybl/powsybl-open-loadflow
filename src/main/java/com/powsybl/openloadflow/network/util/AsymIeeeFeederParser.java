@@ -262,7 +262,8 @@ public final class AsymIeeeFeederParser {
         return "Substation-" + busName;
     }
 
-    private static void createBuses(Network network, Map<String, String> firstBusTfo, String path) {
+    private static void createBuses(Network network, Map<String, String> firstBusTfo, String path,
+                                    Map<String, AsymmetricalBranchConnector> bus2Connector) {
         for (BusData busData : parseCsv(path + "Bus.csv", BusData.class)) {
 
             String substationId = getSubstationId(busData.busName);
@@ -287,18 +288,15 @@ public final class AsymIeeeFeederParser {
             bus.setV(busData.uNom).setAngle(0.);
 
             // default settings for bus extensions, will be modified depending on the type of connected equipment :
-            bus.newExtension(BusAsymmetricalAdder.class)
-                    .withBusVariableType(BusVariableType.WYE)
-                    .withHasPhaseA(false)
-                    .withHasPhaseB(false)
-                    .withHasPhaseC(false)
-                    .withPositiveSequenceAsCurrent(true)
-                    .withFortescueRepresentation(true)
-                    .add();
+            AsymmetricalBranchConnector connector = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                    false, false, false, true, true);
+
+            bus2Connector.put(bus.getId(), connector);
         }
     }
 
-    private static void createGenerators(Network network, String path) {
+    private static void createGenerators(Network network, String path,
+                                         Map<String, AsymmetricalBranchConnector> bus2Connector) {
         for (GenData gen : parseCsv(path + "Gen.csv", GenData.class)) {
             VoltageLevel vl = network.getVoltageLevel(getVoltageLevelId(gen.busName));
             Generator generator = vl.newGenerator()
@@ -322,7 +320,7 @@ public final class AsymIeeeFeederParser {
                     .add();
 
             // modification of bus extension due to generating unit
-            network.getBusBreakerView().getBus(getBusId(gen.busName)).getExtension(BusAsymmetrical.class).setPositiveSequenceAsCurrent(false);
+            bus2Connector.get(getBusId(gen.busName)).setPositiveSequenceAsCurrent(false);
 
         }
     }
@@ -348,7 +346,8 @@ public final class AsymIeeeFeederParser {
     }
 
     private static void createLoad(Network network, String loadName, String busName, String loadType,
-                                   double pa, double qa, double pb, double qb, double pc, double qc) {
+                                   double pa, double qa, double pb, double qb, double pc, double qc,
+                                   Map<String, AsymmetricalBranchConnector> bus2Connector) {
         VoltageLevel vl = network.getVoltageLevel(getVoltageLevelId(busName));
         Load load = vl.newLoad()
                 .setId(loadName)
@@ -365,7 +364,6 @@ public final class AsymIeeeFeederParser {
                     .add()
                 .add();
 
-        var extensionBus = network.getBusBreakerView().getBus(getBusId(busName)).getExtension(BusAsymmetrical.class);
         LoadConnectionType loadConnectionType;
         ZipLoadModel zipLoadModel = (ZipLoadModel) load.getModel().orElseThrow();
         if (loadType.equals("Y-PQ")) {
@@ -378,28 +376,28 @@ public final class AsymIeeeFeederParser {
             zipLoadModel.setC0q(0);
             zipLoadModel.setC2p(1);
             zipLoadModel.setC2q(1);
-            extensionBus.setFortescueRepresentation(false);
+            bus2Connector.get(getBusId(busName)).setFortescueRepresentation(false);
         } else if (loadType.equals("D-Z")) {
             loadConnectionType = LoadConnectionType.DELTA;
             zipLoadModel.setC0p(0);
             zipLoadModel.setC0q(0);
             zipLoadModel.setC2p(1);
             zipLoadModel.setC2q(1);
-            extensionBus.setFortescueRepresentation(false);
+            bus2Connector.get(getBusId(busName)).setFortescueRepresentation(false);
         } else if (loadType.equals("Y-I")) {
             loadConnectionType = LoadConnectionType.Y;
             zipLoadModel.setC0p(0);
             zipLoadModel.setC0q(0);
             zipLoadModel.setC1p(1);
             zipLoadModel.setC1q(1);
-            extensionBus.setFortescueRepresentation(false);
+            bus2Connector.get(getBusId(busName)).setFortescueRepresentation(false);
         } else if (loadType.equals("D-I")) {
             loadConnectionType = LoadConnectionType.DELTA;
             zipLoadModel.setC0p(0);
             zipLoadModel.setC0q(0);
             zipLoadModel.setC1p(1);
             zipLoadModel.setC1q(1);
-            extensionBus.setFortescueRepresentation(false);
+            bus2Connector.get(getBusId(busName)).setFortescueRepresentation(false);
         } else {
             throw new IllegalStateException("Unknown load type in csv at bus : " + busName);
         }
@@ -416,28 +414,28 @@ public final class AsymIeeeFeederParser {
 
     }
 
-    private static void createLoads(Network network, String path) {
+    private static void createLoads(Network network, String path, Map<String, AsymmetricalBranchConnector> bus2Connector) {
 
         for (LoadData loadData : parseCsv(path + "SpotLoad.csv", LoadData.class)) {
 
             String loadName = "LOAD_" + loadData.busName + "-" + loadData.loadType;
 
             createLoad(network, loadName, loadData.busName, loadData.loadType,
-                    loadData.ph1P, loadData.ph1Q, loadData.ph2P, loadData.ph2Q, loadData.ph3P, loadData.ph3Q);
+                    loadData.ph1P, loadData.ph1Q, loadData.ph2P, loadData.ph2Q, loadData.ph3P, loadData.ph3Q, bus2Connector);
         }
     }
 
-    private static void createDistriLoads(Network network, String path) {
+    private static void createDistriLoads(Network network, String path, Map<String, AsymmetricalBranchConnector> bus2Connector) {
 
         for (DistriLoadData loadData : parseCsv(path + "DistributedLoad.csv", DistriLoadData.class)) {
             String loadName = "LOAD_" + loadData.busNameA + "-" + loadData.busNameB + "-" + loadData.loadType;
 
             createLoad(network, loadName, loadData.busNameA, loadData.loadType,
-                    loadData.ph1P, loadData.ph1Q, loadData.ph2P, loadData.ph2Q, loadData.ph3P, loadData.ph3Q);
+                    loadData.ph1P, loadData.ph1Q, loadData.ph2P, loadData.ph2Q, loadData.ph3P, loadData.ph3Q, bus2Connector);
         }
     }
 
-    private static void createLines(Network network, String path) {
+    private static void createLines(Network network, String path, Map<String, AsymmetricalBranchConnector> bus2Connector) {
         Map<String, LineConfigData> lineConfig = new HashMap<>();
         for (LineConfigData lineCode : parseCsv(path + "LineConfig.csv", LineConfigData.class)) {
             lineConfig.put(lineCode.config, lineCode);
@@ -516,26 +514,23 @@ public final class AsymIeeeFeederParser {
                 yabc = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcRho);
             }
 
+            AsymmetricalBranchConnector c1 = bus2Connector.get(getBusId(line.nodeA));
+            AsymmetricalBranchConnector c2 = bus2Connector.get(getBusId(line.nodeB));
+            c1.setHasPhaseA(c1.isHasPhaseA() || hasPhaseA);
+            c1.setHasPhaseB(c1.isHasPhaseB() || hasPhaseB);
+            c1.setHasPhaseC(c1.isHasPhaseC() || hasPhaseC);
+
+            c2.setHasPhaseA(c2.isHasPhaseA() || hasPhaseA);
+            c2.setHasPhaseB(c2.isHasPhaseB() || hasPhaseB);
+            c2.setHasPhaseC(c2.isHasPhaseC() || hasPhaseC);
+
             l.newExtension(LineAsymmetricalAdder.class)
                     .withYabc(ComplexMatrix.getMatrixScaled(yabc, yCoef))
                     .add();
-
-            // modification of bus extension depending on line connections:
-            var extensionBus1 = network.getBusBreakerView().getBus(getBusId(line.nodeA)).getExtension(BusAsymmetrical.class);
-            var extensionBus2 = network.getBusBreakerView().getBus(getBusId(line.nodeB)).getExtension(BusAsymmetrical.class);
-
-            extensionBus1.setHasPhaseA(extensionBus1.isHasPhaseA() || hasPhaseA);
-            extensionBus1.setHasPhaseB(extensionBus1.isHasPhaseB() || hasPhaseB);
-            extensionBus1.setHasPhaseC(extensionBus1.isHasPhaseC() || hasPhaseC);
-
-            extensionBus2.setHasPhaseA(extensionBus2.isHasPhaseA() || hasPhaseA);
-            extensionBus2.setHasPhaseB(extensionBus2.isHasPhaseB() || hasPhaseB);
-            extensionBus2.setHasPhaseC(extensionBus2.isHasPhaseC() || hasPhaseC);
-
         }
     }
 
-    private static void createTfos(Network network, String path) {
+    private static void createTfos(Network network, String path, Map<String, AsymmetricalBranchConnector> bus2Connector) {
         Map<String, TfoConfigData> tfoConfigDataMap = new HashMap<>();
         for (TfoConfigData tfoConfig : parseCsv(path + "TfoConfig.csv", TfoConfigData.class)) {
             tfoConfigDataMap.put(tfoConfig.config, tfoConfig);
@@ -604,20 +599,31 @@ public final class AsymIeeeFeederParser {
                     .withYc(buildSinglePhaseAdmittanceMatrix(zPhase, yPhase, yPhase))
                     .add();
 
-            // modification of bus extension depending on line connections:
-            var extensionBus1 = network.getBusBreakerView().getBus(getBusId(tfoData.nodeA)).getExtension(BusAsymmetrical.class);
-            var extensionBus2 = network.getBusBreakerView().getBus(getBusId(tfoData.nodeB)).getExtension(BusAsymmetrical.class);
+            // modification of connector depending on line connections:
+            AsymmetricalBranchConnector c1 = bus2Connector.get(getBusId(tfoData.nodeA));
+            AsymmetricalBranchConnector c2 = bus2Connector.get(getBusId(tfoData.nodeB));
 
-            extensionBus1.setHasPhaseA(true);
-            extensionBus1.setHasPhaseB(true);
-            extensionBus1.setHasPhaseC(true);
+            c1.setHasPhaseA(true);
+            c1.setHasPhaseB(true);
+            c1.setHasPhaseC(true);
 
-            extensionBus2.setHasPhaseA(true);
-            extensionBus2.setHasPhaseB(true);
-            extensionBus2.setHasPhaseC(true);
+            c2.setHasPhaseA(true);
+            c2.setHasPhaseB(true);
+            c2.setHasPhaseC(true);
 
-            extensionBus1.setFortescueRepresentation(true);
-            extensionBus2.setFortescueRepresentation(true);
+            c1.setFortescueRepresentation(true);
+            c2.setFortescueRepresentation(true);
+        }
+    }
+
+    private static void updateLineConnectors(Network network, Map<String, AsymmetricalBranchConnector> bus2Connector) {
+
+        for (Line line : network.getLines()) {
+            var extension2 = line.getExtension(LineAsymmetrical.class);
+            AsymmetricalBranchConnector c1 = bus2Connector.get(line.getTerminal1().getBusBreakerView().getBus().getId());
+            AsymmetricalBranchConnector c2 = bus2Connector.get(line.getTerminal2().getBusBreakerView().getBus().getId());
+            extension2.setAsymConnectorBus2(c2);
+            extension2.setAsymConnectorBus1(c1);
         }
     }
 
@@ -643,12 +649,15 @@ public final class AsymIeeeFeederParser {
         List<TfoData> listTfos = parseTfos(path);
         Map<String, String> firstBusTfo = getFirstBusTfo(listTfos);
 
-        createBuses(network, firstBusTfo, path);
-        createLines(network, path);
-        createGenerators(network, path);
-        createLoads(network, path);
-        createDistriLoads(network, path);
-        createTfos(network, path);
+        Map<String, AsymmetricalBranchConnector> bus2Connector = new HashMap<>();
+
+        createBuses(network, firstBusTfo, path, bus2Connector);
+        createLines(network, path, bus2Connector);
+        createGenerators(network, path, bus2Connector);
+        createLoads(network, path, bus2Connector);
+        createDistriLoads(network, path, bus2Connector);
+        createTfos(network, path, bus2Connector);
+        updateLineConnectors(network, bus2Connector);
 
         return network;
     }

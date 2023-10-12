@@ -3,9 +3,9 @@ package com.powsybl.openloadflow.network.util;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
-import com.powsybl.openloadflow.network.extensions.iidm.BusAsymmetrical;
-import com.powsybl.openloadflow.network.extensions.iidm.BusAsymmetricalAdder;
+import com.powsybl.openloadflow.network.extensions.iidm.AsymmetricalBranchConnector;
 import com.powsybl.openloadflow.network.extensions.iidm.BusVariableType;
+import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
 import com.univocity.parsers.annotations.Parsed;
 import com.univocity.parsers.common.processor.BeanListProcessor;
 import com.univocity.parsers.csv.CsvParser;
@@ -183,7 +183,7 @@ public final class AsymLvFeederParser {
         double resistance;
     }
 
-    private static void createBuses(Network network, String path) {
+    private static void createBuses(Network network, String path, Map<String, AsymmetricalBranchConnector> bus2Connector) {
         for (BusCoord busCoord : parseCsv(path + "Buscoords.csv", BusCoord.class)) {
             String substationId = getSubstationId(busCoord.busName);
             Substation s = network.getSubstation(substationId);
@@ -201,19 +201,15 @@ public final class AsymLvFeederParser {
                     .setId(getBusId(busCoord.busName))
                     .add();
 
-            // default settings for bus extensions, will be modified depending on the type of connected equipment :
-            bus.newExtension(BusAsymmetricalAdder.class)
-                    .withBusVariableType(BusVariableType.WYE)
-                    .withHasPhaseA(true)
-                    .withHasPhaseB(true)
-                    .withHasPhaseC(true)
-                    .withPositiveSequenceAsCurrent(true)
-                    .withFortescueRepresentation(true)
-                    .add();
+            // default settings for connectors, will be modified depending on the type of connected equipment :
+            AsymmetricalBranchConnector connector = new AsymmetricalBranchConnector(BusVariableType.WYE,
+                    true, true, true, true, true);
+
+            bus2Connector.put(bus.getId(), connector);
         }
     }
 
-    private static void createLines(Network network, String path) {
+    private static void createLines(Network network, String path, Map<String, AsymmetricalBranchConnector> bus2Connector) {
         Map<String, LineCode> lineCodes = new HashMap<>();
         for (LineCode lineCode : parseCsv(path + "LineCodes.csv", LineCode.class)) {
             lineCodes.put(lineCode.name, lineCode);
@@ -233,6 +229,10 @@ public final class AsymLvFeederParser {
             l.newExtension(LineFortescueAdder.class)
                     .withRz(lineCode.r0 * line.length * coeff)
                     .withXz(lineCode.x0 * line.length * coeff)
+                    .add();
+            l.newExtension(LineAsymmetricalAdder.class)
+                    .withAsymConnector1(bus2Connector.get(getBusId(line.bus1)))
+                    .withAsymConnector2(bus2Connector.get(getBusId(line.bus2)))
                     .add();
         }
     }
@@ -291,7 +291,7 @@ public final class AsymLvFeederParser {
         }
     }
 
-    private static void createSource(Network network) {
+    private static void createSource(Network network, Map<String, AsymmetricalBranchConnector> bus2Connector) {
         int busName = 1;
         VoltageLevel vl = network.getVoltageLevel(getVoltageLevelId(busName));
         Generator generator = vl.newGenerator()
@@ -314,8 +314,8 @@ public final class AsymLvFeederParser {
                 .withXn(zn.getImaginary())
                 .add();
 
-        // modification of bus extension due to generating unit
-        network.getBusBreakerView().getBus(getBusId(busName)).getExtension(BusAsymmetrical.class).setPositiveSequenceAsCurrent(false);
+        // modification of connector due to generating unit
+        bus2Connector.get(getBusId(busName)).setPositiveSequenceAsCurrent(false);
     }
 
     private static WindingConnectionType getConnectionType(String conn) {
@@ -337,9 +337,11 @@ public final class AsymLvFeederParser {
         Network network = networkFactory.createNetwork("EuropeanLvTestFeeder", "csv");
         network.setCaseDate(DateTime.parse("2023-04-11T23:59:00.000+01:00"));
 
-        createBuses(network, path);
-        createSource(network);
-        createLines(network, path);
+        Map<String, AsymmetricalBranchConnector> bus2Connector = new HashMap<>();
+
+        createBuses(network, path, bus2Connector);
+        createSource(network, bus2Connector);
+        createLines(network, path, bus2Connector);
         createLoads(network, path);
         return network;
     }

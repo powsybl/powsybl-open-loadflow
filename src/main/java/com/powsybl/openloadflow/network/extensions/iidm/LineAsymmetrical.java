@@ -74,6 +74,10 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
         this.asymConnectorBus2 = asymConnectorBus2;
     }
 
+    public void setAsymConnectorBus1(AsymmetricalBranchConnector asymConnectorBus1) {
+        this.asymConnectorBus1 = asymConnectorBus1;
+    }
+
     public static ComplexMatrix getAdmittanceMatrixFromImpedanceAndBmatrix(ComplexMatrix zabc, ComplexMatrix babc, boolean hasPhaseA, boolean hasPhaseB, boolean hasPhaseC, double length) {
 
         // The lines are sometimes specified as impedance and susceptance matrices.
