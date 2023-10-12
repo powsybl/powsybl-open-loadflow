@@ -400,9 +400,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
             LfStarBus lfBus0 = new LfStarBus(lfNetwork, t3wt, parameters);
             lfNetwork.addBus(lfBus0);
-            postProcessors.forEach(pp -> {
-                pp.onBusAdded(t3wt, lfBus0);
-            });
+            postProcessors.forEach(pp -> pp.onBusAdded(t3wt, lfBus0));
             for (ThreeWindingsTransformer.Side side : ThreeWindingsTransformer.Side.values()) {
                 ThreeWindingsTransformer.Leg leg = t3wt.getLeg(side);
                 LfBus lfBus = getLfBus(leg.getTerminal(), lfNetwork, parameters.isBreakers());
@@ -411,9 +409,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         topoConfig.retainRtc(LfLegBranch.getId(side, t3wt.getId())),
                         parameters);
                 addBranch(lfNetwork, lfBranch, report);
-                postProcessors.forEach(pp -> {
-                    pp.onBranchAdded(t3wt, lfBranch);
-                });
+                postProcessors.forEach(pp -> pp.onBranchAdded(t3wt, lfBranch));
             }
         }
 

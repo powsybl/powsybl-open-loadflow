@@ -1137,23 +1137,28 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testActionOnRetainedPst() {
         Network network = PhaseControlFactory.createNetworkWithT2wt();
-        network.newLine().setId("L3").setVoltageLevel1("VL1").setConnectableBus1("B1").setBus1("B1").setVoltageLevel2("VL2").setConnectableBus2("B2").setBus2("B2").setR(4.0).setX(200.0).setG1(0.0).setB1(0.0).setG2(0.0).setB2(0.0).add();
+        network.newLine()
+                .setId("L3")
+                .setVoltageLevel1("VL1")
+                .setBus1("B1")
+                .setVoltageLevel2("VL2")
+                .setBus2("B2")
+                .setR(4.0)
+                .setX(200.0)
+                .add();
+
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
         securityAnalysisParameters.setLoadFlowParameters(parameters);
         List<Contingency> contingencies = List.of(new Contingency("CL3", new BranchContingency("L3")));
-
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
-
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("Aps1", "PS1", false, 2));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("CL3"), new TrueCondition(), List.of("Aps1")));
-
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
 
         network.getLine("L3").getTerminal1().disconnect();
         network.getLine("L3").getTerminal2().disconnect();
-
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(2);
         loadFlowRunner.run(network, parameters);
 
@@ -1166,23 +1171,28 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testActionOnRetainedT3wtPst() {
         Network network = PhaseControlFactory.createNetworkWithT3wt();
-        network.newLine().setId("L3").setVoltageLevel1("VL1").setConnectableBus1("B1").setBus1("B1").setVoltageLevel2("VL2").setConnectableBus2("B2").setBus2("B2").setR(4.0).setX(200.0).setG1(0.0).setB1(0.0).setG2(0.0).setB2(0.0).add();
+        network.newLine()
+                .setId("L3")
+                .setVoltageLevel1("VL1")
+                .setBus1("B1")
+                .setVoltageLevel2("VL2")
+                .setBus2("B2")
+                .setR(4.0)
+                .setX(200.0)
+                .add();
+
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
         securityAnalysisParameters.setLoadFlowParameters(parameters);
         List<Contingency> contingencies = List.of(new Contingency("CL3", new BranchContingency("L3")));
-
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
-
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("Aps1", "PS1", false, 2, ThreeWindingsTransformer.Side.TWO));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("CL3"), new TrueCondition(), List.of("Aps1")));
-
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
 
         network.getLine("L3").getTerminal1().disconnect();
         network.getLine("L3").getTerminal2().disconnect();
-
         network.getThreeWindingsTransformer("PS1").getLeg2().getPhaseTapChanger().setTapPosition(2);
         loadFlowRunner.run(network, parameters);
 
