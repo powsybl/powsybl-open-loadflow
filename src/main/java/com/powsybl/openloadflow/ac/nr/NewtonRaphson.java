@@ -108,12 +108,12 @@ public class NewtonRaphson {
     }
 
     private String getEquationTypeDescription(AcEquationType acEquationType) {
-        switch (acEquationType) {
-            case BUS_TARGET_P: return "TargetP";
-            case BUS_TARGET_Q: return "TargetQ";
-            case BUS_TARGET_V: return "TargetV";
-            default: return null; // not implemented for other ac equation types
-        }
+        return switch (acEquationType) {
+            case BUS_TARGET_P -> "TargetP";
+            case BUS_TARGET_Q -> "TargetQ";
+            case BUS_TARGET_V -> "TargetV";
+            default -> null; // not implemented for other ac equation types
+        };
     }
 
     private NewtonRaphsonStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, Reporter reporter) {
@@ -203,8 +203,8 @@ public class NewtonRaphson {
                     x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getR1();
                     break;
 
-                case DUMMY_P:
-                case DUMMY_Q:
+                case DUMMY_P,
+                        DUMMY_Q:
                     x[v.getRow()] = 0;
                     break;
 
@@ -290,8 +290,8 @@ public class NewtonRaphson {
                     network.getBranch(v.getElementNum()).getPiModel().setR1(stateVector.get(v.getRow()));
                     break;
 
-                case DUMMY_P:
-                case DUMMY_Q:
+                case DUMMY_P,
+                     DUMMY_Q:
                     // nothing to do
                     break;
 
@@ -330,6 +330,7 @@ public class NewtonRaphson {
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
         NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
+        //StateVectorScaling svScaling = StateVectorScaling.fromMode(parameters.getStateVectorScalingMode(), initialTestResult);
         StateVectorScaling svScaling = StateVectorScaling.fromMode(parameters, initialTestResult);
 
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());

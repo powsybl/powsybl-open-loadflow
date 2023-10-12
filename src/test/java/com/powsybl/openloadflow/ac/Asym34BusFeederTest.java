@@ -860,7 +860,7 @@ public class Asym34BusFeederTest {
         bus832.setV(vBase).setAngle(0.);
 
         AsymmetricalBranchConnector c832 = new AsymmetricalBranchConnector(BusVariableType.WYE,
-                true, true, true, false, true);
+                true, true, true, true, true);
 
         double p832 = 0.;
         double q832 = 0.;
@@ -870,12 +870,12 @@ public class Asym34BusFeederTest {
                 .setP0(p832)
                 .setQ0(q832)
                 .newZipModel()
-                    .setC0p(0.)
+                    .setC0p(1.)
                     .setC1p(0.)
-                    .setC2p(1.)
-                    .setC0q(0.)
+                    .setC2p(0.)
+                    .setC0q(1.)
                     .setC1q(0.)
-                    .setC2q(1.)
+                    .setC2q(0.)
                     .add()
                 .add();
 
@@ -903,7 +903,7 @@ public class Asym34BusFeederTest {
         bus888.setV(vBase).setAngle(0.);
 
         AsymmetricalBranchConnector c888 = new AsymmetricalBranchConnector(BusVariableType.WYE,
-                true, true, true, false, true);
+                true, true, true, true, true);
 
         // Bus 890
         Substation substation890 = network.newSubstation()

@@ -54,4 +54,24 @@ public class AsymmetricalBranchConnector {
     public boolean isPositiveSequenceAsCurrent() {
         return isPositiveSequenceAsCurrent;
     }
+
+    public void setPositiveSequenceAsCurrent(boolean positiveSequenceAsCurrent) {
+        isPositiveSequenceAsCurrent = positiveSequenceAsCurrent;
+    }
+
+    public void setFortescueRepresentation(boolean fortescueRepresentation) {
+        isFortescueRepresentation = fortescueRepresentation;
+    }
+
+    public void setHasPhaseA(boolean hasPhaseA) {
+        this.hasPhaseA = hasPhaseA;
+    }
+
+    public void setHasPhaseB(boolean hasPhaseB) {
+        this.hasPhaseB = hasPhaseB;
+    }
+
+    public void setHasPhaseC(boolean hasPhaseC) {
+        this.hasPhaseC = hasPhaseC;
+    }
 }
