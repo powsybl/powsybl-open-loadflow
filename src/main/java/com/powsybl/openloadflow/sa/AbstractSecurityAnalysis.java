@@ -128,11 +128,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
-                case PhaseTapChangerTapPositionAction.NAME: {
-                    PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
-                    if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null
-                            && network.getThreeWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
-                        throw new PowsyblException("Transformer '" + phaseTapChangerTapPositionAction.getTransformerId() + NOT_FOUND);
+                case PhaseTapChangerTapPositionAction.NAME,
+                     RatioTapChangerTapPositionAction.NAME: {
+                    String transformerId = action.getType().equals(PhaseTapChangerTapPositionAction.NAME) ?
+                            ((PhaseTapChangerTapPositionAction) action).getTransformerId() : ((RatioTapChangerTapPositionAction) action).getTransformerId();
+                    if (network.getTwoWindingsTransformer(transformerId) == null
+                            && network.getThreeWindingsTransformer(transformerId) == null) {
+                        throw new PowsyblException("Transformer '" + transformerId + NOT_FOUND);
                     }
                     break;
                 }

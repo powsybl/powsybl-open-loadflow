@@ -1131,7 +1131,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 new TrueCondition(), List.of("pst_leg_1")));
         CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies1, actions1, Reporter.NO_OP));
-        assertEquals("Phase tap changer tap connection action: only one tap in branch PS1_leg_1", exception.getCause().getMessage());
+        assertEquals("Tap position action: only one tap in branch PS1_leg_1", exception.getCause().getMessage());
     }
 
     @Test
@@ -1200,11 +1200,17 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     void testActionOnRetainedRtc() {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         List<Contingency> contingencies = List.of(new Contingency("contingency", new LoadContingency("LOAD_2")));
-        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<StateMonitor> monitors = createNetworkMonitors(network);
         List<Action> actions = List.of(new RatioTapChangerTapPositionAction("action", "T2wT", false, 2));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("contingency"), new TrueCondition(), List.of("action")));
-        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
-                operatorStrategies, actions, Reporter.NO_OP));
-        assertEquals("Unsupported action type: RATIO_TAP_CHANGER_TAP_POSITION", exception.getCause().getMessage());
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        network.getLoad("LOAD_2").getTerminal().disconnect();
+        network.getTwoWindingsTransformer("T2wT").getRatioTapChanger().setTapPosition(2);
+        loadFlowRunner.run(network);
+
+        assertEquals(network.getBusBreakerView().getBus("BUS_2").getV(),
+                getOperatorStrategyResult(result, "strategy").getNetworkResult().getBusResult("BUS_2").getV(), LoadFlowAssert.DELTA_POWER);
     }
 }
