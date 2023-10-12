@@ -29,20 +29,27 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
 
     private ComplexMatrix yabc; // a three phase admittance matrix can be provided in input and will be used as first option if not null
 
+    private AsymmetricalBranchConnector asymConnectorBus1; // Quad ends will carry extra info related to asymmetrical connection
+    private AsymmetricalBranchConnector asymConnectorBus2;
+
     @Override
     public String getName() {
         return NAME;
     }
 
-    public LineAsymmetrical(Line line) {
+    public LineAsymmetrical(Line line, AsymmetricalBranchConnector c1, AsymmetricalBranchConnector c2) {
         super(line);
+        this.asymConnectorBus1 = c1;
+        this.asymConnectorBus2 = c2;
         this.yabc = null;
 
     }
 
-    public LineAsymmetrical(Line line,
+    public LineAsymmetrical(Line line, AsymmetricalBranchConnector c1, AsymmetricalBranchConnector c2,
                             ComplexMatrix yabc) {
         super(line);
+        this.asymConnectorBus1 = c1;
+        this.asymConnectorBus2 = c2;
         this.yabc = yabc;
 
     }
@@ -53,6 +60,18 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
 
     public ComplexMatrix getYabc() {
         return yabc;
+    }
+
+    public AsymmetricalBranchConnector getAsymConnectorBus1() {
+        return asymConnectorBus1;
+    }
+
+    public AsymmetricalBranchConnector getAsymConnectorBus2() {
+        return asymConnectorBus2;
+    }
+
+    public void setAsymConnectorBus2(AsymmetricalBranchConnector asymConnectorBus2) {
+        this.asymConnectorBus2 = asymConnectorBus2;
     }
 
     public static ComplexMatrix getAdmittanceMatrixFromImpedanceAndBmatrix(ComplexMatrix zabc, ComplexMatrix babc, boolean hasPhaseA, boolean hasPhaseB, boolean hasPhaseC, double length) {

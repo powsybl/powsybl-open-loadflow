@@ -17,6 +17,8 @@ import com.powsybl.openloadflow.util.ComplexMatrix;
 public class LineAsymmetricalAdder extends AbstractExtensionAdder<Line, LineAsymmetrical> {
 
     private ComplexMatrix yabc = null;
+    private AsymmetricalBranchConnector c1 = null;
+    private AsymmetricalBranchConnector c2 = null;
 
     public LineAsymmetricalAdder(Line line) {
         super(line);
@@ -29,11 +31,21 @@ public class LineAsymmetricalAdder extends AbstractExtensionAdder<Line, LineAsym
 
     @Override
     protected LineAsymmetrical createExtension(Line line) {
-        return new LineAsymmetrical(line, yabc);
+        return new LineAsymmetrical(line, c1, c2, yabc);
     }
 
     public LineAsymmetricalAdder withYabc(ComplexMatrix yabc) {
         this.yabc = yabc;
+        return this;
+    }
+
+    public LineAsymmetricalAdder withAsymConnector1(AsymmetricalBranchConnector c1) {
+        this.c1 = c1;
+        return this;
+    }
+
+    public LineAsymmetricalAdder withAsymConnector2(AsymmetricalBranchConnector c2) {
+        this.c2 = c2;
         return this;
     }
 
