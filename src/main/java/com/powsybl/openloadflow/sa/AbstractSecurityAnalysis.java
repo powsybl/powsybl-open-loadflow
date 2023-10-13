@@ -275,8 +275,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (action.getType().equals("PHASE_TAP_CHANGER_TAP_POSITION")) {
                 PhaseTapChangerTapPositionAction ptcAction = (PhaseTapChangerTapPositionAction) action;
                 ptcAction.getSide().ifPresentOrElse(
-                        side -> topoConfig.getBranchIdsWithPtcToRetain().add(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
-                        () -> topoConfig.getBranchIdsWithPtcToRetain().add(ptcAction.getTransformerId()) // T2WT
+                        side -> topoConfig.addBranchIdsWithPtcToRetain(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
+                        () -> topoConfig.addBranchIdsWithPtcToRetain(ptcAction.getTransformerId()) // T2WT
                 );
             }
         }
@@ -287,8 +287,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (action.getType().equals("RATIO_TAP_CHANGER_TAP_POSITION")) {
                 RatioTapChangerTapPositionAction rtcAction = (RatioTapChangerTapPositionAction) action;
                 rtcAction.getSide().ifPresentOrElse(
-                        side -> topoConfig.getBranchIdsWithRtcToRetain().add(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
-                        () -> topoConfig.getBranchIdsWithRtcToRetain().add(rtcAction.getTransformerId())// T2WT
+                        side -> topoConfig.addBranchIdsWithRtcToRetain(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
+                        () -> topoConfig.addBranchIdsWithRtcToRetain(rtcAction.getTransformerId()) // T2WT
                 );
             }
         }

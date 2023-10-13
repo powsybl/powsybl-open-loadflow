@@ -38,12 +38,12 @@ public class LfTopoConfig {
         return busIdsToLose;
     }
 
-    public Set<String> getBranchIdsWithPtcToRetain() {
-        return branchIdsWithPtcToRetain;
+    public void addBranchIdsWithPtcToRetain(String branchId) {
+        branchIdsWithPtcToRetain.add(branchId);
     }
 
-    public Set<String> getBranchIdsWithRtcToRetain() {
-        return branchIdsWithRtcToRetain;
+    public void addBranchIdsWithRtcToRetain(String branchId) {
+        branchIdsWithRtcToRetain.add(branchId);
     }
 
     public boolean isBreaker() {
