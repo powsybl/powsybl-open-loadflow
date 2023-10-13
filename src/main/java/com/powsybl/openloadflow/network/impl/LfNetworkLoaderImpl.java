@@ -683,6 +683,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // secondary voltage controls
         createSecondaryVoltageControls(network, parameters, lfNetwork);
 
+        // voltage angle limits
+        createVoltageAngleLimits(network, lfNetwork, parameters);
+
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
@@ -825,6 +828,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
         return Optional.empty();
+    }
+
+    private static void createVoltageAngleLimits(Network network, LfNetwork lfNetwork, LfNetworkParameters parameters) {
+        network.getVoltageAngleLimits().forEach(voltageAngleLimit -> {
+            LfBus from = getLfBus(voltageAngleLimit.getTerminalFrom(), lfNetwork, parameters.isBreakers());
+            LfBus to = getLfBus(voltageAngleLimit.getTerminalTo(), lfNetwork, parameters.isBreakers());
+            if (from != null && to != null) {
+                lfNetwork.addVoltageAngleLimit(new LfNetwork.LfVoltageAngleLimit(voltageAngleLimit.getId(), from, to,
+                        Math.toRadians(voltageAngleLimit.getHighLimit().orElse(Double.NaN)), Math.toRadians(voltageAngleLimit.getLowLimit().orElse(Double.NaN))));
+            }
+        });
     }
 
     @Override
