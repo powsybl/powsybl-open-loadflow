@@ -192,6 +192,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public boolean hasReactivePowerControl() {
+        return reactivePowerControl != null;
+    }
+
+    @Override
     public boolean isGeneratorVoltageControlled() {
         return generatorVoltageControl != null && generatorVoltageControl.getControlledBus() == this;
     }

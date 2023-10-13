@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -713,6 +714,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
                 .flatMap(bus -> bus.getVoltageControl(type).orElseThrow().getMergedControllerElements().stream())
                 .filter(Predicate.not(LfElement::isDisabled))
+                .map(element -> (E) element)
+                .collect(Collectors.toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    public <E extends LfElement> List<E> getControllerElements(ReactivePowerControl.Type type) {
+        return busesByIndex.stream()
+                .filter(LfBus::hasReactivePowerControl)
+                .flatMap(bus -> Stream.of(bus.getReactivePowerControl().orElseThrow().getControllerBus()))
+                .filter(Predicate.not(LfBus::isDisabled))
                 .map(element -> (E) element)
                 .collect(Collectors.toList());
     }
