@@ -271,7 +271,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected static void findAllPtcToOperate(List<Action> actions, LfTopoConfig topoConfig) {
         for (Action action : actions) {
-            if (action.getType().equals("PHASE_TAP_CHANGER_TAP_POSITION")) {
+            if (PhaseTapChangerTapPositionAction.NAME.equals(action.getType())) {
                 PhaseTapChangerTapPositionAction ptcAction = (PhaseTapChangerTapPositionAction) action;
                 ptcAction.getSide().ifPresentOrElse(
                         side -> topoConfig.addBranchIdsWithPtcToRetain(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
@@ -283,7 +283,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected static void findAllRtcToOperate(List<Action> actions, LfTopoConfig topoConfig) {
         for (Action action : actions) {
-            if (action.getType().equals("RATIO_TAP_CHANGER_TAP_POSITION")) {
+            if (RatioTapChangerTapPositionAction.NAME.equals(action.getType())) {
                 RatioTapChangerTapPositionAction rtcAction = (RatioTapChangerTapPositionAction) action;
                 rtcAction.getSide().ifPresentOrElse(
                         side -> topoConfig.addBranchIdsWithRtcToRetain(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
