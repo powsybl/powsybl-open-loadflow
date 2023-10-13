@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 
 import java.util.List;
 
