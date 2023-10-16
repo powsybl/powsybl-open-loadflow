@@ -34,7 +34,7 @@ public class SubstationAutomationSystemsAdderImpl extends AbstractExtensionAdder
     }
 
     @Override
-    protected SubstationAutomationSystems createExtension(Substation substation) {
+    protected SubstationAutomationSystemsImpl createExtension(Substation substation) {
         return new SubstationAutomationSystemsImpl(substation, overloadManagementSystems);
     }
 }
