@@ -10,8 +10,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.extensions.OverloadManagementSystem;
-import com.powsybl.openloadflow.network.extensions.SubstationAutomationSystems;
+import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
+import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 
 import java.util.*;
 
