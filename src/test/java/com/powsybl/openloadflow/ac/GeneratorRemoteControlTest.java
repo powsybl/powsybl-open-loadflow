@@ -455,6 +455,8 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(1, l34.getTerminal(Branch.Side.TWO));
+        assertEquals(0.0, Math.abs(network.getBusView().getBus("b1_vl_0").getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), 1E-2);
+        assertEquals(0.0, Math.abs(network.getBusView().getBus("b4_vl_0").getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), 1E-2);
 
         // generators g1 and g4 both regulate reactive power on line 4->3
         g1.newExtension(RemoteReactivePowerControlAdder.class)
@@ -470,6 +472,8 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
         assertReactivePowerEquals(1, l34.getTerminal(Branch.Side.TWO));
+        assertEquals(0.0, Math.abs(network.getBusView().getBus("b1_vl_0").getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), 1E-2);
+        assertEquals(0.0, Math.abs(network.getBusView().getBus("b4_vl_0").getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), 1E-2);
     }
 
     @Test
@@ -677,13 +681,6 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-
-        // TODO solve PQ problem
-        network.getBusView().getBusStream().filter(b -> Math.abs(b.getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()) >= 0.1).forEach(bus -> {
-            System.out.printf("Bus: " + bus.getNameOrId() + "\n");
-            System.out.printf("\tCC: " + bus.getConnectedComponent().getNum() + "\n");
-            System.out.printf("\tBus Q: " + bus.getQ() + "\n");
-            System.out.printf("\tBus sumQ: " + bus.getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum() + "\n");
-        });
+        assertEquals(0.0, Math.abs(network.getBusView().getBus("b4_vl_0").getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), 1E-2);
     }
 }

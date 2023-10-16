@@ -23,7 +23,7 @@ class PerUnitPrecisionLossTest {
         Network network = EurostagTutorialExample1Factory.create();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters()).get(0);
         LfBus bus = lfNetwork.getBus(3);
-        bus.getLoad().orElseThrow().setTargetP(0.47585192963466116);
+        bus.getLoads().get(0).setTargetP(0.47585192963466116);
         assertEquals(0.47585192963466116, bus.getLoadTargetP(), 0);
     }
 }
