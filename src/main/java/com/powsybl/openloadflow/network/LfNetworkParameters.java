@@ -49,6 +49,8 @@ public class LfNetworkParameters {
 
     public static final boolean ASYMMETRICAL_DEFAULT_VALUE = false;
 
+    public static final boolean USE_LOAD_MODE_DEFAULT_VALUE = false;
+
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
@@ -117,6 +119,8 @@ public class LfNetworkParameters {
 
     private LinePerUnitMode linePerUnitMode = LINE_PER_UNIT_MODE_DEFAULT_VALUE;
 
+    private boolean useLoadModel = USE_LOAD_MODE_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -152,6 +156,7 @@ public class LfNetworkParameters {
         this.secondaryVoltageControl = other.secondaryVoltageControl;
         this.cacheEnabled = other.cacheEnabled;
         this.asymmetrical = other.asymmetrical;
+        this.useLoadModel = other.useLoadModel;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -452,6 +457,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isUseLoadModel() {
+        return useLoadModel;
+    }
+
+    public LfNetworkParameters setUseLoadModel(boolean useLoadModel) {
+        this.useLoadModel = useLoadModel;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -485,6 +499,7 @@ public class LfNetworkParameters {
                 ", asymmetrical=" + asymmetrical +
                 ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
                 ", linePerUnitMode=" + linePerUnitMode +
+                ", useLoadModel=" + useLoadModel +
                 ')';
     }
 }
