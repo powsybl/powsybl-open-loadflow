@@ -49,6 +49,8 @@ public class LfNetworkParameters {
 
     public static final boolean ASYMMETRICAL_DEFAULT_VALUE = false;
 
+    public static final boolean USE_LOAD_MODE_DEFAULT_VALUE = false;
+
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
 
     public static final boolean SIMULATE_AUTOMATONS_DEFAULT_VALUE = false;
@@ -119,6 +121,8 @@ public class LfNetworkParameters {
 
     private LinePerUnitMode linePerUnitMode = LINE_PER_UNIT_MODE_DEFAULT_VALUE;
 
+    private boolean useLoadModel = USE_LOAD_MODE_DEFAULT_VALUE;
+
     private boolean simulateAutomatons = SIMULATE_AUTOMATONS_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
@@ -157,6 +161,7 @@ public class LfNetworkParameters {
         this.cacheEnabled = other.cacheEnabled;
         this.asymmetrical = other.asymmetrical;
         this.linePerUnitMode = other.linePerUnitMode;
+        this.useLoadModel = other.useLoadModel;
         this.simulateAutomatons = other.simulateAutomatons;
     }
 
@@ -458,6 +463,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isUseLoadModel() {
+        return useLoadModel;
+    }
+
+    public LfNetworkParameters setUseLoadModel(boolean useLoadModel) {
+        this.useLoadModel = useLoadModel;
+        return this;
+    }
+
     public boolean isSimulateAutomatons() {
         return simulateAutomatons;
     }
@@ -500,6 +514,7 @@ public class LfNetworkParameters {
                 ", asymmetrical=" + asymmetrical +
                 ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
                 ", linePerUnitMode=" + linePerUnitMode +
+                ", useLoadModel=" + useLoadModel +
                 ", simulateAutomatons=" + simulateAutomatons +
                 ')';
     }
