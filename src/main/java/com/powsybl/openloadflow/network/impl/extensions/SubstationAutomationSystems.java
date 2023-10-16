@@ -16,7 +16,7 @@ import java.util.List;
  */
 public interface SubstationAutomationSystems extends Extension<Substation> {
 
-    String NAME = "SubstationAutomationSystems";
+    String NAME = "substationAutomationSystems";
 
     @Override
     default String getName() {

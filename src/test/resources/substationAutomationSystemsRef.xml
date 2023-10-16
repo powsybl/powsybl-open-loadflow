@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<iidm:network xmlns:iidm="http://www.powsybl.org/schema/iidm/1_11" xmlns:sas="http://www.powsybl.org/schema/iidm/ext/substation_automation_systems/1_0" id="OverloadManagementSystemTestCase" caseDate="2020-04-05T14:11:00.000+01:00" forecastDistance="0" sourceFormat="code" minimumValidationLevel="STEADY_STATE_HYPOTHESIS">
+    <iidm:substation id="s1" country="FR">
+        <iidm:voltageLevel id="b1_vl" nominalV="225.0" topologyKind="BUS_BREAKER">
+            <iidm:busBreakerTopology>
+                <iidm:bus id="b1"/>
+            </iidm:busBreakerTopology>
+            <iidm:generator id="g1" energySource="OTHER" minP="0.0" maxP="100.0" voltageRegulatorOn="true" targetP="100.0" targetV="230.0" bus="b1" connectableBus="b1" p="-100.0" q="0.0">
+                <iidm:minMaxReactiveLimits minQ="-1.7976931348623157E308" maxQ="1.7976931348623157E308"/>
+            </iidm:generator>
+        </iidm:voltageLevel>
+        <iidm:voltageLevel id="b3_vl" nominalV="63.0" topologyKind="BUS_BREAKER">
+            <iidm:busBreakerTopology>
+                <iidm:bus id="b3"/>
+                <iidm:bus id="b3p"/>
+                <iidm:switch id="br1" kind="BREAKER" retained="true" open="false" bus1="b3" bus2="b3p"/>
+            </iidm:busBreakerTopology>
+            <iidm:load id="ld3" loadType="UNDEFINED" p0="3.0" q0="2.0" bus="b3p" connectableBus="b3p" p="3.0" q="2.0"/>
+        </iidm:voltageLevel>
+        <iidm:twoWindingsTransformer id="tr1" r="0.2" x="2.0" g="0.0" b="0.0" ratedU1="225.0" ratedU2="63.0" bus1="b1" connectableBus1="b1" voltageLevelId1="b1_vl" bus2="b3" connectableBus2="b3" voltageLevelId2="b3_vl"/>
+    </iidm:substation>
+    <iidm:substation id="s2" country="FR">
+        <iidm:voltageLevel id="b2_vl" nominalV="225.0" topologyKind="BUS_BREAKER">
+            <iidm:busBreakerTopology>
+                <iidm:bus id="b2"/>
+            </iidm:busBreakerTopology>
+        </iidm:voltageLevel>
+        <iidm:voltageLevel id="b4_vl" nominalV="63.0" topologyKind="BUS_BREAKER">
+            <iidm:busBreakerTopology>
+                <iidm:bus id="b4"/>
+            </iidm:busBreakerTopology>
+            <iidm:load id="ld4" loadType="UNDEFINED" p0="90.0" q0="60.0" bus="b4" connectableBus="b4" p="90.0" q="60.0"/>
+        </iidm:voltageLevel>
+        <iidm:twoWindingsTransformer id="tr2" r="0.3" x="3.0" g="0.0" b="0.0" ratedU1="225.0" ratedU2="63.0" bus1="b2" connectableBus1="b2" voltageLevelId1="b2_vl" bus2="b4" connectableBus2="b4" voltageLevelId2="b4_vl"/>
+    </iidm:substation>
+    <iidm:line id="l12" r="0.1" x="3.0" g1="0.0" b1="0.0" g2="0.0" b2="0.0" bus1="b1" connectableBus1="b1" voltageLevelId1="b1_vl" bus2="b2" connectableBus2="b2" voltageLevelId2="b2_vl"/>
+    <iidm:line id="l34" r="0.05" x="3.2" g1="0.0" b1="0.0" g2="0.0" b2="0.0" bus1="b3p" connectableBus1="b3p" voltageLevelId1="b3_vl" bus2="b4" connectableBus2="b4" voltageLevelId2="b4_vl"/>
+    <iidm:extension id="s1">
+        <sas:substationAutomationSystems>
+            <sas:overloadManagementSystem lineIdToMonitor="l34" threshold="300.0" switchIdToOperate="br1" switchOpen="true"/>
+        </sas:substationAutomationSystems>
+    </iidm:extension>
+</iidm:network>

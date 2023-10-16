@@ -30,12 +30,11 @@ public class SubstationAutomationSystemsXmlSerializer extends AbstractExtensionX
     @Override
     public void write(SubstationAutomationSystems systems, XmlWriterContext context) throws XMLStreamException {
         for (var oms : systems.getOverloadManagementSystems()) {
-            context.getWriter().writeStartElement(getNamespaceUri(), "overloadManagementSystem");
+            context.getWriter().writeEmptyElement(getNamespaceUri(), "overloadManagementSystem");
             context.getWriter().writeAttribute("lineIdToMonitor", oms.getLineIdToMonitor());
             XmlUtil.writeDouble("threshold", oms.getThreshold(), context.getWriter());
             context.getWriter().writeAttribute("switchIdToOperate", oms.getSwitchIdToOperate());
             context.getWriter().writeAttribute("switchOpen", Boolean.toString(oms.isSwitchOpen()));
-            context.getWriter().writeEndElement();
         }
     }
 
