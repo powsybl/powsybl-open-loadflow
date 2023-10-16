@@ -531,6 +531,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             // We have to much reactive power to dispatch, which is linked to a bus that has been forced to remain PV to
             // ease the convergence. Updating a generator reactive power outside its reactive limits is a quick fix.
             // It could be better to return a global failed status.
+            LOGGER.warn("Generator reactive limits have been overwritten to dispatch {} MW at bus {}", qToDispatch * PerUnit.SB, this.getId());
             dispatchQ(initialGeneratorsWithControl, false, reactivePowerDispatchMode, qToDispatch);
         }
     }
