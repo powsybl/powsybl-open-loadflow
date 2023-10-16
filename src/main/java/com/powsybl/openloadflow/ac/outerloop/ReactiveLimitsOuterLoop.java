@@ -9,10 +9,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.GeneratorVoltageControl;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.ReactivePowerControl;
-import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -20,6 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -256,6 +256,14 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         return bus.getGeneratorVoltageControl().map(vc -> vc.getControlledBus().getV()).orElse(Double.NaN);
     }
 
+    public List<LfBus> getReactivePowerControllerElements(LfNetwork network) {
+        return network.getBuses().stream()
+                .filter(LfBus::hasReactivePowerControl)
+                .flatMap(bus -> Stream.of(bus.getReactivePowerControl().orElseThrow().getControllerBus()))
+                .filter(Predicate.not(LfBus::isDisabled))
+                .collect(Collectors.toList());
+    }
+
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
@@ -274,7 +282,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             }
         });
 
-        context.getNetwork().<LfBus>getControllerElements(ReactivePowerControl.Type.GENERATOR).forEach(bus ->
+        getReactivePowerControllerElements(context.getNetwork()).forEach(bus ->
                 // a bus that has a reactive generator power control can't switch PV
                 checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, false)
         );
