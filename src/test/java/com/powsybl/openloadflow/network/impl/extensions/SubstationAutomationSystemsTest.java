@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl.extensions;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.test.AbstractConverterTest;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.xml.NetworkXml;
@@ -14,13 +15,29 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 class SubstationAutomationSystemsTest extends AbstractConverterTest {
+
+    @Test
+    void errorTest() {
+        Network network = AutomationSystemNetworkFactory.create();
+        var s2 = network.getSubstation("s2");
+
+        var adder = s2.newExtension(SubstationAutomationSystemsAdder.class)
+                .newOverloadManagementSystem();
+        var e = assertThrows(PowsyblException.class, adder::add);
+        assertEquals("Line ID to monitor is not set", e.getMessage());
+        adder.withLineIdToMonitor("x");
+        e = assertThrows(PowsyblException.class, adder::add);
+        assertEquals("Threshold is not set", e.getMessage());
+        adder.withThreshold(1000);
+        e = assertThrows(PowsyblException.class, adder::add);
+        assertEquals("Switch ID to operate is not set", e.getMessage());
+    }
 
     @Test
     void xmlRoundTripTest() throws IOException {
