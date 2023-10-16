@@ -141,19 +141,23 @@ public final class Networks {
         removedBranches.forEach(branch -> branch.setDisabled(true));
     }
 
-    private static void addSwitchesOperatedByAutomata(Network network, LfTopoConfig topoConfig) {
+    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem system) {
+        Switch aSwitch = network.getSwitch(system.getSwitchIdToOperate());
+        if (aSwitch != null) {
+            if (system.isSwitchOpen()) {
+                topoConfig.getSwitchesToOpen().add(aSwitch);
+            } else {
+                topoConfig.getSwitchesToClose().add(aSwitch);
+            }
+        }
+    }
+
+    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig) {
         for (Substation substation : network.getSubstations()) {
             SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
             if (systems != null) {
                 for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
-                    Switch aSwitch = network.getSwitch(system.getSwitchIdToOperate());
-                    if (aSwitch != null) {
-                        if (system.isSwitchOpen()) {
-                            topoConfig.getSwitchesToOpen().add(aSwitch);
-                        } else {
-                            topoConfig.getSwitchesToClose().add(aSwitch);
-                        }
-                    }
+                    addSwitchesOperatedByAutomationSystem(network, topoConfig, system);
                 }
             }
         }
@@ -169,7 +173,7 @@ public final class Networks {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
-            addSwitchesOperatedByAutomata(network, modifiedTopoConfig);
+            addSwitchesOperatedByAutomationSystem(network, modifiedTopoConfig);
             if (modifiedTopoConfig.isBreaker()) {
                 networkParameters.setBreakers(true);
             }
