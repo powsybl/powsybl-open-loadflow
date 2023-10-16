@@ -33,13 +33,6 @@ public abstract class AbstractLoadFlowContext <V extends Enum<V> & Quantity, E e
         this.parameters = Objects.requireNonNull(parameters);
     }
 
-    public JacobianMatrix<V, E> getJacobianMatrix() {
-        if (jacobianMatrix == null) {
-            jacobianMatrix = new JacobianMatrix<>(getEquationSystem(), parameters.getMatrixFactory());
-        }
-        return jacobianMatrix;
-    }
-
     public P getParameters() {
         return parameters;
     }

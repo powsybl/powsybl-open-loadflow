@@ -11,6 +11,8 @@ import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
@@ -22,6 +24,8 @@ import java.util.stream.Stream;
 public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private final LfBus bus;
+
+    private final LfLoadModel loadModel;
 
     private final List<Ref<Load>> loadsRefs = new ArrayList<>();
 
@@ -39,10 +43,15 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
-    LfLoadImpl(LfBus bus, boolean distributedOnConformLoad) {
+    private Evaluable p = EvaluableConstants.NAN;
+
+    private Evaluable q = EvaluableConstants.NAN;
+
+    LfLoadImpl(LfBus bus, boolean distributedOnConformLoad, LfLoadModel loadModel) {
         super(0, 0);
         this.bus = Objects.requireNonNull(bus);
         this.distributedOnConformLoad = distributedOnConformLoad;
+        this.loadModel = loadModel;
     }
 
     @Override
@@ -60,6 +69,11 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     @Override
     public LfBus getBus() {
         return bus;
+    }
+
+    @Override
+    public Optional<LfLoadModel> getLoadModel() {
+        return Optional.ofNullable(loadModel);
     }
 
     void add(Load load, LfNetworkParameters parameters) {
@@ -164,8 +178,22 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(i) / absVariableTargetP : 0;
     }
 
+    private double calculateP() {
+        return p.eval() + getLoadModel()
+                .flatMap(lm -> lm.getExpTermP(0).map(term -> targetP * term.c()))
+                .orElse(0d);
+    }
+
+    private double calculateQ() {
+        return q.eval() + getLoadModel()
+                .flatMap(lm -> lm.getExpTermQ(0).map(term -> targetQ * term.c()))
+                .orElse(0d);
+    }
+
     @Override
     public void updateState(boolean loadPowerFactorConstant, boolean breakers) {
+        double pv = p == EvaluableConstants.NAN ? 1 : calculateP() / targetP; // extract part of p that is dependent to voltage
+        double qv = q == EvaluableConstants.NAN ? 1 : calculateQ() / targetQ;
         double diffLoadTargetP = targetP - initialTargetP;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
@@ -173,8 +201,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
             double updatedP0 = load.getP0() + diffP0;
             double updatedQ0 = load.getQ0() + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
             load.getTerminal()
-                    .setP(updatedP0)
-                    .setQ(updatedQ0);
+                    .setP(updatedP0 * pv)
+                    .setQ(updatedQ0 * qv);
         }
 
         // update lcc converter station power
@@ -221,5 +249,25 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private static double getPowerFactor(Load load) {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
+    }
+
+    @Override
+    public Evaluable getP() {
+        return p;
+    }
+
+    @Override
+    public void setP(Evaluable p) {
+        this.p = p;
+    }
+
+    @Override
+    public Evaluable getQ() {
+        return q;
+    }
+
+    @Override
+    public void setQ(Evaluable q) {
+        this.q = q;
     }
 }
