@@ -229,7 +229,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         bus.getControllerShunt().ifPresent(this::addShunt);
         bus.getSvcShunt().ifPresent(this::addShunt);
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
-        bus.getLoad().ifPresent(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
+        bus.getLoads().forEach(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
     }
 
     public List<LfBus> getBuses() {
