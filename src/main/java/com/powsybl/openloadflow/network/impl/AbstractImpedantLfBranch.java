@@ -96,4 +96,20 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     public Evaluable getI2() {
         return i2;
     }
+
+    protected double getV1() {
+        return getBus1() != null ? getBus1().getV() : Double.NaN;
+    }
+
+    protected double getV2() {
+        return getBus2() != null ? getBus2().getV() : Double.NaN;
+    }
+
+    protected double getAngle1() {
+        return getBus1() != null ? getBus1().getAngle() : Double.NaN;
+    }
+
+    protected double getAngle2() {
+        return getBus2() != null ? getBus2().getAngle() : Double.NaN;
+    }
 }

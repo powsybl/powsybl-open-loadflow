@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
@@ -22,6 +19,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -30,9 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.usefultoys.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -276,7 +272,7 @@ class DcLoadFlowTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setDc(true);
-        LoadFlow.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
 
         assertActivePowerEquals(400.0, network.getLine("L1").getTerminal1());
         assertActivePowerEquals(100.0, network.getLine("L2").getTerminal1());
@@ -290,8 +286,11 @@ class DcLoadFlowTest {
                                                                              new DenseMatrixFactory(),
                                                                              true,
                                                                              parameters.getBalanceType(),
-                                                                             false);
-        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, Collections.emptySet(), Set.of(c1), Reporter.NO_OP)) {
+                                                                             false,
+                                                                             1);
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        topoConfig.getSwitchesToClose().add(c1);
+        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, Reporter.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
             try (DcLoadFlowContext context = new DcLoadFlowContext(largestNetwork, dcLoadFlowParameters)) {
@@ -302,5 +301,56 @@ class DcLoadFlowTest {
             assertEquals(100.0, largestNetwork.getBranchById("L2").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
             assertEquals(100.0, largestNetwork.getBranchById("L3").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
         }
+    }
+
+    @Test
+    void outerLoopPhaseShifterTest() {
+        Network network = PhaseShifterTestCaseFactory.create();
+        Line l1 = network.getLine("L1");
+        Line l2 = network.getLine("L2");
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger().getStep(0).setAlpha(-5);
+        ps1.getPhaseTapChanger().getStep(2).setAlpha(5);
+        ps1.getPhaseTapChanger().setTargetDeadband(10);
+        ps1.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL);
+        ps1.getPhaseTapChanger().setRegulating(true);
+
+        parameters.setPhaseShifterRegulationOn(false);
+
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(50, l1.getTerminal1().getP(), 0.01);
+        assertEquals(-50, l1.getTerminal2().getP(), 0.01);
+        assertEquals(50, l2.getTerminal1().getP(), 0.01);
+        assertEquals(-50, l2.getTerminal2().getP(), 0.01);
+        assertEquals(50, ps1.getTerminal1().getP(), 0.01);
+        assertEquals(-50, ps1.getTerminal2().getP(), 0.01);
+
+        parameters.setPhaseShifterRegulationOn(true);
+        ps1.getPhaseTapChanger().setRegulationValue(-80);
+
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(2, ps1.getPhaseTapChanger().getTapPosition());
+        assertEquals(18.5, l1.getTerminal1().getP(), 0.01);
+        assertEquals(-18.5, l1.getTerminal2().getP(), 0.01);
+        assertEquals(81.5, l2.getTerminal1().getP(), 0.01);
+        assertEquals(-81.5, l2.getTerminal2().getP(), 0.01);
+        assertEquals(81.5, ps1.getTerminal1().getP(), 0.01);
+        assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
+
+        ps1.getPhaseTapChanger().setRegulationTerminal(ps1.getTerminal1());
+        ps1.getPhaseTapChanger().setTapPosition(0);
+        ps1.getPhaseTapChanger().setRegulationValue(50);
+
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(1, ps1.getPhaseTapChanger().getTapPosition());
+        assertEquals(50, l1.getTerminal1().getP(), 0.01);
+        assertEquals(-50, l1.getTerminal2().getP(), 0.01);
+        assertEquals(50, l2.getTerminal1().getP(), 0.01);
+        assertEquals(-50, l2.getTerminal2().getP(), 0.01);
+        assertEquals(50, ps1.getTerminal1().getP(), 0.01);
+        assertEquals(-50, ps1.getTerminal2().getP(), 0.01);
     }
 }

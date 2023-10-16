@@ -42,6 +42,8 @@ public enum NetworkCache {
 
         private List<AcLoadFlowContext> contexts;
 
+        private boolean pause = false;
+
         public Entry(Network network, LoadFlowParameters parameters) {
             Objects.requireNonNull(network);
             this.networkRef = new WeakReference<>(network);
@@ -71,6 +73,10 @@ public enum NetworkCache {
 
         public LoadFlowParameters getParameters() {
             return parameters;
+        }
+
+        public void setPause(boolean pause) {
+            this.pause = pause;
         }
 
         private void reset() {
@@ -153,7 +159,7 @@ public enum NetworkCache {
         private boolean onShuntUpdate(ShuntCompensator shunt, String attribute) {
             return onInjectionUpdate(shunt, attribute, (context, lfBus) -> {
                 if (attribute.equals("sectionCount")) {
-                    if (!lfBus.getControllerShunt().isPresent()) {
+                    if (lfBus.getControllerShunt().isEmpty()) {
                         LfShunt lfShunt = lfBus.getShunt().orElseThrow();
                         lfShunt.reInit();
                         return true;
@@ -200,24 +206,20 @@ public enum NetworkCache {
 
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
-            if (contexts == null) {
+            if (contexts == null || pause) {
                 return;
             }
             boolean done = false;
             switch (attribute) {
-                case "v":
-                case "angle":
-                case "p":
-                case "q":
-                case "p1":
-                case "q1":
-                case "p2":
-                case "q2":
-                    // ignore because it is related to state update and won't affect LF calculation
-                    done = true;
-                    break;
-
-                default:
+                case "v",
+                     "angle",
+                     "p",
+                     "q",
+                     "p1",
+                     "q1",
+                     "p2",
+                     "q2" -> done = true; // ignore because it is related to state update and won't affect LF calculation
+                default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
                         if (attribute.equals("targetV")
@@ -236,7 +238,7 @@ public enum NetworkCache {
                             done = true;
                         }
                     }
-                    break;
+                }
             }
 
             if (!done) {

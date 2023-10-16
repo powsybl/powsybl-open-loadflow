@@ -7,18 +7,15 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.PerUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 public class GeneratorVoltageControl extends VoltageControl<LfBus> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorVoltageControl.class);
 
     private static final int PRIORITY = 0;
 
@@ -123,10 +120,7 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
             LfBus controllerBus = controllerBuses.get(i);
             for (LfGenerator generator : controllerBus.getGenerators()) {
                 double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
-                if (Double.isNaN(qKey) || qKey == 0) {
-                    if (qKey == 0) {
-                        LOGGER.error("Generator '{}' remote control reactive key value is zero", generator.getId());
-                    }
+                if (Double.isNaN(qKey)) {
                     // in case of one missing key, we fallback to keys based on reactive power range
                     return createReactiveKeysFromMaxReactivePowerRange(controllerBuses);
                 } else {

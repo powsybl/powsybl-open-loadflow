@@ -326,7 +326,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("h1")
                 .setR(0.0)
                 .setX(0.1)
-                .setUcteXnodeCode("xnode")
+                .setPairingKey("xnode")
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
@@ -335,7 +335,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("h2")
                 .setR(0.0)
                 .setX(0.08)
-                .setUcteXnodeCode("xnode")
+                .setPairingKey("xnode")
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
@@ -366,7 +366,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("h1bis")
                 .setR(0.0)
                 .setX(0.1)
-                .setUcteXnodeCode("xnode2")
+                .setPairingKey("xnode2")
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
@@ -375,7 +375,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("h2bis")
                 .setR(0.0)
                 .setX(0.08)
-                .setUcteXnodeCode("xnode2")
+                .setPairingKey("xnode2")
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
@@ -384,6 +384,61 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("t12bis")
                 .setDanglingLine1(dl1.getId())
                 .setDanglingLine2(dl3.getId())
+                .add();
+
+        return network;
+    }
+
+    /**
+     *   b1 --- b2
+     *   |
+     *   g1
+     */
+    public static Network createWithoutLoads() {
+        Network network = Network.create("dl", "test");
+        Substation s1 = network.newSubstation()
+                .setId("S1")
+                .add();
+        Substation s2 = network.newSubstation()
+                .setId("S2")
+                .add();
+
+        VoltageLevel vl1 = s1.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(225)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        var g1 = vl1.newGenerator()
+                .setId("g1")
+                .setConnectableBus("b1")
+                .setBus("b1")
+                .setTargetP(1E-6)
+                .setTargetV(224.18)
+                .setMinP(0)
+                .setMaxP(245)
+                .setVoltageRegulatorOn(true)
+                .add();
+        g1.newMinMaxReactiveLimits().setMinQ(-80).setMaxQ(86).add();
+
+        VoltageLevel vl2 = s2.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(225)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        network.newLine()
+                .setId("l1")
+                .setBus1("b1")
+                .setBus2("b2")
+                .setR(1.316)
+                .setX(6.865)
+                .setB1(0.0017)
+                .setB2(0.0017)
                 .add();
 
         return network;

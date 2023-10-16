@@ -21,6 +21,22 @@ public interface LfGenerator extends PropertyBag {
         MIN, MAX, TARGET_P
     }
 
+    /**
+     * k is a normalized value of reactive power that ensure that at q min k is -1 and at q max k is + 1
+     * q = 1 / 2 * (k * (qmax - qmin) + qmax + qmin)
+     */
+    static double kToQ(double k, LfGenerator generator) {
+        double minQ = generator.getMinQ();
+        double maxQ = generator.getMaxQ();
+        return 0.5d * (k * (maxQ - minQ) + maxQ + minQ);
+    }
+
+    static double qToK(LfGenerator generator, double q) {
+        double minQ = generator.getMinQ();
+        double maxQ = generator.getMaxQ();
+        return (2 * q - maxQ - minQ) / (maxQ - minQ);
+    }
+
     String getId();
 
     String getOriginalId();
