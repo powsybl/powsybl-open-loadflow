@@ -35,6 +35,7 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.openloadflow.util.*;
@@ -154,8 +155,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             results = new AcLoadFlowFromCache(network, parameters, parametersExt, acParameters, reporter)
                     .run();
         } else {
-            try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(),
-                                                             Collections.emptySet(), reporter)) {
+            try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), reporter)) {
                 results = AcloadFlowEngine.run(lfNetworkList.getList(), acParameters);
             }
         }

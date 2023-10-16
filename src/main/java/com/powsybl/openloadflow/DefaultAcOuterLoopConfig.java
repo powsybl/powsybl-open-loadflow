@@ -33,6 +33,8 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         createTransformerVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // shunt compensator voltage control
         createShuntVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
+        // automation system
+        createAutomationSystemOuterLoop(parametersExt).ifPresent(outerLoops::add);
         return outerLoops;
     }
 }

@@ -22,9 +22,11 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AutomationSystemOuterLoop.class);
 
+    public static final String NAME = "AutomationSystem";
+
     @Override
-    public String getType() {
-        return "AutomationSystem";
+    public String getName() {
+        return NAME;
     }
 
     @Override

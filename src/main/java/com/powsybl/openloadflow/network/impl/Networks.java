@@ -141,8 +141,7 @@ public final class Networks {
         removedBranches.forEach(branch -> branch.setDisabled(true));
     }
 
-    private static void addSwitchesOperatedByAutomata(Network network, LfNetworkParameters networkParameters,
-                                                      Set<Switch> allSwitchesToOpen, Set<Switch> allSwitchesToClose) {
+    private static void addSwitchesOperatedByAutomata(Network network, LfTopoConfig topoConfig) {
         for (Substation substation : network.getSubstations()) {
             SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
             if (systems != null) {
@@ -150,9 +149,9 @@ public final class Networks {
                     Switch aSwitch = network.getSwitch(system.getSwitchIdToOperate());
                     if (aSwitch != null) {
                         if (system.isSwitchOpen()) {
-                            allSwitchesToOpen.add(aSwitch);
+                            topoConfig.getSwitchesToOpen().add(aSwitch);
                         } else {
-                            allSwitchesToClose.add(aSwitch);
+                            topoConfig.getSwitchesToClose().add(aSwitch);
                         }
                     }
                 }
@@ -167,20 +166,17 @@ public final class Networks {
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
                                      LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
-        Set<Switch> allSwitchesToOpen;
-        Set<Switch> allSwitchesToClose;
+        LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomatons()) {
-            allSwitchesToOpen = new LinkedHashSet<>(switchesToOpen);
-            allSwitchesToClose = new LinkedHashSet<>(switchesToClose);
-            addSwitchesOperatedByAutomata(network, networkParameters, allSwitchesToOpen, allSwitchesToClose);
-            if (allSwitchesToOpen.size() + allSwitchesToClose.size() > 0) {
+            modifiedTopoConfig = new LfTopoConfig(topoConfig);
+            addSwitchesOperatedByAutomata(network, modifiedTopoConfig);
+            if (modifiedTopoConfig.isBreaker()) {
                 networkParameters.setBreakers(true);
             }
         } else {
-            allSwitchesToOpen = switchesToOpen;
-            allSwitchesToClose = switchesToClose;
+            modifiedTopoConfig = topoConfig;
         }
-        if (!topoConfig.isBreaker()) {
+        if (!modifiedTopoConfig.isBreaker()) {
             return new LfNetworkList(load(network, networkParameters, reporter));
         } else {
             if (!networkParameters.isBreakers()) {
@@ -195,14 +191,14 @@ public final class Networks {
 
             // retain in topology all switches that could be open or close
             // and close switches that could be closed during the simulation
-            retainAndCloseNecessarySwitches(network, topoConfig);
+            retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
             List<LfNetwork> lfNetworks = load(network, networkParameters, reporter);
 
-            if (!topoConfig.getSwitchesToClose().isEmpty()) {
+            if (!modifiedTopoConfig.getSwitchesToClose().isEmpty()) {
                 for (LfNetwork lfNetwork : lfNetworks) {
                     // disable all buses and branches not connected to main component (because of switch to close)
-                    restoreInitialTopology(lfNetwork, topoConfig.getSwitchesToClose());
+                    restoreInitialTopology(lfNetwork, modifiedTopoConfig.getSwitchesToClose());
                 }
             }
 
