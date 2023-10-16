@@ -538,29 +538,38 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void updateGeneratorsState(double generationQ, boolean reactiveLimits, ReactivePowerDispatchMode reactivePowerDispatchMode) {
         double qToDispatch = generationQ;
-        List<LfGenerator> generatorsWithControl = new LinkedList<>();
+        List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
+        List<LfGenerator> generatorsThatControlReactivePower = new LinkedList<>();
         for (LfGenerator generator : generators) {
-            if ((generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) ||
-                (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)){
-                generatorsWithControl.add(generator);
+            if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
+                generatorsThatControlVoltage.add(generator);
+            } else if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) {
+                generatorsThatControlReactivePower.add(generator);
             } else {
                 qToDispatch -= generator.getTargetQ();
             }
         }
-        List<LfGenerator> initialGeneratorsWithControl = new LinkedList<>(generatorsWithControl);
-        for (LfGenerator generator : generatorsWithControl) {
+
+        List<LfGenerator> initialGeneratorsThatControlVoltage = new LinkedList<>(generatorsThatControlVoltage);
+        for (LfGenerator generator : generatorsThatControlVoltage) {
             generator.setCalculatedQ(0);
         }
-        while (!generatorsWithControl.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
-            qToDispatch = dispatchQ(generatorsWithControl, reactiveLimits, reactivePowerDispatchMode, qToDispatch);
+        while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
+            qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, reactivePowerDispatchMode, qToDispatch);
         }
-        if (!initialGeneratorsWithControl.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
+        if (!initialGeneratorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
             // FIXME
             // We have to much reactive power to dispatch, which is linked to a bus that has been forced to remain PV to
             // ease the convergence. Updating a generator reactive power outside its reactive limits is a quick fix.
             // It could be better to return a global failed status.
-            LOGGER.warn("Generator reactive limits have been overwritten to dispatch {} MW at bus {}", qToDispatch * PerUnit.SB, this.getId());
-            dispatchQ(initialGeneratorsWithControl, false, reactivePowerDispatchMode, qToDispatch);
+            dispatchQ(initialGeneratorsThatControlVoltage, false, reactivePowerDispatchMode, qToDispatch);
+        }
+
+        for (LfGenerator generator : generatorsThatControlReactivePower) {
+            generator.setCalculatedQ(0);
+        }
+        while (!generatorsThatControlReactivePower.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
+            qToDispatch = dispatchQ(generatorsThatControlReactivePower, reactiveLimits, reactivePowerDispatchMode, qToDispatch);
         }
     }
 
