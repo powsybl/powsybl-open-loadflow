@@ -127,9 +127,7 @@ public final class Networks {
         connectivity.startTemporaryChanges();
         allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
             LfBranch branch = network.getBranchById(id);
-            if (branch != null) {
-                connectivity.removeEdge(branch);
-            }
+            connectivity.removeEdge(branch);
         });
         Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
         removedBuses.forEach(bus -> bus.setDisabled(true));
