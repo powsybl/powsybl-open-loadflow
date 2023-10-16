@@ -167,7 +167,7 @@ public final class Networks {
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
                                      LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
         LfTopoConfig modifiedTopoConfig;
-        if (networkParameters.isSimulateAutomatons()) {
+        if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
             addSwitchesOperatedByAutomata(network, modifiedTopoConfig);
             if (modifiedTopoConfig.isBreaker()) {

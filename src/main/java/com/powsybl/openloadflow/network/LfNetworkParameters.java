@@ -53,7 +53,7 @@ public class LfNetworkParameters {
 
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
 
-    public static final boolean SIMULATE_AUTOMATONS_DEFAULT_VALUE = false;
+    public static final boolean SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE = false;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
@@ -123,7 +123,7 @@ public class LfNetworkParameters {
 
     private boolean useLoadModel = USE_LOAD_MODE_DEFAULT_VALUE;
 
-    private boolean simulateAutomatons = SIMULATE_AUTOMATONS_DEFAULT_VALUE;
+    private boolean simulateAutomationSystems = SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -162,7 +162,7 @@ public class LfNetworkParameters {
         this.asymmetrical = other.asymmetrical;
         this.linePerUnitMode = other.linePerUnitMode;
         this.useLoadModel = other.useLoadModel;
-        this.simulateAutomatons = other.simulateAutomatons;
+        this.simulateAutomationSystems = other.simulateAutomationSystems;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -472,12 +472,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isSimulateAutomatons() {
-        return simulateAutomatons;
+    public boolean isSimulateAutomationSystems() {
+        return simulateAutomationSystems;
     }
 
-    public LfNetworkParameters setSimulateAutomatons(boolean simulateAutomatons) {
-        this.simulateAutomatons = simulateAutomatons;
+    public LfNetworkParameters setSimulateAutomationSystems(boolean simulateAutomationSystems) {
+        this.simulateAutomationSystems = simulateAutomationSystems;
         return this;
     }
 
@@ -515,7 +515,7 @@ public class LfNetworkParameters {
                 ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
                 ", linePerUnitMode=" + linePerUnitMode +
                 ", useLoadModel=" + useLoadModel +
-                ", simulateAutomatons=" + simulateAutomatons +
+                ", simulateAutomationSystems=" + simulateAutomationSystems +
                 ')';
     }
 }

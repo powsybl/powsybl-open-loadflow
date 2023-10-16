@@ -75,7 +75,7 @@ class AutomationSystemTest extends AbstractLoadFlowNetworkFactory {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setSimulateAutomatons(true);
+                .setSimulateAutomationSystems(true);
         Substation s1 = network.getSubstation("s1");
         s1.newExtension(SubstationAutomationSystemsAdder.class)
                 .newOverloadManagementSystem()

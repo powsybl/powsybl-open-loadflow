@@ -104,7 +104,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     protected static Optional<AcOuterLoop> createAutomationSystemOuterLoop(OpenLoadFlowParameters parametersExt) {
-        if (parametersExt.isSimulateAutomatons()) {
+        if (parametersExt.isSimulateAutomationSystems()) {
             return Optional.of(new AutomationSystemOuterLoop());
         }
         return Optional.empty();

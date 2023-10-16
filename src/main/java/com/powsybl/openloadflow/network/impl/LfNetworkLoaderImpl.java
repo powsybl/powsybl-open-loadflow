@@ -691,7 +691,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // voltage angle limits
         createVoltageAngleLimits(network, lfNetwork, parameters);
 
-        if (parameters.isSimulateAutomatons()) {
+        if (parameters.isSimulateAutomationSystems()) {
             createAutomationSystems(network, lfNetwork);
         }
 
