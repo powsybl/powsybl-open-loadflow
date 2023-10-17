@@ -147,19 +147,16 @@ public class AcEquationSystemCreator {
     }
 
     public static void updateReactivePowerControlBranchEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // - controller bus not disabled
-        // - controlled branch not disabled
-        // - controller bus reactive power control enabled
-        boolean isBranchTargetQActive = !reactivePowerControl.getControllerBus().isDisabled() &&
-                !reactivePowerControl.getControlledBranch().isDisabled() &&
-                reactivePowerControl.getControllerBus().isReactivePowerControlEnabled();
-
+        // The reactive power control is disabled if:
+        // controller bus is disabled or controlled branch is disabled or controller bus has reactive power control disabled.
+        boolean controlDisabled = reactivePowerControl.getControllerBus().isDisabled() || reactivePowerControl.getControlledBranch().isDisabled() ||
+                !reactivePowerControl.getControllerBus().isReactivePowerControlEnabled();
         equationSystem.getEquation(reactivePowerControl.getControlledBranch().getNum(), AcEquationType.BRANCH_TARGET_Q)
                 .orElseThrow()
-                .setActive(isBranchTargetQActive);
+                .setActive(!controlDisabled);
         equationSystem.getEquation(reactivePowerControl.getControllerBus().getNum(), AcEquationType.BUS_TARGET_Q)
                 .orElseThrow()
-                .setActive(!isBranchTargetQActive);
+                .setActive(controlDisabled);
     }
 
     private static void createShuntEquation(LfShunt shunt, LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem, boolean deriveB) {
