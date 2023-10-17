@@ -685,4 +685,34 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(4.004, l34.getTerminal2());
         assertEquals(0.0, Math.abs(network.getBusView().getBus("b4_vl_0").getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), 1E-2);
     }
+
+    @Test
+    void testRemoteReactivePowerControlOutsideReactiveLimits() {
+        // create a basic 4-buses network
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        Generator g4 = network.getGenerator("g4");
+        Line l34 = network.getLine("l34");
+
+        double targetQ = 4.0;
+
+        // disable voltage control on g4
+        g4.setTargetQ(0.0).setVoltageRegulatorOn(false);
+
+        // first test: generator g4 regulates reactive power on line 4->3 (on side of g4)
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withEnabled(true).add();
+
+        g4.newMinMaxReactiveLimits().setMinQ(-5.0).setMaxQ(5.0).add();
+
+        parameters.setUseReactiveLimits(true);
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-5.0, g4.getTerminal());
+        assertReactivePowerEquals(2.0, l34.getTerminal2()); // FIXME
+        assertEquals(0.0, Math.abs(network.getBusView().getBus("b4_vl_0").getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), 1E-2);
+    }
 }

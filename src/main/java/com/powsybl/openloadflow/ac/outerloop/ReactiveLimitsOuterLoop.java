@@ -248,6 +248,34 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         });
     }
 
+    private static void checkPqBus(LfBus controllerCapableBus, List<LfBus> busesToRemoveReactivePowerControl) {
+        double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
+        double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
+        double q = controllerCapableBus.getGenerationTargetQ();
+        // TODO
+//        controllerCapableBus.getQLimitType().ifPresent(qLimitType -> {
+//            if (qLimitType == LfBus.QLimitType.MIN_Q) {
+//                if (getBusV(controllerCapableBus) < getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
+//                    // bus absorb too much reactive power
+//                    pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MIN));
+//                } else if (Math.abs(minQ - q) > maxReactivePowerMismatch) {
+//                    LOGGER.trace("PQ bus {} with updated Q limits, previous minQ {} new minQ {}", controllerCapableBus.getId(), q, minQ);
+//                    controllerCapableBus.setGenerationTargetQ(minQ);
+//                    busesWithUpdatedQLimits.add(controllerCapableBus);
+//                }
+//            } else if (qLimitType == LfBus.QLimitType.MAX_Q) {
+//                if (getBusV(controllerCapableBus) > getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
+//                    // bus produce too much reactive power
+//                    pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MAX));
+//                } else if (Math.abs(maxQ - q) > maxReactivePowerMismatch) {
+//                    LOGGER.trace("PQ bus {} with updated Q limits, previous maxQ {} new maxQ {}", controllerCapableBus.getId(), q, maxQ);
+//                    controllerCapableBus.setGenerationTargetQ(maxQ);
+//                    busesWithUpdatedQLimits.add(controllerCapableBus);
+//                }
+//            }
+//        });
+    }
+
     private static double getBusTargetV(LfBus bus) {
         return bus.getGeneratorVoltageControl().map(GeneratorVoltageControl::getTargetValue).orElse(Double.NaN);
     }
@@ -273,6 +301,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         List<LfBus> busesWithUpdatedQLimits = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
 
+        List<LfBus> busesToRemoveReactivePowerControl = new ArrayList<>();
+
         context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).forEach(bus -> {
             if (bus.isGeneratorVoltageControlEnabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
@@ -283,8 +313,10 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         });
 
         getReactivePowerControllerElements(context.getNetwork()).forEach(bus ->
-                // a bus that has a reactive generator power control can't switch PV
-                checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, false)
+                // a bus that has a reactive generator power control, PQ (remoteTargetQ), can't switch PV
+                // if its reactive limits are not respected, it will change PQ (targetQ = controller's limit)
+                // and the remote control will be removed
+                checkPqBus(bus, busesToRemoveReactivePowerControl)
         );
 
         var contextData = (ContextData) context.getData();
@@ -301,6 +333,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
             status = OuterLoopStatus.UNSTABLE;
         }
+
+        // TODO outerloop status UNSTABLE + remove reactive power controls
 
         return status;
     }
