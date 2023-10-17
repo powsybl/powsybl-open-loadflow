@@ -26,7 +26,6 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -80,6 +79,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         LfTopoConfig topoConfig = new LfTopoConfig();
         findAllSwitchesToOperate(network, actions, topoConfig);
 
+        // try to find all pst and rtc to retain because involved in pst and rtc actions
+        findAllPtcToOperate(actions, topoConfig);
+        findAllRtcToOperate(actions, topoConfig);
+
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
@@ -95,7 +98,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, saReporter)) {
-
             // complete definition of contingencies after network loading
             PropagatedContingency.completeList(propagatedContingencies, lfParameters.isShuntCompensatorVoltageControlOn(),
                     lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, lfParameters.isHvdcAcEmulation(), breakers);
