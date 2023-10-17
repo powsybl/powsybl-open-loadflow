@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.LfTopoConfig;
+import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
