@@ -157,6 +157,24 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         }
     }
 
+    private static final class PqRemoteControlToPqBus {
+
+        private final LfBus controllerBus;
+
+        private final double q;
+
+        private final double qLimit;
+
+        private final ReactiveLimitDirection limitDirection;
+
+        private PqRemoteControlToPqBus(LfBus controllerBus, double q, double qLimit, ReactiveLimitDirection limitDirection) {
+            this.controllerBus = controllerBus;
+            this.q = q;
+            this.qLimit = qLimit;
+            this.limitDirection = limitDirection;
+        }
+    }
+
     @Override
     public void initialize(AcOuterLoopContext context) {
         context.setData(new ContextData());
@@ -248,32 +266,49 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         });
     }
 
-    private static void checkPqBus(LfBus controllerCapableBus, List<LfBus> busesToRemoveReactivePowerControl) {
+    /**
+     * A PQ remote reactive control bus can switch to PQ in 2 cases:
+     *  - if Q < Qmin
+     *  - if Q > Qmax
+     *  In any case, the bus will get stuck in PQ with Q = limit (Qmin or Qmax)
+     */
+    private static void checkRemotePqBus(LfBus controllerCapableBus, List<PqRemoteControlToPqBus> pqRemoteControlToPqBuses) {
         double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
         double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
-        double q = controllerCapableBus.getGenerationTargetQ();
-        // TODO
-//        controllerCapableBus.getQLimitType().ifPresent(qLimitType -> {
-//            if (qLimitType == LfBus.QLimitType.MIN_Q) {
-//                if (getBusV(controllerCapableBus) < getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
-//                    // bus absorb too much reactive power
-//                    pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MIN));
-//                } else if (Math.abs(minQ - q) > maxReactivePowerMismatch) {
-//                    LOGGER.trace("PQ bus {} with updated Q limits, previous minQ {} new minQ {}", controllerCapableBus.getId(), q, minQ);
-//                    controllerCapableBus.setGenerationTargetQ(minQ);
-//                    busesWithUpdatedQLimits.add(controllerCapableBus);
-//                }
-//            } else if (qLimitType == LfBus.QLimitType.MAX_Q) {
-//                if (getBusV(controllerCapableBus) > getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
-//                    // bus produce too much reactive power
-//                    pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MAX));
-//                } else if (Math.abs(maxQ - q) > maxReactivePowerMismatch) {
-//                    LOGGER.trace("PQ bus {} with updated Q limits, previous maxQ {} new maxQ {}", controllerCapableBus.getId(), q, maxQ);
-//                    controllerCapableBus.setGenerationTargetQ(maxQ);
-//                    busesWithUpdatedQLimits.add(controllerCapableBus);
-//                }
-//            }
-//        });
+        double q = controllerCapableBus.getQ().eval();
+        if (q < minQ) {
+            // q < minQ : bus absorbs too much reactive power
+            pqRemoteControlToPqBuses.add(new PqRemoteControlToPqBus(controllerCapableBus, q, minQ, ReactiveLimitDirection.MIN));
+        } else if (q > maxQ) {
+            // q > maxQ : bus produces too much reactive power
+            pqRemoteControlToPqBuses.add(new PqRemoteControlToPqBus(controllerCapableBus, q, maxQ, ReactiveLimitDirection.MAX));
+        }
+    }
+
+    private static void switchPqRemoteControlPq(List<PqRemoteControlToPqBus> pqRemoteControlToPqBuses, Reporter reporter) {
+        int pqRemoteControlPqSwitchCount = 0;
+
+        for (PqRemoteControlToPqBus pqRemoteControlToPqBus : pqRemoteControlToPqBuses) {
+            LfBus controllerBus = pqRemoteControlToPqBus.controllerBus;
+
+            controllerBus.setReactivePowerControlEnabled(false);
+            controllerBus.setGenerationTargetQ(pqRemoteControlToPqBus.qLimit);
+            pqRemoteControlPqSwitchCount++;
+
+            if (LOGGER.isTraceEnabled()) {
+                if (pqRemoteControlToPqBus.limitDirection == ReactiveLimitDirection.MAX) {
+                    LOGGER.trace("Switch bus '{}' PQ (remote control) -> PQ, q={} > maxQ={}", controllerBus.getId(), pqRemoteControlToPqBus.q * PerUnit.SB,
+                            pqRemoteControlToPqBus.qLimit * PerUnit.SB);
+                } else {
+                    LOGGER.trace("Switch bus '{}' PQ (remote control) -> PQ, q={} < minQ={}", controllerBus.getId(), pqRemoteControlToPqBus.q * PerUnit.SB,
+                            pqRemoteControlToPqBus.qLimit * PerUnit.SB);
+                }
+            }
+        }
+
+        Reports.reportPqRemoteControlToPqBuses(reporter, pqRemoteControlPqSwitchCount);
+
+        LOGGER.info("{} buses switched PQ (remote control) -> PQ", pqRemoteControlPqSwitchCount);
     }
 
     private static double getBusTargetV(LfBus bus) {
@@ -301,7 +336,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         List<LfBus> busesWithUpdatedQLimits = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
 
-        List<LfBus> busesToRemoveReactivePowerControl = new ArrayList<>();
+        List<PqRemoteControlToPqBus> pqRemoteControlToPqBuses = new ArrayList<>();
 
         context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).forEach(bus -> {
             if (bus.isGeneratorVoltageControlEnabled()) {
@@ -312,12 +347,13 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             }
         });
 
-        getReactivePowerControllerElements(context.getNetwork()).forEach(bus ->
+        getReactivePowerControllerElements(context.getNetwork()).forEach(bus -> {
+            if (bus.isReactivePowerControlEnabled()) {
                 // a bus that has a reactive generator power control, PQ (remoteTargetQ), can't switch PV
                 // if its reactive limits are not respected, it will change PQ (targetQ = controller's limit)
-                // and the remote control will be removed
-                checkPqBus(bus, busesToRemoveReactivePowerControl)
-        );
+                checkRemotePqBus(bus, pqRemoteControlToPqBuses);
+            }
+        });
 
         var contextData = (ContextData) context.getData();
 
@@ -334,7 +370,10 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             status = OuterLoopStatus.UNSTABLE;
         }
 
-        // TODO outerloop status UNSTABLE + remove reactive power controls
+        if (!pqRemoteControlToPqBuses.isEmpty()) {
+            switchPqRemoteControlPq(pqRemoteControlToPqBuses, reporter);
+            status = OuterLoopStatus.UNSTABLE;
+        }
 
         return status;
     }

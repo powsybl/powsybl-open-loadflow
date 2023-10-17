@@ -45,6 +45,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean generatorVoltageControlEnabled = false;
 
+    protected boolean reactivePowerControlEnabled = false;
+
     protected Double generationTargetP;
 
     protected double generationTargetQ = 0;
@@ -192,13 +194,23 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public void removeReactivePowerControl() {
-        this.reactivePowerControl = null;
+    public boolean hasReactivePowerControl() {
+        return reactivePowerControl != null;
     }
 
     @Override
-    public boolean hasReactivePowerControl() {
-        return reactivePowerControl != null;
+    public boolean isReactivePowerControlEnabled() {
+        return reactivePowerControlEnabled;
+    }
+
+    @Override
+    public void setReactivePowerControlEnabled(boolean reactivePowerControlEnabled) {
+        if (this.reactivePowerControlEnabled != reactivePowerControlEnabled) {
+            this.reactivePowerControlEnabled = reactivePowerControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onReactivePowerControlChange(this, reactivePowerControlEnabled);
+            }
+        }
     }
 
     @Override
@@ -375,7 +387,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
         return generators.stream()
-                .mapToDouble(generator -> generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ?
+                .mapToDouble(generator -> (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ||
+                        generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) ?
                         limitQ.applyAsDouble(generator) : generator.getTargetQ()).sum();
     }
 

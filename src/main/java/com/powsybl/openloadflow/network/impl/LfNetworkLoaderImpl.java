@@ -251,6 +251,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         double targetQ = lfGenerator.getRemoteTargetQ();
         ReactivePowerControl control = new ReactivePowerControl(controlledBranch, side, controllerBus, targetQ);
         controllerBus.setReactivePowerControl(control);
+        controllerBus.setReactivePowerControlEnabled(true);
         controlledBranch.setReactivePowerControl(control);
     }
 

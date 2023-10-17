@@ -104,6 +104,15 @@ public final class Reports {
                 .build());
     }
 
+    public static void reportPqRemoteControlToPqBuses(Reporter reporter, int pqRemoteControlToPqBusCount) {
+        reporter.report(Report.builder()
+                .withKey("switchPqRemoteControlPq")
+                .withDefaultMessage("${pqRemoteControlToPqBusCount} buses switched PQ (remote control) -> PQ")
+                .withValue("pqRemoteControlToPqBusCount", pqRemoteControlToPqBusCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
     public static void reportStandByAutomatonActivation(Reporter reporter, String busId, double newTargetV) {
         reporter.report(Report.builder()
                 .withKey("standByAutomatonActivation")
