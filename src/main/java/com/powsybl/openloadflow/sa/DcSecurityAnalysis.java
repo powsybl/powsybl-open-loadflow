@@ -24,7 +24,6 @@ import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisProvider;
@@ -235,6 +234,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         // try for find all switches to be operated as actions.
         LfTopoConfig topoConfig = new LfTopoConfig();
         findAllSwitchesToOperate(network, actions, topoConfig);
+
+        // try to find all pst to retain because involved in pst actions
+        findAllPtcToOperate(actions, topoConfig);
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), topoConfig, false);
 

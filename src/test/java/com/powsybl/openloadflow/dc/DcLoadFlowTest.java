@@ -19,7 +19,6 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;

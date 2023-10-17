@@ -17,7 +17,6 @@ import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactor
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import org.junit.jupiter.api.BeforeEach;

@@ -561,15 +561,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return load(network, networkLoader, parameters, Reporter.NO_OP);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), reporter);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
+        return load(network, networkLoader, new LfTopoConfig(), parameters, reporter);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
-        List<LfNetwork> lfNetworks = networkLoader.load(network, parameters, reporter);
+        List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reporter);
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
