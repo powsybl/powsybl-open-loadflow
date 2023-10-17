@@ -84,6 +84,44 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
 
+    private final List<LfVoltageAngleLimit> voltageAngleLimits = new ArrayList<>();
+
+    public static class LfVoltageAngleLimit {
+        private final String id;
+        private final LfBus from;
+        private final LfBus to;
+        private final double highValue;
+        private final double lowValue;
+
+        public LfVoltageAngleLimit(String id, LfBus from, LfBus to, double highValue, double lowValue) {
+            this.id = Objects.requireNonNull(id);
+            this.from = Objects.requireNonNull(from);
+            this.to = Objects.requireNonNull(to);
+            this.highValue = highValue;
+            this.lowValue = lowValue;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public LfBus getFrom() {
+            return from;
+        }
+
+        public LfBus getTo() {
+            return to;
+        }
+
+        public double getHighValue() {
+            return highValue;
+        }
+
+        public double getLowValue() {
+            return lowValue;
+        }
+    }
+
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
         this.numCC = numCC;
@@ -190,7 +228,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         bus.getControllerShunt().ifPresent(this::addShunt);
         bus.getSvcShunt().ifPresent(this::addShunt);
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
-        bus.getLoad().ifPresent(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
+        bus.getLoads().forEach(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
     }
 
     public List<LfBus> getBuses() {
@@ -523,15 +561,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return load(network, networkLoader, parameters, Reporter.NO_OP);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), reporter);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
+        return load(network, networkLoader, new LfTopoConfig(), parameters, reporter);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
-        List<LfNetwork> lfNetworks = networkLoader.load(network, parameters, reporter);
+        List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reporter);
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
@@ -657,6 +695,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfSecondaryVoltageControl> getSecondaryVoltageControls() {
         return secondaryVoltageControls;
+    }
+
+    public void addVoltageAngleLimit(LfVoltageAngleLimit limit) {
+        voltageAngleLimits.add(Objects.requireNonNull(limit));
+    }
+
+    public List<LfVoltageAngleLimit> getVoltageAngleLimits() {
+        return voltageAngleLimits;
     }
 
     @SuppressWarnings("unchecked")
