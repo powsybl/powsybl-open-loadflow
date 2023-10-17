@@ -766,6 +766,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static Set<GeneratorVoltageControl> findControlZoneGeneratorVoltageControl(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork, ControlZone controlZone) {
         return controlZone.getControlUnits().stream()
+                .filter(SecondaryVoltageControl.ControlUnit::isParticipate)
                 .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                 .flatMap(regulatingTerminal -> {
                     Connectable<?> connectable = regulatingTerminal.getConnectable();
