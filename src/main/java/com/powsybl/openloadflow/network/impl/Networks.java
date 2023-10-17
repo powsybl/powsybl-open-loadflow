@@ -108,6 +108,10 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reporter);
     }
 
+    public static List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, parameters, reporter);
+    }
+
     private static void retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig) {
         network.getSwitchStream()
                 .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
@@ -179,7 +183,7 @@ public final class Networks {
             modifiedTopoConfig = topoConfig;
         }
         if (!modifiedTopoConfig.isBreaker()) {
-            return new LfNetworkList(load(network, networkParameters, reporter));
+            return new LfNetworkList(load(network, topoConfig, networkParameters, reporter));
         } else {
             if (!networkParameters.isBreakers()) {
                 throw new PowsyblException("LF networks have to be built from bus/breaker view");
@@ -195,7 +199,7 @@ public final class Networks {
             // and close switches that could be closed during the simulation
             retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
-            List<LfNetwork> lfNetworks = load(network, networkParameters, reporter);
+            List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reporter);
 
             if (!modifiedTopoConfig.getSwitchesToClose().isEmpty()) {
                 for (LfNetwork lfNetwork : lfNetworks) {
