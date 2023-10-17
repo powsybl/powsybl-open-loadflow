@@ -24,5 +24,5 @@ public interface LfNetworkLoader<T> {
      * components number (hence sorted by descending connected components size then by descending synchronous components
      * size)
      */
-    List<LfNetwork> load(T network, LfNetworkParameters parameters, Reporter reporter);
+    List<LfNetwork> load(T network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter);
 }

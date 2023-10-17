@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.openloadflow.ac.equations.asym.AsymmetricalAcEquationSystemCreator;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
@@ -31,6 +32,14 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
 
     public AcLoadFlowContext(LfNetwork network, AcLoadFlowParameters parameters) {
         super(network, parameters);
+    }
+
+    @Override
+    public JacobianMatrix<AcVariableType, AcEquationType> getJacobianMatrix() {
+        if (jacobianMatrix == null) {
+            jacobianMatrix = new AcJacobianMatrix(getEquationSystem(), parameters.getMatrixFactory(), network);
+        }
+        return jacobianMatrix;
     }
 
     @Override

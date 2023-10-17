@@ -36,7 +36,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private LUDecomposition lu;
 
-    private enum Status {
+    protected enum Status {
         VALID,
         VALUES_INVALID, // same structure but values have to be updated
         VALUES_AND_ZEROS_INVALID, // same structure but values have to be updated and non zero values might have changed
@@ -52,7 +52,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         equationSystem.getStateVector().addListener(this);
     }
 
-    private void updateStatus(Status status) {
+    protected void updateStatus(Status status) {
         if (status.ordinal() > this.status.ordinal()) {
             this.status = status;
         }

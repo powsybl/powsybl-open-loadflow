@@ -25,6 +25,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
+import com.powsybl.openloadflow.network.impl.OlfThreeWindingsTransformerResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
 import com.powsybl.security.monitor.StateMonitor;
@@ -37,7 +38,7 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static java.lang.Double.NaN;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -453,15 +454,26 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
                 .collect(Collectors.toList());
 
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        parameters.setLoadFlowParameters(new LoadFlowParameters());
+        parameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setCreateResultExtension(true));
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), emptySet(), emptySet(), Collections.singleton("3wt")));
-        SecurityAnalysisResult result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors, parameters);
         assertEquals(1, result.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().size());
         assertAlmostEquals(new ThreeWindingsTransformerResult("3wt", 161, 82, 258,
                         -161, -74, 435, 0, 0, 0),
                 result.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().get(0), 1);
+        OlfThreeWindingsTransformerResult twtExt =
+                result.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().get(0).getExtension(OlfThreeWindingsTransformerResult.class);
+        assertEquals(405.0, twtExt.getV1(), DELTA_V);
+        assertEquals(235.131, twtExt.getV2(), DELTA_V);
+        assertEquals(20.834, twtExt.getV3(), DELTA_V);
+        assertEquals(0.0, twtExt.getAngle1(), DELTA_ANGLE);
+        assertEquals(-2.259241, twtExt.getAngle2(), DELTA_ANGLE);
+        assertEquals(-2.721885, twtExt.getAngle3(), DELTA_ANGLE);
 
         network.getThreeWindingsTransformer("3wt").getLeg3().getTerminal().disconnect();
-        SecurityAnalysisResult result2 = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors, parameters);
         assertEquals(1, result2.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().size());
         assertAlmostEquals(new ThreeWindingsTransformerResult("3wt", 161, 82, 258,
                         -161, -74, 435, NaN, NaN, NaN),
@@ -698,6 +710,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(-0.659, preContingencyResult.getNetworkResult().getBranchResult("T2wT2").getQ1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.659, preContingencyResult.getNetworkResult().getBranchResult("T2wT").getQ1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(1.05, preContingencyResult.getNetworkResult().getBranchResult("T2wT2").getExtension(OlfBranchResult.class).getR1(), 0d);
+        assertEquals(134.280, preContingencyResult.getNetworkResult().getBranchResult("T2wT2").getExtension(OlfBranchResult.class).getV1(), DELTA_V);
+        assertEquals(33.989, preContingencyResult.getNetworkResult().getBranchResult("T2wT2").getExtension(OlfBranchResult.class).getV2(), DELTA_V);
+        assertEquals(0.0, preContingencyResult.getNetworkResult().getBranchResult("T2wT2").getExtension(OlfBranchResult.class).getAngle1(), DELTA_ANGLE);
+        assertEquals(-1.195796, preContingencyResult.getNetworkResult().getBranchResult("T2wT2").getExtension(OlfBranchResult.class).getAngle2(), DELTA_ANGLE);
         assertEquals(1.050302, preContingencyResult.getNetworkResult().getBranchResult("T2wT2").getExtension(OlfBranchResult.class).getContinuousR1(), LoadFlowAssert.DELTA_RHO);
         assertEquals(1.05, preContingencyResult.getNetworkResult().getBranchResult("T2wT").getExtension(OlfBranchResult.class).getR1(), 0d);
         assertEquals(1.050302, preContingencyResult.getNetworkResult().getBranchResult("T2wT").getExtension(OlfBranchResult.class).getContinuousR1(), LoadFlowAssert.DELTA_RHO);
@@ -1985,11 +2001,19 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new TieLineContingency("t12"))));
         List<StateMonitor> monitors = createNetworkMonitors(network);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setCreateResultExtension(true));
+
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(400.0, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b4").getV(), LoadFlowAssert.DELTA_V);
         assertEquals(400.0, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b3").getV(), LoadFlowAssert.DELTA_V);
         assertEquals(-0.0038, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("l34").getQ2(), LoadFlowAssert.DELTA_POWER);
+
+        OlfBranchResult tieLineResultExt = result.getPreContingencyResult().getNetworkResult().getBranchResult("t12").getExtension(OlfBranchResult.class);
+        assertEquals(400.0, tieLineResultExt.getV1(), DELTA_V);
+        assertEquals(399.999, tieLineResultExt.getV2(), DELTA_V);
+        assertEquals(0.002256, tieLineResultExt.getAngle1(), DELTA_ANGLE);
+        assertEquals(0.0, tieLineResultExt.getAngle2(), DELTA_ANGLE);
     }
 
     @Test
@@ -2215,5 +2239,57 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(390.0, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "contingency");
         assertEquals(390.0, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
+    }
+
+    @Test
+    void testVoltageAngleLimit() {
+        Network network = EurostagTutorialExample1Factory.create();
+        Line line = network.getLine("NHV1_NHV2_1");
+        network.newVoltageAngleLimit()
+                .setId("val")
+                .from(line.getTerminal1())
+                .to(line.getTerminal2())
+                .setHighLimit(7.0)
+                .setLowLimit(-7.0)
+                .add();
+        loadFlowRunner.run(network);
+        assertAngleEquals(0.0, line.getTerminal1().getBusView().getBus());
+        assertAngleEquals(-3.506413, line.getTerminal2().getBusView().getBus());
+        network.getLine("NHV1_NHV2_2").getTerminal1().disconnect();
+        network.getLine("NHV1_NHV2_2").getTerminal2().disconnect();
+        loadFlowRunner.run(network);
+        assertAngleEquals(0.0, line.getTerminal1().getBusView().getBus());
+        assertAngleEquals(-7.498849, line.getTerminal2().getBusView().getBus());
+
+        network.getLine("NHV1_NHV2_2").getTerminal1().connect();
+        network.getLine("NHV1_NHV2_2").getTerminal2().connect();
+        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("NHV1_NHV2_2"))));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
+        LimitViolation limit = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
+        assertEquals(LimitViolationType.LOW_VOLTAGE_ANGLE, limit.getLimitType());
+        assertEquals(-7.498847, limit.getValue(), DELTA_ANGLE);
+
+        network.getVoltageAngleLimit("val").remove();
+        network.newVoltageAngleLimit()
+                .setId("val")
+                .from(line.getTerminal2())
+                .to(line.getTerminal1())
+                .setHighLimit(7.0)
+                .setLowLimit(-7.0)
+                .add();
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
+        LimitViolation limit2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
+        assertEquals(LimitViolationType.HIGH_VOLTAGE_ANGLE, limit2.getLimitType());
+        assertEquals(7.498847, limit2.getValue(), DELTA_ANGLE);
+
+        network.getVoltageAngleLimit("val").remove();
+        network.newVoltageAngleLimit()
+                .setId("val")
+                .from(line.getTerminal2())
+                .to(line.getTerminal1())
+                .setLowLimit(-7.0)
+                .add();
+        SecurityAnalysisResult result3 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
+        assertTrue(result3.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().isEmpty());
     }
 }
