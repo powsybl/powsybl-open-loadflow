@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -60,16 +61,16 @@ public class LfSecondaryVoltageControl {
                 .toList();
     }
 
-    private static List<LfBus> findVoltageControlEnabledControllerBuses(LfBus controlledBus) {
+    private static Optional<LfBus> findAnyControllerBusWithVoltageControlEnabled(LfBus controlledBus) {
         return findControllerBuses(controlledBus).stream()
                 .filter(LfBus::isGeneratorVoltageControlEnabled)
-                .toList();
+                .findAny();
     }
 
-    public List<LfBus> getControlledBusesWithAtLeastOneEnabledControllerBus() {
+    public Optional<LfBus> findAnyControlledBusWithAtLeastOneControllerBusWithVoltageControlEnabled() {
         return getControlledBuses().stream()
-                .filter(controlledBus -> !findVoltageControlEnabledControllerBuses(controlledBus).isEmpty())
-                .toList();
+                .filter(controlledBus -> findAnyControllerBusWithVoltageControlEnabled(controlledBus).isPresent())
+                .findAny();
     }
 
     public List<LfBus> getControllerBuses() {

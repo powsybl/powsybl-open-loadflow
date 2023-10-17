@@ -366,7 +366,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         // for the remaining process, only keep secondary voltage control zones that have at least one enabled controller
         // bus, so zones that can still be adjusted
         List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getEnabledSecondaryVoltageControls().stream()
-                .filter(control -> !control.getControlledBusesWithAtLeastOneEnabledControllerBus().isEmpty())
+                .filter(control -> control.findAnyControlledBusWithAtLeastOneControllerBusWithVoltageControlEnabled().isPresent())
                 .toList();
 
         if (secondaryVoltageControls.isEmpty()) {

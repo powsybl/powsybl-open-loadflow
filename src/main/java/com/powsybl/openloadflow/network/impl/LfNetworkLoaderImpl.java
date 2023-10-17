@@ -803,9 +803,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                             generatorVoltageControls.stream().map(VoltageControl::getControlledBus).map(LfElement::getId).toList());
                     if (!generatorVoltageControls.isEmpty()) {
                         var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, generatorVoltageControls);
-                        for (GeneratorVoltageControl gvc : generatorVoltageControls) {
-                            gvc.setSecondaryVoltageControl(lfSvc);
-                        }
                         lfNetwork.addSecondaryVoltageControl(lfSvc);
                     }
                 }

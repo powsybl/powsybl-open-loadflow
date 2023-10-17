@@ -10,7 +10,6 @@ import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -19,8 +18,6 @@ import java.util.Optional;
 public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
     private static final int PRIORITY = 0;
-
-    private LfSecondaryVoltageControl secondaryVoltageControl;
 
     public GeneratorVoltageControl(LfBus controlledBus, double targetValue) {
         super(targetValue, Type.GENERATOR, PRIORITY, controlledBus);
@@ -132,13 +129,5 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
             }
         }
         return qKeys;
-    }
-
-    public Optional<LfSecondaryVoltageControl> getSecondaryVoltageControl() {
-        return Optional.ofNullable(secondaryVoltageControl);
-    }
-
-    public void setSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
-        this.secondaryVoltageControl = secondaryVoltageControl;
     }
 }
