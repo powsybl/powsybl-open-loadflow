@@ -594,7 +594,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(generatorVoltageControlEnabled || this.hasReactivePowerControl() ? (q.eval() + getLoadTargetQ()) : generationTargetQ,
+        updateGeneratorsState(generatorVoltageControlEnabled || reactivePowerControlEnabled ? (q.eval() + getLoadTargetQ()) : generationTargetQ,
                 parameters.isReactiveLimits(), parameters.getReactivePowerDispatchMode());
 
         // update load power
