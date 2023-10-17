@@ -11,6 +11,8 @@ package com.powsybl.openloadflow.network.impl.extensions;
  */
 public interface OverloadManagementSystemAdder<T> {
 
+    OverloadManagementSystemAdder<T> withEnabled(boolean enabled);
+
     OverloadManagementSystemAdder<T> withLineIdToMonitor(String lineId);
 
     OverloadManagementSystemAdder<T> withThreshold(double threshold);

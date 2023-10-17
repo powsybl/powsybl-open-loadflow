@@ -12,6 +12,7 @@
            targetNamespace="http://www.powsybl.org/schema/iidm/ext/substation_automation_systems/1_0"
            elementFormDefault="qualified">
     <xs:complexType name="OverloadManagementSystem">
+        <xs:attribute name="enabled" use="required" type="xs:boolean"/>
         <xs:attribute name="lineIdToMonitor" use="required" type="xs:string"/>
         <xs:attribute name="threshold" use="required" type="xs:double"/>
         <xs:attribute name="switchIdToOperate" use="required" type="xs:string"/>

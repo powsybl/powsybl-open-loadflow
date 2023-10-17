@@ -25,6 +25,8 @@ public class OverloadManagementSystemAdderImpl<T> implements OverloadManagementS
         this.parentAdder = Objects.requireNonNull(parentAdder);
     }
 
+    private boolean enabled = true;
+
     private String lineIdToMonitor;
 
     private double threshold = Double.NaN;
@@ -32,6 +34,12 @@ public class OverloadManagementSystemAdderImpl<T> implements OverloadManagementS
     private String switchIdToOperate;
 
     private boolean switchOpen = true;
+
+    @Override
+    public OverloadManagementSystemAdder<T> withEnabled(boolean enabled) {
+        this.enabled = enabled;
+        return this;
+    }
 
     @Override
     public OverloadManagementSystemAdderImpl<T> withLineIdToMonitor(String lineIdToMonitor) {
@@ -68,7 +76,7 @@ public class OverloadManagementSystemAdderImpl<T> implements OverloadManagementS
         if (switchIdToOperate == null) {
             throw new PowsyblException("Switch ID to operate is not set");
         }
-        OverloadManagementSystemImpl system = new OverloadManagementSystemImpl(lineIdToMonitor, threshold, switchIdToOperate, switchOpen);
+        OverloadManagementSystemImpl system = new OverloadManagementSystemImpl(enabled, lineIdToMonitor, threshold, switchIdToOperate, switchOpen);
         parentAdder.accept(system);
         return parent;
     }

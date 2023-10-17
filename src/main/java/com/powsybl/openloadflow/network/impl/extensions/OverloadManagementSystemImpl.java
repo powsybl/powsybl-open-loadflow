@@ -13,6 +13,8 @@ import java.util.Objects;
  */
 public class OverloadManagementSystemImpl implements OverloadManagementSystem {
 
+    private boolean enabled;
+
     private final String lineIdToMonitor;
 
     private final double threshold;
@@ -21,11 +23,22 @@ public class OverloadManagementSystemImpl implements OverloadManagementSystem {
 
     private final boolean switchOpen;
 
-    public OverloadManagementSystemImpl(String lineIdToMonitor, double threshold, String switchIdToOperate, boolean switchOpen) {
+    public OverloadManagementSystemImpl(boolean enabled, String lineIdToMonitor, double threshold, String switchIdToOperate, boolean switchOpen) {
+        this.enabled = enabled;
         this.lineIdToMonitor = Objects.requireNonNull(lineIdToMonitor);
         this.threshold = threshold;
         this.switchIdToOperate = Objects.requireNonNull(switchIdToOperate);
         this.switchOpen = switchOpen;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     @Override

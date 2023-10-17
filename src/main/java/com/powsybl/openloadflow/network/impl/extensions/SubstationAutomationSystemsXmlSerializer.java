@@ -31,6 +31,7 @@ public class SubstationAutomationSystemsXmlSerializer extends AbstractExtensionX
     public void write(SubstationAutomationSystems systems, XmlWriterContext context) throws XMLStreamException {
         for (var oms : systems.getOverloadManagementSystems()) {
             context.getWriter().writeEmptyElement(getNamespaceUri(), "overloadManagementSystem");
+            context.getWriter().writeAttribute("enabled", Boolean.toString(oms.isEnabled()));
             context.getWriter().writeAttribute("lineIdToMonitor", oms.getLineIdToMonitor());
             XmlUtil.writeDouble("threshold", oms.getThreshold(), context.getWriter());
             context.getWriter().writeAttribute("switchIdToOperate", oms.getSwitchIdToOperate());
@@ -42,11 +43,13 @@ public class SubstationAutomationSystemsXmlSerializer extends AbstractExtensionX
     public SubstationAutomationSystems read(Substation substation, XmlReaderContext context) throws XMLStreamException {
         SubstationAutomationSystemsAdder adder = substation.newExtension(SubstationAutomationSystemsAdder.class);
         XmlUtil.readUntilEndElement(getExtensionName(), context.getReader(), () -> {
+            boolean enabled = XmlUtil.readBoolAttribute(context.getReader(), "enabled");
             String lineIdToMonitor = context.getReader().getAttributeValue(null, "lineIdToMonitor");
             double threshold = XmlUtil.readDoubleAttribute(context.getReader(), "threshold");
             String switchIdToOperate = context.getReader().getAttributeValue(null, "switchIdToOperate");
             boolean switchOpen = XmlUtil.readBoolAttribute(context.getReader(), "switchOpen");
             adder.newOverloadManagementSystem()
+                    .withEnabled(enabled)
                     .withLineIdToMonitor(lineIdToMonitor)
                     .withThreshold(threshold)
                     .withSwitchIdToOperate(switchIdToOperate)

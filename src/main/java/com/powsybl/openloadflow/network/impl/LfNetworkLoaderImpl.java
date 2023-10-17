@@ -851,15 +851,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void createOverloadManagementSystem(LfNetwork lfNetwork, OverloadManagementSystem system) {
-        LfBranch lfLineToMonitor = lfNetwork.getBranchById(system.getLineIdToMonitor());
-        LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(system.getSwitchIdToOperate());
-        if (lfLineToMonitor != null && lfSwitchToOperate != null) {
-            LfBus bus = lfLineToMonitor.getBus1() != null ? lfLineToMonitor.getBus1() : lfLineToMonitor.getBus2();
-            double threshold = system.getThreshold() / PerUnit.ib(bus.getNominalV());
-            lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, threshold, lfSwitchToOperate, system.isSwitchOpen()));
-        } else {
-            LOGGER.warn("Invalid overload management system: line to monitor is '{}', switch to operate is '{}'",
-                    system.getLineIdToMonitor(), system.getSwitchIdToOperate());
+        if (system.isEnabled()) {
+            LfBranch lfLineToMonitor = lfNetwork.getBranchById(system.getLineIdToMonitor());
+            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(system.getSwitchIdToOperate());
+            if (lfLineToMonitor != null && lfSwitchToOperate != null) {
+                LfBus bus = lfLineToMonitor.getBus1() != null ? lfLineToMonitor.getBus1() : lfLineToMonitor.getBus2();
+                double threshold = system.getThreshold() / PerUnit.ib(bus.getNominalV());
+                lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, threshold, lfSwitchToOperate, system.isSwitchOpen()));
+            } else {
+                LOGGER.warn("Invalid overload management system: line to monitor is '{}', switch to operate is '{}'",
+                        system.getLineIdToMonitor(), system.getSwitchIdToOperate());
+            }
         }
     }
 

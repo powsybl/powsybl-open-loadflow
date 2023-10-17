@@ -11,6 +11,10 @@ package com.powsybl.openloadflow.network.impl.extensions;
  */
 public interface OverloadManagementSystem {
 
+    boolean isEnabled();
+
+    void setEnabled(boolean enabled);
+
     String getLineIdToMonitor();
 
     double getThreshold();
