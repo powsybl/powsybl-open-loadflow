@@ -69,7 +69,7 @@ public class LfSecondaryVoltageControl {
 
     public Optional<LfBus> findAnyControlledBusWithAtLeastOneControllerBusWithVoltageControlEnabled() {
         return getControlledBuses().stream()
-                .filter(controlledBus -> findAnyControllerBusWithVoltageControlEnabled(controlledBus).isPresent())
+                .flatMap(controlledBus -> findAnyControllerBusWithVoltageControlEnabled(controlledBus).stream())
                 .findAny();
     }
 
