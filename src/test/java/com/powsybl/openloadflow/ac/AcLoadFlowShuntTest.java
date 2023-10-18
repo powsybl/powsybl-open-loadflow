@@ -611,7 +611,7 @@ class AcLoadFlowShuntTest {
         lfParameters.setShuntCompensatorVoltageControlOn(true);
         OpenLoadFlowParameters.create(lfParameters)
                 .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, lfParameters);
         assertTrue(result.isOk());
         assertEquals(0, shunt.getSectionCount());
         Generator generator = network.getGenerator("3a3b27be-b18b-4385-b557-6735d733baf0");

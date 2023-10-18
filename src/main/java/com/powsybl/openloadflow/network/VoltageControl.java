@@ -179,7 +179,6 @@ public class VoltageControl<T extends LfElement> extends Control {
             // in order to this method work whatever the voltage control is main or dependent we check against
             // main voltage control of this
             if (withPriority) {
-                int priority = this.getPriority();
                 List<VoltageControl<?>> mainVoltageControlsOfThisPriority = mainVoltageControls.stream().filter(vc -> vc.getPriority() == priority).collect(Collectors.toList());
                 if (mainVoltageControlsOfThisPriority.isEmpty()) {
                     return true;

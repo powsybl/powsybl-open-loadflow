@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +55,24 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     @Override
     public String getName() {
         return NAME;
+    }
+
+    public static List<LfBus> getControlledBuses(LfNetwork network) {
+        return network.getBuses().stream()
+                .filter(bus -> bus.isVoltageControlled(VoltageControl.Type.TRANSFORMER))
+                .filter(bus -> bus.getVoltageControl(VoltageControl.Type.TRANSFORMER).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> !bus.getVoltageControl(VoltageControl.Type.TRANSFORMER).orElseThrow().isHidden(true))
+                .collect(Collectors.toList());
+    }
+
+    public static List<LfBranch> getControllerElements(LfNetwork network) {
+        return network.getBuses().stream()
+                .filter(bus -> bus.isVoltageControlled(VoltageControl.Type.TRANSFORMER))
+                .filter(bus -> bus.getVoltageControl(VoltageControl.Type.TRANSFORMER).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> !bus.getVoltageControl(VoltageControl.Type.TRANSFORMER).orElseThrow().isHidden(true))
+                .flatMap(bus -> bus.getTransformerVoltageControl().orElseThrow().getMergedControllerElements().stream())
+                .filter(Predicate.not(LfBranch::isDisabled))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -196,7 +215,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfBranch> controllerBranches = network.getControllerElements(VoltageControl.Type.TRANSFORMER);
+        List<LfBranch> controllerBranches = getControllerElements(network);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
@@ -205,7 +224,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         List<String> controlledBusesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
-        List<LfBus> controlledBuses = network.getControlledBuses(VoltageControl.Type.TRANSFORMER);
+        List<LfBus> controlledBuses = getControlledBuses(network);
 
         controlledBuses.forEach(controlledBus -> {
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
