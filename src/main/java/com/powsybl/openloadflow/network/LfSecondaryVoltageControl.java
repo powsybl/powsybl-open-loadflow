@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -18,15 +20,15 @@ public class LfSecondaryVoltageControl {
 
     private final LfBus pilotBus;
 
-    private final Set<LfBus> controlledBuses;
+    private final Set<GeneratorVoltageControl> generatorVoltageControls;
 
     private final double targetValue;
 
-    public LfSecondaryVoltageControl(String zoneName, LfBus pilotBus, double targetValue, Set<LfBus> controlledBuses) {
+    public LfSecondaryVoltageControl(String zoneName, LfBus pilotBus, double targetValue, Set<GeneratorVoltageControl> generatorVoltageControls) {
         this.zoneName = Objects.requireNonNull(zoneName);
         this.pilotBus = Objects.requireNonNull(pilotBus);
         this.targetValue = targetValue;
-        this.controlledBuses = Objects.requireNonNull(controlledBuses);
+        this.generatorVoltageControls = Objects.requireNonNull(generatorVoltageControls);
     }
 
     public String getZoneName() {
@@ -41,7 +43,45 @@ public class LfSecondaryVoltageControl {
         return pilotBus;
     }
 
-    public Set<LfBus> getControlledBuses() {
-        return controlledBuses;
+    public Set<GeneratorVoltageControl> getGeneratorVoltageControls() {
+        return generatorVoltageControls;
+    }
+
+    private static List<LfBus> findControllerBuses(LfBus controlledBus) {
+        return controlledBus.getGeneratorVoltageControl().orElseThrow()
+                .getMergedControllerElements().stream()
+                .filter(controllerBus -> !controllerBus.isDisabled())
+                .toList();
+    }
+
+    public List<LfBus> getControlledBuses() {
+        return generatorVoltageControls.stream()
+                .filter(voltageControl -> voltageControl.isVisible() && voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .map(VoltageControl::getControlledBus)
+                .toList();
+    }
+
+    private static Optional<LfBus> findAnyControllerBusWithVoltageControlEnabled(LfBus controlledBus) {
+        return findControllerBuses(controlledBus).stream()
+                .filter(LfBus::isGeneratorVoltageControlEnabled)
+                .findAny();
+    }
+
+    public Optional<LfBus> findAnyControlledBusWithAtLeastOneControllerBusWithVoltageControlEnabled() {
+        return getControlledBuses().stream()
+                .flatMap(controlledBus -> findAnyControllerBusWithVoltageControlEnabled(controlledBus).stream())
+                .findAny();
+    }
+
+    public List<LfBus> getControllerBuses() {
+        return getControlledBuses().stream()
+                .flatMap(controlledBus -> findControllerBuses(controlledBus).stream())
+                .toList();
+    }
+
+    public List<LfBus> getEnabledControllerBuses() {
+        return getControllerBuses().stream()
+                .filter(LfBus::isGeneratorVoltageControlEnabled)
+                .toList();
     }
 }
