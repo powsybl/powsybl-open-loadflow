@@ -125,4 +125,20 @@ public final class ShuntNetworkFactory {
                 .add();
         return network;
     }
+
+    public static Network createWithGeneratorAndShunt() {
+        Network network = create();
+        VoltageLevel vl3 = network.getVoltageLevel("vl3");
+        vl3.newGenerator()
+                .setId("g2")
+                .setConnectableBus("b3")
+                .setBus("b3")
+                .setTargetP(0)
+                .setTargetV(393)
+                .setMinP(0)
+                .setMaxP(150)
+                .setVoltageRegulatorOn(true)
+                .add();
+        return network;
+    }
 }

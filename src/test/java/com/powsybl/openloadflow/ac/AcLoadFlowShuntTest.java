@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.cgmes.conformity.CgmesConformity1Catalog;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -601,21 +600,38 @@ class AcLoadFlowShuntTest {
     }
 
     @Test
-    void testMicroGrid() {
-        Network network = Network.read(CgmesConformity1Catalog.microGridBaseCaseAssembled().dataSource(), null);
-        ShuntCompensator shunt = network.getShuntCompensator("d771118f-36e9-4115-a128-cc3d9ce3e3da");
-        shunt.setTargetV(130.0) // 115.5 for the generator
-                .setVoltageRegulatorOn(true)
-                .setSectionCount(0);
-        LoadFlowParameters lfParameters = new LoadFlowParameters();
-        lfParameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(lfParameters)
-                .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
-        LoadFlowResult result = loadFlowRunner.run(network, lfParameters);
+    void testVoltageControlWithGenerator() {
+        Network network = ShuntNetworkFactory.createWithGeneratorAndShunt();
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        ShuntCompensator shunt = network.getShuntCompensator("SHUNT");
+        shunt.setTargetDeadband(2);
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Generator g2 = network.getGenerator("g2");
+
+        // Generator reactive capability is enough to hold voltage target
+        shunt.setVoltageRegulatorOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
+        assertVoltageEquals(393, b3);
         assertEquals(0, shunt.getSectionCount());
-        Generator generator = network.getGenerator("3a3b27be-b18b-4385-b557-6735d733baf0");
-        assertReactivePowerEquals(-214.849, generator.getTerminal());
-        assertVoltageEquals(114.033, generator.getRegulatingTerminal().getBusView().getBus());
+        assertReactivePowerEquals(-289.033, g2.getTerminal());
+
+        network.getGenerator("g2").newMinMaxReactiveLimits().setMinQ(-150).setMaxQ(150).add();
+        // Generator reactive capability is not enough to hold voltage target and shunt is deactivated
+        shunt.setVoltageRegulatorOn(false);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(390.887, b3);
+        assertEquals(0, shunt.getSectionCount());
+        assertReactivePowerEquals(-150.0, g2.getTerminal());
+
+        // Generator reactive capability is not enough to hold voltage alone but with shunt it is ok
+        shunt.setVoltageRegulatorOn(true);
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isOk());
+        assertVoltageEquals(393, b3);
+        assertEquals(1, shunt.getSectionCount());
+        assertReactivePowerEquals(-134.585, g2.getTerminal());
     }
 }
