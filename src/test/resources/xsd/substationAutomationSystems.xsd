@@ -13,7 +13,7 @@
            elementFormDefault="qualified">
     <xs:complexType name="OverloadManagementSystem">
         <xs:attribute name="enabled" use="required" type="xs:boolean"/>
-        <xs:attribute name="lineIdToMonitor" use="required" type="xs:string"/>
+        <xs:attribute name="monitoredLineId" use="required" type="xs:string"/>
         <xs:attribute name="threshold" use="required" type="xs:double"/>
         <xs:attribute name="switchIdToOperate" use="required" type="xs:string"/>
         <xs:attribute name="switchOpen" use="required" type="xs:boolean"/>

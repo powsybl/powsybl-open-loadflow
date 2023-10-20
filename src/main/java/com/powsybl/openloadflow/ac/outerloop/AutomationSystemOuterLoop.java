@@ -40,7 +40,7 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
         Set<LfBranch> branchesToOpen = new HashSet<>();
         Set<LfBranch> branchesToClose = new HashSet<>();
         for (LfOverloadManagementSystem system : network.getOverloadManagementSystems()) {
-            LfBranch branchToMonitor = system.getBranchToMonitor();
+            LfBranch branchToMonitor = system.getMonitoredBranch();
             if (branchToMonitor.isConnectedAtBothSides()) {
                 double i1 = branchToMonitor.getI1().eval();
                 double threshold = system.getThreshold();

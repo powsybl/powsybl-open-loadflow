@@ -15,7 +15,7 @@ import java.util.Objects;
  */
 public class LfOverloadManagementSystem {
 
-    private final LfBranch branchToMonitor;
+    private final LfBranch monitoredBranch;
 
     private final double threshold;
 
@@ -23,15 +23,15 @@ public class LfOverloadManagementSystem {
 
     private final boolean switchOpen;
 
-    public LfOverloadManagementSystem(LfBranch branchToMonitor, double threshold, LfSwitch switchToOperate, boolean switchOpen) {
-        this.branchToMonitor = Objects.requireNonNull(branchToMonitor);
+    public LfOverloadManagementSystem(LfBranch monitoredBranch, double threshold, LfSwitch switchToOperate, boolean switchOpen) {
+        this.monitoredBranch = Objects.requireNonNull(monitoredBranch);
         this.threshold = threshold;
         this.switchToOperate = Objects.requireNonNull(switchToOperate);
         this.switchOpen = switchOpen;
     }
 
-    public LfBranch getBranchToMonitor() {
-        return branchToMonitor;
+    public LfBranch getMonitoredBranch() {
+        return monitoredBranch;
     }
 
     public double getThreshold() {

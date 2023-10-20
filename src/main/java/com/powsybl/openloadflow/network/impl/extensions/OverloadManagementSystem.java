@@ -15,7 +15,7 @@ public interface OverloadManagementSystem {
 
     void setEnabled(boolean enabled);
 
-    String getLineIdToMonitor();
+    String getMonitoredLineId();
 
     double getThreshold();
 

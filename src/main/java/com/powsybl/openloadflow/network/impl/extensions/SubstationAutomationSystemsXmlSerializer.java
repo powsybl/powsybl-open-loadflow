@@ -32,7 +32,7 @@ public class SubstationAutomationSystemsXmlSerializer extends AbstractExtensionX
         for (var oms : systems.getOverloadManagementSystems()) {
             context.getWriter().writeEmptyElement(getNamespaceUri(), "overloadManagementSystem");
             context.getWriter().writeAttribute("enabled", Boolean.toString(oms.isEnabled()));
-            context.getWriter().writeAttribute("lineIdToMonitor", oms.getLineIdToMonitor());
+            context.getWriter().writeAttribute("monitoredLineId", oms.getMonitoredLineId());
             XmlUtil.writeDouble("threshold", oms.getThreshold(), context.getWriter());
             context.getWriter().writeAttribute("switchIdToOperate", oms.getSwitchIdToOperate());
             context.getWriter().writeAttribute("switchOpen", Boolean.toString(oms.isSwitchOpen()));
@@ -44,13 +44,13 @@ public class SubstationAutomationSystemsXmlSerializer extends AbstractExtensionX
         SubstationAutomationSystemsAdder adder = substation.newExtension(SubstationAutomationSystemsAdder.class);
         XmlUtil.readUntilEndElement(getExtensionName(), context.getReader(), () -> {
             boolean enabled = XmlUtil.readBoolAttribute(context.getReader(), "enabled");
-            String lineIdToMonitor = context.getReader().getAttributeValue(null, "lineIdToMonitor");
+            String monitoredLineId = context.getReader().getAttributeValue(null, "monitoredLineId");
             double threshold = XmlUtil.readDoubleAttribute(context.getReader(), "threshold");
             String switchIdToOperate = context.getReader().getAttributeValue(null, "switchIdToOperate");
             boolean switchOpen = XmlUtil.readBoolAttribute(context.getReader(), "switchOpen");
             adder.newOverloadManagementSystem()
                     .withEnabled(enabled)
-                    .withLineIdToMonitor(lineIdToMonitor)
+                    .withMonitoredLineId(monitoredLineId)
                     .withThreshold(threshold)
                     .withSwitchIdToOperate(switchIdToOperate)
                     .withSwitchOpen(switchOpen)

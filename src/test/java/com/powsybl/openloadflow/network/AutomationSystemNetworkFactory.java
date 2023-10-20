@@ -62,7 +62,7 @@ public final class AutomationSystemNetworkFactory extends AbstractLoadFlowNetwor
         Substation s1 = network.getSubstation("s1");
         s1.newExtension(SubstationAutomationSystemsAdder.class)
             .newOverloadManagementSystem()
-                .withLineIdToMonitor("l34")
+                .withMonitoredLineId("l34")
                 .withThreshold(300)
                 .withSwitchIdToOperate("br1")
                 .withSwitchOpen(true)

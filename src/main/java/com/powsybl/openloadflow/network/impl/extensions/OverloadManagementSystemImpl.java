@@ -15,7 +15,7 @@ public class OverloadManagementSystemImpl implements OverloadManagementSystem {
 
     private boolean enabled;
 
-    private final String lineIdToMonitor;
+    private final String monitoredLineId;
 
     private final double threshold;
 
@@ -23,9 +23,9 @@ public class OverloadManagementSystemImpl implements OverloadManagementSystem {
 
     private final boolean switchOpen;
 
-    public OverloadManagementSystemImpl(boolean enabled, String lineIdToMonitor, double threshold, String switchIdToOperate, boolean switchOpen) {
+    public OverloadManagementSystemImpl(boolean enabled, String monitoredLineId, double threshold, String switchIdToOperate, boolean switchOpen) {
         this.enabled = enabled;
-        this.lineIdToMonitor = Objects.requireNonNull(lineIdToMonitor);
+        this.monitoredLineId = Objects.requireNonNull(monitoredLineId);
         this.threshold = threshold;
         this.switchIdToOperate = Objects.requireNonNull(switchIdToOperate);
         this.switchOpen = switchOpen;
@@ -42,8 +42,8 @@ public class OverloadManagementSystemImpl implements OverloadManagementSystem {
     }
 
     @Override
-    public String getLineIdToMonitor() {
-        return lineIdToMonitor;
+    public String getMonitoredLineId() {
+        return monitoredLineId;
     }
 
     @Override

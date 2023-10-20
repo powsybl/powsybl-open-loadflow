@@ -31,7 +31,7 @@ class SubstationAutomationSystemsTest extends AbstractConverterTest {
                 .newOverloadManagementSystem();
         var e = assertThrows(PowsyblException.class, adder::add);
         assertEquals("Line ID to monitor is not set", e.getMessage());
-        adder.withLineIdToMonitor("x");
+        adder.withMonitoredLineId("x");
         e = assertThrows(PowsyblException.class, adder::add);
         assertEquals("Threshold is not set", e.getMessage());
         adder.withThreshold(1000);
