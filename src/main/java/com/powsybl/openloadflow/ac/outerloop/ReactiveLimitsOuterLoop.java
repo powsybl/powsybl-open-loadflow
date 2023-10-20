@@ -31,13 +31,13 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     public static final String NAME = "ReactiveLimits";
 
     private static final Comparator<ControllerBusToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(
-        pvToPqBus -> pvToPqBus.controllerBus.getGeneratorVoltageControl()
+        controllerBusToPqBus -> controllerBusToPqBus.controllerBus.getGeneratorVoltageControl()
             .map(vc -> -vc.getControlledBus().getNominalV())
-            .orElse(-pvToPqBus.controllerBus.getNominalV()));
+            .orElse(-controllerBusToPqBus.controllerBus.getNominalV()));
 
-    private static final Comparator<ControllerBusToPqBus> BY_TARGET_P_COMPARATOR = Comparator.comparingDouble(pvToPqBus -> -pvToPqBus.controllerBus.getTargetP());
+    private static final Comparator<ControllerBusToPqBus> BY_TARGET_P_COMPARATOR = Comparator.comparingDouble(controllerBusToPqBus -> -controllerBusToPqBus.controllerBus.getTargetP());
 
-    private static final Comparator<ControllerBusToPqBus> BY_ID_COMPARATOR = Comparator.comparing(pvToPqBus -> pvToPqBus.controllerBus.getId());
+    private static final Comparator<ControllerBusToPqBus> BY_ID_COMPARATOR = Comparator.comparing(controllerBusToPqBus -> controllerBusToPqBus.controllerBus.getId());
 
     public static final int MAX_SWITCH_PQ_PV_DEFAULT_VALUE = 3;
 
