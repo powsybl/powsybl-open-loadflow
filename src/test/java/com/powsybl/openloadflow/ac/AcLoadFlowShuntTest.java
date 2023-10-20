@@ -650,11 +650,20 @@ class AcLoadFlowShuntTest {
         // Generator reactive capability is not enough to hold voltage alone but with shunt it is ok
         shunt.setVoltageRegulatorOn(true);
         shunt2.setVoltageRegulatorOn(true);
-        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
-        assertTrue(result3.isOk());
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
         assertVoltageEquals(393, b3);
         assertEquals(1, shunt.getSectionCount());
         assertEquals(0, shunt2.getSectionCount());
         assertReactivePowerEquals(-134.585, g2.getTerminal());
+
+        // Both shunts are used at generator target
+        g2.setTargetV(395);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(395, b3);
+        assertEquals(1, shunt.getSectionCount());
+        assertEquals(1, shunt2.getSectionCount());
+        assertReactivePowerEquals(-110.176, g2.getTerminal());
     }
 }
