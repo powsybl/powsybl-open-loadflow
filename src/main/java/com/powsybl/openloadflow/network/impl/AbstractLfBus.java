@@ -8,9 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -31,6 +29,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private static final double Q_DISPATCH_EPSILON = 1e-3;
 
+    private static final double PLAUSIBLE_REACTIVE_LIMITS = 1000 / PerUnit.SB;
+
     protected boolean slack = false;
 
     protected boolean reference = false;
@@ -44,12 +44,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     private boolean hasGeneratorsWithSlope;
 
     protected boolean generatorVoltageControlEnabled = false;
-
-    protected double loadTargetP = 0;
-
-    protected double initialLoadTargetP = 0;
-
-    protected double loadTargetQ = 0;
 
     protected Double generationTargetP;
 
@@ -67,11 +61,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean distributedOnConformLoad;
 
-    protected LfLoadImpl load;
-
-    protected boolean ensurePowerFactorConstantByLoad = false;
-
-    protected final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
+    protected final List<LfLoad> loads = new ArrayList<>();
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
@@ -154,13 +144,22 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<VoltageControl<?>> getHighestPriorityVoltageControl() {
-        return VoltageControl.findVoltageControlsSortedByPriority(this).stream().findFirst();
+    public boolean isVoltageControlled(VoltageControl.Type type) {
+        return switch (type) {
+            case GENERATOR -> isGeneratorVoltageControlled();
+            case TRANSFORMER -> isTransformerVoltageControlled();
+            case SHUNT -> isShuntVoltageControlled();
+        };
     }
 
     @Override
-    public boolean hasGeneratorVoltageControllerCapability() {
-        return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
+    public Optional<VoltageControl<?>> getVoltageControl(VoltageControl.Type type) {
+        return getVoltageControls().stream().filter(vc -> vc.getType() == type).findAny();
+    }
+
+    @Override
+    public Optional<VoltageControl<?>> getHighestPriorityMainVoltageControl() {
+        return VoltageControl.findMainVoltageControlsSortedByPriority(this).stream().findFirst();
     }
 
     @Override
@@ -176,6 +175,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         } else if (!isGeneratorVoltageControlled()) {
             throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
         }
+    }
+
+    private boolean hasGeneratorVoltageControllerCapability() {
+        return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
     }
 
     @Override
@@ -224,34 +227,43 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
+    private static LfLoadModel createLfLoadModel(LoadModel loadModel, LfNetworkParameters parameters) {
+        if (!parameters.isUseLoadModel() || loadModel == null) {
+            return null;
+        }
+        if (loadModel.getType() == LoadModelType.ZIP) {
+            ZipLoadModel zipLoadModel = (ZipLoadModel) loadModel;
+            return new LfLoadModel(List.of(new LfLoadModel.ExpTerm(zipLoadModel.getC0p(), 0),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC1p(), 1),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC2p(), 2)),
+                                   List.of(new LfLoadModel.ExpTerm(zipLoadModel.getC0q(), 0),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC1q(), 1),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC2q(), 2)));
+        } else if (loadModel.getType() == LoadModelType.EXPONENTIAL) {
+            ExponentialLoadModel expoLoadModel = (ExponentialLoadModel) loadModel;
+            return new LfLoadModel(List.of(new LfLoadModel.ExpTerm(1, expoLoadModel.getNp())),
+                                   List.of(new LfLoadModel.ExpTerm(1, expoLoadModel.getNq())));
+        } else {
+            throw new PowsyblException("Unsupported load model: " + loadModel.getType());
+        }
+    }
+
+    protected LfLoadImpl getOrCreateLfLoad(LoadModel loadModel, LfNetworkParameters parameters) {
+        LfLoadModel lfLoadModel = createLfLoadModel(loadModel, parameters);
+        return (LfLoadImpl) loads.stream().filter(l -> Objects.equals(l.getLoadModel().orElse(null), lfLoadModel)).findFirst()
+                .orElseGet(() -> {
+                    LfLoadImpl l = new LfLoadImpl(AbstractLfBus.this, distributedOnConformLoad, lfLoadModel);
+                    loads.add(l);
+                    return l;
+                });
+    }
+
     void addLoad(Load load, LfNetworkParameters parameters) {
-        double p0 = load.getP0();
-        loadTargetP += p0 / PerUnit.SB;
-        initialLoadTargetP += p0 / PerUnit.SB;
-        loadTargetQ += load.getQ0() / PerUnit.SB;
-        boolean hasVariableActivePower = false;
-        if (parameters.isDistributedOnConformLoad()) {
-            LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-            if (loadDetail != null) {
-                hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
-            }
-        }
-        if (p0 < 0 || hasVariableActivePower) {
-            ensurePowerFactorConstantByLoad = true;
-        }
-        if (this.load == null) {
-            this.load = new LfLoadImpl(distributedOnConformLoad);
-        }
-        this.load.add(load, parameters);
+        getOrCreateLfLoad(load.getModel().orElse(null), parameters).add(load, parameters);
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
-        // note that LCC converter station are out of the slack distribution.
-        lccCsRefs.add(Ref.create(lccCs, parameters.isCacheEnabled()));
-        double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers());
-        loadTargetP += targetP / PerUnit.SB;
-        initialLoadTargetP += targetP / PerUnit.SB;
-        loadTargetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()) / PerUnit.SB;
+        getOrCreateLfLoad(null, parameters).add(lccCs, parameters);
     }
 
     protected void add(LfGenerator generator) {
@@ -339,44 +351,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public double getLoadTargetP() {
-        return loadTargetP;
-    }
-
-    @Override
-    public double getInitialLoadTargetP() {
-        return initialLoadTargetP;
-    }
-
-    @Override
-    public void setLoadTargetP(double loadTargetP) {
-        if (loadTargetP != this.loadTargetP) {
-            double oldLoadTargetP = this.loadTargetP;
-            this.loadTargetP = loadTargetP;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, loadTargetP);
-            }
-        }
+        return loads.stream()
+                .mapToDouble(load -> load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
+                .sum();
     }
 
     @Override
     public double getLoadTargetQ() {
-        return loadTargetQ;
-    }
-
-    @Override
-    public void setLoadTargetQ(double loadTargetQ) {
-        if (loadTargetQ != this.loadTargetQ) {
-            double oldLoadTargetQ = this.loadTargetQ;
-            this.loadTargetQ = loadTargetQ;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, loadTargetQ);
-            }
-        }
-    }
-
-    @Override
-    public boolean ensurePowerFactorConstantByLoad() {
-        return this.ensurePowerFactorConstantByLoad;
+        return loads.stream()
+                .mapToDouble(load -> load.getTargetQ() * load.getLoadModel().flatMap(lm -> lm.getExpTermQ(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
+                .sum();
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
@@ -456,8 +440,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<LfLoad> getLoad() {
-        return Optional.ofNullable(load);
+    public List<LfLoad> getLoads() {
+        return loads;
     }
 
     @Override
@@ -475,32 +459,79 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         hvdcs.add(Objects.requireNonNull(hvdc));
     }
 
-    protected static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
+    private static ToDoubleFunction<String> splitDispatchQ(List<LfGenerator> generatorsThatControlVoltage, double qToDispatch) {
+        int size = generatorsThatControlVoltage.size();
+        return id -> qToDispatch / size;
+    }
+
+    /**
+     * Dispatch q ensuring a constant k value.
+     * qToDispatch = q1 + q2 + ...
+     * we have to find the k value for qToDispatch
+     * k = (2 * qToDispatch - qmax1 - qmin1 - qmax2 - qmin2 - ...) / (qmax1 - qmin1 + qmax2 - qmin2 + ...)
+     */
+    private static ToDoubleFunction<String> splitDispatchQWithEqualProportionOfK(List<LfGenerator> generatorsThatControlVoltage, double qToDispatch) {
+        double k = 2 * qToDispatch;
+        double denom = 0;
+        for (LfGenerator generator : generatorsThatControlVoltage) {
+            k -= generator.getMaxQ() + generator.getMinQ();
+            denom += generator.getMaxQ() - generator.getMinQ();
+        }
+        if (denom != 0) {
+            k /= denom;
+        }
+
+        Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsThatControlVoltage.size());
+        for (LfGenerator generator : generatorsThatControlVoltage) {
+            qToDispatchByGeneratorId.put(generator.getId(), LfGenerator.kToQ(k, generator));
+        }
+
+        return qToDispatchByGeneratorId::get;
+    }
+
+    private static boolean allGeneratorsHavePlausibleReactiveLimits(List<LfGenerator> generators) {
+        for (LfGenerator generator : generators) {
+            if (Math.abs(generator.getMinQ()) > PLAUSIBLE_REACTIVE_LIMITS
+                    || Math.abs(generator.getMaxQ()) > PLAUSIBLE_REACTIVE_LIMITS) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits,
+                                      ReactivePowerDispatchMode reactivePowerDispatchMode, double qToDispatch) {
         double residueQ = 0;
         if (generatorsThatControlVoltage.isEmpty()) {
             throw new IllegalArgumentException("the generator list to dispatch Q can not be empty");
         }
-        double qToBeDispatchedByGenerator = qToDispatch / generatorsThatControlVoltage.size();
+        ToDoubleFunction<String> qToDispatchByGeneratorId = switch (reactivePowerDispatchMode) {
+            case Q_EQUAL_PROPORTION -> splitDispatchQ(generatorsThatControlVoltage, qToDispatch);
+            case K_EQUAL_PROPORTION -> allGeneratorsHavePlausibleReactiveLimits(generatorsThatControlVoltage)
+                    ? splitDispatchQWithEqualProportionOfK(generatorsThatControlVoltage, qToDispatch)
+                    : splitDispatchQ(generatorsThatControlVoltage, qToDispatch); // fallback to q dispatch
+        };
         Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
         while (itG.hasNext()) {
             LfGenerator generator = itG.next();
             double generatorAlreadyCalculatedQ = generator.getCalculatedQ();
-            if (reactiveLimits && qToBeDispatchedByGenerator + generatorAlreadyCalculatedQ < generator.getMinQ()) {
-                residueQ += qToBeDispatchedByGenerator + generatorAlreadyCalculatedQ - generator.getMinQ();
+            double qToDispatchForThisGenerator = qToDispatchByGeneratorId.applyAsDouble(generator.getId());
+            if (reactiveLimits && qToDispatchForThisGenerator + generatorAlreadyCalculatedQ < generator.getMinQ()) {
+                residueQ += qToDispatchForThisGenerator + generatorAlreadyCalculatedQ - generator.getMinQ();
                 generator.setCalculatedQ(generator.getMinQ());
                 itG.remove();
-            } else if (reactiveLimits && qToBeDispatchedByGenerator + generatorAlreadyCalculatedQ > generator.getMaxQ()) {
-                residueQ += qToBeDispatchedByGenerator + generatorAlreadyCalculatedQ - generator.getMaxQ();
+            } else if (reactiveLimits && qToDispatchForThisGenerator + generatorAlreadyCalculatedQ > generator.getMaxQ()) {
+                residueQ += qToDispatchForThisGenerator + generatorAlreadyCalculatedQ - generator.getMaxQ();
                 generator.setCalculatedQ(generator.getMaxQ());
                 itG.remove();
             } else {
-                generator.setCalculatedQ(generatorAlreadyCalculatedQ + qToBeDispatchedByGenerator);
+                generator.setCalculatedQ(generatorAlreadyCalculatedQ + qToDispatchForThisGenerator);
             }
         }
         return residueQ;
     }
 
-    void updateGeneratorsState(double generationQ, boolean reactiveLimits) {
+    void updateGeneratorsState(double generationQ, boolean reactiveLimits, ReactivePowerDispatchMode reactivePowerDispatchMode) {
         double qToDispatch = generationQ;
         List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
         for (LfGenerator generator : generators) {
@@ -510,33 +541,32 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 qToDispatch -= generator.getTargetQ();
             }
         }
-
+        List<LfGenerator> initialGeneratorsThatControlVoltage = new LinkedList<>(generatorsThatControlVoltage);
         for (LfGenerator generator : generatorsThatControlVoltage) {
             generator.setCalculatedQ(0);
         }
         while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
-            qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, qToDispatch);
+            qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, reactivePowerDispatchMode, qToDispatch);
+        }
+        if (!initialGeneratorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
+            // FIXME
+            // We have to much reactive power to dispatch, which is linked to a bus that has been forced to remain PV to
+            // ease the convergence. Updating a generator reactive power outside its reactive limits is a quick fix.
+            // It could be better to return a global failed status.
+            dispatchQ(initialGeneratorsThatControlVoltage, false, reactivePowerDispatchMode, qToDispatch);
         }
     }
 
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ, parameters.isReactiveLimits());
+        updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + getLoadTargetQ()) : generationTargetQ,
+                parameters.isReactiveLimits(), parameters.getReactivePowerDispatchMode());
 
         // update load power
-        if (load != null) {
-            load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
-        }
-
-        // update lcc converter station power
-        for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
-            LccConverterStation lccCs = lccCsRef.get();
-            double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers()); // A LCC station has active losses.
-            double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()); // A LCC station always consumes reactive power.
-            lccCs.getTerminal()
-                    .setP(pCs)
-                    .setQ(qCs);
+        for (LfLoad load : loads) {
+            load.updateState(parameters.isLoadPowerFactorConstant(),
+                    parameters.isBreakers());
         }
     }
 

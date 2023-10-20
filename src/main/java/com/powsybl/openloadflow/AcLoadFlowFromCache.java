@@ -17,14 +17,13 @@ import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -53,33 +52,32 @@ public class AcLoadFlowFromCache {
         this.reporter = Objects.requireNonNull(reporter);
     }
 
-    private void configureSwitches(Set<Switch> switchesToOpen, Set<Switch> switchesToClose) {
+    private void configureSwitches(LfTopoConfig topoConfig) {
         for (String switchId : parametersExt.getActionableSwitchesIds()) {
             Switch sw = network.getSwitch(switchId);
             if (sw != null) {
                 if (sw.isOpen()) {
-                    switchesToClose.add(sw);
+                    topoConfig.getSwitchesToClose().add(sw);
                 } else {
-                    switchesToOpen.add(sw);
+                    topoConfig.getSwitchesToOpen().add(sw);
                 }
             } else {
                 LOGGER.warn("Actionable switch '{}' does not exist", switchId);
             }
         }
-        if (!switchesToClose.isEmpty() || !switchesToOpen.isEmpty()) {
+        if (topoConfig.isBreaker()) {
             acParameters.getNetworkParameters().setBreakers(true);
         }
     }
 
     private List<AcLoadFlowContext> initContexts(NetworkCache.Entry entry) {
         List<AcLoadFlowContext> contexts;
-        Set<Switch> switchesToOpen = new HashSet<>();
-        Set<Switch> switchesToClose = new HashSet<>();
-        configureSwitches(switchesToOpen, switchesToClose);
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        configureSwitches(topoConfig);
 
         // Because of caching, we only need to switch back to working variant but not to remove the variant, thus
         // WorkingVariantReverter is used instead of DefaultVariantCleaner
-        try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), switchesToOpen, switchesToClose,
+        try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), topoConfig,
                 LfNetworkList.WorkingVariantReverter::new, reporter)) {
             contexts = lfNetworkList.getList()
                     .stream()

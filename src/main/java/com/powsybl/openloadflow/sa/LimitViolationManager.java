@@ -62,6 +62,11 @@ public class LimitViolationManager {
 
         // Detect violation limits on buses
         network.getBuses().stream().filter(b -> !b.isDisabled()).forEach(this::detectBusViolations);
+
+        // Detect voltage angle limits
+        network.getVoltageAngleLimits().stream()
+                .filter(limit -> !limit.getFrom().isDisabled() && !limit.getTo().isDisabled())
+                .forEach(this::detectVoltageAngleLimitViolations);
     }
 
     private static Pair<String, Branch.Side> getSubjectIdSide(LimitViolation limitViolation) {
@@ -160,6 +165,24 @@ public class LimitViolationManager {
         if (!Double.isNaN(bus.getLowVoltageLimit()) && busV < bus.getLowVoltageLimit()) {
             LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getLowVoltageLimit() * scale,
                     (float) 1., busV * scale);
+            addLimitViolation(limitViolation2);
+        }
+    }
+
+    /**
+     * Detect violation limits on one voltage angle limit and add them to the given list
+     * @param limit voltage angle limit of interest
+     */
+    private void detectVoltageAngleLimitViolations(LfNetwork.LfVoltageAngleLimit limit) {
+        double difference = limit.getTo().getAngle() - limit.getFrom().getAngle();
+        if (!Double.isNaN(limit.getHighValue()) && difference > limit.getHighValue()) {
+            LimitViolation limitViolation1 = new LimitViolation(limit.getId(), LimitViolationType.HIGH_VOLTAGE_ANGLE, Math.toDegrees(limit.getHighValue()),
+                    (float) 1., Math.toDegrees(difference));
+            addLimitViolation(limitViolation1);
+        }
+        if (!Double.isNaN(limit.getLowValue()) && difference < limit.getLowValue()) {
+            LimitViolation limitViolation2 = new LimitViolation(limit.getId(), LimitViolationType.LOW_VOLTAGE_ANGLE, Math.toDegrees(limit.getLowValue()),
+                    (float) 1., Math.toDegrees(difference));
             addLimitViolation(limitViolation2);
         }
     }

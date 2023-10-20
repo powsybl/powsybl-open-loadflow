@@ -112,6 +112,7 @@ class EquationsTest {
         Mockito.doReturn(R).when(piModel).getR();
         Mockito.doReturn(X).when(piModel).getX();
         Mockito.doReturn(Y).when(piModel).getY();
+        Mockito.doReturn(1 / Y).when(piModel).getZ();
         Mockito.doReturn(G_1).when(piModel).getG1();
         Mockito.doReturn(G_2).when(piModel).getG2();
         Mockito.doReturn(B_1).when(piModel).getB1();

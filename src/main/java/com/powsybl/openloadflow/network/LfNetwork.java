@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -63,6 +64,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final Map<String, LfGenerator> generatorsById = new HashMap<>();
 
+    private final Map<String, LfLoad> loadsById = new HashMap<>();
+
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
     private final Map<String, LfHvdc> hvdcsById = new HashMap<>();
@@ -80,6 +83,44 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private Reporter reporter;
 
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
+
+    private final List<LfVoltageAngleLimit> voltageAngleLimits = new ArrayList<>();
+
+    public static class LfVoltageAngleLimit {
+        private final String id;
+        private final LfBus from;
+        private final LfBus to;
+        private final double highValue;
+        private final double lowValue;
+
+        public LfVoltageAngleLimit(String id, LfBus from, LfBus to, double highValue, double lowValue) {
+            this.id = Objects.requireNonNull(id);
+            this.from = Objects.requireNonNull(from);
+            this.to = Objects.requireNonNull(to);
+            this.highValue = highValue;
+            this.lowValue = lowValue;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public LfBus getFrom() {
+            return from;
+        }
+
+        public LfBus getTo() {
+            return to;
+        }
+
+        public double getHighValue() {
+            return highValue;
+        }
+
+        public double getLowValue() {
+            return lowValue;
+        }
+    }
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
@@ -169,6 +210,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return branchesById.get(branchId);
     }
 
+    private void addShunt(LfShunt shunt) {
+        shunt.setNum(shuntCount++);
+        shuntsByIndex.add(shunt);
+        shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
+    }
+
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
         bus.setNum(busesByIndex.size());
@@ -177,22 +224,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         invalidateSlack();
         connectivity = null;
 
-        bus.getShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
-        bus.getControllerShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
-        bus.getSvcShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
+        bus.getShunt().ifPresent(this::addShunt);
+        bus.getControllerShunt().ifPresent(this::addShunt);
+        bus.getSvcShunt().ifPresent(this::addShunt);
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
+        bus.getLoads().forEach(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
     }
 
     public List<LfBus> getBuses() {
@@ -233,6 +269,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfGenerator getGeneratorById(String id) {
         Objects.requireNonNull(id);
         return generatorsById.get(id);
+    }
+
+    public LfLoad getLoadById(String id) {
+        Objects.requireNonNull(id);
+        return loadsById.get(id);
     }
 
     public void addHvdc(LfHvdc hvdc) {
@@ -481,9 +522,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 branch.setMinZ(lowImpedanceThreshold);
             }
         } else {
-            // zero impedance controller phase shifter is not supported
+            // zero impedance phase shifter controller or controlled branch is not supported
             branches.stream()
-                    .filter(LfBranch::isPhaseController)
+                    .filter(b -> b.isPhaseController() || b.isPhaseControlled())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
@@ -520,15 +561,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return load(network, networkLoader, parameters, Reporter.NO_OP);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), reporter);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
+        return load(network, networkLoader, new LfTopoConfig(), parameters, reporter);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
-        List<LfNetwork> lfNetworks = networkLoader.load(network, parameters, reporter);
+        List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reporter);
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
@@ -654,6 +695,44 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfSecondaryVoltageControl> getSecondaryVoltageControls() {
         return secondaryVoltageControls;
+    }
+
+    private static boolean filterSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
+        return !secondaryVoltageControl.getPilotBus().isDisabled();
+    }
+
+    public List<LfSecondaryVoltageControl> getEnabledSecondaryVoltageControls() {
+        return secondaryVoltageControls.stream()
+                .filter(LfNetwork::filterSecondaryVoltageControl)
+                .toList();
+    }
+
+    public void addVoltageAngleLimit(LfVoltageAngleLimit limit) {
+        voltageAngleLimits.add(Objects.requireNonNull(limit));
+    }
+
+    public List<LfVoltageAngleLimit> getVoltageAngleLimits() {
+        return voltageAngleLimits;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <E extends LfElement> List<E> getControllerElements(VoltageControl.Type type) {
+        return busesByIndex.stream()
+                .filter(bus -> bus.isVoltageControlled(type))
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
+                .flatMap(bus -> bus.getVoltageControl(type).orElseThrow().getMergedControllerElements().stream())
+                .filter(Predicate.not(LfElement::isDisabled))
+                .map(element -> (E) element)
+                .collect(Collectors.toList());
+    }
+
+    public List<LfBus> getControlledBuses(VoltageControl.Type type) {
+        return busesByIndex.stream()
+                .filter(bus -> bus.isVoltageControlled(type))
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
+                .collect(Collectors.toList());
     }
 
     public int getElementCount(ElementType elementType) {
