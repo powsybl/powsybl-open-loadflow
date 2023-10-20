@@ -162,6 +162,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
+                case ShuntCompensatorPositionAction.NAME: {
+                    ShuntCompensatorPositionAction shuntCompensatorPositionAction = (ShuntCompensatorPositionAction) action;
+                    if (network.getShuntCompensator(shuntCompensatorPositionAction.getShuntCompensatorId()) == null) {
+                        throw new PowsyblException("Shunt compensator '" + shuntCompensatorPositionAction.getShuntCompensatorId() + "' not found");
+                    }
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }
@@ -274,8 +282,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (PhaseTapChangerTapPositionAction.NAME.equals(action.getType())) {
                 PhaseTapChangerTapPositionAction ptcAction = (PhaseTapChangerTapPositionAction) action;
                 ptcAction.getSide().ifPresentOrElse(
-                        side -> topoConfig.addBranchIdsWithPtcToRetain(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
-                        () -> topoConfig.addBranchIdsWithPtcToRetain(ptcAction.getTransformerId()) // T2WT
+                        side -> topoConfig.addBranchIdWithPtcToRetain(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
+                        () -> topoConfig.addBranchIdWithPtcToRetain(ptcAction.getTransformerId()) // T2WT
                 );
             }
         }
@@ -286,11 +294,16 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (RatioTapChangerTapPositionAction.NAME.equals(action.getType())) {
                 RatioTapChangerTapPositionAction rtcAction = (RatioTapChangerTapPositionAction) action;
                 rtcAction.getSide().ifPresentOrElse(
-                        side -> topoConfig.addBranchIdsWithRtcToRetain(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
-                        () -> topoConfig.addBranchIdsWithRtcToRetain(rtcAction.getTransformerId()) // T2WT
+                        side -> topoConfig.addBranchIdWithRtcToRetain(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
+                        () -> topoConfig.addBranchIdWithRtcToRetain(rtcAction.getTransformerId()) // T2WT
                 );
             }
         }
+    }
+
+    protected static void findAllShuntsToOperate(List<Action> actions, LfTopoConfig topoConfig) {
+        actions.stream().filter(action -> action.getType().equals(ShuntCompensatorPositionAction.NAME))
+                .forEach(action -> topoConfig.addShuntIdToOperate(((ShuntCompensatorPositionAction) action).getShuntCompensatorId()));
     }
 
     protected OperatorStrategyResult runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,

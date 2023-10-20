@@ -26,6 +26,8 @@ public class LfTopoConfig {
 
     private final Set<String> branchIdsWithRtcToRetain = new HashSet<>();
 
+    private final Set<String> shuntIdsToOperate = new HashSet();
+
     public Set<Switch> getSwitchesToOpen() {
         return switchesToOpen;
     }
@@ -38,12 +40,16 @@ public class LfTopoConfig {
         return busIdsToLose;
     }
 
-    public void addBranchIdsWithPtcToRetain(String branchId) {
+    public void addBranchIdWithPtcToRetain(String branchId) {
         branchIdsWithPtcToRetain.add(branchId);
     }
 
-    public void addBranchIdsWithRtcToRetain(String branchId) {
+    public void addBranchIdWithRtcToRetain(String branchId) {
         branchIdsWithRtcToRetain.add(branchId);
+    }
+
+    public void addShuntIdToOperate(String shuntId) {
+        shuntIdsToOperate.add(shuntId);
     }
 
     public boolean isBreaker() {
@@ -56,5 +62,9 @@ public class LfTopoConfig {
 
     public boolean isRetainedRtc(String branchId) {
         return branchIdsWithRtcToRetain.contains(branchId);
+    }
+
+    public boolean isOperatedShunt(String shuntId) {
+        return shuntIdsToOperate.contains(shuntId);
     }
 }

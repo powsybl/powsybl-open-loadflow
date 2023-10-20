@@ -41,6 +41,7 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_V;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1055,7 +1056,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<Action> actions = List.of(new LineConnectionAction("openTieLine", "t12bis", true, true)); // just for testing, not relevant
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("contingency"), new TrueCondition(), List.of("openTieLine")));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
-        assertEquals(400.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBusResult("b3").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals(400.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBusResult("b3").getV(), DELTA_V);
         assertEquals(-0.0038, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l34").getQ2(), LoadFlowAssert.DELTA_POWER);
     }
 
@@ -1212,5 +1213,33 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         assertEquals(network.getBusBreakerView().getBus("BUS_2").getV(),
                 getOperatorStrategyResult(result, "strategy").getNetworkResult().getBusResult("BUS_2").getV(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testShuntAction() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        network.getShuntCompensator("SHUNT2").setSectionCount(25);
+        network.getShuntCompensator("SHUNT3").setSectionCount(25);
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+
+        List<Contingency> contingencies = List.of(new Contingency("tr2", new TwoWindingsTransformerContingency("tr2")),
+                new Contingency("tr3", new TwoWindingsTransformerContingency("tr3")));
+
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+
+        List<Action> actions = List.of(new ShuntCompensatorPositionActionBuilder().withId("action").withShuntCompensatorId("SHUNT3").withSectionCount(50).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("tr2"), new TrueCondition(), List.of("action")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
+        assertFalse(result.getPostContingencyResults().isEmpty());
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "tr2");
+        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result, "tr3");
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy");
+
+        assertEquals(393.15, result.getPreContingencyResult().getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(400.20, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(392.99, operatorStrategyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(400.20, postContingencyResult2.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
     }
 }

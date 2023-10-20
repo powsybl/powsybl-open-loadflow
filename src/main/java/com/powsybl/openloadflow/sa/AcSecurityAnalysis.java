@@ -78,10 +78,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // try for find all switches to be operated as actions.
         LfTopoConfig topoConfig = new LfTopoConfig();
         findAllSwitchesToOperate(network, actions, topoConfig);
-
-        // try to find all pst and rtc to retain because involved in pst and rtc actions
+        // try to find all pst and rtc to retain because involved in pst and rtc actions.
         findAllPtcToOperate(actions, topoConfig);
         findAllRtcToOperate(actions, topoConfig);
+        // try to find all shunts which section can change through actions.
+        findAllShuntsToOperate(actions, topoConfig);
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);

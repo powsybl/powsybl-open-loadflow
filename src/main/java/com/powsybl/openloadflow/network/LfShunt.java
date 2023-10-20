@@ -108,6 +108,10 @@ public interface LfShunt extends LfElement {
             }
             return Optional.empty();
         }
+
+        public void updateSectionB(int newPosition) {
+            position = newPosition;
+        }
     }
 
     double getB();
