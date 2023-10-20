@@ -26,7 +26,7 @@ public class OlfThreeWindingsTransformerResult extends AbstractExtension<ThreeWi
 
     private final double angle3;
 
-    OlfThreeWindingsTransformerResult(double v1, double v2, double v3, double angle1, double angle2, double angle3) {
+    public OlfThreeWindingsTransformerResult(double v1, double v2, double v3, double angle1, double angle2, double angle3) {
         this.v1 = v1;
         this.v2 = v2;
         this.v3 = v3;
