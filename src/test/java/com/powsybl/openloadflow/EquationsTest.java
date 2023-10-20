@@ -274,6 +274,7 @@ class EquationsTest {
         var bus = Mockito.mock(LfBus.class, ANSWER);
         Mockito.doReturn(0).when(bus).getNum();
         Mockito.doReturn(bus).when(shunt).getBus();
+        Mockito.doReturn(false).when(bus).isDisabled();
 
         LfNetwork network = Mockito.mock(LfNetwork.class);
         Mockito.doReturn(List.of(shunt)).when(network).getShunts();

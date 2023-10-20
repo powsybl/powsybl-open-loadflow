@@ -8,10 +8,11 @@ package com.powsybl.openloadflow.equations;
 
 import gnu.trove.list.array.TIntArrayList;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.IntToDoubleFunction;
-import java.util.function.ToDoubleBiFunction;
-import java.util.function.ToDoubleFunction;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
