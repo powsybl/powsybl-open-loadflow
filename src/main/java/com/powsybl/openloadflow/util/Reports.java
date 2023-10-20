@@ -104,9 +104,9 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportRemoteReactivePowerControllerBusesToPqBuses(Reporter reporter, int switchCount) {
+    public static void reportReactiveControllerBusesToPqBuses(Reporter reporter, int switchCount) {
         reporter.report(Report.builder()
-                .withKey("remoteReactivePowerControllerToPq")
+                .withKey("remoteReactiveControllerBusToPq")
                 .withDefaultMessage("${count} remote reactive power controller buses have switched PQ")
                 .withValue("count", switchCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)

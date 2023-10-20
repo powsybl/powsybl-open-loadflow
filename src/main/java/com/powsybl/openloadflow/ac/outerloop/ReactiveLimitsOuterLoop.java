@@ -197,10 +197,11 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     }
 
     /**
-     * A bus PV bus can be switched to PQ in 2 cases:
+     * A controller bus can be a controller bus with voltage control (1) or with remote reactive control (2).
+     * (1) A bus PV bus can be switched to PQ in 2 cases:
      *  - if Q equals to Qmax
      *  - if Q equals to Qmin
-     *  A remote reactive power controller bus can switch off control if its Q is out of limits too.
+     *  (2) A remote reactive controller can reach its Q limits: the control is switch off.
      */
     private static void checkControllerBus(LfBus controllerBus, List<ControllerBusToPqBus> buses, MutableInt remainingUnchangedBusCount) {
         double minQ = controllerBus.getMinQ();
@@ -249,10 +250,10 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         });
     }
 
-    private static boolean switchRemoteReactivePowerControlBusPq(List<ControllerBusToPqBus> remoteReactivePowerControlBusesToPqBuses, Reporter reporter) {
+    private static boolean switchReactiveControllerBusPq(List<ControllerBusToPqBus> reactiveControllerBusesToPqBuses, Reporter reporter) {
         int switchCount = 0;
 
-        for (ControllerBusToPqBus bus : remoteReactivePowerControlBusesToPqBuses) {
+        for (ControllerBusToPqBus bus : reactiveControllerBusesToPqBuses) {
             LfBus controllerBus = bus.controllerBus;
 
             controllerBus.setReactivePowerControlEnabled(false);
@@ -270,7 +271,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             }
         }
 
-        Reports.reportRemoteReactivePowerControllerBusesToPqBuses(reporter, switchCount);
+        Reports.reportReactiveControllerBusesToPqBuses(reporter, switchCount);
 
         LOGGER.info("{} remote reactive power controller buses switched PQ", switchCount);
 
@@ -301,7 +302,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         List<LfBus> busesWithUpdatedQLimits = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
-        List<ControllerBusToPqBus> remoteReactivePowerControlBusesToPqBuses = new ArrayList<>();
+        List<ControllerBusToPqBus> reactiveControllerBusesToPqBuses = new ArrayList<>();
         MutableInt remainingBusWithReactivePowerControlCount = new MutableInt();
 
         context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).forEach(bus -> {
@@ -317,7 +318,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             if (bus.isReactivePowerControlEnabled()) {
                 // a bus that has a remote reactive generator power control, if its reactive limits are not respected,
                 // will become a classical PQ bus at reactive limits.
-                checkControllerBus(bus, remoteReactivePowerControlBusesToPqBuses, remainingBusWithReactivePowerControlCount);
+                checkControllerBus(bus, reactiveControllerBusesToPqBuses, remainingBusWithReactivePowerControlCount);
             }
         });
 
@@ -334,7 +335,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                     busesWithUpdatedQLimits.size());
             status = OuterLoopStatus.UNSTABLE;
         }
-        if (!remoteReactivePowerControlBusesToPqBuses.isEmpty() && switchRemoteReactivePowerControlBusPq(remoteReactivePowerControlBusesToPqBuses, reporter)) {
+        if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, reporter)) {
             status = OuterLoopStatus.UNSTABLE;
         }
 
