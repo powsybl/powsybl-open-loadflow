@@ -634,4 +634,27 @@ class AcLoadFlowShuntTest {
         assertEquals(1, shunt.getSectionCount());
         assertReactivePowerEquals(-134.585, g2.getTerminal());
     }
+
+    @Test
+    void testVoltageControlWithGeneratorNonImpedant() {
+        Network network = ShuntNetworkFactory.createWithGeneratorAndShuntNonImpedant();
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        ShuntCompensator shunt = network.getShuntCompensator("SHUNT");
+        shunt.setTargetDeadband(2);
+        ShuntCompensator shunt2 = network.getShuntCompensator("SHUNT2");
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Generator g2 = network.getGenerator("g2");
+        network.getGenerator("g2").newMinMaxReactiveLimits().setMinQ(-150).setMaxQ(150).add();
+
+        // Generator reactive capability is not enough to hold voltage alone but with shunt it is ok
+        shunt.setVoltageRegulatorOn(true);
+        shunt2.setVoltageRegulatorOn(true);
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isOk());
+        assertVoltageEquals(393, b3);
+        assertEquals(1, shunt.getSectionCount());
+        assertEquals(0, shunt2.getSectionCount());
+        assertReactivePowerEquals(-134.585, g2.getTerminal());
+    }
 }
