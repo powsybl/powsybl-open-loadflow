@@ -63,10 +63,14 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
         if (branchesToOpen.size() + branchesToClose.size() > 0) {
             GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
             connectivity.startTemporaryChanges();
-            branchesToOpen.forEach(connectivity::removeEdge);
-            branchesToClose.forEach(branch -> connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch));
-            LfAction.updateBusesAndBranchStatus(connectivity);
-            status = OuterLoopStatus.UNSTABLE;
+            try {
+                branchesToOpen.forEach(connectivity::removeEdge);
+                branchesToClose.forEach(branch -> connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch));
+                LfAction.updateBusesAndBranchStatus(connectivity);
+                status = OuterLoopStatus.UNSTABLE;
+            } finally {
+                connectivity.undoTemporaryChanges();
+            }
         }
 
         return status;
