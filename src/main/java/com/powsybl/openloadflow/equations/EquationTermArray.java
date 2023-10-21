@@ -9,19 +9,24 @@ package com.powsybl.openloadflow.equations;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.util.Objects;
-import java.util.function.IntToDoubleFunction;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class EquationTermArray {
 
-    final IntToDoubleFunction evaluator;
+    @FunctionalInterface
+    public interface Evaluator {
+
+        void eval(TIntArrayList elementNums, double[] values);
+    }
+
+    final Evaluator evaluator;
 
     final TIntArrayList elementNums = new TIntArrayList();
     final TIntArrayList termElementNums = new TIntArrayList();
 
-    public EquationTermArray(IntToDoubleFunction evaluator) {
+    public EquationTermArray(Evaluator evaluator) {
         this.evaluator = Objects.requireNonNull(evaluator);
     }
 

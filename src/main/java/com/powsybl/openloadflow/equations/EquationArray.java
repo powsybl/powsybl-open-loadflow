@@ -84,11 +84,12 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         Arrays.fill(values, firstColumn, firstColumn + length, 0);
         for (EquationTermArray termArray : termArrays) {
             int column = firstColumn;
+            double[] termValues = new double[termArray.termElementNums.size()];
+            termArray.evaluator.eval(termArray.termElementNums, values);
             for (int i = 0; i < termArray.elementNums.size(); i++) {
                 int elementNum = termArray.elementNums.get(i);
                 if (elementActive[elementNum]) {
-                    int termElementNum = termArray.termElementNums.get(i);
-                    values[column++] += termArray.evaluator.applyAsDouble(termElementNum);
+                    values[column++] += termValues[i];
                 }
             }
         }

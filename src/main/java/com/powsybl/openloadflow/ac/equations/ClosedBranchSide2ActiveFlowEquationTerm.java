@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
+import gnu.trove.list.array.TIntArrayList;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -78,8 +79,11 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return -y * R2 * v1 * v2 * sinTheta;
     }
 
-    public static double eval(AcBranchVector branchVector, int branchNum) {
-        return branchVector.p2[branchNum];
+    public static void eval(AcBranchVector branchVector, TIntArrayList branchNums, double[] values) {
+        for (int i = 0; i < branchNums.size(); i++) {
+            int branchNum = branchNums.getQuick(i);
+            values[branchNum] = branchVector.p2[branchNum];
+        }
     }
 
     @Override
