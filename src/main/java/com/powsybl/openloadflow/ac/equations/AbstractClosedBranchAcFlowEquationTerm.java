@@ -30,11 +30,11 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final Variable<AcVariableType> ph2Var;
 
-    protected final Variable<AcVariableType> a1Var;
+    protected Variable<AcVariableType> a1Var;
 
-    protected final Variable<AcVariableType> r1Var;
+    protected Variable<AcVariableType> r1Var;
 
-    protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
+    protected final List<Variable<AcVariableType>> variables;
 
     private static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
         return switch (sequenceType) {
@@ -57,24 +57,40 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
                                                      Fortescue.SequenceType sequenceType) {
         super(branchVector, branchNum);
         Objects.requireNonNull(variableSet);
+        variables = createVariable(branchVector, branchNum, variableSet, deriveA1, deriveR1, sequenceType);
+        v1Var = variables.get(0);
+        v2Var = variables.get(1);
+        ph1Var = variables.get(2);
+        ph2Var = variables.get(3);
+        if (deriveA1) {
+            a1Var = variables.get(4);
+            if (deriveR1) {
+                r1Var = variables.get(5);
+            }
+        } else if (deriveR1) {
+            r1Var = variables.get(4);
+        }
+    }
+
+    public static List<Variable<AcVariableType>> createVariable(AcBranchVector branchVector, int branchNum,
+                                                                VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1,
+                                                                Fortescue.SequenceType sequenceType) {
         AcVariableType vType = getVoltageMagnitudeType(sequenceType);
         AcVariableType angleType = getVoltageAngleType(sequenceType);
-        v1Var = variableSet.getVariable(bus1Num, vType);
-        v2Var = variableSet.getVariable(bus2Num, vType);
-        ph1Var = variableSet.getVariable(bus1Num, angleType);
-        ph2Var = variableSet.getVariable(bus2Num, angleType);
-        a1Var = deriveA1 ? variableSet.getVariable(branchNum, AcVariableType.BRANCH_ALPHA1) : null;
-        r1Var = deriveR1 ? variableSet.getVariable(branchNum, AcVariableType.BRANCH_RHO1) : null;
-        variables.add(v1Var);
-        variables.add(v2Var);
-        variables.add(ph1Var);
-        variables.add(ph2Var);
-        if (a1Var != null) {
-            variables.add(a1Var);
+        int bus1Num = branchVector.bus1Num[branchNum];
+        int bus2Num = branchVector.bus2Num[branchNum];
+        List<Variable<AcVariableType>> variables = new ArrayList<>(6);
+        variables.add(variableSet.getVariable(bus1Num, vType));
+        variables.add(variableSet.getVariable(bus2Num, vType));
+        variables.add(variableSet.getVariable(bus1Num, angleType));
+        variables.add(variableSet.getVariable(bus2Num, angleType));
+        if (deriveA1) {
+            variables.add(variableSet.getVariable(branchNum, AcVariableType.BRANCH_ALPHA1));
         }
-        if (r1Var != null) {
-            variables.add(r1Var);
+        if (deriveR1) {
+            variables.add(variableSet.getVariable(branchNum, AcVariableType.BRANCH_RHO1));
         }
+        return variables;
     }
 
     public Variable<AcVariableType> getA1Var() {

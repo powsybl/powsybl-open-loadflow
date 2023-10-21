@@ -8,31 +8,42 @@ package com.powsybl.openloadflow.equations;
 
 import gnu.trove.list.array.TIntArrayList;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class EquationTermArray {
+public class EquationTermArray<V extends Enum<V> & Quantity> {
 
     @FunctionalInterface
     public interface Evaluator {
 
-        void eval(TIntArrayList elementNums, double[] values);
+        void eval(TIntArrayList termElementNums, double[] values);
+    }
+
+    @FunctionalInterface
+    public interface VariableCreator<V extends Enum<V> & Quantity> {
+
+        List<Variable<V>> create(int elementNum);
     }
 
     final Evaluator evaluator;
 
+    final VariableCreator<V> variableCreator;
+
     final TIntArrayList elementNums = new TIntArrayList();
     final TIntArrayList termElementNums = new TIntArrayList();
 
-    public EquationTermArray(Evaluator evaluator) {
+    public EquationTermArray(Evaluator evaluator, VariableCreator<V> variableCreator) {
         this.evaluator = Objects.requireNonNull(evaluator);
+        this.variableCreator = Objects.requireNonNull(variableCreator);
     }
 
-    public EquationTermArray addTerm(int elementNum, int termElementNum) {
+    public EquationTermArray<V> addTerm(int elementNum, int termElementNum) {
         elementNums.add(elementNum);
         termElementNums.add(termElementNum);
+        variableCreator.create(termElementNum);
         return this;
     }
 }

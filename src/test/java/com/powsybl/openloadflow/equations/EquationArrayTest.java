@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.util.Fortescue;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -48,13 +49,18 @@ class EquationArrayTest {
 
     private EquationSystem<AcVariableType, AcEquationType> createEquationSystemUsingArrayEquations(LfNetwork lfNetwork) {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, lfNetwork);
+        VariableSet<AcVariableType> variableSet = equationSystem.getVariableSet();
         AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters();
         AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem, creationParameters);
         AcBranchVector branchVector = networkVector.getBranchVector();
         EquationArray<AcVariableType, AcEquationType> p = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
-        var p1Array = new EquationTermArray((branchNum, values) -> ClosedBranchSide1ActiveFlowEquationTerm.eval(branchVector, branchNum, values));
+        var p1Array = new EquationTermArray<>(
+                (branchNums, values) -> ClosedBranchSide1ActiveFlowEquationTerm.eval(branchVector, branchNums, values),
+                branchNum -> ClosedBranchSide1ActiveFlowEquationTerm.createVariable(branchVector, branchNum, variableSet, branchVector.deriveA1[branchNum], branchVector.deriveR1[branchNum], Fortescue.SequenceType.POSITIVE));
         p.addTermArray(p1Array);
-        var p2Array = new EquationTermArray((branchNum, values) -> ClosedBranchSide2ActiveFlowEquationTerm.eval(branchVector, branchNum, values));
+        var p2Array = new EquationTermArray<>(
+                (branchNum, values) -> ClosedBranchSide2ActiveFlowEquationTerm.eval(branchVector, branchNum, values),
+                branchNum -> ClosedBranchSide2ActiveFlowEquationTerm.createVariable(branchVector, branchNum, variableSet, branchVector.deriveA1[branchNum], branchVector.deriveR1[branchNum], Fortescue.SequenceType.POSITIVE));
         p.addTermArray(p2Array);
         for (LfBranch branch : lfNetwork.getBranches()) {
             LfBus bus1 = branch.getBus1();

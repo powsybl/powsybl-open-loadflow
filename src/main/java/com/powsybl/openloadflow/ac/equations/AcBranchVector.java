@@ -40,8 +40,8 @@ public class AcBranchVector implements ElementVector {
 
     final boolean[] disabled;
 
-    final boolean[] deriveA1;
-    final boolean[] deriveR1;
+    public final boolean[] deriveA1;
+    public final boolean[] deriveR1;
 
     public final int[] v1Row;
     public final int[] v2Row;
