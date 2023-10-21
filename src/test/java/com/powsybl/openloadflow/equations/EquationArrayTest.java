@@ -52,10 +52,10 @@ class EquationArrayTest {
         AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem, creationParameters);
         AcBranchVector branchVector = networkVector.getBranchVector();
         EquationArray<AcVariableType, AcEquationType> p = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
-        var p1Array = p.createTermArray(ClosedBranchSide1ActiveFlowEquationTerm.class,
-                                        branchNum -> ClosedBranchSide1ActiveFlowEquationTerm.eval(branchVector, branchNum));
-        var p2Array = p.createTermArray(ClosedBranchSide2ActiveFlowEquationTerm.class,
-                                        branchNum -> ClosedBranchSide2ActiveFlowEquationTerm.eval(branchVector, branchNum));
+        var p1Array = new EquationTermArray(branchNum -> ClosedBranchSide1ActiveFlowEquationTerm.eval(branchVector, branchNum));
+        p.addTermArray(p1Array);
+        var p2Array = new EquationTermArray(branchNum -> ClosedBranchSide2ActiveFlowEquationTerm.eval(branchVector, branchNum));
+        p.addTermArray(p2Array);
         for (LfBranch branch : lfNetwork.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
