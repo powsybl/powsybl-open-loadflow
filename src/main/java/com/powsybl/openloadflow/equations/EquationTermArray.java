@@ -37,7 +37,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     final TIntArrayList equationElementNums = new TIntArrayList();
     final TIntArrayList equationTermElementNums = new TIntArrayList();
-    final List<List<Variable<V>>> variables = new ArrayList<>();
+    final List<List<Variable<V>>> equationTermsVariables = new ArrayList<>();
 
     public EquationTermArray(Evaluator evaluator, VariableCreator<V> variableCreator) {
         this.evaluator = Objects.requireNonNull(evaluator);
@@ -51,8 +51,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     public EquationTermArray<V, E> addTerm(int equationElementNum, int equationTermElementNum) {
         equationElementNums.add(equationElementNum);
         equationTermElementNums.add(equationTermElementNum);
-        variables.add(variableCreator.create(equationTermElementNum));
-        equationSystem.notifyEquationTermArrayChange(this, equationElementNum, equationTermElementNum);
+        List<Variable<V>> variables = variableCreator.create(equationTermElementNum);
+        equationTermsVariables.add(variables);
+        equationSystem.notifyEquationTermArrayChange(this, equationElementNum, equationTermElementNum, variables);
         return this;
     }
 }

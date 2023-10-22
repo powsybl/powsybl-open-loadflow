@@ -91,7 +91,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private void addTerm(EquationTerm<V, E> term) {
         notifyEquationTermChange(term);
-        for (Variable<V> variable : term.getVariables()) {
+        addVariables(term.getVariables());
+    }
+
+    private void addVariables(List<Variable<V>> variables) {
+        for (Variable<V> variable : variables) {
             MutableInt variableRefCount = variablesToFindRefCount.get(variable);
             if (variableRefCount == null) {
                 variableRefCount = new MutableInt(1);
@@ -196,8 +200,9 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     @Override
-    public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum) {
-        // TODO
+    public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum, List<Variable<V>> variables) {
+        addVariables(variables);
+        // TODO notif
     }
 
     public List<Equation<V, E>> getSortedEquationsToSolve() {

@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -15,5 +17,5 @@ public interface EquationSystemListener<V extends Enum<V> & Quantity, E extends 
 
     void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType);
 
-    void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum);
+    void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum, List<Variable<V>> variables);
 }

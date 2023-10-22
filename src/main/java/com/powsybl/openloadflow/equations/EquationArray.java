@@ -23,6 +23,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private int firstColumn = -1;
 
+    private int[] elementNumToColumn;
+
     private int length;
 
     public EquationArray(E type, int elementCount, EquationSystem<V, E> equationSystem) {
@@ -40,6 +42,27 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     public int getElementCount() {
         return elementCount;
+    }
+
+    public int[] getElementNumToColumn() {
+        if (elementNumToColumn == null) {
+            elementNumToColumn = new int[elementCount];
+            int column = firstColumn;
+            for (int elementNum = 0; elementNum < elementCount; elementNum++) {
+                if (elementActive[elementNum]) {
+                    elementNumToColumn[elementNum] = column++;
+                }
+            }
+        }
+        return elementNumToColumn;
+    }
+
+    public int getElementNumToColumn(int elementNum) {
+        return getElementNumToColumn()[elementNum];
+    }
+
+    private void invalidateElementNumToColumn() {
+        elementNumToColumn = null;
     }
 
     public EquationSystem<V, E> getEquationSystem() {
@@ -70,6 +93,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             } else {
                 length--;
             }
+            invalidateElementNumToColumn();
             // TODO notify equation system listeners
         }
     }
@@ -85,13 +109,12 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     public void eval(double[] values) {
         Arrays.fill(values, firstColumn, firstColumn + length, 0);
         for (EquationTermArray<V, E> termArray : termArrays) {
-            int column = firstColumn;
             double[] termArrayValues = new double[termArray.equationTermElementNums.size()];
-            termArray.evaluator.eval(termArray.equationTermElementNums, values);
+            termArray.evaluator.eval(termArray.equationTermElementNums, termArrayValues);
             for (int i = 0; i < termArray.equationElementNums.size(); i++) {
                 int elementNum = termArray.equationElementNums.get(i);
                 if (elementActive[elementNum]) {
-                    values[column++] += termArrayValues[i];
+                    values[getElementNumToColumn(elementNum)] += termArrayValues[i];
                 }
             }
         }
