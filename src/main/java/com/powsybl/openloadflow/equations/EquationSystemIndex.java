@@ -70,12 +70,15 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
             for (Equation<V, E> equation : sortedEquationsToSolve) {
                 equation.setColumn(columnCount++);
             }
+            int columnCountFromArrayEquations = 0;
             for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
                 equationArray.setFirstColumn(columnCount);
                 columnCount += equationArray.getLength();
+                columnCountFromArrayEquations += equationArray.getLength();
             }
             equationsIndexValid = true;
-            LOGGER.debug("Equations index updated ({} columns)", columnCount);
+            LOGGER.debug("Equations index updated ({} columns including {} from array equations)",
+                    columnCount, columnCountFromArrayEquations);
         }
 
         if (!variablesIndexValid) {
