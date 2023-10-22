@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
@@ -20,6 +21,7 @@ import com.powsybl.openloadflow.util.Fortescue;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -73,6 +75,28 @@ class EquationArrayTest {
         return equationSystem;
     }
 
+    private static DenseMatrix calculateDer(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        int rowCount = equationSystem.getIndex().getSortedVariablesToFind().size();
+        int columnCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        DenseMatrix m = new DenseMatrix(rowCount, columnCount);
+        for (var eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+            int column = eq.getColumn();
+            eq.der((variable, value, matrixElementIndex) -> {
+                int row = variable.getRow();
+                m.set(row, column, value);
+                return matrixElementIndex;
+            });
+        }
+        for (var eq : equationSystem.getEquationArrays()) {
+            eq.der((column, variable, value, matrixElementIndex) -> {
+                int row = variable.getRow();
+                m.set(row, column, value);
+                return matrixElementIndex;
+            });
+        }
+        return m;
+    }
+
     @Test
     void test() {
         Network network = EurostagTutorialExample1Factory.create();
@@ -91,5 +115,8 @@ class EquationArrayTest {
         }
 
         assertArrayEquals(values, values2);
+        DenseMatrix derValues = calculateDer(equationSystem);
+        DenseMatrix derValues2 = calculateDer(equationSystem2);
+        assertEquals(derValues, derValues2);
     }
 }
