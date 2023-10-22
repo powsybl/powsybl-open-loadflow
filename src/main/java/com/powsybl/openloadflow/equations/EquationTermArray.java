@@ -8,13 +8,14 @@ package com.powsybl.openloadflow.equations;
 
 import gnu.trove.list.array.TIntArrayList;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class EquationTermArray<V extends Enum<V> & Quantity> {
+public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
     @FunctionalInterface
     public interface Evaluator {
@@ -28,22 +29,30 @@ public class EquationTermArray<V extends Enum<V> & Quantity> {
         List<Variable<V>> create(int elementNum);
     }
 
+    private EquationSystem<V, E> equationSystem;
+
     final Evaluator evaluator;
 
     final VariableCreator<V> variableCreator;
 
-    final TIntArrayList elementNums = new TIntArrayList();
-    final TIntArrayList termElementNums = new TIntArrayList();
+    final TIntArrayList equationElementNums = new TIntArrayList();
+    final TIntArrayList equationTermElementNums = new TIntArrayList();
+    final List<List<Variable<V>>> variables = new ArrayList<>();
 
     public EquationTermArray(Evaluator evaluator, VariableCreator<V> variableCreator) {
         this.evaluator = Objects.requireNonNull(evaluator);
         this.variableCreator = Objects.requireNonNull(variableCreator);
     }
 
-    public EquationTermArray<V> addTerm(int elementNum, int termElementNum) {
-        elementNums.add(elementNum);
-        termElementNums.add(termElementNum);
-        variableCreator.create(termElementNum);
+    void setEquationSystem(EquationSystem<V, E> equationSystem) {
+        this.equationSystem = equationSystem;
+    }
+
+    public EquationTermArray<V, E> addTerm(int equationElementNum, int equationTermElementNum) {
+        equationElementNums.add(equationElementNum);
+        equationTermElementNums.add(equationTermElementNum);
+        variables.add(variableCreator.create(equationTermElementNum));
+        equationSystem.notifyEquationTermArrayChange(this, equationElementNum, equationTermElementNum);
         return this;
     }
 }

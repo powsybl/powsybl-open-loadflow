@@ -54,11 +54,11 @@ class EquationArrayTest {
         AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem, creationParameters);
         AcBranchVector branchVector = networkVector.getBranchVector();
         EquationArray<AcVariableType, AcEquationType> p = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
-        var p1Array = new EquationTermArray<>(
+        EquationTermArray<AcVariableType, AcEquationType> p1Array = new EquationTermArray<>(
                 (branchNums, values) -> ClosedBranchSide1ActiveFlowEquationTerm.eval(branchVector, branchNums, values),
                 branchNum -> ClosedBranchSide1ActiveFlowEquationTerm.createVariable(branchVector, branchNum, variableSet, branchVector.deriveA1[branchNum], branchVector.deriveR1[branchNum], Fortescue.SequenceType.POSITIVE));
         p.addTermArray(p1Array);
-        var p2Array = new EquationTermArray<>(
+        EquationTermArray<AcVariableType, AcEquationType> p2Array = new EquationTermArray<>(
                 (branchNum, values) -> ClosedBranchSide2ActiveFlowEquationTerm.eval(branchVector, branchNum, values),
                 branchNum -> ClosedBranchSide2ActiveFlowEquationTerm.createVariable(branchVector, branchNum, variableSet, branchVector.deriveA1[branchNum], branchVector.deriveR1[branchNum], Fortescue.SequenceType.POSITIVE));
         p.addTermArray(p2Array);

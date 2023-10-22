@@ -74,22 +74,24 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    private final List<EquationTermArray> termArrays = new ArrayList<>();
+    private final List<EquationTermArray<V, E>> termArrays = new ArrayList<>();
 
-    public void addTermArray(EquationTermArray termArray) {
+    public void addTermArray(EquationTermArray<V, E> termArray) {
+        Objects.requireNonNull(termArray);
+        termArray.setEquationSystem(equationSystem);
         termArrays.add(termArray);
     }
 
     public void eval(double[] values) {
         Arrays.fill(values, firstColumn, firstColumn + length, 0);
-        for (EquationTermArray termArray : termArrays) {
+        for (EquationTermArray<V, E> termArray : termArrays) {
             int column = firstColumn;
-            double[] termValues = new double[termArray.termElementNums.size()];
-            termArray.evaluator.eval(termArray.termElementNums, values);
-            for (int i = 0; i < termArray.elementNums.size(); i++) {
-                int elementNum = termArray.elementNums.get(i);
+            double[] termArrayValues = new double[termArray.equationTermElementNums.size()];
+            termArray.evaluator.eval(termArray.equationTermElementNums, values);
+            for (int i = 0; i < termArray.equationElementNums.size(); i++) {
+                int elementNum = termArray.equationElementNums.get(i);
                 if (elementActive[elementNum]) {
-                    values[column++] += termValues[i];
+                    values[column++] += termArrayValues[i];
                 }
             }
         }

@@ -195,6 +195,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
+    @Override
+    public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum) {
+        // TODO
+    }
+
     public List<Equation<V, E>> getSortedEquationsToSolve() {
         update();
         return sortedEquationsToSolve;
