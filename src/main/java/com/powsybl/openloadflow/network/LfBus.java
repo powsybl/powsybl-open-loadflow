@@ -77,6 +77,12 @@ public interface LfBus extends LfElement {
 
     void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
 
+    boolean hasReactivePowerControl();
+
+    boolean isReactivePowerControlEnabled();
+
+    void setReactivePowerControlEnabled(boolean reactivePowerControlEnabled);
+
     double getTargetP();
 
     double getTargetQ();
