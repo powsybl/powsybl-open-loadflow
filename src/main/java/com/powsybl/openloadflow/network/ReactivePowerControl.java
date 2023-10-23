@@ -46,7 +46,9 @@ public class ReactivePowerControl extends Control {
         return controllerBuses;
     }
 
-    public LfBus getMainControllerBus() { return controllerBuses.isEmpty() ? null : controllerBuses.get(0); }
+    public LfBus getMainControllerBus() {
+        return controllerBuses.isEmpty() ? null : controllerBuses.get(0);
+    }
 
     public void addControllerBus(LfBus controllerElement) {
         controllerBuses.add(Objects.requireNonNull(controllerElement));
