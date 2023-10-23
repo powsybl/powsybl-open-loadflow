@@ -1911,6 +1911,23 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testWithReactivePowerRemoteControl() {
+        Network network = ReactivePowerControlNetworkFactory.createWithGeneratorRemoteControl();
+        List<Contingency> contingencies = List.of(new Contingency("contingency",
+                List.of(new BranchContingency("l34"), new BranchContingency("l12"))));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setUseReactiveLimits(true);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setReactivePowerRemoteControl(true);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        assertDoesNotThrow(() -> {
+            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        });
+    }
+
+    @Test
     void testWithTransformerVoltageControl() {
         Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("T2wT2"))));
@@ -2239,5 +2256,57 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(390.0, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "contingency");
         assertEquals(390.0, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
+    }
+
+    @Test
+    void testVoltageAngleLimit() {
+        Network network = EurostagTutorialExample1Factory.create();
+        Line line = network.getLine("NHV1_NHV2_1");
+        network.newVoltageAngleLimit()
+                .setId("val")
+                .from(line.getTerminal1())
+                .to(line.getTerminal2())
+                .setHighLimit(7.0)
+                .setLowLimit(-7.0)
+                .add();
+        loadFlowRunner.run(network);
+        assertAngleEquals(0.0, line.getTerminal1().getBusView().getBus());
+        assertAngleEquals(-3.506413, line.getTerminal2().getBusView().getBus());
+        network.getLine("NHV1_NHV2_2").getTerminal1().disconnect();
+        network.getLine("NHV1_NHV2_2").getTerminal2().disconnect();
+        loadFlowRunner.run(network);
+        assertAngleEquals(0.0, line.getTerminal1().getBusView().getBus());
+        assertAngleEquals(-7.498849, line.getTerminal2().getBusView().getBus());
+
+        network.getLine("NHV1_NHV2_2").getTerminal1().connect();
+        network.getLine("NHV1_NHV2_2").getTerminal2().connect();
+        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("NHV1_NHV2_2"))));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
+        LimitViolation limit = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
+        assertEquals(LimitViolationType.LOW_VOLTAGE_ANGLE, limit.getLimitType());
+        assertEquals(-7.498847, limit.getValue(), DELTA_ANGLE);
+
+        network.getVoltageAngleLimit("val").remove();
+        network.newVoltageAngleLimit()
+                .setId("val")
+                .from(line.getTerminal2())
+                .to(line.getTerminal1())
+                .setHighLimit(7.0)
+                .setLowLimit(-7.0)
+                .add();
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
+        LimitViolation limit2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
+        assertEquals(LimitViolationType.HIGH_VOLTAGE_ANGLE, limit2.getLimitType());
+        assertEquals(7.498847, limit2.getValue(), DELTA_ANGLE);
+
+        network.getVoltageAngleLimit("val").remove();
+        network.newVoltageAngleLimit()
+                .setId("val")
+                .from(line.getTerminal2())
+                .to(line.getTerminal1())
+                .setLowLimit(-7.0)
+                .add();
+        SecurityAnalysisResult result3 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
+        assertTrue(result3.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().isEmpty());
     }
 }

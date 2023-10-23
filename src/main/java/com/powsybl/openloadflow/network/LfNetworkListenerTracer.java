@@ -48,6 +48,13 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
+    public void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
+        LOGGER.trace("onReactivePowerControlChange(controllerBusId='{}', newReactiveControllerEnabled={})",
+                controllerBus.getId(), newReactiveControllerEnabled);
+        delegate.onReactivePowerControlChange(controllerBus, newReactiveControllerEnabled);
+    }
+
+    @Override
     public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
         LOGGER.trace("onTransformerPhaseControlChange(controllerBranchId='{}', newPhaseControlEnabled={})",
                 controllerBranch.getId(), newPhaseControlEnabled);

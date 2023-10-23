@@ -10,13 +10,14 @@ public class GeneratorReactivePowerControl extends ReactivePowerControl {
     }
 
     @Override
-    public void addControllerElement(LfBus controllerBus) {
-        super.addControllerElement(controllerBus);
+    public void addControllerBus(LfBus controllerBus) {
+        super.addControllerBus(controllerBus);
         controllerBus.setGeneratorReactivePowerControl(this);
+        controllerBus.setReactivePowerControlEnabled(true);
     }
 
     public void updateReactiveKeys() {
-        updateReactiveKeys(controllerElements);
+        updateReactiveKeys(controllerBuses);
     }
 
     public static void updateReactiveKeys(List<LfBus> controllerBuses) {

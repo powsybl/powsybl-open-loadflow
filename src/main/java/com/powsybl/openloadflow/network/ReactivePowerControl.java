@@ -25,7 +25,7 @@ public class ReactivePowerControl extends Control {
 
     protected final ControlledSide controlledSide;
 
-    protected final List<LfBus> controllerElements = new ArrayList<>();
+    protected final List<LfBus> controllerBuses = new ArrayList<>();
 
     public ReactivePowerControl(double targetValue, Type type, LfBranch controlledBranch, ControlledSide controlledSide) {
         super(targetValue);
@@ -42,12 +42,14 @@ public class ReactivePowerControl extends Control {
         return controlledSide;
     }
 
-    public List<LfBus> getControllerElements() {
-        return controllerElements;
+    public List<LfBus> getControllerBuses() {
+        return controllerBuses;
     }
 
-    public void addControllerElement(LfBus controllerElement) {
-        controllerElements.add(Objects.requireNonNull(controllerElement));
+    public LfBus getMainControllerBus() { return controllerBuses.isEmpty() ? null : controllerBuses.get(0); }
+
+    public void addControllerBus(LfBus controllerElement) {
+        controllerBuses.add(Objects.requireNonNull(controllerElement));
     }
 
     public ReactivePowerControl.Type getType() {

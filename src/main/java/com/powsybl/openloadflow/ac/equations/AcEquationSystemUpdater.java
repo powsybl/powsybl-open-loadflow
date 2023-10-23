@@ -44,12 +44,17 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     @Override
     public void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
         updateVoltageControls(controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus());
-        controllerBus.getGeneratorReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
     }
 
     @Override
     public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
         AcEquationSystemCreator.updateTransformerPhaseControlEquations(controllerBranch.getPhaseControl().orElseThrow(), equationSystem);
+    }
+
+    @Override
+    public void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
+        ReactivePowerControl reactivePowerControl = controllerBus.getGeneratorReactivePowerControl().orElseThrow();
+        AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem);
     }
 
     @Override

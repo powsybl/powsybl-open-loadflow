@@ -79,6 +79,12 @@ public interface LfBus extends LfElement {
 
     boolean hasGeneratorReactivePowerControl();
 
+    boolean hasReactivePowerControl();
+
+    boolean isReactivePowerControlEnabled();
+
+    void setReactivePowerControlEnabled(boolean reactivePowerControlEnabled);
+
     double getTargetP();
 
     double getTargetQ();
@@ -137,7 +143,7 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getSvcShunt();
 
-    Optional<LfLoad> getLoad();
+    List<LfLoad> getLoads();
 
     List<LfBranch> getBranches();
 
