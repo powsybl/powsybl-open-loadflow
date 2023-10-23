@@ -20,17 +20,18 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  */
 public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBranchDcFlowEquationTerm {
 
-    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet, boolean deriveA1, boolean useTransformerRatio) {
-        super(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
+    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
+                                                boolean deriveA1, boolean useTransformerRatio, DcApproximationType dcApproximationType) {
+        super(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio, dcApproximationType);
     }
 
     public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
-                                                             boolean deriveA1, boolean useTransformerRatio) {
+                                                             boolean deriveA1, boolean useTransformerRatio, DcApproximationType dcApproximationType) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
-        return new ClosedBranchSide1DcFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
+        return new ClosedBranchSide1DcFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio, dcApproximationType);
     }
 
     @Override
