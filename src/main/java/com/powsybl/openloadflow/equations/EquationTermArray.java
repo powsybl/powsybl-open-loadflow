@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.util.trove.TBooleanArrayList;
+import com.powsybl.openloadflow.network.ElementType;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.util.ArrayList;
@@ -29,6 +31,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         List<Variable<V>> create(int elementNum);
     }
 
+    private final ElementType elementType;
+
     private EquationSystem<V, E> equationSystem;
 
     final Evaluator evaluator;
@@ -37,11 +41,17 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     final TIntArrayList equationElementNums = new TIntArrayList();
     final TIntArrayList equationTermElementNums = new TIntArrayList();
+    final TBooleanArrayList equationTermElementActive = new TBooleanArrayList(1);
     final List<List<Variable<V>>> equationTermsVariables = new ArrayList<>();
 
-    public EquationTermArray(Evaluator evaluator, VariableCreator<V> variableCreator) {
+    public EquationTermArray(ElementType elementType, Evaluator evaluator, VariableCreator<V> variableCreator) {
+        this.elementType = Objects.requireNonNull(elementType);
         this.evaluator = Objects.requireNonNull(evaluator);
         this.variableCreator = Objects.requireNonNull(variableCreator);
+    }
+
+    public ElementType getElementType() {
+        return elementType;
     }
 
     void setEquationSystem(EquationSystem<V, E> equationSystem) {
@@ -51,6 +61,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     public EquationTermArray<V, E> addTerm(int equationElementNum, int equationTermElementNum) {
         equationElementNums.add(equationElementNum);
         equationTermElementNums.add(equationTermElementNum);
+        equationTermElementActive.add(true);
         List<Variable<V>> variables = variableCreator.create(equationTermElementNum);
         equationTermsVariables.add(variables);
         equationSystem.notifyEquationTermArrayChange(this, equationElementNum, equationTermElementNum, variables);

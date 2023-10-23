@@ -113,7 +113,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             termArray.evaluator.eval(termArray.equationTermElementNums, termArrayValues);
             for (int i = 0; i < termArray.equationElementNums.size(); i++) {
                 int elementNum = termArray.equationElementNums.get(i);
-                if (elementActive[elementNum]) {
+                if (elementActive[elementNum] && termArray.equationTermElementActive.get(i)) {
                     values[getElementNumToColumn(elementNum)] += termArrayValues[i];
                 }
             }

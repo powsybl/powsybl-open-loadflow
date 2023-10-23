@@ -11,10 +11,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Fortescue;
@@ -57,12 +54,14 @@ class EquationArrayTest {
         AcBranchVector branchVector = networkVector.getBranchVector();
         EquationArray<AcVariableType, AcEquationType> p = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
         EquationTermArray<AcVariableType, AcEquationType> p1Array = new EquationTermArray<>(
+                ElementType.BRANCH,
                 (branchNums, values) -> ClosedBranchSide1ActiveFlowEquationTerm.eval(branchVector, branchNums, values),
-                branchNum -> ClosedBranchSide1ActiveFlowEquationTerm.createVariable(branchVector, branchNum, variableSet, branchVector.deriveA1[branchNum], branchVector.deriveR1[branchNum], Fortescue.SequenceType.POSITIVE));
+                branchNum -> AbstractClosedBranchAcFlowEquationTerm.createVariable(branchVector, branchNum, variableSet, branchVector.deriveA1[branchNum], branchVector.deriveR1[branchNum], Fortescue.SequenceType.POSITIVE));
         p.addTermArray(p1Array);
         EquationTermArray<AcVariableType, AcEquationType> p2Array = new EquationTermArray<>(
+                ElementType.BRANCH,
                 (branchNum, values) -> ClosedBranchSide2ActiveFlowEquationTerm.eval(branchVector, branchNum, values),
-                branchNum -> ClosedBranchSide2ActiveFlowEquationTerm.createVariable(branchVector, branchNum, variableSet, branchVector.deriveA1[branchNum], branchVector.deriveR1[branchNum], Fortescue.SequenceType.POSITIVE));
+                branchNum -> AbstractClosedBranchAcFlowEquationTerm.createVariable(branchVector, branchNum, variableSet, branchVector.deriveA1[branchNum], branchVector.deriveR1[branchNum], Fortescue.SequenceType.POSITIVE));
         p.addTermArray(p2Array);
         for (LfBranch branch : lfNetwork.getBranches()) {
             LfBus bus1 = branch.getBus1();
