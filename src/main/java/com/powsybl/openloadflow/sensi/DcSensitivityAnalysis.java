@@ -212,17 +212,19 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private static DcLoadFlowParameters createDcLoadFlowParameters(LfNetworkParameters networkParameters, MatrixFactory matrixFactory,
                                                                    LoadFlowParameters lfParameters, OpenLoadFlowParameters parametersExt) {
-        var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
-                true,
-                lfParameters.isDcUseTransformerRatio());
+        var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
+                .setUpdateFlows(true)
+                .setForcePhaseControlOffAndAddAngle1Var(true)
+                .setUseTransformerRatio(lfParameters.isDcUseTransformerRatio())
+                .setDcApproximationType(parametersExt.getDcApproximationType());
 
         return new DcLoadFlowParameters(networkParameters,
-                equationSystemCreationParameters,
-                matrixFactory,
-                lfParameters.isDistributedSlack(),
-                lfParameters.getBalanceType(),
-                true,
-                parametersExt.getMaxOuterLoopIterations());
+                                        equationSystemCreationParameters,
+                                        matrixFactory,
+                                        lfParameters.isDistributedSlack(),
+                                        lfParameters.getBalanceType(),
+                                        true,
+                                        parametersExt.getMaxOuterLoopIterations());
     }
 
     /**
@@ -457,8 +459,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private static double calculatePower(DcLoadFlowContext loadFlowContext, LfBranch lfBranch) {
         PiModel piModel = lfBranch.getPiModel();
-        boolean useTransformerRatio = loadFlowContext.getParameters().getEquationSystemCreationParameters().isUseTransformerRatio();
-        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(useTransformerRatio, piModel);
+        DcEquationSystemCreationParameters creationParameters = loadFlowContext.getParameters().getEquationSystemCreationParameters();
+        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
     /**
