@@ -669,6 +669,36 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testHvdcSensiDisconnected() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        HvdcLine hvdc34 = network.getHvdcLine("hvdc34");
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), false);
+
+        SensitivityFactor factor = new SensitivityFactor(
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "l12",
+                SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, "hvdc34",
+                false, ContingencyContext.all());
+
+        // disconnected both sides
+        hvdc34.getConverterStation1().getTerminal().disconnect();
+        hvdc34.getConverterStation2().getTerminal().disconnect();
+        SensitivityAnalysisResult result = sensiRunner.run(network, List.of(factor), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // disconnected other side
+        hvdc34.getConverterStation1().getTerminal().connect();
+        result = sensiRunner.run(network, List.of(factor), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(-0.325, result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // disconnected network side
+        hvdc34.getConverterStation1().getTerminal().disconnect();
+        hvdc34.getConverterStation2().getTerminal().connect();
+        result = sensiRunner.run(network, List.of(factor), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testBalanceTypeNotSupported() {
         // test injection increase on loads
         Network network = FourBusNetworkFactory.create();

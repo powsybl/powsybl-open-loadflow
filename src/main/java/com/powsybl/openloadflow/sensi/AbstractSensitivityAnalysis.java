@@ -838,7 +838,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         // try with an injection
         Injection<?> injection = getInjection(network, injectionId);
         if (injection != null) {
-            Bus bus = breakers ? injection.getTerminal().getBusBreakerView().getBus() : injection.getTerminal().getBusView().getBus();
+            Bus bus = Networks.getBus(injection.getTerminal(), breakers);
             if (bus == null) {
                 return null;
             }
@@ -861,7 +861,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 }
             });
             for (Terminal terminal : terminals) {
-                Bus bus = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+                Bus bus = Networks.getBus(terminal, breakers);
                 if (bus != null) {
                     return bus.getId();
                 }
@@ -872,7 +872,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         // try with a busbar section
         BusbarSection busbarSection = network.getBusbarSection(injectionId);
         if (busbarSection != null) {
-            Bus bus = breakers ? busbarSection.getTerminal().getBusBreakerView().getBus() : busbarSection.getTerminal().getBusView().getBus();
+            Bus bus = Networks.getBus(busbarSection.getTerminal(), breakers);
             if (bus == null) {
                 return null;
             }
@@ -1050,24 +1050,26 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     if (hvdcLine == null) {
                         throw new PowsyblException("HVDC line '" + variableId + "' cannot be found in the network.");
                     }
-                    LfBus bus1 = lfNetwork.getBusById(breakers ? hvdcLine.getConverterStation1().getTerminal().getBusBreakerView().getBus().getId() :
-                            hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
-                    LfBus bus2 = lfNetwork.getBusById(breakers ? hvdcLine.getConverterStation2().getTerminal().getBusBreakerView().getBus().getId() :
-                            hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
+                    Bus bus1 = Networks.getBus(hvdcLine.getConverterStation1().getTerminal(), breakers);
+                    Bus bus2 = Networks.getBus(hvdcLine.getConverterStation2().getTerminal(), breakers);
 
                     // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
                     // => we create a multi (bi) variables factor
                     Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
                     Set<String> originalVariableSetIds = new HashSet<>(2);
                     if (bus1 != null) {
-                        // FIXME: for LCC, Q changes when P changes
-                        injectionLfBuses.put(bus1, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
-                        originalVariableSetIds.add(hvdcLine.getConverterStation1().getId());
+                        LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
+                        if (lfBus1 != null) {
+                            injectionLfBuses.put(lfBus1, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
+                            originalVariableSetIds.add(hvdcLine.getConverterStation1().getId());
+                        }
                     }
                     if (bus2 != null) {
-                        // FIXME: for LCC, Q changes when P changes
-                        injectionLfBuses.put(bus2, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
-                        originalVariableSetIds.add(hvdcLine.getConverterStation2().getId());
+                        LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
+                        if (lfBus2 != null) {
+                            injectionLfBuses.put(lfBus2, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
+                            originalVariableSetIds.add(hvdcLine.getConverterStation2().getId());
+                        }
                     }
 
                     factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
@@ -1131,7 +1133,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                                                    LfNetwork lfNetwork) {
         checkRegulatingTerminal(network, variableId);
         Terminal regulatingTerminal = Networks.getEquipmentRegulatingTerminal(network, variableId).orElseThrow(); // this cannot fail because it is checked in checkRegulatingTerminal
-        Bus regulatedBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+        Bus regulatedBus = Networks.getBus(regulatingTerminal, breakers);
         return regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
     }
 
