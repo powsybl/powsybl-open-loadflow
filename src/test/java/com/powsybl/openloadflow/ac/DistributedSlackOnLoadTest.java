@@ -29,7 +29,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResults
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 class DistributedSlackOnLoadTest {
 

@@ -39,8 +39,8 @@ import java.util.Objects;
  *           [ y_21_pz y_21_pp y_21_pn y_22_pz y_22_pp y_22_pn ]
  *           [ y_21_nz y_21_np y_21_nn y_22_nz y_22_np y_22_nn ]
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm {
 

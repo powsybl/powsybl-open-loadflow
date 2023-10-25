@@ -38,7 +38,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class AsymmetricalLoadFlowTest {
 

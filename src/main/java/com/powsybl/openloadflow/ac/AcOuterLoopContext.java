@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.lf.outerloop.AbstractOuterLoopContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class AcOuterLoopContext extends AbstractOuterLoopContext<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext> {
 

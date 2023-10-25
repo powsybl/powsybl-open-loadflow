@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @see LinesWithDifferentNominalVoltagesNetworkFactory
  *
- * @author Damien Jeandemange <damien.jeandemange at artelys.com>
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 class LinesWithDifferentNominalVoltagesTest {
 

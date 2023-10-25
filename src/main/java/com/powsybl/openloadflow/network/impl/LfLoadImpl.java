@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
