@@ -140,4 +140,10 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
         LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={}, loadFlowModel={})", network1, network2, mergedNetwork, loadFlowModel);
         delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork, loadFlowModel);
     }
+
+    @Override
+    public void onBranchConnectionStatusChange(LfBranch branch, Side side, boolean connected) {
+        LOGGER.trace("onBranchConnectionStatusChange(branch={}, side={}, connected={})", branch, side, connected);
+        delegate.onBranchConnectionStatusChange(branch, side, connected);
+    }
 }

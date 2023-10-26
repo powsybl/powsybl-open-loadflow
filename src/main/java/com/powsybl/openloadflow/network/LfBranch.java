@@ -191,6 +191,22 @@ public interface LfBranch extends LfElement {
 
     boolean isConnectedAtBothSides();
 
+    boolean isConnectedSide1();
+
+    void setConnectedSide1(boolean connectedSide1);
+
+    boolean isConnectedSide2();
+
+    void setConnectedSide2(boolean connectedSide2);
+
+    boolean isDisconnectionAllowedSide1();
+
+    void setDisconnectionAllowedSide1(boolean disconnectionAllowedSide1);
+
+    void setDisconnectionAllowedSide2(boolean disconnectionAllowedSide2);
+
+    boolean isDisconnectionAllowedSide2();
+
     void setMinZ(double lowImpedanceThreshold);
 
     LfAsymLine getAsymLine();

@@ -160,4 +160,9 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             recreateDistributionEquations(mergedNetwork);
         }
     }
+
+    @Override
+    public void onBranchConnectionStatusChange(LfBranch branch, Side side, boolean connected) {
+        // TODO
+    }
 }

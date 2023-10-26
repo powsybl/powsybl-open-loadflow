@@ -92,4 +92,9 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel) {
         // empty
     }
+
+    @Override
+    public void onBranchConnectionStatusChange(LfBranch branch, Side side, boolean connected) {
+        // empty
+    }
 }

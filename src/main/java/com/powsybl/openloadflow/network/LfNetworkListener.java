@@ -44,4 +44,6 @@ public interface LfNetworkListener {
     void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowModel loadFlowModel);
 
     void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel);
+
+    void onBranchConnectionStatusChange(LfBranch branch, Side side, boolean connected);
 }
