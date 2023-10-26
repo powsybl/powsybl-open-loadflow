@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import java.util.List;
 import java.util.Objects;
@@ -108,6 +109,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 break;
             case BRANCH:
                 LfBranch branch = (LfBranch) element;
+                AcEquationSystemCreator.updateBranchEquations(branch);
                 branch.getVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 branch.getPhaseControl().ifPresent(phaseControl -> AcEquationSystemCreator.updateTransformerPhaseControlEquations(phaseControl, equationSystem));
                 branch.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
@@ -163,6 +165,28 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
 
     @Override
     public void onBranchConnectionStatusChange(LfBranch branch, Side side, boolean connected) {
-        // TODO
+        AcEquationSystemCreator.updateBranchEquations(branch);
+        if (branch.isConnectedSide1() && branch.isConnectedSide2()) {
+            branch.setP1(branch.getClosedP1());
+            branch.setQ1(branch.getClosedQ1());
+            branch.setI1(branch.getClosedI1());
+            branch.setP2(branch.getClosedP2());
+            branch.setQ2(branch.getClosedQ2());
+            branch.setI2(branch.getClosedI2());
+        } else if (!branch.isConnectedSide1() && branch.isConnectedSide2()) {
+            branch.setP1(EvaluableConstants.NAN);
+            branch.setQ1(EvaluableConstants.NAN);
+            branch.setI1(EvaluableConstants.NAN);
+            branch.setP2(branch.getOpenP2());
+            branch.setQ2(branch.getOpenQ2());
+            branch.setI2(branch.getOpenI2());
+        } else if (branch.isConnectedSide1() && !branch.isConnectedSide2()) {
+            branch.setP1(branch.getOpenP1());
+            branch.setQ1(branch.getOpenQ1());
+            branch.setI1(branch.getOpenI1());
+            branch.setP2(EvaluableConstants.NAN);
+            branch.setQ2(EvaluableConstants.NAN);
+            branch.setI2(EvaluableConstants.NAN);
+        }
     }
 }
