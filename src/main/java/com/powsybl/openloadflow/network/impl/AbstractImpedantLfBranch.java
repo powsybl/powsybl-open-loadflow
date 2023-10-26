@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
@@ -20,6 +18,14 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
+
+    protected boolean connectedSide1;
+
+    protected boolean connectedSide2;
+
+    protected boolean disconnectionAllowedSide1 = false;
+
+    protected boolean disconnectionAllowedSide2 = false;
 
     protected Evaluable p1 = NAN;
 
@@ -59,6 +65,76 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
 
     protected AbstractImpedantLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
+        connectedSide1 = bus1 != null;
+        connectedSide2 = bus2 != null;
+    }
+
+    @Override
+    public boolean isDisconnectionAllowedSide1() {
+        return disconnectionAllowedSide1;
+    }
+
+    @Override
+    public void setDisconnectionAllowedSide1(boolean disconnectionAllowedSide1) {
+        if (bus1 == null) {
+            throw new PowsyblException("Side 1 of branch '" + getId() + "' is already disconnected at loading");
+        }
+        this.disconnectionAllowedSide1 = disconnectionAllowedSide1;
+    }
+
+    @Override
+    public boolean isDisconnectionAllowedSide2() {
+        return disconnectionAllowedSide2;
+    }
+
+    @Override
+    public void setDisconnectionAllowedSide2(boolean disconnectionAllowedSide2) {
+        if (bus2 == null) {
+            throw new PowsyblException("Side 2 of branch '" + getId() + "' is already disconnected at loading");
+        }
+        this.disconnectionAllowedSide2 = disconnectionAllowedSide2;
+    }
+
+    @Override
+    public boolean isConnectedSide1() {
+        return bus1 != null && connectedSide1;
+    }
+
+    @Override
+    public void setConnectedSide1(boolean connectedSide1) {
+        if (!disconnectionAllowedSide1) {
+            throw new PowsyblException("Disconnection side 1 of branch '" + getId() + "' is not allowed");
+        }
+        if (connectedSide1 != this.connectedSide1) {
+            this.connectedSide1 = connectedSide1;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onBranchConnectionStatusChange(this, Side.ONE, connectedSide1);
+            }
+            if (!isConnectedSide1() && !isConnectedSide2()) {
+                setDisabled(false);
+            }
+        }
+    }
+
+    @Override
+    public boolean isConnectedSide2() {
+        return bus2 != null && connectedSide2;
+    }
+
+    @Override
+    public void setConnectedSide2(boolean connectedSide2) {
+        if (!disconnectionAllowedSide2) {
+            throw new PowsyblException("Disconnection side 2 of branch '" + getId() + "' is not allowed");
+        }
+        if (connectedSide2 != this.connectedSide2) {
+            this.connectedSide2 = connectedSide2;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onBranchConnectionStatusChange(this, Side.TWO, connectedSide1);
+            }
+            if (!isConnectedSide1() && !isConnectedSide2()) {
+                setDisabled(false);
+            }
+        }
     }
 
     @Override

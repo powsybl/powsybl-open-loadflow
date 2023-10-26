@@ -15,6 +15,7 @@ import com.powsybl.security.results.BranchResult;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -26,7 +27,7 @@ public class LfSwitch extends AbstractLfBranch {
     private final Ref<Switch> switchRef;
 
     public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch, LfNetworkParameters parameters) {
-        super(network, bus1, bus2, new SimplePiModel(), parameters);
+        super(network, Objects.requireNonNull(bus1), Objects.requireNonNull(bus2), new SimplePiModel(), parameters);
         this.switchRef = Ref.create(aSwitch, parameters.isCacheEnabled());
     }
 
@@ -47,6 +48,46 @@ public class LfSwitch extends AbstractLfBranch {
     @Override
     public boolean hasPhaseControllerCapability() {
         return false;
+    }
+
+    @Override
+    public boolean isConnectedSide1() {
+        return true;
+    }
+
+    @Override
+    public void setConnectedSide1(boolean connectedSide1) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isConnectedSide2() {
+        return true;
+    }
+
+    @Override
+    public void setConnectedSide2(boolean connectedSide2) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isDisconnectionAllowedSide1() {
+        return false;
+    }
+
+    @Override
+    public void setDisconnectionAllowedSide1(boolean disconnectionAllowedSide1) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isDisconnectionAllowedSide2() {
+        return false;
+    }
+
+    @Override
+    public void setDisconnectionAllowedSide2(boolean disconnectionAllowedSide2) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
