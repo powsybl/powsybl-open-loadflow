@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.PhaseTapChanger;
