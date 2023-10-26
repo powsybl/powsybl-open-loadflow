@@ -187,6 +187,13 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             branch.setP2(EvaluableConstants.NAN);
             branch.setQ2(EvaluableConstants.NAN);
             branch.setI2(EvaluableConstants.NAN);
+        } else {
+            branch.setP1(EvaluableConstants.NAN);
+            branch.setQ1(EvaluableConstants.NAN);
+            branch.setI1(EvaluableConstants.NAN);
+            branch.setP2(EvaluableConstants.NAN);
+            branch.setQ2(EvaluableConstants.NAN);
+            branch.setI2(EvaluableConstants.NAN);
         }
     }
 }
