@@ -110,6 +110,126 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getOpenP1() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenP1(Evaluable openP1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getOpenQ1() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenQ1(Evaluable openQ1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getOpenI1() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenI1(Evaluable openI1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getOpenP2() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenP2(Evaluable openP2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getOpenQ2() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenQ2(Evaluable openQ2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getOpenI2() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenI2(Evaluable openI2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedP1() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedP1(Evaluable closedP1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedQ1() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedQ1(Evaluable closedQ1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedI1() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedI1(Evaluable closedI1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedP2() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedP2(Evaluable closedP2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedQ2() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedQ2(Evaluable closedQ2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedI2() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedI2(Evaluable closedI2) {
+        // nothing to do
+    }
+
+    @Override
     public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getSwitch().getId());
     }
