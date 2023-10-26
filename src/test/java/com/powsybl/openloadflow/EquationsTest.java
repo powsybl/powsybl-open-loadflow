@@ -11,6 +11,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide2DcFlowEquationTerm;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
@@ -215,9 +216,9 @@ class EquationsTest {
 
         // closed branch equations
         assertArrayEquals(new double[] {37.07881433490131, 123.77606318805043, -123.77606318805043, 123.77606318805043, Double.NaN, 123.77606318805043},
-                eval(ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, true, true), variables, sv));
+                eval(ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, true, true, DcApproximationType.IGNORE_R), variables, sv));
         assertArrayEquals(new double[] {-37.07881433490131, -123.77606318805043, 123.77606318805043, -123.77606318805043, Double.NaN, -123.77606318805043},
-                eval(ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, true, true), variables, sv));
+                eval(ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, true, true, DcApproximationType.IGNORE_R), variables, sv));
     }
 
     @Test

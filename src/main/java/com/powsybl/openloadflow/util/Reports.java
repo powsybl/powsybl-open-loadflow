@@ -104,6 +104,15 @@ public final class Reports {
                 .build());
     }
 
+    public static void reportReactiveControllerBusesToPqBuses(Reporter reporter, int switchCount) {
+        reporter.report(Report.builder()
+                .withKey("remoteReactiveControllerBusToPq")
+                .withDefaultMessage("${count} remote reactive power controller buses have switched PQ")
+                .withValue("count", switchCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
     public static void reportStandByAutomatonActivation(Reporter reporter, String busId, double newTargetV) {
         reporter.report(Report.builder()
                 .withKey("standByAutomatonActivation")
