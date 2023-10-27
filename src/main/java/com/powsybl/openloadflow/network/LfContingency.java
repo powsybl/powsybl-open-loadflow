@@ -120,8 +120,14 @@ public class LfContingency {
     }
 
     public void apply(LoadFlowParameters.BalanceType balanceType) {
-        for (LfBranch branch : disabledNetwork.getBranches()) {
-            branch.setDisabled(true);
+        for (Map.Entry<LfBranch, DisabledBranchStatus> e : disabledNetwork.getBranchesStatus().entrySet()) {
+            LfBranch branch = e.getKey();
+            DisabledBranchStatus status = e.getValue();
+            switch (status) {
+                case BOTH_SIDES -> branch.setDisabled(true);
+                case SIDE_1 -> branch.setConnectedSide1(false);
+                case SIDE_2 -> branch.setConnectedSide2(false);
+            }
         }
         for (LfHvdc hvdc : disabledNetwork.getHvdcs()) {
             hvdc.setDisabled(true);
