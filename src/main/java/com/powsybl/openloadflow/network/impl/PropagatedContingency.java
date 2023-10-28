@@ -127,7 +127,7 @@ public class PropagatedContingency {
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index, contingencyPropagation, loadFlowParameters);
+                    PropagatedContingency.create(network, contingency, index, topoConfig, contingencyPropagation, loadFlowParameters);
             propagatedContingencies.add(propagatedContingency);
             topoConfig.getSwitchesToOpen().addAll(propagatedContingency.switchesToOpen);
             topoConfig.getBusIdsToLose().addAll(propagatedContingency.busIdsToLose);
@@ -135,8 +135,8 @@ public class PropagatedContingency {
         return propagatedContingencies;
     }
 
-    private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean contingencyPropagation,
-                                                LoadFlowParameters loadFlowParameters) {
+    private static PropagatedContingency create(Network network, Contingency contingency, int index, LfTopoConfig topoConfig,
+                                                boolean contingencyPropagation, LoadFlowParameters loadFlowParameters) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         Set<String> busIdsToLose = new HashSet<>();
@@ -171,11 +171,11 @@ public class PropagatedContingency {
             }
         }
         PropagatedContingency propagatedContingency = new PropagatedContingency(contingency, index, switchesToOpen, terminalsToDisconnect, busIdsToLose);
-        propagatedContingency.complete(loadFlowParameters);
+        propagatedContingency.complete(topoConfig, loadFlowParameters);
         return propagatedContingency;
     }
 
-    private void complete(LoadFlowParameters loadFlowParameters) {
+    private void complete(LfTopoConfig topoConfig, LoadFlowParameters loadFlowParameters) {
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId()); // we open both sides
         }
@@ -189,8 +189,10 @@ public class PropagatedContingency {
                     Branch<?> branch = (Branch<?>) connectable;
                     if (terminal == branch.getTerminal1()) {
                         branchIdsToOpenSide1.add(connectable.getId());
+                        topoConfig.getBranchIdsOpenableSide1().add(connectable.getId());
                     } else {
                         branchIdsToOpenSide2.add(connectable.getId());
+                        topoConfig.getBranchIdsOpenableSide2().add(connectable.getId());
                     }
                     branchIdsToOpen.add(connectable.getId()); // TODO
                     break;
@@ -254,6 +256,7 @@ public class PropagatedContingency {
                     for (ThreeWindingsTransformer.Side side : ThreeWindingsTransformer.Side.values()) {
                         if (twt.getTerminal(side) == terminal) {
                             branchIdsToOpenSide1.add(LfLegBranch.getId(side, connectable.getId()));
+                            topoConfig.getBranchIdsOpenableSide1().add(connectable.getId());
                             break;
                         }
                     }

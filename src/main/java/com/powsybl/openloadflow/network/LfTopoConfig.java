@@ -26,6 +26,10 @@ public class LfTopoConfig {
 
     private final Set<String> branchIdsWithRtcToRetain = new HashSet<>();
 
+    private final Set<String> branchIdsOpenableSide1 = new HashSet<>();
+
+    private final Set<String> branchIdsOpenableSide2 = new HashSet<>();
+
     public Set<Switch> getSwitchesToOpen() {
         return switchesToOpen;
     }
@@ -56,5 +60,13 @@ public class LfTopoConfig {
 
     public boolean isRetainedRtc(String branchId) {
         return branchIdsWithRtcToRetain.contains(branchId);
+    }
+
+    public Set<String> getBranchIdsOpenableSide1() {
+        return branchIdsOpenableSide1;
+    }
+
+    public Set<String> getBranchIdsOpenableSide2() {
+        return branchIdsOpenableSide2;
     }
 }

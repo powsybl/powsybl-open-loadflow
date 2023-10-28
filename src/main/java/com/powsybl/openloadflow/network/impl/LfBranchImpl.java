@@ -166,15 +166,24 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                                       LfNetworkParameters parameters) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(network);
+        Objects.requireNonNull(topoConfig);
         Objects.requireNonNull(parameters);
+        LfBranchImpl lfBranch;
         if (branch instanceof Line line) {
-            return createLine(line, network, bus1, bus2, parameters);
+            lfBranch = createLine(line, network, bus1, bus2, parameters);
         } else if (branch instanceof TwoWindingsTransformer twt) {
-            return createTransformer(twt, network, bus1, bus2, topoConfig.isRetainedPtc(twt.getId()),
+            lfBranch =createTransformer(twt, network, bus1, bus2, topoConfig.isRetainedPtc(twt.getId()),
                     topoConfig.isRetainedRtc(twt.getId()), parameters);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
+        if (bus1 != null && topoConfig.getBranchIdsOpenableSide1().contains(branch.getId())) {
+            lfBranch.setDisconnectionAllowedSide1(true);
+        }
+        if (bus2 != null && topoConfig.getBranchIdsOpenableSide2().contains(branch.getId())) {
+            lfBranch.setDisconnectionAllowedSide2(true);
+        }
+        return lfBranch;
     }
 
     private Branch<?> getBranch() {
