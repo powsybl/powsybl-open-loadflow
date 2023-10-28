@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +41,10 @@ public class PropagatedContingency {
     private final Set<String> busIdsToLose;
 
     private final Set<String> branchIdsToOpen = new LinkedHashSet<>();
+
+    private final Set<String> branchIdsToOpenSide1 = new LinkedHashSet<>();
+
+    private final Set<String> branchIdsToOpenSide2 = new LinkedHashSet<>();
 
     private final Set<String> hvdcIdsToOpen = new HashSet<>(); // for HVDC in AC emulation
 
@@ -63,6 +68,14 @@ public class PropagatedContingency {
 
     public Set<String> getBranchIdsToOpen() {
         return branchIdsToOpen;
+    }
+
+    public Set<String> getBranchIdsToOpenSide1() {
+        return branchIdsToOpenSide1;
+    }
+
+    public Set<String> getBranchIdsToOpenSide2() {
+        return branchIdsToOpenSide2;
     }
 
     public Set<Switch> getSwitchesToOpen() {
@@ -171,7 +184,7 @@ public class PropagatedContingency {
     private void complete(boolean shuntCompensatorVoltageControlOn, boolean slackDistributionOnConformLoad,
                          boolean hvdcAcEmulation, boolean breakers) {
         for (Switch sw : switchesToOpen) {
-            branchIdsToOpen.add(sw.getId());
+            branchIdsToOpen.add(sw.getId()); // we open both sides
         }
 
         // process terminals disconnected, in particular process injection power shift
@@ -180,10 +193,17 @@ public class PropagatedContingency {
             switch (connectable.getType()) {
                 case LINE,
                      TWO_WINDINGS_TRANSFORMER:
-                    branchIdsToOpen.add(connectable.getId());
+                    Branch<?> branch = (Branch<?>) connectable;
+                    if (terminal == branch.getTerminal1()) {
+                        branchIdsToOpenSide1.add(connectable.getId());
+                    } else {
+                        branchIdsToOpenSide2.add(connectable.getId());
+                    }
+                    branchIdsToOpen.add(connectable.getId()); // TODO
                     break;
                 case DANGLING_LINE:
                     DanglingLine dl = (DanglingLine) connectable;
+                    // as we terminal is only on network side, we open both sides in LF network
                     if (dl.isPaired()) {
                         branchIdsToOpen.add(dl.getTieLine().orElseThrow().getId());
                     } else {
@@ -235,6 +255,15 @@ public class PropagatedContingency {
                     break;
 
                 case THREE_WINDINGS_TRANSFORMER:
+                    // terminal in always by construction the side 1 of the LF branch
+                    ThreeWindingsTransformer twt = (ThreeWindingsTransformer) connectable;
+                    for (ThreeWindingsTransformer.Side side : ThreeWindingsTransformer.Side.values()) {
+                        if (twt.getTerminal(side) == terminal) {
+                            branchIdsToOpenSide1.add(LfLegBranch.getId(side, connectable.getId()));
+                            break;
+                        }
+                    }
+                    // TODO
                     branchIdsToOpen.add(connectable.getId() + "_leg_1");
                     branchIdsToOpen.add(connectable.getId() + "_leg_2");
                     branchIdsToOpen.add(connectable.getId() + "_leg_3");
@@ -371,14 +400,16 @@ public class PropagatedContingency {
         // component in post contingency state
         int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
         Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
-        Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
+        Map<LfBranch, DisabledBranchStatus> branches = connectivity.getEdgesRemovedFromMainComponent()
+                        .stream().collect(Collectors.toMap(Function.identity(), branch -> DisabledBranchStatus.BOTH_SIDES));
 
         // we should manage branches open at one side
         branchesToOpen.stream()
                 .filter(b -> !b.isConnectedAtBothSides())
-                .forEach(branches::add);
+                .forEach(branch -> branches.put(branch, DisabledBranchStatus.BOTH_SIDES));
         for (LfBus bus : buses) {
-            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
+            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides())
+                    .forEach(branch -> branches.put(branch, DisabledBranchStatus.BOTH_SIDES));
         }
 
         // reset connectivity to discard triggered branches
