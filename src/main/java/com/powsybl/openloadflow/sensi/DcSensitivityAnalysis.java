@@ -897,10 +897,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
 
-            // complete definition of contingencies after network loading
-            PropagatedContingency.completeList(contingencies, false,
-                    lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false, breakers);
-
             checkContingencies(lfNetwork, contingencies);
             checkLoadFlowParameters(lfParameters);
 

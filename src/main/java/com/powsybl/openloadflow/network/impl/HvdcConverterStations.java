@@ -27,27 +27,27 @@ public final class HvdcConverterStations {
                 || line.getConverterStation2() == station && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER;
     }
 
+    private static Boolean isDisconnectedAtOtherSide(HvdcConverterStation<?> station) {
+        return station.getOtherConverterStation()
+                .map(otherConverterStation -> !otherConverterStation.getTerminal().isConnected())
+                .orElse(true);
+    }
+
     /**
      * Gets targetP of an VSC converter station or load target P for a LCC converter station.
      */
-    public static double getConverterStationTargetP(HvdcConverterStation<?> station, boolean breakers) {
+    public static double getConverterStationTargetP(HvdcConverterStation<?> station) {
         // For a VSC converter station, we are in generator convention.
-        boolean disconnectedAtOtherSide = station.getOtherConverterStation().map(otherConverterStation -> {
-            Bus bus = Networks.getBus(otherConverterStation.getTerminal(), breakers);
-            return bus == null;
-        }).orElse(true); // it means there is no HVDC line connected to station
+        boolean disconnectedAtOtherSide = isDisconnectedAtOtherSide(station); // it means there is no HVDC line connected to station
         return disconnectedAtOtherSide ? 0.0 : HvdcUtils.getConverterStationTargetP(station);
     }
 
     /**
      * Gets reactive power for an LCC converter station.
      */
-    public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs, boolean breakers) {
+    public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs) {
         // Load convention.
-        boolean disconnectedAtOtherSide = lccCs.getOtherConverterStation().map(otherConverterStation -> {
-            Bus bus = Networks.getBus(otherConverterStation.getTerminal(), breakers);
-            return bus == null;
-        }).orElse(true); // it means there is no HVDC line connected to station
+        boolean disconnectedAtOtherSide = isDisconnectedAtOtherSide(lccCs); // it means there is no HVDC line connected to station
         return disconnectedAtOtherSide ? 0.0 : HvdcUtils.getLccConverterStationLoadTargetQ(lccCs);
     }
 

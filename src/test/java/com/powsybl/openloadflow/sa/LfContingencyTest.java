@@ -16,6 +16,7 @@ import com.powsybl.contingency.GeneratorContingency;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -73,8 +74,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
         List<PropagatedContingency> propagatedContingencies =
-            PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), false);
-        PropagatedContingency.completeList(propagatedContingencies, false, false, false, false);
+            PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), false, new LoadFlowParameters());
 
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
                 .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(mainNetwork).stream())
@@ -103,7 +103,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String generatorId = "GEN";
         Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), true),
+                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), true, new LoadFlowParameters()),
                 "Generator 'GEN' not found in the network");
     }
 
@@ -119,7 +119,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), true),
+                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), true, new LoadFlowParameters()),
                 "Load 'LOAD' not found in the network");
     }
 }
