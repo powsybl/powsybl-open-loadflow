@@ -11,6 +11,7 @@ import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactory;
@@ -164,7 +165,7 @@ class OpenSecurityAnalysisGraphTest {
 
         // try to find all switches impacted by at least one contingency
         LfTopoConfig topoConfig = new LfTopoConfig();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, true);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, true, new LoadFlowParameters());
 
         LfNetworkParameters networkParameters = new LfNetworkParameters()
                 .setConnectivityFactory(connectivityFactory)
@@ -172,8 +173,6 @@ class OpenSecurityAnalysisGraphTest {
 
         // create networks including all necessary switches
         LfNetworkList lfNetworks = Networks.load(network, networkParameters, topoConfig, Reporter.NO_OP);
-
-        PropagatedContingency.completeList(propagatedContingencies, false, false, false, true);
 
         // run simulation on each network
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();

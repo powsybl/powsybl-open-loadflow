@@ -159,7 +159,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
             LfTopoConfig topoConfig = new LfTopoConfig();
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, false);
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, false, sensitivityAnalysisParameters.getLoadFlowParameters());
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 

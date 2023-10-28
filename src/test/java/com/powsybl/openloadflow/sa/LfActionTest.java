@@ -56,8 +56,9 @@ class LfActionTest extends AbstractConverterTest {
         Network network = NodeBreakerNetworkFactory.create();
         SwitchAction switchAction = new SwitchAction("switchAction", "C", true);
         var matrixFactory = new DenseMatrixFactory();
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                loadFlowParameters, new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToOpen().add(network.getSwitch("C"));
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, Reporter.NO_OP)) {
@@ -66,8 +67,7 @@ class LfActionTest extends AbstractConverterTest {
             String loadId = "LOAD";
             Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
             PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
-                    Collections.singletonList(contingency), new LfTopoConfig(), true).get(0);
-            PropagatedContingency.completeList(List.of(propagatedContingency), false, false, false, true);
+                    Collections.singletonList(contingency), new LfTopoConfig(), true, loadFlowParameters).get(0);
             propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
                 LfAction.apply(List.of(lfAction), lfNetwork, lfContingency, acParameters.getNetworkParameters());
                 assertTrue(lfNetwork.getBranchById("C").isDisabled());
