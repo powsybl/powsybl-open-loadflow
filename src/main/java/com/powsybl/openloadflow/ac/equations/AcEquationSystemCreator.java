@@ -722,8 +722,8 @@ public class AcEquationSystemCreator {
     }
 
     static void updateBranchEquations(LfBranch branch) {
-        if (!branch.isZeroImpedance(LoadFlowModel.AC)) {
-            boolean connectedSide1 = branch.isConnectedSide1() && !branch.isDisabled();
+        if (!branch.isDisabled() && !branch.isZeroImpedance(LoadFlowModel.AC)) {
+            boolean connectedSide1 = branch.isConnectedSide1();
             if (branch.getClosedP1() instanceof EquationTerm<?, ?> closedP1) {
                 closedP1.setActive(connectedSide1);
             }
@@ -737,7 +737,7 @@ public class AcEquationSystemCreator {
                 openQ2.setActive(!connectedSide1);
             }
 
-            boolean connectedSide2 = branch.isConnectedSide2() && !branch.isDisabled();
+            boolean connectedSide2 = branch.isConnectedSide2();
             if (branch.getOpenP1() instanceof EquationTerm<?, ?> openP1) {
                 openP1.setActive(!connectedSide2);
             }
