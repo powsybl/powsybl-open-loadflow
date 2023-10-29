@@ -353,7 +353,8 @@ public class PropagatedContingency {
     }
 
     public boolean hasNoImpact() {
-        return branchIdsToOpen.isEmpty() && hvdcIdsToOpen.isEmpty() && generatorIdsToLose.isEmpty()
+        return branchIdsToOpen.isEmpty() && branchIdsToOpenSide1.isEmpty() && branchIdsToOpenSide2.isEmpty()
+                && hvdcIdsToOpen.isEmpty() && generatorIdsToLose.isEmpty()
                 && loadIdsToLoose.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
     }
 
