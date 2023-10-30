@@ -24,6 +24,11 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
+    public void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
+        // empty
+    }
+
+    @Override
     public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
         // empty
     }
