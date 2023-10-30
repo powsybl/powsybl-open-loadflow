@@ -107,6 +107,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory(OpenLoadFlowParameters parametersExt) {
         return parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
+                || parametersExt.isSimulateAutomationSystems()
                 ? new NaiveGraphConnectivityFactory<>(LfBus::getNum)
                 : connectivityFactory;
     }

@@ -42,6 +42,8 @@ public interface GraphConnectivity<V, E> {
 
     void removeEdge(E edge);
 
+    boolean supportTemporaryChangesNesting();
+
     /**
      * Start recording topological changes to undo them later by a {@link #undoTemporaryChanges} call.
      */

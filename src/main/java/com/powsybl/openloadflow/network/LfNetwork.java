@@ -603,6 +603,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
             connectivity.setMainComponentVertex(getSlackBus());
+            // this is necessary to create a first temporary changes level in order to allow
+            // some outer loop to change permanently the connectivity (with automation systems for instance)
+            // this one will never be reverted
+            if (connectivity.supportTemporaryChangesNesting()) {
+                connectivity.startTemporaryChanges();
+            }
         }
         return connectivity;
     }
