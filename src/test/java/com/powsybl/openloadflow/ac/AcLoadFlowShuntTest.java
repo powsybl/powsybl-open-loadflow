@@ -6,22 +6,34 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.computation.ComputationManager;
+import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.ShuntNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
+import com.powsybl.security.*;
+import com.powsybl.security.detectors.DefaultLimitViolationDetector;
+import com.powsybl.security.monitor.StateMonitor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.util.*;
+import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Shunt test case.
@@ -659,11 +671,47 @@ class AcLoadFlowShuntTest {
 
         // Both shunts are used at generator target
         g2.setTargetV(395);
+        shunt.setSectionCount(0);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
         assertVoltageEquals(395, b3);
         assertEquals(1, shunt.getSectionCount());
         assertEquals(1, shunt2.getSectionCount());
         assertReactivePowerEquals(-110.176, g2.getTerminal());
+
+        shunt.setSectionCount(0);
+        shunt2.setSectionCount(0);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        Contingency c = new Contingency("c", new SwitchContingency("switch"));
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(c);
+        StateMonitor stateMonitor = new StateMonitor(ContingencyContext.all(), Collections.emptySet(),
+                network.getVoltageLevelStream().map(Identifiable::getId).collect(Collectors.toSet()), Collections.emptySet());
+
+        ContingenciesProvider provider = n -> contingencies;
+        MatrixFactory matrixFactory = new DenseMatrixFactory();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        OpenSecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        ComputationManager computationManager = Mockito.mock(ComputationManager.class);
+        Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network,
+                        network.getVariantManager().getWorkingVariantId(),
+                        new DefaultLimitViolationDetector(),
+                        new LimitViolationFilter(),
+                        computationManager,
+                        securityAnalysisParameters,
+                        provider,
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        List.of(stateMonitor),
+                        Reporter.NO_OP)
+                .join();
+        SecurityAnalysisResult saResult = report.getResult();
+
+        assertSame(PostContingencyComputationStatus.CONVERGED, saResult.getPostContingencyResults().get(0).getStatus());
+        assertEquals(395, saResult.getPreContingencyResult().getNetworkResult().getBusResult("b3").getV());
+        assertEquals(393.23, saResult.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b3").getV(), DELTA_V);
     }
 }
