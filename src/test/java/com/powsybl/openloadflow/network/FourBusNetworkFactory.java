@@ -123,5 +123,12 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         g1Bis.setTargetQ(0).setVoltageRegulatorOn(false);
         return network;
     }
+
+    public static Network createWith2ReactiveControllersOnSameBusAnd1Extra() {
+        Network network = createWith2ReactiveControllersOnSameBus();
+        Generator g4 = network.getGenerator("g4");
+        g4.setTargetQ(0).setVoltageRegulatorOn(false);
+        return network;
+    }
 }
 
