@@ -21,7 +21,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertCurrentEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AutomationSystemTest {
 

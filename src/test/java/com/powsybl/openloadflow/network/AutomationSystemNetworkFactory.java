@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSyst
 import org.joda.time.DateTime;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class AutomationSystemNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
