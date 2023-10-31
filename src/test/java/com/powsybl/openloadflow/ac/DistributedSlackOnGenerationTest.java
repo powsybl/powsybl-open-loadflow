@@ -30,8 +30,8 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEq
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Caio Luke <caio.luke at artelys.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * @author Caio Luke {@literal <caio.luke at artelys.com>}
  */
 class DistributedSlackOnGenerationTest {
 

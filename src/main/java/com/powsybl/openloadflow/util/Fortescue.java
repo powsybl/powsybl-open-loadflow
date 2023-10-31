@@ -12,7 +12,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 /**
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public final class Fortescue {
 

@@ -11,7 +11,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
 
 /**
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFactory {
 

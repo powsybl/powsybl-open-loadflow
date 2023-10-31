@@ -16,7 +16,7 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 

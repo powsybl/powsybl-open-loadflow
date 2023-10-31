@@ -26,7 +26,7 @@ import com.powsybl.iidm.network.TwoWindingsTransformer;
  *      1pu                 -4pu
  *</pre>
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
 

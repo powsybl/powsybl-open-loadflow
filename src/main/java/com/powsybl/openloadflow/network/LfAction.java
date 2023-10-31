@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
- * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
  */
 public final class LfAction {
 

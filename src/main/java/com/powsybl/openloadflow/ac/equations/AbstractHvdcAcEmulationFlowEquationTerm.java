@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.network.LfHvdc;
 import java.util.List;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractElementEquationTerm<LfHvdc, AcVariableType, AcEquationType> {
 

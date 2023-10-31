@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * @author Damien Jeandemange <damien.jeandemange at artelys.com>
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 class DcValueVoltageInitializerTest {
 
