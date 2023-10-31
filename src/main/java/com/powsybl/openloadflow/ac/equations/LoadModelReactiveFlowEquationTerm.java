@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.network.LfLoadModel;
 import java.util.Collection;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LoadModelReactiveFlowEquationTerm extends AbstractLoadModelEquationTerm {
 

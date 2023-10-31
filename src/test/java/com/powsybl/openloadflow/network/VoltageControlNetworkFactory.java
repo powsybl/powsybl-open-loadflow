@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.*;
 
 /**
- * @author Anne Tilloy <anne.tilloy@rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy@rte-france.com>}
  */
 public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory {
 

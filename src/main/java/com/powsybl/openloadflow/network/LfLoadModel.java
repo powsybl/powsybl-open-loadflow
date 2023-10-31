@@ -13,7 +13,7 @@ import java.util.Optional;
 /**
  * Generic load model as a sum of exponential terms: sum_i(ci * v^ni)
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfLoadModel {
 

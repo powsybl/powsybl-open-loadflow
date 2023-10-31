@@ -34,8 +34,8 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
- * @author Jean-Luc Bouchot <jlbouchot at gmail.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ * @author Jean-Luc Bouchot {@literal <jlbouchot at gmail.com>}
  */
 class LfActionTest extends AbstractConverterTest {
 

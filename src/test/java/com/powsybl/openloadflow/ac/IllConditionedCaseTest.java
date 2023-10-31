@@ -27,8 +27,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * @author Damien Jeandemange <damien.jeandemange at artelys.com>
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class IllConditionedCaseTest {
 

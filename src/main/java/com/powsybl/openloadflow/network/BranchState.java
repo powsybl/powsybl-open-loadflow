@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 /**
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 public class BranchState extends ElementState<LfBranch> {
 

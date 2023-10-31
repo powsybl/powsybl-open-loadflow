@@ -10,7 +10,7 @@ import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 /**
- * @author Bertrand Rix <bertrand.rix at artelys.com>
+ * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  */
 public class OlfThreeWindingsTransformerResult extends AbstractExtension<ThreeWindingsTransformerResult> {
 
