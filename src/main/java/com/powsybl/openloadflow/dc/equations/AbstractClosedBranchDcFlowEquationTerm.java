@@ -21,7 +21,7 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, DcVariableType, DcEquationType> {
 

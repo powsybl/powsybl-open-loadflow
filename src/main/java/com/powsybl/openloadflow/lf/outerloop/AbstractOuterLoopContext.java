@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractOuterLoopContext<V extends Enum<V> & Quantity,
                                                E extends Enum<E> & Quantity,

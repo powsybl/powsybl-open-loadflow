@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author Fabien Rigaux <fabien.rigaux@free.fr>
+ * @author Fabien Rigaux {@literal <fabien.rigaux@free.fr>}
  */
 public class LoadFlowResultBuilder {
     private Map<String, String> metrics = new HashMap<>();

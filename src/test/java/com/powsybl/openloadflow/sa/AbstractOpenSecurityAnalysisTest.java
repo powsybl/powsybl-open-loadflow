@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractOpenSecurityAnalysisTest {
 

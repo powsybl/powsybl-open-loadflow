@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 /**
  * <p>4 bus test networks adapted to distributed slack bus:</p>
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFactory {
 

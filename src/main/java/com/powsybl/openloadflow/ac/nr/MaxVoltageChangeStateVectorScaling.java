@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Limit voltage magnitude change and voltage angle change between NR iterations
  *
- * @author Damien Jeandemange <damien.jeandemange at artelys.com>
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
 
