@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
 

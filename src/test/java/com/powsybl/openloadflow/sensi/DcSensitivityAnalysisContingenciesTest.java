@@ -42,7 +42,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEqua
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysisTest {
 

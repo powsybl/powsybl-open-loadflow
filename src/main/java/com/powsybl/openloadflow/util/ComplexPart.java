@@ -9,7 +9,7 @@
 package com.powsybl.openloadflow.util;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
  */
 public enum ComplexPart {
     REAL,

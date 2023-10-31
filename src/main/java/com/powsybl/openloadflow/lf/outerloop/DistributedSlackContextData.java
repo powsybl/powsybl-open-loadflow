@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.lf.outerloop;
 /**
  * Keeps track of distributed active power
  *
- * @author Damien Jeandemange <damien.jeandemange at artelys.com>
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 public class DistributedSlackContextData {
     private double distributedActivePower = 0.0;
