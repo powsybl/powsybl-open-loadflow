@@ -24,8 +24,8 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.A2;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm extends AbstractAsymmetricalBranchFlowEquationTerm {
 

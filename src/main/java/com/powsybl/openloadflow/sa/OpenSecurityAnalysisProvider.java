@@ -35,7 +35,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 @AutoService(SecurityAnalysisProvider.class)
 public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {

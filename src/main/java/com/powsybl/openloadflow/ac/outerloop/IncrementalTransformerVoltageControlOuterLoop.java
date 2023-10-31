@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 

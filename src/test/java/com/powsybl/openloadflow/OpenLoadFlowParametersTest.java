@@ -40,7 +40,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Jérémy Labous <jlabous at silicom.fr>
+ * @author Jérémy Labous {@literal <jlabous at silicom.fr>}
  */
 class OpenLoadFlowParametersTest {
 

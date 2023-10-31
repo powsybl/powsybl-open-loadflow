@@ -10,7 +10,7 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class Markers {
 

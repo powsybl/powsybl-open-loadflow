@@ -36,7 +36,7 @@ import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
