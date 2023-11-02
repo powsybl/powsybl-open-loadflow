@@ -852,10 +852,12 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
-    void testVoltageControlNonImpedant() {
+    void testVoltageControlWithGeneratorNonImpedant() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWith2T2wtAndSwitch());
         parameters.setTransformerVoltageControlOn(true);
+        parameters.setUseReactiveLimits(true);
         parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersExt.setVoltageRemoteControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(2)
                 .setRegulating(true)
@@ -868,8 +870,10 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetDeadband(2)
                 .setRegulating(true)
                 .setTapPosition(1)
-                .setRegulationTerminal(t2wt.getTerminal2())
+                .setRegulationTerminal(t2wt2.getTerminal1())
                 .setTargetV(33.0);
+        // TODO: it is not working with following line
+        //network.getGenerator("GEN_5").newMinMaxReactiveLimits().setMinQ(-5.0).setMaxQ(5.0).add();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(parameters);
@@ -885,6 +889,7 @@ class AcLoadFlowTransformerControlTest {
         OpenSecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
         ComputationManager computationManager = Mockito.mock(ComputationManager.class);
         Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
+
         SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                         network.getVariantManager().getWorkingVariantId(),
                         new DefaultLimitViolationDetector(),
@@ -901,7 +906,7 @@ class AcLoadFlowTransformerControlTest {
         SecurityAnalysisResult saResult = report.getResult();
 
         assertSame(PostContingencyComputationStatus.CONVERGED, saResult.getPostContingencyResults().get(0).getStatus());
-        assertEquals(33.910, saResult.getPreContingencyResult().getNetworkResult().getBusResult("BUS_3").getV(), DELTA_V);
+        assertEquals(33, saResult.getPreContingencyResult().getNetworkResult().getBusResult("BUS_3").getV(), DELTA_V);
         assertEquals(32.605, saResult.getPostContingencyResults().get(0).getNetworkResult().getBusResult("BUS_3").getV(), DELTA_V);
     }
 }

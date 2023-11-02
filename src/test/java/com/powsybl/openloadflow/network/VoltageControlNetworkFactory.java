@@ -465,8 +465,9 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMaxP(150.0)
                 .setTargetP(23.0)
                 .setTargetQ(0.0)
-                .setTargetV(132)
-                .setVoltageRegulatorOn(false)
+                .setTargetV(33.0)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(network.getLoad("LOAD_4").getTerminal())
                 .add();
 
         vl4.newLoad()
