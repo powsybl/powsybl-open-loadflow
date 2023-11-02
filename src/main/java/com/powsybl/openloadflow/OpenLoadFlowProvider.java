@@ -90,6 +90,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private static LoadFlowResult.ComponentResult.Status convertStatus(AcLoadFlowResult result) {
         if (result.getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
             return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+        } else if (result.getOuterLoopStatus() == OuterLoopStatus.FAILED) {
+            return LoadFlowResult.ComponentResult.Status.FAILED;
         } else {
             switch (result.getNewtonRaphsonStatus()) {
                 case CONVERGED:
