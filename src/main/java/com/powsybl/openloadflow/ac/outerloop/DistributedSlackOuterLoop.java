@@ -64,14 +64,21 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
             if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
                 Reports.reportMismatchDistributionFailure(reporter, context.getIteration(), remainingMismatch * PerUnit.SB);
 
-                if (slackDistributionFailureBehavior == OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW) {
-                    throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
-                            + remainingMismatch * PerUnit.SB + " MW remains");
+                switch (slackDistributionFailureBehavior) {
+                    case THROW ->
+                        throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
+                                + remainingMismatch * PerUnit.SB + " MW remains");
+                    case LEAVE_ON_SLACK_BUS -> {
+                        LOGGER.warn("Failed to distribute slack bus active power mismatch, {} MW remains",
+                                remainingMismatch * PerUnit.SB);
+                        return OuterLoopStatus.STABLE;
+                    }
+                    case FAIL -> {
+                        LOGGER.error("Failed to distribute slack bus active power mismatch, {} MW remains",
+                                remainingMismatch * PerUnit.SB);
+                        return OuterLoopStatus.FAILED;
+                    }
                 }
-
-                LOGGER.error("Failed to distribute slack bus active power mismatch, {} MW remains", remainingMismatch * PerUnit.SB);
-
-                return OuterLoopStatus.STABLE;
             } else {
                 Reports.reportMismatchDistributionSuccess(reporter, context.getIteration(), slackBusActivePowerMismatch * PerUnit.SB, result.getIteration());
 
