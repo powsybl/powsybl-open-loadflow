@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.util.HvdcUtils;
 
-import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -20,43 +19,12 @@ public final class HvdcConverterStations {
     private HvdcConverterStations() {
     }
 
-    public static boolean isRectifier(HvdcConverterStation<?> station) {
-        Objects.requireNonNull(station);
-        HvdcLine line = station.getHvdcLine();
-        return line.getConverterStation1() == station && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER
-                || line.getConverterStation2() == station && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER;
-    }
-
-    private static Boolean isDisconnectedAtOtherSide(HvdcConverterStation<?> station) {
-        return station.getOtherConverterStation()
-                .map(otherConverterStation -> !otherConverterStation.getTerminal().isConnected())
-                .orElse(true);
-    }
-
-    /**
-     * Gets targetP of an VSC converter station or load target P for a LCC converter station.
-     */
-    public static double getConverterStationTargetP(HvdcConverterStation<?> station) {
-        // For a VSC converter station, we are in generator convention.
-        boolean disconnectedAtOtherSide = isDisconnectedAtOtherSide(station); // it means there is no HVDC line connected to station
-        return disconnectedAtOtherSide ? 0.0 : HvdcUtils.getConverterStationTargetP(station);
-    }
-
-    /**
-     * Gets reactive power for an LCC converter station.
-     */
-    public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs) {
-        // Load convention.
-        boolean disconnectedAtOtherSide = isDisconnectedAtOtherSide(lccCs); // it means there is no HVDC line connected to station
-        return disconnectedAtOtherSide ? 0.0 : HvdcUtils.getLccConverterStationLoadTargetQ(lccCs);
-    }
-
     public static double getActivePowerSetpointMultiplier(HvdcConverterStation<?> station) {
         // For sensitivity analysis, we need the multiplier by converter station for an increase of 1MW
         // of the HVDC active power setpoint.
         // VSC injection follow here a load sign convention as LCC injection.
         // As a first approximation, we don't take into account the losses due to HVDC line itself.
-        boolean isConverterStationRectifier = isRectifier(station);
+        boolean isConverterStationRectifier = HvdcUtils.isRectifier(station);
         Optional<? extends HvdcConverterStation<?>> otherStation = station.getOtherConverterStation();
         if (otherStation.isPresent()) {
             if (isConverterStationRectifier) {

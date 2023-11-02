@@ -12,6 +12,7 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.LoadDetail;
+import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
@@ -218,8 +219,8 @@ public class PropagatedContingency {
                         generatorIdsToLose.add(connectable.getId());
                     } else {
                         LccConverterStation lcc = (LccConverterStation) connectable;
-                        PowerShift lccPowerShift = new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
-                                HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB);
+                        PowerShift lccPowerShift = new PowerShift(HvdcUtils.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
+                                HvdcUtils.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB);
                         loadIdsToLoose.put(lcc.getId(), lccPowerShift);
                     }
                     break;
