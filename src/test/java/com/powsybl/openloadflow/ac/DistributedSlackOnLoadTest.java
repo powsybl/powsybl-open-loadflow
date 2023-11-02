@@ -181,12 +181,12 @@ class DistributedSlackOnLoadTest {
         parameters
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .getExtension(OpenLoadFlowParameters.class)
-                .setThrowsExceptionInCaseOfSlackDistributionFailure(false);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
         parameters.getExtension(OpenLoadFlowParameters.class)
-                .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
     }
 

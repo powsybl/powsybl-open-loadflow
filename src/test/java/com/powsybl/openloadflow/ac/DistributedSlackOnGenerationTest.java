@@ -56,7 +56,7 @@ class DistributedSlackOnGenerationTest {
                 .setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
-                .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
     }
 
     @Test
