@@ -7,18 +7,36 @@
 
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.computation.ComputationManager;
+import com.powsybl.contingency.ContingenciesProvider;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.SwitchContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
+import com.powsybl.security.*;
+import com.powsybl.security.detectors.DefaultLimitViolationDetector;
+import com.powsybl.security.monitor.StateMonitor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -831,5 +849,59 @@ class AcLoadFlowTransformerControlTest {
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(27.00, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void testVoltageControlNonImpedant() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWith2T2wtAndSwitch());
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(2)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(33.0);
+
+        t2wt2 = network.getTwoWindingsTransformer("T2wT2");
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(2)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(33.0);
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        Contingency c = new Contingency("c", new SwitchContingency("SWITCH"));
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(c);
+        StateMonitor stateMonitor = new StateMonitor(ContingencyContext.all(), Collections.emptySet(),
+                network.getVoltageLevelStream().map(Identifiable::getId).collect(Collectors.toSet()), Collections.emptySet());
+
+        ContingenciesProvider provider = n -> contingencies;
+        MatrixFactory matrixFactory = new DenseMatrixFactory();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        OpenSecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        ComputationManager computationManager = Mockito.mock(ComputationManager.class);
+        Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network,
+                        network.getVariantManager().getWorkingVariantId(),
+                        new DefaultLimitViolationDetector(),
+                        new LimitViolationFilter(),
+                        computationManager,
+                        securityAnalysisParameters,
+                        provider,
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        List.of(stateMonitor),
+                        Reporter.NO_OP)
+                .join();
+        SecurityAnalysisResult saResult = report.getResult();
+
+        assertSame(PostContingencyComputationStatus.CONVERGED, saResult.getPostContingencyResults().get(0).getStatus());
+        assertEquals(33.910, saResult.getPreContingencyResult().getNetworkResult().getBusResult("BUS_3").getV(), DELTA_V);
+        assertEquals(32.605, saResult.getPostContingencyResults().get(0).getNetworkResult().getBusResult("BUS_3").getV(), DELTA_V);
     }
 }
