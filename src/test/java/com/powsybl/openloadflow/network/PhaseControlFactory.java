@@ -11,7 +11,7 @@ import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import org.joda.time.DateTime;
 
 /**
- * @author Anne Tilloy <anne.tilloy@rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy@rte-france.com>}
  */
 public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
 

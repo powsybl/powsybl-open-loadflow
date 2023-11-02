@@ -13,8 +13,8 @@ import com.powsybl.math.matrix.DenseMatrix;
 /**
  * TODO: move theses features to core.
  *
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
  */
 public final class MatrixUtil {
 

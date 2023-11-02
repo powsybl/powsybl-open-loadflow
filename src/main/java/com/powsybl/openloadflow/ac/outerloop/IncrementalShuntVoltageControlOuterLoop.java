@@ -29,8 +29,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * @author Hadrien Godard <hadrien.godard at artelys.com>
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltageControlOuterLoop {
 

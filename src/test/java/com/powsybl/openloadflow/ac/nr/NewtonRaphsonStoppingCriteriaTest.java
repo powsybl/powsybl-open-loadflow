@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Alexandre Le Jean <alexandre.le-jean at artelys.com>
+ * @author Alexandre Le Jean {@literal <alexandre.le-jean at artelys.com>}
  */
 class NewtonRaphsonStoppingCriteriaTest {
 

@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * @author Gaël Macherel <gael.macherel at artelys.com>
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Gaël Macherel {@literal <gael.macherel at artelys.com>}
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 class NetworkConnectivityTest {
 

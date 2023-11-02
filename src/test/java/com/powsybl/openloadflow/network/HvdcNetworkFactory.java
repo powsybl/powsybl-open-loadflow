@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.*;
 
 /**
- * @author Gaël Macherel <gael.macherel@artelys.com>
+ * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
 public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
@@ -22,7 +22,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * l12          hvdc23
      * </pre>
      *
-     * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
      */
     public static Network createVsc() {
         Network network = Network.create("vsc", "test");
@@ -137,7 +137,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *                              g3
      * </pre>
      *
-     * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
      */
     public static Network createLcc() {
         Network network = Network.create("lcc", "test");
@@ -259,7 +259,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *                                                  g3
      * </pre>
      *
-     * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
      */
     public static Network createLccWithBiggerComponents() {
         Network network = createLcc();

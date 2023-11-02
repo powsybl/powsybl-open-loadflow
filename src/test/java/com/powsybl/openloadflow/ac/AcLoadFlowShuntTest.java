@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *      l1    |
  *           shunt
  *
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 class AcLoadFlowShuntTest {
 
