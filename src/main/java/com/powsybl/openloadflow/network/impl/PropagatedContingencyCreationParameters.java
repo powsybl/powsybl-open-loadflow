@@ -8,15 +8,14 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysisParameters;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class PropagatedContingencyCreationParameters {
 
-    public static final boolean CONTINGENCY_PROPAGATION_DEFAULT_VALUE = false;
-
-    private boolean contingencyPropagation = CONTINGENCY_PROPAGATION_DEFAULT_VALUE;
+    private boolean contingencyPropagation = OpenSecurityAnalysisParameters.CONTINGENCY_PROPAGATION_DEFAULT_VALUE;
 
     private boolean slackDistributionOnConformLoad = LfNetworkParameters.DISTRIBUTED_ON_CONFORM_LOAD_DEFAULT_VALUE;
 
