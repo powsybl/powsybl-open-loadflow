@@ -42,10 +42,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         // a bus won't have both controls
         Optional<GeneratorVoltageControl> generatorVoltageControl = controllerBus.getGeneratorVoltageControl();
         if (generatorVoltageControl.isPresent()) {
-            double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
+            double target = (controllerBus.getRemoteControlReactivePercent() - 1) * controllerBus.getTargetQ();
             for (LfBus otherControllerBus : generatorVoltageControl.get().getMergedControllerElements()) {
                 if (otherControllerBus != controllerBus) {
-                    target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
+                    target += controllerBus.getRemoteControlReactivePercent() * otherControllerBus.getTargetQ();
                 }
             }
             return target;
@@ -53,10 +53,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
         Optional<GeneratorReactivePowerControl> generatorReactivePowerControl = controllerBus.getGeneratorReactivePowerControl();
         if (generatorReactivePowerControl.isPresent()) {
-            double target = (controllerBus.getRemoteReactivePowerControlReactivePercent() - 1) * controllerBus.getTargetQ();
+            double target = (controllerBus.getRemoteControlReactivePercent() - 1) * controllerBus.getTargetQ();
             for (LfBus otherControllerBus : generatorReactivePowerControl.get().getControllerBuses()) {
                 if (otherControllerBus != controllerBus) {
-                    target += controllerBus.getRemoteReactivePowerControlReactivePercent() * otherControllerBus.getTargetQ();
+                    target += controllerBus.getRemoteControlReactivePercent() * otherControllerBus.getTargetQ();
                 }
             }
             return target;

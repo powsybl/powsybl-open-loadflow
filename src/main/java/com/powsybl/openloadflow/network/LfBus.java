@@ -190,15 +190,9 @@ public interface LfBus extends LfElement {
      */
     Map<LfBus, List<LfBranch>> findNeighbors();
 
-    double getRemoteVoltageControlReactivePercent();
+    double getRemoteControlReactivePercent();
 
-    void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
-
-    double getRemoteReactivePowerControlReactivePercent();
-
-    void setRemoteReactivePowerControlReactivePercent(double remoteReactivePowerControlReactivePercent);
-
-    double getRemoteControlReactivePercent(boolean isVoltageControl);
+    void setRemoteControlReactivePercent(double remoteControlReactivePercent);
 
     /**
      * Get active power mismatch.

@@ -80,7 +80,7 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
         double reactiveKeysSum = Arrays.stream(reactiveKeys).sum();
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
-            controllerBus.setRemoteVoltageControlReactivePercent(reactiveKeysSum == 0 ? 0 : reactiveKeys[i] / reactiveKeysSum);
+            controllerBus.setRemoteControlReactivePercent(reactiveKeysSum == 0 ? 0 : reactiveKeys[i] / reactiveKeysSum);
         }
     }
 }

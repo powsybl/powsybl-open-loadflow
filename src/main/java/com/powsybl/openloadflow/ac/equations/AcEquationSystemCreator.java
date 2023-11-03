@@ -180,13 +180,13 @@ public class AcEquationSystemCreator {
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
                     .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(() ->
-                                    controllerBus.getRemoteControlReactivePercent(isVoltageControl) - 1))
+                                    controllerBus.getRemoteControlReactivePercent() - 1))
                             .collect(Collectors.toList()));
             for (LfBus otherControllerBus : controllerBuses) {
                 if (otherControllerBus != controllerBus) {
                     zero.addTerms(createReactiveTerms(otherControllerBus, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(() ->
-                                    controllerBus.getRemoteControlReactivePercent(isVoltageControl)))
+                                    controllerBus.getRemoteControlReactivePercent()))
                             .collect(Collectors.toList()));
                 }
             }
