@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
+import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
@@ -101,10 +102,10 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     void add(LccConverterStation lccCs, LfNetworkParameters parameters) {
         // note that LCC converter station are out of the slack distribution.
         lccCsRefs.add(Ref.create(lccCs, parameters.isCacheEnabled()));
-        double lccTargetP = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers());
+        double lccTargetP = HvdcUtils.getConverterStationTargetP(lccCs);
         this.targetP += lccTargetP / PerUnit.SB;
         initialTargetP += lccTargetP / PerUnit.SB;
-        targetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()) / PerUnit.SB;
+        targetQ += HvdcUtils.getLccConverterStationLoadTargetQ(lccCs) / PerUnit.SB;
     }
 
     public void add(DanglingLine danglingLine) {
@@ -208,8 +209,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         // update lcc converter station power
         for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
             LccConverterStation lccCs = lccCsRef.get();
-            double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs, breakers); // A LCC station has active losses.
-            double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, breakers); // A LCC station always consumes reactive power.
+            double pCs = HvdcUtils.getConverterStationTargetP(lccCs); // A LCC station has active losses.
+            double qCs = HvdcUtils.getLccConverterStationLoadTargetQ(lccCs); // A LCC station always consumes reactive power.
             lccCs.getTerminal()
                     .setP(pCs)
                     .setQ(qCs);
