@@ -257,7 +257,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void createGeneratorReactivePowerControl(LfBranch controlledBranch, LfBus controllerBus, ControlledSide controlledSide, double controllerTargetQ) {
-        GeneratorReactivePowerControl reactivePowerControl = new GeneratorReactivePowerControl(controlledBranch, controlledSide, controllerTargetQ);
+        ReactivePowerControl reactivePowerControl = new ReactivePowerControl(controllerTargetQ, controlledBranch, controlledSide);
         reactivePowerControl.addControllerBus(controllerBus);
         controlledBranch.setReactivePowerControl(reactivePowerControl);
     }

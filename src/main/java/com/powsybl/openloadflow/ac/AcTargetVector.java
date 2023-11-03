@@ -51,10 +51,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
             return target;
         }
 
-        Optional<GeneratorReactivePowerControl> generatorReactivePowerControl = controllerBus.getGeneratorReactivePowerControl();
-        if (generatorReactivePowerControl.isPresent()) {
+        Optional<ReactivePowerControl> reactivePowerControl = controllerBus.getReactivePowerControl();
+        if (reactivePowerControl.isPresent()) {
             double target = (controllerBus.getRemoteControlReactivePercent() - 1) * controllerBus.getTargetQ();
-            for (LfBus otherControllerBus : generatorReactivePowerControl.get().getControllerBuses()) {
+            for (LfBus otherControllerBus : reactivePowerControl.get().getControllerBuses()) {
                 if (otherControllerBus != controllerBus) {
                     target += controllerBus.getRemoteControlReactivePercent() * otherControllerBus.getTargetQ();
                 }

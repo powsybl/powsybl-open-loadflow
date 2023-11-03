@@ -73,11 +73,9 @@ public interface LfBus extends LfElement {
 
     void removeGeneratorSlopes();
 
-    Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl();
+    Optional<ReactivePowerControl> getReactivePowerControl();
 
-    void setGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl);
-
-    boolean hasGeneratorReactivePowerControl();
+    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
 
     boolean hasReactivePowerControl();
 

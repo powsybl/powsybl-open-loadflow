@@ -136,7 +136,7 @@ public class AcEquationSystemCreator {
                         .addTerm(q);
 
                 // if bus has both voltage and remote reactive power controls, then only voltage control has been kept
-                createGeneratorRemoteReactivePowerControlEquations((GeneratorReactivePowerControl) rpc, equationSystem);
+                createGeneratorRemoteReactivePowerControlEquations(rpc, equationSystem);
             });
         }
     }
@@ -215,7 +215,7 @@ public class AcEquationSystemCreator {
         createReactivePowerDistributionEquations(voltageControl.getMergedControllerElements(), true, equationSystem, creationParameters);
     }
 
-    private void createGeneratorRemoteReactivePowerControlEquations(GeneratorReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createGeneratorRemoteReactivePowerControlEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfBus controllerBus : reactivePowerControl.getControllerBuses()) {
             equationSystem.createEquation(controllerBus, AcEquationType.BUS_TARGET_Q);
         }
