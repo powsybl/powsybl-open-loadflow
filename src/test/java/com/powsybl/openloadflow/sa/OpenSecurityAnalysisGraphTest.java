@@ -166,7 +166,6 @@ class OpenSecurityAnalysisGraphTest {
         // try to find all switches impacted by at least one contingency
         LfTopoConfig topoConfig = new LfTopoConfig();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
-                .setContingencyPropagation(true)
                 .setHvdcAcEmulation(false);
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
