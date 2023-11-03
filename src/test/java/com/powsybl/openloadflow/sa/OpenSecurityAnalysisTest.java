@@ -2309,4 +2309,86 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result3 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
         assertTrue(result3.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().isEmpty());
     }
+
+    @Test
+    void testIncrementalTransformerVoltageControlWithSwitchContingency() {
+        Network network = VoltageControlNetworkFactory.createNetworkWith2T2wtAndSwitch();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setTransformerVoltageControlOn(true);
+        parameters.setDistributedSlack(false);
+        parameters.setUseReactiveLimits(true);
+        OpenLoadFlowParameters.create(parameters)
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(2)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(33.0);
+        TwoWindingsTransformer t2wt2 = network.getTwoWindingsTransformer("T2wT2");
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(2)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt2.getTerminal1())
+                .setTargetV(33.0);
+        network.getGenerator("GEN_5").newMinMaxReactiveLimits().setMinQ(-5.0).setMaxQ(5.0).add();
+        List<Contingency> contingencies = List.of(new Contingency("c", new SwitchContingency("SWITCH")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "c");
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(33.824, result.getPreContingencyResult().getNetworkResult().getBusResult("BUS_3").getV(), DELTA_V);
+        assertEquals(32.605, postContingencyResult.getNetworkResult().getBusResult("BUS_3").getV(), DELTA_V);
+    }
+
+    @Test
+    void testIncrementalShuntVoltageControlWithSwitchContingency() {
+        Network network = ShuntNetworkFactory.createWithGeneratorAndShuntNonImpedant();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters)
+                .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        ShuntCompensator shunt = network.getShuntCompensator("SHUNT");
+        shunt.setTargetDeadband(2);
+        ShuntCompensator shunt2 = network.getShuntCompensator("SHUNT2");
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Generator g2 = network.getGenerator("g2");
+        network.getGenerator("g2").newMinMaxReactiveLimits().setMinQ(-150).setMaxQ(150).add();
+
+        // Generator reactive capability is not enough to hold voltage alone but with shunt it is ok
+        shunt.setVoltageRegulatorOn(true);
+        shunt2.setVoltageRegulatorOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(393, b3);
+        assertEquals(1, shunt.getSectionCount());
+        assertEquals(0, shunt2.getSectionCount());
+        assertReactivePowerEquals(-134.585, g2.getTerminal());
+
+        // Both shunts are used at generator targetV
+        g2.setTargetV(395);
+        shunt.setSectionCount(0);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(395, b3);
+        assertEquals(1, shunt.getSectionCount());
+        assertEquals(1, shunt2.getSectionCount());
+        assertReactivePowerEquals(-110.176, g2.getTerminal());
+
+        shunt.setSectionCount(0);
+        shunt2.setSectionCount(0);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        Contingency c = new Contingency("c", new SwitchContingency("switch"));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisResult saResult = runSecurityAnalysis(network, List.of(c), monitors, securityAnalysisParameters);
+        PostContingencyResult postContingencyResult = getPostContingencyResult(saResult, "c");
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(395, saResult.getPreContingencyResult().getNetworkResult().getBusResult("b3").getV());
+        assertEquals(393.23, postContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V);
+    }
 }

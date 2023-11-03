@@ -82,7 +82,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         // All transformer voltage control are disabled as in this outer loop voltage adjustment is not
         // done into the equation system
-        for (LfBranch branch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
+        for (LfBranch branch : getControllerElements(context.getNetwork())) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
             contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
