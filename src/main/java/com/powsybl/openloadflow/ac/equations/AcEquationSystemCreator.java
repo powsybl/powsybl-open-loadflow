@@ -227,12 +227,10 @@ public class AcEquationSystemCreator {
         createReactivePowerDistributionEquations(reactivePowerControl.getControllerBuses(), false, equationSystem, creationParameters);
 
         // activate and deactivate certain equations
-        updateRemoteReactivePowerControlEquations(reactivePowerControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
+        updateRemoteReactivePowerControlEquations(reactivePowerControl, equationSystem);
     }
 
-    static void updateRemoteReactivePowerControlEquations(ReactivePowerControl reactivePowerControl,
-                                                                          EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                          AcEquationType distrEqType, AcEquationType ctrlEqType) {
+    static void updateRemoteReactivePowerControlEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
 
         List<LfBus> controllerElements = reactivePowerControl.getControllerBuses()
@@ -252,9 +250,9 @@ public class AcEquationSystemCreator {
         for (int i = 0; i < enabledControllerElements.size(); i++) {
             boolean active = i != 0;
             LfBus controllerElement = enabledControllerElements.get(i);
-            equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+            equationSystem.getEquation(controllerElement.getNum(), AcEquationType.DISTR_Q)
                     .ifPresent(eq -> eq.setActive(active));
-            equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+            equationSystem.getEquation(controllerElement.getNum(), AcEquationType.BUS_TARGET_Q)
                     .orElseThrow()
                     .setActive(false);
         }

@@ -16,17 +16,11 @@ import java.util.Objects;
  */
 public class ReactivePowerControl extends Control {
 
-    public enum Type {
-        GENERATOR,
-    }
+    private final LfBranch controlledBranch;
+    private final ControlledSide controlledSide;
+    private final List<LfBus> controllerBuses = new ArrayList<>();
 
-    protected final LfBranch controlledBranch;
-
-    protected final ControlledSide controlledSide;
-
-    protected final List<LfBus> controllerBuses = new ArrayList<>();
-
-    public ReactivePowerControl(double targetValue, LfBranch controlledBranch, ControlledSide controlledSide) {
+    public ReactivePowerControl(LfBranch controlledBranch, ControlledSide controlledSide, double targetValue) {
         super(targetValue);
         this.controlledBranch = Objects.requireNonNull(controlledBranch);
         this.controlledSide = Objects.requireNonNull(controlledSide);
@@ -55,10 +49,6 @@ public class ReactivePowerControl extends Control {
     }
 
     public void updateReactiveKeys() {
-        updateReactiveKeys(controllerBuses);
-    }
-
-    public static void updateReactiveKeys(List<LfBus> controllerBuses) {
         double[] reactiveKeys = createReactiveKeys(controllerBuses, LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER);
 
         // key is 0 only on disabled controllers

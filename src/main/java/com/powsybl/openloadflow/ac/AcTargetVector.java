@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -37,32 +38,31 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
         LfBus controllerBus = network.getBus(busNum);
+        double target = (controllerBus.getRemoteControlReactivePercent() - 1) * controllerBus.getTargetQ();
 
         // voltage control has priority over reactive power control
         // a bus won't have both controls
         Optional<GeneratorVoltageControl> generatorVoltageControl = controllerBus.getGeneratorVoltageControl();
         if (generatorVoltageControl.isPresent()) {
-            double target = (controllerBus.getRemoteControlReactivePercent() - 1) * controllerBus.getTargetQ();
-            for (LfBus otherControllerBus : generatorVoltageControl.get().getMergedControllerElements()) {
-                if (otherControllerBus != controllerBus) {
-                    target += controllerBus.getRemoteControlReactivePercent() * otherControllerBus.getTargetQ();
-                }
-            }
-            return target;
+            return updateReactivePowerDistributionTarget(target, controllerBus, generatorVoltageControl.get().getMergedControllerElements());
         }
 
         Optional<ReactivePowerControl> reactivePowerControl = controllerBus.getReactivePowerControl();
         if (reactivePowerControl.isPresent()) {
-            double target = (controllerBus.getRemoteControlReactivePercent() - 1) * controllerBus.getTargetQ();
-            for (LfBus otherControllerBus : reactivePowerControl.get().getControllerBuses()) {
-                if (otherControllerBus != controllerBus) {
-                    target += controllerBus.getRemoteControlReactivePercent() * otherControllerBus.getTargetQ();
-                }
-            }
-            return target;
+            return updateReactivePowerDistributionTarget(target, controllerBus, reactivePowerControl.get().getControllerBuses());
         }
 
         throw new PowsyblException("Tried to create a distribute Q equation for bus '" + controllerBus.getId() + "' but it does not have any generator controls.");
+    }
+
+    private static double updateReactivePowerDistributionTarget(double target, LfBus controllerBus, List<LfBus> controllerBuses) {
+        double updatedTarget = target;
+        for (LfBus otherControllerBus : controllerBuses) {
+            if (otherControllerBus != controllerBus) {
+                updatedTarget += controllerBus.getRemoteControlReactivePercent() * otherControllerBus.getTargetQ();
+            }
+        }
+        return updatedTarget;
     }
 
     private static double getReactivePowerControlTarget(LfBranch branch) {

@@ -289,7 +289,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         return network.getBuses().stream()
                 .filter(LfBus::hasReactivePowerControl)
                 .flatMap(bus -> bus.getReactivePowerControl().orElseThrow().getControllerBuses().stream())
-                .filter(Predicate.not(LfElement::isDisabled))
+                .filter(Predicate.not(LfBus::isDisabled))
                 .collect(Collectors.toList());
     }
 
