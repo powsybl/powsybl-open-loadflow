@@ -727,16 +727,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 .collect(Collectors.toList());
     }
 
-    @SuppressWarnings("unchecked")
-    public <E extends LfElement> List<E> getControllerElements(ReactivePowerControl.Type type) {
-        return busesByIndex.stream()
-                .filter(LfBus::hasGeneratorReactivePowerControl)
-                .flatMap(bus -> bus.getGeneratorReactivePowerControl().get().getControllerBuses().stream())
-                .filter(Predicate.not(LfElement::isDisabled))
-                .map(element -> (E) element)
-                .collect(Collectors.toList());
-    }
-
     public List<LfBus> getControlledBuses(VoltageControl.Type type) {
         return busesByIndex.stream()
                 .filter(bus -> bus.isVoltageControlled(type))

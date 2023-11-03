@@ -275,9 +275,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
         boolean isCoherent = true;
         for (LfGenerator gen : generators) {
-            if ((refControlledBranch != gen.getControlledBranch()) |
-                (refSide != gen.getControlledBranchSide()) |
-                (Math.abs(refTargetQ - gen.getRemoteTargetQ()) > TARGET_Q_EPSILON)) {
+            if (refControlledBranch != gen.getControlledBranch() ||
+                refSide != gen.getControlledBranchSide() ||
+                Math.abs(refTargetQ - gen.getRemoteTargetQ()) > TARGET_Q_EPSILON) {
                 isCoherent = false;
                 break;
             }
