@@ -226,10 +226,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
 
-            // complete definition of contingencies after network loading
-            PropagatedContingency.completeList(contingencies, lfParameters.isShuntCompensatorVoltageControlOn(),
-                    lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, lfParameters.isHvdcAcEmulation(), breakers);
-
             checkContingencies(lfNetwork, contingencies);
             checkLoadFlowParameters(lfParameters);
 
