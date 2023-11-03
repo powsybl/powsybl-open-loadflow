@@ -25,7 +25,7 @@ import java.util.function.*;
  * Limit violation manager. A reference limit violation manager could be specified to only report violations that
  * are more severe than reference one.
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LimitViolationManager {
 

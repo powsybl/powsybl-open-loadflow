@@ -14,7 +14,7 @@ import java.util.Objects;
  * This is an extension to a LfBranch Line to describe the asymmetry of a line to be used for an
  * unbalanced load flow.
  *
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class LfAsymLine {
 

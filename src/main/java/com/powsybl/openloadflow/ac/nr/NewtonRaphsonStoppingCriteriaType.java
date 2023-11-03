@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.ac.nr;
 
 /**
- * @author Alexandre Le Jean <alexandre.le-jean at artelys.com>
+ * @author Alexandre Le Jean {@literal <alexandre.le-jean at artelys.com>}
  */
 public enum NewtonRaphsonStoppingCriteriaType {
     UNIFORM_CRITERIA,

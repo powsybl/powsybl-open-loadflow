@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 

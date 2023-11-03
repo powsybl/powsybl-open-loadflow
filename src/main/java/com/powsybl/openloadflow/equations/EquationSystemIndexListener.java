@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.equations;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface EquationSystemIndexListener<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 

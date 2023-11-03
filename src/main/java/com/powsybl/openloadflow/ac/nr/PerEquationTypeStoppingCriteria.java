@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.equations.Vectors;
 import com.powsybl.openloadflow.util.PerUnit;
 
 /**
- * @author Alexandre Le Jean <alexandre.le-jean at artelys.com>
+ * @author Alexandre Le Jean {@literal <alexandre.le-jean at artelys.com>}
  */
 public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCriteria {
 

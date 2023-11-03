@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.equations.Vectors;
 import net.jafama.FastMath;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DefaultNewtonRaphsonStoppingCriteria implements NewtonRaphsonStoppingCriteria {
 

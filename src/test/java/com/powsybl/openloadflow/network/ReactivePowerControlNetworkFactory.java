@@ -10,7 +10,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
 
 /**
- * @author Caio Luke <caio.luke at artelys.com>
+ * @author Caio Luke {@literal <caio.luke at artelys.com>}
  */
 public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
