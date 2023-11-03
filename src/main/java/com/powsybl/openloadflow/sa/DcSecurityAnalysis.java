@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisProvider;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.*;
@@ -238,7 +239,12 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         // try to find all pst to retain because involved in pst actions
         findAllPtcToOperate(actions, topoConfig);
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), topoConfig, false, context.getParameters().getLoadFlowParameters());
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setContingencyPropagation(false)
+                .setShuntCompensatorVoltageControlOn(false)
+                .setHvdcAcEmulation(false)
+                .setSlackDistributionOnConformLoad(context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), topoConfig, creationParameters);
 
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());

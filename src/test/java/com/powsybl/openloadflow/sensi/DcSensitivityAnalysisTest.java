@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemIndex;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
@@ -863,7 +864,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = NodeBreakerNetworkFactory.create();
         List<Contingency> contingencies = List.of(new Contingency("c1", new BranchContingency("L1")));
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, new LfTopoConfig(), false, new LoadFlowParameters());
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, new LfTopoConfig(), new PropagatedContingencyCreationParameters());
         assertEquals(1, propagatedContingencies.size());
     }
 
