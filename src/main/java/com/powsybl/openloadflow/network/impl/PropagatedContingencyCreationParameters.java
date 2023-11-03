@@ -6,18 +6,23 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class PropagatedContingencyCreationParameters {
 
-    private boolean contingencyPropagation = false;
+    public static final boolean CONTINGENCY_PROPAGATION_DEFAULT_VALUE = false;
 
-    private boolean slackDistributionOnConformLoad = false;
+    private boolean contingencyPropagation = CONTINGENCY_PROPAGATION_DEFAULT_VALUE;
 
-    private boolean shuntCompensatorVoltageControlOn = false;
+    private boolean slackDistributionOnConformLoad = LfNetworkParameters.DISTRIBUTED_ON_CONFORM_LOAD_DEFAULT_VALUE;
 
-    private boolean hvdcAcEmulation = false;
+    private boolean shuntCompensatorVoltageControlOn = LoadFlowParameters.DEFAULT_SHUNT_COMPENSATOR_VOLTAGE_CONTROL_ON;
+
+    private boolean hvdcAcEmulation = LoadFlowParameters.DEFAULT_HVDC_AC_EMULATION_ON;
 
     public boolean isContingencyPropagation() {
         return contingencyPropagation;

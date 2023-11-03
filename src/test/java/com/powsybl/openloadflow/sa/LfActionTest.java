@@ -67,7 +67,8 @@ class LfActionTest extends AbstractConverterTest {
             String loadId = "LOAD";
             Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
             PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
-                    .setContingencyPropagation(true);
+                    .setContingencyPropagation(true)
+                    .setHvdcAcEmulation(false);
             PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
                     Collections.singletonList(contingency), new LfTopoConfig(), creationParameters).get(0);
             propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
