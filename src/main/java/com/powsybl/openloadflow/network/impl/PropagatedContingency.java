@@ -127,7 +127,7 @@ public class PropagatedContingency {
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index, creationParameters);
+                    PropagatedContingency.create(network, contingency, index, topoConfig, creationParameters);
             propagatedContingencies.add(propagatedContingency);
             topoConfig.getSwitchesToOpen().addAll(propagatedContingency.switchesToOpen);
             topoConfig.getBusIdsToLose().addAll(propagatedContingency.busIdsToLose);
@@ -135,7 +135,7 @@ public class PropagatedContingency {
         return propagatedContingencies;
     }
 
-    private static PropagatedContingency create(Network network, Contingency contingency, int index,
+    private static PropagatedContingency create(Network network, Contingency contingency, int index, LfTopoConfig topoConfig,
                                                 PropagatedContingencyCreationParameters creationParameters) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
@@ -171,11 +171,11 @@ public class PropagatedContingency {
             }
         }
         PropagatedContingency propagatedContingency = new PropagatedContingency(contingency, index, switchesToOpen, terminalsToDisconnect, busIdsToLose);
-        propagatedContingency.complete(creationParameters);
+        propagatedContingency.complete(topoConfig, creationParameters);
         return propagatedContingency;
     }
 
-    private void complete(PropagatedContingencyCreationParameters creationParameters) {
+    private void complete(LfTopoConfig topoConfig, PropagatedContingencyCreationParameters creationParameters) {
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId()); // we open both sides
         }

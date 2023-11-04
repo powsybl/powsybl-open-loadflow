@@ -16,7 +16,6 @@ import com.powsybl.contingency.GeneratorContingency;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;

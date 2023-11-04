@@ -11,7 +11,6 @@ import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactory;
