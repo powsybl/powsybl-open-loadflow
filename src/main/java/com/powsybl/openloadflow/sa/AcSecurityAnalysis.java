@@ -28,6 +28,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -86,8 +87,13 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig,
-                securityAnalysisParametersExt.isContingencyPropagation(), lfParameters);
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setContingencyPropagation(securityAnalysisParametersExt.isContingencyPropagation())
+                .setShuntCompensatorVoltageControlOn(lfParameters.isShuntCompensatorVoltageControlOn())
+                .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation());
+
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
         boolean breakers = topoConfig.isBreaker();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);

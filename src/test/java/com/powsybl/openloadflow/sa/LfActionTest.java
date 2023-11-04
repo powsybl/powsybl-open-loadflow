@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.action.*;
 import org.junit.jupiter.api.AfterEach;
@@ -66,8 +67,10 @@ class LfActionTest extends AbstractConverterTest {
             LfAction lfAction = LfAction.create(switchAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
             String loadId = "LOAD";
             Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
+            PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                    .setHvdcAcEmulation(false);
             PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
-                    Collections.singletonList(contingency), new LfTopoConfig(), true, loadFlowParameters).get(0);
+                    Collections.singletonList(contingency), new LfTopoConfig(), creationParameters).get(0);
             propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
                 LfAction.apply(List.of(lfAction), lfNetwork, lfContingency, acParameters.getNetworkParameters());
                 assertTrue(lfNetwork.getBranchById("C").isDisabled());

@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -165,7 +166,9 @@ class OpenSecurityAnalysisGraphTest {
 
         // try to find all switches impacted by at least one contingency
         LfTopoConfig topoConfig = new LfTopoConfig();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, true, new LoadFlowParameters());
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setHvdcAcEmulation(false);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
         LfNetworkParameters networkParameters = new LfNetworkParameters()
                 .setConnectivityFactory(connectivityFactory)
