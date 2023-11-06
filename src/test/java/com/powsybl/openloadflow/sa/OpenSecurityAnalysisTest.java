@@ -148,7 +148,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
 
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
-        assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
 
@@ -2308,5 +2308,46 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .add();
         SecurityAnalysisResult result3 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
         assertTrue(result3.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().isEmpty());
+    }
+
+    @Test
+    void testMultipleVoltageViolationsSameVoltageLevelIssue() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
+        vlload.getBusBreakerView().newBus()
+                .setId("NLOAD2")
+                .add();
+        vlload.newLoad()
+                .setId("LOAD2")
+                .setBus("NLOAD2")
+                .setP0(1)
+                .setQ0(1)
+                .add();
+        network.newLine()
+                .setId("L")
+                .setVoltageLevel1("VLLOAD")
+                .setBus1("NLOAD")
+                .setVoltageLevel2("VLLOAD")
+                .setBus2("NLOAD2")
+                .setR(0)
+                .setX(0.01)
+                .add();
+        vlload.setLowVoltageLimit(140)
+                .setHighVoltageLimit(150);
+        List<Contingency> contingencies = List.of(new Contingency("NHV1_NHV2_2", List.of(new BranchContingency("NHV1_NHV2_2"))));
+        List<StateMonitor> stateMonitors = List.of(new StateMonitor(ContingencyContext.all(),
+                                                                    Collections.emptySet(),
+                                                                    Set.of("VLLOAD"),
+                                                                    Collections.emptySet()));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, stateMonitors, new SecurityAnalysisParameters());
+        assertEquals(1, result.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        BusResult nloadResult = postContingencyResult.getNetworkResult().getBusResult("NLOAD");
+        BusResult nload2Result = postContingencyResult.getNetworkResult().getBusResult("NLOAD2");
+        assertEquals(137.601, nloadResult.getV(), DELTA_V);
+        assertEquals(137.601, nload2Result.getV(), DELTA_V);
+        assertEquals(2, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
+        assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(0).getSubjectId());
+        assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(1).getSubjectId());
     }
 }
