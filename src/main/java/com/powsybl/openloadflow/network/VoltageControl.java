@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -169,7 +168,7 @@ public class VoltageControl<T extends LfElement> extends Control {
      * For transformer voltage control, isVoltageControlEnabled() should be called.
      * For shunt voltage control, isVoltageControlEnabled() should be called.
      */
-    public boolean isHidden(boolean withPriority) {
+    public boolean isHidden() {
         // collect all main voltage controls connected the same controlled bus
         List<VoltageControl<?>> mainVoltageControls = findMainVoltageControlsSortedByPriority(controlledBus);
         if (mainVoltageControls.isEmpty()) {
@@ -178,25 +177,12 @@ public class VoltageControl<T extends LfElement> extends Control {
             // we should normally have max 3 voltage controls (one of each type) with merge type as main
             // in order to this method work whatever the voltage control is main or dependent we check against
             // main voltage control of this
-            if (withPriority) {
-                List<VoltageControl<?>> mainVoltageControlsOfThisPriority = mainVoltageControls.stream().filter(vc -> vc.getPriority() == priority).collect(Collectors.toList());
-                if (mainVoltageControlsOfThisPriority.isEmpty()) {
-                    return true;
-                } else {
-                    return mainVoltageControlsOfThisPriority.get(0) != this.getMainVoltageControl();
-                }
-            } else {
-                return mainVoltageControls.get(0) != this.getMainVoltageControl();
-            }
+            return mainVoltageControls.get(0) != this.getMainVoltageControl();
         }
     }
 
     public boolean isVisible() {
-        return !isHidden(false);
-    }
-
-    public boolean isHidden() {
-        return isHidden(false);
+        return !isHidden();
     }
 
     /**

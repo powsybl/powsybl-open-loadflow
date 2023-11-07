@@ -75,14 +75,12 @@ public class IncrementalContextData {
     public static List<LfBus> getControlledBuses(List<LfBus> candidateControlledBuses, VoltageControl.Type type) {
         return candidateControlledBuses.stream()
                 .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                .filter(bus -> !bus.getVoltageControl(type).orElseThrow().isHidden(true))
+                .filter(bus -> !bus.getVoltageControl(type).orElseThrow().isDisabled())
                 .collect(Collectors.toList());
     }
 
     public static <E extends LfElement> List<E> getControllerElements(List<LfBus> candidateControlledBuses, VoltageControl.Type type) {
-        return candidateControlledBuses.stream()
-                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                .filter(bus -> !bus.getVoltageControl(type).orElseThrow().isHidden(true))
+        return getControlledBuses(candidateControlledBuses, type).stream()
                 .flatMap(bus -> bus.getVoltageControl(type).orElseThrow().getMergedControllerElements().stream())
                 .filter(Predicate.not(LfElement::isDisabled))
                 .map(element -> (E) element)
