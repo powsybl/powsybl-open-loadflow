@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisProvider;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.*;
@@ -238,7 +239,12 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         // try to find all pst to retain because involved in pst actions
         findAllPtcToOperate(actions, topoConfig);
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), topoConfig, false);
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setContingencyPropagation(false)
+                .setShuntCompensatorVoltageControlOn(false)
+                .setHvdcAcEmulation(false)
+                .setSlackDistributionOnConformLoad(context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), topoConfig, creationParameters);
 
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
@@ -251,11 +257,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
 
         try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), topoConfig, Reporter.NO_OP)) {
-
-            // complete definition of contingencies after network loading
-            PropagatedContingency.completeList(propagatedContingencies, false,
-                    context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false, breakers);
-
             return lfNetworks.getLargest().filter(LfNetwork::isValid)
                     .map(largestNetwork -> runActionSimulations(context, largestNetwork, dcParameters, propagatedContingencies,
                                 operatorStrategies, actionsById, neededActions))
