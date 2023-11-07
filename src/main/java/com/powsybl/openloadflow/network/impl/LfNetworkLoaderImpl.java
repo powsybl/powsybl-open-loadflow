@@ -44,7 +44,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static final double TARGET_V_EPSILON = 1e-2;
 
-    private static final double TARGET_Q_EPSILON = 0.1; // MW
+    private static final double TARGET_Q_EPSILON = 1e-2;
 
     private static class LoadingContext {
 
@@ -224,30 +224,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LOGGER.warn("Bus {} has both voltage and remote reactive power controls: only voltage control is kept", controllerBus.getId());
                     continue;
                 }
-                LfGenerator lfGenerator = generators.get(0);
-                LfBranch controlledBranch = lfGenerator.getControlledBranch();
-                ControlledSide side = lfGenerator.getControlledBranchSide();
-                double targetQ = lfGenerator.getRemoteTargetQ();
-                // single generator or multiple generators with coherent control
-                if (generators.size() == 1 || checkCoherentControlMultipleGeneratorsOnSameBus(controlledBranch, side, targetQ, generators, controllerBus.getId())) {
-                    createRemoteReactivePowerControl(controlledBranch, lfGenerator.getId(), side, targetQ, controllerBus);
+                LfGenerator generator = generators.get(0);
+                if (checkControllerBusGenerators(generators, controllerBus.getId())) {
+                    createRemoteReactivePowerControl(generator.getControlledBranch(), generator.getControlledBranchSide(), generator.getRemoteTargetQ(), controllerBus);
                 }
             }
         }
     }
 
-    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, String lfGeneratorId, ControlledSide side, double targetQ, LfBus controllerBus) {
-        if (controlledBranch == null) {
-            LOGGER.warn("Controlled branch of generator '{}' is out of voltage or in a different synchronous component: remote reactive power control discarded", lfGeneratorId);
-            return;
-        }
+    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, ControlledSide side, double targetQ, LfBus controllerBus) {
         if (!controlledBranch.isConnectedAtBothSides()) {
             LOGGER.warn("Controlled branch '{}' must be connected at both sides: remote reactive power control discarded", controlledBranch.getId());
             return;
         }
         controlledBranch.getReactivePowerControl().ifPresentOrElse(
                 rpc -> {
-                    if (checkUniqueControlledSideControlledBranch(rpc, controllerBus, side)) {
+                    if (checkUniqueControlledSide(rpc, side)) {
                         updateGeneratorReactivePowerControl(rpc, controllerBus, targetQ);
                     }
                 },
@@ -263,37 +255,41 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void updateGeneratorReactivePowerControl(ReactivePowerControl reactivePowerControl, LfBus controllerBus, double controllerTargetQ) {
-        reactivePowerControl.addControllerBus(controllerBus);
         checkUniqueTargetQControlledBranch(controllerTargetQ, controllerBus, reactivePowerControl);
+        reactivePowerControl.addControllerBus(controllerBus);
     }
 
-    private static boolean checkCoherentControlMultipleGeneratorsOnSameBus(LfBranch refControlledBranch, ControlledSide refSide, double refTargetQ, List<LfGenerator> generators, String controllerBusId) {
-        // reactive power control is not created for null branches
-        // this way the correct warning is logged
-        if (refControlledBranch == null) {
-            return true;
-        }
-        boolean isCoherent = true;
-        for (LfGenerator gen : generators) {
-            if (refControlledBranch != gen.getControlledBranch() ||
-                refSide != gen.getControlledBranchSide() ||
-                Math.abs(refTargetQ - gen.getRemoteTargetQ()) > TARGET_Q_EPSILON) {
-                isCoherent = false;
-                break;
-            }
-        }
-        if (!isCoherent) {
-            LOGGER.error("Bus '{}' has multiple generators controlling reactive power remotely. The controls are not coherent between the generators: controls won't be created",
-                    controllerBusId);
+    private static boolean checkControllerBusGenerators(List<LfGenerator> generators, String controllerBusId) {
+        LfGenerator generator = generators.get(0);
+        LfBranch controlledBranch = generator.getControlledBranch();
+        if (controlledBranch == null) {
+            LOGGER.warn("Controlled branch is out of voltage or in a different synchronous component: remote reactive power control of generator {} discarded", generator.getId());
             return false;
+        }
+        ControlledSide side = generator.getControlledBranchSide();
+        double targetQ = generator.getRemoteTargetQ();
+        for (int i = 1; i < generators.size(); i++) {
+            LfGenerator otherGenerator = generators.get(i);
+            if (otherGenerator.getControlledBranch() == null) {
+                LOGGER.warn("Controlled branch is out of voltage or in a different synchronous component: remote reactive power control of generator {} discarded", otherGenerator.getId());
+                return false;
+            }
+            if (!(controlledBranch.getId().equals(otherGenerator.getControlledBranch().getId())
+                    && side.equals(otherGenerator.getControlledBranchSide())
+                    && Math.abs(targetQ - otherGenerator.getRemoteTargetQ()) < TARGET_Q_EPSILON)) {
+                LOGGER.error("Controller Bus '{}' has multiple generators with remote reactive power control." +
+                                "But controls are not coherent between them: controls discarded",
+                        controllerBusId);
+                return false;
+            }
         }
         return true;
     }
 
-    private static boolean checkUniqueControlledSideControlledBranch(ReactivePowerControl reactivePowerControl, LfBus controllerBus, ControlledSide side) {
+    private static boolean checkUniqueControlledSide(ReactivePowerControl reactivePowerControl, ControlledSide side) {
         if (!side.equals(reactivePowerControl.getControlledSide())) {
-            LOGGER.error("Bus '{}' is trying to control already controlled branch at a different side, control won't be created. Controlled side {} (kept) {} (rejected).",
-                    controllerBus.getId(), reactivePowerControl.getControlledSide(), side);
+            LOGGER.error("Controlled branch '{}' is controlled at both sides. Controlled side {} (kept) {} (rejected).",
+                    reactivePowerControl.getControlledBranch().getId(), reactivePowerControl.getControlledSide(), side);
             return false;
         }
         return true;
