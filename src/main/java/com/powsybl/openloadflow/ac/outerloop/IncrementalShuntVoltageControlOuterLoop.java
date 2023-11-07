@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -48,31 +47,21 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         return NAME;
     }
 
-    public static List<LfBus> getControlledBuses(LfNetwork network) {
-        return network.getBuses().stream()
-                .filter(bus -> bus.isVoltageControlled(VoltageControl.Type.SHUNT))
-                .filter(bus -> bus.getVoltageControl(VoltageControl.Type.SHUNT).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                .filter(bus -> !bus.getVoltageControl(VoltageControl.Type.SHUNT).orElseThrow().isHidden(true))
-                .collect(Collectors.toList());
+    public static List<LfBus> getControlledBuses(IncrementalContextData contextData) {
+        return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.SHUNT);
     }
 
-    public static List<LfShunt> getControllerElements(LfNetwork network) {
-        return network.getBuses().stream()
-                .filter(bus -> bus.isVoltageControlled(VoltageControl.Type.SHUNT))
-                .filter(bus -> bus.getVoltageControl(VoltageControl.Type.SHUNT).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                .filter(bus -> !bus.getVoltageControl(VoltageControl.Type.SHUNT).orElseThrow().isHidden(true))
-                .flatMap(bus -> bus.getShuntVoltageControl().orElseThrow().getMergedControllerElements().stream())
-                .filter(Predicate.not(LfShunt::isDisabled))
-                .collect(Collectors.toList());
+    public static List<LfShunt> getControllerElements(IncrementalContextData contextData) {
+        return IncrementalContextData.getControllerElements(contextData.getCandidateControlledBuses(), VoltageControl.Type.SHUNT);
     }
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        var contextData = new IncrementalContextData();
+        var contextData = new IncrementalContextData(context.getNetwork(), VoltageControl.Type.SHUNT);
         context.setData(contextData);
 
         // All shunt voltage control are disabled for the first equation system resolution.
-        for (LfShunt shunt : getControllerElements(context.getNetwork())) {
+        for (LfShunt shunt : getControllerElements(contextData)) {
             shunt.getVoltageControl().ifPresent(voltageControl -> shunt.setVoltageControlEnabled(false));
             for (LfShunt.Controller lfShuntController : shunt.getControllers()) {
                 contextData.getControllersContexts().put(lfShuntController.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
@@ -167,11 +156,11 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfShunt> controllerShunts = getControllerElements(network);
+        List<LfShunt> controllerShunts = getControllerElements(contextData);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerShunts,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
-        getControlledBuses(network)
+        getControlledBuses(contextData)
                 .forEach(controlledBus -> {
                     ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
                     double diffV = controlledBus.getHighestPriorityMainVoltageControl().orElseThrow().getTargetValue() - voltageControl.getControlledBus().getV();

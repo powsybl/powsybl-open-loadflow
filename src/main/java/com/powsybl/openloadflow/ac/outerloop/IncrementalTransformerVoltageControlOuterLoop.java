@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -57,32 +56,22 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return NAME;
     }
 
-    public static List<LfBus> getControlledBuses(LfNetwork network) {
-        return network.getBuses().stream()
-                .filter(bus -> bus.isVoltageControlled(VoltageControl.Type.TRANSFORMER))
-                .filter(bus -> bus.getVoltageControl(VoltageControl.Type.TRANSFORMER).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                .filter(bus -> !bus.getVoltageControl(VoltageControl.Type.TRANSFORMER).orElseThrow().isHidden(true))
-                .collect(Collectors.toList());
+    public static List<LfBus> getControlledBuses(IncrementalContextData contextData) {
+        return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER);
     }
 
-    public static List<LfBranch> getControllerElements(LfNetwork network) {
-        return network.getBuses().stream()
-                .filter(bus -> bus.isVoltageControlled(VoltageControl.Type.TRANSFORMER))
-                .filter(bus -> bus.getVoltageControl(VoltageControl.Type.TRANSFORMER).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                .filter(bus -> !bus.getVoltageControl(VoltageControl.Type.TRANSFORMER).orElseThrow().isHidden(true))
-                .flatMap(bus -> bus.getTransformerVoltageControl().orElseThrow().getMergedControllerElements().stream())
-                .filter(Predicate.not(LfBranch::isDisabled))
-                .collect(Collectors.toList());
+    public static List<LfBranch> getControllerElements(IncrementalContextData contextData) {
+        return IncrementalContextData.getControllerElements(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER);
     }
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        var contextData = new IncrementalContextData();
+        var contextData = new IncrementalContextData(context.getNetwork(), VoltageControl.Type.TRANSFORMER);
         context.setData(contextData);
 
         // All transformer voltage control are disabled as in this outer loop voltage adjustment is not
         // done into the equation system
-        for (LfBranch branch : getControllerElements(context.getNetwork())) {
+        for (LfBranch branch : getControllerElements(contextData)) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
             contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
@@ -215,7 +204,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfBranch> controllerBranches = getControllerElements(network);
+        List<LfBranch> controllerBranches = getControllerElements(contextData);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
@@ -224,7 +213,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         List<String> controlledBusesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
-        List<LfBus> controlledBuses = getControlledBuses(network);
+        List<LfBus> controlledBuses = getControlledBuses(contextData);
 
         controlledBuses.forEach(controlledBus -> {
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
