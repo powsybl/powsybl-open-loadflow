@@ -19,7 +19,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class AcEquationSystemCreator {
 
@@ -147,13 +147,16 @@ public class AcEquationSystemCreator {
     }
 
     public static void updateReactivePowerControlBranchEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        // The reactive power control is disabled if:
+        // controller bus is disabled or controlled branch is disabled or controller bus has reactive power control disabled.
+        boolean controlDisabled = reactivePowerControl.getControllerBus().isDisabled() || reactivePowerControl.getControlledBranch().isDisabled() ||
+                !reactivePowerControl.getControllerBus().isReactivePowerControlEnabled();
         equationSystem.getEquation(reactivePowerControl.getControlledBranch().getNum(), AcEquationType.BRANCH_TARGET_Q)
                 .orElseThrow()
-                .setActive(!reactivePowerControl.getControllerBus().isDisabled()
-                        && !reactivePowerControl.getControlledBranch().isDisabled());
+                .setActive(!controlDisabled);
         equationSystem.getEquation(reactivePowerControl.getControllerBus().getNum(), AcEquationType.BUS_TARGET_Q)
                 .orElseThrow()
-                .setActive(false);
+                .setActive(controlDisabled);
     }
 
     private static void createShuntEquation(LfShunt shunt, LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem, boolean deriveB) {

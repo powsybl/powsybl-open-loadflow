@@ -13,6 +13,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -23,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import static com.powsybl.openloadflow.ac.VoltageMagnitudeInitializerTest.assertBusVoltage;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class FullVoltageInitializerTest {
 
@@ -38,6 +39,7 @@ class FullVoltageInitializerTest {
                                                                                                       false,
                                                                                                       LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                                                                                                       true,
+                                                                                                      DcApproximationType.IGNORE_R,
                                                                                                       matrixFactory,
                                                                                                       0));
         initializer.prepare(lfNetwork);

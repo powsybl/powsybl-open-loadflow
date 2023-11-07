@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import java.util.List;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
@@ -20,6 +20,11 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
     public void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage) {
+        // empty
+    }
+
+    @Override
+    public void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
         // empty
     }
 

@@ -48,8 +48,8 @@ import java.util.stream.Collectors;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Gaël Macherel <gael.macherel@artelys.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
 public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariableType, DcEquationType> {
 
@@ -212,17 +212,19 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private static DcLoadFlowParameters createDcLoadFlowParameters(LfNetworkParameters networkParameters, MatrixFactory matrixFactory,
                                                                    LoadFlowParameters lfParameters, OpenLoadFlowParameters parametersExt) {
-        var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
-                true,
-                lfParameters.isDcUseTransformerRatio());
+        var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
+                .setUpdateFlows(true)
+                .setForcePhaseControlOffAndAddAngle1Var(true)
+                .setUseTransformerRatio(lfParameters.isDcUseTransformerRatio())
+                .setDcApproximationType(parametersExt.getDcApproximationType());
 
         return new DcLoadFlowParameters(networkParameters,
-                equationSystemCreationParameters,
-                matrixFactory,
-                lfParameters.isDistributedSlack(),
-                lfParameters.getBalanceType(),
-                true,
-                parametersExt.getMaxOuterLoopIterations());
+                                        equationSystemCreationParameters,
+                                        matrixFactory,
+                                        lfParameters.isDistributedSlack(),
+                                        lfParameters.getBalanceType(),
+                                        true,
+                                        parametersExt.getMaxOuterLoopIterations());
     }
 
     /**
@@ -457,8 +459,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private static double calculatePower(DcLoadFlowContext loadFlowContext, LfBranch lfBranch) {
         PiModel piModel = lfBranch.getPiModel();
-        boolean useTransformerRatio = loadFlowContext.getParameters().getEquationSystemCreationParameters().isUseTransformerRatio();
-        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(useTransformerRatio, piModel);
+        DcEquationSystemCreationParameters creationParameters = loadFlowContext.getParameters().getEquationSystemCreationParameters();
+        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
     /**
@@ -894,10 +896,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
-
-            // complete definition of contingencies after network loading
-            PropagatedContingency.completeList(contingencies, false,
-                    lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false, breakers);
 
             checkContingencies(lfNetwork, contingencies);
             checkLoadFlowParameters(lfParameters);

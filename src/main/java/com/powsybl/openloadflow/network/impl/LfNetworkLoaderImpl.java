@@ -36,7 +36,7 @@ import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
@@ -251,6 +251,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         double targetQ = lfGenerator.getRemoteTargetQ();
         ReactivePowerControl control = new ReactivePowerControl(controlledBranch, side, controllerBus, targetQ);
         controllerBus.setReactivePowerControl(control);
+        controllerBus.setReactivePowerControlEnabled(true);
         controlledBranch.setReactivePowerControl(control);
     }
 
@@ -750,22 +751,23 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void checkControlZonesAreDisjoints(LfNetwork lfNetwork) {
-        Map<String, MutableInt> controlledBusCount = new HashMap<>();
+        Map<GeneratorVoltageControl, MutableInt> generatorVoltageControlCount = new HashMap<>();
         for (LfSecondaryVoltageControl lfSvc : lfNetwork.getSecondaryVoltageControls()) {
-            for (LfBus controlledBus : lfSvc.getControlledBuses()) {
-                controlledBusCount.computeIfAbsent(controlledBus.getId(), k -> new MutableInt())
+            for (GeneratorVoltageControl generatorVoltageControl : lfSvc.getGeneratorVoltageControls()) {
+                generatorVoltageControlCount.computeIfAbsent(generatorVoltageControl, k -> new MutableInt())
                         .increment();
             }
         }
-        for (var e : controlledBusCount.entrySet()) {
+        for (var e : generatorVoltageControlCount.entrySet()) {
             if (e.getValue().intValue() > 1) {
-                throw new PowsyblException("Controlled bus '" + e.getKey() + "' is present in more that one control zone");
+                throw new PowsyblException("Generator voltage control of controlled bus '" + e.getKey().getControlledBus().getId() + "' is present in more that one control zone");
             }
         }
     }
 
-    private static Set<LfBus> findControlZoneControlledBus(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork, ControlZone controlZone) {
+    private static Set<GeneratorVoltageControl> findControlZoneGeneratorVoltageControl(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork, ControlZone controlZone) {
         return controlZone.getControlUnits().stream()
+                .filter(SecondaryVoltageControl.ControlUnit::isParticipate)
                 .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                 .flatMap(regulatingTerminal -> {
                     Connectable<?> connectable = regulatingTerminal.getConnectable();
@@ -776,6 +778,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     return Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream();
                 })
                 .filter(LfBus::isGeneratorVoltageControlled) // might happen to be false, if generator has been discarded from voltage control because of inconsistency (like small reactive limit range)
+                .flatMap(controlledBus -> controlledBus.getGeneratorVoltageControl().stream())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
@@ -795,12 +798,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 if (lfPilotBus != null) { // could be in another LfNetwork (another component)
                     double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
                     // filter missing control units and find corresponding primary voltage control, controlled bus
-                    Set<LfBus> controlledBuses = findControlZoneControlledBus(network, parameters, lfNetwork, controlZone);
-                    LOGGER.debug("{} control units of control zone '{}' have been mapped to {} Lf buses ({})",
-                            controlZone.getControlUnits().size(), controlZone.getName(), controlledBuses.size(),
-                            controlledBuses.stream().map(LfElement::getId).toList());
-                    if (!controlledBuses.isEmpty()) {
-                        var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, controlledBuses);
+                    Set<GeneratorVoltageControl> generatorVoltageControls = findControlZoneGeneratorVoltageControl(network, parameters, lfNetwork, controlZone);
+                    LOGGER.debug("{} control units of control zone '{}' have been mapped to {} generator voltage control (controlled buses are: {})",
+                            controlZone.getControlUnits().size(), controlZone.getName(), generatorVoltageControls.size(),
+                            generatorVoltageControls.stream().map(VoltageControl::getControlledBus).map(LfElement::getId).toList());
+                    if (!generatorVoltageControls.isEmpty()) {
+                        var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, generatorVoltageControls);
                         lfNetwork.addSecondaryVoltageControl(lfSvc);
                     }
                 }

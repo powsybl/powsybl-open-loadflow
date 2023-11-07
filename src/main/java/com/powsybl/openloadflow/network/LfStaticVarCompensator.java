@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LfStaticVarCompensator extends LfGenerator {
 

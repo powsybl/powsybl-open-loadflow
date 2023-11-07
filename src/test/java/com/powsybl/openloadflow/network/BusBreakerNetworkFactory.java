@@ -27,7 +27,7 @@ public final class BusBreakerNetworkFactory {
      *             LD
      * </pre>
      *
-     * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
      */
     public static Network create() {
         Network network = Network.create("test", "test");

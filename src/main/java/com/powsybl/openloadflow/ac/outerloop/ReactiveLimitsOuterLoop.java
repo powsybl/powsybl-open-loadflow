@@ -9,9 +9,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.GeneratorVoltageControl;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -19,9 +17,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
@@ -29,14 +30,14 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
     public static final String NAME = "ReactiveLimits";
 
-    private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(
-        pvToPqBus -> pvToPqBus.controllerBus.getGeneratorVoltageControl()
+    private static final Comparator<ControllerBusToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(
+        controllerBusToPqBus -> controllerBusToPqBus.controllerBus.getGeneratorVoltageControl()
             .map(vc -> -vc.getControlledBus().getNominalV())
-            .orElse(-pvToPqBus.controllerBus.getNominalV()));
+            .orElse(-controllerBusToPqBus.controllerBus.getNominalV()));
 
-    private static final Comparator<PvToPqBus> BY_TARGET_P_COMPARATOR = Comparator.comparingDouble(pvToPqBus -> -pvToPqBus.controllerBus.getTargetP());
+    private static final Comparator<ControllerBusToPqBus> BY_TARGET_P_COMPARATOR = Comparator.comparingDouble(controllerBusToPqBus -> -controllerBusToPqBus.controllerBus.getTargetP());
 
-    private static final Comparator<PvToPqBus> BY_ID_COMPARATOR = Comparator.comparing(pvToPqBus -> pvToPqBus.controllerBus.getId());
+    private static final Comparator<ControllerBusToPqBus> BY_ID_COMPARATOR = Comparator.comparing(controllerBusToPqBus -> controllerBusToPqBus.controllerBus.getId());
 
     public static final int MAX_SWITCH_PQ_PV_DEFAULT_VALUE = 3;
 
@@ -76,7 +77,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         MAX
     }
 
-    private static final class PvToPqBus {
+    private static final class ControllerBusToPqBus {
 
         private final LfBus controllerBus;
 
@@ -86,7 +87,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         private final ReactiveLimitDirection limitDirection;
 
-        private PvToPqBus(LfBus controllerBus, double q, double qLimit, ReactiveLimitDirection limitDirection) {
+        private ControllerBusToPqBus(LfBus controllerBus, double q, double qLimit, ReactiveLimitDirection limitDirection) {
             this.controllerBus = controllerBus;
             this.q = q;
             this.qLimit = qLimit;
@@ -94,7 +95,19 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         }
     }
 
-    private boolean switchPvPq(List<PvToPqBus> pvToPqBuses, int remainingPvBusCount, ContextData contextData,
+    private static final class PqToPvBus {
+
+        private final LfBus controllerBus;
+
+        private final ReactiveLimitDirection limitDirection;
+
+        private PqToPvBus(LfBus controllerBus, ReactiveLimitDirection limitDirection) {
+            this.controllerBus = controllerBus;
+            this.limitDirection = limitDirection;
+        }
+    }
+
+    private boolean switchPvPq(List<ControllerBusToPqBus> pvToPqBuses, int remainingPvBusCount, ContextData contextData,
                                Reporter reporter) {
         boolean done = false;
 
@@ -102,7 +115,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         if (modifiedRemainingPvBusCount == 0) {
             // keep one bus PV, the strongest one which is one at the highest nominal level and highest active power
             // target
-            PvToPqBus strongestPvToPqBus = pvToPqBuses.stream()
+            ControllerBusToPqBus strongestPvToPqBus = pvToPqBuses.stream()
                     .min(BY_NOMINAL_V_COMPARATOR
                             .thenComparing(BY_TARGET_P_COMPARATOR)
                             .thenComparing(BY_ID_COMPARATOR)) // for stability of the sort
@@ -115,7 +128,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         if (!pvToPqBuses.isEmpty()) {
             done = true;
 
-            for (PvToPqBus pvToPqBus : pvToPqBuses) {
+            for (ControllerBusToPqBus pvToPqBus : pvToPqBuses) {
                 LfBus controllerBus = pvToPqBus.controllerBus;
 
                 // switch PV -> PQ
@@ -142,18 +155,6 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV)", pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
         return done;
-    }
-
-    private static final class PqToPvBus {
-
-        private final LfBus controllerBus;
-
-        private final ReactiveLimitDirection limitDirection;
-
-        private PqToPvBus(LfBus controllerBus, ReactiveLimitDirection limitDirection) {
-            this.controllerBus = controllerBus;
-            this.limitDirection = limitDirection;
-        }
     }
 
     @Override
@@ -196,20 +197,22 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     }
 
     /**
-     * A bus PV bus can be switched to PQ in 2 cases:
+     * A controller bus can be a controller bus with voltage control (1) or with remote reactive control (2).
+     * (1) A bus PV bus can be switched to PQ in 2 cases:
      *  - if Q equals to Qmax
      *  - if Q equals to Qmin
+     *  (2) A remote reactive controller can reach its Q limits: the control is switch off.
      */
-    private static void checkPvBus(LfBus controllerBus, List<PvToPqBus> pvToPqBuses, MutableInt remainingPvBusCount) {
+    private static void checkControllerBus(LfBus controllerBus, List<ControllerBusToPqBus> buses, MutableInt remainingUnchangedBusCount) {
         double minQ = controllerBus.getMinQ();
         double maxQ = controllerBus.getMaxQ();
         double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
         if (q < minQ) {
-            pvToPqBuses.add(new PvToPqBus(controllerBus, q, minQ, ReactiveLimitDirection.MIN));
+            buses.add(new ControllerBusToPqBus(controllerBus, q, minQ, ReactiveLimitDirection.MIN));
         } else if (q > maxQ) {
-            pvToPqBuses.add(new PvToPqBus(controllerBus, q, maxQ, ReactiveLimitDirection.MAX));
+            buses.add(new ControllerBusToPqBus(controllerBus, q, maxQ, ReactiveLimitDirection.MAX));
         } else {
-            remainingPvBusCount.increment();
+            remainingUnchangedBusCount.increment();
         }
     }
 
@@ -247,6 +250,34 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         });
     }
 
+    private static boolean switchReactiveControllerBusPq(List<ControllerBusToPqBus> reactiveControllerBusesToPqBuses, Reporter reporter) {
+        int switchCount = 0;
+
+        for (ControllerBusToPqBus bus : reactiveControllerBusesToPqBuses) {
+            LfBus controllerBus = bus.controllerBus;
+
+            controllerBus.setReactivePowerControlEnabled(false);
+            controllerBus.setGenerationTargetQ(bus.qLimit);
+            switchCount++;
+
+            if (LOGGER.isTraceEnabled()) {
+                if (bus.limitDirection == ReactiveLimitDirection.MAX) {
+                    LOGGER.trace("Remote reactive power controller bus '{}' -> PQ, q={} > maxQ={}", controllerBus.getId(), bus.q * PerUnit.SB,
+                            bus.qLimit * PerUnit.SB);
+                } else {
+                    LOGGER.trace("Remote reactive power controller bus '{}' -> PQ, q={} < minQ={}", controllerBus.getId(), bus.q * PerUnit.SB,
+                            bus.qLimit * PerUnit.SB);
+                }
+            }
+        }
+
+        Reports.reportReactiveControllerBusesToPqBuses(reporter, switchCount);
+
+        LOGGER.info("{} remote reactive power controller buses switched PQ", switchCount);
+
+        return switchCount > 0;
+    }
+
     private static double getBusTargetV(LfBus bus) {
         return bus.getGeneratorVoltageControl().map(GeneratorVoltageControl::getTargetValue).orElse(Double.NaN);
     }
@@ -255,21 +286,39 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         return bus.getGeneratorVoltageControl().map(vc -> vc.getControlledBus().getV()).orElse(Double.NaN);
     }
 
+    public List<LfBus> getReactivePowerControllerElements(LfNetwork network) {
+        return network.getBuses().stream()
+                .filter(LfBus::hasReactivePowerControl)
+                .flatMap(bus -> Stream.of(bus.getReactivePowerControl().orElseThrow().getControllerBus()))
+                .filter(Predicate.not(LfBus::isDisabled))
+                .collect(Collectors.toList());
+    }
+
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-        List<PvToPqBus> pvToPqBuses = new ArrayList<>();
+        List<ControllerBusToPqBus> pvToPqBuses = new ArrayList<>();
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         List<LfBus> busesWithUpdatedQLimits = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
+        List<ControllerBusToPqBus> reactiveControllerBusesToPqBuses = new ArrayList<>();
+        MutableInt remainingBusWithReactivePowerControlCount = new MutableInt();
 
         context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).forEach(bus -> {
             if (bus.isGeneratorVoltageControlEnabled()) {
-                checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
+                checkControllerBus(bus, pvToPqBuses, remainingPvBusCount);
             } else {
                 // we don't support switching PQ to PV for bus with one controller with slope.
                 checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
+            }
+        });
+
+        getReactivePowerControllerElements(context.getNetwork()).forEach(bus -> {
+            if (bus.isReactivePowerControlEnabled()) {
+                // a bus that has a remote reactive generator power control, if its reactive limits are not respected,
+                // will become a classical PQ bus at reactive limits.
+                checkControllerBus(bus, reactiveControllerBusesToPqBuses, remainingBusWithReactivePowerControlCount);
             }
         });
 
@@ -284,7 +333,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         if (!busesWithUpdatedQLimits.isEmpty()) {
             LOGGER.info("{} buses blocked to a reactive limit have been adjusted because reactive limit has changed",
                     busesWithUpdatedQLimits.size());
-
+            status = OuterLoopStatus.UNSTABLE;
+        }
+        if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, reporter)) {
             status = OuterLoopStatus.UNSTABLE;
         }
 

@@ -12,8 +12,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 

@@ -19,13 +19,15 @@ import com.powsybl.security.SecurityAnalysisParameters;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.function.*;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.ToDoubleFunction;
 
 /**
  * Limit violation manager. A reference limit violation manager could be specified to only report violations that
  * are more severe than reference one.
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LimitViolationManager {
 
@@ -33,7 +35,7 @@ public class LimitViolationManager {
 
     private SecurityAnalysisParameters.IncreasedViolationsParameters parameters;
 
-    private final Map<Pair<String, Branch.Side>, LimitViolation> violations = new LinkedHashMap<>();
+    private final Map<Object, LimitViolation> violations = new LinkedHashMap<>();
 
     public LimitViolationManager(LimitViolationManager reference, SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
         this.reference = reference;
@@ -73,16 +75,27 @@ public class LimitViolationManager {
         return Pair.of(limitViolation.getSubjectId(), limitViolation.getSide());
     }
 
-    private void addLimitViolation(LimitViolation limitViolation) {
-        var subjectIdSide = getSubjectIdSide(limitViolation);
+    private void addLimitViolation(LimitViolation limitViolation, Object key) {
         if (reference != null) {
-            var referenceLimitViolation = reference.violations.get(subjectIdSide);
+            var referenceLimitViolation = reference.violations.get(key);
             if (referenceLimitViolation == null || !violationWeakenedOrEquivalent(referenceLimitViolation, limitViolation, parameters)) {
-                violations.put(subjectIdSide, limitViolation);
+                violations.put(key, limitViolation);
             }
         } else {
-            violations.put(subjectIdSide, limitViolation);
+            violations.put(key, limitViolation);
         }
+    }
+
+    private void addBranchLimitViolation(LimitViolation limitViolation) {
+        addLimitViolation(limitViolation, getSubjectIdSide(limitViolation));
+    }
+
+    private void addBusLimitViolation(LimitViolation limitViolation, LfBus bus) {
+        addLimitViolation(limitViolation, bus.getId());
+    }
+
+    private void addVoltageAngleLimitViolation(LimitViolation limitViolation, LfNetwork.LfVoltageAngleLimit voltageAngleLimit) {
+        addLimitViolation(limitViolation, voltageAngleLimit.getId());
     }
 
     private void detectBranchSideViolations(LfBranch branch, LfBus bus,
@@ -98,7 +111,7 @@ public class LimitViolationManager {
                     .filter(temporaryLimit -> i > temporaryLimit.getValue())
                     .findFirst()
                     .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side))
-                    .ifPresent(this::addLimitViolation);
+                    .ifPresent(this::addBranchLimitViolation);
         }
 
         limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER);
@@ -108,7 +121,7 @@ public class LimitViolationManager {
                     .filter(temporaryLimit -> p > temporaryLimit.getValue())
                     .findFirst()
                     .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side))
-                    .ifPresent(this::addLimitViolation);
+                    .ifPresent(this::addBranchLimitViolation);
         }
 
         limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER);
@@ -120,7 +133,7 @@ public class LimitViolationManager {
                         .filter(temporaryLimit -> s > temporaryLimit.getValue())
                         .findFirst()
                         .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side))
-                        .ifPresent(this::addLimitViolation);
+                        .ifPresent(this::addBranchLimitViolation);
             }
         }
     }
@@ -160,12 +173,12 @@ public class LimitViolationManager {
         if (!Double.isNaN(bus.getHighVoltageLimit()) && busV > bus.getHighVoltageLimit()) {
             LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
                     (float) 1., busV * scale);
-            addLimitViolation(limitViolation1);
+            addBusLimitViolation(limitViolation1, bus);
         }
         if (!Double.isNaN(bus.getLowVoltageLimit()) && busV < bus.getLowVoltageLimit()) {
             LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getLowVoltageLimit() * scale,
                     (float) 1., busV * scale);
-            addLimitViolation(limitViolation2);
+            addBusLimitViolation(limitViolation2, bus);
         }
     }
 
@@ -178,12 +191,12 @@ public class LimitViolationManager {
         if (!Double.isNaN(limit.getHighValue()) && difference > limit.getHighValue()) {
             LimitViolation limitViolation1 = new LimitViolation(limit.getId(), LimitViolationType.HIGH_VOLTAGE_ANGLE, Math.toDegrees(limit.getHighValue()),
                     (float) 1., Math.toDegrees(difference));
-            addLimitViolation(limitViolation1);
+            addVoltageAngleLimitViolation(limitViolation1, limit);
         }
         if (!Double.isNaN(limit.getLowValue()) && difference < limit.getLowValue()) {
             LimitViolation limitViolation2 = new LimitViolation(limit.getId(), LimitViolationType.LOW_VOLTAGE_ANGLE, Math.toDegrees(limit.getLowValue()),
                     (float) 1., Math.toDegrees(difference));
-            addLimitViolation(limitViolation2);
+            addVoltageAngleLimitViolation(limitViolation2, limit);
         }
     }
 

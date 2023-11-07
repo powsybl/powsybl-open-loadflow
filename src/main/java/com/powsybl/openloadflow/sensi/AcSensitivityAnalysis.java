@@ -38,8 +38,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariableType, AcEquationType> {
 
@@ -224,10 +224,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
-
-            // complete definition of contingencies after network loading
-            PropagatedContingency.completeList(contingencies, lfParameters.isShuntCompensatorVoltageControlOn(),
-                    lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, lfParameters.isHvdcAcEmulation(), breakers);
 
             checkContingencies(lfNetwork, contingencies);
             checkLoadFlowParameters(lfParameters);

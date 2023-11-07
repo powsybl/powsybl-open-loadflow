@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import java.util.Map;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class Reports {
 
@@ -100,6 +100,15 @@ public final class Reports {
                 .withDefaultMessage("${pqToPvBusCount} buses switched PQ -> PV ({blockedPqBusCount} buses blocked PQ because have reach max number of switch)")
                 .withValue("pqToPvBusCount", pqToPvBusCount)
                 .withValue("blockedPqBusCount", blockedPqBusCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportReactiveControllerBusesToPqBuses(Reporter reporter, int switchCount) {
+        reporter.report(Report.builder()
+                .withKey("remoteReactiveControllerBusToPq")
+                .withDefaultMessage("${count} remote reactive power controller buses have switched PQ")
+                .withValue("count", switchCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }

@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.network.LfNetworkParameters;
 import java.util.Objects;
 
 /**
- * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
+ * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
  */
 public abstract class AbstractLoadFlowParameters {
 

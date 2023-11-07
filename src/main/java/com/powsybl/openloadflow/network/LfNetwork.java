@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
@@ -695,6 +695,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfSecondaryVoltageControl> getSecondaryVoltageControls() {
         return secondaryVoltageControls;
+    }
+
+    private static boolean filterSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
+        return !secondaryVoltageControl.getPilotBus().isDisabled();
+    }
+
+    public List<LfSecondaryVoltageControl> getEnabledSecondaryVoltageControls() {
+        return secondaryVoltageControls.stream()
+                .filter(LfNetwork::filterSecondaryVoltageControl)
+                .toList();
     }
 
     public void addVoltageAngleLimit(LfVoltageAngleLimit limit) {

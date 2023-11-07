@@ -18,7 +18,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkParameters {
 
@@ -75,7 +75,9 @@ public class LfNetworkParameters {
 
     private Set<Country> countriesToBalance = Collections.emptySet();
 
-    private boolean distributedOnConformLoad = false;
+    public static final boolean DISTRIBUTED_ON_CONFORM_LOAD_DEFAULT_VALUE = false;
+
+    private boolean distributedOnConformLoad = DISTRIBUTED_ON_CONFORM_LOAD_DEFAULT_VALUE;
 
     private boolean phaseControl = false;
 

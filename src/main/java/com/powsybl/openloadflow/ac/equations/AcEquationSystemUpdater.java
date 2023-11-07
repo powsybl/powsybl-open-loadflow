@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
@@ -44,12 +44,17 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     @Override
     public void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
         updateVoltageControls(controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus());
-        controllerBus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
     }
 
     @Override
     public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
         AcEquationSystemCreator.updateTransformerPhaseControlEquations(controllerBranch.getPhaseControl().orElseThrow(), equationSystem);
+    }
+
+    @Override
+    public void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
+        ReactivePowerControl reactivePowerControl = controllerBus.getReactivePowerControl().orElseThrow();
+        AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem);
     }
 
     @Override

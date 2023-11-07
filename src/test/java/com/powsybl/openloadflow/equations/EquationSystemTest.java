@@ -14,10 +14,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreator;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -29,7 +26,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class EquationSystemTest {
 
@@ -173,7 +170,7 @@ class EquationSystemTest {
         List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
         LfNetwork network = lfNetworks.get(0);
 
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(network, new DcEquationSystemCreationParameters(true, false, true)).create(false);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(network).create(false);
         String ref = String.join(System.lineSeparator(),
                 "bus_target_φ0 = φ0",
                 "bus_target_p1 = dc_p_2(φ0, φ1) + dc_p_1(φ1, φ2) + dc_p_1(φ1, φ2)",
