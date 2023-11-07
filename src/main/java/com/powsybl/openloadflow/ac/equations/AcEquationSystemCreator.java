@@ -141,19 +141,6 @@ public class AcEquationSystemCreator {
         }
     }
 
-    public static void updateReactivePowerControlBranchEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // The reactive power control is disabled if:
-        // controller bus is disabled or controlled branch is disabled or controller bus has reactive power control disabled.
-        boolean controlDisabled = reactivePowerControl.getMainControllerBus().isDisabled() || reactivePowerControl.getControlledBranch().isDisabled() ||
-                !reactivePowerControl.getMainControllerBus().isReactivePowerControlEnabled();
-        equationSystem.getEquation(reactivePowerControl.getControlledBranch().getNum(), AcEquationType.BRANCH_TARGET_Q)
-                .orElseThrow()
-                .setActive(!controlDisabled);
-        equationSystem.getEquation(reactivePowerControl.getMainControllerBus().getNum(), AcEquationType.BUS_TARGET_Q)
-                .orElseThrow()
-                .setActive(controlDisabled);
-    }
-
     private static void createShuntEquation(LfShunt shunt, LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem, boolean deriveB) {
         ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), deriveB);
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
@@ -218,9 +205,6 @@ public class AcEquationSystemCreator {
             equationSystem.createEquation(controllerBus, AcEquationType.BUS_TARGET_Q);
         }
 
-        // ensure reactive keys are up-to-date
-        reactivePowerControl.updateReactiveKeys();
-
         // create reactive power distribution equations at reactive power controller buses
         createReactivePowerDistributionEquations(reactivePowerControl.getControllerBuses(), equationSystem, creationParameters);
 
@@ -231,23 +215,37 @@ public class AcEquationSystemCreator {
     static void updateRemoteReactivePowerControlEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
 
-        List<LfBus> controllerElements = reactivePowerControl.getControllerBuses()
+        List<LfBus> controllerBuses = reactivePowerControl.getControllerBuses()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
                 .toList();
 
+        List<LfBus> enabledControllerBuses = controllerBuses.stream()
+                .filter(LfBus::isReactivePowerControlEnabled).toList();
+        List<LfBus> disabledControllerBuses = controllerBuses.stream()
+                .filter(Predicate.not(LfBus::isReactivePowerControlEnabled)).toList();
+
         Equation<AcVariableType, AcEquationType> qEq = equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_Q)
                 .orElseThrow();
 
-        List<LfBus> enabledControllerElements = controllerElements.stream().toList();
+        // reactive keys must be updated in case of disabled controllers.
+        reactivePowerControl.updateReactiveKeys();
 
         // activate reactive power control at controlled bus only if at least one controller element is enabled
-        qEq.setActive(!enabledControllerElements.isEmpty());
+        qEq.setActive(!enabledControllerBuses.isEmpty());
+
+        for (LfBus controllerElement : disabledControllerBuses) {
+            equationSystem.getEquation(controllerElement.getNum(), AcEquationType.DISTR_Q)
+                    .ifPresent(eq -> eq.setActive(false));
+            equationSystem.getEquation(controllerElement.getNum(), AcEquationType.BUS_TARGET_Q)
+                    .orElseThrow()
+                    .setActive(true);
+        }
 
         // activate distribution equation and deactivate control equation at all enabled controller buses except one (first)
-        for (int i = 0; i < enabledControllerElements.size(); i++) {
+        for (int i = 0; i < enabledControllerBuses.size(); i++) {
             boolean active = i != 0;
-            LfBus controllerElement = enabledControllerElements.get(i);
+            LfBus controllerElement = enabledControllerBuses.get(i);
             equationSystem.getEquation(controllerElement.getNum(), AcEquationType.DISTR_Q)
                     .ifPresent(eq -> eq.setActive(active));
             equationSystem.getEquation(controllerElement.getNum(), AcEquationType.BUS_TARGET_Q)
