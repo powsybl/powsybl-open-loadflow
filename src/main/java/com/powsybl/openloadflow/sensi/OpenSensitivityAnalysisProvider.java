@@ -23,6 +23,7 @@ import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.xml.NetworkXml;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
@@ -32,6 +33,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.openloadflow.util.Reports;
@@ -159,7 +161,13 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
             LfTopoConfig topoConfig = new LfTopoConfig();
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, false);
+            LoadFlowParameters loadFlowParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
+            PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                    .setContingencyPropagation(false)
+                    .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
+                    .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                    .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 
@@ -193,7 +201,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             }
 
             AbstractSensitivityAnalysis<?, ?> analysis;
-            if (sensitivityAnalysisParameters.getLoadFlowParameters().isDc()) {
+            if (loadFlowParameters.isDc()) {
                 analysis = new DcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             } else {
                 analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);

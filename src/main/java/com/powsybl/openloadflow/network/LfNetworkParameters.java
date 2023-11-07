@@ -75,7 +75,9 @@ public class LfNetworkParameters {
 
     private Set<Country> countriesToBalance = Collections.emptySet();
 
-    private boolean distributedOnConformLoad = false;
+    public static final boolean DISTRIBUTED_ON_CONFORM_LOAD_DEFAULT_VALUE = false;
+
+    private boolean distributedOnConformLoad = DISTRIBUTED_ON_CONFORM_LOAD_DEFAULT_VALUE;
 
     private boolean phaseControl = false;
 
