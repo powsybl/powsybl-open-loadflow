@@ -604,7 +604,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (controllerShunt.getVoltageControl().isPresent()) {
             // if a controller shunt is already in a shunt voltage control, the number of equations will not equal the
             // number of variables. We have only one B variable for more than one bus target V equations.
-            if (controllerShunt.getVoltageControl().orElseThrow().getControlledBus().getId() != controlledBus.getId()) {
+            if (!controllerShunt.getVoltageControl().orElseThrow().getControlledBus().getId().equals(controlledBus.getId())) {
                 LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
             }
             return;
