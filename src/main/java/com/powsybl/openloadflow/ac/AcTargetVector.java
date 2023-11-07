@@ -43,7 +43,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         } else if (controllerBus.hasReactivePowerControl()) {
             mergedControllerBuses = controllerBus.getReactivePowerControl().orElseThrow().getControllerBuses();
         } else {
-            new PowsyblException("Controller bus '" + controllerBus.getId() + "' has no voltage or reactive remote control");
+            throw new PowsyblException("Controller bus '" + controllerBus.getId() + "' has no voltage or reactive remote control");
         }
         return updateReactivePowerDistributionTarget(target, controllerBus, mergedControllerBuses);
     }

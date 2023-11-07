@@ -1913,8 +1913,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testWithReactivePowerRemoteControl() {
         Network network = ReactivePowerControlNetworkFactory.createWithGeneratorRemoteControl();
-        List<Contingency> contingencies = List.of(new Contingency("contingency",
-                List.of(new BranchContingency("l34"), new BranchContingency("l12"))));
+        List<Contingency> contingencies = List.of(
+                new Contingency("contingency1", List.of(new BranchContingency("l34"))),
+                new Contingency("contingency2", List.of(new BranchContingency("l34"), new BranchContingency("l14"))));
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setUseReactiveLimits(true);
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
@@ -1925,6 +1926,45 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertDoesNotThrow(() -> {
             runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
         });
+    }
+
+    @Test
+    void testWithReactivePowerRemoteControl2() {
+        Network network = ReactivePowerControlNetworkFactory.createWithGeneratorRemoteControl2();
+        List<Contingency> contingencies = List.of(
+                new Contingency("contingency1", List.of(new BranchContingency("l12"))),
+                new Contingency("contingency2", List.of(new BranchContingency("l34"), new BranchContingency("l14"))));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setUseReactiveLimits(true);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setReactivePowerRemoteControl(true);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        assertDoesNotThrow(() -> {
+            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        });
+    }
+
+    @Test
+    void testWithSharedReactivePowerRemoteControl() {
+        Network network = ReactivePowerControlNetworkFactory.createWithGeneratorsRemoteControlShared();
+        List<Contingency> contingencies = List.of(
+                new Contingency("contingency1", List.of(new BranchContingency("l34"))),
+                new Contingency("contingency2", List.of(new GeneratorContingency("g1"))),
+                new Contingency("contingency2", List.of(new GeneratorContingency("g1Bis"))),
+                new Contingency("contingency3", List.of(new GeneratorContingency("g4"))));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setUseReactiveLimits(true);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setReactivePowerRemoteControl(true);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        assertDoesNotThrow(() -> {
+            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        });
+        fail(); // TODO fix singular matrix
     }
 
     @Test
