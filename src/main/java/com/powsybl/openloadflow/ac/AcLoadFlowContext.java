@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.asym.AsymmetricalAcEquationSystemCreator;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
@@ -16,6 +17,9 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
+import org.apache.commons.lang3.tuple.Triple;
+
+import java.util.List;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -29,6 +33,8 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
     private AcLoadFlowResult result;
 
     private boolean networkUpdated = true;
+
+    public Triple<int[], List<Integer>, DenseMatrix> previousBranchIndexNumSensitivities = null;
 
     public AcLoadFlowContext(LfNetwork network, AcLoadFlowParameters parameters) {
         super(network, parameters);

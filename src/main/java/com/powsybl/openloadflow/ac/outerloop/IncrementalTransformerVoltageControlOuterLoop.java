@@ -24,6 +24,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,18 +70,108 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     static class SensitivityContext {
 
-        private final DenseMatrix sensitivities;
+        private DenseMatrix sensitivities;
+
+        private Triple<int[], List<Integer>, DenseMatrix> branchIndexNumSensitivities;
 
         private final int[] controllerBranchIndex;
 
+        private final int[] controllerBranchToCalculateSensiIndex;
+
         public SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                  JacobianMatrix<AcVariableType, AcEquationType> j) {
+                                  JacobianMatrix<AcVariableType, AcEquationType> j,
+                                  Triple<int[], List<Integer>, DenseMatrix> previousSensitivities) {
             controllerBranchIndex = LfBranch.createIndex(network, controllerBranches);
-            sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, j);
+            List<LfBranch> controllerBranchesToCalculateSensitivity = getBranchesToCalculateSensitivity(
+                    controllerBranches, previousSensitivities);
+            controllerBranchToCalculateSensiIndex = LfBranch.createIndex(network, controllerBranchesToCalculateSensitivity);
+            if (controllerBranchesToCalculateSensitivity.isEmpty()) { // reusing all sensibilities from last iteration
+                sensitivities = previousSensitivities.getRight();
+                branchIndexNumSensitivities = null;
+                LOGGER.info("All transformer sensitivities were reused");
+            } else {
+                DenseMatrix calculatedSensitivities = calculateSensitivityValues(controllerBranchesToCalculateSensitivity,
+                        controllerBranchToCalculateSensiIndex, equationSystem, j);
+                updateSensitivities(controllerBranches, controllerBranchesToCalculateSensitivity,
+                        calculatedSensitivities, previousSensitivities);
+            }
         }
 
-        private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
+        private static List<LfBranch> getBranchesToCalculateSensitivity(List<LfBranch> controllerBranches,
+                                                                        Triple<int[], List<Integer>, DenseMatrix> previousSensitivities) {
+            if (previousSensitivities == null) { // first outerloop iteration
+                return controllerBranches;
+            } else {
+                List<Integer> previousControllerBranchesNum = previousSensitivities.getMiddle();
+
+                int[] currentControllerBranchesNumInt = controllerBranches.stream()
+                        .mapToInt(LfElement::getNum)
+                        .toArray();
+                List<Integer> currentControllerBranchesNum = Arrays.stream(currentControllerBranchesNumInt).boxed().toList();
+
+                // check which branches need to calculate sensitivity
+                List<Integer> branchesThatNeedUpdate = new ArrayList<>(currentControllerBranchesNum);
+                branchesThatNeedUpdate.removeAll(previousControllerBranchesNum);
+
+                return controllerBranches.stream()
+                        .filter(c -> branchesThatNeedUpdate.contains(c.getNum()))
+                        .collect(Collectors.toList());
+            }
+        }
+
+        private void updateSensitivities(List<LfBranch> controllerBranches,
+                                         List<LfBranch> controllerBranchesToCalculateSensitivity,
+                                         DenseMatrix calculatedSensitivities,
+                                         Triple<int[], List<Integer>, DenseMatrix> previousSensitivities) {
+
+            if (previousSensitivities == null) { // first outerloop iteration
+                sensitivities = calculatedSensitivities;
+                LOGGER.info("All transformer sensitivities were recalculated");
+            } else {
+                int nRows = calculatedSensitivities.getRowCount();
+                int nColumns = controllerBranches.size();
+
+                // fill sensitivities
+                sensitivities = new DenseMatrix(nRows, nColumns);
+
+                // currently calculated values
+                for (LfBranch controllerBranch : controllerBranchesToCalculateSensitivity) {
+                    int jBranchNum = controllerBranchIndex[controllerBranch.getNum()];
+                    int jCalculatedBranchNum = controllerBranchToCalculateSensiIndex[controllerBranch.getNum()];
+                    for (int i = 0; i < nRows; i++) {
+                        sensitivities.set(i, jBranchNum, calculatedSensitivities.get(i, jCalculatedBranchNum));
+                    }
+                }
+
+                // previously calculated values
+                int[] previousControllerBranchesIndex = previousSensitivities.getLeft();
+                List<Integer> previousControllerBranchesNum = previousSensitivities.getMiddle();
+                DenseMatrix sensitivitiesLastIteration = previousSensitivities.getRight();
+
+                controllerBranches.stream()
+                        .filter(c -> previousControllerBranchesNum.contains(c.getNum()))
+                        .forEach(controllerBranch -> {
+                            int jBranchNum = controllerBranchIndex[controllerBranch.getNum()];
+                            int jLastIterationBranchNum = previousControllerBranchesIndex[controllerBranch.getNum()];
+                            for (int i = 0; i < nRows; i++) {
+                                sensitivities.set(i, jBranchNum, sensitivitiesLastIteration.get(i, jLastIterationBranchNum));
+                            }
+                        });
+
+                LOGGER.info("{} transformer sensitivities were recalculated ({} reused)",
+                        controllerBranchesToCalculateSensitivity.size(), nColumns - controllerBranchesToCalculateSensitivity.size());
+            }
+
+            int[] currentControllerBranchesNumInt = controllerBranches.stream()
+                    .mapToInt(LfElement::getNum)
+                    .toArray();
+            List<Integer> currentControllerBranchesNum = Arrays.stream(currentControllerBranchesNumInt).boxed().toList();
+
+            branchIndexNumSensitivities = Triple.of(controllerBranchIndex, currentControllerBranchesNum, sensitivities);
+        }
+
+        private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] calculationControllerBranchIndex,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                               JacobianMatrix<AcVariableType, AcEquationType> j) {
             int nRows = equationSystem.getIndex().getSortedEquationsToSolve().size();
@@ -106,7 +197,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             DenseMatrix rhs = new DenseMatrix(nRows, nColumns);
             for (LfBranch controllerBranch : controllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
-                        .ifPresent(equation -> rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], 1d));
+                        .ifPresent(equation -> rhs.set(equation.getColumn(), calculationControllerBranchIndex[controllerBranch.getNum()], 1d));
             }
             j.solveTransposed(rhs);
             return rhs;
@@ -242,7 +333,10 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
 
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutsideOfDeadband,
-                loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
+                loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix(), loadFlowContext.previousBranchIndexNumSensitivities);
+
+        // update previous sensitivities
+        loadFlowContext.previousBranchIndexNumSensitivities = sensitivityContext.branchIndexNumSensitivities;
 
         // for synthetics logs
         List<String> controlledBusesAdjusted = new ArrayList<>();
