@@ -23,6 +23,8 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -86,7 +88,27 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         private static DenseMatrix calculateSensitivityValues(List<LfShunt> controllerShunts, int[] controllerShuntIndex,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                               JacobianMatrix<AcVariableType, AcEquationType> j) {
-            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerShunts.size());
+            int nRows = equationSystem.getIndex().getSortedEquationsToSolve().size();
+            int nColumns = controllerShunts.size();
+
+            if (nColumns == 1) {
+                double[] vectorRhs = new double[nRows];
+                Arrays.fill(vectorRhs, 0);
+                for (LfShunt controllerShunt : controllerShunts) {
+                    equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                            .ifPresent(equation -> vectorRhs[equation.getColumn()] = 1d);
+                }
+                j.solveTransposed(vectorRhs);
+
+                // generate matrix with solution in rhs
+                DenseMatrix rhs = new DenseMatrix(nRows, 1);
+                for (int i = 0; i < nRows; i++) {
+                    rhs.set(i, 0, vectorRhs[i]);
+                }
+                return rhs;
+            }
+
+            DenseMatrix rhs = new DenseMatrix(nRows, nColumns);
             for (LfShunt controllerShunt : controllerShunts) {
                 equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B)
                         .ifPresent(equation -> rhs.set(equation.getColumn(), controllerShuntIndex[controllerShunt.getNum()], 1d));
@@ -148,20 +170,43 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfShunt> controllerShunts = network.getControllerElements(VoltageControl.Type.SHUNT);
-        SensitivityContext sensitivityContext = new SensitivityContext(network, controllerShunts,
+        List<LfBus> controlledBuses = network.getControlledBuses(VoltageControl.Type.SHUNT);
+
+        // check which shunts are not within their deadbands
+        List<LfShunt> controllerShuntsOutsideOfDeadband = new ArrayList<>();
+        List<LfBus> controlledBusesOutsideOfDeadband = new ArrayList<>();
+        controlledBuses.forEach(controlledBus -> {
+            ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
+            double diffV = voltageControl.getTargetValue() - voltageControl.getControlledBus().getV();
+            double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+            if (Math.abs(diffV) > halfTargetDeadband) {
+                List<LfShunt> controllers = voltageControl.getMergedControllerElements().stream()
+                        .filter(b -> !b.isDisabled())
+                        .collect(Collectors.toList());
+
+                controllerShuntsOutsideOfDeadband.addAll(controllers);
+                controlledBusesOutsideOfDeadband.add(controlledBus);
+            }
+        });
+
+        // all shunts are within their deadbands
+        if (controllerShuntsOutsideOfDeadband.isEmpty()) {
+            return status.getValue();
+        }
+
+        SensitivityContext sensitivityContext = new SensitivityContext(network, controllerShuntsOutsideOfDeadband,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
-        network.getControlledBuses(VoltageControl.Type.SHUNT)
-                .forEach(controlledBus -> {
-                    ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
-                    double diffV = voltageControl.getTargetValue() - voltageControl.getControlledBus().getV();
-                    List<LfShunt> sortedControllers = voltageControl.getMergedControllerElements().stream()
-                            .filter(shunt -> !shunt.isDisabled())
-                            .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
-                            .collect(Collectors.toList());
-                    adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, status);
-                });
+        controlledBusesOutsideOfDeadband.forEach(controlledBus -> {
+            ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
+            double diffV = voltageControl.getTargetValue() - voltageControl.getControlledBus().getV();
+            List<LfShunt> sortedControllers = voltageControl.getMergedControllerElements().stream()
+                    .filter(shunt -> !shunt.isDisabled())
+                    .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
+                    .collect(Collectors.toList());
+            adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, status);
+        });
+
         return status.getValue();
     }
 
