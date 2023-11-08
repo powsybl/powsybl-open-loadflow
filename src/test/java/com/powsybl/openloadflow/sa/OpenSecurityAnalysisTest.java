@@ -1952,8 +1952,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(
                 new Contingency("contingency1", List.of(new BranchContingency("l34"))),
                 new Contingency("contingency2", List.of(new GeneratorContingency("g1"))),
-                new Contingency("contingency2", List.of(new GeneratorContingency("g1Bis"))),
-                new Contingency("contingency3", List.of(new GeneratorContingency("g4"))));
+                new Contingency("contingency3", List.of(new GeneratorContingency("g1"), new GeneratorContingency("g1Bis"), new GeneratorContingency("g4"))));
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setUseReactiveLimits(true);
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
@@ -1964,7 +1963,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertDoesNotThrow(() -> {
             runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
         });
-        fail(); // TODO fix singular matrix
     }
 
     @Test

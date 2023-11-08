@@ -167,6 +167,9 @@ public class LfContingency {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
                 bus.setGeneratorVoltageControlEnabled(false);
             }
+            if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
+                bus.setReactivePowerControlEnabled(false);
+            }
         }
     }
 
