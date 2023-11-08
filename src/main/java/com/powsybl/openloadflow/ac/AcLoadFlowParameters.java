@@ -99,6 +99,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
                 ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
                 ", asymmetrical=" + asymmetrical +
+                ", throwsExceptionInCaseOfSlackDistributionFailure=" + throwsExceptionInCaseOfSlackDistributionFailure +
                 ')';
     }
 }
