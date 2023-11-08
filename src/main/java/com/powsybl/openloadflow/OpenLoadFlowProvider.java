@@ -91,16 +91,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         if (result.getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
             return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
         } else {
-            switch (result.getNewtonRaphsonStatus()) {
-                case CONVERGED:
-                    return LoadFlowResult.ComponentResult.Status.CONVERGED;
-                case MAX_ITERATION_REACHED:
-                    return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-                case SOLVER_FAILED:
-                    return LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
-                default:
-                    return LoadFlowResult.ComponentResult.Status.FAILED;
-            }
+            return switch (result.getNewtonRaphsonStatus()) {
+                case CONVERGED -> LoadFlowResult.ComponentResult.Status.CONVERGED;
+                case MAX_ITERATION_REACHED -> LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+                case SOLVER_FAILED -> LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
+                default -> LoadFlowResult.ComponentResult.Status.FAILED;
+            };
         }
     }
 

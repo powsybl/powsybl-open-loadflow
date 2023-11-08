@@ -15,11 +15,12 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -89,23 +90,32 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     abstract SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
                                             ComputationManager computationManager, List<OperatorStrategy> operatorStrategies, List<Action> actions);
 
-    public static PostContingencyComputationStatus postContingencyStatusFromNRStatus(NewtonRaphsonStatus status) {
-        return switch (status) {
-            case CONVERGED -> PostContingencyComputationStatus.CONVERGED;
-            case MAX_ITERATION_REACHED -> PostContingencyComputationStatus.MAX_ITERATION_REACHED;
-            case SOLVER_FAILED -> PostContingencyComputationStatus.SOLVER_FAILED;
-            case NO_CALCULATION -> PostContingencyComputationStatus.NO_IMPACT;
-            case UNREALISTIC_STATE -> PostContingencyComputationStatus.FAILED;
-        };
+    public static PostContingencyComputationStatus postContingencyStatusFromAcLoadFlowResult(AcLoadFlowResult result) {
+        if (result.getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
+            return PostContingencyComputationStatus.MAX_ITERATION_REACHED;
+        } else {
+            return switch (result.getNewtonRaphsonStatus()) {
+                case CONVERGED -> PostContingencyComputationStatus.CONVERGED;
+                case MAX_ITERATION_REACHED -> PostContingencyComputationStatus.MAX_ITERATION_REACHED;
+                case SOLVER_FAILED -> PostContingencyComputationStatus.SOLVER_FAILED;
+                case NO_CALCULATION -> PostContingencyComputationStatus.NO_IMPACT;
+                case UNREALISTIC_STATE -> PostContingencyComputationStatus.FAILED;
+            };
+        }
     }
 
-    public static LoadFlowResult.ComponentResult.Status loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus status) {
-        return switch (status) {
-            case CONVERGED -> LoadFlowResult.ComponentResult.Status.CONVERGED;
-            case MAX_ITERATION_REACHED -> LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-            case SOLVER_FAILED -> LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
-            case NO_CALCULATION, UNREALISTIC_STATE -> LoadFlowResult.ComponentResult.Status.FAILED;
-        };
+    public static LoadFlowResult.ComponentResult.Status componentResultStatusFromAcLoadFlowResult(AcLoadFlowResult result) {
+        // FIXME duplicates com.powsybl.openloadflow.OpenLoadFlowProvider.convertStatus
+        if (result.getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
+            return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+        } else {
+            return switch (result.getNewtonRaphsonStatus()) {
+                case CONVERGED -> LoadFlowResult.ComponentResult.Status.CONVERGED;
+                case MAX_ITERATION_REACHED -> LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+                case SOLVER_FAILED -> LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
+                default -> LoadFlowResult.ComponentResult.Status.FAILED;
+            };
+        }
     }
 
     protected static void checkActions(Network network, List<Action> actions) {
