@@ -13,7 +13,6 @@ import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.*;
-import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.equations.Quantity;
@@ -100,20 +99,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 case SOLVER_FAILED -> PostContingencyComputationStatus.SOLVER_FAILED;
                 case NO_CALCULATION -> PostContingencyComputationStatus.NO_IMPACT;
                 case UNREALISTIC_STATE -> PostContingencyComputationStatus.FAILED;
-            };
-        }
-    }
-
-    public static LoadFlowResult.ComponentResult.Status componentResultStatusFromAcLoadFlowResult(AcLoadFlowResult result) {
-        // FIXME duplicates com.powsybl.openloadflow.OpenLoadFlowProvider.convertStatus
-        if (result.getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
-            return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-        } else {
-            return switch (result.getNewtonRaphsonStatus()) {
-                case CONVERGED -> LoadFlowResult.ComponentResult.Status.CONVERGED;
-                case MAX_ITERATION_REACHED -> LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-                case SOLVER_FAILED -> LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
-                default -> LoadFlowResult.ComponentResult.Status.FAILED;
             };
         }
     }

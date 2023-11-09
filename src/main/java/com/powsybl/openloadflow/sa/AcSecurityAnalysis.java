@@ -219,9 +219,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                 }
             }
 
-            LoadFlowResult.ComponentResult.Status status = componentResultStatusFromAcLoadFlowResult(preContingencyLoadFlowResult);
             return new SecurityAnalysisResult(
-                    new PreContingencyResult(status, new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
+                    new PreContingencyResult(
+                            preContingencyLoadFlowResult.toComponentResultStatus(),
+                            new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),
                     postContingencyResults, operatorStrategyResults);

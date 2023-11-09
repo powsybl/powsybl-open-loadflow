@@ -1649,17 +1649,17 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testStatusConversion() {
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
-                AbstractSecurityAnalysis.componentResultStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.UNSTABLE)));
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.UNSTABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED,
-                AbstractSecurityAnalysis.componentResultStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.STABLE)));
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
-                AbstractSecurityAnalysis.componentResultStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE)));
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.SOLVER_FAILED,
-                AbstractSecurityAnalysis.componentResultStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.SOLVER_FAILED, OuterLoopStatus.STABLE)));
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.SOLVER_FAILED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
-                AbstractSecurityAnalysis.componentResultStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.NO_CALCULATION, OuterLoopStatus.STABLE)));
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.NO_CALCULATION, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
-                AbstractSecurityAnalysis.componentResultStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE)));
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE).toComponentResultStatus());
 
         assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED,
                 AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.UNSTABLE)));
