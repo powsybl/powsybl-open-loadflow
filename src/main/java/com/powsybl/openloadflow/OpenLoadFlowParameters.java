@@ -1416,7 +1416,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                         parametersExt.getMaxOuterLoopIterations(),
                                         matrixFactory,
                                         voltageInitializer,
-                                        parametersExt.isAsymmetrical());
+                                        parametersExt.isAsymmetrical(),
+                                        parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure());
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

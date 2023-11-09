@@ -68,11 +68,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
-        // in some post-contingency computation, it does not remain elements to participate to slack distribution.
-        // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
-        if (lfParametersExt.getSlackDistributionFailureBehavior() == OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW) {
-            lfParametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS); // or FAIL ?
-        }
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
 
         // check actions validity
@@ -157,6 +152,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
             // only run post-contingency simulations if pre-contingency simulation is ok
             if (preContingencyComputationOk) {
+                // in some post-contingency computation, it does not remain elements to participate to slack distribution.
+                // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
+                acParameters.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
+
                 // update network result
                 preContingencyNetworkResult.update();
 

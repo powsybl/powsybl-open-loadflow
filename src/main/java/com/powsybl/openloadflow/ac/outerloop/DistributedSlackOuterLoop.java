@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -33,11 +32,8 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
 
     private final ActivePowerDistribution activePowerDistribution;
 
-    private final OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior;
-
-    public DistributedSlackOuterLoop(ActivePowerDistribution activePowerDistribution, OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double slackBusPMaxMismatch) {
+    public DistributedSlackOuterLoop(ActivePowerDistribution activePowerDistribution, double slackBusPMaxMismatch) {
         this.activePowerDistribution = Objects.requireNonNull(activePowerDistribution);
-        this.slackDistributionFailureBehavior = slackDistributionFailureBehavior;
         this.slackBusPMaxMismatch = slackBusPMaxMismatch;
     }
 
@@ -64,7 +60,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
             if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
                 Reports.reportMismatchDistributionFailure(reporter, context.getIteration(), remainingMismatch * PerUnit.SB);
 
-                switch (slackDistributionFailureBehavior) {
+                switch (context.getLoadFlowContext().getParameters().isThrowsExceptionInCaseOfSlackDistributionFailure()) {
                     case THROW ->
                         throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
                                 + remainingMismatch * PerUnit.SB + " MW remains");

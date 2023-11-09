@@ -148,7 +148,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
 
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
-        assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
 
@@ -2308,5 +2308,81 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .add();
         SecurityAnalysisResult result3 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
         assertTrue(result3.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().isEmpty());
+    }
+
+    @Test
+    void testMultipleVoltageViolationsSameVoltageLevelIssue() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
+        vlload.getBusBreakerView().newBus()
+                .setId("NLOAD2")
+                .add();
+        vlload.newLoad()
+                .setId("LOAD2")
+                .setBus("NLOAD2")
+                .setP0(1)
+                .setQ0(1)
+                .add();
+        network.newLine()
+                .setId("L")
+                .setVoltageLevel1("VLLOAD")
+                .setBus1("NLOAD")
+                .setVoltageLevel2("VLLOAD")
+                .setBus2("NLOAD2")
+                .setR(0)
+                .setX(0.01)
+                .add();
+        vlload.setLowVoltageLimit(140)
+                .setHighVoltageLimit(150);
+        List<Contingency> contingencies = List.of(new Contingency("NHV1_NHV2_2", List.of(new BranchContingency("NHV1_NHV2_2"))));
+        List<StateMonitor> stateMonitors = List.of(new StateMonitor(ContingencyContext.all(),
+                                                                    Collections.emptySet(),
+                                                                    Set.of("VLLOAD"),
+                                                                    Collections.emptySet()));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, stateMonitors, new SecurityAnalysisParameters());
+        assertEquals(1, result.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        BusResult nloadResult = postContingencyResult.getNetworkResult().getBusResult("NLOAD");
+        BusResult nload2Result = postContingencyResult.getNetworkResult().getBusResult("NLOAD2");
+        assertEquals(137.601, nloadResult.getV(), DELTA_V);
+        assertEquals(137.601, nload2Result.getV(), DELTA_V);
+        assertEquals(2, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
+        assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(0).getSubjectId());
+        assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(1).getSubjectId());
+    }
+
+    @Test
+    void testDoesNotThrowIfSlackDistributionFailure() {
+        Network network = DistributedSlackNetworkFactory.create();
+        Load l1 = network.getLoad("l1");
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters).setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(lfParameters);
+        List<Contingency> contingencies = List.of(new Contingency("l1", List.of(new LoadContingency("l1"))));
+
+        LoadFlowResult lfResult = loadFlowRunner.run(network, lfParameters);
+        assertTrue(lfResult.isOk());
+
+        l1.getTerminal().disconnect();
+        // l1 is only load, cannot distribute slack due to generators Pmin
+        CompletionException thrownLf = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, lfParameters));
+        assertTrue(thrownLf.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
+
+        CompletionException thrownSa = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters));
+        assertTrue(thrownSa.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
+
+        // restore the load l1, now try in SA. Basecase is OK, contingency case should not throw and leave on slack bus.
+        l1.getTerminal().connect();
+        SecurityAnalysisResult saResult = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        assertEquals(1, saResult.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult = saResult.getPostContingencyResults().get(0);
+        // CONVERGED will be changed to FAILED later on via https://github.com/powsybl/powsybl-open-loadflow/pull/890
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().contains("l1"));
+        assertEquals(600., postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower(), 1e-6);
+
+        // check OLF parameters weren't modified to reach this
+        assertTrue(OpenLoadFlowParameters.get(lfParameters).isThrowsExceptionInCaseOfSlackDistributionFailure());
     }
 }

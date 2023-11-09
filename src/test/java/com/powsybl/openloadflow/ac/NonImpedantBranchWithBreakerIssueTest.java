@@ -39,6 +39,7 @@ class NonImpedantBranchWithBreakerIssueTest {
                                                                              newtonRaphsonParameters, Collections.emptyList(),
                                                                              AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
                                                                              new DenseMatrixFactory(), new UniformValueVoltageInitializer(),
+                                                                             false,
                                                                              false);
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
             new AcloadFlowEngine(context)
@@ -64,6 +65,7 @@ class NonImpedantBranchWithBreakerIssueTest {
                                                                              newtonRaphsonParameters, Collections.emptyList(),
                                                                              AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
                                                                              new DenseMatrixFactory(), new UniformValueVoltageInitializer(),
+                                                                             false,
                                                                              false);
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
             new AcloadFlowEngine(context)
