@@ -121,6 +121,7 @@ public class LfZeroImpedanceNetwork {
                             .add(vc);
                     vc.getMergedDependentVoltageControls().clear();
                     vc.mainMergedVoltageControl = null;
+                    vc.disabled = false;
                 }
             }
         }
