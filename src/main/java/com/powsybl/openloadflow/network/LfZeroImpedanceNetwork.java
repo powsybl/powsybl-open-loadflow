@@ -15,7 +15,6 @@ import org.jgrapht.graph.AsSubgraph;
 import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -40,6 +39,7 @@ public class LfZeroImpedanceNetwork {
         updateSpanningTree();
         if (loadFlowModel == LoadFlowModel.AC) {
             updateVoltageControlMergeStatus();
+            disableInvalidGeneratorVoltageControls();
         }
     }
 
@@ -143,19 +143,23 @@ public class LfZeroImpedanceNetwork {
                 voltageControls.get(0).mergeStatus = VoltageControl.MergeStatus.MAIN;
             }
         }
-        List<LfBus> controlledBuses = new ArrayList<>();
+    }
+
+    private void disableInvalidGeneratorVoltageControls() {
+        List<LfBus> controlledBuses = new ArrayList<>(1);
         for (LfBus zb : graph.vertexSet()) {
             if (zb.isGeneratorVoltageControlEnabled()) {
-                controlledBuses.add(zb.getGeneratorVoltageControl().orElseThrow().getMainVoltageControl().controlledBus);
+                controlledBuses.add(zb.getGeneratorVoltageControl().orElseThrow().getMainVoltageControl().getControlledBus());
             }
         }
-        List<LfBus> uniqueControlledBuses = controlledBuses.stream().distinct()
-                .sorted(Comparator.comparingDouble(bus -> bus.getGeneratorVoltageControl().orElseThrow().getTargetValue()))
-                .collect(Collectors.toList());
-        if (uniqueControlledBuses.size() > 1) {
-            // we have an issue.
-            for (int i = 1; i < uniqueControlledBuses.size(); i++) {
-                uniqueControlledBuses.get(i).getGeneratorVoltageControl().orElseThrow().setNotSupported();
+        List<LfBus> uniqueControlledBusesSortedByMaxP = controlledBuses.stream()
+                .distinct()
+                .sorted(Comparator.comparingDouble(LfBus::getMaxP))
+                .toList();
+        if (uniqueControlledBusesSortedByMaxP.size() > 1) {
+            // we have an issue, just keep first one with max active power
+            for (int i = 1; i < uniqueControlledBusesSortedByMaxP.size(); i++) {
+                uniqueControlledBusesSortedByMaxP.get(i).getGeneratorVoltageControl().orElseThrow().setDisabled(true);
             }
         }
     }

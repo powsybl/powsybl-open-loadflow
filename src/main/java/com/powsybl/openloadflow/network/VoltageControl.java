@@ -21,8 +21,7 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     public enum MergeStatus {
         MAIN,
-        DEPENDENT,
-        NOT_SUPPORTED
+        DEPENDENT
     }
 
     protected final Type type;
@@ -38,6 +37,8 @@ public class VoltageControl<T extends LfElement> extends Control {
     protected final List<VoltageControl<T>> mergedDependentVoltageControls = new ArrayList<>();
 
     protected VoltageControl<T> mainMergedVoltageControl;
+
+    protected boolean disabled = false;
 
     protected VoltageControl(double targetValue, Type type, int priority, LfBus controlledBus) {
         super(targetValue);
@@ -82,6 +83,9 @@ public class VoltageControl<T extends LfElement> extends Control {
      * status could be updated too.
      */
     public boolean isDisabled() {
+        if (disabled) {
+            return true;
+        }
         if (getMergedControlledBuses().stream().allMatch(LfElement::isDisabled)) {
             return true;
         }
@@ -89,8 +93,8 @@ public class VoltageControl<T extends LfElement> extends Control {
                 .allMatch(LfElement::isDisabled);
     }
 
-    public void setNotSupported() {
-        this.mergeStatus = MergeStatus.NOT_SUPPORTED;
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
     }
 
     public MergeStatus getMergeStatus() {
