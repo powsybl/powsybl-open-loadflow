@@ -13,15 +13,12 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.ShuntNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Shunt test case.
@@ -535,7 +532,7 @@ class AcLoadFlowShuntTest {
     }
 
     @Test
-    void testNonLinearControlersIncremental() {
+    void testNonLinearControllersIncremental() {
         shunt.setVoltageRegulatorOn(false);
         ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
                 .setId("SHUNT2")
@@ -597,5 +594,41 @@ class AcLoadFlowShuntTest {
         assertEquals(0, shunt.getSectionCount());
         assertEquals(2, shunt2.getSectionCount());
         assertEquals(2, shunt3.getSectionCount());
+    }
+
+    @Test
+    void testIncrementalVoltageControlWithGenerator() {
+        Network network = ShuntNetworkFactory.createWithGeneratorAndShunt();
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        ShuntCompensator shunt = network.getShuntCompensator("SHUNT");
+        shunt.setTargetDeadband(2);
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Generator g2 = network.getGenerator("g2");
+
+        // Generator reactive capability is enough to hold voltage target
+        shunt.setVoltageRegulatorOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(393, b3);
+        assertEquals(0, shunt.getSectionCount());
+        assertReactivePowerEquals(-289.033, g2.getTerminal());
+
+        network.getGenerator("g2").newMinMaxReactiveLimits().setMinQ(-150).setMaxQ(150).add();
+        // Generator reactive capability is not enough to hold voltage target and shunt is deactivated
+        shunt.setVoltageRegulatorOn(false);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(390.887, b3);
+        assertEquals(0, shunt.getSectionCount());
+        assertReactivePowerEquals(-150.0, g2.getTerminal());
+
+        // Generator reactive capability is not enough to hold voltage alone but with shunt it is ok
+        shunt.setVoltageRegulatorOn(true);
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isOk());
+        assertVoltageEquals(393, b3);
+        assertEquals(1, shunt.getSectionCount());
+        assertReactivePowerEquals(-134.585, g2.getTerminal());
     }
 }
