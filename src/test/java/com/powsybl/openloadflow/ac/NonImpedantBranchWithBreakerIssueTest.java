@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.network.*;
@@ -40,7 +41,7 @@ class NonImpedantBranchWithBreakerIssueTest {
                                                                              AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
                                                                              new DenseMatrixFactory(), new UniformValueVoltageInitializer(),
                                                                              false,
-                                                                             false);
+                                                                             OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -66,7 +67,7 @@ class NonImpedantBranchWithBreakerIssueTest {
                                                                              AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
                                                                              new DenseMatrixFactory(), new UniformValueVoltageInitializer(),
                                                                              false,
-                                                                             false);
+                                                                             OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
             new AcloadFlowEngine(context)
                     .run();
