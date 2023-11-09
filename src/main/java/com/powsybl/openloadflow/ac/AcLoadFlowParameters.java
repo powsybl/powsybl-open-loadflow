@@ -50,7 +50,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
         this.maxOuterLoopIterations = maxOuterLoopIterations;
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.asymmetrical = asymmetrical;
-        this.slackDistributionFailureBehavior = slackDistributionFailureBehavior;
+        this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
     }
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
@@ -86,7 +86,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
     }
 
     public void setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
-        this.slackDistributionFailureBehavior = slackDistributionFailureBehavior;
+        this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
     }
 
     @Override
