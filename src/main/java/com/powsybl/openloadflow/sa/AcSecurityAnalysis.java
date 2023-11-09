@@ -68,9 +68,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
-        // in some post-contingency computation, it does not remain elements to participate to slack distribution.
-        // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
-        lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
 
         // check actions validity
@@ -155,6 +152,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
             // only run post-contingency simulations if pre-contingency simulation is ok
             if (preContingencyComputationOk) {
+                // in some post-contingency computation, it does not remain elements to participate to slack distribution.
+                // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
+                acParameters.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
+
                 // update network result
                 preContingencyNetworkResult.update();
 
@@ -218,9 +219,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                 }
             }
 
-            LoadFlowResult.ComponentResult.Status status = loadFlowResultStatusFromNRStatus(preContingencyLoadFlowResult.getNewtonRaphsonStatus());
             return new SecurityAnalysisResult(
-                    new PreContingencyResult(status, new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
+                    new PreContingencyResult(
+                            preContingencyLoadFlowResult.toComponentResultStatus(),
+                            new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),
                     postContingencyResults, operatorStrategyResults);
@@ -244,7 +246,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                 .run();
 
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-        PostContingencyComputationStatus status = postContingencyStatusFromNRStatus(postContingencyLoadFlowResult.getNewtonRaphsonStatus());
+        PostContingencyComputationStatus status = postContingencyStatusFromAcLoadFlowResult(postContingencyLoadFlowResult);
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
         var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
 
@@ -294,6 +296,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         AcLoadFlowResult postActionsLoadFlowResult = new AcloadFlowEngine(context)
                 .run();
 
-        return postContingencyStatusFromNRStatus(postActionsLoadFlowResult.getNewtonRaphsonStatus());
+        return postContingencyStatusFromAcLoadFlowResult(postActionsLoadFlowResult);
     }
 }

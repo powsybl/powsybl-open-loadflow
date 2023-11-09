@@ -22,7 +22,9 @@ import com.powsybl.iidm.network.test.SecurityAnalysisTestNetworkFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.network.impl.OlfThreeWindingsTransformerResult;
@@ -31,6 +33,7 @@ import com.powsybl.security.*;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.*;
@@ -1645,27 +1648,36 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testStatusConversion() {
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED,
-                AbstractSecurityAnalysis.loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus.CONVERGED));
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
-                AbstractSecurityAnalysis.loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus.MAX_ITERATION_REACHED));
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.UNSTABLE).toComponentResultStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED,
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.STABLE).toComponentResultStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.SOLVER_FAILED,
-                AbstractSecurityAnalysis.loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus.SOLVER_FAILED));
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.SOLVER_FAILED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
-                AbstractSecurityAnalysis.loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus.NO_CALCULATION));
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.NO_CALCULATION, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
-                AbstractSecurityAnalysis.loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus.UNREALISTIC_STATE));
+                buildTestAcLoadFlowResult(NewtonRaphsonStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE).toComponentResultStatus());
 
-        assertEquals(PostContingencyComputationStatus.CONVERGED,
-                AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.CONVERGED));
         assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED,
-                AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.MAX_ITERATION_REACHED));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.UNSTABLE)));
+        assertEquals(PostContingencyComputationStatus.CONVERGED,
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.STABLE)));
+        assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED,
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.SOLVER_FAILED,
-                AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.SOLVER_FAILED));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.SOLVER_FAILED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.NO_IMPACT,
-                AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.NO_CALCULATION));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.NO_CALCULATION, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.FAILED,
-                AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.UNREALISTIC_STATE));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE)));
+    }
+
+    private AcLoadFlowResult buildTestAcLoadFlowResult(NewtonRaphsonStatus newtonRaphsonStatus, OuterLoopStatus outerLoopStatus) {
+        LfNetwork lfNetwork = Mockito.mock(LfNetwork.class);
+        return new AcLoadFlowResult(lfNetwork, 0, 0, newtonRaphsonStatus, outerLoopStatus, 0d, 0d);
     }
 
     @Test
@@ -2349,6 +2361,41 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(2, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
         assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(0).getSubjectId());
         assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(1).getSubjectId());
+    }
+
+    @Test
+    void testDoesNotThrowIfSlackDistributionFailure() {
+        Network network = DistributedSlackNetworkFactory.create();
+        Load l1 = network.getLoad("l1");
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters).setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(lfParameters);
+        List<Contingency> contingencies = List.of(new Contingency("l1", List.of(new LoadContingency("l1"))));
+
+        LoadFlowResult lfResult = loadFlowRunner.run(network, lfParameters);
+        assertTrue(lfResult.isOk());
+
+        l1.getTerminal().disconnect();
+        // l1 is only load, cannot distribute slack due to generators Pmin
+        CompletionException thrownLf = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, lfParameters));
+        assertTrue(thrownLf.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
+
+        CompletionException thrownSa = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters));
+        assertTrue(thrownSa.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
+
+        // restore the load l1, now try in SA. Basecase is OK, contingency case should not throw and leave on slack bus.
+        l1.getTerminal().connect();
+        SecurityAnalysisResult saResult = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        assertEquals(1, saResult.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult = saResult.getPostContingencyResults().get(0);
+        // CONVERGED will be changed to FAILED later on via https://github.com/powsybl/powsybl-open-loadflow/pull/890
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().contains("l1"));
+        assertEquals(600., postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower(), 1e-6);
+
+        // check OLF parameters weren't modified to reach this
+        assertTrue(OpenLoadFlowParameters.get(lfParameters).isThrowsExceptionInCaseOfSlackDistributionFailure());
     }
 
     @Test
