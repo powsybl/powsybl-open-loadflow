@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -90,23 +89,6 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                                                               JacobianMatrix<AcVariableType, AcEquationType> j) {
             int nRows = equationSystem.getIndex().getSortedEquationsToSolve().size();
             int nColumns = controllerShunts.size();
-
-            if (nColumns == 1) {
-                double[] vectorRhs = new double[nRows];
-                Arrays.fill(vectorRhs, 0);
-                for (LfShunt controllerShunt : controllerShunts) {
-                    equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B)
-                            .ifPresent(equation -> vectorRhs[equation.getColumn()] = 1d);
-                }
-                j.solveTransposed(vectorRhs);
-
-                // generate matrix with solution in rhs
-                DenseMatrix rhs = new DenseMatrix(nRows, 1);
-                for (int i = 0; i < nRows; i++) {
-                    rhs.set(i, 0, vectorRhs[i]);
-                }
-                return rhs;
-            }
 
             DenseMatrix rhs = new DenseMatrix(nRows, nColumns);
             for (LfShunt controllerShunt : controllerShunts) {

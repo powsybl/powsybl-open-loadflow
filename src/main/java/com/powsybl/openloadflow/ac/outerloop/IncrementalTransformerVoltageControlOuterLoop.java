@@ -86,23 +86,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             int nRows = equationSystem.getIndex().getSortedEquationsToSolve().size();
             int nColumns = controllerBranches.size();
 
-            if (nColumns == 1) {
-                double[] vectorRhs = new double[nRows];
-                Arrays.fill(vectorRhs, 0);
-                for (LfBranch controllerBranch : controllerBranches) {
-                    equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
-                            .ifPresent(equation -> vectorRhs[equation.getColumn()] = 1d);
-                }
-                j.solveTransposed(vectorRhs);
-
-                // generate matrix with solution from rhs
-                DenseMatrix rhs = new DenseMatrix(nRows, 1);
-                for (int i = 0; i < nRows; i++) {
-                    rhs.set(i, 0, vectorRhs[i]);
-                }
-                return rhs;
-            }
-
             DenseMatrix rhs = new DenseMatrix(nRows, nColumns);
             for (LfBranch controllerBranch : controllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
