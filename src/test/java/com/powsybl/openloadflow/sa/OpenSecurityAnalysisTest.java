@@ -2389,8 +2389,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult saResult = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
         assertEquals(1, saResult.getPostContingencyResults().size());
         PostContingencyResult postContingencyResult = saResult.getPostContingencyResults().get(0);
-        // CONVERGED will be changed to FAILED later on via https://github.com/powsybl/powsybl-open-loadflow/pull/894
-        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(PostContingencyComputationStatus.FAILED, postContingencyResult.getStatus());
         assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().contains("l1"));
         assertEquals(600., postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower(), 1e-6);
 

@@ -78,6 +78,8 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
     public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
         if (getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
             return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+        } else if (getOuterLoopStatus() == OuterLoopStatus.FAILED) {
+            return LoadFlowResult.ComponentResult.Status.FAILED;
         } else {
             return switch (getNewtonRaphsonStatus()) {
                 case CONVERGED -> LoadFlowResult.ComponentResult.Status.CONVERGED;
