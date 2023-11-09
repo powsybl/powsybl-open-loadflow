@@ -2350,4 +2350,39 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(0).getSubjectId());
         assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(1).getSubjectId());
     }
+
+    @Test
+    void testDoesNotThrowIfSlackDistributionFailure() {
+        Network network = DistributedSlackNetworkFactory.create();
+        Load l1 = network.getLoad("l1");
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters).setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(lfParameters);
+        List<Contingency> contingencies = List.of(new Contingency("l1", List.of(new LoadContingency("l1"))));
+
+        LoadFlowResult lfResult = loadFlowRunner.run(network, lfParameters);
+        assertTrue(lfResult.isOk());
+
+        l1.getTerminal().disconnect();
+        // l1 is only load, cannot distribute slack due to generators Pmin
+        CompletionException thrownLf = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, lfParameters));
+        assertTrue(thrownLf.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
+
+        CompletionException thrownSa = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters));
+        assertTrue(thrownSa.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
+
+        // restore the load l1, now try in SA. Basecase is OK, contingency case should not throw and leave on slack bus.
+        l1.getTerminal().connect();
+        SecurityAnalysisResult saResult = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        assertEquals(1, saResult.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult = saResult.getPostContingencyResults().get(0);
+        // CONVERGED will be changed to FAILED later on via https://github.com/powsybl/powsybl-open-loadflow/pull/890
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().contains("l1"));
+        assertEquals(600., postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower(), 1e-6);
+
+        // check OLF parameters weren't modified to reach this
+        assertTrue(OpenLoadFlowParameters.get(lfParameters).isThrowsExceptionInCaseOfSlackDistributionFailure());
+    }
 }
