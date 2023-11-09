@@ -29,6 +29,24 @@ class NotSameNumberVariableEquationIssueTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
     }
 
+    /**
+     *   (local regul)
+     *       GEN
+     *        |     L
+     * NGEN xxxxx ----- xxxx NGEN2 (regul NLOAD)
+     *        |
+     *        8
+     *        |
+     *    xxxxxxxxx NHV1
+     *    |       |
+     *    |       |
+     *    |       |
+     *    xxxxxxxxx NHV2
+     *        |
+     *        8
+     *        |
+     *      xxxxx NLOAD
+     */
     @Test
     void test() {
         var network = EurostagTutorialExample1Factory.create();
