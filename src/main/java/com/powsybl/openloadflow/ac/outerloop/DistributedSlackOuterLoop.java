@@ -32,11 +32,8 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
 
     private final ActivePowerDistribution activePowerDistribution;
 
-    private final boolean throwsExceptionInCaseOfFailure;
-
-    public DistributedSlackOuterLoop(ActivePowerDistribution activePowerDistribution, boolean throwsExceptionInCaseOfFailure, double slackBusPMaxMismatch) {
+    public DistributedSlackOuterLoop(ActivePowerDistribution activePowerDistribution, double slackBusPMaxMismatch) {
         this.activePowerDistribution = Objects.requireNonNull(activePowerDistribution);
-        this.throwsExceptionInCaseOfFailure = throwsExceptionInCaseOfFailure;
         this.slackBusPMaxMismatch = slackBusPMaxMismatch;
     }
 
@@ -63,7 +60,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
             if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
                 Reports.reportMismatchDistributionFailure(reporter, context.getIteration(), remainingMismatch * PerUnit.SB);
 
-                if (throwsExceptionInCaseOfFailure) {
+                if (context.getLoadFlowContext().getParameters().isThrowsExceptionInCaseOfSlackDistributionFailure()) {
                     throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
                             + remainingMismatch * PerUnit.SB + " MW remains");
                 }
