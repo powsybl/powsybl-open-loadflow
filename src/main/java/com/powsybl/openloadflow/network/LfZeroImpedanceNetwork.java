@@ -39,6 +39,7 @@ public class LfZeroImpedanceNetwork {
         updateSpanningTree();
         if (loadFlowModel == LoadFlowModel.AC) {
             updateVoltageControlMergeStatus();
+            disableInvalidGeneratorVoltageControls();
         }
     }
 
@@ -120,6 +121,7 @@ public class LfZeroImpedanceNetwork {
                             .add(vc);
                     vc.getMergedDependentVoltageControls().clear();
                     vc.mainMergedVoltageControl = null;
+                    vc.disabled = false;
                 }
             }
         }
@@ -140,6 +142,25 @@ public class LfZeroImpedanceNetwork {
                 }
             } else {
                 voltageControls.get(0).mergeStatus = VoltageControl.MergeStatus.MAIN;
+            }
+        }
+    }
+
+    private void disableInvalidGeneratorVoltageControls() {
+        List<LfBus> controlledBuses = new ArrayList<>(1);
+        for (LfBus zb : graph.vertexSet()) {
+            if (zb.isGeneratorVoltageControlEnabled()) {
+                controlledBuses.add(zb.getGeneratorVoltageControl().orElseThrow().getMainVoltageControl().getControlledBus());
+            }
+        }
+        List<LfBus> uniqueControlledBusesSortedByMaxP = controlledBuses.stream()
+                .distinct()
+                .sorted(Comparator.comparingDouble(LfBus::getMaxP))
+                .toList();
+        if (uniqueControlledBusesSortedByMaxP.size() > 1) {
+            // we have an issue, just keep first one with max active power
+            for (int i = 1; i < uniqueControlledBusesSortedByMaxP.size(); i++) {
+                uniqueControlledBusesSortedByMaxP.get(i).getGeneratorVoltageControl().orElseThrow().setDisabled(true);
             }
         }
     }
