@@ -11,5 +11,6 @@ package com.powsybl.openloadflow.lf.outerloop;
  */
 public enum OuterLoopStatus {
     STABLE,
-    UNSTABLE
+    UNSTABLE,
+    FAILED
 }
