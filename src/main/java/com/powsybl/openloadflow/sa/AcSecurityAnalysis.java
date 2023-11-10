@@ -153,8 +153,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
             // only run post-contingency simulations if pre-contingency simulation is ok
             if (preContingencyComputationOk) {
                 // in some post-contingency computation, it does not remain elements to participate to slack distribution.
-                // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
-                acParameters.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
+                // in that case, no exception should be thrown. If parameters were configured to throw, reconfigure to FAIL.
+                // (the contingency will be marked as not converged)
+                if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW == acParameters.getSlackDistributionFailureBehavior()) {
+                    acParameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+                }
 
                 // update network result
                 preContingencyNetworkResult.update();

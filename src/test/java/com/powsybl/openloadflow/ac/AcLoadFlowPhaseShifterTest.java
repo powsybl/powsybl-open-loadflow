@@ -577,7 +577,7 @@ class AcLoadFlowPhaseShifterTest {
                                                                      new DenseMatrixFactory(),
                                                                      new UniformValueVoltageInitializer(),
                                                                      false,
-                                                                     false);
+                                                                     OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult lfResult = new AcloadFlowEngine(lfContext)
                     .run();

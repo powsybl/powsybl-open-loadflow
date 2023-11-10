@@ -92,6 +92,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     public static PostContingencyComputationStatus postContingencyStatusFromAcLoadFlowResult(AcLoadFlowResult result) {
         if (result.getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
             return PostContingencyComputationStatus.MAX_ITERATION_REACHED;
+        } else if (result.getOuterLoopStatus() == OuterLoopStatus.FAILED) {
+            return PostContingencyComputationStatus.FAILED;
         } else {
             return switch (result.getNewtonRaphsonStatus()) {
                 case CONVERGED -> PostContingencyComputationStatus.CONVERGED;
