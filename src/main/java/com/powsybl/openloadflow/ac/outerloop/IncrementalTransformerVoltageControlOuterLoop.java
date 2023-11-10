@@ -56,14 +56,22 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return NAME;
     }
 
+    public static List<LfBus> getControlledBuses(IncrementalContextData contextData) {
+        return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER);
+    }
+
+    public static List<LfBranch> getControllerElements(IncrementalContextData contextData) {
+        return IncrementalContextData.getControllerElements(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER);
+    }
+
     @Override
     public void initialize(AcOuterLoopContext context) {
-        var contextData = new IncrementalContextData();
+        var contextData = new IncrementalContextData(context.getNetwork(), VoltageControl.Type.TRANSFORMER);
         context.setData(contextData);
 
         // All transformer voltage control are disabled as in this outer loop voltage adjustment is not
         // done into the equation system
-        for (LfBranch branch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
+        for (LfBranch branch : getControllerElements(contextData)) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
             contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
@@ -196,7 +204,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfBranch> controllerBranches = network.getControllerElements(VoltageControl.Type.TRANSFORMER);
+        List<LfBranch> controllerBranches = getControllerElements(contextData);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
@@ -205,7 +213,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         List<String> controlledBusesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
-        List<LfBus> controlledBuses = network.getControlledBuses(VoltageControl.Type.TRANSFORMER);
+        List<LfBus> controlledBuses = getControlledBuses(contextData);
 
         controlledBuses.forEach(controlledBus -> {
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();

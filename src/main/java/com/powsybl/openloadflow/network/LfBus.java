@@ -95,6 +95,8 @@ public interface LfBus extends LfElement {
 
     double getGenerationTargetP();
 
+    double getMaxP();
+
     double getGenerationTargetQ();
 
     void setGenerationTargetQ(double generationTargetQ);

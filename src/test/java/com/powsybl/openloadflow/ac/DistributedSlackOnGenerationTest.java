@@ -56,7 +56,7 @@ class DistributedSlackOnGenerationTest {
                 .setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
-                .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
     }
 
     @Test
@@ -276,20 +276,42 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void zeroParticipatingGeneratorsTest() {
+    void zeroParticipatingGeneratorsThrowTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
         g2.getExtension(ActivePowerControl.class).setDroop(-3);
         g3.getExtension(ActivePowerControl.class).setDroop(0);
         g4.getExtension(ActivePowerControl.class).setDroop(0);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
-                "No more generator participating to slack distribution");
+        CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertTrue(thrown.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
     }
 
     @Test
-    void notEnoughActivePowerFailureTest() {
+    void notEnoughActivePowerThrowTest() {
         network.getLoad("l1").setP0(1000);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
-                "Failed to distribute slack bus active power mismatch");
+        CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertTrue(thrown.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
+    }
+
+    @Test
+    void notEnoughActivePowerFailTest() {
+        network.getLoad("l1").setP0(1000);
+        parameters.getExtension(OpenLoadFlowParameters.class).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertFalse(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
+        assertEquals(520, componentResult.getSlackBusActivePowerMismatch(), 1e-6);
+    }
+
+    @Test
+    void notEnoughActivePowerLeaveOnSlackBusTest() {
+        network.getLoad("l1").setP0(1000);
+        parameters.getExtension(OpenLoadFlowParameters.class).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertTrue(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        assertEquals(520, componentResult.getSlackBusActivePowerMismatch(), 1e-6);
     }
 
     @Test
