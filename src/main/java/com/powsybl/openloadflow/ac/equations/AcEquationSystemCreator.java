@@ -235,7 +235,6 @@ public class AcEquationSystemCreator {
                     .filter(LfBus::isReactivePowerControlEnabled).toList();
             List<LfBus> disabledControllerBuses = controllerBuses.stream()
                     .filter(Predicate.not(LfBus::isReactivePowerControlEnabled)).toList();
-            System.out.println(enabledControllerBuses.toString());
 
             // reactive keys must be updated in case of disabled controllers.
             reactivePowerControl.updateReactiveKeys();
