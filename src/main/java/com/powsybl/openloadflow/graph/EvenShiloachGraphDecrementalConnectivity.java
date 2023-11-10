@@ -81,6 +81,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
     }
 
     @Override
+    public boolean supportTemporaryChangesNesting() {
+        return false;
+    }
+
+    @Override
     public void startTemporaryChanges() {
         if (!getModificationsContexts().isEmpty()) {
             throw new PowsyblException("This implementation supports only one level of temporary changes");

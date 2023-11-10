@@ -32,6 +32,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
@@ -88,6 +89,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory(OpenLoadFlowParameters parametersExt) {
         return parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
+                || parametersExt.isSimulateAutomationSystems()
                 ? new NaiveGraphConnectivityFactory<>(LfBus::getNum)
                 : connectivityFactory;
     }
@@ -135,7 +137,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             results = new AcLoadFlowFromCache(network, parameters, parametersExt, acParameters, reporter)
                     .run();
         } else {
-            results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
+            try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), reporter)) {
+                results = AcloadFlowEngine.run(lfNetworkList.getList(), acParameters);
+            }
         }
 
         // we reset the state if at least one component needs a network update.

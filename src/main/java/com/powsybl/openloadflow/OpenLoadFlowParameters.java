@@ -218,6 +218,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String DC_APPROXIMATION_TYPE_PARAM_NAME = "dcApproximationType";
 
+    public static final String SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME = "simulateAutomationSystems";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -277,7 +279,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, ParameterType.DOUBLE, "Max voltage angle change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI),
         new Parameter(LINE_PER_UNIT_MODE_PARAM_NAME, ParameterType.STRING, "Line per unit mode", LinePerUnitMode.IMPEDANCE.name(), getEnumPossibleValues(LinePerUnitMode.class)),
         new Parameter(USE_LOAD_MODEL_PARAM_NAME, ParameterType.BOOLEAN, "Use load model (with voltage dependency) for simulation", LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE),
-        new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class))
+        new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class)),
+        new Parameter(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, ParameterType.BOOLEAN, "Automation systems simulation", LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -428,6 +431,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean useLoadModel = LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE;
 
     private DcApproximationType dcApproximationType = DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE;
+
+    private boolean simulateAutomationSystems = LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -971,6 +976,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isSimulateAutomationSystems() {
+        return simulateAutomationSystems;
+    }
+
+    public OpenLoadFlowParameters setSimulateAutomationSystems(boolean simulateAutomationSystems) {
+        this.simulateAutomationSystems = simulateAutomationSystems;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1035,7 +1049,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLinePerUnitMode(config.getEnumProperty(LINE_PER_UNIT_MODE_PARAM_NAME, LinePerUnitMode.class, LfNetworkParameters.LINE_PER_UNIT_MODE_DEFAULT_VALUE))
                 .setUseLoadModel(config.getBooleanProperty(USE_LOAD_MODEL_PARAM_NAME, LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE))
                 .setDcApproximationType(config.getEnumProperty(DC_APPROXIMATION_TYPE_PARAM_NAME, DcApproximationType.class, DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE))
-            );
+                .setSimulateAutomationSystems(config.getBooleanProperty(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1161,6 +1175,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setUseLoadModel(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(DC_APPROXIMATION_TYPE_PARAM_NAME))
                 .ifPresent(prop -> this.setDcApproximationType(DcApproximationType.valueOf(prop)));
+        Optional.ofNullable(properties.get(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME))
+                .ifPresent(prop -> this.setSimulateAutomationSystems(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -1221,6 +1237,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(LINE_PER_UNIT_MODE_PARAM_NAME, linePerUnitMode);
         map.put(USE_LOAD_MODEL_PARAM_NAME, useLoadModel);
         map.put(DC_APPROXIMATION_TYPE_PARAM_NAME, dcApproximationType);
+        map.put(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, simulateAutomationSystems);
         return map;
     }
 
@@ -1343,7 +1360,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAsymmetrical(parametersExt.isAsymmetrical())
                 .setMinNominalVoltageTargetVoltageCheck(parametersExt.getMinNominalVoltageTargetVoltageCheck())
                 .setLinePerUnitMode(parametersExt.getLinePerUnitMode())
-                .setUseLoadModel(parametersExt.isUseLoadModel());
+                .setUseLoadModel(parametersExt.isUseLoadModel())
+                .setSimulateAutomationSystems(parametersExt.isSimulateAutomationSystems());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1559,7 +1577,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxVoltageChangeStateVectorScalingMaxDphi() == extension2.getMaxVoltageChangeStateVectorScalingMaxDphi() &&
                 extension1.getLinePerUnitMode() == extension2.getLinePerUnitMode() &&
                 extension1.isUseLoadModel() == extension2.isUseLoadModel() &&
-                extension1.getDcApproximationType() == extension2.getDcApproximationType();
+                extension1.getDcApproximationType() == extension2.getDcApproximationType() &&
+                extension1.isSimulateAutomationSystems() == extension2.isSimulateAutomationSystems();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {

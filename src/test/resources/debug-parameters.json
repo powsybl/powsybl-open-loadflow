@@ -72,7 +72,8 @@
         "maxVoltageChangeStateVectorScalingMaxDphi" : 0.17453292519943295,
         "linePerUnitMode" : "IMPEDANCE",
         "useLoadModel" : false,
-        "dcApproximationType" : "IGNORE_R"
+        "dcApproximationType" : "IGNORE_R",
+        "simulateAutomationSystems" : false
       }
     }
   },
