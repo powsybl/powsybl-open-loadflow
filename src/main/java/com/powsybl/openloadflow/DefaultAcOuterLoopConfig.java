@@ -31,6 +31,8 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         createPhaseControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // transformer voltage control
         createTransformerVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
+        // transformer reactive power control
+        createRatioTapChangerReactivePowerControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // shunt compensator voltage control
         createShuntVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // automation system

@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalRatioTapChangerReactivePowerControlOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -184,6 +185,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String DEBUG_DIR_PARAM_NAME = "debugDir";
 
     public static final String INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME = "incrementalTransformerVoltageControlOuterLoopMaxTapShift";
+
+    public static final String INCREMENTAL_RATIO_TAP_CHANGER_REACTIVE_POWER_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME = "incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift";
 
     public static final String SECONDARY_VOLTAGE_CONTROL_PARAM_NAME = "secondaryVoltageControl";
 
@@ -407,6 +410,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private String debugDir = LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE;
 
     private int incrementalTransformerVoltageControlOuterLoopMaxTapShift = IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT;
+
+    // TODO : not sur this param is necessary
+    private int incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift = IncrementalRatioTapChangerReactivePowerControlOuterLoop.DEFAULT_MAX_TAP_SHIFT;
 
     private boolean secondaryVoltageControl = LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
@@ -859,10 +865,22 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return incrementalTransformerVoltageControlOuterLoopMaxTapShift;
     }
 
+    public int getIncrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift() {
+        return incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift;
+    }
+
     public OpenLoadFlowParameters setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(int incrementalTransformerVoltageControlOuterLoopMaxTapShift) {
         this.incrementalTransformerVoltageControlOuterLoopMaxTapShift = checkParameterValue(incrementalTransformerVoltageControlOuterLoopMaxTapShift,
                 incrementalTransformerVoltageControlOuterLoopMaxTapShift >= 1,
                 INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME);
+        return this;
+    }
+
+    public OpenLoadFlowParameters setIncrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift(int incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift) {
+        if (incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift < 1) {
+            throw new IllegalArgumentException("Invalid max tap shift value: " + incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift);
+        }
+        this.incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift = incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift;
         return this;
     }
 
