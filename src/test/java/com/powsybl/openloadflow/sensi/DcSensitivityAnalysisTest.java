@@ -72,7 +72,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
 
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                                                             network.getBranchStream().collect(Collectors.toList()), Branch.Side.ONE);
+                                                             network.getBranchStream().collect(Collectors.toList()), ThreeSides.ONE);
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
@@ -115,7 +115,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
 
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                network.getBranchStream().collect(Collectors.toList()), Branch.Side.TWO);
+                network.getBranchStream().collect(Collectors.toList()), ThreeSides.TWO);
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 

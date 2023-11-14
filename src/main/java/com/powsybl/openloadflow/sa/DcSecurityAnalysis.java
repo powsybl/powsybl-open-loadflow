@@ -11,6 +11,7 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -50,7 +51,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         private final List<SensitivityFactor> sensitivityFactors;
         private final Map<String, BranchResult> preContingencyAllBranchResults;
-        private final Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolationsMap;
+        private final Map<Pair<String, ThreeSides>, LimitViolation> preContingencyLimitViolationsMap;
         private final SecurityAnalysisParameters parameters;
         private final List<Contingency> contingencies;
         private final DefaultLimitViolationDetector detector;
@@ -80,7 +81,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             return preContingencyAllBranchResults;
         }
 
-        Map<Pair<String, Branch.Side>, LimitViolation> getPreContingencyLimitViolationsMap() {
+        Map<Pair<String, ThreeSides>, LimitViolation> getPreContingencyLimitViolationsMap() {
             return preContingencyLimitViolationsMap;
         }
 

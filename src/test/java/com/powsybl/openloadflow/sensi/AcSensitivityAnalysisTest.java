@@ -123,7 +123,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                network.getBranchStream().collect(Collectors.toList()), null, Branch.Side.TWO);
+                network.getBranchStream().collect(Collectors.toList()), null, ThreeSides.TWO);
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
@@ -334,8 +334,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.ONE)).collect(Collectors.toList());
-        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.TWO)).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", ThreeSides.ONE)).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", ThreeSides.TWO)).collect(Collectors.toList());
 
         List<SensitivityFactor> factors = new ArrayList<>();
         factors.addAll(factorsSide1);
@@ -368,8 +368,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         sensiParameters.setAngleFlowSensitivityValueThreshold(15.0);
 
-        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.ONE)).collect(Collectors.toList());
-        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.TWO)).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", ThreeSides.ONE)).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", ThreeSides.TWO)).collect(Collectors.toList());
 
         List<SensitivityFactor> factors = new ArrayList<>();
         factors.addAll(factorsSide1);

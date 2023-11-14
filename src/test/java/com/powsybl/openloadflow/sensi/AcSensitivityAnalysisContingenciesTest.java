@@ -9,10 +9,10 @@ package com.powsybl.openloadflow.sensi;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.*;
-import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.StaticVarCompensator;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -200,7 +200,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         runLf(network, sensiParameters.getLoadFlowParameters());
 
-        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerPSTAngle(branch.getId(), "l23", "l34", Branch.Side.ONE)).collect(Collectors.toList());
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerPSTAngle(branch.getId(), "l23", "l34", ThreeSides.ONE)).collect(Collectors.toList());
 
         List<Contingency> contingencies = Collections.singletonList(new Contingency("l34", new BranchContingency("l34")));
 
@@ -222,7 +222,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         runLf(network, sensiParameters.getLoadFlowParameters());
 
-        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerPSTAngle(branch.getId(), "l23", "l34", Branch.Side.ONE)).collect(Collectors.toList());
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerPSTAngle(branch.getId(), "l23", "l34", ThreeSides.ONE)).collect(Collectors.toList());
 
         List<Contingency> contingencies = Collections.singletonList(new Contingency("l34", new BranchContingency("l34")));
 
@@ -436,9 +436,9 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", variables));
 
         List<SensitivityFactor> factors = network.getBranchStream()
-                                                 .map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l34", Branch.Side.ONE))
+                                                 .map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l34", ThreeSides.ONE))
                                                  .collect(Collectors.toList());
-        factors.addAll(network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l12", Branch.Side.ONE)).collect(Collectors.toList()));
+        factors.addAll(network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l12", ThreeSides.ONE)).collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
 
         assertEquals(7, result.getValues("l34").size());
@@ -475,7 +475,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", variables));
 
         List<SensitivityFactor> factors = network.getBranchStream()
-                                                 .map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l34", Branch.Side.ONE))
+                                                 .map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l34", ThreeSides.ONE))
                                                  .collect(Collectors.toList());
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
