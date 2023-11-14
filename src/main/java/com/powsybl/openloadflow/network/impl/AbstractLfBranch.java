@@ -44,6 +44,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean voltageControlEnabled = false;
 
+    protected TransformerReactivePowerControl transformerReactivePowerControl;
+
+    protected boolean transformerReactivePowerControlEnabled = false;
+
     static class ZeroImpedanceContext {
 
         boolean spanningTreeEdge = false;
@@ -212,6 +216,41 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             this.voltageControlEnabled = voltageControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onTransformerVoltageControlChange(this, voltageControlEnabled);
+            }
+        }
+    }
+
+    @Override
+    public Optional<TransformerReactivePowerControl> getTransformerReactivePowerControl() {
+        return Optional.ofNullable(transformerReactivePowerControl);
+    }
+
+    @Override
+    public void setTransformerReactivePowerControl(TransformerReactivePowerControl transformerReactivePowerControl) {
+        this.transformerReactivePowerControl = transformerReactivePowerControl;
+    }
+
+    @Override
+    public boolean isTransformerReactivePowerController() {
+        return transformerReactivePowerControl != null && transformerReactivePowerControl.getControllerBranch() == this;
+    }
+
+    @Override
+    public boolean isTransformerReactivePowerControlled() {
+        return transformerReactivePowerControl != null && transformerReactivePowerControl.getControlledBranch() == this;
+    }
+
+    @Override
+    public boolean isTransformerReactivePowerControlEnabled() {
+        return transformerReactivePowerControlEnabled;
+    }
+
+    @Override
+    public void setTransformerReactivePowerControlEnabled(boolean transformerReactivePowerControlEnabled) {
+        if (this.transformerReactivePowerControlEnabled != transformerReactivePowerControlEnabled) {
+            this.transformerReactivePowerControlEnabled = transformerReactivePowerControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onTransformerReactivePowerControlChange(this, transformerReactivePowerControlEnabled);
             }
         }
     }

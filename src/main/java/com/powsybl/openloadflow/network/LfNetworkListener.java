@@ -25,6 +25,8 @@ public interface LfNetworkListener {
 
     void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled);
 
+    void onTransformerReactivePowerControlChange(LfBranch controllerBranch, boolean newReactivePowerControllerEnabled);
+
     void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled);
 
     void onLoadActivePowerTargetChange(LfLoad load, double oldTargetP, double newTargetP);

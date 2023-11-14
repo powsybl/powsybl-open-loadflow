@@ -70,6 +70,13 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
+    public void onTransformerReactivePowerControlChange(LfBranch controllerBranch, boolean newReactivePowerControllerEnabled) {
+        LOGGER.trace("onTransformerReactivePowerControlChange(controllerBranchId='{}', newReactivePowerControllerEnabled={})",
+                controllerBranch.getId(), newReactivePowerControllerEnabled);
+        delegate.onTransformerReactivePowerControlChange(controllerBranch, newReactivePowerControllerEnabled);
+    }
+
+    @Override
     public void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled) {
         LOGGER.trace("onShuntVoltageControlChange(controllerShuntId={}, newVoltageControllerEnabled={})",
                 controllerShunt.getId(), newVoltageControllerEnabled);

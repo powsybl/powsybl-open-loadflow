@@ -64,6 +64,11 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
+    public void onTransformerReactivePowerControlChange(LfBranch controllerBranch, boolean newReactivePowerControllerEnabled) {
+        // TODO
+    }
+
+    @Override
     public void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled) {
         updateVoltageControls(controllerShunt.getVoltageControl().orElseThrow().getControlledBus());
     }
