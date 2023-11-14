@@ -146,6 +146,11 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
+    public boolean shiftOneTapPositionToChangeR1(Direction direction) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
+    @Override
     public Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }

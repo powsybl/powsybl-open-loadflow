@@ -57,6 +57,8 @@ public interface PiModel {
 
     boolean shiftOneTapPositionToChangeA1(Direction direction);
 
+    boolean shiftOneTapPositionToChangeR1(Direction direction);
+
     Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection);
 
     Optional<Direction> updateTapPositionToExceedNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection);
