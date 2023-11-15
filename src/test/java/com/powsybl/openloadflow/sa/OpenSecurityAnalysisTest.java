@@ -2008,6 +2008,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         lfParameters.setUseReactiveLimits(true);
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
         openLoadFlowParameters.setReactivePowerRemoteControl(true);
+        openLoadFlowParameters.setMaxRealisticVoltage(3.0);
         lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
@@ -2023,8 +2024,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // contingency 3: all generators are off
         // - l34 has Q2 != 4 MVar
         assertEquals(0.14, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
-
-        // TODO controls are lost and are not rebuilt between contingencies
 
         // contingency 4: g1 is off
         // - l34 still has g1Bis and g4 controlling it, so it must have Q2 = 4 MVar
