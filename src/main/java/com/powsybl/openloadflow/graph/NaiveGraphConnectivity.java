@@ -28,6 +28,11 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         this.numGetter = Objects.requireNonNull(numGetter);
     }
 
+    @Override
+    public boolean supportTemporaryChangesNesting() {
+        return true;
+    }
+
     protected void updateComponents() {
         if (components == null) {
             components = new int[getGraph().vertexSet().size()];
