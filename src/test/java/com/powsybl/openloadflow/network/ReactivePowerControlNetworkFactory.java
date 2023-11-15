@@ -46,30 +46,32 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
                 .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
                 .withEnabled(true).add();
 
-        g4.newMinMaxReactiveLimits().setMinQ(-5.0).setMaxQ(5.0).add();
-
         return network;
     }
 
     public static Network createWithGeneratorRemoteControl2() {
         Network network = FourBusNetworkFactory.createBaseNetwork();
-        Line l12 = network.getLine("l12");
-        // disable voltage control on g4
         Generator g4 = network.getGenerator("g4");
+        Line l12 = network.getLine("l12");
+
+        double targetQ = 1.0;
+
+        // disable voltage control on g4
         g4.setTargetQ(0.0).setVoltageRegulatorOn(false);
+
         // generator g4 regulates reactive power on line 1->2 in 2
         g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(1.0)
+                .withTargetQ(targetQ)
                 .withRegulatingTerminal(l12.getTerminal(Branch.Side.TWO))
                 .withEnabled(true).add();
-        g4.newMinMaxReactiveLimits().setMinQ(-5.0).setMaxQ(5.0).add();
+
         return network;
     }
 
     public static Network createWithGeneratorsRemoteControlShared() {
         Network network = FourBusNetworkFactory.createWith2ReactiveControllersOnSameBusAnd1Extra();
 
-        double targetQ = 2.0;
+        double targetQ = 4.0;
 
         Generator g1 = network.getGenerator("g1");
         Generator g1Bis = network.getGenerator("g1Bis");

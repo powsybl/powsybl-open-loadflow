@@ -1925,9 +1925,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testWithReactivePowerRemoteControl() {
         Network network = ReactivePowerControlNetworkFactory.createWithGeneratorRemoteControl();
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Collections.singleton("l34"), Collections.emptySet(), Collections.emptySet()));
         List<Contingency> contingencies = List.of(
                 new Contingency("contingency1", List.of(new BranchContingency("l34"))),
-                new Contingency("contingency2", List.of(new BranchContingency("l34"), new BranchContingency("l14"))));
+                new Contingency("contingency2", List.of(new BusContingency("b4"))),
+                new Contingency("contingency3", List.of(new GeneratorContingency("g4")))
+        );
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setUseReactiveLimits(true);
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
@@ -1935,17 +1938,29 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
-        assertDoesNotThrow(() -> {
-            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
-        });
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // pre contingency
+        // - l34 is controlled by g4 to have Q2 = 4 MVar
+        assertEquals(4.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
+
+        // post contingency
+        assertEquals(3, result.getPostContingencyResults().size());
+
+        // contingency 3: generator g4 is off
+        // - l34 is no longer controlled by g4, so it must have its Q2 != 4 (pre contingency)
+        assertEquals(0.12, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
     }
 
     @Test
     void testWithReactivePowerRemoteControl2() {
         Network network = ReactivePowerControlNetworkFactory.createWithGeneratorRemoteControl2();
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), new HashSet<>(Arrays.asList("l12", "l34")), Collections.emptySet(), Collections.emptySet()));
         List<Contingency> contingencies = List.of(
                 new Contingency("contingency1", List.of(new BranchContingency("l12"))),
-                new Contingency("contingency2", List.of(new BranchContingency("l34"), new BranchContingency("l14"))));
+                new Contingency("contingency2", List.of(new BusContingency("b4"))),
+                new Contingency("contingency3", List.of(new GeneratorContingency("g4")))
+        );
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setUseReactiveLimits(true);
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
@@ -1953,18 +1968,43 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
-        assertDoesNotThrow(() -> {
-            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
-        });
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // pre contingency
+        // - l12 is controlled by g4 to have Q2 = 1 MVar
+        assertEquals(1.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getQ2(), 1E-2);
+        // - bus 4 (side 2 of l34) ends up having Q = 4.35 MVar
+        assertEquals(4.35, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
+
+        // post contingency
+        assertEquals(3, result.getPostContingencyResults().size());
+
+        // contingency 1: controlled branch l12 is off
+        // - bus 4 (side 2 of branch l34) ends up having Q = 0.42 MVar (lower than pre contingency, since it's not controlling a remote branch)
+        assertEquals(0.42, getPostContingencyResult(result, "contingency1").getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
+
+        // contingency 2: bus b4 is off
+        // - side 2 of l12 is not controlled anymore, therefore it does not have Q2 = 1 MVar like in the pre contingency case
+        assertEquals(-0.14, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l12").getQ2(), 1E-2);
+
+        // contingency 3: generator g4 is off
+        // - side 2 of l12 is not controlled anymore, therefore it does not have Q2 = 1 MVar like in the pre contingency case
+        assertEquals(-0.06, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l12").getQ2(), 1E-2);
     }
 
     @Test
     void testWithSharedReactivePowerRemoteControl() {
         Network network = ReactivePowerControlNetworkFactory.createWithGeneratorsRemoteControlShared();
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), new HashSet<>(Arrays.asList("l12", "l34")), Collections.emptySet(), Collections.emptySet()));
         List<Contingency> contingencies = List.of(
                 new Contingency("contingency1", List.of(new BranchContingency("l34"))),
-                new Contingency("contingency2", List.of(new GeneratorContingency("g1"))),
-                new Contingency("contingency3", List.of(new GeneratorContingency("g1"), new GeneratorContingency("g1Bis"), new GeneratorContingency("g4"))));
+                new Contingency("contingency2", List.of(new BusContingency("b1"))),
+                new Contingency("contingency3", List.of(new BusContingency("b4"))),
+                new Contingency("contingency4", List.of(new GeneratorContingency("g1"), new GeneratorContingency("g1Bis"), new GeneratorContingency("g4"))),
+                new Contingency("contingency5", List.of(new GeneratorContingency("g1"))),
+                new Contingency("contingency6", List.of(new GeneratorContingency("g1"), new GeneratorContingency("g1Bis"))),
+                new Contingency("contingency7", List.of(new GeneratorContingency("g4")))
+        );
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setUseReactiveLimits(true);
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
@@ -1972,9 +2012,32 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
-        assertDoesNotThrow(() -> {
-            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
-        });
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // pre contingency
+        // - l34 is controlled by g1, g1Bis and g4 to have Q2 = 4 MVar
+        assertEquals(4.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
+
+        // post contingency
+        // TODO find out why contingency2 is not working ||  getPostContingencyResult(result, "contingency2") sends an error
+        assertEquals(7, result.getPostContingencyResults().size());
+
+        // contingency 4: all generators are off
+        // - l34 has Q2 != 4 MVar
+        assertEquals(0.14, getPostContingencyResult(result, "contingency4").getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
+
+        // contingency 5: g1 is off
+        // - l34 still has g1Bis and g4 controlling it, so it must have Q2 = 4 MVar
+        // TODO find out why controls are not kept
+        assertEquals(4.0, getPostContingencyResult(result, "contingency5").getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
+
+        // contingency 6: g1 and g1Bis are off
+        // - l34 still has g4 controlling it, so it must have Q2 = 4 MVar
+        assertEquals(4.0, getPostContingencyResult(result, "contingency6").getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
+
+        // contingency 7: g4 is off
+        // - l34 still has g1 and g1Bis controlling it, so it must have Q2 = 4 MVar
+        assertEquals(4.0, getPostContingencyResult(result, "contingency7").getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
     }
 
     @Test
