@@ -76,7 +76,9 @@
         "simulateAutomationSystems" : false,
         "acSolverType" : "NEWTON_RAPHSON",
         "maxNewtonKrylovIterations" : 100,
-        "newtonKrylovLineSearch" : false
+        "newtonKrylovLineSearch" : false,
+        "referenceBusSelectionMode" : "FIRST_SLACK",
+        "writeReferenceTerminals" : false
       }
     }
   },

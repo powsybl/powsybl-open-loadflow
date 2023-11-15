@@ -9,13 +9,11 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.extensions.ActivePowerControl;
-import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
-import com.powsybl.iidm.network.extensions.GeneratorFortescue;
-import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +44,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
+
+        setReferencePriority(ReferencePriority.get(generator));
 
         // get participation factor and droop from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
@@ -190,10 +190,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public void updateState() {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var generator = getGenerator();
         generator.getTerminal()
                 .setP(-targetP * PerUnit.SB)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ * PerUnit.SB);
+        if (parameters.isWriteReferenceTerminals() && isReference()) {
+            ReferenceTerminals.addTerminal(generator.getTerminal());
+        }
     }
 }
