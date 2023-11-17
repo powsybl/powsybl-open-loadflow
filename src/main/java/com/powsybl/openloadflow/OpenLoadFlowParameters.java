@@ -56,7 +56,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum SlackDistributionFailureBehavior {
         THROW,
         FAIL,
-        LEAVE_ON_SLACK_BUS
+        LEAVE_ON_SLACK_BUS,
+        DISTRIBUTE_ON_REFERENCE_GENERATOR
     }
 
     public static final SlackDistributionFailureBehavior SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE = SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
