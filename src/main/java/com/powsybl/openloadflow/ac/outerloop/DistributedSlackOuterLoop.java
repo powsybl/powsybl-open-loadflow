@@ -53,7 +53,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
         double slackBusActivePowerMismatch = context.getLastNewtonRaphsonResult().getSlackBusActivePowerMismatch();
         if (Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB) {
             ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
-            double remainingMismatch = result.getRemainingMismatch();
+            double remainingMismatch = result.remainingMismatch();
             double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;
             DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
             contextData.addDistributedActivePower(distributedActivePower);
@@ -65,9 +65,9 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                         throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
                                 + remainingMismatch * PerUnit.SB + " MW remains");
                     case LEAVE_ON_SLACK_BUS -> {
-                        LOGGER.warn("Failed to distribute slack bus active power mismatch, {} MW remains",
-                                remainingMismatch * PerUnit.SB);
-                        return OuterLoopStatus.STABLE;
+                        LOGGER.warn("Failed to distribute slack bus active power mismatch, {} MW remains (result.movedBuses()={})",
+                                remainingMismatch * PerUnit.SB, result.movedBuses());
+                        return result.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
                     }
                     case FAIL -> {
                         LOGGER.error("Failed to distribute slack bus active power mismatch, {} MW remains",
@@ -76,10 +76,10 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                     }
                 }
             } else {
-                Reports.reportMismatchDistributionSuccess(reporter, context.getIteration(), slackBusActivePowerMismatch * PerUnit.SB, result.getIteration());
+                Reports.reportMismatchDistributionSuccess(reporter, context.getIteration(), slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
 
                 LOGGER.info("Slack bus active power ({} MW) distributed in {} iterations",
-                        slackBusActivePowerMismatch * PerUnit.SB, result.getIteration());
+                        slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
 
                 return OuterLoopStatus.UNSTABLE;
             }
