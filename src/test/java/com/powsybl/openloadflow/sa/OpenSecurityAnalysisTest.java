@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.network.test.SecurityAnalysisTestNetworkFactory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -1925,31 +1926,41 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testWithReactivePowerRemoteControl() {
         Network network = ReactivePowerControlNetworkFactory.createWithGeneratorRemoteControl();
-        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Collections.singleton("l34"), Collections.emptySet(), Collections.emptySet()));
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l34"), Collections.emptySet(), Collections.emptySet()));
         List<Contingency> contingencies = List.of(
                 new Contingency("contingency1", List.of(new BranchContingency("l34"))),
-                new Contingency("contingency2", List.of(new BusContingency("b4"))),
-                new Contingency("contingency3", List.of(new GeneratorContingency("g4")))
+                new Contingency("contingency2", List.of(new GeneratorContingency("g4")))
         );
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        lfParameters.setUseReactiveLimits(true);
-        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(lfParameters);
         openLoadFlowParameters.setReactivePowerRemoteControl(true);
-        lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
+        LoadFlow.run(network, lfParameters);
+        assertReactivePowerEquals(4.002, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(6.233, network.getLine("l14").getTerminal2());
+
+        network.getGenerator("g4").getTerminal().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(0.125, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-0.124, network.getLine("l14").getTerminal2());
+        network.getGenerator("g4").getTerminal().connect();
+
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
-
         // pre contingency
         // - l34 is controlled by g4 to have Q2 = 4 MVar
-        assertEquals(4.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
-
-        // post contingency
-        assertEquals(3, result.getPostContingencyResults().size());
-
-        // contingency 3: generator g4 is off
+        assertEquals(4.002, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(6.233, result.getPreContingencyResult().getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
+        // post contingency 1
+        assertEquals(2, result.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result, "contingency1");
+        assertEquals(0.002, postContingencyResult1.getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
+        // post contingency 2: generator g4 is off
         // - l34 is no longer controlled by g4, so it must have its Q2 != 4 (pre contingency)
-        assertEquals(0.12, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
+        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result, "contingency2");
+        assertEquals(0.125, postContingencyResult2.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-0.124, postContingencyResult2.getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
     }
 
     @Test
