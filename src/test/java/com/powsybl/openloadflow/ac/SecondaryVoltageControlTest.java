@@ -71,7 +71,7 @@ class SecondaryVoltageControlTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
-                .setMaxPlausibleTargetVoltage(1.4);
+                .setMaxPlausibleTargetVoltage(1.6);
     }
 
     private static double qToK(Generator g) {
