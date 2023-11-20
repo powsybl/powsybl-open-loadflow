@@ -165,13 +165,12 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         List<LfBus> controlledBusesOutsideOfDeadband = new ArrayList<>();
         controlledBuses.forEach(controlledBus -> {
             ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
-            double diffV = voltageControl.getTargetValue() - voltageControl.getControlledBus().getV();
+            double diffV = controlledBus.getHighestPriorityMainVoltageControl().orElseThrow().getTargetValue() - voltageControl.getControlledBus().getV();
             double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
             if (Math.abs(diffV) > halfTargetDeadband) {
                 List<LfShunt> controllers = voltageControl.getMergedControllerElements().stream()
                         .filter(b -> !b.isDisabled())
                         .collect(Collectors.toList());
-
                 controllerShuntsOutsideOfDeadband.addAll(controllers);
                 controlledBusesOutsideOfDeadband.add(controlledBus);
             }
