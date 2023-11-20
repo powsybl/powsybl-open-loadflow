@@ -133,10 +133,7 @@ public class AcEquationSystemCreator {
                         : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
                         .addTerm(q);
-
-                // create reactive power distribution equations at reactive power controller buses
                 createReactivePowerDistributionEquations(rpc, equationSystem, creationParameters);
-
                 updateReactivePowerControlBranchEquations(rpc, equationSystem);
             });
         }
