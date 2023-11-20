@@ -68,27 +68,28 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
 
     public static Network createWithGeneratorsRemoteControlShared() {
         Network network = FourBusNetworkFactory.createWith2ReactiveControllersOnSameBusAnd1Extra();
-
-        double targetQ = 4.0;
-
         Generator g1 = network.getGenerator("g1");
+        g1.setMaxP(10);
         Generator g1Bis = network.getGenerator("g1Bis");
+        g1Bis.setMaxP(10);
         Generator g4 = network.getGenerator("g4");
+        g4.setMaxP(20);
         Line l34 = network.getLine("l34");
-
         g1.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
+                .withTargetQ(4.0)
                 .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
+                .withEnabled(true)
+                .add();
         g1Bis.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
+                .withTargetQ(4.0)
                 .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
+                .withEnabled(true)
+                .add();
         g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
+                .withTargetQ(4.0)
                 .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
-
+                .withEnabled(true)
+                .add();
         return network;
     }
 }
