@@ -102,7 +102,8 @@ public class AcEquationSystemCreator {
                         if (voltageControl.isLocalControl()) {
                             createGeneratorLocalVoltageControlEquation(bus, equationSystem);
                         } else {
-                            createGeneratorRemoteVoltageControlEquations(voltageControl, equationSystem);
+                            // create reactive power distribution equations at voltage controller buses
+                            createReactivePowerDistributionEquations(voltageControl, equationSystem, creationParameters);
                         }
                         updateGeneratorVoltageControl(voltageControl, equationSystem);
                     }
@@ -124,8 +125,6 @@ public class AcEquationSystemCreator {
                             .map(term -> term.multiply(slope))
                             .collect(Collectors.toList()));
         }
-
-        equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
     }
 
     protected static void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
@@ -137,9 +136,6 @@ public class AcEquationSystemCreator {
                         : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
                         .addTerm(q);
-
-                // if bus has both voltage and remote reactive power controls, then only voltage control has been kept
-                equationSystem.createEquation(rpc.getControllerBus(), AcEquationType.BUS_TARGET_Q);
 
                 updateReactivePowerControlBranchEquations(rpc, equationSystem);
             });
@@ -207,16 +203,6 @@ public class AcEquationSystemCreator {
             createReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
         }
         updateGeneratorVoltageControl(voltageControl, equationSystem);
-    }
-
-    private void createGeneratorRemoteVoltageControlEquations(GeneratorVoltageControl voltageControl,
-                                                              EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
-            equationSystem.createEquation(controllerBus, AcEquationType.BUS_TARGET_Q);
-        }
-
-        // create reactive power distribution equations at voltage controller buses
-        createReactivePowerDistributionEquations(voltageControl, equationSystem, creationParameters);
     }
 
     static <T extends LfElement> void updateRemoteVoltageControlEquations(VoltageControl<T> voltageControl,
