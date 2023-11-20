@@ -54,7 +54,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     @Override
     public void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
         ReactivePowerControl reactivePowerControl = controllerBus.getReactivePowerControl().orElseThrow();
-        AcEquationSystemCreator.updateRemoteReactivePowerControlEquations(reactivePowerControl, equationSystem);
+        AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem);
     }
 
     @Override
@@ -104,13 +104,13 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 bus.getGeneratorVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 bus.getTransformerVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 bus.getShuntVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
-                bus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateRemoteReactivePowerControlEquations(reactivePowerControl, equationSystem));
+                bus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
                 break;
             case BRANCH:
                 LfBranch branch = (LfBranch) element;
                 branch.getVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 branch.getPhaseControl().ifPresent(phaseControl -> AcEquationSystemCreator.updateTransformerPhaseControlEquations(phaseControl, equationSystem));
-                branch.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateRemoteReactivePowerControlEquations(reactivePowerControl, equationSystem));
+                branch.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
                 break;
             case SHUNT_COMPENSATOR:
                 LfShunt shunt = (LfShunt) element;

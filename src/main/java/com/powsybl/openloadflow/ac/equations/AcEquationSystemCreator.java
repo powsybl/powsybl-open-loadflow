@@ -124,7 +124,7 @@ public class AcEquationSystemCreator {
         }
     }
 
-    protected static void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    protected void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                     boolean deriveA1, boolean deriveR1) {
         if (bus1 != null && bus2 != null) {
             branch.getReactivePowerControl().ifPresent(rpc -> {
@@ -134,22 +134,63 @@ public class AcEquationSystemCreator {
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
                         .addTerm(q);
 
+                // create reactive power distribution equations at reactive power controller buses
+                createReactivePowerDistributionEquations(rpc, equationSystem, creationParameters);
+
                 updateReactivePowerControlBranchEquations(rpc, equationSystem);
             });
         }
     }
 
     public static void updateReactivePowerControlBranchEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // The reactive power control is disabled if:
-        // controller bus is disabled or controlled branch is disabled or controller bus has reactive power control disabled.
-        boolean controlDisabled = reactivePowerControl.getControllerBus().isDisabled() || reactivePowerControl.getControlledBranch().isDisabled() ||
-                !reactivePowerControl.getControllerBus().isReactivePowerControlEnabled();
-        equationSystem.getEquation(reactivePowerControl.getControlledBranch().getNum(), AcEquationType.BRANCH_TARGET_Q)
-                .orElseThrow()
-                .setActive(!controlDisabled);
-        equationSystem.getEquation(reactivePowerControl.getControllerBus().getNum(), AcEquationType.BUS_TARGET_Q)
-                .orElseThrow()
-                .setActive(controlDisabled);
+        LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
+        List<LfBus> controllerBuses = reactivePowerControl.getControllerBuses()
+                .stream()
+                .filter(b -> !b.isDisabled()) // discard disabled controller elements
+                .toList();
+        Equation<AcVariableType, AcEquationType> qEq = equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_Q)
+                .orElseThrow();
+
+        if (controlledBranch.isDisabled()) {
+            qEq.setActive(false);
+            for (LfBus controllerBus : controllerBuses) {
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                        .ifPresent(eq -> eq.setActive(false));
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
+                        .orElseThrow()
+                        .setActive(true);
+            }
+        } else {
+            List<LfBus> enabledControllerBuses = controllerBuses.stream()
+                    .filter(LfBus::isReactivePowerControlEnabled).toList();
+            List<LfBus> disabledControllerBuses = controllerBuses.stream()
+                    .filter(Predicate.not(LfBus::isReactivePowerControlEnabled)).toList();
+
+            // reactive keys must be updated in case of disabled controllers.
+            reactivePowerControl.updateReactiveKeys();
+
+            // activate reactive power control at controlled bus only if at least one controller element is enabled
+            qEq.setActive(!enabledControllerBuses.isEmpty());
+
+            for (LfBus controllerElement : disabledControllerBuses) {
+                equationSystem.getEquation(controllerElement.getNum(), AcEquationType.DISTR_Q)
+                        .ifPresent(eq -> eq.setActive(false));
+                equationSystem.getEquation(controllerElement.getNum(), AcEquationType.BUS_TARGET_Q)
+                        .orElseThrow()
+                        .setActive(true);
+            }
+
+            // activate distribution equation and deactivate control equation at all enabled controller buses except one (first)
+            for (int i = 0; i < enabledControllerBuses.size(); i++) {
+                boolean active = i != 0;
+                LfBus controllerElement = enabledControllerBuses.get(i);
+                equationSystem.getEquation(controllerElement.getNum(), AcEquationType.DISTR_Q)
+                        .ifPresent(eq -> eq.setActive(active));
+                equationSystem.getEquation(controllerElement.getNum(), AcEquationType.BUS_TARGET_Q)
+                        .orElseThrow()
+                        .setActive(false);
+            }
+        }
     }
 
     private static void createShuntEquation(LfShunt shunt, LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem, boolean deriveB) {
@@ -167,9 +208,17 @@ public class AcEquationSystemCreator {
         bus.getSvcShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
     }
 
-    private static void createReactivePowerDistributionEquations(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    private static void createReactivePowerDistributionEquations(Control control, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                  AcEquationSystemCreationParameters creationParameters) {
-        List<LfBus> controllerBuses = voltageControl.getMergedControllerElements();
+        List<LfBus> controllerBuses = null;
+        if (control instanceof GeneratorVoltageControl generatorVoltageControl) {
+            controllerBuses = generatorVoltageControl.getMergedControllerElements();
+        } else if (control instanceof ReactivePowerControl reactivePowerControl) {
+            controllerBuses = reactivePowerControl.getControllerBuses();
+        } else {
+            throw new PowsyblException("Control has to be of type GeneratorVoltageControl or ReactivePowerControl to create Q distribution equations");
+        }
+
         for (LfBus controllerBus : controllerBuses) {
             // reactive power at controller bus i (supposing this voltage control is enabled)
             // q_i = qPercent_i * sum_j(q_j) where j are all the voltage controller buses
@@ -178,12 +227,12 @@ public class AcEquationSystemCreator {
             // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
                     .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
-                            .map(term -> term.multiply(() -> controllerBus.getRemoteVoltageControlReactivePercent() - 1))
+                            .map(term -> term.multiply(() -> controllerBus.getRemoteControlReactivePercent() - 1))
                             .collect(Collectors.toList()));
             for (LfBus otherControllerBus : controllerBuses) {
                 if (otherControllerBus != controllerBus) {
                     zero.addTerms(createReactiveTerms(otherControllerBus, equationSystem.getVariableSet(), creationParameters).stream()
-                            .map(term -> term.multiply(controllerBus::getRemoteVoltageControlReactivePercent))
+                            .map(term -> term.multiply(controllerBus::getRemoteControlReactivePercent))
                             .collect(Collectors.toList()));
                 }
             }
