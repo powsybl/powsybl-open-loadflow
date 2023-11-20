@@ -15,6 +15,8 @@ import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
+import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -604,7 +606,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (controllerShunt.getVoltageControl().isPresent()) {
             // if a controller shunt is already in a shunt voltage control, the number of equations will not equal the
             // number of variables. We have only one B variable for more than one bus target V equations.
-            LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
+            if (!controllerShunt.getVoltageControl().orElseThrow().getControlledBus().getId().equals(controlledBus.getId())) {
+                LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
+            }
             return;
         }
 
@@ -686,6 +690,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         // voltage angle limits
         createVoltageAngleLimits(network, lfNetwork, parameters);
+
+        if (parameters.isSimulateAutomationSystems()) {
+            createAutomationSystems(network, lfNetwork);
+        }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
@@ -842,6 +850,32 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         Math.toRadians(voltageAngleLimit.getHighLimit().orElse(Double.NaN)), Math.toRadians(voltageAngleLimit.getLowLimit().orElse(Double.NaN))));
             }
         });
+    }
+
+    private static void createOverloadManagementSystem(LfNetwork lfNetwork, OverloadManagementSystem system) {
+        if (system.isEnabled()) {
+            LfBranch lfLineToMonitor = lfNetwork.getBranchById(system.getMonitoredLineId());
+            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(system.getSwitchIdToOperate());
+            if (lfLineToMonitor != null && lfSwitchToOperate != null) {
+                LfBus bus = lfLineToMonitor.getBus1() != null ? lfLineToMonitor.getBus1() : lfLineToMonitor.getBus2();
+                double threshold = system.getThreshold() / PerUnit.ib(bus.getNominalV());
+                lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, threshold, lfSwitchToOperate, system.isSwitchOpen()));
+            } else {
+                LOGGER.warn("Invalid overload management system: line to monitor is '{}', switch to operate is '{}'",
+                        system.getMonitoredLineId(), system.getSwitchIdToOperate());
+            }
+        }
+    }
+
+    private void createAutomationSystems(Network network, LfNetwork lfNetwork) {
+        for (Substation substation : network.getSubstations()) {
+            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
+            if (systems != null) {
+                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
+                    createOverloadManagementSystem(lfNetwork, system);
+                }
+            }
+        }
     }
 
     @Override

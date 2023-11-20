@@ -102,13 +102,17 @@ public abstract class AbstractLoadFlowNetworkFactory {
     }
 
     protected static Line createLine(Network network, Bus b1, Bus b2, String id, double x) {
+        return createLine(network, b1, b2, id, 0, x);
+    }
+
+    protected static Line createLine(Network network, Bus b1, Bus b2, String id, double r, double x) {
         return network.newLine()
                 .setId(id)
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
                 .setBus2(b2.getId())
                 .setConnectableBus2(b2.getId())
-                .setR(0)
+                .setR(r)
                 .setX(x)
                 .add();
     }
@@ -123,15 +127,19 @@ public abstract class AbstractLoadFlowNetworkFactory {
     }
 
     protected static TwoWindingsTransformer createTransformer(Network network, String substationId, Bus b1, Bus b2, String id, double x, double rho) {
+        return createTransformer(network, substationId, b1, b2, id, 0, x, rho);
+    }
+
+    protected static TwoWindingsTransformer createTransformer(Network network, String substationId, Bus b1, Bus b2, String id, double r, double x, double rho) {
         return network.getSubstation(substationId).newTwoWindingsTransformer()
                 .setId(id)
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
                 .setBus2(b2.getId())
                 .setConnectableBus2(b2.getId())
-                .setRatedU1(1)
-                .setRatedU2(rho)
-                .setR(0)
+                .setRatedU1(b1.getVoltageLevel().getNominalV())
+                .setRatedU2(b2.getVoltageLevel().getNominalV() * rho)
+                .setR(r)
                 .setX(x)
                 .add();
     }

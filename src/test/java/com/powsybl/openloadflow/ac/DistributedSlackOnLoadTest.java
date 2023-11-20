@@ -181,12 +181,23 @@ class DistributedSlackOnLoadTest {
         parameters
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .getExtension(OpenLoadFlowParameters.class)
-                .setThrowsExceptionInCaseOfSlackDistributionFailure(false);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        assertEquals(-60., componentResult.getSlackBusActivePowerMismatch(), 1e-6);
 
         parameters.getExtension(OpenLoadFlowParameters.class)
-                .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        result = loadFlowRunner.run(network, parameters);
+        componentResult = result.getComponentResults().get(0);
+        assertFalse(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
+        assertEquals(-60., componentResult.getSlackBusActivePowerMismatch(), 1e-6);
+
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
     }
 
