@@ -16,6 +16,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -523,13 +524,15 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         g1n2.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(75).add();
         g4n2.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(25).add();
 
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER
+                                                           // tolerance in Q for the controlled branch
         LoadFlowResult result2 = loadFlowRunner.run(network2, parameters);
         assertTrue(result2.isOk());
-        // TODO find out why normal tolerance breaks assert
-        // assertReactivePowerEquals(targetQ, l34n2.getTerminal(Branch.Side.TWO));
-        assertEquals(targetQ, l34n2.getTerminal(Branch.Side.TWO).getQ(), 10 * DELTA_POWER); // lower tolerance
+        assertReactivePowerEquals(targetQ, l34n2.getTerminal(Branch.Side.TWO));
         // reactive power partitioned 1:3
-        assertEquals(Math.abs(g1n2.getTerminal().getQ()), 3 * Math.abs(g4n2.getTerminal().getQ()), 10 * DELTA_POWER); // lower tolerance
+        assertEquals(Math.abs(g1n2.getTerminal().getQ()), 3 * Math.abs(g4n2.getTerminal().getQ()), DELTA_POWER);
     }
 
     @Test
