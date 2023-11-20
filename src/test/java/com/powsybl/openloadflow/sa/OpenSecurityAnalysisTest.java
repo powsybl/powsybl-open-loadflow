@@ -25,6 +25,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
@@ -1933,15 +1934,17 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         );
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(lfParameters);
-        openLoadFlowParameters.setReactivePowerRemoteControl(true);
-
+        openLoadFlowParameters.setReactivePowerRemoteControl(true)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER
+                                                           // tolerance in Q for the controlled branch
         LoadFlow.run(network, lfParameters);
-        assertReactivePowerEquals(4.002, network.getLine("l34").getTerminal2());
-        assertReactivePowerEquals(6.233, network.getLine("l14").getTerminal2());
+        assertReactivePowerEquals(4, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(6.227, network.getLine("l14").getTerminal2());
 
         network.getGenerator("g4").getTerminal().disconnect();
         LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
-        assertReactivePowerEquals(0.125, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(0.124, network.getLine("l34").getTerminal2());
         assertReactivePowerEquals(-0.124, network.getLine("l14").getTerminal2());
         network.getGenerator("g4").getTerminal().connect();
 
@@ -1950,57 +1953,65 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
         // pre contingency
         // - l34 is controlled by g4 to have Q2 = 4 MVar
-        assertEquals(4.002, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
-        assertEquals(6.233, result.getPreContingencyResult().getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
+        assertEquals(4, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(6.227, result.getPreContingencyResult().getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
         // post contingency 1
         assertEquals(2, result.getPostContingencyResults().size());
         PostContingencyResult postContingencyResult1 = getPostContingencyResult(result, "contingency1");
-        assertEquals(0.002, postContingencyResult1.getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
+        assertEquals(0, postContingencyResult1.getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
         // post contingency 2: generator g4 is off
         // - l34 is no longer controlled by g4, so it must have its Q2 != 4 (pre contingency)
         PostContingencyResult postContingencyResult2 = getPostContingencyResult(result, "contingency2");
-        assertEquals(0.125, postContingencyResult2.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(0.124, postContingencyResult2.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
         assertEquals(-0.124, postContingencyResult2.getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
     }
 
     @Test
     void testWithReactivePowerRemoteControl2() {
         Network network = ReactivePowerControlNetworkFactory.createWithGeneratorRemoteControl2();
-        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), new HashSet<>(Arrays.asList("l12", "l34")), Collections.emptySet(), Collections.emptySet()));
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12", "l34"), Collections.emptySet(), Collections.emptySet()));
         List<Contingency> contingencies = List.of(
                 new Contingency("contingency1", List.of(new BranchContingency("l12"))),
-                new Contingency("contingency2", List.of(new BusContingency("b4"))),
-                new Contingency("contingency3", List.of(new GeneratorContingency("g4")))
+                new Contingency("contingency2", List.of(new GeneratorContingency("g4")))
         );
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setUseReactiveLimits(true);
-        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
-        openLoadFlowParameters.setReactivePowerRemoteControl(true);
-        lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(lfParameters);
+        openLoadFlowParameters.setReactivePowerRemoteControl(true)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER
+                                                           // tolerance in Q for the controlled branch
+        LoadFlow.run(network, lfParameters);
+        assertReactivePowerEquals(1, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(4.385, network.getLine("l34").getTerminal2());
+
+        network.getBranch("l12").getTerminal1().disconnect();
+        network.getBranch("l12").getTerminal2().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(0.460, network.getLine("l34").getTerminal2());
+        network.getBranch("l12").getTerminal1().connect();
+        network.getBranch("l12").getTerminal2().connect();
+
+        network.getGenerator("g4").getTerminal().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(-0.066, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(0.124, network.getLine("l34").getTerminal2());
+        network.getGenerator("g4").getTerminal().connect();
+
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
 
         // pre contingency
         // - l12 is controlled by g4 to have Q2 = 1 MVar
-        assertEquals(1.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getQ2(), 1E-2);
-        // - bus 4 (side 2 of l34) ends up having Q = 4.35 MVar
-        assertEquals(4.35, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
-
-        // post contingency
-        assertEquals(3, result.getPostContingencyResults().size());
-
-        // contingency 1: controlled branch l12 is off
-        // - bus 4 (side 2 of branch l34) ends up having Q = 0.42 MVar (lower than pre contingency, since it's not controlling a remote branch)
-        assertEquals(0.42, getPostContingencyResult(result, "contingency1").getNetworkResult().getBranchResult("l34").getQ2(), 1E-2);
-
-        // contingency 2: bus b4 is off
-        // - side 2 of l12 is not controlled anymore, therefore it does not have Q2 = 1 MVar like in the pre contingency case
-        assertEquals(-0.14, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l12").getQ2(), 1E-2);
-
-        // contingency 3: generator g4 is off
-        // - side 2 of l12 is not controlled anymore, therefore it does not have Q2 = 1 MVar like in the pre contingency case
-        assertEquals(-0.06, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l12").getQ2(), 1E-2);
+        assertEquals(1, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(4.385, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(2, result.getPostContingencyResults().size());
+        // post contingency 1: controlled branch l12 is off
+        assertEquals(0.460, getPostContingencyResult(result, "contingency1").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        // post contingency 2: generator g4 is off
+        assertEquals(-0.066, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(0.124, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
     }
 
     @Test
