@@ -6,8 +6,9 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.ThreeSides;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -71,7 +72,7 @@ public class LimitViolationManager {
                 .forEach(this::detectVoltageAngleLimitViolations);
     }
 
-    private static Pair<String, Branch.Side> getSubjectIdSide(LimitViolation limitViolation) {
+    private static Pair<String, ThreeSides> getSubjectIdSide(LimitViolation limitViolation) {
         return Pair.of(limitViolation.getSubjectId(), limitViolation.getSide());
     }
 
@@ -103,7 +104,7 @@ public class LimitViolationManager {
                                             Function<LfBranch, Evaluable> iGetter,
                                             Function<LfBranch, Evaluable> pGetter,
                                             ToDoubleFunction<LfBranch> sGetter,
-                                            Branch.Side side) {
+                                            TwoSides side) {
         List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT);
         if (!limits.isEmpty()) {
             double i = iGetter.apply(branch).eval();
@@ -146,17 +147,17 @@ public class LimitViolationManager {
         // detect violation limits on a branch
         // Only detect the most serious one (findFirst) : limit violations are ordered by severity
         if (branch.getBus1() != null) {
-            detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, Branch.Side.ONE);
+            detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, TwoSides.ONE);
         }
 
         if (branch.getBus2() != null) {
-            detectBranchSideViolations(branch, branch.getBus2(), LfBranch::getLimits2, LfBranch::getI2, LfBranch::getP2, LfBranch::computeApparentPower2, Branch.Side.TWO);
+            detectBranchSideViolations(branch, branch.getBus2(), LfBranch::getLimits2, LfBranch::getI2, LfBranch::getP2, LfBranch::computeApparentPower2, TwoSides.TWO);
         }
     }
 
     private static LimitViolation createLimitViolation(LfBranch branch, LfBranch.LfLimit temporaryLimit,
                                                        LimitViolationType type, double scale, double value,
-                                                       Branch.Side side) {
+                                                       TwoSides side) {
         return new LimitViolation(branch.getId(), type, temporaryLimit.getName(),
                 temporaryLimit.getAcceptableDuration(), temporaryLimit.getValue() * scale,
                 1f, value * scale, side);

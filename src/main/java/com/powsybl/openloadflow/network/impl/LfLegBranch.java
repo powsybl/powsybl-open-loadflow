@@ -108,7 +108,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         return twtId + "_leg_" + legNum;
     }
 
-    public static String getId(ThreeWindingsTransformer.Side side, String transformerId) {
+    public static String getId(ThreeSides side, String transformerId) {
         int legNum = switch (side) {
             case ONE -> 1;
             case TWO -> 2;
