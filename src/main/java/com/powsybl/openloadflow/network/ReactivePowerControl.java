@@ -50,7 +50,7 @@ public class ReactivePowerControl extends Control {
         // key is 0 only on disabled controllers
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
-            if (controllerBus.isDisabled()) {
+            if (controllerBus.isDisabled() || !controllerBus.isReactivePowerControlEnabled()) {
                 reactiveKeys[i] = 0d;
             }
         }
