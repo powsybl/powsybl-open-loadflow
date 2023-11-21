@@ -1383,4 +1383,29 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         return network;
     }
+
+    public static Network createWithSharedRemoteControl2GensOnSameBusAnd1Extra() {
+        Network network = FourBusNetworkFactory.createWith2ReactiveControllersOnSameBusAnd1Extra();
+        Generator g1 = network.getGenerator("g1");
+        g1.setMaxP(10);
+        Generator g1Bis = network.getGenerator("g1Bis");
+        g1Bis.setMaxP(10);
+        Generator g4 = network.getGenerator("g4");
+        g4.setMaxP(20);
+        Terminal regTerminal = network.getLine("l34").getTerminal2();
+
+        g1.setRegulatingTerminal(regTerminal);
+        g1.setTargetV(1.6);
+        g1.setVoltageRegulatorOn(true);
+
+        g1Bis.setRegulatingTerminal(regTerminal);
+        g1Bis.setTargetV(1.6);
+        g1Bis.setVoltageRegulatorOn(true);
+
+        g4.setRegulatingTerminal(regTerminal);
+        g4.setTargetV(1.6);
+        g4.setVoltageRegulatorOn(true);
+
+        return network;
+    }
 }
