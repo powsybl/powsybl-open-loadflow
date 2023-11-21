@@ -842,7 +842,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = FourBusNetworkFactory.create();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(gen.getMaxP() + 1.0));
         network.getLoad("d2").setP0(2.3); // to unbalance the network.
 
         final String lineInContingencyId = "l13";
