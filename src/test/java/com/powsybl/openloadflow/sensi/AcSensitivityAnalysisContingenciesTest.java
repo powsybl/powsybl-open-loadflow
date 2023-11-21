@@ -561,27 +561,24 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testHvdcSensiRescale() {
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
 
         Network network1 = HvdcNetworkFactory.createNetworkWithGenerators();
-        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network1.getLine("l25").getTerminal1().disconnect();
         network1.getLine("l25").getTerminal2().disconnect();
         runLf(network1, sensiParameters.getLoadFlowParameters());
+
         Network network2 = HvdcNetworkFactory.createNetworkWithGenerators();
         network2.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
-        network2.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network2.getLine("l25").getTerminal1().disconnect();
         network2.getLine("l25").getTerminal2().disconnect();
         runLf(network2, sensiParameters.getLoadFlowParameters());
-        Map<String, Double> loadFlowDiff = network.getLineStream().map(line -> line.getId())
-                                                  .collect(Collectors.toMap(
-                                                      lineId -> lineId,
-                                                      line -> (network1.getLine(line).getTerminal1().getP() - network2.getLine(line).getTerminal1().getP()) / SENSI_CHANGE
-                                                  ));
+
+        Map<String, Double> loadFlowDiff =
+                network.getLineStream().map(line -> line.getId())
+                        .collect(Collectors.toMap(lineId -> lineId, line -> (network1.getLine(line).getTerminal1().getP() - network2.getLine(line).getTerminal1().getP()) / SENSI_CHANGE));
 
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
                                                                          SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
@@ -594,13 +591,13 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.singletonList(new Contingency("l25", new BranchContingency("l25"))), Collections.emptyList(), sensiParameters);
 
         // FIXME
-//        assertEquals(loadFlowDiff.get("l12"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l12"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(loadFlowDiff.get("l13"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l13"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(loadFlowDiff.get("l23"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l23"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(0d, hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l25"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(loadFlowDiff.get("l45"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l45"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(loadFlowDiff.get("l46"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l46"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(loadFlowDiff.get("l56"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l56"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        // assertEquals(loadFlowDiff.get("l12"), result.getBranchFlow1SensitivityValue("l25", "hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        // assertEquals(loadFlowDiff.get("l13"), result.getBranchFlow1SensitivityValue("l25", "hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        // assertEquals(loadFlowDiff.get("l23"), result.getBranchFlow1SensitivityValue("l25", "hvdc34", "l23", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("l25", "hvdc34", "l45", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER); // should be loadFlowDiff.get("l45")
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("l25", "hvdc34", "l46", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER); // should be loadFlowDiff.get("l46")
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("l25", "hvdc34", "l56", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER); // should be loadFlowDiff.get("l56")
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("l25", "hvdc34", "l25", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -846,7 +843,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testGLSK() {
         Network network = FourBusNetworkFactory.create();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
 
@@ -909,7 +905,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testContingencyOnHvdcLcc() {
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(3 * gen.getMaxP()));
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(gen.getMaxP() + 1));
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
@@ -942,7 +938,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testContingencyOnHvdcVsc() {
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
@@ -976,7 +971,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testContingencyOnHvdcVsc2() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
                 .withDroop(180)
                 .withP0(0.f)
@@ -1144,7 +1138,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testPredefinedResults() {
         // Load and generator in contingency
         Network network = FourBusNetworkFactory.create();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l14", "g1"),
                 createBranchFlowPerInjectionIncrease("l14", "d2"));
@@ -1158,7 +1151,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testPredefinedResults2() {
         // LCC line in contingency
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(3 * gen.getMaxP()));
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12"),
@@ -1169,7 +1161,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0, result.getBranchFlow1SensitivityValue("hvdc34", "hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         // VSC line in contingency
         Network network2 = HvdcNetworkFactory.createNetworkWithGenerators2();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         SensitivityAnalysisResult result2 = sensiRunner.run(network2, factors, contingencies, Collections.emptyList(), sensiParameters);
         assertEquals(0, result2.getBranchFlow1SensitivityValue("hvdc34", "hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
@@ -1179,7 +1170,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorOnOneSide();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         List<Contingency> contingencies = List.of(new Contingency("g2", new GeneratorContingency("g2")));
         List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b4", "g2", "g2"));
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
@@ -1224,7 +1214,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testRestoreAfterContingencyOnHvdc() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
                 .withDroop(180)
                 .withP0(0.f)

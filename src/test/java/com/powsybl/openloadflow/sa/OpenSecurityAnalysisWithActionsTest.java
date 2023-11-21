@@ -12,6 +12,7 @@ import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.xml.test.MetrixTutorialSixBusesFactory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -558,7 +559,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     void testBranchOpenAtOneSideRecovery() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
-
         var network = ConnectedComponentNetworkFactory.createTwoCcLinkedBySwitches();
         network.getLine("l46").getTerminal1().disconnect();
         network.getSwitch("s25").setOpen(true);
@@ -567,10 +567,12 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<Action> actions = List.of(new SwitchAction("closeSwitch", "s25", false));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("line"), new TrueCondition(), List.of("closeSwitch")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setDistributedSlack(false);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
-        assertEquals(-2.996, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-3.000, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l45").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2.998, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2.990, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l45").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

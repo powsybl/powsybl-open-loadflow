@@ -149,9 +149,6 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void testGeneratorInjection4busesDistributed() {
         // The factors are generators injections
         Network network = FourBusNetworkFactory.create();
-        for (Generator generator : network.getGenerators()) {
-            generator.setMaxP(generator.getTargetP() + 0.5);
-        }
         runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
@@ -162,7 +159,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
-        assertEquals(0.192d, result.getBranchFlow1SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.175, result.getBranchFlow1SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.269d, result.getBranchFlow1SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.115d, result.getBranchFlow1SensitivityValue("g1", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.038d, result.getBranchFlow1SensitivityValue("g1", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -574,12 +571,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         Network network1 = HvdcNetworkFactory.createNetworkWithGenerators();
         network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
-        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network1, sensiParameters.getLoadFlowParameters());
         Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
             .collect(Collectors.toMap(
@@ -608,12 +603,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         Network network1 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
         network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
-        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network1, sensiParameters.getLoadFlowParameters());
         Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
             .collect(Collectors.toMap(
