@@ -2088,8 +2088,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.879, getPostContingencyResult(result, "contingency1").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
         // post contingency 2: g1 is off
         assertEquals(4, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
-        // TODO why does it converge to another value
-//        assertEquals(-4.192, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(-4.192, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
         // post contingency 3: g4 is off
         assertEquals(4, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
         assertEquals(-10.329, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
