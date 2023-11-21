@@ -968,7 +968,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setConnectableBus("b1")
                 .setEnergySource(EnergySource.THERMAL)
                 .setMinP(0)
-                .setMaxP(200)
+                .setMaxP(350)
                 .setTargetP(100)
                 .setTargetV(21)
                 .setVoltageRegulatorOn(true)

@@ -110,9 +110,9 @@ class AcLoadFlowShuntTest {
         parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(399.602, network.getBusBreakerView().getBus("b4"));
+        assertVoltageEquals(399.921, network.getBusBreakerView().getBus("b4"));
         assertEquals(0, shuntCompensator2.getSectionCount());
-        assertEquals(27, shuntCompensator3.getSectionCount());
+        assertEquals(24, shuntCompensator3.getSectionCount());
     }
 
     @Test
@@ -248,9 +248,9 @@ class AcLoadFlowShuntTest {
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(399.819, network.getBusBreakerView().getBus("b4"));
-        assertEquals(13, shuntCompensator2.getSectionCount());
-        assertEquals(13, shuntCompensator3.getSectionCount());
+        assertVoltageEquals(399.852, network.getBusBreakerView().getBus("b4"));
+        assertEquals(12, shuntCompensator2.getSectionCount());
+        assertEquals(12, shuntCompensator3.getSectionCount());
     }
 
     @Test
@@ -317,7 +317,7 @@ class AcLoadFlowShuntTest {
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(407.978, network.getBusBreakerView().getBus("b4"));
+        assertVoltageEquals(407.403, network.getBusBreakerView().getBus("b4"));
         assertEquals(0, shuntCompensator2.getSectionCount());
         assertEquals(0, shuntCompensator3.getSectionCount());
     }
@@ -439,16 +439,16 @@ class AcLoadFlowShuntTest {
         OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(402.011, network.getBusBreakerView().getBus("b4"));
+        assertVoltageEquals(402.354, network.getBusBreakerView().getBus("b4"));
         assertEquals(0, shuntCompensator2.getSectionCount());
-        assertEquals(19, shuntCompensator3.getSectionCount());
+        assertEquals(16, shuntCompensator3.getSectionCount());
 
         shuntCompensator3.setTargetDeadband(0.1);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
-        assertVoltageEquals(399.602, network.getBusBreakerView().getBus("b4"));
+        assertVoltageEquals(399.922, network.getBusBreakerView().getBus("b4"));
         assertEquals(0, shuntCompensator2.getSectionCount());
-        assertEquals(27, shuntCompensator3.getSectionCount());
+        assertEquals(24, shuntCompensator3.getSectionCount());
     }
 
     @Test
@@ -494,9 +494,9 @@ class AcLoadFlowShuntTest {
         OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(401.967, network.getBusBreakerView().getBus("b4"));
-        assertEquals(11, shuntCompensator2.getSectionCount());
-        assertEquals(8, shuntCompensator3.getSectionCount());
+        assertVoltageEquals(402.324, network.getBusBreakerView().getBus("b4"));
+        assertEquals(9, shuntCompensator2.getSectionCount());
+        assertEquals(7, shuntCompensator3.getSectionCount());
     }
 
     @Test

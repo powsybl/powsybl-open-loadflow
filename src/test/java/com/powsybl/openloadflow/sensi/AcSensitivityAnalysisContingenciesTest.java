@@ -1258,8 +1258,8 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
         List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b4", "g1"), createBusVoltagePerTargetV("b4", "g1", "SHUNT2"));
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), parameters);
-        assertEquals(402.101, result.getBusVoltageFunctionReferenceValue("b4"), LoadFlowAssert.DELTA_V);
-        assertEquals(404.793, result.getBusVoltageFunctionReferenceValue("SHUNT2", "b4"), LoadFlowAssert.DELTA_V);
+        assertEquals(401.082, result.getBusVoltageFunctionReferenceValue("b4"), LoadFlowAssert.DELTA_V);
+        assertEquals(404.218, result.getBusVoltageFunctionReferenceValue("SHUNT2", "b4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
