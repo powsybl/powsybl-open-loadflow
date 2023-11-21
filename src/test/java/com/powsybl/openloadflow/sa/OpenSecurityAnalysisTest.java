@@ -389,33 +389,33 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testSaWithStateMonitorDisconnectBranch() {
         Network network = DistributedSlackNetworkFactory.create();
-        network.getBranch("l24").getTerminal1().disconnect();
+        network.getGenerator("g1").setMaxP(1000);
+        network.getGenerator("g2").setMaxP(1000);
+        network.getBranch("l34").getTerminal1().disconnect();
 
         List<StateMonitor> monitors = new ArrayList<>();
-        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l24"), Collections.singleton("b1_vl"), emptySet()));
+        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l34"), Collections.singleton("b1_vl"), emptySet()));
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, Collections.emptyList(), monitors);
 
         assertEquals(1, result.getPreContingencyResult().getNetworkResult().getBusResults().size());
 
-        assertEquals(new BusResult("b1_vl", "b1", 400, 0.003581299841270782), result.getPreContingencyResult().getNetworkResult().getBusResults().get(0));
+        assertEquals(new BusResult("b1_vl", "b1", 400, 0.007162421348571367), result.getPreContingencyResult().getNetworkResult().getBusResults().get(0));
         assertEquals(1, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
-        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
+        assertEquals(new BranchResult("l34", NaN, NaN, NaN, 0.0, -0.0, 0.0),
                      result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0));
 
         network = DistributedSlackNetworkFactory.create();
-        network.getBranch("l24").getTerminal2().disconnect();
+        network.getBranch("l34").getTerminal2().disconnect();
 
         result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
-
         assertEquals(0, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
 
         network = DistributedSlackNetworkFactory.create();
-        network.getBranch("l24").getTerminal2().disconnect();
-        network.getBranch("l24").getTerminal1().disconnect();
+        network.getBranch("l34").getTerminal2().disconnect();
+        network.getBranch("l34").getTerminal1().disconnect();
 
         result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
-
         assertEquals(0, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
     }
 
