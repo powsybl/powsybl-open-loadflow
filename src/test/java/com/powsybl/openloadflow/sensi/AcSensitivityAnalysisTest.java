@@ -815,11 +815,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.01);
 
         Network network = HvdcNetworkFactory.createNetworkWithGenerators2();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         Network network1 = HvdcNetworkFactory.createNetworkWithGenerators2();
-        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
         runLf(network1, sensiParameters.getLoadFlowParameters());
         Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
@@ -849,11 +847,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.01);
 
         Network network = HvdcNetworkFactory.createNetworkWithGenerators2();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         Network network1 = HvdcNetworkFactory.createNetworkWithGenerators2();
-        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network1.getGenerator("g1").setTargetP(network1.getGenerator("g1").getTargetP() + SENSI_CHANGE);
         runLf(network1, sensiParameters.getLoadFlowParameters());
         Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
