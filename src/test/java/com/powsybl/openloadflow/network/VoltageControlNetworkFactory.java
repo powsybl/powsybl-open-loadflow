@@ -1384,8 +1384,10 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         return network;
     }
 
-    public static Network createWithSharedRemoteControl2GensOnSameBusAnd1Extra() {
-        Network network = FourBusNetworkFactory.createWith2GenControllersOnSameBusAnd1Extra();
+    public static Network createFourBusNetworkWithSharedVoltageControl() {
+        // Four bus network with g1 and g1Bis at b1, g4 at b4
+        // Shared voltage control at b4
+        Network network = FourBusNetworkFactory.createWith2GeneratorsAtBus1();
         Generator g1 = network.getGenerator("g1");
         Generator g1Bis = network.getGenerator("g1Bis");
         Generator g4 = network.getGenerator("g4");
