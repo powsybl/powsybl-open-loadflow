@@ -109,12 +109,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     public static String getId(ThreeSides side, String transformerId) {
-        int legNum = switch (side) {
-            case ONE -> 1;
-            case TWO -> 2;
-            case THREE -> 3;
-        };
-        return getId(transformerId, legNum);
+        return getId(transformerId, side.getNum());
     }
 
     @Override
