@@ -152,6 +152,7 @@ public class LfContingency {
             generator.setDisabled(true);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                bus.getGeneratorVoltageControl().ifPresent(vc -> vc.updateReactiveKeys());
                 bus.getReactivePowerControl().ifPresent(rc -> rc.updateReactiveKeys());
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());

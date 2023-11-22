@@ -2182,6 +2182,41 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testUpdateReactiveKeysAfterGeneratorContingency() {
+        // g1 and g1Bis at b1
+        Network network = VoltageControlNetworkFactory.createFourBusNetworkWithSharedVoltageControl();
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12", "l34"), Set.of("b4_vl"), Collections.emptySet()));
+        List<Contingency> contingencies = List.of(new Contingency("g1", List.of(new GeneratorContingency("g1"))));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        LoadFlow.run(network, lfParameters);
+        assertVoltageEquals(1.2, network.getBusBreakerView().getBus("b4"));
+        assertReactivePowerEquals(1.365, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-1.820, network.getLine("l12").getTerminal2());
+
+        network.getGenerator("g1").getTerminal().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertVoltageEquals(1.2, network.getBusBreakerView().getBus("b4"));
+        assertReactivePowerEquals(1.511, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-1.515, network.getLine("l12").getTerminal2());
+        network.getGenerator("g1").getTerminal().connect();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // pre contingency
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(1.2, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(1.365, preContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-1.820, preContingencyResult.getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        // post contingency: g1 is off
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "g1");
+        assertEquals(1.2, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(1.511, postContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-1.515, postContingencyResult.getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+    }
+
+    @Test
     void testWithTieLineContingency() {
         Network network = BoundaryFactory.createWithTieLine();
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new TieLineContingency("t12"))));
