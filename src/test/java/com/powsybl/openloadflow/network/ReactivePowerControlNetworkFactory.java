@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
 
 /**
@@ -75,21 +76,10 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
         g1.setMaxP(10);
         g1Bis.setMaxP(10);
         g4.setMaxP(10);
-        g1.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(2.0)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
-                .withEnabled(true)
-                .add();
-        g1Bis.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(2.0)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
-                .withEnabled(true)
-                .add();
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(2.0)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
-                .withEnabled(true)
-                .add();
+        double remoteTargetQ = 2.0;
+        g1.getExtension(RemoteReactivePowerControl.class).setTargetQ(remoteTargetQ);
+        g1Bis.getExtension(RemoteReactivePowerControl.class).setTargetQ(remoteTargetQ);
+        g4.getExtension(RemoteReactivePowerControl.class).setTargetQ(remoteTargetQ);
         return network;
     }
 }

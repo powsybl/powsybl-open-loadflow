@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControlAdder;
+import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -523,12 +524,8 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         // only generator g1 regulates reactive power on line 4->3
         Network network1 = FourBusNetworkFactory.createWith2GenControllersOnSameBus();
         Generator g1n1 = network1.getGenerator("g1");
+        network1.getGenerator("g1Bis").getExtension(RemoteReactivePowerControl.class).setEnabled(false);
         Line l34n1 = network1.getLine("l34");
-
-        g1n1.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34n1.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
 
         parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
         LoadFlowResult result1 = loadFlowRunner.run(network1, parameters);
@@ -540,15 +537,6 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         Generator g1n2 = network2.getGenerator("g1");
         Generator g1Bisn2 = network2.getGenerator("g1Bis");
         Line l34n2 = network2.getLine("l34");
-
-        g1n2.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34n2.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
-        g1Bisn2.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34n2.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
 
         parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
         LoadFlowResult result2 = loadFlowRunner.run(network2, parameters);
@@ -566,22 +554,8 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         // generators g1, g1Bis and g4 regulate reactive power on line 4->3
         Network network = FourBusNetworkFactory.createWith2GenControllersOnSameBusAnd1Extra();
         Generator g1 = network.getGenerator("g1");
-        Generator g1Bis = network.getGenerator("g1Bis");
         Generator g4 = network.getGenerator("g4");
         Line l34 = network.getLine("l34");
-
-        g1.newExtension(RemoteReactivePowerControlAdder.class)
-            .withTargetQ(targetQ)
-            .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
-            .withEnabled(true).add();
-        g1Bis.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
 
         parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
