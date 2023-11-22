@@ -95,7 +95,7 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
-    public static Network createWith2ReactiveControllersOnSameBus() {
+    public static Network createWith2GenControllersOnSameBus() {
         Network network = create();
         Bus b1 = network.getBusBreakerView().getBus("b1");
 
@@ -111,8 +111,8 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
-    public static Network createWith2ReactiveControllersOnSameBusAnd1Extra() {
-        Network network = createWith2ReactiveControllersOnSameBus();
+    public static Network createWith2GenControllersOnSameBusAnd1Extra() {
+        Network network = createWith2GenControllersOnSameBus();
         Generator g4 = network.getGenerator("g4");
         g4.setTargetQ(0).setVoltageRegulatorOn(false);
         return network;

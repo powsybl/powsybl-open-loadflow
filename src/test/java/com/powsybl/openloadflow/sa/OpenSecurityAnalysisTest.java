@@ -26,7 +26,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteriaType;
-import com.powsybl.openloadflow.ac.nr.StateVectorScalingMode;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
@@ -2030,7 +2029,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testWithSharedVoltageRemoteControl() {
         Network network = VoltageControlNetworkFactory.createWithSharedRemoteControl2GensOnSameBusAnd1Extra();
-        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12", "l34"), Collections.emptySet(), Collections.emptySet()));
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12", "l34"), Set.of("b4_vl"), Collections.emptySet()));
         List<Contingency> contingencies = List.of(
                 new Contingency("g1", List.of(new GeneratorContingency("g1")))
         );
@@ -2038,22 +2037,19 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         lfParameters.setUseReactiveLimits(true);
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(lfParameters);
         openLoadFlowParameters.setReactivePowerRemoteControl(true)
-                .setMaxNewtonRaphsonIterations(30)
-                .setMaxRealisticVoltage(3)
-                .setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
                 .setMaxReactivePowerMismatch(DELTA_POWER);
 
         LoadFlow.run(network, lfParameters);
-        assertVoltageEquals(1.6, network.getBusBreakerView().getBus("b4"));
-        assertReactivePowerEquals(4.027, network.getLine("l34").getTerminal2());
-        assertReactivePowerEquals(-5.351, network.getLine("l12").getTerminal2());
+        assertVoltageEquals(1.2, network.getBusBreakerView().getBus("b4"));
+        assertReactivePowerEquals(1.366, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-1.822, network.getLine("l12").getTerminal2());
 
         network.getGenerator("g1").getTerminal().disconnect();
         LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
-        assertVoltageEquals(1.6, network.getBusBreakerView().getBus("b4"));
-        assertReactivePowerEquals(4.457, network.getLine("l34").getTerminal2());
-        assertReactivePowerEquals(-4.597, network.getLine("l12").getTerminal2());
+        assertVoltageEquals(1.2, network.getBusBreakerView().getBus("b4"));
+        assertReactivePowerEquals(1.515, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-1.510, network.getLine("l12").getTerminal2());
         network.getGenerator("g1").getTerminal().connect();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
@@ -2061,11 +2057,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
 
         // pre contingency
-        assertEquals(4.027, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
-        assertEquals(-5.351, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(1.2, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(1.366, preContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-1.822, preContingencyResult.getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
         // post contingency: g1 is off
-        assertEquals(4.457, getPostContingencyResult(result, "g1").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
-        assertEquals(-4.597, getPostContingencyResult(result, "g1").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "g1");
+        assertEquals(1.2, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(1.515, postContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-1.510, postContingencyResult.getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
     }
 
     @Test
