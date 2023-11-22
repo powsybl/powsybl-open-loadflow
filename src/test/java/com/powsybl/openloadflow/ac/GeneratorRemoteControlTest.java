@@ -484,19 +484,10 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         // generators g1 and g4 both regulate reactive power on line 4->3
         // reactive keys are not set -> fallback case: equally distributed
-        Network network1 = FourBusNetworkFactory.createWithReactiveController();
+        Network network1 = FourBusNetworkFactory.createWithReactiveControl();
         Generator g4n1 = network1.getGenerator("g4");
         Generator g1n1 = network1.getGenerator("g1");
         Line l34n1 = network1.getLine("l34");
-
-        g1n1.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34n1.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
-        g4n1.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34n1.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
 
         parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
         LoadFlowResult result1 = loadFlowRunner.run(network1, parameters);
@@ -507,20 +498,10 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         // generators g1 and g4 both regulate reactive power on line 4->3
         // reactive keys are set -> 75% for g1 and 25% for g4
-        Network network2 = FourBusNetworkFactory.createWithReactiveController();
+        Network network2 = FourBusNetworkFactory.createWithReactiveControl();
+        Line l34n2 = network2.getLine("l34");
         Generator g4n2 = network2.getGenerator("g4");
         Generator g1n2 = network2.getGenerator("g1");
-        Line l34n2 = network2.getLine("l34");
-
-        g1n2.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34n2.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
-        g4n2.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34n2.getTerminal(Branch.Side.TWO))
-                .withEnabled(true).add();
-
         g1n2.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(75).add();
         g4n2.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(25).add();
 

@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
 
 /**
  * <p>4 bus test network:</p>
@@ -103,16 +101,24 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
-    public static Network createWithReactiveController() {
+    public static Network createWithReactiveControl() {
         Network network = create();
-
         network.getLoad("d3").setQ0(1);
-
+        Line l34 = network.getLine("l34");
+        double remoteTargetQ = 2.0;
         Generator g4 = network.getGenerator("g4");
-        Generator g1 = network.getGenerator("g1");
-
-        g1.setTargetQ(0).setVoltageRegulatorOn(false);
         g4.setTargetQ(0).setVoltageRegulatorOn(false);
+        Generator g1 = network.getGenerator("g1");
+        g1.setTargetQ(0).setVoltageRegulatorOn(false);
+        g1.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(remoteTargetQ)
+                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withEnabled(true)
+                .add();
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(remoteTargetQ)
+                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withEnabled(true).add();
         return network;
     }
 
