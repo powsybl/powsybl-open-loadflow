@@ -98,14 +98,9 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
     public static Network createWith2GenControllersOnSameBus() {
         Network network = create();
         Bus b1 = network.getBusBreakerView().getBus("b1");
-
         network.getLoad("d3").setQ0(1);
-
-        createGenerator(b1, "g1Bis", 2);
-
         Generator g1 = network.getGenerator("g1");
-        Generator g1Bis = network.getGenerator("g1Bis");
-
+        Generator g1Bis = createGenerator(b1, "g1Bis", 2);
         g1.setTargetQ(0).setVoltageRegulatorOn(false);
         g1Bis.setTargetQ(0).setVoltageRegulatorOn(false);
         return network;
