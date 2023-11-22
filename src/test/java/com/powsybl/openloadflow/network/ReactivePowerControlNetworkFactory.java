@@ -32,11 +32,11 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
      */
     public static Network createWithGeneratorRemoteControl() {
         Network network = FourBusNetworkFactory.createBaseNetwork();
-        Generator g4 = network.getGenerator("g4");
-        g4.setMaxP(2 * g4.getTargetP());
         Generator g1 = network.getGenerator("g1");
-        g1.setMaxP(2 * g1.getTargetP());
+        Generator g4 = network.getGenerator("g4");
         Line l34 = network.getLine("l34");
+        g1.setMaxP(10);
+        g4.setMaxP(10);
         // disable voltage control on g4
         g4.setTargetQ(0.0).setVoltageRegulatorOn(false);
         // generator g4 regulates reactive power on line 4->3 (on side of g4)
@@ -50,11 +50,11 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
 
     public static Network createWithGeneratorRemoteControl2() {
         Network network = FourBusNetworkFactory.createBaseNetwork();
-        Generator g4 = network.getGenerator("g4");
-        g4.setMaxP(10 * g4.getTargetP());
         Generator g1 = network.getGenerator("g1");
-        g1.setMaxP(10 * g1.getTargetP());
+        Generator g4 = network.getGenerator("g4");
         Line l12 = network.getLine("l12");
+        g1.setMaxP(10);
+        g4.setMaxP(10);
         // disable voltage control on g4
         g4.setTargetQ(0.0).setVoltageRegulatorOn(false);
         // generator g4 regulates reactive power on line 1->2 in 2
@@ -67,26 +67,26 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
     }
 
     public static Network createWithGeneratorsRemoteControlShared() {
-        Network network = FourBusNetworkFactory.createWith2ReactiveControllersOnSameBusAnd1Extra();
+        Network network = FourBusNetworkFactory.createWith2GenControllersOnSameBusAnd1Extra();
         Generator g1 = network.getGenerator("g1");
-        g1.setMaxP(10);
         Generator g1Bis = network.getGenerator("g1Bis");
-        g1Bis.setMaxP(10);
         Generator g4 = network.getGenerator("g4");
-        g4.setMaxP(20);
         Line l34 = network.getLine("l34");
+        g1.setMaxP(10);
+        g1Bis.setMaxP(10);
+        g4.setMaxP(10);
         g1.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(4.0)
+                .withTargetQ(2.0)
                 .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
                 .withEnabled(true)
                 .add();
         g1Bis.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(4.0)
+                .withTargetQ(2.0)
                 .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
                 .withEnabled(true)
                 .add();
         g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(4.0)
+                .withTargetQ(2.0)
                 .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
                 .withEnabled(true)
                 .add();

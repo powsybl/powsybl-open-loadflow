@@ -540,7 +540,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         double targetQ = 2.0;
 
         // only generator g1 regulates reactive power on line 4->3
-        Network network1 = FourBusNetworkFactory.createWith2ReactiveControllersOnSameBus();
+        Network network1 = FourBusNetworkFactory.createWith2GenControllersOnSameBus();
         Generator g1n1 = network1.getGenerator("g1");
         Line l34n1 = network1.getLine("l34");
 
@@ -555,7 +555,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(targetQ, l34n1.getTerminal(Branch.Side.TWO));
 
         // both generators g1 and g1Bis (same bus) regulate reactive power on line 4->3 equally
-        Network network2 = FourBusNetworkFactory.createWith2ReactiveControllersOnSameBus();
+        Network network2 = FourBusNetworkFactory.createWith2GenControllersOnSameBus();
         Generator g1n2 = network2.getGenerator("g1");
         Generator g1Bisn2 = network2.getGenerator("g1Bis");
         Line l34n2 = network2.getLine("l34");
@@ -583,7 +583,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         double targetQ = 2.0;
 
         // generators g1, g1Bis and g4 regulate reactive power on line 4->3
-        Network network = FourBusNetworkFactory.createWith2ReactiveControllersOnSameBusAnd1Extra();
+        Network network = FourBusNetworkFactory.createWith2GenControllersOnSameBusAnd1Extra();
         Generator g1 = network.getGenerator("g1");
         Generator g1Bis = network.getGenerator("g1Bis");
         Generator g4 = network.getGenerator("g4");
