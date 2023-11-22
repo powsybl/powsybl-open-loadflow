@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
 
 /**
@@ -68,18 +67,13 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
     }
 
     public static Network createWithGeneratorsRemoteControlShared() {
-        Network network = FourBusNetworkFactory.createWith2GenControllersOnSameBusAnd1Extra();
+        Network network = FourBusNetworkFactory.createWithReactiveControl2GeneratorsOnSameBusAnd1Extra();
         Generator g1 = network.getGenerator("g1");
         Generator g1Bis = network.getGenerator("g1Bis");
         Generator g4 = network.getGenerator("g4");
-        Line l34 = network.getLine("l34");
         g1.setMaxP(10);
         g1Bis.setMaxP(10);
         g4.setMaxP(10);
-        double remoteTargetQ = 2.0;
-        g1.getExtension(RemoteReactivePowerControl.class).setTargetQ(remoteTargetQ);
-        g1Bis.getExtension(RemoteReactivePowerControl.class).setTargetQ(remoteTargetQ);
-        g4.getExtension(RemoteReactivePowerControl.class).setTargetQ(remoteTargetQ);
         return network;
     }
 }
