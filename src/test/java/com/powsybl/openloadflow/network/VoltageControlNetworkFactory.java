@@ -1394,16 +1394,13 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         Terminal regTerminal = network.getLine("l34").getTerminal2();
         g1.setMaxP(10)
                 .setRegulatingTerminal(regTerminal)
-                .setTargetV(1.2)
-                .setVoltageRegulatorOn(true);
+                .setTargetV(1.2);
         g1Bis.setMaxP(10)
                 .setRegulatingTerminal(regTerminal)
-                .setTargetV(1.2)
-                .setVoltageRegulatorOn(true);
+                .setTargetV(1.2);
         g4.setMaxP(10)
                 .setRegulatingTerminal(regTerminal)
-                .setTargetV(1.2)
-                .setVoltageRegulatorOn(true);
+                .setTargetV(1.2);
         return network;
     }
 }
