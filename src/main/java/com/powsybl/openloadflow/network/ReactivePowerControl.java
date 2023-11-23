@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.Objects;
 
 /**
@@ -14,10 +16,10 @@ import java.util.Objects;
 public class ReactivePowerControl extends Control {
 
     private final LfBranch controlledBranch;
-    private final ControlledSide controlledSide;
+    private final TwoSides controlledSide;
     private final LfBus controllerBus;
 
-    public ReactivePowerControl(LfBranch controlledBranch, ControlledSide controlledSide, LfBus controllerBus, double targetValue) {
+    public ReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, LfBus controllerBus, double targetValue) {
         super(targetValue);
         this.controlledBranch = Objects.requireNonNull(controlledBranch);
         this.controlledSide = Objects.requireNonNull(controlledSide);
@@ -28,7 +30,7 @@ public class ReactivePowerControl extends Control {
         return controlledBranch;
     }
 
-    public ControlledSide getControlledSide() {
+    public TwoSides getControlledSide() {
         return controlledSide;
     }
 

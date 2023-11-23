@@ -43,7 +43,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected String controlledBranchId;
 
-    protected ControlledSide controlledBranchSide;
+    protected TwoSides controlledBranchSide;
 
     protected double remoteTargetQ = Double.NaN;
 
@@ -265,11 +265,11 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         Connectable<?> connectable = regulatingTerminal.getConnectable();
         if (connectable instanceof Line l) {
             this.controlledBranchSide = l.getTerminal(TwoSides.ONE) == regulatingTerminal ?
-                    ControlledSide.ONE : ControlledSide.TWO;
+                    TwoSides.ONE : TwoSides.TWO;
             this.controlledBranchId = l.getId();
         } else if (connectable instanceof TwoWindingsTransformer t) {
             this.controlledBranchSide = t.getTerminal(TwoSides.ONE) == regulatingTerminal ?
-                    ControlledSide.ONE : ControlledSide.TWO;
+                    TwoSides.ONE : TwoSides.TWO;
             this.controlledBranchId = t.getId();
         } else {
             LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
@@ -286,7 +286,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     }
 
     @Override
-    public ControlledSide getControlledBranchSide() {
+    public TwoSides getControlledBranchSide() {
         return controlledBranchSide;
     }
 
