@@ -1389,12 +1389,14 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         // Shared voltage control at b4
         Network network = FourBusNetworkFactory.createWith2GeneratorsAtBus1();
         Generator g1 = network.getGenerator("g1");
+        Generator g2 = network.getGenerator("g2");
         Generator g1Bis = network.getGenerator("g1Bis");
         Generator g4 = network.getGenerator("g4");
         Terminal regTerminal = network.getLine("l34").getTerminal2();
         g1.setMaxP(10)
                 .setRegulatingTerminal(regTerminal)
                 .setTargetV(1.2);
+        g2.setMaxP(10);
         g1Bis.setMaxP(10)
                 .setRegulatingTerminal(regTerminal)
                 .setTargetV(1.2);
