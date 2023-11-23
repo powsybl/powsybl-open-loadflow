@@ -22,7 +22,7 @@ import com.powsybl.contingency.contingency.list.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
-import com.powsybl.iidm.xml.NetworkXml;
+import com.powsybl.iidm.serde.NetworkSerDe;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -40,7 +40,6 @@ import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
-import org.joda.time.DateTime;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -49,6 +48,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -174,9 +174,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // debugging
             if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
                 Path debugDir = DebugUtil.getDebugDir(sensitivityAnalysisParametersExt.getDebugDir());
-                String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
+                String dateStr = ZonedDateTime.now().format(DATE_TIME_FORMAT);
 
-                NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
+                NetworkSerDe.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
 
                 ObjectWriter objectWriter = createObjectMapper()
                         .writerWithDefaultPrettyPrinter();
@@ -213,15 +213,15 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
         Objects.requireNonNull(resultWriterProvider);
         Objects.requireNonNull(reporter);
 
-        String dateStr = date.toString(DATE_TIME_FORMAT);
+        String dateStr = date.format(DATE_TIME_FORMAT);
 
-        Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
+        Network network = NetworkSerDe.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
 
         ObjectMapper objectMapper = createObjectMapper();
         List<SensitivityFactor> factors;
@@ -264,11 +264,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return new ReplayResult<>(resultWriter, factors, contingencies);
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
         return replay(date, debugDir, resultWriterProvider, Reporter.NO_OP);
     }
 
-    public ReplayResult<SensitivityResultModelWriter> replay(DateTime date, Path debugDir) {
+    public ReplayResult<SensitivityResultModelWriter> replay(ZonedDateTime date, Path debugDir) {
         return replay(date, debugDir, SensitivityResultModelWriter::new);
     }
 }

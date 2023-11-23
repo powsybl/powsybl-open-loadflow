@@ -23,11 +23,11 @@ import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -321,17 +321,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
 
             @Override
-            public void visitLine(Line line, Branch.Side side) {
+            public void visitLine(Line line, TwoSides side) {
                 visitBranch(line);
             }
 
             @Override
-            public void visitTwoWindingsTransformer(TwoWindingsTransformer transformer, Branch.Side side) {
+            public void visitTwoWindingsTransformer(TwoWindingsTransformer transformer, TwoSides side) {
                 visitBranch(transformer);
             }
 
             @Override
-            public void visitThreeWindingsTransformer(ThreeWindingsTransformer transformer, ThreeWindingsTransformer.Side side) {
+            public void visitThreeWindingsTransformer(ThreeWindingsTransformer transformer, ThreeSides side) {
                 loadingContext.t3wtSet.add(transformer);
             }
 
@@ -455,7 +455,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfStarBus lfBus0 = new LfStarBus(lfNetwork, t3wt, parameters);
             lfNetwork.addBus(lfBus0);
             postProcessors.forEach(pp -> pp.onBusAdded(t3wt, lfBus0));
-            for (ThreeWindingsTransformer.Side side : ThreeWindingsTransformer.Side.values()) {
+            for (ThreeSides side : ThreeSides.values()) {
                 ThreeWindingsTransformer.Leg leg = t3wt.getLeg(side);
                 LfBus lfBus = getLfBus(leg.getTerminal(), lfNetwork, parameters.isBreakers());
                 LfLegBranch lfBranch = LfLegBranch.create(lfNetwork, lfBus, lfBus0, t3wt, leg,
@@ -477,7 +477,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
                 // Create phase controls which link controller -> controlled
-                for (ThreeWindingsTransformer.Side side : ThreeWindingsTransformer.Side.values()) {
+                for (ThreeSides side : ThreeSides.values()) {
                     PhaseTapChanger ptc = t3wt.getLeg(side).getPhaseTapChanger();
                     createPhaseControl(lfNetwork, ptc, LfLegBranch.getId(side, t3wt.getId()), parameters);
                 }
@@ -515,7 +515,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
-            for (ThreeWindingsTransformer.Side side : ThreeWindingsTransformer.Side.values()) {
+            for (ThreeSides side : ThreeSides.values()) {
                 RatioTapChanger rtc = t3wt.getLeg(side).getRatioTapChanger();
                 createTransformerVoltageControl(lfNetwork, rtc, LfLegBranch.getId(side, t3wt.getId()), parameters, report);
             }
@@ -801,7 +801,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         if (parameters.getDebugDir() != null) {
             Path debugDir = DebugUtil.getDebugDir(parameters.getDebugDir());
-            String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
+            String dateStr = ZonedDateTime.now().format(DATE_TIME_FORMAT);
             lfNetwork.writeJson(debugDir.resolve("lfnetwork-" + dateStr + ".json"));
             lfNetwork.writeGraphViz(debugDir.resolve("lfnetwork-" + dateStr + ".dot"), parameters.getLoadFlowModel());
         }

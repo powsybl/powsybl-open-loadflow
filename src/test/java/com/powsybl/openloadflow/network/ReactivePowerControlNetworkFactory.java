@@ -42,7 +42,7 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
         // generator g4 regulates reactive power on line 4->3 (on side of g4)
         g4.newExtension(RemoteReactivePowerControlAdder.class)
                 .withTargetQ(4.0)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
                 .withEnabled(true)
                 .add();
         return network;
@@ -60,7 +60,7 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
         // generator g4 regulates reactive power on line 1->2 in 2
         g4.newExtension(RemoteReactivePowerControlAdder.class)
                 .withTargetQ(1.0)
-                .withRegulatingTerminal(l12.getTerminal(Branch.Side.TWO))
+                .withRegulatingTerminal(l12.getTerminal(TwoSides.TWO))
                 .withEnabled(true)
                 .add();
         return network;

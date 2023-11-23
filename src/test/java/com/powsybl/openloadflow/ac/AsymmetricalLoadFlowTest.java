@@ -27,10 +27,10 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
@@ -367,7 +367,7 @@ public class AsymmetricalLoadFlowTest {
      */
     public static Network fourNodescreate() {
         Network network = Network.create("4n", "test");
-        network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
+        network.setCaseDate(ZonedDateTime.parse("2018-03-05T13:30:30.486+01:00"));
 
         // Bus 1
         Substation substation1 = network.newSubstation()
