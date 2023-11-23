@@ -132,7 +132,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void defaultMethodsTest() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
@@ -207,7 +207,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testMinImpedance() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getLine("NHV1_NHV2_1").setR(0.0).setX(0.0).setB1(0.0).setB2(0.0).setG1(0.0).setG2(0.0);
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfBranch line = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");

@@ -54,7 +54,7 @@ class LfNetworkTest extends AbstractSerDeTest {
 
     @Test
     void test() throws IOException {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getVoltageLevel("VLLOAD").newShuntCompensator()
                 .setId("SC")
                 .setBus("NLOAD")
@@ -103,7 +103,7 @@ class LfNetworkTest extends AbstractSerDeTest {
 
     @Test
     void getBranchByIdtest() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -200,7 +200,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         testGraphViz(EurostagTutorialExample1Factory.create(), false, "sim1.dot");
         testGraphViz(NodeBreakerNetworkFactory.create(), true, "nb.dot");
         // with a disconnected line
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         testGraphViz(network, false, "sim1_disconnected.dot");
     }

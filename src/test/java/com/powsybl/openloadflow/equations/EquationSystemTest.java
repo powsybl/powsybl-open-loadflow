@@ -182,7 +182,7 @@ class EquationSystemTest {
 
     @Test
     void findLargestMismatchesTest() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
@@ -201,7 +201,7 @@ class EquationSystemTest {
 
     @Test
     void currentMagnitudeTest() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
@@ -226,7 +226,7 @@ class EquationSystemTest {
 
     @Test
     void currentMagnitudeOpenBranchSide2Test() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Line line1 = network.getLine("NHV1_NHV2_1");
         line1.getTerminal2().disconnect();
 
@@ -245,7 +245,7 @@ class EquationSystemTest {
 
     @Test
     void currentMagnitudeOpenBranchSide1Test() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Line line1 = network.getLine("NHV1_NHV2_1");
         line1.getTerminal1().disconnect();
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
@@ -263,7 +263,7 @@ class EquationSystemTest {
 
     @Test
     void removeEquationTest() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 

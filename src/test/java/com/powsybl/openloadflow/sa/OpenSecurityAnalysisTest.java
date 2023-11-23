@@ -265,7 +265,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testNoGenerator() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").getTerminal().disconnect();
 
         SecurityAnalysisResult result = runSecurityAnalysis(network);
@@ -274,7 +274,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testNoRemainingGenerator() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         List<Contingency> contingencies = List.of(new Contingency("NGEN_NHV1", new BranchContingency("NGEN_NHV1")));
 
@@ -288,7 +288,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testNoRemainingLoad() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDistributedSlack(true)
@@ -391,33 +391,37 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testSaWithStateMonitorDisconnectBranch() {
         Network network = DistributedSlackNetworkFactory.create();
-        network.getBranch("l24").getTerminal1().disconnect();
+        network.getGenerator("g1").setMaxP(1000);
+        network.getGenerator("g2").setMaxP(1000);
+        network.getBranch("l34").getTerminal1().disconnect();
 
         List<StateMonitor> monitors = new ArrayList<>();
-        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l24"), Collections.singleton("b1_vl"), emptySet()));
+        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l34"), Collections.singleton("b1_vl"), emptySet()));
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, Collections.emptyList(), monitors);
 
         assertEquals(1, result.getPreContingencyResult().getNetworkResult().getBusResults().size());
 
-        assertEquals(new BusResult("b1_vl", "b1", 400, 0.003581299841270782), result.getPreContingencyResult().getNetworkResult().getBusResults().get(0));
+        assertEquals(new BusResult("b1_vl", "b1", 400, 0.007162421348571367), result.getPreContingencyResult().getNetworkResult().getBusResults().get(0));
         assertEquals(1, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
-        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
+        assertEquals(new BranchResult("l34", NaN, NaN, NaN, 0.0, -0.0, 0.0),
                      result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0));
 
         network = DistributedSlackNetworkFactory.create();
-        network.getBranch("l24").getTerminal2().disconnect();
+        network.getGenerator("g1").setMaxP(1000);
+        network.getGenerator("g2").setMaxP(1000);
+        network.getBranch("l34").getTerminal2().disconnect();
 
         result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
-
         assertEquals(0, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
 
         network = DistributedSlackNetworkFactory.create();
-        network.getBranch("l24").getTerminal2().disconnect();
-        network.getBranch("l24").getTerminal1().disconnect();
+        network.getGenerator("g1").setMaxP(1000);
+        network.getGenerator("g2").setMaxP(1000);
+        network.getBranch("l34").getTerminal2().disconnect();
+        network.getBranch("l34").getTerminal1().disconnect();
 
         result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
-
         assertEquals(0, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
     }
 
@@ -767,14 +771,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(-108.596, preContingencyResult.getNetworkResult().getBranchResult("tr1").getQ2(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(54.298, preContingencyResult.getNetworkResult().getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(54.298, preContingencyResult.getNetworkResult().getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-100.337, preContingencyResult.getNetworkResult().getBranchResult("tr1").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(50.168, preContingencyResult.getNetworkResult().getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(50.168, preContingencyResult.getNetworkResult().getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency tests
         PostContingencyResult tr2ContingencyResult = getPostContingencyResult(result, "tr2");
-        assertEquals(-107.543, tr2ContingencyResult.getNetworkResult().getBranchResult("tr1").getQ2(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(107.543, tr2ContingencyResult.getNetworkResult().getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-99.436, tr2ContingencyResult.getNetworkResult().getBranchResult("tr1").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(99.436, tr2ContingencyResult.getNetworkResult().getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -849,17 +853,17 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(42.342, preContingencyResult.getNetworkResult().getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(42.342, preContingencyResult.getNetworkResult().getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(42.131, preContingencyResult.getNetworkResult().getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(42.131, preContingencyResult.getNetworkResult().getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency tests
         PostContingencyResult contingencyResult = getPostContingencyResult(result, "SHUNT2");
         assertEquals(0.0, contingencyResult.getNetworkResult().getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(42.914, contingencyResult.getNetworkResult().getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(42.792, contingencyResult.getNetworkResult().getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency tests
         PostContingencyResult tr3ContingencyResult = getPostContingencyResult(result, "tr3");
-        assertEquals(42.914, tr3ContingencyResult.getNetworkResult().getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(42.792, tr3ContingencyResult.getNetworkResult().getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1160,7 +1164,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testPostContingencyFiltering() {
-        Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits());
         network.getLine("NHV1_NHV2_2").newCurrentLimits1()
                 .setPermanentLimit(300)
                 .add();
@@ -1174,22 +1178,22 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<LimitViolation> preContingencyLimitViolationsOnLine = result.getPreContingencyResult().getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSideAsTwoSides().equals(TwoSides.ONE)).toList();
         assertEquals(LimitViolationType.CURRENT, preContingencyLimitViolationsOnLine.get(0).getLimitType());
-        assertEquals(459, preContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(456.769, preContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
 
         List<LimitViolation> postContingencyLimitViolationsOnLine = result.getPostContingencyResults().get(0).getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSideAsTwoSides().equals(TwoSides.ONE)).toList();
         assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolationsOnLine.get(0).getLimitType());
-        assertEquals(1014.989, postContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(1008.928, postContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
 
         List<LimitViolation> preContingencyLimitViolationsOnVoltageLevel = result.getPreContingencyResult().getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
         assertEquals(LimitViolationType.LOW_VOLTAGE, preContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
-        assertEquals(400.63, preContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
+        assertEquals(402.143, preContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
 
         List<LimitViolation> postContingencyLimitViolationsOnVoltageLevel = result.getPostContingencyResults().get(0).getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
         assertEquals(LimitViolationType.LOW_VOLTAGE, postContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
-        assertEquals(396.70, postContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
+        assertEquals(398.265, postContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
 
         parameters.getIncreasedViolationsParameters().setFlowProportionalThreshold(1.5);
         parameters.getIncreasedViolationsParameters().setLowVoltageProportionalThreshold(0.1);
@@ -1280,6 +1284,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .withP0(0.f)
                 .withEnabled(true)
                 .add();
+        network.getGeneratorStream().forEach(generator -> generator.setMaxP(10));
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
@@ -1297,11 +1302,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
 
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(-0.883, preContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.768, preContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency tests
         PostContingencyResult g1ContingencyResult = getPostContingencyResult(result, "g1");
-        assertEquals(-0.696, g1ContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2.783, g1ContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
 
         List<Contingency> contingencies2 = new ArrayList<>();
         contingencies2.add(Contingency.hvdcLine("hvdc34"));
@@ -1310,10 +1315,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // post-contingency tests
         PostContingencyResult hvdcContingencyResult = getPostContingencyResult(result2, "hvdc34");
-        assertEquals(-0.99999, hvdcContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2.000, hvdcContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
 
         PostContingencyResult g1ContingencyResult2 = getPostContingencyResult(result, "g1");
-        assertEquals(-0.696, g1ContingencyResult2.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2.783, g1ContingencyResult2.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1353,7 +1358,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testContingencyOnHvdcVsc() {
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
@@ -1394,7 +1398,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testDivergenceStatus() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getLine("NHV1_NHV2_1").setR(100).setX(-999);
         network.getLine("NHV1_NHV2_2").setR(100).setX(-999);
         SecurityAnalysisResult result = runSecurityAnalysis(network);
@@ -1622,7 +1626,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void reportTest() throws IOException {
-        var network = EurostagTutorialExample1Factory.create();
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         List<Contingency> contingencies = createAllBranchesContingencies(network);
 
@@ -2190,14 +2194,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         LoadFlow.run(network, lfParameters);
         assertVoltageEquals(1.2, network.getBusBreakerView().getBus("b4"));
-        assertReactivePowerEquals(1.365, network.getLine("l34").getTerminal2());
-        assertReactivePowerEquals(-1.820, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(1.372, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-1.814, network.getLine("l12").getTerminal2());
 
         network.getGenerator("g1").getTerminal().disconnect();
         LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
         assertVoltageEquals(1.2, network.getBusBreakerView().getBus("b4"));
         assertReactivePowerEquals(1.511, network.getLine("l34").getTerminal2());
-        assertReactivePowerEquals(-1.515, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(-1.517, network.getLine("l12").getTerminal2());
         network.getGenerator("g1").getTerminal().connect();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
@@ -2207,13 +2211,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // pre contingency
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
         assertEquals(1.2, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
-        assertEquals(1.365, preContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
-        assertEquals(-1.820, preContingencyResult.getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(1.372, preContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-1.814, preContingencyResult.getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
         // post contingency: g1 is off
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "g1");
         assertEquals(1.2, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
         assertEquals(1.511, postContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
-        assertEquals(-1.515, postContingencyResult.getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(-1.517, postContingencyResult.getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
     }
 
     @Test
@@ -2464,7 +2468,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testVoltageAngleLimit() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Line line = network.getLine("NHV1_NHV2_1");
         network.newVoltageAngleLimit()
                 .setId("val")
@@ -2475,12 +2479,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .add();
         loadFlowRunner.run(network);
         assertAngleEquals(0.0, line.getTerminal1().getBusView().getBus());
-        assertAngleEquals(-3.506413, line.getTerminal2().getBusView().getBus());
+        assertAngleEquals(-3.506358, line.getTerminal2().getBusView().getBus());
         network.getLine("NHV1_NHV2_2").getTerminal1().disconnect();
         network.getLine("NHV1_NHV2_2").getTerminal2().disconnect();
         loadFlowRunner.run(network);
         assertAngleEquals(0.0, line.getTerminal1().getBusView().getBus());
-        assertAngleEquals(-7.498849, line.getTerminal2().getBusView().getBus());
+        assertAngleEquals(-7.499212, line.getTerminal2().getBusView().getBus());
 
         network.getLine("NHV1_NHV2_2").getTerminal1().connect();
         network.getLine("NHV1_NHV2_2").getTerminal2().connect();
@@ -2488,7 +2492,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
         LimitViolation limit = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
         assertEquals(LimitViolationType.LOW_VOLTAGE_ANGLE, limit.getLimitType());
-        assertEquals(-7.498847, limit.getValue(), DELTA_ANGLE);
+        assertEquals(-7.499212, limit.getValue(), DELTA_ANGLE);
 
         network.getVoltageAngleLimit("val").remove();
         network.newVoltageAngleLimit()
@@ -2501,7 +2505,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
         LimitViolation limit2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
         assertEquals(LimitViolationType.HIGH_VOLTAGE_ANGLE, limit2.getLimitType());
-        assertEquals(7.498847, limit2.getValue(), DELTA_ANGLE);
+        assertEquals(7.499212, limit2.getValue(), DELTA_ANGLE);
 
         network.getVoltageAngleLimit("val").remove();
         network.newVoltageAngleLimit()

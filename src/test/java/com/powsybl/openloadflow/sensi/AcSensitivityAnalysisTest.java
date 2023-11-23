@@ -39,7 +39,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testEsgTuto() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
@@ -815,11 +815,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.01);
 
         Network network = HvdcNetworkFactory.createNetworkWithGenerators2();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         Network network1 = HvdcNetworkFactory.createNetworkWithGenerators2();
-        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
         runLf(network1, sensiParameters.getLoadFlowParameters());
         Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
@@ -849,11 +847,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.01);
 
         Network network = HvdcNetworkFactory.createNetworkWithGenerators2();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         Network network1 = HvdcNetworkFactory.createNetworkWithGenerators2();
-        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network1.getGenerator("g1").setTargetP(network1.getGenerator("g1").getTargetP() + SENSI_CHANGE);
         runLf(network1, sensiParameters.getLoadFlowParameters());
         Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
@@ -1063,7 +1059,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     @Test
     void lineWithDifferentNominalVoltageTest() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0", false);
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("NHV1_NHV2_1", "NHV1_NHV2_2"),
                 SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("GEN"),
@@ -1117,7 +1113,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testNullBusInjection() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getLoad("LOAD").getTerminal().disconnect();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLGEN_0");
@@ -1299,7 +1295,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testReactivePowerAndCurrentPerTargetVSensi() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "NLOAD");
 
@@ -1363,14 +1359,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runAcLf(network);
 
         assertEquals(-7.2817, twt.getTerminal1().getQ() - q1Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -7.959
-        assertEquals(0.0007, twt.getTerminal2().getQ() - q2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs 0
-        assertEquals(-49.1009, twt.getTerminal1().getI() - i1Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -52.329
-        assertEquals(-124.2233, twt.getTerminal2().getI() - i2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -132.392
+        assertEquals(0.0, twt.getTerminal2().getQ() - q2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs 0
+        assertEquals(-49.10638, twt.getTerminal1().getI() - i1Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -52.329
+        assertEquals(-124.2371, twt.getTerminal2().getI() - i2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -132.392
     }
 
     @Test
     void testUnsupportedVariablesSensiV() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "NLOAD");
         List<Contingency> contingencies = Collections.emptyList();

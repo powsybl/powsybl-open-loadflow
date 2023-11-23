@@ -6,10 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import com.powsybl.iidm.network.TwoSides;
+
+import java.util.*;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -17,10 +16,10 @@ import java.util.Objects;
 public class ReactivePowerControl extends Control {
 
     private final LfBranch controlledBranch;
-    private final ControlledSide controlledSide;
+    private final TwoSides controlledSide;
     private final List<LfBus> controllerBuses = new ArrayList<>();
 
-    public ReactivePowerControl(LfBranch controlledBranch, ControlledSide controlledSide, double targetValue) {
+    public ReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, double targetValue) {
         super(targetValue);
         this.controlledBranch = Objects.requireNonNull(controlledBranch);
         this.controlledSide = Objects.requireNonNull(controlledSide);
@@ -30,7 +29,7 @@ public class ReactivePowerControl extends Control {
         return controlledBranch;
     }
 
-    public ControlledSide getControlledSide() {
+    public TwoSides getControlledSide() {
         return controlledSide;
     }
 

@@ -261,17 +261,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         reactivePowerControl.addControllerBus(controllerBus);
     }
 
-    private static boolean checkControllerBusGenerators(List<LfGenerator> generators, String controllerBusId) {
-        LfGenerator generator = generators.get(0);
-        LfBranch controlledBranch = generator.getControlledBranch();
+    private static boolean checkControllerBusGenerators(List<LfGenerator> lfGenerators, String controllerBusId) {
+        LfGenerator lfGenerator = lfGenerators.get(0);
+        LfBranch controlledBranch = lfGenerator.getControlledBranch();
         if (controlledBranch == null) {
             LOGGER.warn("Controlled branch is out of voltage or in a different synchronous component: remote reactive power control of generator {} discarded", generator.getId());
             return false;
         }
-        ControlledSide side = generator.getControlledBranchSide();
-        double targetQ = generator.getRemoteTargetQ();
-        for (int i = 1; i < generators.size(); i++) {
-            LfGenerator otherGenerator = generators.get(i);
+        TwoSides side = lfGenerator.getControlledBranchSide();
+        double targetQ = lfGenerator.getRemoteTargetQ();
+        for (int i = 1; i < lfGenerators.size(); i++) {
+            LfGenerator otherGenerator = lfGenerators.get(i);
             if (otherGenerator.getControlledBranch() == null) {
                 LOGGER.warn("Controlled branch is out of voltage or in a different synchronous component: remote reactive power control of generator {} discarded", otherGenerator.getId());
                 return false;
@@ -564,8 +564,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 return;
             }
             LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, parameters.isBreakers());
-            ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
-                    ControlledSide.ONE : ControlledSide.TWO;
+            TwoSides controlledSide = controlledBus == controlledBranch.getBus1() ? TwoSides.ONE : TwoSides.TWO;
             if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
                 throw new IllegalStateException("Leg " + controlledBranch.getId() + " has a non supported control at star bus side");
             }

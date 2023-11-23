@@ -525,6 +525,8 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         createGenerator(b1, "g1", 1);
         createGenerator(b5, "g5", 1);
+        network.getGenerator("g1").setMaxP(5);
+        network.getGenerator("g5").setMaxP(5);
 
         createLoad(b2, "d2", 4);
         return network;
