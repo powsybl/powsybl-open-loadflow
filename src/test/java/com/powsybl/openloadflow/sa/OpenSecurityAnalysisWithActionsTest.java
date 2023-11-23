@@ -11,7 +11,7 @@ import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
-import com.powsybl.iidm.xml.test.MetrixTutorialSixBusesFactory;
+import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -599,7 +599,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 operatorStrategies3, actions3, Reporter.NO_OP));
         assertEquals("Transformer 'pst1' not found in the network", exception.getCause().getMessage());
 
-        List<Action> actions4 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst2", false, 1, ThreeWindingsTransformer.Side.ONE));
+        List<Action> actions4 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst2", false, 1, ThreeSides.ONE));
         List<OperatorStrategy> operatorStrategies4 = List.of(new OperatorStrategy("strategy4", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies4, actions4, Reporter.NO_OP));
@@ -1104,7 +1104,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
         List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
-        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pst", "PS1", false, 2, ThreeWindingsTransformer.Side.TWO));
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pst", "PS1", false, 2, ThreeSides.TWO));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("pst")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
@@ -1126,7 +1126,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(68.2, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
         //test for exceptions
-        List<Action> actions1 = List.of(new PhaseTapChangerTapPositionAction("pst_leg_1", "PS1", false, 2, ThreeWindingsTransformer.Side.ONE));
+        List<Action> actions1 = List.of(new PhaseTapChangerTapPositionAction("pst_leg_1", "PS1", false, 2, ThreeSides.ONE));
         List<OperatorStrategy> operatorStrategies1 = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("L1"),
                 new TrueCondition(), List.of("pst_leg_1")));
         CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
@@ -1180,7 +1180,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         List<Contingency> contingencies = List.of(new Contingency("CL3", new BranchContingency("L3")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
-        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("Aps1", "PS1", false, 2, ThreeWindingsTransformer.Side.TWO));
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("Aps1", "PS1", false, 2, ThreeSides.TWO));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("CL3"), new TrueCondition(), List.of("Aps1")));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
                 operatorStrategies, actions, Reporter.NO_OP);

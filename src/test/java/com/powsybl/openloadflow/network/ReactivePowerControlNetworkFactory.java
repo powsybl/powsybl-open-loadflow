@@ -54,7 +54,7 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
         // generator g4 regulates reactive power on line 4->3 (on side of g4)
         g4.newExtension(RemoteReactivePowerControlAdder.class)
                 .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
                 .withEnabled(true).add();
 
         g4.newMinMaxReactiveLimits().setMinQ(-5.0).setMaxQ(5.0).add();

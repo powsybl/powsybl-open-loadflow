@@ -22,8 +22,6 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -32,6 +30,9 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
@@ -1614,7 +1615,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testDebug() throws IOException {
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
-        network.setCaseDate(DateTime.parse("2021-04-25T13:47:34.697+02:00"));
+        network.setCaseDate(ZonedDateTime.parse("2021-04-25T13:47:34.697+02:00"));
         runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
@@ -1675,7 +1676,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
             ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-factors.json")), is);
         }
         try (InputStream is = Files.newInputStream(networkFile)) {
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
+            ComparisonUtils.compareXml(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
         }
         try (InputStream is = Files.newInputStream(parametersFile)) {
             ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-parameters.json")), is);
@@ -1686,7 +1687,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         String fileName = contingenciesFile.getFileName().toString();
         String dateStr = fileName.substring(14, fileName.length() - 5);
-        DateTime date = DateTime.parse(dateStr, DateTimeFormat.forPattern(DebugUtil.DATE_TIME_FORMAT));
+        ZonedDateTime date = LocalDateTime.parse(dateStr, DebugUtil.DATE_TIME_FORMAT).atZone(ZoneId.of("UTC"));
 
         List<SensitivityValue> values2 = sensiProvider.replay(date, fileSystem.getPath(debugDir)).resultWriter().getValues();
 

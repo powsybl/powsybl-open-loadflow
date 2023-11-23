@@ -84,7 +84,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
             return switch (getNewtonRaphsonStatus()) {
                 case CONVERGED -> LoadFlowResult.ComponentResult.Status.CONVERGED;
                 case MAX_ITERATION_REACHED -> LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-                case SOLVER_FAILED -> LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
+                case SOLVER_FAILED -> LoadFlowResult.ComponentResult.Status.FAILED;
                 default -> LoadFlowResult.ComponentResult.Status.FAILED;
             };
         }

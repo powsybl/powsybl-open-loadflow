@@ -10,7 +10,8 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystemsAdder;
-import org.joda.time.DateTime;
+
+import java.time.ZonedDateTime;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -38,7 +39,7 @@ public final class AutomationSystemNetworkFactory extends AbstractLoadFlowNetwor
      */
     public static Network create() {
         Network network = Network.create("OverloadManagementSystemTestCase", "code");
-        network.setCaseDate(DateTime.parse("2020-04-05T14:11:00.000+01:00"));
+        network.setCaseDate(ZonedDateTime.parse("2020-04-05T14:11:00.000+01:00"));
         Bus b1 = createBus(network, "s1", "b1", 225);
         Bus b2 = createBus(network, "s2", "b2", 225);
         Bus b3 = createBus(network, "s1", "b3", 63);

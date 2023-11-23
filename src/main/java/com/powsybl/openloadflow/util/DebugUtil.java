@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 
 import java.nio.file.Path;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
 /**
@@ -17,7 +18,7 @@ import java.util.Objects;
  */
 public final class DebugUtil {
 
-    public static final String DATE_TIME_FORMAT = "yyyy-dd-M--HH-mm-ss-SSS";
+    public static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-dd-M--HH-mm-ss-SSS");
 
     private DebugUtil() {
     }
