@@ -234,7 +234,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, ControlledSide side, double targetQ, LfBus controllerBus) {
+    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, TwoSides side, double targetQ, LfBus controllerBus) {
         if (!controlledBranch.isConnectedAtBothSides()) {
             LOGGER.warn("Controlled branch '{}' must be connected at both sides: remote reactive power control discarded", controlledBranch.getId());
             return;
@@ -250,7 +250,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     }
 
-    private static void createGeneratorReactivePowerControl(LfBranch controlledBranch, LfBus controllerBus, ControlledSide controlledSide, double controllerTargetQ) {
+    private static void createGeneratorReactivePowerControl(LfBranch controlledBranch, LfBus controllerBus, TwoSides controlledSide, double controllerTargetQ) {
         ReactivePowerControl reactivePowerControl = new ReactivePowerControl(controlledBranch, controlledSide, controllerTargetQ);
         reactivePowerControl.addControllerBus(controllerBus);
         controlledBranch.setReactivePowerControl(reactivePowerControl);
@@ -265,7 +265,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         LfGenerator lfGenerator = lfGenerators.get(0);
         LfBranch controlledBranch = lfGenerator.getControlledBranch();
         if (controlledBranch == null) {
-            LOGGER.warn("Controlled branch is out of voltage or in a different synchronous component: remote reactive power control of generator {} discarded", generator.getId());
+            LOGGER.warn("Controlled branch is out of voltage or in a different synchronous component: remote reactive power control of generator {} discarded", lfGenerator.getId());
             return false;
         }
         TwoSides side = lfGenerator.getControlledBranchSide();
@@ -288,7 +288,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return true;
     }
 
-    private static boolean checkUniqueControlledSide(ReactivePowerControl reactivePowerControl, ControlledSide side) {
+    private static boolean checkUniqueControlledSide(ReactivePowerControl reactivePowerControl, TwoSides side) {
         if (!side.equals(reactivePowerControl.getControlledSide())) {
             LOGGER.error("Controlled branch '{}' is controlled at both sides. Controlled side {} (kept) {} (rejected).",
                     reactivePowerControl.getControlledBranch().getId(), reactivePowerControl.getControlledSide(), side);

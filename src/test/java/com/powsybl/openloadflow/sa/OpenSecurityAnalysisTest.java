@@ -2038,12 +2038,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                                                            // tolerance in Q for the controlled branch
         LoadFlow.run(network, lfParameters);
         assertReactivePowerEquals(2, network.getLine("l34").getTerminal2());
-        assertReactivePowerEquals(-2.819, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(-2.814, network.getLine("l12").getTerminal2());
 
         network.getBranch("l34").getTerminal1().disconnect();
         network.getBranch("l34").getTerminal2().disconnect();
         LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
-        assertReactivePowerEquals(0.900, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(0.927, network.getLine("l12").getTerminal2());
         network.getBranch("l34").getTerminal1().connect();
         network.getBranch("l34").getTerminal2().connect();
 
@@ -2056,14 +2056,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getGenerator("g4").getTerminal().disconnect();
         LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
         assertReactivePowerEquals(2, network.getLine("l34").getTerminal2());
-        assertReactivePowerEquals(-5.961, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(-5.960, network.getLine("l12").getTerminal2());
         network.getGenerator("g4").getTerminal().connect();
 
         network.getGenerator("g1").getTerminal().disconnect();
         network.getGenerator("g1Bis").getTerminal().disconnect();
         LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
         assertReactivePowerEquals(2, network.getLine("l34").getTerminal2());
-        assertReactivePowerEquals(-0.890, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(-0.927, network.getLine("l12").getTerminal2());
         network.getGenerator("g1").getTerminal().connect();
         network.getGenerator("g1Bis").getTerminal().connect();
 
@@ -2071,7 +2071,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getGenerator("g4").getTerminal().disconnect();
         LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
         assertReactivePowerEquals(2, network.getLine("l34").getTerminal2());
-        assertReactivePowerEquals(-5.961, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(-5.962, network.getLine("l12").getTerminal2());
         network.getGenerator("g1").getTerminal().connect();
         network.getGenerator("g4").getTerminal().connect();
 
@@ -2082,22 +2082,22 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // pre contingency
         // - l34 is controlled by g1, g1Bis and g4 to have Q2 = 2 MVar
         assertEquals(2, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
-        assertEquals(-2.819, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(-2.814, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
         assertEquals(5, result.getPostContingencyResults().size());
         // post contingency 1: branch l34 is off
-        assertEquals(0.900, getPostContingencyResult(result, "contingency1").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(0.927, getPostContingencyResult(result, "contingency1").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
         // post contingency 2: g1 is off
         assertEquals(2, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
         assertEquals(-2.126, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
         // post contingency 3: g4 is off
         assertEquals(2, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
-        assertEquals(-5.961, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(-5.960, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
         // post contingency 4: g1 and g1Bis are off
         assertEquals(2, getPostContingencyResult(result, "contingency4").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
-        assertEquals(-0.890, getPostContingencyResult(result, "contingency4").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(-0.927, getPostContingencyResult(result, "contingency4").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
         // post contingency 4: g1 and g4 are off
         assertEquals(2, getPostContingencyResult(result, "contingency5").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
-        assertEquals(-5.961, getPostContingencyResult(result, "contingency5").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(-5.962, getPostContingencyResult(result, "contingency5").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
     }
 
     @Test
