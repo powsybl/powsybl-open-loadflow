@@ -44,7 +44,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testEsgTuto() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
@@ -149,9 +149,6 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void testGeneratorInjection4busesDistributed() {
         // The factors are generators injections
         Network network = FourBusNetworkFactory.create();
-        for (Generator generator : network.getGenerators()) {
-            generator.setMaxP(generator.getTargetP() + 0.5);
-        }
         runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
@@ -162,23 +159,23 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
-        assertEquals(0.192d, result.getBranchFlow1SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.269d, result.getBranchFlow1SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.115d, result.getBranchFlow1SensitivityValue("g1", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.038d, result.getBranchFlow1SensitivityValue("g1", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.154d, result.getBranchFlow1SensitivityValue("g1", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.175, result.getBranchFlow1SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.275, result.getBranchFlow1SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125, result.getBranchFlow1SensitivityValue("g1", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0245, result.getBranchFlow1SensitivityValue("g1", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.150, result.getBranchFlow1SensitivityValue("g1", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(0.067d, result.getBranchFlow1SensitivityValue("g2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.356d, result.getBranchFlow1SensitivityValue("g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.260d, result.getBranchFlow1SensitivityValue("g2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.163d, result.getBranchFlow1SensitivityValue("g2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.096d, result.getBranchFlow1SensitivityValue("g2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.050, result.getBranchFlow1SensitivityValue("g2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.350, result.getBranchFlow1SensitivityValue("g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.250, result.getBranchFlow1SensitivityValue("g2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.150, result.getBranchFlow1SensitivityValue("g2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.100, result.getBranchFlow1SensitivityValue("g2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(-0.433d, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.144d, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.24d, result.getBranchFlow1SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.337d, result.getBranchFlow1SensitivityValue("g4", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.096d, result.getBranchFlow1SensitivityValue("g4", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.450, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.150, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.250, result.getBranchFlow1SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.350, result.getBranchFlow1SensitivityValue("g4", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.100, result.getBranchFlow1SensitivityValue("g4", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -574,12 +571,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         Network network1 = HvdcNetworkFactory.createNetworkWithGenerators();
         network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
-        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network1, sensiParameters.getLoadFlowParameters());
         Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
             .collect(Collectors.toMap(
@@ -608,12 +603,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         Network network1 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
         network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
-        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network1, sensiParameters.getLoadFlowParameters());
         Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
             .collect(Collectors.toMap(
@@ -639,13 +632,13 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
         network.getHvdcLine("hvdc34").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
-        network.getGeneratorStream().forEach(gen -> gen.setMaxP(5 * gen.getMaxP()));
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         Network network1 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
         network1.getHvdcLine("hvdc34").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
         network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
-        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(5 * gen.getMaxP()));
+        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         runLf(network1, sensiParameters.getLoadFlowParameters());
         Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
             .collect(Collectors.toMap(
@@ -870,7 +863,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testOpenMonitoredBranch() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runDcLf(network);
         network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
 
@@ -889,7 +882,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testOpenMonitoredBranch2() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runDcLf(network);
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
 
@@ -925,7 +918,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testConfiguredBusFactor() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
@@ -948,7 +941,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testConfiguredBusInvalidFactor() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getVoltageLevel("VLGEN").getBusBreakerView().newBus()
                 .setId("X")
                 .add();

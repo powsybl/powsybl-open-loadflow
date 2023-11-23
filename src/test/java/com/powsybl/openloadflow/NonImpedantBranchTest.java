@@ -421,6 +421,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l01"))));
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDistributedSlack(false)
                 .setTransformerVoltageControlOn(true);
         OpenLoadFlowParameters.create(loadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()

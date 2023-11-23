@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -49,7 +50,7 @@ class NotSameNumberVariableEquationIssueTest {
      */
     @Test
     void test() {
-        var network = EurostagTutorialExample1Factory.create();
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         VoltageLevel vlgen2 = network.getSubstation("P1").newVoltageLevel()
                 .setId("VLGEN2")
                 .setNominalV(24)

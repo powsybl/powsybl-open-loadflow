@@ -316,7 +316,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
     @Test
     void testSeveralShunts() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getVoltageLevel("VLLOAD").newShuntCompensator()
                 .setId("SC")
                 .setBus("NLOAD")
@@ -345,13 +345,13 @@ class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isOk());
-        assertReactivePowerEquals(-70.782, network.getShuntCompensator("SC").getTerminal());
-        assertReactivePowerEquals(70.782, network.getShuntCompensator("SC2").getTerminal());
+        assertReactivePowerEquals(-70.783, network.getShuntCompensator("SC").getTerminal());
+        assertReactivePowerEquals(70.783, network.getShuntCompensator("SC2").getTerminal());
     }
 
     @Test
     void testSeveralShunts2() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getVoltageLevel("VLLOAD").newShuntCompensator()
                 .setId("SC")
                 .setBus("NLOAD")
@@ -414,7 +414,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
     @Test
     void testGeneratorReactiveLimits() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(150).add();
         network.getVoltageLevel("VLGEN").newGenerator().setId("GEN1")
                 .setBus("NGEN").setConnectableBus("NGEN")
@@ -438,7 +438,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
     @Test
     void testGeneratorsConnectedToSameBusNotControllingSameBus() {
-        var network = EurostagTutorialExample1Factory.create();
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getVoltageLevel("VLGEN").newGenerator()
                 .setId("GEN2")
                 .setConnectableBus("NGEN")

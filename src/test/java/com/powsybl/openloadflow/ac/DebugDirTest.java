@@ -13,6 +13,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -32,7 +33,7 @@ class DebugDirTest {
 
     @Test
     void test() throws IOException {
-        var network = EurostagTutorialExample1Factory.create();
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         FileSystem fileSystem = PlatformConfig.defaultConfig().getConfigDir().orElseThrow().getFileSystem();

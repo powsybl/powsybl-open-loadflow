@@ -25,7 +25,7 @@ class NameSlackBusSelectorTest {
 
     @BeforeEach
     void setUp() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
     }
 
     @Test
