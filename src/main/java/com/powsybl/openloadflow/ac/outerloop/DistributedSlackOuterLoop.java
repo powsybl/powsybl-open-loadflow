@@ -65,8 +65,8 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                         throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
                                 + remainingMismatch * PerUnit.SB + " MW remains");
                     case LEAVE_ON_SLACK_BUS -> {
-                        LOGGER.warn("Failed to distribute slack bus active power mismatch, {} MW remains (result.movedBuses()={})",
-                                remainingMismatch * PerUnit.SB, result.movedBuses());
+                        LOGGER.warn("Failed to distribute slack bus active power mismatch, {} MW remains",
+                                remainingMismatch * PerUnit.SB);
                         return result.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
                     }
                     case FAIL -> {
