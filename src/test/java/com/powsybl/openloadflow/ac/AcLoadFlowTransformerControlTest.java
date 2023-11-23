@@ -116,6 +116,28 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
+    void reactivePowerControlT2wtTest2() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerReactivePowerControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal(Branch.Side.TWO))
+                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER_CONTROL)
+                .setRegulationValue(0.25); // TODO : change me for consistent value
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        System.out.println(t2wt.getTerminal(Branch.Side.TWO).getQ());
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.433, t2wt.getTerminal1().getBusView().getBus()); //FIXME: should be 34.427
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
     void voltageControlT2wtTest3() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 

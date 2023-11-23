@@ -10,7 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * @author Pierre Arvy <bertrand.rix at artelys.com>
+ * @author Pierre Arvy <pierre.arvy at artelys.com>
  */
 public class TransformerReactivePowerControl extends Control {
 
@@ -19,12 +19,12 @@ public class TransformerReactivePowerControl extends Control {
     private final Double targetDeadband;
     private final ControlledSide controlledSide;
 
-    public TransformerReactivePowerControl(LfBranch controlledBranch, ControlledSide controlledSide, LfBranch controllerRTC, double targetValue, double targetDeadband) {
+    public TransformerReactivePowerControl(LfBranch controlledBranch, ControlledSide controlledSide, LfBranch controllerBranch, double targetValue, double targetDeadband) {
         super(targetValue);
         this.targetDeadband = Objects.requireNonNull(targetDeadband);
         this.controlledBranch = Objects.requireNonNull(controlledBranch);
         this.controlledSide = Objects.requireNonNull(controlledSide);
-        this.controllerBranch = Objects.requireNonNull(controllerRTC);
+        this.controllerBranch = Objects.requireNonNull(controllerBranch);
     }
 
     public Optional<Double> getTargetDeadband() {

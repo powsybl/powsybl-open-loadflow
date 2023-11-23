@@ -523,6 +523,23 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
+    private static void createTransformerReactivePowerControls(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext,
+                                                               LfNetworkLoadingReport report) {
+        // Create reactive power control which link controller -> controlled
+        for (Branch<?> branch : loadingContext.branchSet) {
+            if (branch instanceof TwoWindingsTransformer t2wt) {
+                RatioTapChanger rtc = t2wt.getRatioTapChanger();
+                createTransformerReactivePowerControl(lfNetwork, rtc, t2wt.getId(), parameters, report);
+            }
+        }
+        for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
+            for (ThreeWindingsTransformer.Side side : ThreeWindingsTransformer.Side.values()) {
+                RatioTapChanger rtc = t3wt.getLeg(side).getRatioTapChanger();
+                createTransformerReactivePowerControl(lfNetwork, rtc, LfLegBranch.getId(side, t3wt.getId()), parameters, report);
+            }
+        }
+    }
+
     private static void createSwitches(List<Switch> switches, LfNetwork lfNetwork, List<LfNetworkLoaderPostProcessor> postProcessors,
                                        LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         if (switches != null) {
@@ -594,7 +611,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createTransformerVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId,
                                                         LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities()) {
+        if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities() || rtc.getRegulationMode() != RatioTapChanger.RegulationMode.VOLTAGE) {
             return;
         }
         LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
@@ -636,6 +653,44 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 controllerBranch.setVoltageControl(voltageControl);
                 controlledBus.setTransformerVoltageControl(voltageControl);
             });
+    }
+
+    private static void createTransformerReactivePowerControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId,
+                                                              LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities() || rtc.getRegulationMode() != RatioTapChanger.RegulationMode.REACTIVE_POWER_CONTROL) {
+            return;
+        }
+        LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
+        if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
+            LOGGER.trace("Reactive power controller branch '{}' is open: reactive power control discarded", controllerBranch.getId());
+            report.transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen++;
+            return;
+        }
+
+        // Get id of controlled branch
+        String controlledBranchId = rtc.getRegulationTerminal().getConnectable().getId();
+        if (rtc.getRegulationTerminal().getConnectable() instanceof ThreeWindingsTransformer twt) {
+            controlledBranchId = LfLegBranch.getId(twt.getSide(rtc.getRegulationTerminal()), controlledBranchId);
+        }
+        // Get controlled branch
+        LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
+        if (controlledBranch == null) {
+            LOGGER.warn("Regulating terminal of reactive power controller branch '{}' is out of voltage or in a different synchronous component: reactive power control discarded", controllerBranch.getId());
+            return;
+        }
+
+        double targetValue = rtc.getRegulationValue(); // MW
+        double targetDeadband = rtc.getTargetDeadband();
+        // TODO : check if the side defined is correct
+        ControlledSide side = getLfBus(rtc.getRegulationTerminal(), lfNetwork, parameters.isBreakers()) == controlledBranch.getBus1() ? ControlledSide.ONE : ControlledSide.TWO;
+
+        controlledBranch.getTransformerReactivePowerControl().ifPresentOrElse(rpc -> {
+            LOGGER.trace("Controlled branch '{}' already has a reactive power control: not implemented yet.", controlledBranch.getId());
+        }, () -> {
+            TransformerReactivePowerControl reactivePowerControl = new TransformerReactivePowerControl(controlledBranch, side, controllerBranch, targetValue, targetDeadband);
+            controllerBranch.setTransformerReactivePowerControl(reactivePowerControl);
+            controlledBranch.setTransformerReactivePowerControl(reactivePowerControl);
+        });
     }
 
     private static void createShuntVoltageControl(LfNetwork lfNetwork, ShuntCompensator shuntCompensator, LfNetworkParameters parameters) {
@@ -725,6 +780,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
                 createTransformersVoltageControls(lfNetwork, parameters, loadingContext, report);
             }
+            // TODO : add check if both generator and transformer reactive power control are on
+            if (parameters.isTransformerReactivePowerControl()) {
+                createTransformerReactivePowerControls(lfNetwork, parameters, loadingContext, report);
+            }
             if (parameters.isShuntVoltageControl()) {
                 for (ShuntCompensator shunt : loadingContext.shuntSet) {
                     createShuntVoltageControl(lfNetwork, shunt, parameters);
@@ -797,6 +856,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (report.transformerVoltageControlDiscardedBecauseControllerBranchIsOpen > 0) {
             LOGGER.warn("Network {}: {} transformer voltage controls have been discarded because controller branch is open",
                     lfNetwork, report.transformerVoltageControlDiscardedBecauseControllerBranchIsOpen);
+        }
+
+        if (report.transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen > 0) {
+            LOGGER.warn("Network {}: {} ratio tap changer reactive power controls have been discarded because controller branch is open",
+                    lfNetwork, report.transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen);
         }
 
         if (parameters.getDebugDir() != null) {

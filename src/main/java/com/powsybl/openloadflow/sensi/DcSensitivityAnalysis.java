@@ -887,6 +887,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setDistributedOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(false)
                 .setTransformerVoltageControl(false)
+                .setTransformerReactivePowerControl(false)
                 .setVoltagePerReactivePowerControl(false)
                 .setGeneratorReactivePowerRemoteControl(false)
                 .setTransformerReactivePowerControl(false)

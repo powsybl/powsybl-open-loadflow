@@ -250,6 +250,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         if (this.transformerReactivePowerControlEnabled != transformerReactivePowerControlEnabled) {
             this.transformerReactivePowerControlEnabled = transformerReactivePowerControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
+                // TODO : remove if no equation is added for reactive power control
                 listener.onTransformerReactivePowerControlChange(this, transformerReactivePowerControlEnabled);
             }
         }

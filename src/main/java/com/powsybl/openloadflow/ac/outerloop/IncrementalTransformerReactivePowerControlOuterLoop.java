@@ -1,6 +1,5 @@
 /**
- * Copyright (c) 2022, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+ * Copyright (c) 2023, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,10 +7,15 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ReactiveFlowEquationTerm;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ReactiveFlowEquationTerm;
-import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.IncrementalReactivePowerContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.Range;
@@ -29,11 +33,11 @@ import java.util.stream.Collectors;
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
-public class IncrementalRatioTapChangerReactivePowerControlOuterLoop implements AcOuterLoop {
+public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalRatioTapChangerReactivePowerControlOuterLoop.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerReactivePowerControlOuterLoop.class);
 
-    public static final String NAME = "IncrementalRatioTapChangerReactivePowerControl";
+    public static final String NAME = "IncrementalTransformerReactivePowerControl";
 
     private static final double MIN_TARGET_DEADBAND_MVAR = 0.1;
 
@@ -41,7 +45,7 @@ public class IncrementalRatioTapChangerReactivePowerControlOuterLoop implements 
     public static final int DEFAULT_MAX_TAP_SHIFT = 3;
     private final int maxTapShift;
 
-    public IncrementalRatioTapChangerReactivePowerControlOuterLoop(int maxTapShift) {
+    public IncrementalTransformerReactivePowerControlOuterLoop(int maxTapShift) {
         this.maxTapShift = maxTapShift;
     }
 
@@ -50,45 +54,71 @@ public class IncrementalRatioTapChangerReactivePowerControlOuterLoop implements 
         return NAME;
     }
 
+    public static List<LfBranch> getControllerBranches(LfNetwork network) {
+        return network.getBranches().stream()
+                .filter(branch -> !branch.isDisabled() && branch.isTransformerReactivePowerController())
+                .collect(Collectors.toList());
+    }
+
     @Override
     public void initialize(AcOuterLoopContext context) {
-        var contextData = new IncrementalContextData();
+        var contextData = new IncrementalReactivePowerContextData(context.getNetwork());
         context.setData(contextData);
 
-        for (LfBranch branch : context.getNetwork().getReactivePowerControllerBranches()) {
-            branch.getTransformerReactivePowerControl().ifPresent(rtcReactivePowerControl -> branch.setTransformerReactivePowerControlEnabled(false));
-            contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
+        for (LfBranch branch : getControllerBranches(context.getNetwork())) {
+            branch.getTransformerReactivePowerControl().ifPresent(rtcReactivePowerControl -> branch.setTransformerReactivePowerControlEnabled(true));
+            contextData.getControllersContexts().put(branch.getId(), new IncrementalReactivePowerContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
     }
 
-    private boolean isSensitivityReactivePowerPerR1Positive(LfBranch controllerBranch, ControlledSide controlledSide) {
-        if (controlledSide == ControlledSide.ONE) {
-            ClosedBranchSide1ReactiveFlowEquationTerm q1 = (ClosedBranchSide1ReactiveFlowEquationTerm) controllerBranch.getQ1();
-            return q1.der(q1.getR1Var()) > 0;
-        } else {
-            ClosedBranchSide2ReactiveFlowEquationTerm q2 = (ClosedBranchSide2ReactiveFlowEquationTerm) controllerBranch.getQ2();
-            return q2.der(q2.getR1Var()) > 0;
+    static class SensitivityContext {
+
+        private final DenseMatrix sensitivities;
+
+        private final int[] controllerBranchIndex;
+
+        public SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
+                                  EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                  JacobianMatrix<AcVariableType, AcEquationType> j) {
+            controllerBranchIndex = LfBranch.createIndex(network, controllerBranches);
+            sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, j);
+        }
+
+        private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
+                                                              EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                              JacobianMatrix<AcVariableType, AcEquationType> j) {
+            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
+            for (LfBranch controllerBranch : controllerBranches) {
+                equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
+                        .ifPresent(equation -> rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], 1d));
+            }
+            j.solveTransposed(rhs);
+            return rhs;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<AcVariableType, AcEquationType> getCalculatedQ(LfBranch controlledBranch, ControlledSide controlledSide) {
+            var calculatedQ = controlledSide == ControlledSide.ONE ? controlledBranch.getQ1() : controlledBranch.getQ2();
+            return (EquationTerm<AcVariableType, AcEquationType>) calculatedQ;
+        }
+
+        double calculateSensitivityFromRToQ(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
+            return getCalculatedQ(controlledBranch, controlledSide)
+                    .calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
         }
     }
 
-    private boolean adjustWithController(LfBranch controllerBranch, LfBranch controlledBranch, IncrementalContextData contextData, List<String> controlledBranchesWithAllItsControllersToLimit) {
+    private boolean adjustWithController(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide, IncrementalReactivePowerContextData contextData,
+                                         double diffQ, SensitivityContext sensitivities,
+                                         List<String> controlledBranchesWithAllItsControllersToLimit) {
         // only one transformer controls a branch
         var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-        TransformerReactivePowerControl reactivePowerControl = controlledBranch.getTransformerReactivePowerControl().orElseThrow();
+        double sensitivity = sensitivities.calculateSensitivityFromRToQ(controllerBranch, controlledBranch, controlledSide);
         PiModel piModel = controllerBranch.getPiModel();
         int previousTapPosition = piModel.getTapPosition();
-
-        // Compute sensitivity to determine in which direction we should move
-        ControlledSide controlledSide = reactivePowerControl.getControlledSide();
-        boolean isSensitivityPositive = isSensitivityReactivePowerPerR1Positive(controllerBranch, controlledSide);
-
-        // Compute which direction is the good one and shift tap position
-        Direction direction = isSensitivityPositive ? Direction.DECREASE : Direction.INCREASE;
-        controllerContext.updateAllowedDirection(direction);
-        boolean hasMoved = piModel.shiftOneTapPositionToChangeR1(direction);
-
-        if (hasMoved) {
-            // Loggers
+        double deltaR1 = diffQ / sensitivity;
+        return piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).map(direction -> {
+            controllerContext.updateAllowedDirection(direction);
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
             LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
                     previousTapPosition, piModel.getTapPosition(), tapPositionRange);
@@ -96,11 +126,8 @@ public class IncrementalRatioTapChangerReactivePowerControlOuterLoop implements 
                     || piModel.getTapPosition() == tapPositionRange.getMaximum()) {
                 controlledBranchesWithAllItsControllersToLimit.add(controlledBranch.getId());
             }
-            // has been adjusted
-            return true;
-        }
-        // has not been adjusted
-        return false;
+            return direction;
+        }).isPresent();
     }
 
     @Override
@@ -108,16 +135,19 @@ public class IncrementalRatioTapChangerReactivePowerControlOuterLoop implements 
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         LfNetwork network = context.getNetwork();
-        var contextData = (IncrementalContextData) context.getData();
+        AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
+        var contextData = (IncrementalReactivePowerContextData) context.getData();
 
-        List<LfBranch> controllerBranches = network.getReactivePowerControllerBranches(); // TODO : do we want only rtc ?
+        List<LfBranch> controllerBranches = getControllerBranches(network);
+        SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
+                loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         // for synthetics logs
         List<String> controlledBranchesOutsideOfDeadband = new ArrayList<>();
         List<String> controlledBranchesAdjusted = new ArrayList<>();
         List<String> controlledBranchesWithAllItsControllersToLimit = new ArrayList<>();
 
-        List<LfBranch> controlledBranches = network.getReactivePowerControlledBranches(); // TODO : do we want only rtc ?
+        List<LfBranch> controlledBranches = contextData.getCandidateControlledBranches();
 
         controlledBranches.forEach(controlledBranch -> {
             TransformerReactivePowerControl reactivePowerControl = controlledBranch.getTransformerReactivePowerControl().orElseThrow();
@@ -126,12 +156,13 @@ public class IncrementalRatioTapChangerReactivePowerControlOuterLoop implements 
             if (Math.abs(diffQ) > halfTargetDeadband) {
                 controlledBranchesOutsideOfDeadband.add(controlledBranch.getId());
 
-                // For now, case with only one controller
+                // TODO : add case with more controllers
                 LfBranch controllers = reactivePowerControl.getControllerBranch();
+                ControlledSide controlledSide = reactivePowerControl.getControlledSide();
                 LOGGER.trace("Controlled branch '{}' is outside of its deadband (half is {} MVar) and could need a reactive power adjustment of {} MVar",
                         controlledBranch.getId(), halfTargetDeadband, diffQ);
-                boolean adjusted = adjustWithController(controllers, controlledBranch, contextData, controlledBranchesWithAllItsControllersToLimit);
-                // If we adjusted the value, outerllop is unstable
+                boolean adjusted = adjustWithController(controllers, controlledBranch, controlledSide, contextData, diffQ, sensitivityContext,  controlledBranchesWithAllItsControllersToLimit);
+                // If we adjusted the value, outerloop is unstable
                 if (adjusted) {
                     controlledBranchesAdjusted.add(controlledBranch.getId());
                     status.setValue(OuterLoopStatus.UNSTABLE);

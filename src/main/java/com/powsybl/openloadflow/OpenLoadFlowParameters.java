@@ -21,7 +21,7 @@ import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalRatioTapChangerReactivePowerControlOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerReactivePowerControlOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -411,8 +411,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private int incrementalTransformerVoltageControlOuterLoopMaxTapShift = IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT;
 
-    // TODO : not sur this param is necessary
-    private int incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift = IncrementalRatioTapChangerReactivePowerControlOuterLoop.DEFAULT_MAX_TAP_SHIFT;
+    private int incrementalTransformerReactivePowerControlOuterLoopMaxTapShift = IncrementalTransformerReactivePowerControlOuterLoop.DEFAULT_MAX_TAP_SHIFT;
 
     private boolean secondaryVoltageControl = LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
@@ -865,8 +864,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return incrementalTransformerVoltageControlOuterLoopMaxTapShift;
     }
 
-    public int getIncrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift() {
-        return incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift;
+    public int getIncrementalTransformerReactivePowerControlOuterLoopMaxTapShift() {
+        return incrementalTransformerReactivePowerControlOuterLoopMaxTapShift;
     }
 
     public OpenLoadFlowParameters setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(int incrementalTransformerVoltageControlOuterLoopMaxTapShift) {
@@ -876,11 +875,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public OpenLoadFlowParameters setIncrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift(int incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift) {
-        if (incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift < 1) {
-            throw new IllegalArgumentException("Invalid max tap shift value: " + incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift);
+    public OpenLoadFlowParameters setIncrementalTransformerReactivePowerControlOuterLoopMaxTapShift(int incrementalTransformerReactivePowerControlOuterLoopMaxTapShift) {
+        if (incrementalTransformerReactivePowerControlOuterLoopMaxTapShift < 1) {
+            throw new IllegalArgumentException("Invalid max tap shift value: " + incrementalTransformerReactivePowerControlOuterLoopMaxTapShift);
         }
-        this.incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift = incrementalRatioTapChangerReactivePowerControlOuterLoopMaxTapShift;
+        this.incrementalTransformerReactivePowerControlOuterLoopMaxTapShift = incrementalTransformerReactivePowerControlOuterLoopMaxTapShift;
         return this;
     }
 
@@ -1457,6 +1456,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(parameters.isTransformerVoltageControlOn())
+                .setTransformerReactivePowerControl(parameters.isTransformerReactivePowerControlOn())
                 .setVoltagePerReactivePowerControl(parametersExt.isVoltagePerReactivePowerControl())
                 .setGeneratorReactivePowerRemoteControl(parametersExt.hasGeneratorReactivePowerRemoteControl())
                 .setTransformerReactivePowerControl(parametersExt.isTransformerReactivePowerControl())
@@ -1597,6 +1597,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(false)
+                .setTransformerReactivePowerControl(false)
                 .setVoltagePerReactivePowerControl(false)
                 .setGeneratorReactivePowerRemoteControl(false)
                 .setTransformerReactivePowerControl(false)
