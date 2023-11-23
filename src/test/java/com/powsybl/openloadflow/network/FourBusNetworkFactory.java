@@ -112,12 +112,12 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         g1.setTargetQ(0).setVoltageRegulatorOn(false);
         g1.newExtension(RemoteReactivePowerControlAdder.class)
                 .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
                 .withEnabled(true)
                 .add();
         g4.newExtension(RemoteReactivePowerControlAdder.class)
                 .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
                 .withEnabled(true).add();
         return network;
     }
@@ -132,14 +132,14 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         g1.setTargetQ(0).setVoltageRegulatorOn(false);
         g1.newExtension(RemoteReactivePowerControlAdder.class)
                 .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
                 .withEnabled(true)
                 .add();
         Generator g1Bis = createGenerator(b1, "g1Bis", 2);
         g1Bis.setTargetQ(0).setVoltageRegulatorOn(false);
         g1Bis.newExtension(RemoteReactivePowerControlAdder.class)
                 .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
                 .withEnabled(true)
                 .add();
         return network;
@@ -153,7 +153,7 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         double remoteTargetQ = 2.0;
         g4.newExtension(RemoteReactivePowerControlAdder.class)
                 .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
                 .withEnabled(true)
                 .add();
         return network;
