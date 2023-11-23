@@ -8,6 +8,7 @@
  */
 package com.powsybl.openloadflow.ac.equations.asym;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -146,22 +147,22 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
             } else {
                 // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
                 // positive
-                p1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.POSITIVE);
-                q1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.POSITIVE);
-                p2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.POSITIVE);
-                q2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.POSITIVE);
+                p1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, TwoSides.ONE, SequenceType.POSITIVE);
+                q1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, TwoSides.ONE, SequenceType.POSITIVE);
+                p2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, TwoSides.TWO, SequenceType.POSITIVE);
+                q2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, TwoSides.TWO, SequenceType.POSITIVE);
 
                 // zero
-                ixz1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.ZERO);
-                iyz1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.ZERO);
-                ixz2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.ZERO);
-                iyz2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.ZERO);
+                ixz1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, TwoSides.ONE, SequenceType.ZERO);
+                iyz1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, TwoSides.ONE, SequenceType.ZERO);
+                ixz2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, TwoSides.TWO, SequenceType.ZERO);
+                iyz2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, TwoSides.TWO, SequenceType.ZERO);
 
                 // negative
-                ixn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.ONE, SequenceType.NEGATIVE);
-                iyn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.ONE, SequenceType.NEGATIVE);
-                ixn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.NEGATIVE);
-                iyn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.NEGATIVE);
+                ixn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, TwoSides.ONE, SequenceType.NEGATIVE);
+                iyn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, TwoSides.ONE, SequenceType.NEGATIVE);
+                ixn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, TwoSides.TWO, SequenceType.NEGATIVE);
+                iyn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, TwoSides.TWO, SequenceType.NEGATIVE);
             }
         } else if (bus1 != null) {
             throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow at bus: " + bus1.getId());

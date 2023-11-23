@@ -14,10 +14,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +27,7 @@ class FullVoltageInitializerTest {
 
     @Test
     void testEsgTuto1() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), slackBusSelector).get(0);
         MatrixFactory matrixFactory = new DenseMatrixFactory();

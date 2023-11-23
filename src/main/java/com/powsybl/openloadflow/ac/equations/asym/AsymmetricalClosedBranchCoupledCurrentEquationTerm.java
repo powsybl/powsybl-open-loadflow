@@ -8,12 +8,12 @@
  */
 package com.powsybl.openloadflow.ac.equations.asym;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.Side;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 import net.jafama.FastMath;
@@ -44,38 +44,38 @@ import java.util.Objects;
 public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm {
 
     public AsymmetricalClosedBranchCoupledCurrentEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                              ComplexPart complexPart, Side side, SequenceType sequenceType) {
+                                                              ComplexPart complexPart, TwoSides side, SequenceType sequenceType) {
         super(branch, bus1, bus2, variableSet, complexPart, side, sequenceType);
     }
 
-    public double ix(Side i, Side j, SequenceType g, SequenceType h) {
+    public double ix(TwoSides i, TwoSides j, SequenceType g, SequenceType h) {
         return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j))
                 - y.getY(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j)));
     }
 
-    public double iy(Side i, Side j, SequenceType g, SequenceType h) {
+    public double iy(TwoSides i, TwoSides j, SequenceType g, SequenceType h) {
         return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j))
                 + y.getY(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j)));
     }
 
-    public double dixdv(Side i, Side j, SequenceType g, SequenceType h,
-                        Side derivationSide, SequenceType derivationSequence) {
+    public double dixdv(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                        TwoSides derivationSide, SequenceType derivationSequence) {
         if (j == derivationSide && h == derivationSequence) {
             return r(i) * r(j) * (y.getX(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
 
-    public double dixdph(Side i, Side j, SequenceType g, SequenceType h,
-                         Side derivationSide, SequenceType derivationSequence) {
+    public double dixdph(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                         TwoSides derivationSide, SequenceType derivationSequence) {
         if (j == derivationSide && h == derivationSequence) {
             return r(i) * r(j) * v(h, j) * (-y.getX(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
 
-    public double dix(Side i, Side j, SequenceType g, SequenceType h,
-                      Side derivationSide, SequenceType derivationSequence, boolean phase) {
+    public double dix(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                      TwoSides derivationSide, SequenceType derivationSequence, boolean phase) {
         if (phase) {
             return dixdph(i, j, g, h, derivationSide, derivationSequence);
         } else {
@@ -83,23 +83,23 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
         }
     }
 
-    public double diydv(Side i, Side j, SequenceType g, SequenceType h,
-                        Side derivationSide, SequenceType derivationSequence) {
+    public double diydv(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                        TwoSides derivationSide, SequenceType derivationSequence) {
         if (j == derivationSide && h == derivationSequence) {
             return r(i) * r(j) * (y.getX(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j)) + y.getY(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
 
-    public double diydph(Side i, Side j, SequenceType g, SequenceType h,
-                         Side derivationSide, SequenceType derivationSequence) {
+    public double diydph(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                         TwoSides derivationSide, SequenceType derivationSequence) {
         if (j == derivationSide && h == derivationSequence) {
             return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
 
-    public double diy(Side i, Side j, SequenceType g, SequenceType h, Side derivationSide, SequenceType derivationSequence, boolean phase) {
+    public double diy(TwoSides i, TwoSides j, SequenceType g, SequenceType h, TwoSides derivationSide, SequenceType derivationSequence, boolean phase) {
         if (phase) {
             return diydph(i, j, g, h, derivationSide, derivationSequence);
         } else {
@@ -108,16 +108,16 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
     }
 
     public double di(Variable<AcVariableType> variable) {
-        Side i;
-        Side j;
-        if (side == Side.ONE) {
-            i = Side.ONE;
-            j = Side.TWO;
+        TwoSides i;
+        TwoSides j;
+        if (side == TwoSides.ONE) {
+            i = TwoSides.ONE;
+            j = TwoSides.TWO;
         } else {
-            i = Side.TWO;
-            j = Side.ONE;
+            i = TwoSides.TWO;
+            j = TwoSides.ONE;
         }
-        Side derivationSide = getSide(variable);
+        TwoSides derivationSide = getSide(variable);
         SequenceType derivationSequence = getSequenceType(variable);
         boolean phase = isPhase(variable);
 
@@ -142,14 +142,14 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
     }
 
     public double i() {
-        Side i;
-        Side j;
-        if (side == Side.ONE) {
-            i = Side.ONE;
-            j = Side.TWO;
+        TwoSides i;
+        TwoSides j;
+        if (side == TwoSides.ONE) {
+            i = TwoSides.ONE;
+            j = TwoSides.TWO;
         } else {
-            i = Side.TWO;
-            j = Side.ONE;
+            i = TwoSides.TWO;
+            j = TwoSides.ONE;
         }
 
         if (complexPart == ComplexPart.REAL) { // Ix

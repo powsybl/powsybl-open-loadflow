@@ -173,7 +173,7 @@ class OpenLoadFlowParametersTest {
         assertEquals(SlackBusSelectionMode.NAME, olfParameters.getSlackBusSelectionMode());
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(olfParameters.getSlackBusSelectionMode(), olfParameters.getSlackBusesIds(), olfParameters.getPlausibleActivePowerLimit(),
                 olfParameters.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), Collections.emptySet());
-        List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), slackBusSelector);
+        List<LfNetwork> lfNetworks = Networks.load(EurostagFactory.fix(EurostagTutorialExample1Factory.create()), slackBusSelector);
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals("VLHV1_0", lfNetwork.getSlackBus().getId()); // fallback to automatic method.
     }
@@ -182,7 +182,7 @@ class OpenLoadFlowParametersTest {
     void testMaxIterationReached() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
 
         // Change the nominal voltage to have a target V distant enough but still plausible (in [0.8 1.2] in Pu), so that the NR diverges
@@ -197,7 +197,7 @@ class OpenLoadFlowParametersTest {
     void testIsWriteSlackBus() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(network.getVoltageLevel("VLHV1").getExtension(SlackTerminal.class).getTerminal().getBusView().getBus().getId(),
@@ -221,7 +221,7 @@ class OpenLoadFlowParametersTest {
     @Test
     void testPlausibleTargetVoltage() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setTargetV(30.0);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         loadFlowRunner.run(network, parameters);
@@ -256,7 +256,7 @@ class OpenLoadFlowParametersTest {
         assertFalse(olfParameters.isAlwaysUpdateNetwork()); // Default value of alwaysUpdateNetwork
 
         // Check the network is not updated if alwaysUpdateNetwork = false and final status = MAX_ITERATION_REACHED
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var nload = network.getBusBreakerView().getBus("NLOAD");
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         loadFlowRunner.run(network, parameters);

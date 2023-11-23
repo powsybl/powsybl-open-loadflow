@@ -17,6 +17,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -125,7 +126,7 @@ class DistributedSlackOnLoadTest {
         // PROPORTIONAL_TO_LOAD and power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parametersExt.setLoadPowerFactorConstant(true);
-        Network network1 = EurostagTutorialExample1Factory.create();
+        Network network1 = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         LoadFlowResult loadFlowResult1 = loadFlowRunner.run(network1, parameters);
 
@@ -139,7 +140,7 @@ class DistributedSlackOnLoadTest {
         // PROPORTIONAL_TO_CONFORM_LOAD and power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         parametersExt.setLoadPowerFactorConstant(true);
-        Network network2 = EurostagTutorialExample1Factory.create();
+        Network network2 = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         // fixedActivePower and FixedReactivePower are unbalanced
         network2.getLoad("LOAD").newExtension(LoadDetailAdder.class)
                 .withFixedActivePower(500).withVariableActivePower(100)
@@ -160,7 +161,7 @@ class DistributedSlackOnLoadTest {
         // PROPORTIONAL_TO_CONFORM_LOAD and power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parametersExt.setLoadPowerFactorConstant(true);
-        Network network3 = EurostagTutorialExample1Factory.create();
+        Network network3 = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network3.getVoltageLevel("VLLOAD").newLoad().setId("LOAD1").setP0(-10).setQ0(1).setBus("NLOAD").setConnectableBus("NLOAD").add();
 
         //when
