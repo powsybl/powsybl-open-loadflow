@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -101,8 +102,8 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
             return s.calculateSensi(getSensitivities(), controllerBranchIndex[controllerBranch.getNum()]);
         }
 
-        public double calculateSensitivityFromA2P(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
-            var p = controlledSide == ControlledSide.ONE ? getP1(controlledBranch) : getP2(controlledBranch);
+        public double calculateSensitivityFromA2P(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide) {
+            var p = controlledSide == TwoSides.ONE ? getP1(controlledBranch) : getP2(controlledBranch);
             return calculateSensitivityFromA2S(controllerBranch, p);
         }
     }
@@ -114,7 +115,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
         for (TransformerPhaseControl phaseControl : activePowerControlPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
             LfBranch controlledBranch = phaseControl.getControlledBranch();
-            var p = phaseControl.getControlledSide() == ControlledSide.ONE
+            var p = phaseControl.getControlledSide() == TwoSides.ONE
                     ? controlledBranch.getP1() : controlledBranch.getP2();
             double pValue = p.eval();
             double halfTargetDeadband = getHalfTargetDeadband(phaseControl);

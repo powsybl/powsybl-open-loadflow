@@ -249,7 +249,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Branch {} is already remotely controlled by a generator: no new remote reactive control created", controlledBranch.getId());
             return;
         }
-        ControlledSide side = lfGenerator.getControlledBranchSide();
+        TwoSides side = lfGenerator.getControlledBranchSide();
         double targetQ = lfGenerator.getRemoteTargetQ();
         ReactivePowerControl control = new ReactivePowerControl(controlledBranch, side, controllerBus, targetQ);
         controllerBus.setReactivePowerControl(control);
@@ -513,8 +513,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 return;
             }
             LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, parameters.isBreakers());
-            ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
-                    ControlledSide.ONE : ControlledSide.TWO;
+            TwoSides controlledSide = controlledBus == controlledBranch.getBus1() ? TwoSides.ONE : TwoSides.TWO;
             if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
                 throw new IllegalStateException("Leg " + controlledBranch.getId() + " has a non supported control at star bus side");
             }
