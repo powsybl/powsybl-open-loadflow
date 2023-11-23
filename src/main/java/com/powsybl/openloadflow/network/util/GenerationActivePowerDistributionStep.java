@@ -58,7 +58,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
-    public double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
+    public ActivePowerDistribution.StepResult run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // generators might have reach a limit and have been discarded
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
@@ -108,7 +108,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 done * PerUnit.SB, remainingMismatch * PerUnit.SB, iteration, modifiedBuses,
                 generatorsAtMax, generatorsAtMin);
 
-        return done;
+        return new ActivePowerDistribution.StepResult(done, modifiedBuses != 0);
     }
 
     private double getParticipationFactor(LfGenerator generator) {
