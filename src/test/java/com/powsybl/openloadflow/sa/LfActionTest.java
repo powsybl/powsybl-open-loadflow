@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.test.AbstractConverterTest;
+import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Generator;
@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  * @author Jean-Luc Bouchot {@literal <jlbouchot at gmail.com>}
  */
-class LfActionTest extends AbstractConverterTest {
+class LfActionTest extends AbstractSerDeTest {
 
     @Override
     @BeforeEach

@@ -264,11 +264,11 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
         Connectable<?> connectable = regulatingTerminal.getConnectable();
         if (connectable instanceof Line l) {
-            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+            this.controlledBranchSide = l.getTerminal(TwoSides.ONE) == regulatingTerminal ?
                     ControlledSide.ONE : ControlledSide.TWO;
             this.controlledBranchId = l.getId();
         } else if (connectable instanceof TwoWindingsTransformer t) {
-            this.controlledBranchSide = t.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+            this.controlledBranchSide = t.getTerminal(TwoSides.ONE) == regulatingTerminal ?
                     ControlledSide.ONE : ControlledSide.TWO;
             this.controlledBranchId = t.getId();
         } else {
