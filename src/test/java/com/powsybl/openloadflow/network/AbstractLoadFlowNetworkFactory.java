@@ -217,7 +217,7 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setR(r)
             .setActivePowerSetpoint(activePowerSetpoint)
             .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
-            .setMaxP(activePowerSetpoint)
+            .setMaxP(2 * activePowerSetpoint)
             .add();
     }
 

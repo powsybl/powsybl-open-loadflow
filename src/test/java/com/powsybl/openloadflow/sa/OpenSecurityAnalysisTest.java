@@ -407,12 +407,16 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                      result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0));
 
         network = DistributedSlackNetworkFactory.create();
+        network.getGenerator("g1").setMaxP(1000);
+        network.getGenerator("g2").setMaxP(1000);
         network.getBranch("l34").getTerminal2().disconnect();
 
         result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
         assertEquals(0, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
 
         network = DistributedSlackNetworkFactory.create();
+        network.getGenerator("g1").setMaxP(1000);
+        network.getGenerator("g2").setMaxP(1000);
         network.getBranch("l34").getTerminal2().disconnect();
         network.getBranch("l34").getTerminal1().disconnect();
 
@@ -1159,7 +1163,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testPostContingencyFiltering() {
-        Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits());
         network.getLine("NHV1_NHV2_2").newCurrentLimits1()
                 .setPermanentLimit(300)
                 .add();
@@ -1173,22 +1177,22 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<LimitViolation> preContingencyLimitViolationsOnLine = result.getPreContingencyResult().getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSideAsTwoSides().equals(TwoSides.ONE)).toList();
         assertEquals(LimitViolationType.CURRENT, preContingencyLimitViolationsOnLine.get(0).getLimitType());
-        assertEquals(459, preContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(456.769, preContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
 
         List<LimitViolation> postContingencyLimitViolationsOnLine = result.getPostContingencyResults().get(0).getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSideAsTwoSides().equals(TwoSides.ONE)).toList();
         assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolationsOnLine.get(0).getLimitType());
-        assertEquals(1014.989, postContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(1008.928, postContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
 
         List<LimitViolation> preContingencyLimitViolationsOnVoltageLevel = result.getPreContingencyResult().getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
         assertEquals(LimitViolationType.LOW_VOLTAGE, preContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
-        assertEquals(400.63, preContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
+        assertEquals(402.143, preContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
 
         List<LimitViolation> postContingencyLimitViolationsOnVoltageLevel = result.getPostContingencyResults().get(0).getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
         assertEquals(LimitViolationType.LOW_VOLTAGE, postContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
-        assertEquals(396.70, postContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
+        assertEquals(398.265, postContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
 
         parameters.getIncreasedViolationsParameters().setFlowProportionalThreshold(1.5);
         parameters.getIncreasedViolationsParameters().setLowVoltageProportionalThreshold(0.1);

@@ -1076,7 +1076,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
         assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("b5").getV(), 0.001);
-        assertEquals(385.7, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
+        assertEquals(385.313, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
         OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy");
         assertEquals(400.0, operatorStrategyResult.getNetworkResult().getBusResult("b5").getV(), 0.001);
         assertEquals(400.0, operatorStrategyResult.getNetworkResult().getBusResult("b4").getV(), 0.001);
