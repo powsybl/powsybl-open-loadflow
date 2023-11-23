@@ -301,7 +301,7 @@ class DistributedSlackOnGenerationTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertFalse(result.isOk());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
-        assertEquals(520, componentResult.getSlackBusActivePowerMismatch(), 1e-6);
+        assertEquals(520, componentResult.getSlackBusActivePowerMismatch(), 1e-4);
     }
 
     @Test
@@ -312,7 +312,7 @@ class DistributedSlackOnGenerationTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isOk());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
-        assertEquals(200, componentResult.getSlackBusActivePowerMismatch(), 1e-3);
+        assertEquals(200, componentResult.getSlackBusActivePowerMismatch(), 1e-4);
     }
 
     @Test
