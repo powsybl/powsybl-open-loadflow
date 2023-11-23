@@ -72,6 +72,8 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                     case FAIL -> {
                         LOGGER.error("Failed to distribute slack bus active power mismatch, {} MW remains",
                                 remainingMismatch * PerUnit.SB);
+                        // Note that in this case, mismatches that will be reported in LoadFlowResult on slack bus(es) are the mismatches of the last NR run,
+                        // i.e. not including the eventual partial distribution that could have been made.
                         return OuterLoopStatus.FAILED;
                     }
                 }

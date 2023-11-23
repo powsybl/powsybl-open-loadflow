@@ -301,6 +301,10 @@ class DistributedSlackOnGenerationTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertFalse(result.isOk());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
+        assertEquals(320, componentResult.getDistributedActivePower(), 1e-4);
+        // Note that in this case, mismatches that are reported in LoadFlowResult on slack bus(es) are the mismatches of the last NR run,
+        // i.e. not including the eventual partial distribution that could have been made.
+        // In this case we lack 200MW, not 520MW.
         assertEquals(520, componentResult.getSlackBusActivePowerMismatch(), 1e-4);
     }
 
@@ -312,6 +316,7 @@ class DistributedSlackOnGenerationTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isOk());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        assertEquals(320, componentResult.getDistributedActivePower(), 1e-4);
         assertEquals(200, componentResult.getSlackBusActivePowerMismatch(), 1e-4);
     }
 
