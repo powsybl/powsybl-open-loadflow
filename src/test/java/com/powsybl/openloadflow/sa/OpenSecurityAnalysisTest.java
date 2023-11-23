@@ -264,7 +264,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testNoGenerator() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").getTerminal().disconnect();
 
         SecurityAnalysisResult result = runSecurityAnalysis(network);
@@ -273,7 +273,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testNoRemainingGenerator() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         List<Contingency> contingencies = List.of(new Contingency("NGEN_NHV1", new BranchContingency("NGEN_NHV1")));
 
@@ -287,7 +287,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testNoRemainingLoad() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDistributedSlack(true)
@@ -1393,7 +1393,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testDivergenceStatus() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getLine("NHV1_NHV2_1").setR(100).setX(-999);
         network.getLine("NHV1_NHV2_2").setR(100).setX(-999);
         SecurityAnalysisResult result = runSecurityAnalysis(network);
@@ -1621,7 +1621,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void reportTest() throws IOException {
-        var network = EurostagTutorialExample1Factory.create();
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         List<Contingency> contingencies = createAllBranchesContingencies(network);
 
@@ -2308,7 +2308,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testVoltageAngleLimit() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Line line = network.getLine("NHV1_NHV2_1");
         network.newVoltageAngleLimit()
                 .setId("val")
@@ -2319,12 +2319,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .add();
         loadFlowRunner.run(network);
         assertAngleEquals(0.0, line.getTerminal1().getBusView().getBus());
-        assertAngleEquals(-3.506413, line.getTerminal2().getBusView().getBus());
+        assertAngleEquals(-3.506358, line.getTerminal2().getBusView().getBus());
         network.getLine("NHV1_NHV2_2").getTerminal1().disconnect();
         network.getLine("NHV1_NHV2_2").getTerminal2().disconnect();
         loadFlowRunner.run(network);
         assertAngleEquals(0.0, line.getTerminal1().getBusView().getBus());
-        assertAngleEquals(-7.498849, line.getTerminal2().getBusView().getBus());
+        assertAngleEquals(-7.499212, line.getTerminal2().getBusView().getBus());
 
         network.getLine("NHV1_NHV2_2").getTerminal1().connect();
         network.getLine("NHV1_NHV2_2").getTerminal2().connect();
@@ -2332,7 +2332,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
         LimitViolation limit = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
         assertEquals(LimitViolationType.LOW_VOLTAGE_ANGLE, limit.getLimitType());
-        assertEquals(-7.498847, limit.getValue(), DELTA_ANGLE);
+        assertEquals(-7.499212, limit.getValue(), DELTA_ANGLE);
 
         network.getVoltageAngleLimit("val").remove();
         network.newVoltageAngleLimit()
@@ -2345,7 +2345,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
         LimitViolation limit2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
         assertEquals(LimitViolationType.HIGH_VOLTAGE_ANGLE, limit2.getLimitType());
-        assertEquals(7.498847, limit2.getValue(), DELTA_ANGLE);
+        assertEquals(7.499212, limit2.getValue(), DELTA_ANGLE);
 
         network.getVoltageAngleLimit("val").remove();
         network.newVoltageAngleLimit()

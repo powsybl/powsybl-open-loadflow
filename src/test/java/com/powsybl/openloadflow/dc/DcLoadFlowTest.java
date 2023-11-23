@@ -66,7 +66,7 @@ class DcLoadFlowTest {
      */
     @Test
     void tuto1Test() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Line line1 = network.getLine("NHV1_NHV2_1");
         Line line2 = network.getLine("NHV1_NHV2_2");
 
@@ -252,7 +252,7 @@ class DcLoadFlowTest {
 
     @Test
     void shuntCompensatorActivePowerZero() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var sc = network.getVoltageLevel("VLLOAD").newShuntCompensator()
                 .setId("SC")
                 .setBus("NLOAD")
@@ -358,7 +358,7 @@ class DcLoadFlowTest {
 
     @Test
     void testDcApproxIgnoreG() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Line line1 = network.getLine("NHV1_NHV2_1");
         // to get asymmetric flows
         line1.setR(line1.getR() * 1.1);

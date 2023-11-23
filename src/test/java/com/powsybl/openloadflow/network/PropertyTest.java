@@ -25,7 +25,7 @@ class PropertyTest {
 
     @BeforeEach
     void setUp() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         lfNetwork = Networks.load(network, new FirstSlackBusSelector()).get(0);
     }
 

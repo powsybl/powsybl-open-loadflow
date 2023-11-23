@@ -15,6 +15,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -48,7 +49,7 @@ class DcLoadFlowMatrixTest {
 
     @Test
     void buildDcMatrix() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         logNetwork(network);
 

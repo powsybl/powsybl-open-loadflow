@@ -2373,7 +2373,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
      */
     @Test
     void testOneOfTwoSerialLinesContingency() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getLine("NHV1_NHV2_1").remove();
         Substation p3 = network.newSubstation()
                 .setId("P3")

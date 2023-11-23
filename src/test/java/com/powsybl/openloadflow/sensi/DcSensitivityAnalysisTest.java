@@ -44,7 +44,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testEsgTuto() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
@@ -863,7 +863,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testOpenMonitoredBranch() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runDcLf(network);
         network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
 
@@ -882,7 +882,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testOpenMonitoredBranch2() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runDcLf(network);
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
 
@@ -918,7 +918,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testConfiguredBusFactor() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
@@ -941,7 +941,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testConfiguredBusInvalidFactor() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getVoltageLevel("VLGEN").getBusBreakerView().newBus()
                 .setId("X")
                 .add();

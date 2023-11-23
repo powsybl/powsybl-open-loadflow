@@ -37,7 +37,7 @@ class LfNetworkLoaderPostProcessorTest {
 
     @BeforeEach
     void setUp() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         parameters = new LfNetworkParameters();
 
         pp1 = new AbstractLfNetworkLoaderPostProcessor() {
