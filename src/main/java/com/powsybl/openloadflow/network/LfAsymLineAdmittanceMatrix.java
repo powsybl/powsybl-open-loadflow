@@ -8,6 +8,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
@@ -258,11 +259,11 @@ public class LfAsymLineAdmittanceMatrix {
         return residual > EPS_VALUE;
     }
 
-    public double getX(Side i, Side j, SequenceType g, SequenceType h) {
+    public double getX(TwoSides i, TwoSides j, SequenceType g, SequenceType h) {
         return mYzpn.get(2 * (3 * (i.getNum() - 1) + g.getNum()), 2 * (3 * (j.getNum() - 1) + h.getNum()));
     }
 
-    public double getY(Side i, Side j, SequenceType g, SequenceType h) {
+    public double getY(TwoSides i, TwoSides j, SequenceType g, SequenceType h) {
         return mYzpn.get(2 * (3 * (i.getNum() - 1) + g.getNum()) + 1, 2 * (3 * (j.getNum() - 1) + h.getNum()));
     }
 }
