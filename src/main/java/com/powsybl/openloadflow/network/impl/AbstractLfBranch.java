@@ -57,6 +57,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected final Map<LoadFlowModel, ZeroImpedanceContext> zeroImpedanceContextByModel = new EnumMap<>(LoadFlowModel.class);
 
+
+    protected Evaluable r1;
     protected Evaluable a1;
 
     private GeneratorReactivePowerControl generatorReactivePowerControl;
@@ -250,7 +252,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         if (this.transformerReactivePowerControlEnabled != transformerReactivePowerControlEnabled) {
             this.transformerReactivePowerControlEnabled = transformerReactivePowerControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
-                // TODO : remove if no equation is added for reactive power control
                 listener.onTransformerReactivePowerControlChange(this, transformerReactivePowerControlEnabled);
             }
         }
@@ -289,6 +290,16 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     public boolean isSpanningTreeEdge(LoadFlowModel loadFlowModel) {
         network.updateZeroImpedanceCache(loadFlowModel);
         return zeroImpedanceContextByModel.get(loadFlowModel).spanningTreeEdge;
+    }
+
+    @Override
+    public Evaluable getR1() {
+        return r1;
+    }
+
+    @Override
+    public void setR1(Evaluable r1) {
+        this.r1 = r1;
     }
 
     @Override

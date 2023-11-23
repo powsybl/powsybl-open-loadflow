@@ -66,7 +66,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOu
         context.setData(contextData);
 
         for (LfBranch branch : getControllerBranches(context.getNetwork())) {
-            branch.getTransformerReactivePowerControl().ifPresent(rtcReactivePowerControl -> branch.setTransformerReactivePowerControlEnabled(true));
+            branch.getTransformerReactivePowerControl().ifPresent(rtcReactivePowerControl -> branch.setTransformerReactivePowerControlEnabled(false));
             contextData.getControllersContexts().put(branch.getId(), new IncrementalReactivePowerContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
     }

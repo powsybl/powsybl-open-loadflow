@@ -257,6 +257,10 @@ public interface LfBranch extends LfElement {
 
     boolean isSpanningTreeEdge(LoadFlowModel loadFlowModel);
 
+    Evaluable getR1();
+
+    void setR1(Evaluable r1);
+
     Evaluable getA1();
 
     void setA1(Evaluable a1);

@@ -526,6 +526,45 @@ public class AcEquationSystemCreator {
         }
     }
 
+    protected static void createTransformerReactivePowerControlEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                 boolean deriveA1, boolean deriveR1) {
+        if (deriveR1) {
+            EquationTerm<AcVariableType, AcEquationType> r1 = equationSystem.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1)
+                    .createTerm();
+            branch.setR1(r1);
+            equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_RHO1)
+                    .addTerm(r1);
+        }
+
+        if (branch.isTransformerReactivePowerControlled()) {
+            TransformerReactivePowerControl reactivePowerControl = branch.getTransformerReactivePowerControl().orElseThrow();
+            EquationTerm<AcVariableType, AcEquationType> p = reactivePowerControl.getControlledSide() == ControlledSide.ONE
+                    ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
+                    : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
+                    .addTerm(p)
+                    .setActive(false); // by default BRANCH_TARGET_RHO1 is active and BRANCH_TARGET_Q inactive
+        }
+    }
+
+
+    public static void updateTransformerReactivePowerControlEquations(TransformerReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfBranch controllerBranch = reactivePowerControl.getControllerBranch();
+        LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
+
+        boolean controlEnabled = !controllerBranch.isDisabled() && !controlledBranch.isDisabled() && controllerBranch.isTransformerReactivePowerControlEnabled();
+
+        // activate/de-activate reactive power control equation
+        equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_Q)
+                .orElseThrow()
+                .setActive(controlEnabled);
+
+        // de-activate/activate constant R1 equation
+        equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
+                .orElseThrow()
+                .setActive(!controllerBranch.isDisabled());
+    }
+
     public static void updateTransformerPhaseControlEquations(TransformerPhaseControl phaseControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBranch controllerBranch = phaseControl.getControllerBranch();
         LfBranch controlledBranch = phaseControl.getControlledBranch();
@@ -663,7 +702,7 @@ public class AcEquationSystemCreator {
     }
 
     protected static boolean isDeriveR1(LfBranch branch) {
-        return branch.isVoltageController();
+        return branch.isVoltageController() || branch.isTransformerReactivePowerController();
     }
 
     protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
@@ -752,6 +791,8 @@ public class AcEquationSystemCreator {
         createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
 
         updateBranchEquations(branch);
+
+        createTransformerReactivePowerControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
     }
 
     protected static void createImpedantBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
@@ -1056,7 +1097,7 @@ public class AcEquationSystemCreator {
         }
 
         createVoltageControlEquations(equationSystem);
-//        createReactivePowerControlEquations(equationSystem); // TODO : if necessary to add equations for reactive power control
+//        createReactivePowerControlEquations(equationSystem);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
