@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.test.AbstractConverterTest;
+import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-class LfNetworkTest extends AbstractConverterTest {
+class LfNetworkTest extends AbstractSerDeTest {
 
     @Override
     @BeforeEach

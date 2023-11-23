@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.network.test.SecurityAnalysisTestNetworkFactory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -118,11 +119,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
 
         List<LimitViolation> limitViolations = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
-        Optional<LimitViolation> limitViolationL21 = limitViolations.stream().filter(limitViolation -> limitViolation.getSubjectId().equals("L2") && limitViolation.getSide() == Branch.Side.ONE).findFirst();
+        Optional<LimitViolation> limitViolationL21 = limitViolations.stream().filter(limitViolation -> limitViolation.getSubjectId().equals("L2") && limitViolation.getSideAsTwoSides() == TwoSides.ONE).findFirst();
         assertTrue(limitViolationL21.isPresent());
         assertEquals(0, limitViolationL21.get().getAcceptableDuration());
         assertEquals(950, limitViolationL21.get().getLimit());
-        Optional<LimitViolation> limitViolationL22 = limitViolations.stream().filter(limitViolation -> limitViolation.getSubjectId().equals("L2") && limitViolation.getSide() == Branch.Side.TWO).findFirst();
+        Optional<LimitViolation> limitViolationL22 = limitViolations.stream().filter(limitViolation -> limitViolation.getSubjectId().equals("L2") && limitViolation.getSideAsTwoSides() == TwoSides.TWO).findFirst();
         assertTrue(limitViolationL22.isPresent());
         assertEquals(0, limitViolationL22.get().getAcceptableDuration());
         assertEquals(970, limitViolationL22.get().getLimit());
@@ -1170,12 +1171,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), parameters);
 
         List<LimitViolation> preContingencyLimitViolationsOnLine = result.getPreContingencyResult().getLimitViolationsResult()
-                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSide().equals(Branch.Side.ONE)).collect(Collectors.toList());
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSideAsTwoSides().equals(TwoSides.ONE)).toList();
         assertEquals(LimitViolationType.CURRENT, preContingencyLimitViolationsOnLine.get(0).getLimitType());
         assertEquals(459, preContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
 
         List<LimitViolation> postContingencyLimitViolationsOnLine = result.getPostContingencyResults().get(0).getLimitViolationsResult()
-                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSide().equals(Branch.Side.ONE)).collect(Collectors.toList());
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSideAsTwoSides().equals(TwoSides.ONE)).toList();
         assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolationsOnLine.get(0).getLimitType());
         assertEquals(1014.989, postContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
 
@@ -1195,7 +1196,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), parameters);
 
         List<LimitViolation> postContingencyLimitViolationsOnLine2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult()
-                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSide().equals(Branch.Side.ONE)).collect(Collectors.toList());
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSideAsTwoSides().equals(TwoSides.ONE)).toList();
         assertEquals(0, postContingencyLimitViolationsOnLine2.size());
 
         List<LimitViolation> postContingencyLimitViolationsOnVoltageLevel2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult()
@@ -1654,7 +1655,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
                 buildTestAcLoadFlowResult(NewtonRaphsonStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE).toComponentResultStatus());
-        assertEquals(LoadFlowResult.ComponentResult.Status.SOLVER_FAILED,
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
                 buildTestAcLoadFlowResult(NewtonRaphsonStatus.SOLVER_FAILED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
                 buildTestAcLoadFlowResult(NewtonRaphsonStatus.NO_CALCULATION, OuterLoopStatus.STABLE).toComponentResultStatus());
@@ -2025,6 +2026,41 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testUpdateReactiveKeysAfterGeneratorContingency() {
+        // g1 and g1Bis at b1
+        Network network = VoltageControlNetworkFactory.createFourBusNetworkWithSharedVoltageControl();
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12", "l34"), Set.of("b4_vl"), Collections.emptySet()));
+        List<Contingency> contingencies = List.of(new Contingency("g1", List.of(new GeneratorContingency("g1"))));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        LoadFlow.run(network, lfParameters);
+        assertVoltageEquals(1.2, network.getBusBreakerView().getBus("b4"));
+        assertReactivePowerEquals(1.365, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-1.820, network.getLine("l12").getTerminal2());
+
+        network.getGenerator("g1").getTerminal().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertVoltageEquals(1.2, network.getBusBreakerView().getBus("b4"));
+        assertReactivePowerEquals(1.511, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-1.515, network.getLine("l12").getTerminal2());
+        network.getGenerator("g1").getTerminal().connect();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // pre contingency
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(1.2, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(1.365, preContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-1.820, preContingencyResult.getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        // post contingency: g1 is off
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "g1");
+        assertEquals(1.2, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(1.511, postContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-1.515, postContingencyResult.getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+    }
+
+    @Test
     void testWithTieLineContingency() {
         Network network = BoundaryFactory.createWithTieLine();
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new TieLineContingency("t12"))));
@@ -2128,13 +2164,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies.getContingencies(network), Collections.emptyList(), securityAnalysisParameters);
 
         LimitViolation violation0 = new LimitViolation("NHV1_NHV2_2", null, LimitViolationType.CURRENT, "20'",
-                60, 1000.0, 1.0F, 1047.8598237521767, Branch.Side.TWO);
+                60, 1000.0, 1.0F, 1047.8598237521767, TwoSides.TWO);
         int compare0 = LimitViolations.comparator().compare(violation0, result.getPostContingencyResults().get(0)
                 .getLimitViolationsResult().getLimitViolations().get(0));
         assertEquals(0, compare0);
 
         LimitViolation violation1 = new LimitViolation("NHV1_NHV2_1", null, LimitViolationType.CURRENT, "10'",
-                60, 1000.0, 1.0F, 1047.8598237521767, Branch.Side.TWO);
+                60, 1000.0, 1.0F, 1047.8598237521767, TwoSides.TWO);
         int compare1 = LimitViolations.comparator().compare(violation1, result.getPostContingencyResults().get(1)
                 .getLimitViolationsResult().getLimitViolations().get(0));
         assertEquals(0, compare1);
@@ -2153,12 +2189,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies.getContingencies(network), Collections.emptyList(), securityAnalysisParameters);
 
         LimitViolation violation4 = new LimitViolation("NHV1_NHV2_2", null, LimitViolationType.CURRENT, "permanent",
-                2147483647, 900.0, 1.0F, 911.605688194146412890625, Branch.Side.ONE);
+                2147483647, 900.0, 1.0F, 911.605688194146412890625, TwoSides.ONE);
         int compare4 = LimitViolations.comparator().compare(violation4, result2.getPostContingencyResults().get(0)
                 .getLimitViolationsResult().getLimitViolations().get(0));
         assertEquals(0, compare4);
         LimitViolation violation5 = new LimitViolation("NHV1_NHV2_2", null, LimitViolationType.CURRENT, "permanent",
-                1200, 900.0, 1.0F, 911.605688194146412890625, Branch.Side.TWO);
+                1200, 900.0, 1.0F, 911.605688194146412890625, TwoSides.TWO);
         int compare5 = LimitViolations.comparator().compare(violation5, result2.getPostContingencyResults().get(0)
                 .getLimitViolationsResult().getLimitViolations().get(1));
         assertEquals(0, compare5);

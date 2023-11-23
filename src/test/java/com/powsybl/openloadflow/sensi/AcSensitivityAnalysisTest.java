@@ -123,7 +123,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                network.getBranchStream().collect(Collectors.toList()), null, Branch.Side.TWO);
+                network.getBranchStream().collect(Collectors.toList()), null, TwoSides.TWO);
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
@@ -334,8 +334,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.ONE)).collect(Collectors.toList());
-        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.TWO)).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", TwoSides.ONE)).toList();
+        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", TwoSides.TWO)).toList();
 
         List<SensitivityFactor> factors = new ArrayList<>();
         factors.addAll(factorsSide1);
@@ -368,8 +368,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         sensiParameters.setAngleFlowSensitivityValueThreshold(15.0);
 
-        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.ONE)).collect(Collectors.toList());
-        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.TWO)).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", TwoSides.ONE)).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", TwoSides.TWO)).collect(Collectors.toList());
 
         List<SensitivityFactor> factors = new ArrayList<>();
         factors.addAll(factorsSide1);
@@ -1135,13 +1135,13 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
 
-        SensitivityFactor factorActivePower1Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.ONE);
-        SensitivityFactor factorActivePower2Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.TWO);
-        SensitivityFactor factorActivePower3Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.THREE);
+        SensitivityFactor factorActivePower1Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.ONE);
+        SensitivityFactor factorActivePower2Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.TWO);
+        SensitivityFactor factorActivePower3Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.THREE);
 
-        SensitivityFactor factorCurrent1 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.ONE);
-        SensitivityFactor factorCurrent2 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.TWO);
-        SensitivityFactor factorCurrent3 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.THREE);
+        SensitivityFactor factorCurrent1 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.ONE);
+        SensitivityFactor factorCurrent2 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.TWO);
+        SensitivityFactor factorCurrent3 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.THREE);
 
         List<SensitivityFactor> factors = List.of(factorActivePower1Twt, factorActivePower2Twt, factorActivePower3Twt,
                 factorCurrent1, factorCurrent2, factorCurrent3);
@@ -1203,9 +1203,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .endStep()
                 .add();
 
-        SensitivityFactor factorPhase1 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeWindingsTransformer.Side.ONE);
-        SensitivityFactor factorPhase2 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeWindingsTransformer.Side.TWO);
-        SensitivityFactor factorPhase3 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeWindingsTransformer.Side.THREE);
+        SensitivityFactor factorPhase1 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeSides.ONE);
+        SensitivityFactor factorPhase2 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeSides.TWO);
+        SensitivityFactor factorPhase3 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeSides.THREE);
         List<SensitivityFactor> factors = List.of(factorPhase1, factorPhase2, factorPhase3);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(2, result.getValues().size());
@@ -1219,7 +1219,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
-        SensitivityFactor factorPhase1 = createBranchFlowPerTransformerLegPSTAngle("LINE_12", "T3wT", ThreeWindingsTransformer.Side.ONE);
+        SensitivityFactor factorPhase1 = createBranchFlowPerTransformerLegPSTAngle("LINE_12", "T3wT", ThreeSides.ONE);
         List<SensitivityFactor> factors = List.of(factorPhase1);
         List<Contingency> contingencies = Collections.emptyList();
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
@@ -1233,7 +1233,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
-        SensitivityFactor factorPhase1 = createBranchFlowPerTransformerLegPSTAngle("LINE_12", "transfo", ThreeWindingsTransformer.Side.ONE);
+        SensitivityFactor factorPhase1 = createBranchFlowPerTransformerLegPSTAngle("LINE_12", "transfo", ThreeSides.ONE);
         List<SensitivityFactor> factors = List.of(factorPhase1);
         List<Contingency> contingencies = Collections.emptyList();
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
