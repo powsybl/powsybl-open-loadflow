@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
@@ -28,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -54,30 +54,17 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return NAME;
     }
 
-    public static List<LfBus> getControlledBusesOutsideOfDeadband(IncrementalContextData contextData) {
-        List<LfBus> controlledBuses = IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER);
-        return controlledBuses.stream().filter(controlledBus -> {
-            TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
-            double diffV = getDiffV(voltageControl);
-            double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-            return Math.abs(diffV) > halfTargetDeadband;
-        }).collect(Collectors.toList());
+    public static List<LfBus> getControlledBusesOutOfDeadband(IncrementalContextData contextData) {
+        return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER).stream()
+                .filter(bus -> isOutOfDeadband(bus.getTransformerVoltageControl().orElseThrow()))
+                .collect(Collectors.toList());
     }
 
-    public static List<LfBranch> getControllerElementsOutsideOfDeadband(List<LfBus> controlledBusesOutsideOfDeadband) {
-        List<LfBranch> controllerBranchesOutsideOfDeadband = new ArrayList<>();
-        controlledBusesOutsideOfDeadband.forEach(controlledBus -> {
-            TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
-            double diffV = getDiffV(voltageControl);
-            double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-            List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
-                    .filter(b -> !b.isDisabled())
-                    .collect(Collectors.toList());
-            LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
-                    controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
-            controllerBranchesOutsideOfDeadband.addAll(controllers);
-        });
-        return controllerBranchesOutsideOfDeadband;
+    public static List<LfBranch> getControllerElementsOutOfDeadband(List<LfBus> controlledBusesOutOfDeadband) {
+        return controlledBusesOutOfDeadband.stream()
+                .flatMap(bus -> bus.getTransformerVoltageControl().orElseThrow().getMergedControllerElements().stream())
+                .filter(Predicate.not(LfBranch::isDisabled))
+                .collect(Collectors.toList());
     }
 
     public static List<LfBranch> getControllerElements(IncrementalContextData contextData) {
@@ -219,6 +206,21 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return targetV - v;
     }
 
+    private static boolean isOutOfDeadband(TransformerVoltageControl voltageControl) {
+        double diffV = getDiffV(voltageControl);
+        double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+        boolean outOfDeadband = Math.abs(diffV) > halfTargetDeadband;
+        if (outOfDeadband) {
+            List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
+                    .filter(b -> !b.isDisabled())
+                    .collect(Collectors.toList());
+            LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
+                    voltageControl.getControlledBus().getId(), controllers.size(), halfTargetDeadband * voltageControl.getControlledBus().getNominalV(),
+                    diffV * voltageControl.getControlledBus().getNominalV());
+        }
+        return outOfDeadband;
+    }
+
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
@@ -228,8 +230,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         var contextData = (IncrementalContextData) context.getData();
 
         // filter out buses/branches which are outside their deadbands
-        List<LfBus> controlledBusesOutsideOfDeadband = getControlledBusesOutsideOfDeadband(contextData);
-        List<LfBranch> controllerBranchesOutsideOfDeadband = getControllerElementsOutsideOfDeadband(controlledBusesOutsideOfDeadband);
+        List<LfBus> controlledBusesOutsideOfDeadband = getControlledBusesOutOfDeadband(contextData);
+        List<LfBranch> controllerBranchesOutsideOfDeadband = getControllerElementsOutOfDeadband(controlledBusesOutsideOfDeadband);
 
         // all branches are within their deadbands
         if (controllerBranchesOutsideOfDeadband.isEmpty()) {
@@ -247,9 +249,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
             double diffV = getDiffV(voltageControl);
             double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-            if (Math.abs(diffV) <= halfTargetDeadband) { // buses have already been filtered
-                throw new PowsyblException("Bus should have been outside of deadband");
-            }
             List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
                     .filter(b -> !b.isDisabled())
                     .collect(Collectors.toList());
