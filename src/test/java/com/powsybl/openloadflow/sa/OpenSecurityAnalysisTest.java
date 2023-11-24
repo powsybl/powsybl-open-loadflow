@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.network.test.SecurityAnalysisTestNetworkFactory;
+import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -2673,5 +2674,17 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(395, saResult.getPreContingencyResult().getNetworkResult().getBusResult("b3").getV());
         assertEquals(393.23, postContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V);
+    }
+
+    @Test
+    void testPermanentLimitName() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        network.getLine("NHV1_NHV2_1").newCurrentLimits1()
+                .setPermanentLimit(300)
+                .add();
+        SecurityAnalysisResult result = runSecurityAnalysis(network);
+        List<LimitViolation> limitViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+        assertEquals(1, limitViolations.size());
+        assertEquals(LimitViolationUtils.PERMANENT_LIMIT_NAME, limitViolations.get(0).getLimitName());
     }
 }
