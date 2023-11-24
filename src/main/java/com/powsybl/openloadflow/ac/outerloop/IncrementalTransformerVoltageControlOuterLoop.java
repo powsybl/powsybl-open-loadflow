@@ -54,8 +54,30 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return NAME;
     }
 
-    public static List<LfBus> getControlledBuses(IncrementalContextData contextData) {
-        return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER);
+    public static List<LfBus> getControlledBusesOutsideOfDeadband(IncrementalContextData contextData) {
+        List<LfBus> controlledBuses = IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER);
+        return controlledBuses.stream().filter(controlledBus -> {
+            TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
+            double diffV = getDiffV(voltageControl);
+            double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+            return Math.abs(diffV) > halfTargetDeadband;
+        }).collect(Collectors.toList());
+    }
+
+    public static List<LfBranch> getControllerElementsOutsideOfDeadband(List<LfBus> controlledBusesOutsideOfDeadband) {
+        List<LfBranch> controllerBranchesOutsideOfDeadband = new ArrayList<>();
+        controlledBusesOutsideOfDeadband.forEach(controlledBus -> {
+            TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
+            double diffV = getDiffV(voltageControl);
+            double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+            List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
+                    .filter(b -> !b.isDisabled())
+                    .collect(Collectors.toList());
+            LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
+                    controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
+            controllerBranchesOutsideOfDeadband.addAll(controllers);
+        });
+        return controllerBranchesOutsideOfDeadband;
     }
 
     public static List<LfBranch> getControllerElements(IncrementalContextData contextData) {
@@ -205,27 +227,9 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        List<LfBus> controlledBuses = getControlledBuses(contextData);
-
-        // check which branches are not within their deadbands
-        List<LfBranch> controllerBranchesOutsideOfDeadband = new ArrayList<>();
-        List<LfBus> controlledBusesOutsideOfDeadband = new ArrayList<>();
-        controlledBuses.forEach(controlledBus -> {
-            TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
-            double diffV = getDiffV(voltageControl);
-            double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-            if (Math.abs(diffV) > halfTargetDeadband) {
-                List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
-                        .filter(b -> !b.isDisabled())
-                        .collect(Collectors.toList());
-
-                LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
-                        controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
-
-                controllerBranchesOutsideOfDeadband.addAll(controllers);
-                controlledBusesOutsideOfDeadband.add(controlledBus);
-            }
-        });
+        // filter out buses/branches which are outside their deadbands
+        List<LfBus> controlledBusesOutsideOfDeadband = getControlledBusesOutsideOfDeadband(contextData);
+        List<LfBranch> controllerBranchesOutsideOfDeadband = getControllerElementsOutsideOfDeadband(controlledBusesOutsideOfDeadband);
 
         // all branches are within their deadbands
         if (controllerBranchesOutsideOfDeadband.isEmpty()) {
