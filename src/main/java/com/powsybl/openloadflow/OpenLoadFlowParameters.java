@@ -434,6 +434,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean simulateAutomationSystems = LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE;
 
+    private AcSolverType acSolverType = AcSolverType.NEWTON_RAPHSON;
+
     @Override
     public String getName() {
         return "open-load-flow-parameters";
@@ -985,6 +987,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public AcSolverType getAcSolverType() {
+        return acSolverType;
+    }
+
+    public OpenLoadFlowParameters setAcSolverType(AcSolverType acSolverType) {
+        this.acSolverType = Objects.requireNonNull(acSolverType);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1427,6 +1438,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 
+        SolverFactory solverFactory = switch (parametersExt.getAcSolverType()) {
+            case NEWTON_RAPHSON -> new NewtonRaphsonFactory();
+            case NEWTOW_KRYLOV -> new NewtonKrylovFactory();
+        };
+
         return new AcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,
                                         newtonRaphsonParameters,
@@ -1435,7 +1451,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                         matrixFactory,
                                         voltageInitializer,
                                         parametersExt.isAsymmetrical(),
-                                        parametersExt.getSlackDistributionFailureBehavior());
+                                        parametersExt.getSlackDistributionFailureBehavior(),
+                                        solverFactory);
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
