@@ -21,6 +21,8 @@ import java.util.Optional;
  */
 public interface LfBranch extends LfElement {
 
+    String PERMANENT_LIMIT_NAME = "Permanent limit";
+
     enum BranchType {
         LINE,
         TRANSFO_2,
@@ -51,7 +53,7 @@ public interface LfBranch extends LfElement {
         }
 
         public static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(null, Integer.MAX_VALUE, valuePerUnit);
+            return new LfLimit(PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, valuePerUnit);
         }
 
         public String getName() {
