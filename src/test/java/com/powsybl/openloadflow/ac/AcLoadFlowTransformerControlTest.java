@@ -405,7 +405,7 @@ class AcLoadFlowTransformerControlTest {
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(line34.getTerminal2())
-                .setTargetV(33.0);
+                .setTargetV(30.0);
 
         Generator g4 = vl4.newGenerator()
                 .setId("GEN_4")
