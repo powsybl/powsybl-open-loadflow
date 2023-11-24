@@ -6,11 +6,8 @@
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
-import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,8 +20,6 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class IncrementalContextData {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalContextData.class);
 
     public static final class ControllerContext {
 
@@ -90,37 +85,5 @@ public class IncrementalContextData {
                 .filter(Predicate.not(LfElement::isDisabled))
                 .map(element -> (E) element)
                 .collect(Collectors.toList());
-    }
-
-    public static List<LfBus> getControlledBusesOutOfDeadband(IncrementalContextData contextData, VoltageControl.Type type) {
-        return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), type).stream()
-                .filter(bus -> isOutOfDeadband((TransformerVoltageControl) bus.getVoltageControl(type).orElseThrow()))
-                .collect(Collectors.toList());
-    }
-
-    private static boolean isOutOfDeadband(TransformerVoltageControl voltageControl) {
-        double diffV = getDiffV(voltageControl);
-        double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-        boolean outOfDeadband = Math.abs(diffV) > halfTargetDeadband;
-        if (outOfDeadband) {
-            List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
-                    .filter(b -> !b.isDisabled())
-                    .collect(Collectors.toList());
-            LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
-                    voltageControl.getControlledBus().getId(), controllers.size(), halfTargetDeadband * voltageControl.getControlledBus().getNominalV(),
-                    diffV * voltageControl.getControlledBus().getNominalV());
-        }
-        return outOfDeadband;
-    }
-
-    public static double getDiffV(TransformerVoltageControl voltageControl) {
-        double targetV = voltageControl.getTargetValue();
-        double v = voltageControl.getControlledBus().getV();
-        return targetV - v;
-    }
-
-    // TODO fix min deadband
-    protected static double getHalfTargetDeadband(TransformerVoltageControl voltageControl) {
-        return voltageControl.getTargetDeadband().orElse(0.1 / voltageControl.getControlledBus().getNominalV()) / 2;
     }
 }
