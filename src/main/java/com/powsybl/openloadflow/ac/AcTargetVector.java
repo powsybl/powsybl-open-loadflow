@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
 
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -36,13 +36,26 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
         LfBus controllerBus = network.getBus(busNum);
-        double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
-        for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getMergedControllerElements()) {
+        double target = (controllerBus.getRemoteControlReactivePercent() - 1) * controllerBus.getTargetQ();
+        List<LfBus> mergedControllerBuses;
+        if (controllerBus.getGeneratorVoltageControl().isPresent()) {
+            mergedControllerBuses = controllerBus.getGeneratorVoltageControl().orElseThrow().getMergedControllerElements();
+        } else if (controllerBus.hasReactivePowerControl()) {
+            mergedControllerBuses = controllerBus.getReactivePowerControl().orElseThrow().getControllerBuses();
+        } else {
+            throw new PowsyblException("Controller bus '" + controllerBus.getId() + "' has no voltage or reactive remote control");
+        }
+        return updateReactivePowerDistributionTarget(target, controllerBus, mergedControllerBuses);
+    }
+
+    private static double updateReactivePowerDistributionTarget(double target, LfBus controllerBus, List<LfBus> controllerBuses) {
+        double updatedTarget = target;
+        for (LfBus otherControllerBus : controllerBuses) {
             if (otherControllerBus != controllerBus) {
-                target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
+                updatedTarget += controllerBus.getRemoteControlReactivePercent() * otherControllerBus.getTargetQ();
             }
         }
-        return target;
+        return updatedTarget;
     }
 
     private static double getReactivePowerControlTarget(LfBranch branch) {
