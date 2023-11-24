@@ -364,6 +364,85 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
+    void testIncrementalVoltageControlWithGenerator() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        Substation substation = network.newSubstation()
+                .setId("SUBSTATION4")
+                .setCountry(Country.FR)
+                .add();
+        VoltageLevel vl4 = substation.newVoltageLevel()
+                .setId("VL_4")
+                .setNominalV(33.0)
+                .setLowVoltageLimit(0)
+                .setHighVoltageLimit(100)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus bus4 = vl4.getBusBreakerView().newBus()
+                .setId("BUS_4")
+                .add();
+        vl4.newLoad()
+                .setId("LOAD_4")
+                .setBus("BUS_4")
+                .setP0(2.)
+                .setQ0(0.5)
+                .add();
+
+        Line line34 = network.newLine()
+                .setId("LINE_34")
+                .setBus1("BUS_3")
+                .setBus2("BUS_4")
+                .setR(1.05)
+                .setX(10.0)
+                .setG1(0.0000005)
+                .add();
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(line34.getTerminal2())
+                .setTargetV(33.0);
+
+        Generator g4 = vl4.newGenerator()
+                .setId("GEN_4")
+                .setBus("BUS_4")
+                .setMinP(0.0)
+                .setMaxP(30)
+                .setTargetP(5)
+                .setTargetV(33)
+                .setVoltageRegulatorOn(true)
+                .add();
+
+        // Generator reactive capability is enough to hold voltage target
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(33, bus4);
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertReactivePowerEquals(-7.110, g4.getTerminal());
+
+        g4.newMinMaxReactiveLimits().setMinQ(-3.5).setMaxQ(3.5).add();
+        // Generator reactive capability is not enough to hold voltage target and rtc is deactivated
+        t2wt.getRatioTapChanger().setRegulating(false);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(31.032, bus4);
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertReactivePowerEquals(-3.5, g4.getTerminal());
+
+        // Generator reactive capability is not enough to hold voltage alone but with rtc it is ok
+        t2wt.getRatioTapChanger().setRegulating(true);
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isOk());
+        assertVoltageEquals(33, bus4);
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertReactivePowerEquals(-1.172, g4.getTerminal());
+    }
+
+    @Test
     void nonSupportedVoltageControlT2wtTest() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
