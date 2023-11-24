@@ -22,7 +22,7 @@ public enum AcEquationType implements Quantity {
     BRANCH_TARGET_Q("branch_target_q", ElementType.BRANCH), // generator reactive power control
     BRANCH_TARGET_ALPHA1("branch_target_\u03B1", ElementType.BRANCH), // phase shifter constant shift
     BRANCH_TARGET_RHO1("branch_target_\u03C1", ElementType.BRANCH), // transformer constant voltage control
-    DISTR_Q("distr_q", ElementType.BUS), // remote voltage control reactive power distribution
+    DISTR_Q("distr_q", ElementType.BUS), // remote control reactive power distribution, both for voltage and reactive power control
     ZERO_V("zero_v", ElementType.BRANCH), // zero impedance branch, voltage magnitude equality
     ZERO_PHI("zero_\u03C6", ElementType.BRANCH), // zero impedance branch, voltage angle equality
     DISTR_RHO("distr_\u03C1", ElementType.BRANCH), // remote transformer voltage control ratio distribution
