@@ -20,9 +20,9 @@ import com.powsybl.iidm.network.Substation;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 @AutoService(ExtensionSerDe.class)
-public class SubstationAutomationSystemsXmlSerializer extends AbstractExtensionSerDe<Substation, SubstationAutomationSystems> {
+public class SubstationAutomationSystemsSerDe extends AbstractExtensionSerDe<Substation, SubstationAutomationSystems> {
 
-    public SubstationAutomationSystemsXmlSerializer() {
+    public SubstationAutomationSystemsSerDe() {
         super(SubstationAutomationSystems.NAME, "network", SubstationAutomationSystems.class, "substationAutomationSystems.xsd",
                 "http://www.powsybl.org/schema/iidm/ext/substation_automation_systems/1_0", "sas");
     }
@@ -54,6 +54,7 @@ public class SubstationAutomationSystemsXmlSerializer extends AbstractExtensionS
             double threshold = reader.readDoubleAttribute("threshold");
             String switchIdToOperate = reader.readStringAttribute("switchIdToOperate");
             boolean switchOpen = reader.readBooleanAttribute("switchOpen");
+            reader.readEndNode();
             adder.newOverloadManagementSystem()
                     .withEnabled(enabled)
                     .withMonitoredLineId(monitoredLineId)
