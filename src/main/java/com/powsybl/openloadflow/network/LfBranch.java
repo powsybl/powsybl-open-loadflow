@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
@@ -20,8 +21,6 @@ import java.util.Optional;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LfBranch extends LfElement {
-
-    String PERMANENT_LIMIT_NAME = "Permanent limit";
 
     enum BranchType {
         LINE,
@@ -53,7 +52,7 @@ public interface LfBranch extends LfElement {
         }
 
         public static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, valuePerUnit);
+            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, valuePerUnit);
         }
 
         public String getName() {
