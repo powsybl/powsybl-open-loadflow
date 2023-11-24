@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.TwoSides;
 
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -17,13 +17,12 @@ public class ReactivePowerControl extends Control {
 
     private final LfBranch controlledBranch;
     private final TwoSides controlledSide;
-    private final LfBus controllerBus;
+    private final List<LfBus> controllerBuses = new ArrayList<>();
 
-    public ReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, LfBus controllerBus, double targetValue) {
+    public ReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, double targetValue) {
         super(targetValue);
         this.controlledBranch = Objects.requireNonNull(controlledBranch);
         this.controlledSide = Objects.requireNonNull(controlledSide);
-        this.controllerBus = Objects.requireNonNull(controllerBus);
     }
 
     public LfBranch getControlledBranch() {
@@ -34,7 +33,32 @@ public class ReactivePowerControl extends Control {
         return controlledSide;
     }
 
-    public LfBus getControllerBus() {
-        return controllerBus;
+    public List<LfBus> getControllerBuses() {
+        return controllerBuses;
+    }
+
+    public void addControllerBus(LfBus controllerBus) {
+        controllerBuses.add(Objects.requireNonNull(controllerBus));
+        controllerBus.setReactivePowerControl(this);
+        controllerBus.setReactivePowerControlEnabled(true);
+    }
+
+    public void updateReactiveKeys() {
+        double[] reactiveKeys = createReactiveKeys(controllerBuses, LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER);
+
+        // key is 0 only on disabled controllers
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
+            if (controllerBus.isDisabled() || !controllerBus.isReactivePowerControlEnabled()) {
+                reactiveKeys[i] = 0d;
+            }
+        }
+
+        // update bus reactive keys for remote reactive power control
+        double reactiveKeysSum = Arrays.stream(reactiveKeys).sum();
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
+            controllerBus.setRemoteControlReactivePercent(reactiveKeysSum == 0 ? 0 : reactiveKeys[i] / reactiveKeysSum);
+        }
     }
 }
