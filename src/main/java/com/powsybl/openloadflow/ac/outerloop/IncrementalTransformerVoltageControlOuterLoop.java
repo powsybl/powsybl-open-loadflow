@@ -30,6 +30,9 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.lf.outerloop.IncrementalContextData.getControlledBusesOutOfDeadband;
+import static com.powsybl.openloadflow.lf.outerloop.IncrementalContextData.getDiffV;
+
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
@@ -54,10 +57,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return NAME;
     }
 
-    public static List<LfBus> getControlledBusesOutOfDeadband(IncrementalContextData contextData) {
-        return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER).stream()
-                .filter(bus -> isOutOfDeadband(bus.getTransformerVoltageControl().orElseThrow()))
-                .collect(Collectors.toList());
+    public static List<LfBranch> getControllerElements(IncrementalContextData contextData) {
+        return IncrementalContextData.getControllerElements(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER);
     }
 
     public static List<LfBranch> getControllerElementsOutOfDeadband(List<LfBus> controlledBusesOutOfDeadband) {
@@ -65,10 +66,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 .flatMap(bus -> bus.getTransformerVoltageControl().orElseThrow().getMergedControllerElements().stream())
                 .filter(Predicate.not(LfBranch::isDisabled))
                 .collect(Collectors.toList());
-    }
-
-    public static List<LfBranch> getControllerElements(IncrementalContextData contextData) {
-        return IncrementalContextData.getControllerElements(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER);
     }
 
     @Override
@@ -200,27 +197,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return adjusted.booleanValue();
     }
 
-    private static double getDiffV(TransformerVoltageControl voltageControl) {
-        double targetV = voltageControl.getTargetValue();
-        double v = voltageControl.getControlledBus().getV();
-        return targetV - v;
-    }
-
-    private static boolean isOutOfDeadband(TransformerVoltageControl voltageControl) {
-        double diffV = getDiffV(voltageControl);
-        double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-        boolean outOfDeadband = Math.abs(diffV) > halfTargetDeadband;
-        if (outOfDeadband) {
-            List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
-                    .filter(b -> !b.isDisabled())
-                    .collect(Collectors.toList());
-            LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
-                    voltageControl.getControlledBus().getId(), controllers.size(), halfTargetDeadband * voltageControl.getControlledBus().getNominalV(),
-                    diffV * voltageControl.getControlledBus().getNominalV());
-        }
-        return outOfDeadband;
-    }
-
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
@@ -230,7 +206,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         var contextData = (IncrementalContextData) context.getData();
 
         // filter out buses/branches which are outside their deadbands
-        List<LfBus> controlledBusesOutsideOfDeadband = getControlledBusesOutOfDeadband(contextData);
+        List<LfBus> controlledBusesOutsideOfDeadband = getControlledBusesOutOfDeadband(contextData, VoltageControl.Type.TRANSFORMER);
         List<LfBranch> controllerBranchesOutsideOfDeadband = getControllerElementsOutOfDeadband(controlledBusesOutsideOfDeadband);
 
         // all branches are within their deadbands
