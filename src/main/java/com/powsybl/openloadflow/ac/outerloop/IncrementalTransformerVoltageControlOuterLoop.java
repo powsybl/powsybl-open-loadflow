@@ -201,7 +201,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private static double getDiffV(TransformerVoltageControl voltageControl) {
-        double targetV = voltageControl.getTargetValue();
+        double targetV = voltageControl.getControlledBus().getHighestPriorityMainVoltageControl().orElseThrow().getTargetValue();
         double v = voltageControl.getControlledBus().getV();
         return targetV - v;
     }
@@ -230,22 +230,22 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         var contextData = (IncrementalContextData) context.getData();
 
         // filter out buses/branches which are outside their deadbands
-        List<LfBus> controlledBusesOutsideOfDeadband = getControlledBusesOutOfDeadband(contextData);
-        List<LfBranch> controllerBranchesOutsideOfDeadband = getControllerElementsOutOfDeadband(controlledBusesOutsideOfDeadband);
+        List<LfBus> controlledBusesOutOfDeadband = getControlledBusesOutOfDeadband(contextData);
+        List<LfBranch> controllerBranchesOutOfDeadband = getControllerElementsOutOfDeadband(controlledBusesOutOfDeadband);
 
         // all branches are within their deadbands
-        if (controllerBranchesOutsideOfDeadband.isEmpty()) {
+        if (controllerBranchesOutOfDeadband.isEmpty()) {
             return status.getValue();
         }
 
-        SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutsideOfDeadband,
+        SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutOfDeadband,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         // for synthetics logs
         List<String> controlledBusesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
-        controlledBusesOutsideOfDeadband.forEach(controlledBus -> {
+        controlledBusesOutOfDeadband.forEach(controlledBus -> {
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
             double diffV = getDiffV(voltageControl);
             double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
@@ -264,14 +264,14 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             }
         });
 
-        if (!controlledBusesOutsideOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
-            Map<String, Double> largestMismatches = controlledBusesOutsideOfDeadband.stream()
+        if (!controlledBusesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
+            Map<String, Double> largestMismatches = controlledBusesOutOfDeadband.stream()
                     .map(controlledBus -> Pair.of(controlledBus.getId(), Math.abs(getDiffV(controlledBus.getTransformerVoltageControl().orElseThrow()) * controlledBus.getNominalV())))
                     .sorted((p1, p2) -> Double.compare(p2.getRight(), p1.getRight()))
                     .limit(3) // 3 largest
                     .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
             LOGGER.info("{} controlled bus voltages are outside of their target deadband, largest ones are: {}",
-                    controlledBusesOutsideOfDeadband.size(), largestMismatches);
+                    controlledBusesOutOfDeadband.size(), largestMismatches);
         }
         if (!controlledBusesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled bus voltages have been adjusted by changing at least one tap",
