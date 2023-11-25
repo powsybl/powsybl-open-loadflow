@@ -32,6 +32,14 @@ public class NewtonKrylov extends AbstractSolver {
         super(network, parameters, equationSystem, j, targetVector, equationVector);
     }
 
+    private NewtonRaphsonStatus getStatus(KinsolStatus status) {
+        return switch (status) {
+            case KIN_SUCCESS, KIN_INITIAL_GUESS_OK -> NewtonRaphsonStatus.CONVERGED;
+            case KIN_MAXITER_REACHED -> NewtonRaphsonStatus.MAX_ITERATION_REACHED;
+            default -> NewtonRaphsonStatus.SOLVER_FAILED;
+        };
+    }
+
     @Override
     public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
         // initialize state vector
@@ -42,16 +50,16 @@ public class NewtonKrylov extends AbstractSolver {
             equationSystem.getStateVector().set(x);
             equationVector.minus(targetVector);
             System.arraycopy(equationVector.getArray(), 0, f, 0, equationVector.getArray().length);
-        }, (x, j) -> { });
+        }, (x, j) -> {
+            // nothing to do because jacobian matrix has already been automatically updated with the update
+            // of the state vector of the equation system in the function evaluation callback and we suppose
+            // state vector is still the same
+        });
         KinsolResult result = kinsol.solveTransposed(equationSystem.getStateVector().get(), kinsolParameters);
 
-        NewtonRaphsonStatus status;
         if (result.getStatus() == KinsolStatus.KIN_SUCCESS) {
-            status = NewtonRaphsonStatus.CONVERGED;
             updateNetwork();
-        } else {
-            status = NewtonRaphsonStatus.SOLVER_FAILED;
         }
-        return new NewtonRaphsonResult(status, (int) result.getIterations(), 0);
+        return new NewtonRaphsonResult(getStatus(result.getStatus()), (int) result.getIterations(), 0);
     }
 }
