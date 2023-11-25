@@ -17,7 +17,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class DcLoadFlowParameters extends AbstractLoadFlowParameters {
+public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowParameters> {
 
     private final DcEquationSystemCreationParameters equationSystemCreationParameters;
 

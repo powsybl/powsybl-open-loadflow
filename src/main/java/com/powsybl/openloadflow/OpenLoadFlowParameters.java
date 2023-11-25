@@ -1427,15 +1427,16 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 
-        return new AcLoadFlowParameters(networkParameters,
-                                        equationSystemCreationParameters,
-                                        newtonRaphsonParameters,
-                                        outerLoops,
-                                        parametersExt.getMaxOuterLoopIterations(),
-                                        matrixFactory,
-                                        voltageInitializer,
-                                        parametersExt.isAsymmetrical(),
-                                        parametersExt.getSlackDistributionFailureBehavior());
+        return new AcLoadFlowParameters()
+                .setNetworkParameters(networkParameters)
+                .setEquationSystemCreationParameters(equationSystemCreationParameters)
+                .setNewtonRaphsonParameters(newtonRaphsonParameters)
+                .setOuterLoops(outerLoops)
+                .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations())
+                .setMatrixFactory(matrixFactory)
+                .setVoltageInitializer(voltageInitializer)
+                .setAsymmetrical(parametersExt.isAsymmetrical())
+                .setSlackDistributionFailureBehavior(parametersExt.getSlackDistributionFailureBehavior());
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
