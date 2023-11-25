@@ -123,6 +123,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
                 ", asymmetrical=" + asymmetrical +
                 ", slackDistributionFailureBehavior=" + slackDistributionFailureBehavior.name() +
+                ", solverFactory=" + solverFactory.getClass().getSimpleName() +
                 ')';
     }
 }

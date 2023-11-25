@@ -34,11 +34,11 @@ public class AcOuterLoopContext extends AbstractOuterLoopContext<AcVariableType,
         this.iteration = iteration;
     }
 
-    public AcSolverResult getLastNewtonRaphsonResult() {
+    public AcSolverResult getLastSolverResult() {
         return lastSolverResult;
     }
 
-    public void setLastNewtonRaphsonResult(AcSolverResult lastSolverResult) {
+    public void setLastSolverResult(AcSolverResult lastSolverResult) {
         this.lastSolverResult = lastSolverResult;
     }
 }

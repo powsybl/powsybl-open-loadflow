@@ -76,7 +76,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration.getValue());
-            outerLoopContext.setLastNewtonRaphsonResult(runningContext.lastSolverResult);
+            outerLoopContext.setLastSolverResult(runningContext.lastSolverResult);
             outerLoopContext.setLoadFlowContext(context);
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
             runningContext.lastOuterLoopStatus = outerLoopStatus;
@@ -117,11 +117,11 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         RunningContext runningContext = new RunningContext();
         AcSolver solver = solverFactory.create(context.getNetwork(),
-                                             context.getParameters(),
-                                             context.getEquationSystem(),
-                                             context.getJacobianMatrix(),
-                                             context.getTargetVector(),
-                                             context.getEquationVector());
+                                               context.getParameters(),
+                                               context.getEquationSystem(),
+                                               context.getJacobianMatrix(),
+                                               context.getTargetVector(),
+                                               context.getEquationVector());
 
         List<AcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
         List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
