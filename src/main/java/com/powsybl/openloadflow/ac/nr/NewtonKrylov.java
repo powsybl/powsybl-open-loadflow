@@ -32,16 +32,16 @@ public class NewtonKrylov extends AbstractSolver {
         super(network, equationSystem, j, targetVector, equationVector);
     }
 
-    private NewtonRaphsonStatus getStatus(KinsolStatus status) {
+    private SolverStatus getStatus(KinsolStatus status) {
         return switch (status) {
-            case KIN_SUCCESS, KIN_INITIAL_GUESS_OK -> NewtonRaphsonStatus.CONVERGED;
-            case KIN_MAXITER_REACHED -> NewtonRaphsonStatus.MAX_ITERATION_REACHED;
-            default -> NewtonRaphsonStatus.SOLVER_FAILED;
+            case KIN_SUCCESS, KIN_INITIAL_GUESS_OK -> SolverStatus.CONVERGED;
+            case KIN_MAXITER_REACHED -> SolverStatus.MAX_ITERATION_REACHED;
+            default -> SolverStatus.SOLVER_FAILED;
         };
     }
 
     @Override
-    public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
+    public SolverResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
         // initialize state vector
         initStateVector(network, equationSystem, voltageInitializer);
 
@@ -60,6 +60,6 @@ public class NewtonKrylov extends AbstractSolver {
         if (result.getStatus() == KinsolStatus.KIN_SUCCESS) {
             updateNetwork();
         }
-        return new NewtonRaphsonResult(getStatus(result.getStatus()), (int) result.getIterations(), 0);
+        return new SolverResult(getStatus(result.getStatus()), (int) result.getIterations(), 0);
     }
 }

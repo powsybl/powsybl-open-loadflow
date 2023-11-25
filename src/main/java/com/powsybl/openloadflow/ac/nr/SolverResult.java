@@ -11,15 +11,15 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NewtonRaphsonResult {
+public class SolverResult {
 
     private final int iterations;
 
-    private final NewtonRaphsonStatus status;
+    private final SolverStatus status;
 
     private final double slackBusActivePowerMismatch;
 
-    public NewtonRaphsonResult(NewtonRaphsonStatus status, int iterations, double slackBusActivePowerMismatch) {
+    public SolverResult(SolverStatus status, int iterations, double slackBusActivePowerMismatch) {
         if (iterations < 0) {
             throw new IllegalArgumentException("Invalid iteration value: " + iterations);
         }
@@ -28,7 +28,7 @@ public class NewtonRaphsonResult {
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
     }
 
-    public NewtonRaphsonStatus getStatus() {
+    public SolverStatus getStatus() {
         return status;
     }
 

@@ -14,5 +14,5 @@ import com.powsybl.openloadflow.network.util.VoltageInitializer;
  */
 public interface Solver {
 
-    NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter);
+    SolverResult run(VoltageInitializer voltageInitializer, Reporter reporter);
 }

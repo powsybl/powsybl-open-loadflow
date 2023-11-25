@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.ac.nr;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public enum NewtonRaphsonStatus {
+public enum SolverStatus {
     CONVERGED,
     MAX_ITERATION_REACHED,
     SOLVER_FAILED,
