@@ -21,8 +21,6 @@ public abstract class AbstractSolver implements Solver {
 
     protected final LfNetwork network;
 
-    protected final NewtonRaphsonParameters parameters;
-
     protected final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
     protected final JacobianMatrix<AcVariableType, AcEquationType> j;
@@ -31,13 +29,12 @@ public abstract class AbstractSolver implements Solver {
 
     protected final EquationVector<AcVariableType, AcEquationType> equationVector;
 
-    protected AbstractSolver(LfNetwork network, NewtonRaphsonParameters parameters,
+    protected AbstractSolver(LfNetwork network,
                              EquationSystem<AcVariableType, AcEquationType> equationSystem,
                              JacobianMatrix<AcVariableType, AcEquationType> j,
                              TargetVector<AcVariableType, AcEquationType> targetVector,
                              EquationVector<AcVariableType, AcEquationType> equationVector) {
         this.network = Objects.requireNonNull(network);
-        this.parameters = Objects.requireNonNull(parameters);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.j = Objects.requireNonNull(j);
         this.targetVector = Objects.requireNonNull(targetVector);

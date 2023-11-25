@@ -35,12 +35,15 @@ public class NewtonRaphson extends AbstractSolver {
 
     public static final List<AcEquationType> REPORTED_AC_EQUATION_TYPES = List.of(AcEquationType.BUS_TARGET_P, AcEquationType.BUS_TARGET_Q, AcEquationType.BUS_TARGET_V);
 
+    protected final NewtonRaphsonParameters parameters;
+
     public NewtonRaphson(LfNetwork network, NewtonRaphsonParameters parameters,
                          EquationSystem<AcVariableType, AcEquationType> equationSystem,
                          JacobianMatrix<AcVariableType, AcEquationType> j,
                          TargetVector<AcVariableType, AcEquationType> targetVector,
                          EquationVector<AcVariableType, AcEquationType> equationVector) {
-        super(network, parameters, equationSystem, j, targetVector, equationVector);
+        super(network, equationSystem, j, targetVector, equationVector);
+        this.parameters = Objects.requireNonNull(parameters);
     }
 
     public static List<Pair<Equation<AcVariableType, AcEquationType>, Double>> findLargestMismatches(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, int count) {

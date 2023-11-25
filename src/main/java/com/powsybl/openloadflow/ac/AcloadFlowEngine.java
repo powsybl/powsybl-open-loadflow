@@ -117,7 +117,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         RunningContext runningContext = new RunningContext();
         Solver solver = solverFactory.create(context.getNetwork(),
-                                             context.getParameters().getNewtonRaphsonParameters(),
+                                             context.getParameters(),
                                              context.getEquationSystem(),
                                              context.getJacobianMatrix(),
                                              context.getTargetVector(),

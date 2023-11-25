@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -19,7 +20,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public interface SolverFactory {
 
-    Solver create(LfNetwork network, NewtonRaphsonParameters parameters,
+    Solver create(LfNetwork network, AcLoadFlowParameters parameters,
                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
                   JacobianMatrix<AcVariableType, AcEquationType> j,
                   TargetVector<AcVariableType, AcEquationType> targetVector,

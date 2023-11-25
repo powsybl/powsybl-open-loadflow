@@ -26,10 +26,10 @@ import com.powsybl.openloadflow.network.util.VoltageInitializer;
  */
 public class NewtonKrylov extends AbstractSolver {
 
-    public NewtonKrylov(LfNetwork network, NewtonRaphsonParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    public NewtonKrylov(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                         JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                         EquationVector<AcVariableType, AcEquationType> equationVector) {
-        super(network, parameters, equationSystem, j, targetVector, equationVector);
+        super(network, equationSystem, j, targetVector, equationVector);
     }
 
     private NewtonRaphsonStatus getStatus(KinsolStatus status) {
@@ -45,7 +45,7 @@ public class NewtonKrylov extends AbstractSolver {
         // initialize state vector
         initStateVector(network, equationSystem, voltageInitializer);
 
-        KinsolParameters kinsolParameters = new KinsolParameters(parameters.getMaxIterations(), false);
+        KinsolParameters kinsolParameters = new KinsolParameters(100, false);
         Kinsol kinsol = new Kinsol((SparseMatrix) j.getMatrix(), (x, f) -> {
             equationSystem.getStateVector().set(x);
             equationVector.minus(targetVector);
