@@ -11,15 +11,15 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class SolverResult {
+public class AcSolverResult {
 
     private final int iterations;
 
-    private final SolverStatus status;
+    private final AcSolverStatus status;
 
     private final double slackBusActivePowerMismatch;
 
-    public SolverResult(SolverStatus status, int iterations, double slackBusActivePowerMismatch) {
+    public AcSolverResult(AcSolverStatus status, int iterations, double slackBusActivePowerMismatch) {
         if (iterations < 0) {
             throw new IllegalArgumentException("Invalid iteration value: " + iterations);
         }
@@ -28,7 +28,7 @@ public class SolverResult {
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
     }
 
-    public SolverStatus getStatus() {
+    public AcSolverStatus getStatus() {
         return status;
     }
 

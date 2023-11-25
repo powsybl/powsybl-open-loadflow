@@ -18,12 +18,12 @@ import com.powsybl.openloadflow.network.LfNetwork;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NewtonRaphsonFactory implements SolverFactory {
+public class NewtonRaphsonFactory implements AcSolverFactory {
 
     @Override
-    public Solver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                         JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
-                         EquationVector<AcVariableType, AcEquationType> equationVector) {
+    public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                           JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
+                           EquationVector<AcVariableType, AcEquationType> equationVector) {
         return new NewtonRaphson(network, parameters.getNewtonRaphsonParameters(), equationSystem, j, targetVector, equationVector);
     }
 }

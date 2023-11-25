@@ -11,7 +11,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
-import com.powsybl.openloadflow.ac.solver.SolverFactory;
+import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -41,7 +41,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior;
 
-    private SolverFactory solverFactory;
+    private AcSolverFactory solverFactory;
 
     public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
                                 NewtonRaphsonParameters newtonRaphsonParameters, List<AcOuterLoop> outerLoops, int maxOuterLoopIterations,
@@ -55,7 +55,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
                                 NewtonRaphsonParameters newtonRaphsonParameters, List<AcOuterLoop> outerLoops, int maxOuterLoopIterations,
                                 MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean asymmetrical,
                                 OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
-                                SolverFactory solverFactory) {
+                                AcSolverFactory solverFactory) {
         super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
@@ -103,11 +103,11 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
         this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
     }
 
-    public SolverFactory getSolverFactory() {
+    public AcSolverFactory getSolverFactory() {
         return solverFactory;
     }
 
-    public void setSolverFactory(SolverFactory solverFactory) {
+    public void setSolverFactory(AcSolverFactory solverFactory) {
         this.solverFactory = Objects.requireNonNull(solverFactory);
     }
 

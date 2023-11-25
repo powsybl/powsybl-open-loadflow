@@ -1438,7 +1438,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 
-        SolverFactory solverFactory = switch (parametersExt.getAcSolverType()) {
+        AcSolverFactory solverFactory = switch (parametersExt.getAcSolverType()) {
             case NEWTON_RAPHSON -> new NewtonRaphsonFactory();
             case NEWTOW_KRYLOV -> new NewtonKrylovFactory();
         };

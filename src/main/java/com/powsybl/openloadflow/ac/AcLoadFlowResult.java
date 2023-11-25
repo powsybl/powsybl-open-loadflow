@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.ac.solver.SolverStatus;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -21,21 +21,21 @@ import java.util.Objects;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new AcLoadFlowResult(network, 0, 0, SolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE, Double.NaN, Double.NaN);
+        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE, Double.NaN, Double.NaN);
     }
 
     private final int outerLoopIterations;
 
     private final int solverIterations;
 
-    private final SolverStatus solverStatus;
+    private final AcSolverStatus solverStatus;
 
     private final OuterLoopStatus outerLoopStatus;
 
     private final double distributedActivePower;
 
     public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int solverIterations,
-                            SolverStatus solverStatus, OuterLoopStatus outerLoopStatus,
+                            AcSolverStatus solverStatus, OuterLoopStatus outerLoopStatus,
                             double slackBusActivePowerMismatch, double distributedActivePower) {
         super(network, slackBusActivePowerMismatch);
         this.outerLoopIterations = outerLoopIterations;
@@ -53,7 +53,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return solverIterations;
     }
 
-    public SolverStatus getSolverStatus() {
+    public AcSolverStatus getSolverStatus() {
         return solverStatus;
     }
 
@@ -66,7 +66,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
     }
 
     public boolean isOk() {
-        return solverStatus == SolverStatus.CONVERGED && outerLoopStatus == OuterLoopStatus.STABLE;
+        return solverStatus == AcSolverStatus.CONVERGED && outerLoopStatus == OuterLoopStatus.STABLE;
     }
 
     public boolean isWithNetworkUpdate() {

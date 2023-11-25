@@ -25,7 +25,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.solver.SolverStatus;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
@@ -1656,33 +1656,33 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testStatusConversion() {
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
-                buildTestAcLoadFlowResult(SolverStatus.CONVERGED, OuterLoopStatus.UNSTABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.UNSTABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED,
-                buildTestAcLoadFlowResult(SolverStatus.CONVERGED, OuterLoopStatus.STABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
-                buildTestAcLoadFlowResult(SolverStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
-                buildTestAcLoadFlowResult(SolverStatus.SOLVER_FAILED, OuterLoopStatus.STABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.SOLVER_FAILED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
-                buildTestAcLoadFlowResult(SolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
-                buildTestAcLoadFlowResult(SolverStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE).toComponentResultStatus());
 
         assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(SolverStatus.CONVERGED, OuterLoopStatus.UNSTABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.UNSTABLE)));
         assertEquals(PostContingencyComputationStatus.CONVERGED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(SolverStatus.CONVERGED, OuterLoopStatus.STABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(SolverStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.SOLVER_FAILED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(SolverStatus.SOLVER_FAILED, OuterLoopStatus.STABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.SOLVER_FAILED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.NO_IMPACT,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(SolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.FAILED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(SolverStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE)));
     }
 
-    private AcLoadFlowResult buildTestAcLoadFlowResult(SolverStatus solverStatus, OuterLoopStatus outerLoopStatus) {
+    private AcLoadFlowResult buildTestAcLoadFlowResult(AcSolverStatus solverStatus, OuterLoopStatus outerLoopStatus) {
         LfNetwork lfNetwork = Mockito.mock(LfNetwork.class);
         return new AcLoadFlowResult(lfNetwork, 0, 0, solverStatus, outerLoopStatus, 0d, 0d);
     }

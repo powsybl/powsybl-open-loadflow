@@ -18,11 +18,11 @@ import com.powsybl.openloadflow.network.LfNetwork;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface SolverFactory {
+public interface AcSolverFactory {
 
-    Solver create(LfNetwork network, AcLoadFlowParameters parameters,
-                  EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                  JacobianMatrix<AcVariableType, AcEquationType> j,
-                  TargetVector<AcVariableType, AcEquationType> targetVector,
-                  EquationVector<AcVariableType, AcEquationType> equationVector);
+    AcSolver create(LfNetwork network, AcLoadFlowParameters parameters,
+                    EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                    JacobianMatrix<AcVariableType, AcEquationType> j,
+                    TargetVector<AcVariableType, AcEquationType> targetVector,
+                    EquationVector<AcVariableType, AcEquationType> equationVector);
 }

@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NewtonRaphson extends AbstractSolver {
+public class NewtonRaphson extends AbstractAcSolver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NewtonRaphson.class);
 
@@ -99,7 +99,7 @@ public class NewtonRaphson extends AbstractSolver {
         };
     }
 
-    private SolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, Reporter reporter) {
+    private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, Reporter reporter) {
         LOGGER.debug("Start iteration {}", iterations);
 
         try {
@@ -108,7 +108,7 @@ public class NewtonRaphson extends AbstractSolver {
                 j.solveTransposed(equationVector.getArray());
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
-                return SolverStatus.SOLVER_FAILED;
+                return AcSolverStatus.SOLVER_FAILED;
             }
             // f(x) now contains dx
 
@@ -143,7 +143,7 @@ public class NewtonRaphson extends AbstractSolver {
             }
 
             if (testResult.isStop()) {
-                return SolverStatus.CONVERGED;
+                return AcSolverStatus.CONVERGED;
             }
 
             return null;
@@ -175,7 +175,7 @@ public class NewtonRaphson extends AbstractSolver {
     }
 
     @Override
-    public SolverResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
+    public AcSolverResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
         // initialize state vector
         initStateVector(network, equationSystem, voltageInitializer);
 
@@ -191,10 +191,10 @@ public class NewtonRaphson extends AbstractSolver {
         }
 
         // start iterations
-        SolverStatus status = SolverStatus.NO_CALCULATION;
+        AcSolverStatus status = AcSolverStatus.NO_CALCULATION;
         MutableInt iterations = new MutableInt();
         while (iterations.getValue() <= parameters.getMaxIterations()) {
-            SolverStatus newStatus = runIteration(svScaling, iterations, reporter);
+            AcSolverStatus newStatus = runIteration(svScaling, iterations, reporter);
             if (newStatus != null) {
                 status = newStatus;
                 break;
@@ -202,19 +202,19 @@ public class NewtonRaphson extends AbstractSolver {
         }
 
         if (iterations.getValue() >= parameters.getMaxIterations()) {
-            status = SolverStatus.MAX_ITERATION_REACHED;
+            status = AcSolverStatus.MAX_ITERATION_REACHED;
         }
 
-        if (status == SolverStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
+        if (status == AcSolverStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             updateNetwork();
         }
 
         // update network state variable
-        if (status == SolverStatus.CONVERGED && isStateUnrealistic()) {
-            status = SolverStatus.UNREALISTIC_STATE;
+        if (status == AcSolverStatus.CONVERGED && isStateUnrealistic()) {
+            status = AcSolverStatus.UNREALISTIC_STATE;
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new SolverResult(status, iterations.getValue(), slackBusActivePowerMismatch);
+        return new AcSolverResult(status, iterations.getValue(), slackBusActivePowerMismatch);
     }
 }

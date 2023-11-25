@@ -17,7 +17,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractSolver implements Solver {
+public abstract class AbstractAcSolver implements AcSolver {
 
     protected final LfNetwork network;
 
@@ -29,11 +29,11 @@ public abstract class AbstractSolver implements Solver {
 
     protected final EquationVector<AcVariableType, AcEquationType> equationVector;
 
-    protected AbstractSolver(LfNetwork network,
-                             EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                             JacobianMatrix<AcVariableType, AcEquationType> j,
-                             TargetVector<AcVariableType, AcEquationType> targetVector,
-                             EquationVector<AcVariableType, AcEquationType> equationVector) {
+    protected AbstractAcSolver(LfNetwork network,
+                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                               JacobianMatrix<AcVariableType, AcEquationType> j,
+                               TargetVector<AcVariableType, AcEquationType> targetVector,
+                               EquationVector<AcVariableType, AcEquationType> equationVector) {
         this.network = Objects.requireNonNull(network);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.j = Objects.requireNonNull(j);

@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.ac.solver;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public enum SolverStatus {
+public enum AcSolverStatus {
     CONVERGED,
     MAX_ITERATION_REACHED,
     SOLVER_FAILED,

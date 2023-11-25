@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
-import com.powsybl.openloadflow.ac.solver.SolverStatus;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -581,7 +581,7 @@ class AcLoadFlowPhaseShifterTest {
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult lfResult = new AcloadFlowEngine(lfContext)
                     .run();
-            assertEquals(SolverStatus.CONVERGED, lfResult.getSolverStatus());
+            assertEquals(AcSolverStatus.CONVERGED, lfResult.getSolverStatus());
             LfBranch ps1 = lfNetwork.getBranchById("PS1");
             List<LfBranch> controllerBranches = List.of(ps1);
             var sensitivityContext = new AcIncrementalPhaseControlOuterLoop.AcSensitivityContext(lfNetwork,

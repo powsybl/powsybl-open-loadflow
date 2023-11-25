@@ -37,13 +37,13 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
     private final AcLoadFlowContext context;
 
-    private final SolverFactory solverFactory;
+    private final AcSolverFactory solverFactory;
 
     public AcloadFlowEngine(AcLoadFlowContext context) {
         this(context, new NewtonRaphsonFactory());
     }
 
-    public AcloadFlowEngine(AcLoadFlowContext context, SolverFactory solverFactory) {
+    public AcloadFlowEngine(AcLoadFlowContext context, AcSolverFactory solverFactory) {
         this.context = Objects.requireNonNull(context);
         this.solverFactory = Objects.requireNonNull(solverFactory);
     }
@@ -55,7 +55,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
     private static class RunningContext {
 
-        private SolverResult lastSolverResult;
+        private AcSolverResult lastSolverResult;
 
         private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
 
@@ -66,7 +66,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         private OuterLoopStatus lastOuterLoopStatus;
     }
 
-    private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, Solver solver, RunningContext runningContext) {
+    private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext) {
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getName());
 
         // for each outer loop re-run Newton-Raphson until stabilization
@@ -101,7 +101,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 outerLoopIteration.increment();
             }
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
-                && runningContext.lastSolverResult.getStatus() == SolverStatus.CONVERGED
+                && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
     }
 
@@ -116,7 +116,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         voltageInitializer.prepare(context.getNetwork());
 
         RunningContext runningContext = new RunningContext();
-        Solver solver = solverFactory.create(context.getNetwork(),
+        AcSolver solver = solverFactory.create(context.getNetwork(),
                                              context.getParameters(),
                                              context.getEquationSystem(),
                                              context.getJacobianMatrix(),
@@ -147,7 +147,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
 
         // continue with outer loops only if initial Newton-Raphson succeed
-        if (runningContext.lastSolverResult.getStatus() == SolverStatus.CONVERGED) {
+        if (runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED) {
 
             // re-run all outer loops until Newton-Raphson failed or no more Newton-Raphson iterations are needed
             int oldNrTotalIterations;
@@ -162,14 +162,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     // - last Newton-Raphson succeed,
                     // - last OuterLoopStatus is not FAILED
                     // - we have not reached max number of outer loop iteration
-                    if (runningContext.lastSolverResult.getStatus() != SolverStatus.CONVERGED
+                    if (runningContext.lastSolverResult.getStatus() != AcSolverStatus.CONVERGED
                             || runningContext.lastOuterLoopStatus == OuterLoopStatus.FAILED
                             || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
                         break;
                     }
                 }
             } while (runningContext.nrTotalIterations.getValue() > oldNrTotalIterations
-                    && runningContext.lastSolverResult.getStatus() == SolverStatus.CONVERGED
+                    && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
                     && runningContext.lastOuterLoopStatus != OuterLoopStatus.FAILED
                     && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
         }
@@ -205,7 +205,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
         Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getSolverStatus().name(),
-                result.getSolverStatus() == SolverStatus.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY);
+                result.getSolverStatus() == AcSolverStatus.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY);
 
         context.setResult(result);
 

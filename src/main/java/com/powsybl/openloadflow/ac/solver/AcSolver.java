@@ -12,7 +12,7 @@ import com.powsybl.openloadflow.network.util.VoltageInitializer;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface Solver {
+public interface AcSolver {
 
-    SolverResult run(VoltageInitializer voltageInitializer, Reporter reporter);
+    AcSolverResult run(VoltageInitializer voltageInitializer, Reporter reporter);
 }
