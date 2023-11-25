@@ -162,7 +162,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
                                                                             result.getNetwork().getNumSC(),
                                                                             result.toComponentResultStatus(),
-                                                                            result.getNewtonRaphsonIterations(),
+                                                                            result.getSolverIterations(),
                                                                             slackBusId, // FIXME manage multiple slack buses
                                                                             result.getSlackBusActivePowerMismatch() * PerUnit.SB,
                                                                             result.getDistributedActivePower() * PerUnit.SB));

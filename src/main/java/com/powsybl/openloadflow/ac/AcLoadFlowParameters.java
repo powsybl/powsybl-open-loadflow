@@ -9,7 +9,9 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -39,10 +41,21 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior;
 
+    private AcSolverFactory solverFactory;
+
     public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
                                 NewtonRaphsonParameters newtonRaphsonParameters, List<AcOuterLoop> outerLoops, int maxOuterLoopIterations,
                                 MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean asymmetrical,
                                 OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
+        this(networkParameters, equationSystemCreationParameters, newtonRaphsonParameters, outerLoops, maxOuterLoopIterations,
+                matrixFactory, voltageInitializer, asymmetrical, slackDistributionFailureBehavior, new NewtonRaphsonFactory());
+    }
+
+    public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
+                                NewtonRaphsonParameters newtonRaphsonParameters, List<AcOuterLoop> outerLoops, int maxOuterLoopIterations,
+                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean asymmetrical,
+                                OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+                                AcSolverFactory solverFactory) {
         super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
@@ -51,6 +64,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.asymmetrical = asymmetrical;
         this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
+        this.solverFactory = Objects.requireNonNull(solverFactory);
     }
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
@@ -89,6 +103,14 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
         this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
     }
 
+    public AcSolverFactory getSolverFactory() {
+        return solverFactory;
+    }
+
+    public void setSolverFactory(AcSolverFactory solverFactory) {
+        this.solverFactory = Objects.requireNonNull(solverFactory);
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -101,6 +123,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
                 ", asymmetrical=" + asymmetrical +
                 ", slackDistributionFailureBehavior=" + slackDistributionFailureBehavior.name() +
+                ", solverFactory=" + solverFactory.getClass().getSimpleName() +
                 ')';
     }
 }

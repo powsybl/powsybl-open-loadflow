@@ -1,0 +1,144 @@
+/**
+ * Copyright (c) 2023, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+package com.powsybl.openloadflow.ac.solver;
+
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
+
+import java.util.Objects;
+
+/**
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ */
+public abstract class AbstractAcSolver implements AcSolver {
+
+    protected final LfNetwork network;
+
+    protected final EquationSystem<AcVariableType, AcEquationType> equationSystem;
+
+    protected final JacobianMatrix<AcVariableType, AcEquationType> j;
+
+    protected final TargetVector<AcVariableType, AcEquationType> targetVector;
+
+    protected final EquationVector<AcVariableType, AcEquationType> equationVector;
+
+    protected AbstractAcSolver(LfNetwork network,
+                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                               JacobianMatrix<AcVariableType, AcEquationType> j,
+                               TargetVector<AcVariableType, AcEquationType> targetVector,
+                               EquationVector<AcVariableType, AcEquationType> equationVector) {
+        this.network = Objects.requireNonNull(network);
+        this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.j = Objects.requireNonNull(j);
+        this.targetVector = Objects.requireNonNull(targetVector);
+        this.equationVector = Objects.requireNonNull(equationVector);
+    }
+
+    public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
+        double[] x = new double[equationSystem.getIndex().getSortedVariablesToFind().size()];
+        for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
+            switch (v.getType()) {
+                case BUS_V:
+                    x[v.getRow()] = initializer.getMagnitude(network.getBus(v.getElementNum()));
+                    break;
+
+                case BUS_PHI:
+                    x[v.getRow()] = initializer.getAngle(network.getBus(v.getElementNum()));
+                    break;
+
+                case SHUNT_B:
+                    x[v.getRow()] = network.getShunt(v.getElementNum()).getB();
+                    break;
+
+                case BRANCH_ALPHA1:
+                    x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getA1();
+                    break;
+
+                case BRANCH_RHO1:
+                    x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getR1();
+                    break;
+
+                case DUMMY_P,
+                        DUMMY_Q,
+                        BUS_PHI_ZERO,
+                        BUS_PHI_NEGATIVE:
+                    x[v.getRow()] = 0;
+                    break;
+
+                case BUS_V_ZERO,
+                        BUS_V_NEGATIVE:
+                    // when balanced, zero and negative sequence should be zero
+                    // v_zero and v_negative initially set to zero will bring a singularity to the Jacobian
+                    // We chose to set the initial value to a small one, but different from zero
+                    // By construction if the system does not carry any asymmetry in its structure,
+                    // the resolution of the system on the three sequences will bring a singularity
+                    // Therefore, if the system is balanced by construction, we should run a balanced load flow only
+                    x[v.getRow()] = 0.1;
+                    break;
+
+                default:
+                    throw new IllegalStateException("Unknown variable type " + v.getType());
+            }
+        }
+        equationSystem.getStateVector().set(x);
+    }
+
+    public void updateNetwork() {
+        // update state variable
+        StateVector stateVector = equationSystem.getStateVector();
+        for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
+            switch (v.getType()) {
+                case BUS_V:
+                    network.getBus(v.getElementNum()).setV(stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_PHI:
+                    network.getBus(v.getElementNum()).setAngle(stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_V_ZERO:
+                    network.getBus(v.getElementNum()).getAsym().setVz(stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_PHI_ZERO:
+                    network.getBus(v.getElementNum()).getAsym().setAngleZ(stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_V_NEGATIVE:
+                    network.getBus(v.getElementNum()).getAsym().setVn(stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_PHI_NEGATIVE:
+                    network.getBus(v.getElementNum()).getAsym().setAngleN(stateVector.get(v.getRow()));
+                    break;
+
+                case SHUNT_B:
+                    network.getShunt(v.getElementNum()).setB(stateVector.get(v.getRow()));
+                    break;
+
+                case BRANCH_ALPHA1:
+                    network.getBranch(v.getElementNum()).getPiModel().setA1(stateVector.get(v.getRow()));
+                    break;
+
+                case BRANCH_RHO1:
+                    network.getBranch(v.getElementNum()).getPiModel().setR1(stateVector.get(v.getRow()));
+                    break;
+
+                case DUMMY_P,
+                        DUMMY_Q:
+                    // nothing to do
+                    break;
+
+                default:
+                    throw new IllegalStateException("Unknown variable type " + v.getType());
+            }
+        }
+    }
+}

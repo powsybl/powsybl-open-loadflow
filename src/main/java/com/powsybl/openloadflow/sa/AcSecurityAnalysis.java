@@ -22,7 +22,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -248,7 +248,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         AcLoadFlowResult postContingencyLoadFlowResult = new AcloadFlowEngine(context)
                 .run();
 
-        boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+        boolean postContingencyComputationOk = postContingencyLoadFlowResult.getSolverStatus() == AcSolverStatus.CONVERGED;
         PostContingencyComputationStatus status = postContingencyStatusFromAcLoadFlowResult(postContingencyLoadFlowResult);
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
         var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
