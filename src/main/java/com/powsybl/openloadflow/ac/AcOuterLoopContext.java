@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.nr.SolverResult;
+import com.powsybl.openloadflow.ac.solver.SolverResult;
 import com.powsybl.openloadflow.lf.outerloop.AbstractOuterLoopContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 

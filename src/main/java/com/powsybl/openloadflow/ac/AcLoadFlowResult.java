@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.ac.nr.SolverStatus;
+import com.powsybl.openloadflow.ac.solver.SolverStatus;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;

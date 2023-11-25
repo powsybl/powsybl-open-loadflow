@@ -10,7 +10,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.nr.SolverStatus;
+import com.powsybl.openloadflow.ac.solver.SolverStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
