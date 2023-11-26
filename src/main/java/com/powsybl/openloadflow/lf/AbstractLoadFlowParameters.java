@@ -18,6 +18,8 @@ import java.util.Objects;
  */
 public abstract class AbstractLoadFlowParameters<P extends AbstractLoadFlowParameters<P>> {
 
+    public static final int DEFAULT_MAX_OUTER_LOOP_ITERATIONS = 20;
+
     protected LfNetworkParameters networkParameters;
 
     protected MatrixFactory matrixFactory;

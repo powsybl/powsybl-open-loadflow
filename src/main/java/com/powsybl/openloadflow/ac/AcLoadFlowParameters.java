@@ -25,8 +25,6 @@ import java.util.Objects;
  */
 public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowParameters> {
 
-    public static final int DEFAULT_MAX_OUTER_LOOP_ITERATIONS = 20;
-
     private AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters();
 
     private NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();

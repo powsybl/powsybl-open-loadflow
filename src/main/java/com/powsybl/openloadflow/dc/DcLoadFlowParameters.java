@@ -7,10 +7,8 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 
 import java.util.Objects;
 
@@ -19,45 +17,59 @@ import java.util.Objects;
  */
 public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowParameters> {
 
-    private final DcEquationSystemCreationParameters equationSystemCreationParameters;
+    private DcEquationSystemCreationParameters equationSystemCreationParameters = new DcEquationSystemCreationParameters();
 
-    private final boolean distributedSlack;
+    private boolean distributedSlack = true;
 
-    private final LoadFlowParameters.BalanceType balanceType;
+    private LoadFlowParameters.BalanceType balanceType = LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX;
 
-    private final boolean setVToNan;
+    private boolean setVToNan = false;
 
-    private final int maxOuterLoopIterations;
-
-    public DcLoadFlowParameters(LfNetworkParameters networkParameters, DcEquationSystemCreationParameters equationSystemCreationParameters,
-                                MatrixFactory matrixFactory, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
-                                boolean setVToNan, int maxOuterLoopIterations) {
-        super(networkParameters, matrixFactory);
-        this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
-        this.distributedSlack = distributedSlack;
-        this.balanceType = balanceType;
-        this.setVToNan = setVToNan;
-        this.maxOuterLoopIterations = maxOuterLoopIterations;
-    }
+    private int maxOuterLoopIterations = DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
 
     public DcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
+    }
+
+    public DcLoadFlowParameters setEquationSystemCreationParameters(DcEquationSystemCreationParameters equationSystemCreationParameters) {
+        this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
+        return this;
     }
 
     public int getMaxOuterLoopIterations() {
         return maxOuterLoopIterations;
     }
 
+    public DcLoadFlowParameters setMaxOuterLoopIterations(int maxOuterLoopIterations) {
+        this.maxOuterLoopIterations = maxOuterLoopIterations;
+        return this;
+    }
+
     public boolean isDistributedSlack() {
         return distributedSlack;
+    }
+
+    public DcLoadFlowParameters setDistributedSlack(boolean distributedSlack) {
+        this.distributedSlack = distributedSlack;
+        return this;
     }
 
     public LoadFlowParameters.BalanceType getBalanceType() {
         return balanceType;
     }
 
+    public DcLoadFlowParameters setBalanceType(LoadFlowParameters.BalanceType balanceType) {
+        this.balanceType = Objects.requireNonNull(balanceType);
+        return this;
+    }
+
     public boolean isSetVToNan() {
         return setVToNan;
+    }
+
+    public DcLoadFlowParameters setSetVToNan(boolean setVToNan) {
+        this.setVToNan = setVToNan;
+        return this;
     }
 
     @Override

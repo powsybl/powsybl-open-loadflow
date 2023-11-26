@@ -28,6 +28,7 @@ import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -352,7 +353,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private int maxNewtonRaphsonIterations = NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS;
 
-    private int maxOuterLoopIterations = AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
+    private int maxOuterLoopIterations = AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
 
     private double newtonRaphsonConvEpsPerEq = DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
 
@@ -1487,13 +1488,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setUseTransformerRatio(parameters.isDcUseTransformerRatio())
                 .setDcApproximationType(parametersExt.getDcApproximationType());
 
-        return new DcLoadFlowParameters(networkParameters,
-                                        equationSystemCreationParameters,
-                                        matrixFactory,
-                                        parameters.isDistributedSlack(),
-                                        parameters.getBalanceType(),
-                                        true,
-                                        parametersExt.getMaxOuterLoopIterations());
+        return new DcLoadFlowParameters()
+                .setNetworkParameters(networkParameters)
+                .setEquationSystemCreationParameters(equationSystemCreationParameters)
+                .setMatrixFactory(matrixFactory)
+                .setDistributedSlack(parameters.isDistributedSlack())
+                .setBalanceType(parameters.getBalanceType())
+                .setSetVToNan(true)
+                .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations());
     }
 
     public static boolean equals(LoadFlowParameters parameters1, LoadFlowParameters parameters2) {
