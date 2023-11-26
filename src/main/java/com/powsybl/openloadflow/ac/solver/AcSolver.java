@@ -14,5 +14,7 @@ import com.powsybl.openloadflow.network.util.VoltageInitializer;
  */
 public interface AcSolver {
 
+    String getName();
+
     AcSolverResult run(VoltageInitializer voltageInitializer, Reporter reporter);
 }

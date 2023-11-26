@@ -6,101 +6,125 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
+public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowParameters> {
 
-    public static final int DEFAULT_MAX_OUTER_LOOP_ITERATIONS = 20;
+    private AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters();
 
-    private final AcEquationSystemCreationParameters equationSystemCreationParameters;
+    private NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
 
-    private final NewtonRaphsonParameters newtonRaphsonParameters;
+    private List<AcOuterLoop> outerLoops = Collections.emptyList();
 
-    private final List<AcOuterLoop> outerLoops;
+    private int maxOuterLoopIterations = DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
 
-    private final int maxOuterLoopIterations;
+    private VoltageInitializer voltageInitializer = new UniformValueVoltageInitializer();
 
-    private VoltageInitializer voltageInitializer;
+    private boolean asymmetrical = false;
 
-    private final boolean asymmetrical;
+    private OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
 
-    private OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior;
+    private AcSolverFactory solverFactory = new NewtonRaphsonFactory();
 
-    private AcSolverFactory solverFactory;
-
-    public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
-                                NewtonRaphsonParameters newtonRaphsonParameters, List<AcOuterLoop> outerLoops, int maxOuterLoopIterations,
-                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean asymmetrical,
-                                OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
-        this(networkParameters, equationSystemCreationParameters, newtonRaphsonParameters, outerLoops, maxOuterLoopIterations,
-                matrixFactory, voltageInitializer, asymmetrical, slackDistributionFailureBehavior, new NewtonRaphsonFactory());
-    }
-
-    public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
-                                NewtonRaphsonParameters newtonRaphsonParameters, List<AcOuterLoop> outerLoops, int maxOuterLoopIterations,
-                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean asymmetrical,
-                                OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
-                                AcSolverFactory solverFactory) {
-        super(networkParameters, matrixFactory);
-        this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
-        this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
-        this.outerLoops = Objects.requireNonNull(outerLoops);
-        this.maxOuterLoopIterations = maxOuterLoopIterations;
-        this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
-        this.asymmetrical = asymmetrical;
-        this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
-        this.solverFactory = Objects.requireNonNull(solverFactory);
-    }
+    private boolean detailedReport = false;
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
+    }
+
+    public AcLoadFlowParameters setEquationSystemCreationParameters(AcEquationSystemCreationParameters equationSystemCreationParameters) {
+        this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
+        return this;
     }
 
     public NewtonRaphsonParameters getNewtonRaphsonParameters() {
         return newtonRaphsonParameters;
     }
 
+    public AcLoadFlowParameters setNewtonRaphsonParameters(NewtonRaphsonParameters newtonRaphsonParameters) {
+        this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
+        return this;
+    }
+
     public List<AcOuterLoop> getOuterLoops() {
         return outerLoops;
+    }
+
+    public AcLoadFlowParameters setOuterLoops(List<AcOuterLoop> outerLoops) {
+        this.outerLoops = Objects.requireNonNull(outerLoops);
+        return this;
     }
 
     public int getMaxOuterLoopIterations() {
         return maxOuterLoopIterations;
     }
 
+    public AcLoadFlowParameters setMaxOuterLoopIterations(int maxOuterLoopIterations) {
+        this.maxOuterLoopIterations = maxOuterLoopIterations;
+        return this;
+    }
+
     public VoltageInitializer getVoltageInitializer() {
         return voltageInitializer;
     }
 
-    public void setVoltageInitializer(VoltageInitializer voltageInitializer) {
+    public AcLoadFlowParameters setVoltageInitializer(VoltageInitializer voltageInitializer) {
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
+        return this;
     }
 
     public boolean isAsymmetrical() {
         return asymmetrical;
     }
 
+    public AcLoadFlowParameters setAsymmetrical(boolean asymmetrical) {
+        this.asymmetrical = asymmetrical;
+        return this;
+    }
+
     public OpenLoadFlowParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior() {
         return slackDistributionFailureBehavior;
     }
 
-    public void setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
+    public AcLoadFlowParameters setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
         this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
+        return this;
+    }
+
+    public AcSolverFactory getSolverFactory() {
+        return solverFactory;
+    }
+
+    public AcLoadFlowParameters setSolverFactory(AcSolverFactory solverFactory) {
+        this.solverFactory = Objects.requireNonNull(solverFactory);
+        return this;
+    }
+
+    public boolean isDetailedReport() {
+        return detailedReport;
+    }
+
+    public AcLoadFlowParameters setDetailedReport(boolean detailedReport) {
+        this.detailedReport = detailedReport;
+        return this;
     }
 
     public AcSolverFactory getSolverFactory() {
@@ -124,6 +148,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", asymmetrical=" + asymmetrical +
                 ", slackDistributionFailureBehavior=" + slackDistributionFailureBehavior.name() +
                 ", solverFactory=" + solverFactory.getClass().getSimpleName() +
+                ", detailedReport=" + detailedReport +
                 ')';
     }
 }

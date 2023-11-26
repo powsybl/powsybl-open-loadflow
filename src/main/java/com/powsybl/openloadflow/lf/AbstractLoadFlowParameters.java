@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.lf;
 
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 
 import java.util.Objects;
@@ -15,11 +16,17 @@ import java.util.Objects;
 /**
  * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
  */
-public abstract class AbstractLoadFlowParameters {
+public abstract class AbstractLoadFlowParameters<P extends AbstractLoadFlowParameters<P>> {
 
-    protected final LfNetworkParameters networkParameters;
+    public static final int DEFAULT_MAX_OUTER_LOOP_ITERATIONS = 20;
 
-    protected final MatrixFactory matrixFactory;
+    protected LfNetworkParameters networkParameters;
+
+    protected MatrixFactory matrixFactory;
+
+    protected AbstractLoadFlowParameters() {
+        this(new LfNetworkParameters(), new SparseMatrixFactory());
+    }
 
     protected AbstractLoadFlowParameters(LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
         this.networkParameters = Objects.requireNonNull(networkParameters);
@@ -30,7 +37,17 @@ public abstract class AbstractLoadFlowParameters {
         return networkParameters;
     }
 
+    public P setNetworkParameters(LfNetworkParameters networkParameters) {
+        this.networkParameters = Objects.requireNonNull(networkParameters);
+        return (P) this;
+    }
+
     public MatrixFactory getMatrixFactory() {
         return matrixFactory;
+    }
+
+    public P setMatrixFactory(MatrixFactory matrixFactory) {
+        this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        return (P) this;
     }
 }

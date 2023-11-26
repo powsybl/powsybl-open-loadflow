@@ -41,9 +41,15 @@ public class NewtonRaphson extends AbstractAcSolver {
                          EquationSystem<AcVariableType, AcEquationType> equationSystem,
                          JacobianMatrix<AcVariableType, AcEquationType> j,
                          TargetVector<AcVariableType, AcEquationType> targetVector,
-                         EquationVector<AcVariableType, AcEquationType> equationVector) {
-        super(network, equationSystem, j, targetVector, equationVector);
+                         EquationVector<AcVariableType, AcEquationType> equationVector,
+                         boolean detailedReport) {
+        super(network, equationSystem, j, targetVector, equationVector, detailedReport);
         this.parameters = Objects.requireNonNull(parameters);
+    }
+
+    @Override
+    public String getName() {
+        return "Newton Raphson";
     }
 
     public static List<Pair<Equation<AcVariableType, AcEquationType>, Double>> findLargestMismatches(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, int count) {
@@ -65,7 +71,7 @@ public class NewtonRaphson extends AbstractAcSolver {
         Map<AcEquationType, Pair<Equation<AcVariableType, AcEquationType>, Double>> mismatchEquations = getLargestMismatchByAcEquationType(equationSystem, mismatch);
 
         // report largest mismatches in (P, Q, V) equations
-        Reporter iterationMismatchReporter = parameters.isDetailedReport() ? Reports.createNewtonRaphsonMismatchReporter(reporter, iteration) : null;
+        Reporter iterationMismatchReporter = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reporter, iteration) : null;
 
         for (AcEquationType acEquationType : REPORTED_AC_EQUATION_TYPES) {
             Optional.ofNullable(mismatchEquations.get(acEquationType))
@@ -138,7 +144,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
 
-            if (parameters.isDetailedReport() || LOGGER.isTraceEnabled()) {
+            if (detailedReport || LOGGER.isTraceEnabled()) {
                 reportAndLogLargestMismatchByAcEquationType(reporter, equationSystem, equationVector.getArray(), testResult.getNorm(), iterations.getValue());
             }
 
@@ -177,7 +183,7 @@ public class NewtonRaphson extends AbstractAcSolver {
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
         // initialize state vector
-        initStateVector(network, equationSystem, voltageInitializer);
+        AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
@@ -186,7 +192,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-        if (parameters.isDetailedReport() || LOGGER.isTraceEnabled()) {
+        if (detailedReport || LOGGER.isTraceEnabled()) {
             reportAndLogLargestMismatchByAcEquationType(reporter, equationSystem, equationVector.getArray(), initialTestResult.getNorm(), -1);
         }
 
@@ -206,7 +212,7 @@ public class NewtonRaphson extends AbstractAcSolver {
         }
 
         if (status == AcSolverStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
-            updateNetwork();
+            AcSolverUtil.updateNetwork(network, equationSystem);
         }
 
         // update network state variable
