@@ -20,7 +20,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public interface AcSolverFactory {
 
-    AcSolver create(LfNetwork network, AcLoadFlowParameters parameters,
+    AcSolver create(LfNetwork network,
+                    AcLoadFlowParameters parameters,
                     EquationSystem<AcVariableType, AcEquationType> equationSystem,
                     JacobianMatrix<AcVariableType, AcEquationType> j,
                     TargetVector<AcVariableType, AcEquationType> targetVector,
