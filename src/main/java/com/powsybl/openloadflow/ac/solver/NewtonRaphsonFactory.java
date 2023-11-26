@@ -24,6 +24,6 @@ public class NewtonRaphsonFactory implements AcSolverFactory {
     public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                            JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                            EquationVector<AcVariableType, AcEquationType> equationVector) {
-        return new NewtonRaphson(network, parameters.getNewtonRaphsonParameters(), equationSystem, j, targetVector, equationVector);
+        return new NewtonRaphson(network, parameters.getNewtonRaphsonParameters(), equationSystem, j, targetVector, equationVector, parameters.isDetailedReport());
     }
 }

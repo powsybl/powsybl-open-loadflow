@@ -31,15 +31,19 @@ public abstract class AbstractAcSolver implements AcSolver {
 
     protected final EquationVector<AcVariableType, AcEquationType> equationVector;
 
+    protected boolean detailedReport;
+
     protected AbstractAcSolver(LfNetwork network,
                                EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                JacobianMatrix<AcVariableType, AcEquationType> j,
                                TargetVector<AcVariableType, AcEquationType> targetVector,
-                               EquationVector<AcVariableType, AcEquationType> equationVector) {
+                               EquationVector<AcVariableType, AcEquationType> equationVector,
+                               boolean detailedReport) {
         this.network = Objects.requireNonNull(network);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.j = Objects.requireNonNull(j);
         this.targetVector = Objects.requireNonNull(targetVector);
         this.equationVector = Objects.requireNonNull(equationVector);
+        this.detailedReport = detailedReport;
     }
 }

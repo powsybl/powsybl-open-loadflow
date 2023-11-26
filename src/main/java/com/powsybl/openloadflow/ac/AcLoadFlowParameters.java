@@ -41,6 +41,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private AcSolverFactory solverFactory = new NewtonRaphsonFactory();
 
+    private boolean detailedReport = false;
+
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
     }
@@ -113,6 +115,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public boolean isDetailedReport() {
+        return detailedReport;
+    }
+
+    public AcLoadFlowParameters setDetailedReport(boolean detailedReport) {
+        this.detailedReport = detailedReport;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -126,6 +137,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", asymmetrical=" + asymmetrical +
                 ", slackDistributionFailureBehavior=" + slackDistributionFailureBehavior.name() +
                 ", solverFactory=" + solverFactory.getClass().getSimpleName() +
+                ", detailedReport=" + detailedReport +
                 ')';
     }
 }
