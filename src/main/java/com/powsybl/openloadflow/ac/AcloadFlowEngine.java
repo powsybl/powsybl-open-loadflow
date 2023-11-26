@@ -69,7 +69,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext) {
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getName());
 
-        // for each outer loop re-run Newton-Raphson until stabilization
+        // for each outer loop re-run solver until stabilization
         OuterLoopStatus outerLoopStatus;
         do {
             MutableInt outerLoopIteration = runningContext.outerLoopIterationByType.computeIfAbsent(outerLoop.getName(), k -> new MutableInt());
@@ -92,7 +92,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                             outerLoopIteration.toInteger() + 1, outerLoop.getName());
                 }
 
-                // if not yet stable, restart Newton-Raphson
+                // if not yet stable, restart solver
                 runningContext.lastSolverResult = solver.run(new PreviousValueVoltageInitializer(), nrReporter);
 
                 runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
@@ -141,15 +141,15 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     context.getNetwork().getNumCC(),
                     context.getNetwork().getNumSC());
         }
-        // run initial Newton-Raphson
+        // initial solver run
         runningContext.lastSolverResult = solver.run(voltageInitializer, nrReporter);
 
         runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
 
-        // continue with outer loops only if initial Newton-Raphson succeed
+        // continue with outer loops only if solver succeed
         if (runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED) {
 
-            // re-run all outer loops until Newton-Raphson failed or no more Newton-Raphson iterations are needed
+            // re-run all outer loops until solver failed or no more solver iterations are needed
             int oldNrTotalIterations;
             do {
                 oldNrTotalIterations = runningContext.nrTotalIterations.getValue();
@@ -159,7 +159,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), solver, runningContext);
 
                     // continue with next outer loop only if:
-                    // - last Newton-Raphson succeed,
+                    // - last solver run succeed,
                     // - last OuterLoopStatus is not FAILED
                     // - we have not reached max number of outer loop iteration
                     if (runningContext.lastSolverResult.getStatus() != AcSolverStatus.CONVERGED
