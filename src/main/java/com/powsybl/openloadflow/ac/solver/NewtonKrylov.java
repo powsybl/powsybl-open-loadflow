@@ -50,7 +50,7 @@ public class NewtonKrylov extends AbstractAcSolver {
         // initialize state vector
         AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 
-        KinsolParameters kinsolParameters = new KinsolParameters(100, false);
+        KinsolParameters kinsolParameters = new KinsolParameters();
         Kinsol kinsol = new Kinsol((SparseMatrix) j.getMatrix(), (x, f) -> {
             equationSystem.getStateVector().set(x);
             equationVector.minus(targetVector);
