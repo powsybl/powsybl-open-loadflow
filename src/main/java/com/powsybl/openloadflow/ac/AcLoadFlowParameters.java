@@ -8,9 +8,6 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
-import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
-import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
@@ -125,14 +122,6 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
     public AcLoadFlowParameters setDetailedReport(boolean detailedReport) {
         this.detailedReport = detailedReport;
         return this;
-    }
-
-    public AcSolverFactory getSolverFactory() {
-        return solverFactory;
-    }
-
-    public void setSolverFactory(AcSolverFactory solverFactory) {
-        this.solverFactory = Objects.requireNonNull(solverFactory);
     }
 
     @Override

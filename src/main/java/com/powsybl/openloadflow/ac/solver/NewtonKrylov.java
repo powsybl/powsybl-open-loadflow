@@ -29,7 +29,12 @@ public class NewtonKrylov extends AbstractAcSolver {
     public NewtonKrylov(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                         JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                         EquationVector<AcVariableType, AcEquationType> equationVector) {
-        super(network, equationSystem, j, targetVector, equationVector);
+        super(network, equationSystem, j, targetVector, equationVector, false);
+    }
+
+    @Override
+    public String getName() {
+        return "Newton Krylov";
     }
 
     private AcSolverStatus getStatus(KinsolStatus status) {
@@ -43,7 +48,7 @@ public class NewtonKrylov extends AbstractAcSolver {
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
         // initialize state vector
-        initStateVector(network, equationSystem, voltageInitializer);
+        AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 
         KinsolParameters kinsolParameters = new KinsolParameters(100, false);
         Kinsol kinsol = new Kinsol((SparseMatrix) j.getMatrix(), (x, f) -> {
@@ -58,7 +63,7 @@ public class NewtonKrylov extends AbstractAcSolver {
         KinsolResult result = kinsol.solveTransposed(equationSystem.getStateVector().get(), kinsolParameters);
 
         if (result.getStatus() == KinsolStatus.KIN_SUCCESS) {
-            updateNetwork();
+            AcSolverUtil.updateNetwork(network, equationSystem);
         }
         return new AcSolverResult(getStatus(result.getStatus()), (int) result.getIterations(), 0);
     }
