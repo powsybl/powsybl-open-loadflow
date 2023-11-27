@@ -52,6 +52,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private List<LfBus> slackBuses;
 
+    private LfBus referenceBus;
+
     private final List<LfBranch> branches = new ArrayList<>();
 
     private final Map<String, LfBranch> branchesById = new HashMap<>();
@@ -160,12 +162,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(false);
             }
-            slackBuses.get(0).setReference(false);
+            referenceBus.setReference(false);
         }
         slackBuses = null;
+        referenceBus = null;
     }
 
-    public void updateSlackBuses() {
+    public void updateSlackBusesAndReferenceBus() {
         if (slackBuses == null) {
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses();
@@ -173,7 +176,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(true);
             }
-            slackBuses.get(0).setReference(true);
+            referenceBus = slackBuses.get(0);
+            referenceBus.setReference(true);
         }
     }
 
@@ -251,8 +255,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public List<LfBus> getSlackBuses() {
-        updateSlackBuses();
+        updateSlackBusesAndReferenceBus();
         return slackBuses;
+    }
+
+    public LfBus getReferenceBus() {
+        updateSlackBusesAndReferenceBus();
+        return referenceBus;
     }
 
     public List<LfShunt> getShunts() {
@@ -432,7 +441,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void writeJson(Writer writer) {
         Objects.requireNonNull(writer);
-        updateSlackBuses();
+        updateSlackBusesAndReferenceBus();
         try (JsonGenerator jsonGenerator = new JsonFactory()
                 .createGenerator(writer)
                 .useDefaultPrettyPrinter()) {

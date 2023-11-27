@@ -101,24 +101,34 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isSlack() {
-        network.updateSlackBuses();
+        network.updateSlackBusesAndReferenceBus();
         return slack;
     }
 
     @Override
     public void setSlack(boolean slack) {
-        this.slack = slack;
+        if (slack != this.slack) {
+            this.slack = slack;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onSlackBusChange(this, slack);
+            }
+        }
     }
 
     @Override
     public boolean isReference() {
-        network.updateSlackBuses();
+        network.updateSlackBusesAndReferenceBus();
         return reference;
     }
 
     @Override
     public void setReference(boolean reference) {
-        this.reference = reference;
+        if (reference != this.reference) {
+            this.reference = reference;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onReferenceBusChange(this, reference);
+            }
+        }
     }
 
     @Override

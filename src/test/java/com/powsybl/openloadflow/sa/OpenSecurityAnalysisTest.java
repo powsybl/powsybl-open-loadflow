@@ -2742,4 +2742,19 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(p2, l1Result.getP2(), DELTA_POWER);
         assertEquals(q2, l1Result.getQ2(), DELTA_POWER);
     }
+
+    @Test
+    void testSlackBusRelocation() {
+        Network network = createNodeBreakerNetworkForTestingLineOpenOneSide();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "VL1_1");
+
+        List<Contingency> contingencies = network.getBusbarSectionStream()
+                .map(bbs -> Contingency.busbarSection(bbs.getId()))
+                .toList();
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
+        assertEquals(contingencies.size(), result.getPostContingencyResults().size());
+    }
 }

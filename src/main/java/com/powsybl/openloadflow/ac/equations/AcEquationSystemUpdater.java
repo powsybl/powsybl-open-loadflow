@@ -197,4 +197,23 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             branch.setI2(EvaluableConstants.NAN);
         }
     }
+
+    @Override
+    public void onSlackBusChange(LfBus bus, boolean slack) {
+        equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P)
+                .orElseThrow()
+                .setActive(!slack);
+    }
+
+    @Override
+    public void onReferenceBusChange(LfBus bus, boolean reference) {
+        if (reference) {
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_PHI)
+                    .setActive(true);
+        } else {
+            equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_PHI)
+                    .orElseThrow()
+                    .setActive(false);
+        }
+    }
 }

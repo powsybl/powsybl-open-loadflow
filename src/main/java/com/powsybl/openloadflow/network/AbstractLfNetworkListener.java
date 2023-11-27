@@ -99,4 +99,14 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
         // empty
     }
+
+    @Override
+    public void onSlackBusChange(LfBus bus, boolean slack) {
+        // empty
+    }
+
+    @Override
+    public void onReferenceBusChange(LfBus bus, boolean reference) {
+        // empty
+    }
 }

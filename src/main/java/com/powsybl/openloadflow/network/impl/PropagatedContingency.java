@@ -349,6 +349,10 @@ public class PropagatedContingency {
                 && loadIdsToLoose.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
     }
 
+    private static boolean isIsolatedBus(GraphConnectivity<LfBus, LfBranch> connectivity, LfBus bus) {
+        return connectivity.getConnectedComponent(bus).size() == 1;
+    }
+
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
         // update connectivity with triggered lostBranches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
@@ -376,10 +380,9 @@ public class PropagatedContingency {
                 .filter(LfBranch::isConnectedAtBothSides)
                 .forEach(connectivity::removeEdge);
 
-        if (connectivity.getConnectedComponent(network.getSlackBus()).size() == 1) {
-            // FIXME
-            // If a contingency leads to an isolated slack bus, this bus is considered as the main component.
-            // In that case, we have an issue with a different number of variables and equations.
+        if (isIsolatedBus(connectivity, network.getSlackBus())) {
+            // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
+            // TODO
             LOGGER.error("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
             connectivity.undoTemporaryChanges();
             return Optional.empty();
