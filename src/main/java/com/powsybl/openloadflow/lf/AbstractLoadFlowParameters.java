@@ -15,6 +15,7 @@ import java.util.Objects;
 
 /**
  * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractLoadFlowParameters<P extends AbstractLoadFlowParameters<P>> {
 
