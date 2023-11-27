@@ -47,14 +47,14 @@ public final class AcSolverUtil {
                     break;
 
                 case DUMMY_P,
-                        DUMMY_Q,
-                        BUS_PHI_ZERO,
-                        BUS_PHI_NEGATIVE:
+                     DUMMY_Q,
+                     BUS_PHI_ZERO,
+                     BUS_PHI_NEGATIVE:
                     x[v.getRow()] = 0;
                     break;
 
                 case BUS_V_ZERO,
-                        BUS_V_NEGATIVE:
+                     BUS_V_NEGATIVE:
                     // when balanced, zero and negative sequence should be zero
                     // v_zero and v_negative initially set to zero will bring a singularity to the Jacobian
                     // We chose to set the initial value to a small one, but different from zero
@@ -113,7 +113,7 @@ public final class AcSolverUtil {
                     break;
 
                 case DUMMY_P,
-                        DUMMY_Q:
+                     DUMMY_Q:
                     // nothing to do
                     break;
 
