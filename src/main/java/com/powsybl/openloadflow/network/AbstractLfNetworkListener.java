@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.List;
 
 /**
@@ -94,7 +96,7 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onBranchConnectionStatusChange(LfBranch branch, Side side, boolean connected) {
+    public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
         // empty
     }
 }

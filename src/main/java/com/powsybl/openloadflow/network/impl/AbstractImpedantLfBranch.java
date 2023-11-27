@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
@@ -108,7 +109,7 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
         if (connectedSide1 != this.connectedSide1) {
             this.connectedSide1 = connectedSide1;
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onBranchConnectionStatusChange(this, Side.ONE, connectedSide1);
+                listener.onBranchConnectionStatusChange(this, TwoSides.ONE, connectedSide1);
             }
             if (!isConnectedSide1() && !isConnectedSide2()) {
                 setDisabled(false);
@@ -129,7 +130,7 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
         if (connectedSide2 != this.connectedSide2) {
             this.connectedSide2 = connectedSide2;
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onBranchConnectionStatusChange(this, Side.TWO, connectedSide1);
+                listener.onBranchConnectionStatusChange(this, TwoSides.TWO, connectedSide1);
             }
             if (!isConnectedSide1() && !isConnectedSide2()) {
                 setDisabled(false);

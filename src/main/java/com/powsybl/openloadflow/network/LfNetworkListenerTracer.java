@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +143,7 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
-    public void onBranchConnectionStatusChange(LfBranch branch, Side side, boolean connected) {
+    public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
         LOGGER.trace("onBranchConnectionStatusChange(branch={}, side={}, connected={})", branch, side, connected);
         delegate.onBranchConnectionStatusChange(branch, side, connected);
     }

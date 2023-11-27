@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.List;
 
 /**
@@ -45,5 +47,5 @@ public interface LfNetworkListener {
 
     void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel);
 
-    void onBranchConnectionStatusChange(LfBranch branch, Side side, boolean connected);
+    void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected);
 }

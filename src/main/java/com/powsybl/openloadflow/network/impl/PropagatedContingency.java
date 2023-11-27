@@ -252,7 +252,7 @@ public class PropagatedContingency {
                 case THREE_WINDINGS_TRANSFORMER:
                     // terminal in always by construction the side 1 of the LF branch
                     ThreeWindingsTransformer twt = (ThreeWindingsTransformer) connectable;
-                    for (ThreeWindingsTransformer.Side side : ThreeWindingsTransformer.Side.values()) {
+                    for (ThreeSides side : ThreeSides.values()) {
                         if (twt.getTerminal(side) == terminal) {
                             branchIdsToOpenSide1.add(LfLegBranch.getId(side, connectable.getId()));
                             topoConfig.getBranchIdsOpenableSide1().add(connectable.getId());

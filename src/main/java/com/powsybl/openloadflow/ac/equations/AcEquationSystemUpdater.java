@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
@@ -164,7 +165,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
-    public void onBranchConnectionStatusChange(LfBranch branch, Side side, boolean connected) {
+    public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
         AcEquationSystemCreator.updateBranchEquations(branch);
         if (branch.isConnectedSide1() && branch.isConnectedSide2()) {
             branch.setP1(branch.getClosedP1());
