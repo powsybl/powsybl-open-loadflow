@@ -23,6 +23,14 @@ public class LfTopoConfig {
 
     private final Set<String> busIdsToLose;
 
+    private final Set<String> branchIdsWithPtcToRetain = new HashSet<>();
+
+    private final Set<String> branchIdsWithRtcToRetain = new HashSet<>();
+
+    private final Set<String> branchIdsOpenableSide1 = new HashSet<>();
+
+    private final Set<String> branchIdsOpenableSide2 = new HashSet<>();
+
     public LfTopoConfig() {
         switchesToOpen = new HashSet<>();
         switchesToClose = new HashSet<>();
@@ -35,14 +43,6 @@ public class LfTopoConfig {
         this.switchesToClose = new HashSet<>(other.switchesToClose);
         this.busIdsToLose = new HashSet<>(other.busIdsToLose);
     }
-
-    private final Set<String> branchIdsWithPtcToRetain = new HashSet<>();
-
-    private final Set<String> branchIdsWithRtcToRetain = new HashSet<>();
-
-    private final Set<String> branchIdsOpenableSide1 = new HashSet<>();
-
-    private final Set<String> branchIdsOpenableSide2 = new HashSet<>();
 
     public Set<Switch> getSwitchesToOpen() {
         return switchesToOpen;

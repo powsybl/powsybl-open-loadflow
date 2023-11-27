@@ -41,11 +41,7 @@ public class PropagatedContingency {
 
     private final Set<String> busIdsToLose;
 
-    private final Set<String> branchIdsToOpen = new LinkedHashSet<>();
-
-    private final Set<String> branchIdsToOpenSide1 = new LinkedHashSet<>();
-
-    private final Set<String> branchIdsToOpenSide2 = new LinkedHashSet<>();
+    private final Map<String, DisabledBranchStatus> branchIdsToOpen = new LinkedHashMap<>();
 
     private final Set<String> hvdcIdsToOpen = new HashSet<>(); // for HVDC in AC emulation
 
@@ -68,15 +64,7 @@ public class PropagatedContingency {
     }
 
     public Set<String> getBranchIdsToOpen() {
-        return branchIdsToOpen;
-    }
-
-    public Set<String> getBranchIdsToOpenSide1() {
-        return branchIdsToOpenSide1;
-    }
-
-    public Set<String> getBranchIdsToOpenSide2() {
-        return branchIdsToOpenSide2;
+        return new HashSet<>(branchIdsToOpen.keySet());
     }
 
     public Set<Switch> getSwitchesToOpen() {
@@ -175,9 +163,18 @@ public class PropagatedContingency {
         return propagatedContingency;
     }
 
+    private void addBranchIdToOpen(String branchId, DisabledBranchStatus status) {
+        DisabledBranchStatus oldStatus = branchIdsToOpen.get(branchId);
+        if (oldStatus == null) {
+            branchIdsToOpen.put(branchId, status);
+        } else if (status == DisabledBranchStatus.BOTH_SIDES || status != oldStatus) {
+            branchIdsToOpen.put(branchId, DisabledBranchStatus.BOTH_SIDES);
+        }
+    }
+
     private void complete(LfTopoConfig topoConfig, PropagatedContingencyCreationParameters creationParameters) {
         for (Switch sw : switchesToOpen) {
-            branchIdsToOpen.add(sw.getId()); // we open both sides
+            addBranchIdToOpen(sw.getId(), DisabledBranchStatus.BOTH_SIDES); // we open both sides
         }
 
         // process terminals disconnected, in particular process injection power shift
@@ -188,21 +185,20 @@ public class PropagatedContingency {
                      TWO_WINDINGS_TRANSFORMER:
                     Branch<?> branch = (Branch<?>) connectable;
                     if (terminal == branch.getTerminal1()) {
-                        branchIdsToOpenSide1.add(connectable.getId());
+                        addBranchIdToOpen(connectable.getId(), DisabledBranchStatus.SIDE_1);
                         topoConfig.getBranchIdsOpenableSide1().add(connectable.getId());
                     } else {
-                        branchIdsToOpenSide2.add(connectable.getId());
+                        addBranchIdToOpen(connectable.getId(), DisabledBranchStatus.SIDE_2);
                         topoConfig.getBranchIdsOpenableSide2().add(connectable.getId());
                     }
-                    branchIdsToOpen.add(connectable.getId()); // TODO
                     break;
                 case DANGLING_LINE:
                     DanglingLine dl = (DanglingLine) connectable;
                     // as we terminal is only on network side, we open both sides in LF network
                     if (dl.isPaired()) {
-                        branchIdsToOpen.add(dl.getTieLine().orElseThrow().getId());
+                        addBranchIdToOpen(dl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES);
                     } else {
-                        branchIdsToOpen.add(dl.getId());
+                        addBranchIdToOpen(dl.getId(), DisabledBranchStatus.BOTH_SIDES);
                     }
                     break;
 
@@ -254,15 +250,11 @@ public class PropagatedContingency {
                     ThreeWindingsTransformer twt = (ThreeWindingsTransformer) connectable;
                     for (ThreeSides side : ThreeSides.values()) {
                         if (twt.getTerminal(side) == terminal) {
-                            branchIdsToOpenSide1.add(LfLegBranch.getId(side, connectable.getId()));
+                            addBranchIdToOpen(LfLegBranch.getId(side, connectable.getId()), DisabledBranchStatus.SIDE_1);
                             topoConfig.getBranchIdsOpenableSide1().add(connectable.getId());
                             break;
                         }
                     }
-                    // TODO
-                    branchIdsToOpen.add(connectable.getId() + "_leg_1");
-                    branchIdsToOpen.add(connectable.getId() + "_leg_2");
-                    branchIdsToOpen.add(connectable.getId() + "_leg_3");
                     break;
 
                 default:
@@ -352,28 +344,28 @@ public class PropagatedContingency {
     }
 
     public boolean hasNoImpact() {
-        return branchIdsToOpen.isEmpty() && branchIdsToOpenSide1.isEmpty() && branchIdsToOpenSide2.isEmpty()
+        return branchIdsToOpen.isEmpty()
                 && hvdcIdsToOpen.isEmpty() && generatorIdsToLose.isEmpty()
                 && loadIdsToLoose.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
-        // update connectivity with triggered branches of this network
+        // update connectivity with triggered lostBranches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
 
-        List<LfBranch> branchesToOpen = branchIdsToOpen.stream()
+        List<LfBranch> branchesToOpen = branchIdsToOpen.keySet().stream()
                 .map(network::getBranchById)
                 .filter(Objects::nonNull) // could be in another component
                 .collect(Collectors.toList());
 
-        // we add the branches connected to buses to lose.
+        // we add the lostBranches connected to lostBuses to lose.
         busIdsToLose.stream().map(network::getBusById)
                 .filter(Objects::nonNull)
                 .forEach(bus -> {
                     if (bus.isSlack()) {
                         // slack bus disabling is not supported
-                        // we keep the slack bus enabled and the connected branches
+                        // we keep the slack bus enabled and the connected lostBranches
                         LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", bus.getId());
                     } else {
                         branchesToOpen.addAll(bus.getBranches());
@@ -396,20 +388,21 @@ public class PropagatedContingency {
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
         int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
-        Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
-        Map<LfBranch, DisabledBranchStatus> branches = connectivity.getEdgesRemovedFromMainComponent()
-                        .stream().collect(Collectors.toMap(Function.identity(), branch -> DisabledBranchStatus.BOTH_SIDES));
+        Set<LfBus> lostBuses = connectivity.getVerticesRemovedFromMainComponent();
+        Map<LfBranch, DisabledBranchStatus> lostBranches = connectivity.getEdgesRemovedFromMainComponent().stream()
+                .collect(Collectors.toMap(Function.identity(), branch -> DisabledBranchStatus.BOTH_SIDES));
 
         // we should manage branches open at one side
         branchesToOpen.stream()
-                .filter(b -> !b.isConnectedAtBothSides())
-                .forEach(branch -> branches.put(branch, DisabledBranchStatus.BOTH_SIDES));
-        for (LfBus bus : buses) {
-            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides())
-                    .forEach(branch -> branches.put(branch, DisabledBranchStatus.BOTH_SIDES));
+                .filter(branch -> !branch.isConnectedAtBothSides())
+                .forEach(branch -> lostBranches.put(branch, branchIdsToOpen.get(branch.getId())));
+        for (LfBus bus : lostBuses) {
+            bus.getBranches().stream()
+                    .filter(branch -> !branch.isConnectedAtBothSides())
+                    .forEach(branch -> lostBranches.put(branch, branchIdsToOpen.get(branch.getId())));
         }
 
-        // reset connectivity to discard triggered branches
+        // reset connectivity to discard triggered lostBranches
         connectivity.undoTemporaryChanges();
 
         Map<LfShunt, AdmittanceShift> shunts = new HashMap<>(1);
@@ -442,7 +435,7 @@ public class PropagatedContingency {
         }
 
         // find hvdc lines that are part of this network
-        Set<LfHvdc> hvdcs = hvdcIdsToOpen.stream()
+        Set<LfHvdc> lostHvdcs = hvdcIdsToOpen.stream()
                 .map(network::getHvdcById)
                 .filter(Objects::nonNull) // could be in another component
                 .collect(Collectors.toSet());
@@ -451,21 +444,21 @@ public class PropagatedContingency {
             // FIXME
             // if we loose a bus with a converter station, the other converter station should be considered to if in the
             // same synchronous component (hvdc setpoint mode).
-            if (buses.contains(hvdcLine.getBus1()) || buses.contains(hvdcLine.getBus2())) {
-                hvdcs.add(hvdcLine);
+            if (lostBuses.contains(hvdcLine.getBus1()) || lostBuses.contains(hvdcLine.getBus2())) {
+                lostHvdcs.add(hvdcLine);
             }
         }
 
-        if (branches.isEmpty()
-                && buses.isEmpty()
+        if (lostBranches.isEmpty()
+                && lostBuses.isEmpty()
                 && shunts.isEmpty()
                 && loads.isEmpty()
                 && generators.isEmpty()
-                && hvdcs.isEmpty()) {
+                && lostHvdcs.isEmpty()) {
             LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(buses, branches, hvdcs), shunts, loads, generators));
+        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(lostBuses, lostBranches, lostHvdcs), shunts, loads, generators));
     }
 }

@@ -2687,4 +2687,59 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, limitViolations.size());
         assertEquals(LimitViolationUtils.PERMANENT_LIMIT_NAME, limitViolations.get(0).getLimitName());
     }
+
+    private static Network createNodeBreakerNetworkForTestingLineOpenOneSide() {
+        Network network = createNodeBreakerNetwork();
+        VoltageLevel vl1 = network.getVoltageLevel("VL1");
+        vl1.getNodeBreakerView().removeInternalConnections(0, 5);
+        vl1.getNodeBreakerView().newBreaker()
+                .setId("NBR")
+                .setNode1(0)
+                .setNode2(5)
+                .setOpen(false)
+                .add();
+        return network;
+    }
+
+    @Test
+    void testLineOpenOneSideContingency() {
+        Network network = createNodeBreakerNetworkForTestingLineOpenOneSide();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "VL1_1");
+
+        Line l1 = network.getLine("L1");
+        l1.getTerminal1().disconnect();
+        LoadFlowResult lfResult = runLoadFlow(network, lfParameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, lfResult.getComponentResults().get(0).getStatus());
+        double p1 = l1.getTerminal1().getP();
+        double q1 = l1.getTerminal1().getQ();
+        double p2 = l1.getTerminal2().getP();
+        double q2 = l1.getTerminal2().getQ();
+        assertTrue(Double.isNaN(p1));
+        assertTrue(Double.isNaN(q1));
+        assertEquals(0.016, p2, DELTA_POWER);
+        assertEquals(-55.873, q2, DELTA_POWER);
+
+        network = createNodeBreakerNetworkForTestingLineOpenOneSide();
+        List<Contingency> contingencies = List.of(Contingency.busbarSection("BBS1"));
+
+        List<StateMonitor> stateMonitors = List.of(new StateMonitor(ContingencyContext.all(),
+                                                                    Set.of("L1"),
+                                                                    Collections.emptySet(),
+                                                                    Collections.emptySet()));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, stateMonitors, lfParameters);
+
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(1, result.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        BranchResult l1Result = postContingencyResult.getNetworkResult().getBranchResult("L1");
+        assertNotNull(l1Result);
+        assertEquals(0, l1Result.getP1(), DELTA_POWER);
+        assertEquals(0, l1Result.getQ1(), DELTA_POWER);
+        assertEquals(p2, l1Result.getP2(), DELTA_POWER);
+        assertEquals(q2, l1Result.getQ2(), DELTA_POWER);
+    }
 }
