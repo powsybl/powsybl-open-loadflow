@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
@@ -35,7 +36,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private VoltageInitializer voltageInitializer = new UniformValueVoltageInitializer();
 
-    private boolean asymmetrical = false;
+    private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
 
     private OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
 

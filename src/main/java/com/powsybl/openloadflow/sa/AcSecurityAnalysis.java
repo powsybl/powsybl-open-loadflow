@@ -94,8 +94,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
         boolean breakers = topoConfig.isBreaker();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
-        acParameters.getNetworkParameters()
-                .setCacheEnabled(false); // force not caching as not supported in secu analysis
+        acParameters.getNetworkParameters().setCacheEnabled(false); // force not caching as not supported in secu analysis
         acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
 
         // create networks including all necessary switches
