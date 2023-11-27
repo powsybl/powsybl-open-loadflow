@@ -531,7 +531,6 @@ public class AcEquationSystemCreator {
         if (branch.isTransformerReactivePowerController()) {
             EquationTerm<AcVariableType, AcEquationType> r1 = equationSystem.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1)
                     .createTerm();
-            branch.setR1(r1);
             equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_RHO1)
                     .addTerm(r1);
         }
@@ -561,7 +560,7 @@ public class AcEquationSystemCreator {
         // de-activate/activate constant R1 equation
         equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
                 .orElseThrow()
-                .setActive(!controllerBranch.isDisabled());
+                .setActive(!controlEnabled && !controllerBranch.isDisabled());
     }
 
     public static void updateTransformerPhaseControlEquations(TransformerPhaseControl phaseControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
@@ -701,7 +700,7 @@ public class AcEquationSystemCreator {
     }
 
     protected static boolean isDeriveR1(LfBranch branch) {
-        return branch.isVoltageController(); //|| branch.isTransformerReactivePowerController();
+        return branch.isVoltageController() || branch.isTransformerReactivePowerController();
     }
 
     protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,

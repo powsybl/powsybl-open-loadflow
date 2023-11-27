@@ -679,9 +679,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             return;
         }
 
-        double targetValue = rtc.getRegulationValue(); // MW
-        double targetDeadband = rtc.getTargetDeadband();
-        // TODO : check if the side defined is correct
+        double targetValue = rtc.getRegulationValue() / PerUnit.SB;
+        double targetDeadband = rtc.getTargetDeadband() / PerUnit.SB;
         TwoSides side = getLfBus(rtc.getRegulationTerminal(), lfNetwork, parameters.isBreakers()) == controlledBranch.getBus1() ? TwoSides.ONE : TwoSides.TWO;
 
         controlledBranch.getTransformerReactivePowerControl().ifPresentOrElse(rpc -> {
