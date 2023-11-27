@@ -399,7 +399,7 @@ public class PropagatedContingency {
         for (LfBus bus : lostBuses) {
             bus.getBranches().stream()
                     .filter(branch -> !branch.isConnectedAtBothSides())
-                    .forEach(branch -> lostBranches.put(branch, branchIdsToOpen.get(branch.getId())));
+                    .forEach(branch -> lostBranches.put(branch, DisabledBranchStatus.BOTH_SIDES));
         }
 
         // reset connectivity to discard triggered lostBranches
