@@ -124,12 +124,12 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetDeadband(0)
                 .setRegulating(true)
                 .setTapPosition(1)
-                .setRegulationTerminal(t2wt.getTerminal(Branch.Side.TWO))
+                .setRegulationTerminal(t2wt.getTerminal(TwoSides.TWO))
                 .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER_CONTROL)
                 .setRegulationValue(3.70E-5); // TODO : change me for consistent value
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        System.out.println(t2wt.getTerminal(Branch.Side.TWO).getQ());
+        System.out.println(t2wt.getTerminal(TwoSides.TWO).getQ());
         assertTrue(result.isOk());
 
         assertVoltageEquals(134.281, bus2);

@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
@@ -97,18 +98,18 @@ public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOu
         }
 
         @SuppressWarnings("unchecked")
-        private static EquationTerm<AcVariableType, AcEquationType> getCalculatedQ(LfBranch controlledBranch, ControlledSide controlledSide) {
-            var calculatedQ = controlledSide == ControlledSide.ONE ? controlledBranch.getQ1() : controlledBranch.getQ2();
+        private static EquationTerm<AcVariableType, AcEquationType> getCalculatedQ(LfBranch controlledBranch, TwoSides controlledSide) {
+            var calculatedQ = controlledSide == TwoSides.ONE ? controlledBranch.getQ1() : controlledBranch.getQ2();
             return (EquationTerm<AcVariableType, AcEquationType>) calculatedQ;
         }
 
-        double calculateSensitivityFromRToQ(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
+        double calculateSensitivityFromRToQ(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide) {
             return getCalculatedQ(controlledBranch, controlledSide)
                     .calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
         }
     }
 
-    private boolean adjustWithController(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide, IncrementalReactivePowerContextData contextData,
+    private boolean adjustWithController(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide, IncrementalReactivePowerContextData contextData,
                                          double diffQ, SensitivityContext sensitivities,
                                          List<String> controlledBranchesWithAllItsControllersToLimit) {
         // only one transformer controls a branch
@@ -158,10 +159,10 @@ public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOu
 
                 // TODO : add case with more controllers
                 LfBranch controllers = reactivePowerControl.getControllerBranch();
-                ControlledSide controlledSide = reactivePowerControl.getControlledSide();
+                TwoSides controlledSide = reactivePowerControl.getControlledSide();
                 LOGGER.trace("Controlled branch '{}' is outside of its deadband (half is {} MVar) and could need a reactive power adjustment of {} MVar",
                         controlledBranch.getId(), halfTargetDeadband, diffQ);
-                boolean adjusted = adjustWithController(controllers, controlledBranch, controlledSide, contextData, diffQ, sensitivityContext,  controlledBranchesWithAllItsControllersToLimit);
+                boolean adjusted = adjustWithController(controllers, controlledBranch, controlledSide, contextData, diffQ, sensitivityContext, controlledBranchesWithAllItsControllersToLimit);
                 // If we adjusted the value, outerloop is unstable
                 if (adjusted) {
                     controlledBranchesAdjusted.add(controlledBranch.getId());
@@ -198,7 +199,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOu
 
     private static double getDiffQ(TransformerReactivePowerControl reactivePowerControl) {
         double targetQ = reactivePowerControl.getTargetValue();
-        double q = reactivePowerControl.getControlledSide() == ControlledSide.ONE ? reactivePowerControl.getControlledBranch().getQ1().eval()
+        double q = reactivePowerControl.getControlledSide() == TwoSides.ONE ? reactivePowerControl.getControlledBranch().getQ1().eval()
                 : reactivePowerControl.getControlledBranch().getQ2().eval();
         return targetQ - q;
     }

@@ -57,7 +57,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected final Map<LoadFlowModel, ZeroImpedanceContext> zeroImpedanceContextByModel = new EnumMap<>(LoadFlowModel.class);
 
-
     protected Evaluable r1;
     protected Evaluable a1;
 

@@ -538,7 +538,7 @@ public class AcEquationSystemCreator {
 
         if (branch.isTransformerReactivePowerControlled()) {
             TransformerReactivePowerControl reactivePowerControl = branch.getTransformerReactivePowerControl().orElseThrow();
-            EquationTerm<AcVariableType, AcEquationType> p = reactivePowerControl.getControlledSide() == ControlledSide.ONE
+            EquationTerm<AcVariableType, AcEquationType> p = reactivePowerControl.getControlledSide() == TwoSides.ONE
                     ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
                     : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
             equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
@@ -546,7 +546,6 @@ public class AcEquationSystemCreator {
                     .setActive(false); // by default BRANCH_TARGET_RHO1 is active and BRANCH_TARGET_Q inactive
         }
     }
-
 
     public static void updateTransformerReactivePowerControlEquations(TransformerReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBranch controllerBranch = reactivePowerControl.getControllerBranch();

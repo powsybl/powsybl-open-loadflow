@@ -533,7 +533,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
-            for (ThreeWindingsTransformer.Side side : ThreeWindingsTransformer.Side.values()) {
+            for (ThreeSides side : ThreeSides.values()) {
                 RatioTapChanger rtc = t3wt.getLeg(side).getRatioTapChanger();
                 createTransformerReactivePowerControl(lfNetwork, rtc, LfLegBranch.getId(side, t3wt.getId()), parameters, report);
             }
@@ -682,7 +682,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         double targetValue = rtc.getRegulationValue(); // MW
         double targetDeadband = rtc.getTargetDeadband();
         // TODO : check if the side defined is correct
-        ControlledSide side = getLfBus(rtc.getRegulationTerminal(), lfNetwork, parameters.isBreakers()) == controlledBranch.getBus1() ? ControlledSide.ONE : ControlledSide.TWO;
+        TwoSides side = getLfBus(rtc.getRegulationTerminal(), lfNetwork, parameters.isBreakers()) == controlledBranch.getBus1() ? TwoSides.ONE : TwoSides.TWO;
 
         controlledBranch.getTransformerReactivePowerControl().ifPresentOrElse(rpc -> {
             LOGGER.trace("Controlled branch '{}' already has a reactive power control: not implemented yet.", controlledBranch.getId());

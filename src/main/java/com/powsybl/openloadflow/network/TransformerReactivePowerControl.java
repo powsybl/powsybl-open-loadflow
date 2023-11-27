@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -17,9 +19,9 @@ public class TransformerReactivePowerControl extends Control {
     private final LfBranch controllerBranch;
     private final LfBranch controlledBranch;
     private final Double targetDeadband;
-    private final ControlledSide controlledSide;
+    private final TwoSides controlledSide;
 
-    public TransformerReactivePowerControl(LfBranch controlledBranch, ControlledSide controlledSide, LfBranch controllerBranch, double targetValue, double targetDeadband) {
+    public TransformerReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, LfBranch controllerBranch, double targetValue, double targetDeadband) {
         super(targetValue);
         this.targetDeadband = Objects.requireNonNull(targetDeadband);
         this.controlledBranch = Objects.requireNonNull(controlledBranch);
@@ -35,7 +37,7 @@ public class TransformerReactivePowerControl extends Control {
         return controlledBranch;
     }
 
-    public ControlledSide getControlledSide() {
+    public TwoSides getControlledSide() {
         return controlledSide;
     }
 
