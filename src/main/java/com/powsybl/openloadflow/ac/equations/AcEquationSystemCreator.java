@@ -528,7 +528,7 @@ public class AcEquationSystemCreator {
 
     protected static void createTransformerReactivePowerControlEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                  boolean deriveA1, boolean deriveR1) {
-        if (deriveR1) {
+        if (branch.isTransformerReactivePowerController()) {
             EquationTerm<AcVariableType, AcEquationType> r1 = equationSystem.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1)
                     .createTerm();
             branch.setR1(r1);
@@ -701,7 +701,7 @@ public class AcEquationSystemCreator {
     }
 
     protected static boolean isDeriveR1(LfBranch branch) {
-        return branch.isVoltageController() || branch.isTransformerReactivePowerController();
+        return branch.isVoltageController(); //|| branch.isTransformerReactivePowerController();
     }
 
     protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,

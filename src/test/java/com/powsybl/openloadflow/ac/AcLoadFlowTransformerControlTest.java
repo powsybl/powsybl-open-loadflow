@@ -125,7 +125,7 @@ class AcLoadFlowTransformerControlTest {
                 .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationTerminal(t2wt.getTerminal(TwoSides.TWO))
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER_CONTROL)
+                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(3.70E-5); // TODO : change me for consistent value
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
