@@ -523,7 +523,7 @@ public class LfNetworkParameters {
                 ", distributedOnConformLoad=" + distributedOnConformLoad +
                 ", phaseControl=" + phaseControl +
                 ", transformerVoltageControl=" + transformerVoltageControl +
-                ", transformerReactivePowerControl" + transformerReactivePowerControl +
+                ", transformerReactivePowerControl=" + transformerReactivePowerControl +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", generatorReactivePowerRemoteControl=" + generatorReactivePowerRemoteControl +
                 ", transformerReactivePowerControl=" + transformerReactivePowerControl +
