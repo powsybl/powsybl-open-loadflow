@@ -14,31 +14,19 @@ import java.util.Optional;
 /**
  * @author Pierre Arvy <pierre.arvy at artelys.com>
  */
-public class TransformerReactivePowerControl extends Control {
+public class TransformerReactivePowerControl extends ReactivePowerControl {
 
     private final LfBranch controllerBranch;
-    private final LfBranch controlledBranch;
     private final Double targetDeadband;
-    private final TwoSides controlledSide;
 
     public TransformerReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, LfBranch controllerBranch, double targetValue, double targetDeadband) {
-        super(targetValue);
+        super(controlledBranch, controlledSide, targetValue);
         this.targetDeadband = Objects.requireNonNull(targetDeadband);
-        this.controlledBranch = Objects.requireNonNull(controlledBranch);
-        this.controlledSide = Objects.requireNonNull(controlledSide);
         this.controllerBranch = Objects.requireNonNull(controllerBranch);
     }
 
     public Optional<Double> getTargetDeadband() {
         return Optional.ofNullable(targetDeadband);
-    }
-
-    public LfBranch getControlledBranch() {
-        return controlledBranch;
-    }
-
-    public TwoSides getControlledSide() {
-        return controlledSide;
     }
 
     public LfBranch getControllerBranch() {

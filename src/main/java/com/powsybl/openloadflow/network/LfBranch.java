@@ -203,7 +203,7 @@ public interface LfBranch extends LfElement {
 
     void updateFlows(double p1, double q1, double p2, double q2);
 
-    // phase control
+    // transfo phase control
 
     boolean hasPhaseControllerCapability();
 
@@ -219,7 +219,7 @@ public interface LfBranch extends LfElement {
 
     void setPhaseControlEnabled(boolean phaseControlEnabled);
 
-    // voltage control
+    // transfo voltage control
 
     Optional<TransformerVoltageControl> getVoltageControl();
 
@@ -231,7 +231,7 @@ public interface LfBranch extends LfElement {
 
     void setVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
-    // reactive power control
+    // transfo reactive power control
 
     Optional<TransformerReactivePowerControl> getTransformerReactivePowerControl();
 

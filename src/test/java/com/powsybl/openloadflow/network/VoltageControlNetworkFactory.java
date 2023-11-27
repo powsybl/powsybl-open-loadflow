@@ -404,6 +404,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setTapPosition(0)
                 .setLoadTapChangingCapabilities(true)
                 .setRegulating(false)
+                .setRegulationMode(RatioTapChanger.RegulationMode.VOLTAGE)
                 .setTargetV(33.0)
                 .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
                 .add();
