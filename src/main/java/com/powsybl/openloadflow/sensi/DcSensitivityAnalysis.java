@@ -141,7 +141,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                      Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                      Collection<String> elementIdsToSkip) {
             for (PropagatedContingency contingency : contingencies) {
-                Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().stream()
+                Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().keySet().stream()
                         .filter(element -> !elementIdsToSkip.contains(element))
                         .map(contingencyElementByBranch::get)
                         .map(ComputedContingencyElement::getLfBranch)
@@ -517,7 +517,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                          Collection<PropagatedContingency> nonLosingConnectivityContingencies,
                                                          Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
         for (PropagatedContingency contingency : contingencies) {
-            List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
+            List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
             Set<ComputedContingencyElement> groupOfElementsBreakingConnectivity = getGroupOfElementsBreakingConnectivity(lfNetwork, states, contingencyElements, equationSystem);
             if (groupOfElementsBreakingConnectivity.isEmpty()) { // connectivity not broken
                 nonLosingConnectivityContingencies.add(contingency);
@@ -737,12 +737,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // compute contingencies without loss of phase tap changer
         // first we compute the ones without loss of phase tap changers (because we reuse the load flows from the pre contingency network for all of them)
         for (PropagatedContingency contingency : phaseTapChangerContingenciesIndexing.getContingenciesWithoutPhaseTapChangerLoss()) {
-            Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream()
+            Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                     .filter(element -> !elementsToReconnect.contains(element))
                     .map(contingencyElementByBranch::get)
                     .collect(Collectors.toList());
 
-            Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
+            Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
             disabledBranches.addAll(partialDisabledBranches);
 
             calculateContingencySensitivityValues(contingency, factorGroups, factorState, contingenciesStates, modifiedFlowStates, contingencyElements, resultWriter,
@@ -762,12 +762,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 modifiedFlowStates = calculateActivePowerFlows(loadFlowContext, lfFactors, participatingElements, new DisabledNetwork(disabledBuses, disabledPhaseTapChangers), reporter);
             }
             for (PropagatedContingency contingency : propagatedContingencies) {
-                Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream()
+                Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                         .filter(element -> !elementsToReconnect.contains(element))
                         .map(contingencyElementByBranch::get)
                         .collect(Collectors.toList());
 
-                Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
+                Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
                 disabledBranches.addAll(partialDisabledBranches);
 
                 calculateContingencySensitivityValues(contingency, factorGroups, factorState, contingenciesStates, modifiedFlowStates, contingencyElements, resultWriter,
@@ -835,7 +835,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                                                     LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         Map<String, ComputedContingencyElement> contingencyElementByBranch =
                 contingencies.stream()
-                        .flatMap(contingency -> contingency.getBranchIdsToOpen().stream())
+                        .flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream())
                         .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
                         .filter(element -> element.getLfBranchEquation() != null)
                         .collect(Collectors.toMap(

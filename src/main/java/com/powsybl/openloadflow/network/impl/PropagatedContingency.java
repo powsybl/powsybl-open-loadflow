@@ -63,8 +63,8 @@ public class PropagatedContingency {
         return busIdsToLose;
     }
 
-    public Set<String> getBranchIdsToOpen() {
-        return new HashSet<>(branchIdsToOpen.keySet());
+    public Map<String, DisabledBranchStatus> getBranchIdsToOpen() {
+        return branchIdsToOpen;
     }
 
     public Set<Switch> getSwitchesToOpen() {
