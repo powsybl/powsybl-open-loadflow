@@ -19,9 +19,9 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
 
     private DcEquationSystemCreationParameters equationSystemCreationParameters = new DcEquationSystemCreationParameters();
 
-    private boolean distributedSlack = true;
+    private boolean distributedSlack = LoadFlowParameters.DEFAULT_DISTRIBUTED_SLACK;
 
-    private LoadFlowParameters.BalanceType balanceType = LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX;
+    private LoadFlowParameters.BalanceType balanceType = LoadFlowParameters.DEFAULT_BALANCE_TYPE;
 
     private boolean setVToNan = false;
 
