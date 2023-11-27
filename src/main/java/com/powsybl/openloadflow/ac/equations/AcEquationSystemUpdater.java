@@ -53,8 +53,8 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
 
     @Override
     public void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
-        ReactivePowerControl reactivePowerControl = controllerBus.getReactivePowerControl().orElseThrow();
-        AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem);
+        GeneratorReactivePowerControl generatorReactivePowerControl = controllerBus.getReactivePowerControl().orElseThrow();
+        AcEquationSystemCreator.updateReactivePowerControlBranchEquations(generatorReactivePowerControl, equationSystem);
     }
 
     @Override

@@ -140,9 +140,9 @@ public class AcEquationSystemCreator {
         }
     }
 
-    public static void updateReactivePowerControlBranchEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
-        List<LfBus> controllerBuses = reactivePowerControl.getControllerBuses()
+    public static void updateReactivePowerControlBranchEquations(GeneratorReactivePowerControl generatorReactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfBranch controlledBranch = generatorReactivePowerControl.getControlledBranch();
+        List<LfBus> controllerBuses = generatorReactivePowerControl.getControllerBuses()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
                 .toList();
@@ -165,7 +165,7 @@ public class AcEquationSystemCreator {
                     .filter(Predicate.not(LfBus::isReactivePowerControlEnabled)).toList();
 
             // reactive keys must be updated in case of disabled controllers.
-            reactivePowerControl.updateReactiveKeys();
+            generatorReactivePowerControl.updateReactiveKeys();
 
             // activate reactive power control at controlled bus only if at least one controller element is enabled
             qEq.setActive(!enabledControllerBuses.isEmpty());
@@ -211,8 +211,8 @@ public class AcEquationSystemCreator {
         List<LfBus> controllerBuses = null;
         if (control instanceof GeneratorVoltageControl generatorVoltageControl) {
             controllerBuses = generatorVoltageControl.getMergedControllerElements();
-        } else if (control instanceof ReactivePowerControl reactivePowerControl) {
-            controllerBuses = reactivePowerControl.getControllerBuses();
+        } else if (control instanceof GeneratorReactivePowerControl generatorReactivePowerControl) {
+            controllerBuses = generatorReactivePowerControl.getControllerBuses();
         } else {
             throw new PowsyblException("Control has to be of type GeneratorVoltageControl or ReactivePowerControl to create Q distribution equations");
         }

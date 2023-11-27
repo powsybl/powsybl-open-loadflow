@@ -60,7 +60,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     private static double getReactivePowerControlTarget(LfBranch branch) {
         Objects.requireNonNull(branch);
-        return branch.getReactivePowerControl().map(ReactivePowerControl::getTargetValue)
+        return branch.getReactivePowerControl().map(GeneratorReactivePowerControl::getTargetValue)
                 .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no target in for reactive remote control"));
     }
 

@@ -55,7 +55,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected Evaluable a1;
 
-    private ReactivePowerControl reactivePowerControl;
+    private GeneratorReactivePowerControl generatorReactivePowerControl;
 
     protected LfAsymLine asymLine;
 
@@ -261,13 +261,13 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.a1 = a1;
     }
 
-    public Optional<ReactivePowerControl> getReactivePowerControl() {
-        return Optional.ofNullable(reactivePowerControl);
+    public Optional<GeneratorReactivePowerControl> getReactivePowerControl() {
+        return Optional.ofNullable(generatorReactivePowerControl);
     }
 
     @Override
-    public void setReactivePowerControl(ReactivePowerControl pReactivePowerControl) {
-        this.reactivePowerControl = Objects.requireNonNull(pReactivePowerControl);
+    public void setReactivePowerControl(GeneratorReactivePowerControl pGeneratorReactivePowerControl) {
+        this.generatorReactivePowerControl = Objects.requireNonNull(pGeneratorReactivePowerControl);
     }
 
     @Override

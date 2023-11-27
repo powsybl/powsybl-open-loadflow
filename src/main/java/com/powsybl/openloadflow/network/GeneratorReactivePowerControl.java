@@ -13,13 +13,13 @@ import java.util.*;
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  */
-public class ReactivePowerControl extends Control {
+public class GeneratorReactivePowerControl extends Control {
 
     private final LfBranch controlledBranch;
     private final TwoSides controlledSide;
     private final List<LfBus> controllerBuses = new ArrayList<>();
 
-    public ReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, double targetValue) {
+    public GeneratorReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, double targetValue) {
         super(targetValue);
         this.controlledBranch = Objects.requireNonNull(controlledBranch);
         this.controlledSide = Objects.requireNonNull(controlledSide);
