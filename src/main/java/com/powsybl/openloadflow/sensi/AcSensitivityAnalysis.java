@@ -19,8 +19,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
+import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -147,13 +147,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     private static boolean runLoadFlow(AcLoadFlowContext context, boolean throwsExceptionIfNoConvergence) {
         AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
-        if (result.isOk() || result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.NO_CALCULATION) {
+        if (result.isOk() || result.getSolverStatus() == AcSolverStatus.NO_CALCULATION) {
             return true;
         } else {
             if (throwsExceptionIfNoConvergence) {
-                throw new PowsyblException("Load flow ended with status " + result.getNewtonRaphsonStatus());
+                throw new PowsyblException("Load flow ended with status " + result.getSolverStatus());
             } else {
-                LOGGER.warn("Load flow ended with status {}", result.getNewtonRaphsonStatus());
+                LOGGER.warn("Load flow ended with status {}", result.getSolverStatus());
                 return false;
             }
         }
@@ -240,8 +240,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             // create AC engine
             AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, true);
-            acParameters.getNewtonRaphsonParameters()
-                    .setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SENSITIVITY_ANALYSIS));
+            acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SENSITIVITY_ANALYSIS));
 
             try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
@@ -341,7 +340,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                             }, () -> {
                                     // it means that the contingency has no impact.
                                     // we need to force the state vector to be re-initialized from base case network state
-                                    NewtonRaphson.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
+                                    AcSolverUtil.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
 
                                     calculateSensitivityValues(validFactorHolder.getFactorsForContingency(contingency.getContingency().getId()), factorGroups, factorsStates, contingency.getIndex(), resultWriter);
                                     // write contingency status

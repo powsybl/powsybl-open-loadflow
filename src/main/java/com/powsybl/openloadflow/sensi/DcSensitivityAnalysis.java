@@ -218,13 +218,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setUseTransformerRatio(lfParameters.isDcUseTransformerRatio())
                 .setDcApproximationType(parametersExt.getDcApproximationType());
 
-        return new DcLoadFlowParameters(networkParameters,
-                                        equationSystemCreationParameters,
-                                        matrixFactory,
-                                        lfParameters.isDistributedSlack(),
-                                        lfParameters.getBalanceType(),
-                                        true,
-                                        parametersExt.getMaxOuterLoopIterations());
+        return new DcLoadFlowParameters()
+                .setNetworkParameters(networkParameters)
+                .setEquationSystemCreationParameters(equationSystemCreationParameters)
+                .setMatrixFactory(matrixFactory)
+                .setDistributedSlack(lfParameters.isDistributedSlack())
+                .setBalanceType(lfParameters.getBalanceType())
+                .setSetVToNan(true)
+                .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations());
     }
 
     /**

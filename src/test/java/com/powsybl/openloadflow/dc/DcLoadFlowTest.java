@@ -17,7 +17,6 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -283,13 +282,13 @@ class DcLoadFlowTest {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setBreakers(true);
-        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
-                                                                             new DcEquationSystemCreationParameters(),
-                                                                             new DenseMatrixFactory(),
-                                                                             true,
-                                                                             parameters.getBalanceType(),
-                                                                             false,
-                                                                             1);
+        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters()
+                .setNetworkParameters(lfNetworkParameters)
+                .setMatrixFactory(new DenseMatrixFactory())
+                .setDistributedSlack(true)
+                .setBalanceType(parameters.getBalanceType())
+                .setSetVToNan(false)
+                .setMaxOuterLoopIterations(1);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToClose().add(c1);
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, Reporter.NO_OP)) {

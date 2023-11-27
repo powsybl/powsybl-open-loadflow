@@ -4,22 +4,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac.nr;
+package com.powsybl.openloadflow.ac.solver;
 
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NewtonRaphsonResult {
+public class AcSolverResult {
 
     private final int iterations;
 
-    private final NewtonRaphsonStatus status;
+    private final AcSolverStatus status;
 
     private final double slackBusActivePowerMismatch;
 
-    public NewtonRaphsonResult(NewtonRaphsonStatus status, int iterations, double slackBusActivePowerMismatch) {
+    public AcSolverResult(AcSolverStatus status, int iterations, double slackBusActivePowerMismatch) {
         if (iterations < 0) {
             throw new IllegalArgumentException("Invalid iteration value: " + iterations);
         }
@@ -28,7 +28,7 @@ public class NewtonRaphsonResult {
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
     }
 
-    public NewtonRaphsonStatus getStatus() {
+    public AcSolverStatus getStatus() {
         return status;
     }
 

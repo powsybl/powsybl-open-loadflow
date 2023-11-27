@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac.nr;
+package com.powsybl.openloadflow.ac.solver;
 
 import java.util.Objects;
 
@@ -38,8 +38,6 @@ public class NewtonRaphsonParameters {
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
     private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
-
-    private boolean detailedReport = false;
 
     public static int checkMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
@@ -90,15 +88,6 @@ public class NewtonRaphsonParameters {
 
     public NewtonRaphsonParameters setStateVectorScalingMode(StateVectorScalingMode stateVectorScalingMode) {
         this.stateVectorScalingMode = Objects.requireNonNull(stateVectorScalingMode);
-        return this;
-    }
-
-    public boolean isDetailedReport() {
-        return detailedReport;
-    }
-
-    public NewtonRaphsonParameters setDetailedReport(boolean detailedReport) {
-        this.detailedReport = detailedReport;
         return this;
     }
 
@@ -157,7 +146,6 @@ public class NewtonRaphsonParameters {
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
-                ", detailedNrReport=" + detailedReport +
                 ", lineSearchStateVectorScalingMaxIteration=" + lineSearchStateVectorScalingMaxIteration +
                 ", lineSearchStateVectorScalingStepFold=" + lineSearchStateVectorScalingStepFold +
                 ", maxVoltageChangeStateVectorScalingMaxDv=" + maxVoltageChangeStateVectorScalingMaxDv +
