@@ -46,6 +46,11 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
     }
 
     @Override
+    public boolean supportTemporaryChangesNesting() {
+        return true;
+    }
+
+    @Override
     public void startTemporaryChanges() {
         super.startTemporaryChanges();
         if (mst == null) {

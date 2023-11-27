@@ -576,7 +576,8 @@ class AcLoadFlowPhaseShifterTest {
                                                                      AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
                                                                      new DenseMatrixFactory(),
                                                                      new UniformValueVoltageInitializer(),
-                                                                     false);
+                                                                     false,
+                                                                     OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult lfResult = new AcloadFlowEngine(lfContext)
                     .run();
@@ -590,12 +591,12 @@ class AcLoadFlowPhaseShifterTest {
             double da10 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(0).getAlpha();
             double da12 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(2).getAlpha();
             double ib = PerUnit.ib(ps1.getBus1().getNominalV());
-            double sensi1 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, ControlledSide.ONE);
+            double sensi1 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, TwoSides.ONE);
             double di1t10p = sensi1 * da10 * ib;
             double di1t12p = sensi1 * da12 * ib;
             assertEquals(43.007011829925496, di1t10p, 0d);
             assertEquals(-43.007011829925496, di1t12p, 0d);
-            double sensi2 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, ControlledSide.TWO);
+            double sensi2 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, TwoSides.TWO);
             double di2t10p = sensi2 * da10 * ib;
             double di2t12p = sensi2 * da12 * ib;
             assertEquals(43.007011829925496, di2t10p, 0d);

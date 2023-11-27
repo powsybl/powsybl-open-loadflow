@@ -95,6 +95,8 @@ public interface LfBus extends LfElement {
 
     double getGenerationTargetP();
 
+    double getMaxP();
+
     double getGenerationTargetQ();
 
     void setGenerationTargetQ(double generationTargetQ);
@@ -188,9 +190,9 @@ public interface LfBus extends LfElement {
      */
     Map<LfBus, List<LfBranch>> findNeighbors();
 
-    double getRemoteVoltageControlReactivePercent();
+    double getRemoteControlReactivePercent();
 
-    void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
+    void setRemoteControlReactivePercent(double remoteControlReactivePercent);
 
     /**
      * Get active power mismatch.

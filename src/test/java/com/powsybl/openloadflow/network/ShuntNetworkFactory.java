@@ -125,4 +125,47 @@ public final class ShuntNetworkFactory {
                 .add();
         return network;
     }
+
+    public static Network createWithGeneratorAndShunt() {
+        Network network = create();
+        VoltageLevel vl3 = network.getVoltageLevel("vl3");
+        vl3.newGenerator()
+                .setId("g2")
+                .setConnectableBus("b3")
+                .setBus("b3")
+                .setTargetP(0)
+                .setTargetV(393)
+                .setMinP(0)
+                .setMaxP(150)
+                .setVoltageRegulatorOn(true)
+                .add();
+        return network;
+    }
+
+    public static Network createWithGeneratorAndShuntNonImpedant() {
+        Network network = createWithGeneratorAndShunt();
+        VoltageLevel vl3 = network.getVoltageLevel("vl3");
+        vl3.getBusBreakerView().newBus().setId("b4").add();
+        vl3.getBusBreakerView().newSwitch().setBus1("b3").setBus2("b4").setId("switch").add();
+        vl3.newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b4")
+                .setConnectableBus("b4")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(393)
+                .setTargetDeadband(2.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(1e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(3e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+        return network;
+    }
 }

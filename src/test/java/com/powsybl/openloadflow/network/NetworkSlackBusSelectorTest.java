@@ -31,7 +31,7 @@ class NetworkSlackBusSelectorTest {
 
     @BeforeEach
     void setUp() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         MostMeshedSlackBusSelector selectorFallback = new MostMeshedSlackBusSelector();
         selectorMock = (buses, limit) -> {
             fallbackBusCount = buses.size();
