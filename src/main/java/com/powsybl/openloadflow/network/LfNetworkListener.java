@@ -17,7 +17,7 @@ public interface LfNetworkListener {
 
     void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage);
 
-    void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled);
+    void onGeneratorReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled);
 
     void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled);
 

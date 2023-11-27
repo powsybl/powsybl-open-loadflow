@@ -216,7 +216,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createReactivePowerControls(List<LfBus> lfBuses) {
+    private static void createGeneratorReactivePowerControls(List<LfBus> lfBuses) {
         for (LfBus controllerBus : lfBuses) {
             List<LfGenerator> generators = controllerBus.getGenerators().stream()
                     .filter(LfGenerator::hasRemoteReactivePowerControl).collect(Collectors.toList());
@@ -228,18 +228,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
                 LfGenerator generator = generators.get(0);
                 if (checkControllerBusGenerators(generators, controllerBus.getId())) {
-                    createRemoteReactivePowerControl(generator.getControlledBranch(), generator.getControlledBranchSide(), generator.getRemoteTargetQ(), controllerBus);
+                    createGeneratorRemoteReactivePowerControl(generator.getControlledBranch(), generator.getControlledBranchSide(), generator.getRemoteTargetQ(), controllerBus);
                 }
             }
         }
     }
 
-    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, TwoSides side, double targetQ, LfBus controllerBus) {
+    private static void createGeneratorRemoteReactivePowerControl(LfBranch controlledBranch, TwoSides side, double targetQ, LfBus controllerBus) {
         if (!controlledBranch.isConnectedAtBothSides()) {
             LOGGER.warn("Controlled branch '{}' must be connected at both sides: remote reactive power control discarded", controlledBranch.getId());
             return;
         }
-        controlledBranch.getReactivePowerControl().ifPresentOrElse(
+        controlledBranch.getGeneratorReactivePowerControl().ifPresentOrElse(
                 rpc -> {
                     if (checkUniqueControlledSide(rpc, side)) {
                         updateGeneratorReactivePowerControl(rpc, controllerBus, targetQ);
@@ -253,7 +253,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void createGeneratorReactivePowerControl(LfBranch controlledBranch, LfBus controllerBus, TwoSides controlledSide, double controllerTargetQ) {
         GeneratorReactivePowerControl generatorReactivePowerControl = new GeneratorReactivePowerControl(controlledBranch, controlledSide, controllerTargetQ);
         generatorReactivePowerControl.addControllerBus(controllerBus);
-        controlledBranch.setReactivePowerControl(generatorReactivePowerControl);
+        controlledBranch.setGeneratorReactivePowerControl(generatorReactivePowerControl);
     }
 
     private static void updateGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl, LfBus controllerBus, double controllerTargetQ) {
@@ -718,7 +718,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);
             if (parameters.isReactivePowerRemoteControl()) {
-                createReactivePowerControls(lfBuses);
+                createGeneratorReactivePowerControls(lfBuses);
             }
             if (parameters.isTransformerVoltageControl()) {
                 // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)

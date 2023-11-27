@@ -39,8 +39,8 @@ public class GeneratorReactivePowerControl extends Control {
 
     public void addControllerBus(LfBus controllerBus) {
         controllerBuses.add(Objects.requireNonNull(controllerBus));
-        controllerBus.setReactivePowerControl(this);
-        controllerBus.setReactivePowerControlEnabled(true);
+        controllerBus.setGeneratorReactivePowerControl(this);
+        controllerBus.setGeneratorReactivePowerControlEnabled(true);
     }
 
     public void updateReactiveKeys() {
@@ -49,7 +49,7 @@ public class GeneratorReactivePowerControl extends Control {
         // key is 0 only on disabled controllers
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
-            if (controllerBus.isDisabled() || !controllerBus.isReactivePowerControlEnabled()) {
+            if (controllerBus.isDisabled() || !controllerBus.isGeneratorReactivePowerControlEnabled()) {
                 reactiveKeys[i] = 0d;
             }
         }

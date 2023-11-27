@@ -261,12 +261,12 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.a1 = a1;
     }
 
-    public Optional<GeneratorReactivePowerControl> getReactivePowerControl() {
+    public Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl() {
         return Optional.ofNullable(generatorReactivePowerControl);
     }
 
     @Override
-    public void setReactivePowerControl(GeneratorReactivePowerControl pGeneratorReactivePowerControl) {
+    public void setGeneratorReactivePowerControl(GeneratorReactivePowerControl pGeneratorReactivePowerControl) {
         this.generatorReactivePowerControl = Objects.requireNonNull(pGeneratorReactivePowerControl);
     }
 
