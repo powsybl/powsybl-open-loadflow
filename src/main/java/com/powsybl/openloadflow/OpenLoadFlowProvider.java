@@ -125,8 +125,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = getConnectivityFactory(parametersExt);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
-        acParameters.getNewtonRaphsonParameters()
-                .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+        acParameters.setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getName).toList());
@@ -162,7 +161,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
                                                                             result.getNetwork().getNumSC(),
                                                                             result.toComponentResultStatus(),
-                                                                            result.getNewtonRaphsonIterations(),
+                                                                            result.getSolverIterations(),
                                                                             slackBusId, // FIXME manage multiple slack buses
                                                                             result.getSlackBusActivePowerMismatch() * PerUnit.SB,
                                                                             result.getDistributedActivePower() * PerUnit.SB));

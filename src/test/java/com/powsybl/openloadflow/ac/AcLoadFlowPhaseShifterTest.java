@@ -14,18 +14,14 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcIncrementalPhaseControlOuterLoop;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -569,19 +565,13 @@ class AcLoadFlowPhaseShifterTest {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setPhaseControl(true);
         LfNetwork lfNetwork = Networks.load(network, lfNetworkParameters).get(0);
-        AcLoadFlowParameters acParameters = new AcLoadFlowParameters(lfNetworkParameters,
-                                                                     new AcEquationSystemCreationParameters(),
-                                                                     new NewtonRaphsonParameters(),
-                                                                     Collections.emptyList(),
-                                                                     AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
-                                                                     new DenseMatrixFactory(),
-                                                                     new UniformValueVoltageInitializer(),
-                                                                     false,
-                                                                     OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
+                .setNetworkParameters(lfNetworkParameters)
+                .setMatrixFactory(new DenseMatrixFactory());
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult lfResult = new AcloadFlowEngine(lfContext)
                     .run();
-            assertEquals(NewtonRaphsonStatus.CONVERGED, lfResult.getNewtonRaphsonStatus());
+            assertEquals(AcSolverStatus.CONVERGED, lfResult.getSolverStatus());
             LfBranch ps1 = lfNetwork.getBranchById("PS1");
             List<LfBranch> controllerBranches = List.of(ps1);
             var sensitivityContext = new AcIncrementalPhaseControlOuterLoop.AcSensitivityContext(lfNetwork,
