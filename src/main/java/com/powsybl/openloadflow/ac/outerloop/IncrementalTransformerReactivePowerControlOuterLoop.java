@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalReactivePowerContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -55,9 +57,38 @@ public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOu
         return NAME;
     }
 
+    // TODO : test me
+    private static boolean isOutOfDeadband(TransformerReactivePowerControl reactivePowerControl) {
+        double diffQ = getDiffQ(reactivePowerControl);
+        double halfTargetDeadband = getHalfTargetDeadband(reactivePowerControl);
+        boolean outOfDeadband = Math.abs(diffQ) > halfTargetDeadband;
+        if (outOfDeadband) {
+            LfBranch controllerBranch = reactivePowerControl.getControllerBranch();
+            LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
+            LOGGER.trace("Controlled branch '{}' ({} controller) is outside of its deadband (half is {} MVar) and could need a reactive power adjustment of {} MVar",
+                    controlledBranch.getId(), controllerBranch.getId(), halfTargetDeadband * PerUnit.SB, diffQ * PerUnit.SB);
+        }
+        return outOfDeadband;
+    }
+
     public static List<LfBranch> getControllerBranches(LfNetwork network) {
         return network.getBranches().stream()
                 .filter(branch -> !branch.isDisabled() && branch.isTransformerReactivePowerController())
+                .collect(Collectors.toList());
+    }
+
+    // TODO : test me
+    public static List<LfBranch> getControlledBranchesOutOfDeadband(IncrementalReactivePowerContextData contextData) {
+        return contextData.getCandidateControlledBranches().stream()
+                .filter(branch -> isOutOfDeadband(branch.getTransformerReactivePowerControl().orElseThrow()))
+                .collect(Collectors.toList());
+    }
+
+    // TODO : test me
+    public static List<LfBranch> getControllerBranchesOutOfDeadband(List<LfBranch> controlledBranchesOutOfDeadband) {
+        return controlledBranchesOutOfDeadband.stream()
+                .map(controlledBranch -> controlledBranch.getTransformerReactivePowerControl().orElseThrow().getControllerBranch())
+                .filter(Predicate.not(LfBranch::isDisabled))
                 .collect(Collectors.toList());
     }
 
@@ -139,47 +170,45 @@ public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOu
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalReactivePowerContextData) context.getData();
 
-        List<LfBranch> controllerBranches = getControllerBranches(network);
-        SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
+        // branches which are outside of their deadbands
+        List<LfBranch> controlledBranchesOutOfDeadband = getControlledBranchesOutOfDeadband(contextData);
+        List<LfBranch> controllerBranchesOutOfDeadand = getControllerBranchesOutOfDeadband(controlledBranchesOutOfDeadband);
+
+        if (controllerBranchesOutOfDeadand.isEmpty()) {
+            return status.getValue();
+        }
+
+        SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutOfDeadand,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         // for synthetics logs
-        List<String> controlledBranchesOutsideOfDeadband = new ArrayList<>();
         List<String> controlledBranchesAdjusted = new ArrayList<>();
         List<String> controlledBranchesWithAllItsControllersToLimit = new ArrayList<>();
 
-        List<LfBranch> controlledBranches = contextData.getCandidateControlledBranches();
-
-        controlledBranches.forEach(controlledBranch -> {
+        controlledBranchesOutOfDeadband.forEach(controlledBranch -> {
             TransformerReactivePowerControl reactivePowerControl = controlledBranch.getTransformerReactivePowerControl().orElseThrow();
             double diffQ = getDiffQ(reactivePowerControl);
             double halfTargetDeadband = getHalfTargetDeadband(reactivePowerControl);
-            if (Math.abs(diffQ) > halfTargetDeadband) {
-                controlledBranchesOutsideOfDeadband.add(controlledBranch.getId());
+            LfBranch controller = reactivePowerControl.getControllerBranch();
+            TwoSides controlledSide = reactivePowerControl.getControlledSide();
 
-                // TODO : add case with more controllers
-                LfBranch controllers = reactivePowerControl.getControllerBranch();
-                TwoSides controlledSide = reactivePowerControl.getControlledSide();
-                LOGGER.trace("Controlled branch '{}' is outside of its deadband (half is {} MVar) and could need a reactive power adjustment of {} MVar",
-                        controlledBranch.getId(), halfTargetDeadband, diffQ);
-                boolean adjusted = adjustWithController(controllers, controlledBranch, controlledSide, contextData, diffQ, sensitivityContext, controlledBranchesWithAllItsControllersToLimit);
-                // If we adjusted the value, outerloop is unstable
-                if (adjusted) {
-                    controlledBranchesAdjusted.add(controlledBranch.getId());
-                    status.setValue(OuterLoopStatus.UNSTABLE);
-                }
+            // TODO : add case with more controllers
+            boolean adjusted = adjustWithController(controller, controlledBranch, controlledSide, contextData, diffQ, sensitivityContext, controlledBranchesWithAllItsControllersToLimit);
+            if (adjusted) {
+                controlledBranchesAdjusted.add(controlledBranch.getId());
+                status.setValue(OuterLoopStatus.UNSTABLE);
             }
         });
 
         // Print some info
-        if (!controlledBranchesOutsideOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
-            Map<String, Double> largestMismatches = controllerBranches.stream()
+        if (!controlledBranchesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
+            Map<String, Double> largestMismatches = controllerBranchesOutOfDeadand.stream()
                     .map(controlledBranch -> Pair.of(controlledBranch.getId(), Math.abs(getDiffQ(controlledBranch.getTransformerReactivePowerControl().get()))))
-                    .sorted((p1, p2) -> Double.compare(p2.getRight(), p1.getRight()))
+                    .sorted((p1, p2) -> Double.compare(p2.getRight() * PerUnit.SB, p1.getRight() * PerUnit.SB))
                     .limit(3) // 3 largest
                     .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
             LOGGER.info("{} controlled branch reactive power are outside of their target deadband, largest ones are: {}",
-                    controlledBranchesOutsideOfDeadband.size(), largestMismatches);
+                    controllerBranchesOutOfDeadand.size(), largestMismatches);
         }
         if (!controlledBranchesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled branch reactive power have been adjusted by changing at least one tap",
