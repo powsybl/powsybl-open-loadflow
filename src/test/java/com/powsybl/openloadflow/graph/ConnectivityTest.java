@@ -373,13 +373,6 @@ class ConnectivityTest {
 
         PowsyblException e3 = assertThrows(PowsyblException.class, c::undoTemporaryChanges);
         assertEquals("Cannot reset, no remaining saved connectivity", e3.getMessage());
-
-        c.setMainComponentVertex(v1);
-        c.setMainComponentVertex(v2); // changing the main component vertex before starting temporary changes is accepted
-        c.startTemporaryChanges();
-        c.setMainComponentVertex(v2); // setting again the same vertex is accepted
-        PowsyblException e4 = assertThrows(PowsyblException.class, () -> c.setMainComponentVertex(v1));
-        assertEquals("Cannot change main component vertex after starting temporary changes", e4.getMessage());
     }
 
     private void multipleEdgesTest(GraphConnectivity<String, String> c, boolean incrementalSupport) {

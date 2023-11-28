@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.graph;
 import com.powsybl.commons.PowsyblException;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -18,13 +20,15 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGraphConnectivity.class);
+
     private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
 
     private final Deque<ModificationsContext<V, E>> modificationsContexts = new ArrayDeque<>();
 
     protected List<Set<V>> componentSets;
 
-    private V mainComponentVertex;
+    private V defaultMainComponentVertex;
 
     protected abstract void updateConnectivity(EdgeRemove<V, E> edgeRemove);
 
@@ -87,9 +91,9 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     @Override
     public void startTemporaryChanges() {
-        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>();
+        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>(this::getVerticesNotInMainComponent, defaultMainComponentVertex);
         modificationsContexts.add(modificationsContext);
-        modificationsContext.setVerticesInitiallyNotInMainComponent(getVerticesNotInMainComponent());
+        modificationsContext.computeVerticesNotInMainComponentBefore();
     }
 
     @Override
@@ -105,7 +109,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     @Override
     public int getComponentNumber(V vertex) {
-        checkSaved();
+        checkSavedContext();
         checkVertex(vertex);
         updateComponents();
         return getQuickComponentNumber(vertex);
@@ -115,13 +119,13 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     @Override
     public int getNbConnectedComponents() {
-        checkSaved();
+        checkSavedContext();
         updateComponents();
         return componentSets.size();
     }
 
     protected Collection<Set<V>> getSmallComponents() {
-        checkSaved();
+        checkSavedContext();
         updateComponents();
         return componentSets.subList(1, componentSets.size());
     }
@@ -147,10 +151,11 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         return modificationsContexts;
     }
 
-    protected void checkSaved() {
+    protected ModificationsContext<V, E> checkSavedContext() {
         if (modificationsContexts.isEmpty()) {
             throw new PowsyblException("Cannot compute connectivity without a saved state, please call GraphConnectivity::startTemporaryChanges at least once beforehand");
         }
+        return modificationsContexts.peekLast();
     }
 
     protected void checkVertex(V vertex) {
@@ -161,29 +166,25 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     @Override
     public Set<V> getVerticesAddedToMainComponent() {
-        Set<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
-        return modificationsContexts.peekLast().getVerticesAddedToMainComponent(verticesNotInMainComponent);
+        return checkSavedContext().getVerticesAddedToMainComponent();
     }
 
     @Override
     public Set<E> getEdgesAddedToMainComponent() {
-        Set<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
-        return modificationsContexts.peekLast().getEdgesAddedToMainComponent(verticesNotInMainComponent, graph);
+        return checkSavedContext().getEdgesAddedToMainComponent(graph);
     }
 
     @Override
     public Set<V> getVerticesRemovedFromMainComponent() {
-        Set<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
-        return modificationsContexts.peekLast().getVerticesRemovedFromMainComponent(verticesNotInMainComponent);
+        return checkSavedContext().getVerticesRemovedFromMainComponent();
     }
 
     @Override
     public Set<E> getEdgesRemovedFromMainComponent() {
-        Set<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
-        return modificationsContexts.peekLast().getEdgesRemovedFromMainComponent(verticesNotInMainComponent, graph);
+        return checkSavedContext().getEdgesRemovedFromMainComponent(graph);
     }
 
-    private Set<V> getVerticesNotInMainComponent() {
+    private Set<V> getVerticesNotInMainComponent(V mainComponentVertex) {
         if (mainComponentVertex != null) {
             return getNonConnectedVertices(mainComponentVertex);
         } else {
@@ -192,9 +193,11 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     }
 
     public void setMainComponentVertex(V mainComponentVertex) {
-        if (!modificationsContexts.isEmpty() && mainComponentVertex != this.mainComponentVertex) {
-            throw new PowsyblException("Cannot change main component vertex after starting temporary changes");
+        if (!modificationsContexts.isEmpty() && mainComponentVertex != this.defaultMainComponentVertex) {
+            LOGGER.warn("Changing main component vertex after starting temporary changes!");
+            modificationsContexts.peekLast().setMainComponentVertex(mainComponentVertex);
+        } else {
+            defaultMainComponentVertex = mainComponentVertex;
         }
-        this.mainComponentVertex = mainComponentVertex;
     }
 }
