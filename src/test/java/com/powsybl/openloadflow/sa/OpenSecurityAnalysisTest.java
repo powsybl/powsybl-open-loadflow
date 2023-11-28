@@ -1860,8 +1860,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(446.765, preContingencyNetworkResult2.getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(446.765, preContingencyNetworkResult2.getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
 
-        assertEquals(945.514, getPostContingencyResult(result2, "BBS1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertNull(getPostContingencyResult(result2, "BBS1").getNetworkResult().getBranchResult("L1"));
+        assertEquals(915.953, getPostContingencyResult(result2, "BBS1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(84.923, getPostContingencyResult(result2, "BBS1").getNetworkResult().getBranchResult("L1").getI2(), LoadFlowAssert.DELTA_I);
     }
 
     @Test
@@ -2719,7 +2719,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertTrue(Double.isNaN(p1));
         assertTrue(Double.isNaN(q1));
         assertEquals(0.016, p2, DELTA_POWER);
-        assertEquals(-54.345, q2, DELTA_POWER);
+        assertEquals(-55.873, q2, DELTA_POWER);
 
         network = createNodeBreakerNetworkForTestingLineOpenOneSide();
         List<Contingency> contingencies = List.of(Contingency.busbarSection("BBS1"));
@@ -2771,7 +2771,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertTrue(Double.isNaN(l34p1));
         assertTrue(Double.isNaN(l34q1));
         assertEquals(0, l34p2, DELTA_POWER);
-        assertEquals(-1.333, l34q2, DELTA_POWER);
+        assertEquals(-1.334, l34q2, DELTA_POWER);
 
         l23.getTerminal2().connect();
         l34.getTerminal1().connect();
