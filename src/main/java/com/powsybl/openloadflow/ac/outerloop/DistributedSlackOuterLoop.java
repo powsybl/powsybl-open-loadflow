@@ -50,7 +50,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
 
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
-        double slackBusActivePowerMismatch = context.getLastNewtonRaphsonResult().getSlackBusActivePowerMismatch();
+        double slackBusActivePowerMismatch = context.getLastSolverResult().getSlackBusActivePowerMismatch();
         if (Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB) {
             ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
             double remainingMismatch = result.remainingMismatch();
