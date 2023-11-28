@@ -415,7 +415,7 @@ public class PropagatedContingency {
         int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
         Set<LfBus> lostBuses = connectivity.getVerticesRemovedFromMainComponent();
         Map<LfBranch, DisabledBranchStatus> lostBranches = connectivity.getEdgesRemovedFromMainComponent().stream()
-                .collect(Collectors.toMap(Function.identity(), branch -> allBranchIdsToOpen.get(branch.getId())));
+                .collect(Collectors.toMap(Function.identity(), branch -> allBranchIdsToOpen.getOrDefault(branch.getId(), DisabledBranchStatus.BOTH_SIDES)));
 
         // we should manage branches open at one side
         branchesToOpen.stream()

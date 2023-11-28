@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
+import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -751,34 +752,50 @@ public class AcEquationSystemCreator {
         }
     }
 
+    private static void setActive(Evaluable evaluable, boolean active) {
+        if (evaluable instanceof EquationTerm<?, ?> term) {
+            term.setActive(active);
+        }
+    }
+
     static void updateBranchEquations(LfBranch branch) {
         if (!branch.isDisabled() && !branch.isZeroImpedance(LoadFlowModel.AC)) {
-            boolean connectedSide1 = branch.isConnectedSide1();
-            if (branch.getClosedP1() instanceof EquationTerm<?, ?> closedP1) {
-                closedP1.setActive(connectedSide1);
-            }
-            if (branch.getClosedQ1() instanceof EquationTerm<?, ?> closedQ1) {
-                closedQ1.setActive(connectedSide1);
-            }
-            if (branch.getOpenP2() instanceof EquationTerm<?, ?> openP2) {
-                openP2.setActive(!connectedSide1);
-            }
-            if (branch.getOpenQ2() instanceof EquationTerm<?, ?> openQ2) {
-                openQ2.setActive(!connectedSide1);
-            }
-
-            boolean connectedSide2 = branch.isConnectedSide2();
-            if (branch.getOpenP1() instanceof EquationTerm<?, ?> openP1) {
-                openP1.setActive(!connectedSide2);
-            }
-            if (branch.getOpenQ1() instanceof EquationTerm<?, ?> openQ1) {
-                openQ1.setActive(!connectedSide2);
-            }
-            if (branch.getClosedP2() instanceof EquationTerm<?, ?> closedP2) {
-                closedP2.setActive(connectedSide2);
-            }
-            if (branch.getClosedQ2() instanceof EquationTerm<?, ?> closedQ2) {
-                closedQ2.setActive(connectedSide2);
+            if (branch.isConnectedSide1() && branch.isConnectedSide2()) {
+                setActive(branch.getOpenP1(), false);
+                setActive(branch.getOpenQ1(), false);
+                setActive(branch.getClosedP1(), true);
+                setActive(branch.getClosedQ1(), true);
+                setActive(branch.getOpenP2(), false);
+                setActive(branch.getOpenQ2(), false);
+                setActive(branch.getClosedP2(), true);
+                setActive(branch.getClosedQ2(), true);
+            } else if (branch.isConnectedSide1() && !branch.isConnectedSide2()) {
+                setActive(branch.getOpenP1(), true);
+                setActive(branch.getOpenQ1(), true);
+                setActive(branch.getClosedP1(), false);
+                setActive(branch.getClosedQ1(), false);
+                setActive(branch.getOpenP2(), false);
+                setActive(branch.getOpenQ2(), false);
+                setActive(branch.getClosedP2(), false);
+                setActive(branch.getClosedQ2(), false);
+            } else if (!branch.isConnectedSide1() && branch.isConnectedSide2()) {
+                setActive(branch.getOpenP2(), true);
+                setActive(branch.getOpenQ2(), true);
+                setActive(branch.getClosedP2(), false);
+                setActive(branch.getClosedQ2(), false);
+                setActive(branch.getOpenP1(), false);
+                setActive(branch.getOpenQ1(), false);
+                setActive(branch.getClosedP1(), false);
+                setActive(branch.getClosedQ1(), false);
+            } else {
+                setActive(branch.getOpenP1(), false);
+                setActive(branch.getOpenQ1(), false);
+                setActive(branch.getClosedP1(), false);
+                setActive(branch.getClosedQ1(), false);
+                setActive(branch.getOpenP2(), false);
+                setActive(branch.getOpenQ2(), false);
+                setActive(branch.getClosedP2(), false);
+                setActive(branch.getClosedQ2(), false);
             }
         }
     }
