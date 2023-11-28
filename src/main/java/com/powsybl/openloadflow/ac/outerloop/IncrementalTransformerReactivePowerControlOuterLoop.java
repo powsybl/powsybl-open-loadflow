@@ -57,7 +57,6 @@ public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOu
         return NAME;
     }
 
-    // TODO : test me
     private static boolean isOutOfDeadband(TransformerReactivePowerControl reactivePowerControl) {
         double diffQ = getDiffQ(reactivePowerControl);
         double halfTargetDeadband = getHalfTargetDeadband(reactivePowerControl);
@@ -77,14 +76,12 @@ public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOu
                 .collect(Collectors.toList());
     }
 
-    // TODO : test me
     public static List<LfBranch> getControlledBranchesOutOfDeadband(IncrementalReactivePowerContextData contextData) {
         return contextData.getCandidateControlledBranches().stream()
                 .filter(branch -> isOutOfDeadband(branch.getTransformerReactivePowerControl().orElseThrow()))
                 .collect(Collectors.toList());
     }
 
-    // TODO : test me
     public static List<LfBranch> getControllerBranchesOutOfDeadband(List<LfBranch> controlledBranchesOutOfDeadband) {
         return controlledBranchesOutOfDeadband.stream()
                 .map(controlledBranch -> controlledBranch.getTransformerReactivePowerControl().orElseThrow().getControllerBranch())
@@ -188,7 +185,6 @@ public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOu
         controlledBranchesOutOfDeadband.forEach(controlledBranch -> {
             TransformerReactivePowerControl reactivePowerControl = controlledBranch.getTransformerReactivePowerControl().orElseThrow();
             double diffQ = getDiffQ(reactivePowerControl);
-            double halfTargetDeadband = getHalfTargetDeadband(reactivePowerControl);
             LfBranch controller = reactivePowerControl.getControllerBranch();
             TwoSides controlledSide = reactivePowerControl.getControlledSide();
 

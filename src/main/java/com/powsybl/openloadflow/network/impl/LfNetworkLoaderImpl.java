@@ -236,7 +236,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createGeneratorReactivePowerControl(LfBranch controlledBranch, TwoSides side, double targetQ, LfBus controllerBus) {
         if (!controlledBranch.isConnectedAtBothSides()) {
-            LOGGER.warn("Controlled branch '{}' must be connected at both sides: remote reactive power control discarded", controlledBranch.getId());
+            LOGGER.warn("Controlled branch '{}' must be connected at both sides: generator remote reactive power control discarded", controlledBranch.getId());
             return;
         }
         controlledBranch.getGeneratorReactivePowerControl().ifPresentOrElse(
@@ -660,33 +660,45 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities() || rtc.getRegulationMode() != RatioTapChanger.RegulationMode.REACTIVE_POWER) {
             return;
         }
+        // Check on controller branch
         LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
-        if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
-            LOGGER.trace("Reactive power controller branch '{}' is open: reactive power control discarded", controllerBranch.getId());
+        if (!controllerBranch.isConnectedAtBothSides()) {
+            LOGGER.trace("Reactive power controller branch '{}' is open: transformer reactive power control discarded", controllerBranchId);
             report.transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen++;
             return;
         }
 
-        // Get id of controlled branch
+        if (rtc.getRegulationTerminal().getBusView().getBus() == null) {
+            LOGGER.warn("Regulating terminal of reactive power controller branch '{}' is out of voltage: transformer reactive power control discarded", controllerBranchId);
+            return;
+        }
+
+        // Get controlled branch
         String controlledBranchId = rtc.getRegulationTerminal().getConnectable().getId();
         if (rtc.getRegulationTerminal().getConnectable() instanceof ThreeWindingsTransformer twt) {
             controlledBranchId = LfLegBranch.getId(twt.getSide(rtc.getRegulationTerminal()), controlledBranchId);
         }
-        // Get controlled branch
         LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
+
+        // Check on controlled branch
         if (controlledBranch == null) {
-            LOGGER.warn("Regulating terminal of reactive power controller branch '{}' is out of voltage or in a different synchronous component: reactive power control discarded", controllerBranch.getId());
+            LOGGER.warn("Reactive power controlled branch '{}' is out of voltage or in a different synchronous component: transformer reactive power control discarded", controlledBranchId);
             return;
         }
 
+        if (!controlledBranch.isConnectedAtBothSides()) {
+            LOGGER.warn("Reactive power controlled branch '{}' is open: transformer reactive power control discarded", controlledBranchId);
+            return;
+        }
+
+        TwoSides controlledSide = getLfBus(rtc.getRegulationTerminal(), lfNetwork, parameters.isBreakers()) == controlledBranch.getBus1() ? TwoSides.ONE : TwoSides.TWO;
         double targetValue = rtc.getRegulationValue() / PerUnit.SB;
         double targetDeadband = rtc.getTargetDeadband() / PerUnit.SB;
-        TwoSides side = getLfBus(rtc.getRegulationTerminal(), lfNetwork, parameters.isBreakers()) == controlledBranch.getBus1() ? TwoSides.ONE : TwoSides.TWO;
 
-        controlledBranch.getTransformerReactivePowerControl().ifPresentOrElse(rpc -> {
+        controlledBranch.getTransformerReactivePowerControl().ifPresentOrElse(transformerReactivePowerControl -> {
             LOGGER.trace("Controlled branch '{}' already has a reactive power control: not implemented yet.", controlledBranch.getId());
         }, () -> {
-            TransformerReactivePowerControl reactivePowerControl = new TransformerReactivePowerControl(controlledBranch, side, controllerBranch, targetValue, targetDeadband);
+            TransformerReactivePowerControl reactivePowerControl = new TransformerReactivePowerControl(controlledBranch, controlledSide, controllerBranch, targetValue, targetDeadband);
             controllerBranch.setTransformerReactivePowerControl(reactivePowerControl);
             controlledBranch.setTransformerReactivePowerControl(reactivePowerControl);
         });
