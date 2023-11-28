@@ -2810,11 +2810,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         setSlackBusId(lfParameters, "VL2_0");
 
-        List<Contingency> contingencies = Stream.of("BBS1", "BBS3")
-                .map(Contingency::busbarSection)
-                .toList();
+        List<Contingency> contingencies = List.of(Contingency.busbarSection("BBS1"),
+                                                  Contingency.busbarSection("BBS3"),
+                                                  Contingency.line("L1"));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
-        assertEquals(contingencies.size(), result.getPostContingencyResults().size());
+        assertEquals(3, result.getPostContingencyResults().size());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(2).getStatus());
     }
 }

@@ -38,6 +38,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
+    private static final SlackBusSelector SLACK_BUS_SELECTOR_FALLBACK = new MostMeshedSlackBusSelector();
+
     private final int numCC;
 
     private final int numSC;
@@ -53,6 +55,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private List<LfBus> slackBuses;
 
     private LfBus referenceBus;
+
+    private Set<LfBus> excludedSlackBuses = Collections.emptySet();
 
     private final List<LfBranch> branches = new ArrayList<>();
 
@@ -169,16 +173,18 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public void updateSlackBusesAndReferenceBus() {
-        updateSlackBusesAndReferenceBus(slackBusSelector, Collections.emptySet(), maxSlackBusCount, maxSlackBusCount);
-    }
-
-    private void updateSlackBusesAndReferenceBus(SlackBusSelector slackBusSelector, Set<LfBus> excludedBuses, int selectedBusCount, int maxSlackBusCount) {
         if (slackBuses == null) {
-            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, selectedBusCount);
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses().stream()
-                    .filter(bus -> !excludedBuses.contains(bus))
-                    .limit(maxSlackBusCount)
+                    .filter(bus -> !excludedSlackBuses.contains(bus))
                     .toList();
+            if (slackBuses.isEmpty()) { // ultimate fallback
+                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(busesByIndex, excludedSlackBuses.size() + maxSlackBusCount);
+                slackBuses = selectedSlackBus.getBuses().stream()
+                        .filter(bus -> !excludedSlackBuses.contains(bus))
+                        .limit(maxSlackBusCount)
+                        .toList();
+            }
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(true);
@@ -186,11 +192,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             referenceBus = slackBuses.get(0);
             referenceBus.setReference(true);
         }
-    }
-
-    public void relocateSlackBusesAndReferenceBus(Set<LfBus> excludedBuses) {
-        invalidateSlackBusesAndReferenceBus();
-        updateSlackBusesAndReferenceBus(new MostMeshedSlackBusSelector(), excludedBuses, excludedBuses.size() * 2, maxSlackBusCount);
     }
 
     private void invalidateZeroImpedanceNetworks() {
@@ -274,6 +275,18 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfBus getReferenceBus() {
         updateSlackBusesAndReferenceBus();
         return referenceBus;
+    }
+
+    public Set<LfBus> getExcludedSlackBuses() {
+        return excludedSlackBuses;
+    }
+
+    public void setExcludedSlackBuses(Set<LfBus> excludedSlackBuses) {
+        Objects.requireNonNull(excludedSlackBuses);
+        if (!excludedSlackBuses.equals(this.excludedSlackBuses)) {
+            this.excludedSlackBuses = excludedSlackBuses;
+            invalidateSlackBusesAndReferenceBus();
+        }
     }
 
     public List<LfShunt> getShunts() {
