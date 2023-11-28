@@ -216,7 +216,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createReactivePowerControls(List<LfBus> lfBuses) {
+    private static void createGeneratorReactivePowerControls(List<LfBus> lfBuses) {
         for (LfBus controllerBus : lfBuses) {
             List<LfGenerator> generators = controllerBus.getGenerators().stream()
                     .filter(LfGenerator::hasRemoteReactivePowerControl).collect(Collectors.toList());
@@ -228,18 +228,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
                 LfGenerator generator = generators.get(0);
                 if (checkControllerBusGenerators(generators, controllerBus.getId())) {
-                    createRemoteReactivePowerControl(generator.getControlledBranch(), generator.getControlledBranchSide(), generator.getRemoteTargetQ(), controllerBus);
+                    createGeneratorReactivePowerControl(generator.getControlledBranch(), generator.getControlledBranchSide(), generator.getRemoteTargetQ(), controllerBus);
                 }
             }
         }
     }
 
-    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, TwoSides side, double targetQ, LfBus controllerBus) {
+    private static void createGeneratorReactivePowerControl(LfBranch controlledBranch, TwoSides side, double targetQ, LfBus controllerBus) {
         if (!controlledBranch.isConnectedAtBothSides()) {
             LOGGER.warn("Controlled branch '{}' must be connected at both sides: remote reactive power control discarded", controlledBranch.getId());
             return;
         }
-        controlledBranch.getReactivePowerControl().ifPresentOrElse(
+        controlledBranch.getGeneratorReactivePowerControl().ifPresentOrElse(
                 rpc -> {
                     if (checkUniqueControlledSide(rpc, side)) {
                         updateGeneratorReactivePowerControl(rpc, controllerBus, targetQ);
@@ -251,14 +251,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void createGeneratorReactivePowerControl(LfBranch controlledBranch, LfBus controllerBus, TwoSides controlledSide, double controllerTargetQ) {
-        ReactivePowerControl reactivePowerControl = new ReactivePowerControl(controlledBranch, controlledSide, controllerTargetQ);
-        reactivePowerControl.addControllerBus(controllerBus);
-        controlledBranch.setReactivePowerControl(reactivePowerControl);
+        GeneratorReactivePowerControl generatorReactivePowerControl = new GeneratorReactivePowerControl(controlledBranch, controlledSide, controllerTargetQ);
+        generatorReactivePowerControl.addControllerBus(controllerBus);
+        controlledBranch.setGeneratorReactivePowerControl(generatorReactivePowerControl);
     }
 
-    private static void updateGeneratorReactivePowerControl(ReactivePowerControl reactivePowerControl, LfBus controllerBus, double controllerTargetQ) {
-        checkUniqueTargetQControlledBranch(controllerTargetQ, controllerBus, reactivePowerControl);
-        reactivePowerControl.addControllerBus(controllerBus);
+    private static void updateGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl, LfBus controllerBus, double controllerTargetQ) {
+        checkUniqueTargetQControlledBranch(controllerTargetQ, controllerBus, generatorReactivePowerControl);
+        generatorReactivePowerControl.addControllerBus(controllerBus);
     }
 
     private static boolean checkControllerBusGenerators(List<LfGenerator> lfGenerators, String controllerBusId) {
@@ -288,21 +288,21 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return true;
     }
 
-    private static boolean checkUniqueControlledSide(ReactivePowerControl reactivePowerControl, TwoSides side) {
-        if (!side.equals(reactivePowerControl.getControlledSide())) {
+    private static boolean checkUniqueControlledSide(GeneratorReactivePowerControl generatorReactivePowerControl, TwoSides side) {
+        if (!side.equals(generatorReactivePowerControl.getControlledSide())) {
             LOGGER.error("Controlled branch '{}' is controlled at both sides. Controlled side {} (kept) {} (rejected).",
-                    reactivePowerControl.getControlledBranch().getId(), reactivePowerControl.getControlledSide(), side);
+                    generatorReactivePowerControl.getControlledBranch().getId(), generatorReactivePowerControl.getControlledSide(), side);
             return false;
         }
         return true;
     }
 
-    private static void checkUniqueTargetQControlledBranch(double controllerTargetQ, LfBus controllerBus, ReactivePowerControl reactivePowerControl) {
+    private static void checkUniqueTargetQControlledBranch(double controllerTargetQ, LfBus controllerBus, GeneratorReactivePowerControl generatorReactivePowerControl) {
         // check if targetQ is consistent with other already existing controller buses
-        double reactivePowerControlTargetQ = reactivePowerControl.getTargetValue();
+        double reactivePowerControlTargetQ = generatorReactivePowerControl.getTargetValue();
         double deltaTargetQ = FastMath.abs(reactivePowerControlTargetQ - controllerTargetQ);
         if (deltaTargetQ > TARGET_Q_EPSILON) {
-            String busesId = reactivePowerControl.getControllerBuses().stream().map(LfBus::getId).collect(Collectors.joining(", "));
+            String busesId = generatorReactivePowerControl.getControllerBuses().stream().map(LfBus::getId).collect(Collectors.joining(", "));
             LOGGER.error("Bus '{}' controls reactive power of a branch which is already controlled by buses '{}' with a different targetQ: {} (kept) and {} (ignored)",
                     controllerBus.getId(), busesId, reactivePowerControlTargetQ, controllerTargetQ);
         }
@@ -718,7 +718,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);
             if (parameters.isReactivePowerRemoteControl()) {
-                createReactivePowerControls(lfBuses);
+                createGeneratorReactivePowerControls(lfBuses);
             }
             if (parameters.isTransformerVoltageControl()) {
                 // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)

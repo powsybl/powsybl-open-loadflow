@@ -26,7 +26,7 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
+    public void onGeneratorReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
         // empty
     }
 
