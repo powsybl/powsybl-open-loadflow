@@ -87,9 +87,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     @Override
     public void startTemporaryChanges() {
-        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>();
-        modificationsContexts.add(modificationsContext);
-        modificationsContext.setVerticesInitiallyNotInMainComponent(getVerticesNotInMainComponent());
+        modificationsContexts.add(new ModificationsContext<>(getVerticesNotInMainComponent()));
     }
 
     @Override

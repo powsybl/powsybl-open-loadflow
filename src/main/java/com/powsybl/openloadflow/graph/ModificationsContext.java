@@ -25,7 +25,7 @@ public class ModificationsContext<V, E> {
     private Set<E> edgesRemovedFromMainComponent;
     private Map<E, AbstractEdgeModification<V, E>> edgeFirstModificationMap;
 
-    public void setVerticesInitiallyNotInMainComponent(Set<V> verticesNotInMainComponent) {
+    public ModificationsContext(Set<V> verticesNotInMainComponent) {
         verticesNotInMainComponentBefore.addAll(verticesNotInMainComponent);
     }
 
