@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.graph;
 import org.jgrapht.Graph;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,15 +19,22 @@ import java.util.stream.Stream;
 public class ModificationsContext<V, E> {
 
     private final Deque<GraphModification<V, E>> modifications = new ArrayDeque<>();
-    private final Set<V> verticesNotInMainComponentBefore = new HashSet<>();
+    private final Function<V, Set<V>> verticesNotInMainComponentGetter;
+    private Set<V> verticesNotInMainComponentBefore;
     private Set<V> verticesAddedToMainComponent;
     private Set<V> verticesRemovedFromMainComponent;
     private Set<E> edgesAddedToMainComponent;
     private Set<E> edgesRemovedFromMainComponent;
     private Map<E, AbstractEdgeModification<V, E>> edgeFirstModificationMap;
+    private V mainComponentVertex;
 
-    public ModificationsContext(Set<V> verticesNotInMainComponent) {
-        verticesNotInMainComponentBefore.addAll(verticesNotInMainComponent);
+    public ModificationsContext(Function<V, Set<V>> verticesNotInMainComponentGetter, V mainComponentVertex) {
+        this.mainComponentVertex = mainComponentVertex;
+        this.verticesNotInMainComponentGetter = verticesNotInMainComponentGetter;
+    }
+
+    public void computeVerticesNotInMainComponentBefore() {
+        this.verticesNotInMainComponentBefore = verticesNotInMainComponentGetter.apply(mainComponentVertex);
     }
 
     public void add(GraphModification<V, E> graphModification) {
@@ -46,16 +54,17 @@ public class ModificationsContext<V, E> {
         return modifications;
     }
 
-    public Set<E> getEdgesRemovedFromMainComponent(Set<V> verticesNotInMainComponent, Graph<V, E> graph) {
+    public Set<E> getEdgesRemovedFromMainComponent(Graph<V, E> graph) {
         if (edgesRemovedFromMainComponent == null) {
-            edgesRemovedFromMainComponent = computeEdgesRemovedFromMainComponent(verticesNotInMainComponent, graph);
+            Set<V> verticesNotInMainComponent = getVerticesNotInMainComponentAfter();
+            edgesRemovedFromMainComponent = computeEdgesRemovedFromMainComponent(graph);
         }
         return edgesRemovedFromMainComponent;
     }
 
-    public Set<V> getVerticesRemovedFromMainComponent(Set<V> verticesNotInMainComponentAfter) {
+    public Set<V> getVerticesRemovedFromMainComponent() {
         if (verticesRemovedFromMainComponent == null) {
-            Set<V> result = new HashSet<>(verticesNotInMainComponentAfter);
+            Set<V> result = new HashSet<>(getVerticesNotInMainComponentAfter());
             result.removeAll(verticesNotInMainComponentBefore);
             if (!result.isEmpty()) {
                 // remove vertices added in between
@@ -67,16 +76,17 @@ public class ModificationsContext<V, E> {
         return verticesRemovedFromMainComponent;
     }
 
-    public Set<E> getEdgesAddedToMainComponent(Set<V> verticesNotInMainComponentAfter, Graph<V, E> graph) {
+    public Set<E> getEdgesAddedToMainComponent(Graph<V, E> graph) {
         if (edgesAddedToMainComponent == null) {
-            edgesAddedToMainComponent = computeEdgesAddedToMainComponent(verticesNotInMainComponentAfter, graph);
+            edgesAddedToMainComponent = computeEdgesAddedToMainComponent(graph);
         }
         return edgesAddedToMainComponent;
     }
 
-    public Set<V> getVerticesAddedToMainComponent(Set<V> verticesNotInMainComponentAfter) {
+    public Set<V> getVerticesAddedToMainComponent() {
         if (verticesAddedToMainComponent == null) {
             Set<V> result = new HashSet<>(verticesNotInMainComponentBefore);
+            Set<V> verticesNotInMainComponentAfter = getVerticesNotInMainComponentAfter();
             result.removeAll(verticesNotInMainComponentAfter);
             // add vertices added to main component in between
             // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph before / in the end
@@ -86,8 +96,12 @@ public class ModificationsContext<V, E> {
         return verticesAddedToMainComponent;
     }
 
-    private Set<E> computeEdgesRemovedFromMainComponent(Set<V> verticesNotInMainComponent, Graph<V, E> graph) {
-        Set<V> verticesRemoved = getVerticesRemovedFromMainComponent(verticesNotInMainComponent);
+    private Set<V> getVerticesNotInMainComponentAfter() {
+        return verticesNotInMainComponentGetter.apply(mainComponentVertex);
+    }
+
+    private Set<E> computeEdgesRemovedFromMainComponent(Graph<V, E> graph) {
+        Set<V> verticesRemoved = getVerticesRemovedFromMainComponent();
         Set<E> result = verticesRemoved.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
 
         // We need to look in modifications to adjust the computation of the edges above, indeed:
@@ -112,9 +126,8 @@ public class ModificationsContext<V, E> {
         return result;
     }
 
-    private Set<E> computeEdgesAddedToMainComponent(Set<V> verticesNotInMainComponentAfter, Graph<V, E> graph) {
-        Set<V> verticesAdded = getVerticesAddedToMainComponent(verticesNotInMainComponentAfter);
-        Set<E> result = verticesAdded.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
+    private Set<E> computeEdgesAddedToMainComponent(Graph<V, E> graph) {
+        Set<E> result = getVerticesAddedToMainComponent().stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
 
         // We need to look in modifications to adjust the computation of the edges above
         // Indeed result is missing the edges added in main component with an EdgeAdd modification
@@ -122,6 +135,7 @@ public class ModificationsContext<V, E> {
         computeEdgeFirstModificationMap();
 
         // Add edges added to main component in between
+        Set<V> verticesNotInMainComponentAfter = getVerticesNotInMainComponentAfter();
         modifications.stream().filter(EdgeAdd.class::isInstance).map(m -> ((EdgeAdd<V, E>) m).e)
                 .filter(graph::containsEdge) // the edge is in the graph: it was not removed afterwards
                 .filter(edgeAdded -> !graphContainedEdgeBefore(edgeAdded)) // the edge did not exist in the graph before the modifications
@@ -148,5 +162,10 @@ public class ModificationsContext<V, E> {
 
     private Stream<V> getAddedVertexStream() {
         return modifications.stream().filter(VertexAdd.class::isInstance).map(m -> ((VertexAdd<V, E>) m).v);
+    }
+
+    public void setMainComponentVertex(V mainComponentVertex) {
+        invalidateComparisons();
+        this.mainComponentVertex = mainComponentVertex;
     }
 }
