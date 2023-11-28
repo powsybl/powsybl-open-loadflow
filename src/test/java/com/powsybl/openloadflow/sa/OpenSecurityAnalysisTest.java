@@ -2742,4 +2742,46 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(p2, l1Result.getP2(), DELTA_POWER);
         assertEquals(q2, l1Result.getQ2(), DELTA_POWER);
     }
+
+    @Test
+    void testLineOpenOneSideContingencyBusBreaker() {
+        Network network = IeeeCdfNetworkFactory.create14();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "VL1_0");
+
+        Line l45 = network.getLine("L3-4-1");
+        l45.getTerminal1().disconnect();
+        LoadFlowResult lfResult = runLoadFlow(network, lfParameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, lfResult.getComponentResults().get(0).getStatus());
+        double p1 = l45.getTerminal1().getP();
+        double q1 = l45.getTerminal1().getQ();
+        double p2 = l45.getTerminal2().getP();
+        double q2 = l45.getTerminal2().getQ();
+        assertTrue(Double.isNaN(p1));
+        assertTrue(Double.isNaN(q1));
+        assertEquals(0, p2, DELTA_POWER);
+        assertEquals(-1.335, q2, DELTA_POWER);
+
+        l45.getTerminal1().connect();
+        List<Contingency> contingencies = List.of(Contingency.bus("B3"));
+
+        List<StateMonitor> stateMonitors = List.of(new StateMonitor(ContingencyContext.all(),
+                                                                    Set.of("L3-4-1"),
+                                                                    Collections.emptySet(),
+                                                                    Collections.emptySet()));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, stateMonitors, lfParameters);
+
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(1, result.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        BranchResult l1Result = postContingencyResult.getNetworkResult().getBranchResult("L3-4-1");
+        assertNotNull(l1Result);
+        assertEquals(0, l1Result.getP1(), DELTA_POWER);
+        assertEquals(0, l1Result.getQ1(), DELTA_POWER);
+        assertEquals(p2, l1Result.getP2(), DELTA_POWER);
+        assertEquals(q2, l1Result.getQ2(), DELTA_POWER);
+    }
 }
