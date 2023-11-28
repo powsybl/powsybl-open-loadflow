@@ -58,7 +58,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         return updatedTarget;
     }
 
-    private static double getGeneratorReactivePowerControlTarget(LfBranch branch) {
+    private static double getReactivePowerControlTarget(LfBranch branch) {
         Objects.requireNonNull(branch);
         return branch.getGeneratorReactivePowerControl().map(GeneratorReactivePowerControl::getTargetValue)
                 .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no target in for reactive remote control"));
@@ -91,7 +91,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             case BRANCH_TARGET_Q:
-                targets[equation.getColumn()] = getGeneratorReactivePowerControlTarget(network.getBranch(equation.getElementNum()));
+                targets[equation.getColumn()] = getReactivePowerControlTarget(network.getBranch(equation.getElementNum()));
                 break;
 
             case BRANCH_TARGET_ALPHA1:
