@@ -1860,8 +1860,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(446.765, preContingencyNetworkResult2.getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(446.765, preContingencyNetworkResult2.getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
 
-        assertEquals(945.514, getPostContingencyResult(result2, "BBS1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertNull(getPostContingencyResult(result2, "BBS1").getNetworkResult().getBranchResult("L1"));
+        assertEquals(915.953, getPostContingencyResult(result2, "BBS1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(84.923, getPostContingencyResult(result2, "BBS1").getNetworkResult().getBranchResult("L1").getI2(), LoadFlowAssert.DELTA_I);
     }
 
     @Test
@@ -2741,6 +2741,66 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0, l1Result.getQ1(), DELTA_POWER);
         assertEquals(p2, l1Result.getP2(), DELTA_POWER);
         assertEquals(q2, l1Result.getQ2(), DELTA_POWER);
+    }
+
+    @Test
+    void testLineOpenOneSideContingencyBusBreaker() {
+        Network network = IeeeCdfNetworkFactory.create14();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "VL1_0");
+
+        Line l23 = network.getLine("L2-3-1");
+        Line l34 = network.getLine("L3-4-1");
+        l23.getTerminal2().disconnect();
+        l34.getTerminal1().disconnect();
+        LoadFlowResult lfResult = runLoadFlow(network, lfParameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, lfResult.getComponentResults().get(0).getStatus());
+        double l23p1 = l23.getTerminal1().getP();
+        double l23q1 = l23.getTerminal1().getQ();
+        double l23p2 = l23.getTerminal2().getP();
+        double l23q2 = l23.getTerminal2().getQ();
+        double l34p1 = l34.getTerminal1().getP();
+        double l34q1 = l34.getTerminal1().getQ();
+        double l34p2 = l34.getTerminal2().getP();
+        double l34q2 = l34.getTerminal2().getQ();
+        assertEquals(0.002, l23p1, DELTA_POWER);
+        assertEquals(-4.793, l23q1, DELTA_POWER);
+        assertTrue(Double.isNaN(l23p2));
+        assertTrue(Double.isNaN(l23q2));
+        assertTrue(Double.isNaN(l34p1));
+        assertTrue(Double.isNaN(l34q1));
+        assertEquals(0, l34p2, DELTA_POWER);
+        assertEquals(-1.334, l34q2, DELTA_POWER);
+
+        l23.getTerminal2().connect();
+        l34.getTerminal1().connect();
+
+        List<Contingency> contingencies = List.of(Contingency.bus("B3"));
+
+        List<StateMonitor> stateMonitors = List.of(new StateMonitor(ContingencyContext.all(),
+                                                                    Set.of("L2-3-1", "L3-4-1"),
+                                                                    Collections.emptySet(),
+                                                                    Collections.emptySet()));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, stateMonitors, lfParameters);
+
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(1, result.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        BranchResult l23Result = postContingencyResult.getNetworkResult().getBranchResult("L2-3-1");
+        BranchResult l34Result = postContingencyResult.getNetworkResult().getBranchResult("L3-4-1");
+        assertNotNull(l23Result);
+        assertNotNull(l34Result);
+        assertEquals(l23p1, l23Result.getP1(), DELTA_POWER);
+        assertEquals(l23q1, l23Result.getQ1(), DELTA_POWER);
+        assertEquals(l23p2, l23Result.getP2(), DELTA_POWER);
+        assertEquals(l23q2, l23Result.getQ2(), DELTA_POWER);
+        assertEquals(l34p1, l34Result.getP1(), DELTA_POWER);
+        assertEquals(l34q1, l34Result.getQ1(), DELTA_POWER);
+        assertEquals(l34p2, l34Result.getP2(), DELTA_POWER);
+        assertEquals(-1.334, l34Result.getQ2(), DELTA_POWER); // ????
     }
 
     @Test

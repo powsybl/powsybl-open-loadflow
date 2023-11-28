@@ -136,6 +136,30 @@ public class PropagatedContingency {
                     Bus bus = (Bus) identifiable;
                     if (bus.getVoltageLevel().getTopologyKind() == TopologyKind.BUS_BREAKER) {
                         busIdsToLose.add(identifiable.getId());
+                        bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
+                            public void visitBranch(Branch<?> branch, TwoSides side) {
+                                if (side == TwoSides.ONE) {
+                                    topoConfig.getBranchIdsOpenableSide1().add(branch.getId());
+                                } else {
+                                    topoConfig.getBranchIdsOpenableSide2().add(branch.getId());
+                                }
+                            }
+
+                            @Override
+                            public void visitLine(Line line, TwoSides side) {
+                                visitBranch(line, side);
+                            }
+
+                            @Override
+                            public void visitTwoWindingsTransformer(TwoWindingsTransformer transformer, TwoSides side) {
+                                visitBranch(transformer, side);
+                            }
+
+                            @Override
+                            public void visitThreeWindingsTransformer(ThreeWindingsTransformer transformer, ThreeSides side) {
+                                topoConfig.getBranchIdsOpenableSide1().add(LfLegBranch.getId(transformer.getId(), side.getNum()));
+                            }
+                        });
                     } else {
                         throw new UnsupportedOperationException("Unsupported contingency element type " + element.getType() + ": voltage level should be in bus/breaker topology");
                     }
@@ -251,7 +275,7 @@ public class PropagatedContingency {
                     for (ThreeSides side : ThreeSides.values()) {
                         if (twt.getTerminal(side) == terminal) {
                             addBranchIdToOpen(LfLegBranch.getId(side, connectable.getId()), DisabledBranchStatus.SIDE_1);
-                            topoConfig.getBranchIdsOpenableSide1().add(connectable.getId());
+                            topoConfig.getBranchIdsOpenableSide1().add(LfLegBranch.getId(connectable.getId(), side.getNum()));
                             break;
                         }
                     }
@@ -358,12 +382,8 @@ public class PropagatedContingency {
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
 
-        List<LfBranch> branchesToOpen = branchIdsToOpen.keySet().stream()
-                .map(network::getBranchById)
-                .filter(Objects::nonNull) // could be in another component
-                .collect(Collectors.toList());
-
         // we add the lostBranches connected to lostBuses to lose.
+        Map<String, DisabledBranchStatus> allBranchIdsToOpen = new HashMap<>();
         busIdsToLose.stream().map(network::getBusById)
                 .filter(Objects::nonNull)
                 .forEach(bus -> {
@@ -372,9 +392,15 @@ public class PropagatedContingency {
                         // we keep the slack bus enabled and the connected lostBranches
                         LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", bus.getId());
                     } else {
-                        branchesToOpen.addAll(bus.getBranches());
+                        bus.getBranches().forEach(branch -> allBranchIdsToOpen.put(branch.getId(), branch.getBus1() == bus ? DisabledBranchStatus.SIDE_1 : DisabledBranchStatus.SIDE_2));
                     }
                 });
+        allBranchIdsToOpen.putAll(branchIdsToOpen);
+
+        List<LfBranch> branchesToOpen = allBranchIdsToOpen.keySet().stream()
+                .map(network::getBranchById)
+                .filter(Objects::nonNull) // could be in another component
+                .collect(Collectors.toList());
 
         branchesToOpen.stream()
                 .filter(LfBranch::isConnectedAtBothSides)
@@ -393,12 +419,12 @@ public class PropagatedContingency {
         int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
         Set<LfBus> lostBuses = connectivity.getVerticesRemovedFromMainComponent();
         Map<LfBranch, DisabledBranchStatus> lostBranches = connectivity.getEdgesRemovedFromMainComponent().stream()
-                .collect(Collectors.toMap(Function.identity(), branch -> DisabledBranchStatus.BOTH_SIDES));
+                .collect(Collectors.toMap(Function.identity(), branch -> allBranchIdsToOpen.getOrDefault(branch.getId(), DisabledBranchStatus.BOTH_SIDES)));
 
         // we should manage branches open at one side
         branchesToOpen.stream()
                 .filter(branch -> !branch.isConnectedAtBothSides())
-                .forEach(branch -> lostBranches.put(branch, branchIdsToOpen.get(branch.getId())));
+                .forEach(branch -> lostBranches.put(branch, allBranchIdsToOpen.get(branch.getId())));
         for (LfBus bus : lostBuses) {
             bus.getBranches().stream()
                     .filter(branch -> !branch.isConnectedAtBothSides())

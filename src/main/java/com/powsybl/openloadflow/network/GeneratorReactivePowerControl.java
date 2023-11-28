@@ -13,13 +13,13 @@ import java.util.*;
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  */
-public class ReactivePowerControl extends Control {
+public class GeneratorReactivePowerControl extends Control {
 
     private final LfBranch controlledBranch;
     private final TwoSides controlledSide;
     private final List<LfBus> controllerBuses = new ArrayList<>();
 
-    public ReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, double targetValue) {
+    public GeneratorReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, double targetValue) {
         super(targetValue);
         this.controlledBranch = Objects.requireNonNull(controlledBranch);
         this.controlledSide = Objects.requireNonNull(controlledSide);
@@ -39,8 +39,8 @@ public class ReactivePowerControl extends Control {
 
     public void addControllerBus(LfBus controllerBus) {
         controllerBuses.add(Objects.requireNonNull(controllerBus));
-        controllerBus.setReactivePowerControl(this);
-        controllerBus.setReactivePowerControlEnabled(true);
+        controllerBus.setGeneratorReactivePowerControl(this);
+        controllerBus.setGeneratorReactivePowerControlEnabled(true);
     }
 
     public void updateReactiveKeys() {
@@ -49,7 +49,7 @@ public class ReactivePowerControl extends Control {
         // key is 0 only on disabled controllers
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
-            if (controllerBus.isDisabled() || !controllerBus.isReactivePowerControlEnabled()) {
+            if (controllerBus.isDisabled() || !controllerBus.isGeneratorReactivePowerControlEnabled()) {
                 reactiveKeys[i] = 0d;
             }
         }

@@ -171,7 +171,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         }
 
         // positive
-        createImpedantBranchEquations(branch, bus1, bus2, equationSystem, p1, q1, i1, p2, q2, i2, null, null, null, null, null, null);
+        createImpedantBranchEquations(branch, bus1, bus2, equationSystem, p1, q1, i1, p2, q2, i2, p1, q1, i1, p2, q2, i2, null, null, null, null, null, null);
 
         // zero
         if (ixz1 != null) {
@@ -217,7 +217,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                     .addTerm(iyn2);
         }
 
-        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+        createGeneratorReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
 
         createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
     }
