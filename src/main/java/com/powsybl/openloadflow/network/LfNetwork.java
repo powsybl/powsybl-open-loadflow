@@ -157,7 +157,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         this.reporter = Objects.requireNonNull(reporter);
     }
 
-    private void invalidateSlack() {
+    private void invalidateSlackBusesAndReferenceBus() {
         if (slackBuses != null) {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(false);
@@ -169,9 +169,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public void updateSlackBusesAndReferenceBus() {
+        updateSlackBusesAndReferenceBus(slackBusSelector, Collections.emptySet(), maxSlackBusCount, maxSlackBusCount);
+    }
+
+    private void updateSlackBusesAndReferenceBus(SlackBusSelector slackBusSelector, Set<LfBus> excludedBuses, int selectedBusCount, int maxSlackBusCount) {
         if (slackBuses == null) {
-            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
-            slackBuses = selectedSlackBus.getBuses();
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, selectedBusCount);
+            slackBuses = selectedSlackBus.getBuses().stream()
+                    .filter(bus -> !excludedBuses.contains(bus))
+                    .limit(maxSlackBusCount)
+                    .toList();
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(true);
@@ -179,6 +186,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             referenceBus = slackBuses.get(0);
             referenceBus.setReference(true);
         }
+    }
+
+    public void relocateSlackBusesAndReferenceBus(Set<LfBus> excludedBuses) {
+        invalidateSlackBusesAndReferenceBus();
+        updateSlackBusesAndReferenceBus(new MostMeshedSlackBusSelector(), excludedBuses, excludedBuses.size() * 2, maxSlackBusCount);
     }
 
     private void invalidateZeroImpedanceNetworks() {
@@ -190,7 +202,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         branch.setNum(branches.size());
         branches.add(branch);
         branchesById.put(branch.getId(), branch);
-        invalidateSlack();
+        invalidateSlackBusesAndReferenceBus();
         connectivity = null;
         invalidateZeroImpedanceNetworks();
 
@@ -227,7 +239,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         bus.setNum(busesByIndex.size());
         busesByIndex.add(bus);
         busesById.put(bus.getId(), bus);
-        invalidateSlack();
+        invalidateSlackBusesAndReferenceBus();
         connectivity = null;
 
         bus.getShunt().ifPresent(this::addShunt);

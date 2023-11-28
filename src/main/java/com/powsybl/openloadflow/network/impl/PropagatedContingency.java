@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.google.common.collect.Sets;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
@@ -373,8 +374,8 @@ public class PropagatedContingency {
                 && loadIdsToLoose.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
     }
 
-    private static boolean isIsolatedBus(GraphConnectivity<LfBus, LfBranch> connectivity, LfBus bus) {
-        return connectivity.getConnectedComponent(bus).size() == 1;
+    private static boolean isIsolatedBus(GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork network, LfBus bus) {
+        return connectivity.getConnectedComponent(bus).size() < network.getBuses().size() / 2;
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
@@ -406,12 +407,15 @@ public class PropagatedContingency {
                 .filter(LfBranch::isConnectedAtBothSides)
                 .forEach(connectivity::removeEdge);
 
-        if (isIsolatedBus(connectivity, network.getSlackBus())) {
+        if (isIsolatedBus(connectivity, network, network.getSlackBus())) {
+            LOGGER.warn("Contingency '{}' leads to an isolated slack bus: relocate slack bus inside main component",
+                    contingency.getId());
             // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
-            // TODO
-            LOGGER.error("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
-            connectivity.undoTemporaryChanges();
-            return Optional.empty();
+            // we select a new slack bus excluding buses from isolated component
+            Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getVerticesRemovedFromMainComponent());
+            network.relocateSlackBusesAndReferenceBus(excludedBuses);
+            // reverse main component to the one containing the relocated bus
+            connectivity.setMainComponentVertex(network.getSlackBus());
         }
 
         // add to contingency description buses and branches that won't be part of the main connected

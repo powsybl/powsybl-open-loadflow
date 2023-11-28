@@ -2808,10 +2808,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = createNodeBreakerNetworkForTestingLineOpenOneSide();
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        setSlackBusId(lfParameters, "VL1_1");
+        setSlackBusId(lfParameters, "VL2_0");
 
-        List<Contingency> contingencies = network.getBusbarSectionStream()
-                .map(bbs -> Contingency.busbarSection(bbs.getId()))
+        List<Contingency> contingencies = Stream.of("BBS1", "BBS3")
+                .map(Contingency::busbarSection)
                 .toList();
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
