@@ -144,6 +144,7 @@ public class PropagatedContingency {
                                     topoConfig.getBranchIdsOpenableSide2().add(branch.getId());
                                 }
                             }
+
                             @Override
                             public void visitLine(Line line, TwoSides side) {
                                 visitBranch(line, side);
@@ -274,7 +275,7 @@ public class PropagatedContingency {
                     for (ThreeSides side : ThreeSides.values()) {
                         if (twt.getTerminal(side) == terminal) {
                             addBranchIdToOpen(LfLegBranch.getId(side, connectable.getId()), DisabledBranchStatus.SIDE_1);
-                            topoConfig.getBranchIdsOpenableSide1().add(connectable.getId());
+                            topoConfig.getBranchIdsOpenableSide1().add(LfLegBranch.getId(connectable.getId(), side.getNum()));
                             break;
                         }
                     }

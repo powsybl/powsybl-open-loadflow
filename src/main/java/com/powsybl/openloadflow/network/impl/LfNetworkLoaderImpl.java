@@ -458,10 +458,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             for (ThreeSides side : ThreeSides.values()) {
                 ThreeWindingsTransformer.Leg leg = t3wt.getLeg(side);
                 LfBus lfBus = getLfBus(leg.getTerminal(), lfNetwork, parameters.isBreakers());
-                LfLegBranch lfBranch = LfLegBranch.create(lfNetwork, lfBus, lfBus0, t3wt, leg,
-                        topoConfig.isRetainedPtc(LfLegBranch.getId(side, t3wt.getId())),
-                        topoConfig.isRetainedRtc(LfLegBranch.getId(side, t3wt.getId())),
-                        parameters);
+                LfLegBranch lfBranch = LfLegBranch.create(lfNetwork, lfBus, lfBus0, t3wt, leg, topoConfig, parameters);
                 addBranch(lfNetwork, lfBranch, report);
                 postProcessors.forEach(pp -> pp.onBranchAdded(t3wt, lfBranch));
             }

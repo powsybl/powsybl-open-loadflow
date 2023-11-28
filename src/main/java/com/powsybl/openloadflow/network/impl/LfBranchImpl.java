@@ -177,10 +177,10 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
-        if (bus1 != null && topoConfig.getBranchIdsOpenableSide1().contains(branch.getId())) {
+        if (bus1 != null && topoConfig.getBranchIdsOpenableSide1().contains(lfBranch.getId())) {
             lfBranch.setDisconnectionAllowedSide1(true);
         }
-        if (bus2 != null && topoConfig.getBranchIdsOpenableSide2().contains(branch.getId())) {
+        if (bus2 != null && topoConfig.getBranchIdsOpenableSide2().contains(lfBranch.getId())) {
             lfBranch.setDisconnectionAllowedSide2(true);
         }
         return lfBranch;
