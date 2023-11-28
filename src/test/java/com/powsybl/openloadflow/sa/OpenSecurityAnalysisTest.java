@@ -19,12 +19,14 @@ import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.network.test.SecurityAnalysisTestNetworkFactory;
+import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
@@ -1654,35 +1656,35 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testStatusConversion() {
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
-                buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.UNSTABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.UNSTABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED,
-                buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.STABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
-                buildTestAcLoadFlowResult(NewtonRaphsonStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
-                buildTestAcLoadFlowResult(NewtonRaphsonStatus.SOLVER_FAILED, OuterLoopStatus.STABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.SOLVER_FAILED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
-                buildTestAcLoadFlowResult(NewtonRaphsonStatus.NO_CALCULATION, OuterLoopStatus.STABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
-                buildTestAcLoadFlowResult(NewtonRaphsonStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE).toComponentResultStatus());
+                buildTestAcLoadFlowResult(AcSolverStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE).toComponentResultStatus());
 
         assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.UNSTABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.UNSTABLE)));
         assertEquals(PostContingencyComputationStatus.CONVERGED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.CONVERGED, OuterLoopStatus.STABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.SOLVER_FAILED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.SOLVER_FAILED, OuterLoopStatus.STABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.SOLVER_FAILED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.NO_IMPACT,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.NO_CALCULATION, OuterLoopStatus.STABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.FAILED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(NewtonRaphsonStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE)));
+                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE)));
     }
 
-    private AcLoadFlowResult buildTestAcLoadFlowResult(NewtonRaphsonStatus newtonRaphsonStatus, OuterLoopStatus outerLoopStatus) {
+    private AcLoadFlowResult buildTestAcLoadFlowResult(AcSolverStatus solverStatus, OuterLoopStatus outerLoopStatus) {
         LfNetwork lfNetwork = Mockito.mock(LfNetwork.class);
-        return new AcLoadFlowResult(lfNetwork, 0, 0, newtonRaphsonStatus, outerLoopStatus, 0d, 0d);
+        return new AcLoadFlowResult(lfNetwork, 0, 0, solverStatus, outerLoopStatus, 0d, 0d);
     }
 
     @Test
@@ -1930,18 +1932,173 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testWithReactivePowerRemoteControl() {
         Network network = ReactivePowerControlNetworkFactory.createWithGeneratorRemoteControl();
-        List<Contingency> contingencies = List.of(new Contingency("contingency",
-                List.of(new BranchContingency("l34"), new BranchContingency("l12"))));
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l34"), Collections.emptySet(), Collections.emptySet()));
+        List<Contingency> contingencies = List.of(
+                new Contingency("contingency1", List.of(new BranchContingency("l34"))),
+                new Contingency("contingency2", List.of(new GeneratorContingency("g4")))
+        );
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        lfParameters.setUseReactiveLimits(true);
-        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
-        openLoadFlowParameters.setReactivePowerRemoteControl(true);
-        lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(lfParameters);
+        openLoadFlowParameters.setReactivePowerRemoteControl(true)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER
+                                                           // tolerance in Q for the controlled branch
+        LoadFlow.run(network, lfParameters);
+        assertReactivePowerEquals(4, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(6.198, network.getLine("l14").getTerminal2());
+
+        network.getGenerator("g4").getTerminal().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(0.124, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-0.124, network.getLine("l14").getTerminal2());
+        network.getGenerator("g4").getTerminal().connect();
+
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
-        assertDoesNotThrow(() -> {
-            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
-        });
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        // pre contingency
+        // - l34 is controlled by g4 to have Q2 = 4 MVar
+        assertEquals(4, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(6.198, result.getPreContingencyResult().getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
+        // post contingency 1
+        assertEquals(2, result.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result, "contingency1");
+        assertEquals(0, postContingencyResult1.getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
+        // post contingency 2: generator g4 is off
+        // - l34 is no longer controlled by g4, so it must have its Q2 != 4 (pre contingency)
+        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result, "contingency2");
+        assertEquals(0.124, postContingencyResult2.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-0.124, postContingencyResult2.getNetworkResult().getBranchResult("l14").getQ2(), DELTA_POWER);
+    }
+
+    @Test
+    void testWithReactivePowerRemoteControl2() {
+        Network network = ReactivePowerControlNetworkFactory.createWithGeneratorRemoteControl2();
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12", "l34"), Collections.emptySet(), Collections.emptySet()));
+        List<Contingency> contingencies = List.of(
+                new Contingency("contingency1", List.of(new BranchContingency("l12"))),
+                new Contingency("contingency2", List.of(new GeneratorContingency("g4")))
+        );
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setUseReactiveLimits(true);
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(lfParameters);
+        openLoadFlowParameters.setReactivePowerRemoteControl(true)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER
+                                                           // tolerance in Q for the controlled branch
+        LoadFlow.run(network, lfParameters);
+        assertReactivePowerEquals(1, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(4.409, network.getLine("l34").getTerminal2());
+
+        network.getBranch("l12").getTerminal1().disconnect();
+        network.getBranch("l12").getTerminal2().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(0.481, network.getLine("l34").getTerminal2());
+        network.getBranch("l12").getTerminal1().connect();
+        network.getBranch("l12").getTerminal2().connect();
+
+        network.getGenerator("g4").getTerminal().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(-0.066, network.getLine("l12").getTerminal2());
+        assertReactivePowerEquals(0.125, network.getLine("l34").getTerminal2());
+        network.getGenerator("g4").getTerminal().connect();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // pre contingency
+        // - l12 is controlled by g4 to have Q2 = 1 MVar
+        assertEquals(1, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(4.409, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(2, result.getPostContingencyResults().size());
+        // post contingency 1: controlled branch l12 is off
+        assertEquals(0.481, getPostContingencyResult(result, "contingency1").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        // post contingency 2: generator g4 is off
+        assertEquals(-0.066, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(0.125, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+    }
+
+    @Test
+    void testWithSharedReactivePowerRemoteControl() {
+        Network network = ReactivePowerControlNetworkFactory.createWithGeneratorsRemoteControlShared();
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12", "l34"), Collections.emptySet(), Collections.emptySet()));
+        List<Contingency> contingencies = List.of(
+                new Contingency("contingency1", List.of(new BranchContingency("l34"))),
+                new Contingency("contingency2", List.of(new GeneratorContingency("g1"))),
+                new Contingency("contingency3", List.of(new GeneratorContingency("g4"))),
+                new Contingency("contingency4", List.of(new GeneratorContingency("g1"), new GeneratorContingency("g1Bis"))),
+                new Contingency("contingency5", List.of(new GeneratorContingency("g1"), new GeneratorContingency("g4")))
+        );
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setUseReactiveLimits(true);
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(lfParameters);
+        openLoadFlowParameters.setReactivePowerRemoteControl(true)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER
+                                                           // tolerance in Q for the controlled branch
+        LoadFlow.run(network, lfParameters);
+        assertReactivePowerEquals(2, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-2.814, network.getLine("l12").getTerminal2());
+
+        network.getBranch("l34").getTerminal1().disconnect();
+        network.getBranch("l34").getTerminal2().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(0.927, network.getLine("l12").getTerminal2());
+        network.getBranch("l34").getTerminal1().connect();
+        network.getBranch("l34").getTerminal2().connect();
+
+        network.getGenerator("g1").getTerminal().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(2, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-2.126, network.getLine("l12").getTerminal2());
+        network.getGenerator("g1").getTerminal().connect();
+
+        network.getGenerator("g4").getTerminal().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(2, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-5.960, network.getLine("l12").getTerminal2());
+        network.getGenerator("g4").getTerminal().connect();
+
+        network.getGenerator("g1").getTerminal().disconnect();
+        network.getGenerator("g1Bis").getTerminal().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(2, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-0.927, network.getLine("l12").getTerminal2());
+        network.getGenerator("g1").getTerminal().connect();
+        network.getGenerator("g1Bis").getTerminal().connect();
+
+        network.getGenerator("g1").getTerminal().disconnect();
+        network.getGenerator("g4").getTerminal().disconnect();
+        LoadFlow.run(network, lfParameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
+        assertReactivePowerEquals(2, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-5.962, network.getLine("l12").getTerminal2());
+        network.getGenerator("g1").getTerminal().connect();
+        network.getGenerator("g4").getTerminal().connect();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // pre contingency
+        // - l34 is controlled by g1, g1Bis and g4 to have Q2 = 2 MVar
+        assertEquals(2, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-2.814, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        assertEquals(5, result.getPostContingencyResults().size());
+        // post contingency 1: branch l34 is off
+        assertEquals(0.927, getPostContingencyResult(result, "contingency1").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        // post contingency 2: g1 is off
+        assertEquals(2, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-2.126, getPostContingencyResult(result, "contingency2").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        // post contingency 3: g4 is off
+        assertEquals(2, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-5.960, getPostContingencyResult(result, "contingency3").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        // post contingency 4: g1 and g1Bis are off
+        assertEquals(2, getPostContingencyResult(result, "contingency4").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-0.927, getPostContingencyResult(result, "contingency4").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
+        // post contingency 4: g1 and g4 are off
+        assertEquals(2, getPostContingencyResult(result, "contingency5").getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(-5.962, getPostContingencyResult(result, "contingency5").getNetworkResult().getBranchResult("l12").getQ2(), DELTA_POWER);
     }
 
     @Test
@@ -2517,5 +2674,17 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(395, saResult.getPreContingencyResult().getNetworkResult().getBusResult("b3").getV());
         assertEquals(393.23, postContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V);
+    }
+
+    @Test
+    void testPermanentLimitName() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        network.getLine("NHV1_NHV2_1").newCurrentLimits1()
+                .setPermanentLimit(300)
+                .add();
+        SecurityAnalysisResult result = runSecurityAnalysis(network);
+        List<LimitViolation> limitViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+        assertEquals(1, limitViolations.size());
+        assertEquals(LimitViolationUtils.PERMANENT_LIMIT_NAME, limitViolations.get(0).getLimitName());
     }
 }

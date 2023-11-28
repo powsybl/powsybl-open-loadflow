@@ -124,7 +124,7 @@ class OpenLoadFlowParametersTest {
         olfModuleConfig.setStringProperty("newtonRaphsonStoppingCriteriaType", "Invalid");
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> LoadFlowParameters.load(platformConfig));
-        assertEquals("No enum constant com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteriaType.Invalid", exception.getMessage());
+        assertEquals("No enum constant com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType.Invalid", exception.getMessage());
 
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(new LoadFlowParameters());
         assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxAngleMismatch(-1));

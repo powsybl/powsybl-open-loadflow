@@ -61,13 +61,14 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
                 .setForcePhaseControlOffAndAddAngle1Var(false)
                 .setUseTransformerRatio(useTransformerRatio)
                 .setDcApproximationType(dcApproximationType);
-        DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParametersDcInit,
-                                                                   creationParameters,
-                                                                   matrixFactory,
-                                                                   distributedSlack,
-                                                                   balanceType,
-                                                                   false,
-                                                                   maxOuterLoopIterations);
+        DcLoadFlowParameters parameters = new DcLoadFlowParameters()
+                .setNetworkParameters(networkParametersDcInit)
+                .setEquationSystemCreationParameters(creationParameters)
+                .setMatrixFactory(matrixFactory)
+                .setDistributedSlack(distributedSlack)
+                .setBalanceType(balanceType)
+                .setSetVToNan(false)
+                .setMaxOuterLoopIterations(maxOuterLoopIterations);
 
         try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
             DcLoadFlowEngine engine = new DcLoadFlowEngine(context);

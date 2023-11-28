@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -286,10 +285,10 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         return bus.getGeneratorVoltageControl().map(vc -> vc.getControlledBus().getV()).orElse(Double.NaN);
     }
 
-    public List<LfBus> getReactivePowerControllerElements(LfNetwork network) {
+    public static List<LfBus> getReactivePowerControllerElements(LfNetwork network) {
         return network.getBuses().stream()
                 .filter(LfBus::hasReactivePowerControl)
-                .flatMap(bus -> Stream.of(bus.getReactivePowerControl().orElseThrow().getControllerBus()))
+                .flatMap(bus -> bus.getReactivePowerControl().orElseThrow().getControllerBuses().stream())
                 .filter(Predicate.not(LfBus::isDisabled))
                 .collect(Collectors.toList());
     }
