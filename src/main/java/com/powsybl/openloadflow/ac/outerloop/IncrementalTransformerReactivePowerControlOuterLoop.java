@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
-public class IncrementalTransformerReactivePowerControlOuterLoop implements AcOuterLoop {
+public class IncrementalTransformerReactivePowerControlOuterLoop extends AbstractTransformerReactivePowerControlOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerReactivePowerControlOuterLoop.class);
 
