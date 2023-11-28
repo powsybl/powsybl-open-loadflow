@@ -255,7 +255,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         for (ControllerBusToPqBus bus : reactiveControllerBusesToPqBuses) {
             LfBus controllerBus = bus.controllerBus;
 
-            controllerBus.setReactivePowerControlEnabled(false);
+            controllerBus.setGeneratorReactivePowerControlEnabled(false);
             controllerBus.setGenerationTargetQ(bus.qLimit);
             switchCount++;
 
@@ -287,8 +287,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
     public static List<LfBus> getReactivePowerControllerElements(LfNetwork network) {
         return network.getBuses().stream()
-                .filter(LfBus::hasReactivePowerControl)
-                .flatMap(bus -> bus.getReactivePowerControl().orElseThrow().getControllerBuses().stream())
+                .filter(LfBus::hasGeneratorReactivePowerControl)
+                .flatMap(bus -> bus.getGeneratorReactivePowerControl().orElseThrow().getControllerBuses().stream())
                 .filter(Predicate.not(LfBus::isDisabled))
                 .collect(Collectors.toList());
     }
@@ -314,7 +314,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         });
 
         getReactivePowerControllerElements(context.getNetwork()).forEach(bus -> {
-            if (bus.isReactivePowerControlEnabled()) {
+            if (bus.isGeneratorReactivePowerControlEnabled()) {
                 // a bus that has a remote reactive generator power control, if its reactive limits are not respected,
                 // will become a classical PQ bus at reactive limits.
                 checkControllerBus(bus, reactiveControllerBusesToPqBuses, remainingBusWithReactivePowerControlCount);

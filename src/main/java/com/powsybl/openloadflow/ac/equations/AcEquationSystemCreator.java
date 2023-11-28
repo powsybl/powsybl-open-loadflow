@@ -101,7 +101,7 @@ public class AcEquationSystemCreator {
                             createGeneratorLocalVoltageControlEquation(bus, equationSystem);
                         } else {
                             // create reactive power distribution equations at voltage controller buses
-                            createReactivePowerDistributionEquations(voltageControl, equationSystem, creationParameters);
+                            createGeneratorReactivePowerDistributionEquations(voltageControl, equationSystem, creationParameters);
                         }
                         updateGeneratorVoltageControl(voltageControl, equationSystem);
                     }
@@ -125,24 +125,24 @@ public class AcEquationSystemCreator {
         }
     }
 
-    protected void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                    boolean deriveA1, boolean deriveR1) {
+    protected void createGeneratorReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                     boolean deriveA1, boolean deriveR1) {
         if (bus1 != null && bus2 != null) {
-            branch.getReactivePowerControl().ifPresent(rpc -> {
+            branch.getGeneratorReactivePowerControl().ifPresent(rpc -> {
                 EquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == TwoSides.ONE
                         ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
                         : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
                         .addTerm(q);
-                createReactivePowerDistributionEquations(rpc, equationSystem, creationParameters);
-                updateReactivePowerControlBranchEquations(rpc, equationSystem);
+                createGeneratorReactivePowerDistributionEquations(rpc, equationSystem, creationParameters);
+                updateGeneratorReactivePowerControlBranchEquations(rpc, equationSystem);
             });
         }
     }
 
-    public static void updateReactivePowerControlBranchEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
-        List<LfBus> controllerBuses = reactivePowerControl.getControllerBuses()
+    public static void updateGeneratorReactivePowerControlBranchEquations(GeneratorReactivePowerControl generatorReactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfBranch controlledBranch = generatorReactivePowerControl.getControlledBranch();
+        List<LfBus> controllerBuses = generatorReactivePowerControl.getControllerBuses()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
                 .toList();
@@ -160,12 +160,12 @@ public class AcEquationSystemCreator {
             }
         } else {
             List<LfBus> enabledControllerBuses = controllerBuses.stream()
-                    .filter(LfBus::isReactivePowerControlEnabled).toList();
+                    .filter(LfBus::isGeneratorReactivePowerControlEnabled).toList();
             List<LfBus> disabledControllerBuses = controllerBuses.stream()
-                    .filter(Predicate.not(LfBus::isReactivePowerControlEnabled)).toList();
+                    .filter(Predicate.not(LfBus::isGeneratorReactivePowerControlEnabled)).toList();
 
             // reactive keys must be updated in case of disabled controllers.
-            reactivePowerControl.updateReactiveKeys();
+            generatorReactivePowerControl.updateReactiveKeys();
 
             // activate reactive power control at controlled bus only if at least one controller element is enabled
             qEq.setActive(!enabledControllerBuses.isEmpty());
@@ -206,13 +206,13 @@ public class AcEquationSystemCreator {
         bus.getSvcShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
     }
 
-    private static void createReactivePowerDistributionEquations(Control control, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                 AcEquationSystemCreationParameters creationParameters) {
+    private static void createGeneratorReactivePowerDistributionEquations(Control control, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                          AcEquationSystemCreationParameters creationParameters) {
         List<LfBus> controllerBuses = null;
         if (control instanceof GeneratorVoltageControl generatorVoltageControl) {
             controllerBuses = generatorVoltageControl.getMergedControllerElements();
-        } else if (control instanceof ReactivePowerControl reactivePowerControl) {
-            controllerBuses = reactivePowerControl.getControllerBuses();
+        } else if (control instanceof GeneratorReactivePowerControl generatorReactivePowerControl) {
+            controllerBuses = generatorReactivePowerControl.getControllerBuses();
         } else {
             throw new PowsyblException("Control has to be of type GeneratorVoltageControl or ReactivePowerControl to create Q distribution equations");
         }
@@ -244,7 +244,7 @@ public class AcEquationSystemCreator {
             equationSystem.removeEquation(controllerBus.getNum(), AcEquationType.DISTR_Q);
         }
         if (!voltageControl.isLocalControl()) {
-            createReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
+            createGeneratorReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
         }
         updateGeneratorVoltageControl(voltageControl, equationSystem);
     }
@@ -649,7 +649,7 @@ public class AcEquationSystemCreator {
 
         createBranchEquations(branch, bus1, bus2, equationSystem, p1, q1, p2, q2, i1, i2);
 
-        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+        createGeneratorReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
 
         createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
     }

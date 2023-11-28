@@ -217,7 +217,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                     .addTerm(iyn2);
         }
 
-        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+        createGeneratorReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
 
         createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
     }
