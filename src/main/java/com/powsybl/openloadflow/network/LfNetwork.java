@@ -766,21 +766,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 .collect(Collectors.toList());
     }
 
-    public List<LfBranch> getReactivePowerControllerBranches() {
-        return branches.stream()
-                // TODO : add filter to get only rtc ?
-                .filter(LfBranch::isTransformerReactivePowerController) //
-                .filter(Predicate.not(LfBranch::isDisabled))
-                .collect(Collectors.toList());
-    }
-
-    public List<LfBranch> getReactivePowerControlledBranches() {
-        return branches.stream()
-                // TODO : add filter to get only rtc ?
-                .filter(LfBranch::isTransformerReactivePowerControlled)
-                .collect(Collectors.toList());
-    }
-
     public void addOverloadManagementSystem(LfOverloadManagementSystem overloadManagementSystem) {
         overloadManagementSystems.add(Objects.requireNonNull(overloadManagementSystem));
     }

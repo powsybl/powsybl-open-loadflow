@@ -316,39 +316,6 @@ public class PiModelArray implements PiModel {
         return false;
     }
 
-    public boolean shiftOneTapPositionToChangeR1(Direction direction) {
-        // an increase direction means that R1 should increase.
-        // a decrease direction means that R1 should decrease.
-        double currentR1 = getR1();
-        int oldTapPositionIndex = tapPositionIndex;
-
-        if (tapPositionIndex < models.size() - 1) {
-            double nextR1 = models.get(tapPositionIndex + 1).getR1();
-            if (direction == Direction.INCREASE && nextR1 > currentR1
-                    || direction == Direction.DECREASE && nextR1 < currentR1) {
-                tapPositionIndex++;
-            }
-        }
-
-        if (tapPositionIndex > 0) {
-            double previousR1 = models.get(tapPositionIndex - 1).getR1();
-            if (direction == Direction.INCREASE && previousR1 > currentR1
-                    || direction == Direction.DECREASE && previousR1 < currentR1) {
-                tapPositionIndex--;
-            }
-        }
-
-        if (tapPositionIndex != oldTapPositionIndex) {
-            r1 = Double.NaN;
-            for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, lowTapPosition + tapPositionIndex);
-            }
-            return true;
-        }
-
-        return false;
-    }
-
     @Override
     public Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
         double newR1 = getR1() + deltaR1;

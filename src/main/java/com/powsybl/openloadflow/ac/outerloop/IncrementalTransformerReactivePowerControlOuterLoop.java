@@ -42,8 +42,6 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
 
     public static final String NAME = "IncrementalTransformerReactivePowerControl";
 
-    private static final double MIN_TARGET_DEADBAND_MVAR = 0.1;
-
     private static final int MAX_DIRECTION_CHANGE = 2;
     public static final int DEFAULT_MAX_TAP_SHIFT = 3;
     private final int maxTapShift;
@@ -216,10 +214,6 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         }
 
         return status.getValue();
-    }
-
-    protected static double getHalfTargetDeadband(TransformerReactivePowerControl reactivePowerControl) {
-        return reactivePowerControl.getTargetDeadband().orElse(MIN_TARGET_DEADBAND_MVAR) / 2;
     }
 
     private static double getDiffQ(TransformerReactivePowerControl reactivePowerControl) {

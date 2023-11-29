@@ -292,16 +292,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public Evaluable getR1() {
-        return r1;
-    }
-
-    @Override
-    public void setR1(Evaluable r1) {
-        this.r1 = r1;
-    }
-
-    @Override
     public Evaluable getA1() {
         return a1;
     }

@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.lf.outerloop;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,9 +66,5 @@ public class IncrementalReactivePowerContextData {
                 .filter(LfBranch::isTransformerReactivePowerControlled)
                 .collect(Collectors.toList());
 
-    }
-
-    public IncrementalReactivePowerContextData() {
-        candidateControlledBranches = Collections.emptyList();
     }
 }

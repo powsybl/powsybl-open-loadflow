@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
+import com.powsybl.openloadflow.network.TransformerReactivePowerControl;
+
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
@@ -13,9 +15,15 @@ abstract class AbstractTransformerReactivePowerControlOuterLoop implements AcOut
 
     private static final String TYPE = "TransformerReactivePowerControl";
 
+    private static final double MIN_TARGET_DEADBAND_MVAR = 0.1;
+
     @Override
     public String getType() {
         return TYPE;
+    }
+
+    protected static double getHalfTargetDeadband(TransformerReactivePowerControl reactivePowerControl) {
+        return reactivePowerControl.getTargetDeadband().orElse(MIN_TARGET_DEADBAND_MVAR) / 2;
     }
 
 }

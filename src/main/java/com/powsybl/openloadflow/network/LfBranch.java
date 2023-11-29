@@ -203,7 +203,7 @@ public interface LfBranch extends LfElement {
 
     void updateFlows(double p1, double q1, double p2, double q2);
 
-    // transfo phase control
+    // transformer phase control
 
     boolean hasPhaseControllerCapability();
 
@@ -219,7 +219,7 @@ public interface LfBranch extends LfElement {
 
     void setPhaseControlEnabled(boolean phaseControlEnabled);
 
-    // transfo voltage control
+    // transformer voltage control
 
     Optional<TransformerVoltageControl> getVoltageControl();
 
@@ -231,7 +231,7 @@ public interface LfBranch extends LfElement {
 
     void setVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
-    // transfo reactive power control
+    // transformer reactive power control
 
     Optional<TransformerReactivePowerControl> getTransformerReactivePowerControl();
 
@@ -256,10 +256,6 @@ public interface LfBranch extends LfElement {
     void setSpanningTreeEdge(LoadFlowModel loadFlowModel, boolean spanningTreeEdge);
 
     boolean isSpanningTreeEdge(LoadFlowModel loadFlowModel);
-
-    Evaluable getR1();
-
-    void setR1(Evaluable r1);
 
     Evaluable getA1();
 
