@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -88,7 +89,9 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
 
         DenseMatrix mZ = getMatrixFromBloc44(z11, z22, z12);
         DenseMatrix b44 = getId44();
-        mZ.decomposeLU().solve(b44);
+        try (LUDecomposition lu = mZ.decomposeLU()) {
+            lu.solve(b44);
+        }
         return b44;
 
     }
@@ -173,7 +176,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         complexMatrix.set(1, 1, one);
         complexMatrix.set(2, 2, one);
 
-        return complexMatrix.getRealCartesianMatrix();
+        return complexMatrix.toRealCartesianMatrix();
 
     }
 
@@ -185,7 +188,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         complexMatrix.set(2, 1, bloc12);
         complexMatrix.set(2, 2, bloc22);
 
-        return complexMatrix.getRealCartesianMatrix();
+        return complexMatrix.toRealCartesianMatrix();
 
     }
 

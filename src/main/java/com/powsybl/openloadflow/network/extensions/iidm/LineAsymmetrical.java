@@ -82,8 +82,8 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
 
         // second member [b] used as [b] = inv([z]) * [Id]
         ComplexMatrix identity3 = ComplexMatrix.createIdentity(3);
-        DenseMatrix b3 = identity3.getRealCartesianMatrix();
-        DenseMatrix minusId3 = identity3.scale(-1.).getRealCartesianMatrix();
+        DenseMatrix b3 = identity3.toRealCartesianMatrix();
+        DenseMatrix minusId3 = identity3.scale(-1.).toRealCartesianMatrix();
 
         // At this stage, zabc is not necessarily invertible since phases might be missing and then equivalent to zero blocs
         Complex one = Complex.ONE;
@@ -111,13 +111,13 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
             zabc.set(3, 1, zero);
         }
 
-        DenseMatrix zReal = zabc.getRealCartesianMatrix();
+        DenseMatrix zReal = zabc.toRealCartesianMatrix();
         try (LUDecomposition lu = zReal.decomposeLU()) {
             lu.solve(b3);
         }
 
         // Then we set to zero blocs with no phase
-        ComplexMatrix invZabc = ComplexMatrix.getComplexMatrixFromRealCartesian(b3);
+        ComplexMatrix invZabc = ComplexMatrix.fromRealCartesian(b3);
         if (!hasPhaseA) {
             invZabc.set(1, 1, zero);
         }
@@ -128,11 +128,11 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
             invZabc.set(3, 3, zero);
         }
 
-        b3 = invZabc.getRealCartesianMatrix();
+        b3 = invZabc.toRealCartesianMatrix();
 
         DenseMatrix minusB3 = b3.times(minusId3);
         DenseMatrix realYabc = AsymThreePhaseTransfo.buildFromBlocs(b3, minusB3, minusB3, b3);
-        ComplexMatrix yabc = ComplexMatrix.getComplexMatrixFromRealCartesian(realYabc);
+        ComplexMatrix yabc = ComplexMatrix.fromRealCartesian(realYabc);
         yabc = yabc.scale(1. / length);
 
         // taking into account susceptance matrix babc

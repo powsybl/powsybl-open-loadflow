@@ -79,7 +79,7 @@ public class ComplexMatrix {
     }
 
     // utils to switch between complex and real cartesian representation of a complex matrix
-    public DenseMatrix getRealCartesianMatrix() {
+    public DenseMatrix toRealCartesianMatrix() {
         DenseMatrix realMatrix = new DenseMatrix(getRowCount() * 2, getColumnCount() * 2);
         for (int i = 0; i < getRowCount(); i++) {
             for (int j = 0; j < getColumnCount(); j++) {
@@ -94,17 +94,16 @@ public class ComplexMatrix {
         return realMatrix;
     }
 
-    public static ComplexMatrix getComplexMatrixFromRealCartesian(DenseMatrix realMatrix) {
-
-        int nbCol = realMatrix.getColumnCount();
-        int nbRow = realMatrix.getRowCount();
-        if (nbCol % 2 != 0 || nbRow % 2 != 0) { // dimensions have to be even
+    public static ComplexMatrix fromRealCartesian(DenseMatrix realMatrix) {
+        int columnCount = realMatrix.getColumnCount();
+        int rowCount = realMatrix.getRowCount();
+        if (columnCount % 2 != 0 || rowCount % 2 != 0) { // dimensions have to be even
             throw new MatrixException("Incompatible matrices dimensions to build a complex matrix from a real cartesian");
         }
 
-        ComplexMatrix complexMatrix = new ComplexMatrix(nbRow / 2, nbCol / 2);
-        for (int i = 1; i <= nbRow / 2; i++) {
-            for (int j = 1; j <= nbCol / 2; j++) {
+        ComplexMatrix complexMatrix = new ComplexMatrix(rowCount / 2, columnCount / 2);
+        for (int i = 1; i <= rowCount / 2; i++) {
+            for (int j = 1; j <= columnCount / 2; j++) {
 
                 int rowIndexInCartesian = 2 * (i - 1);
                 int colIndexInCartesian = 2 * (j - 1);
@@ -124,9 +123,7 @@ public class ComplexMatrix {
                     throw new MatrixException("Incompatible bloc matrices terms to build a complex matrix from a real cartesian");
                 }
 
-                Complex complexTerm = new Complex(t11, t21);
-
-                complexMatrix.set(i, j, complexTerm);
+                complexMatrix.set(i, j, new Complex(t11, t21));
             }
         }
 

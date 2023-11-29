@@ -430,9 +430,9 @@ public class AsymThreePhaseTfoTest {
         zy.set(3, 2, new Complex(0.158, 0.4236));
         zy.set(3, 3, new Complex(0.4615, 1.0651));
 
-        DenseMatrix b3 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix();
-        DenseMatrix minusId3 = ComplexMatrix.createIdentity(3).scale(-1.).getRealCartesianMatrix();
-        DenseMatrix zReal = zy.getRealCartesianMatrix();
+        DenseMatrix b3 = ComplexMatrix.createIdentity(3).toRealCartesianMatrix();
+        DenseMatrix minusId3 = ComplexMatrix.createIdentity(3).scale(-1.).toRealCartesianMatrix();
+        DenseMatrix zReal = zy.toRealCartesianMatrix();
         try (LUDecomposition lu = zReal.decomposeLU()) {
             lu.solve(b3);
         }
@@ -443,7 +443,7 @@ public class AsymThreePhaseTfoTest {
 
         DenseMatrix minusB3 = b3.times(minusId3);
         DenseMatrix realYabc34 = AsymThreePhaseTransfo.buildFromBlocs(b3, minusB3, minusB3, b3);
-        ComplexMatrix yabc34 = ComplexMatrix.getComplexMatrixFromRealCartesian(realYabc34).scale(feetInMile / length2InFeet);
+        ComplexMatrix yabc34 = ComplexMatrix.fromRealCartesian(realYabc34).scale(feetInMile / length2InFeet);
 
         Complex va3 = ComplexUtils.polar2Complex(2.249, Math.toRadians(-33.7));
         Complex vb3 = ComplexUtils.polar2Complex(2.263, Math.toRadians(-153.4));
@@ -455,7 +455,7 @@ public class AsymThreePhaseTfoTest {
 
         DenseMatrix vabc3Vabc4 = buildV2V3(va3, vb3, vc3, va4, vb4, vc4);
 
-        DenseMatrix iabc3Iabc4 = yabc34.getRealCartesianMatrix().times(vabc3Vabc4);
+        DenseMatrix iabc3Iabc4 = yabc34.toRealCartesianMatrix().times(vabc3Vabc4);
         ComplexMatrix i23 = getComplexCurrent(iabc3Iabc4);
 
         assertEquals(0.44749471117105044, i23.getTerm(1, 1).getReal(), 0.000001);

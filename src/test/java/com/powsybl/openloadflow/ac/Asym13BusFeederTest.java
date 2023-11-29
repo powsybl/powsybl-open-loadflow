@@ -108,8 +108,8 @@ public class Asym13BusFeederTest {
         v.set(5, 1, ComplexUtils.polar2Complex(vBase * 1.042, Math.toRadians(-121.72)));
         v.set(6, 1, ComplexUtils.polar2Complex(vBase * 1.0174, Math.toRadians(117.83)));
 
-        DenseMatrix i601Real = yabc601.getRealCartesianMatrix().times(v.getRealCartesianMatrix());
-        ComplexMatrix i601 = ComplexMatrix.getComplexMatrixFromRealCartesian(i601Real);
+        DenseMatrix i601Real = yabc601.toRealCartesianMatrix().times(v.toRealCartesianMatrix());
+        ComplexMatrix i601 = ComplexMatrix.fromRealCartesian(i601Real);
 
         assertEquals(0.5586746694365669, i601.getTerm(1, 1).abs(), 0.00001);
         assertEquals(0.41499019362590045, i601.getTerm(5, 1).abs(), 0.00001);
@@ -1344,8 +1344,8 @@ public class Asym13BusFeederTest {
         rho.set(5, 5, Complex.ONE);
         rho.set(6, 6, Complex.ONE);
         ComplexMatrix yabc650y632 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy601, b601, true, true, true, length650y632InFeet / feetInMile);
-        DenseMatrix yabcRg60Real = rho.getRealCartesianMatrix().times(yabc650y632.getRealCartesianMatrix().times(rho.getRealCartesianMatrix()));
-        ComplexMatrix yabcRg60 = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcRg60Real);
+        DenseMatrix yabcRg60Real = rho.toRealCartesianMatrix().times(yabc650y632.toRealCartesianMatrix().times(rho.toRealCartesianMatrix()));
+        ComplexMatrix yabcRg60 = ComplexMatrix.fromRealCartesian(yabcRg60Real);
 
         line650y632.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(yabcRg60.scale(yCoef))

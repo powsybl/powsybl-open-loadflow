@@ -15,7 +15,7 @@ class ComplexMatrixTest {
         fortescueMatrix.print(System.out);
 
         System.out.println("Matrix Complex Fortescue = ");
-        DenseMatrix computedMatrix = complexFortescueMatrix.getRealCartesianMatrix();
+        DenseMatrix computedMatrix = complexFortescueMatrix.toRealCartesianMatrix();
 
         for (int i = 0; i < fortescueMatrix.getRowCount(); i++) {
             for (int j = 0; j < fortescueMatrix.getColumnCount(); j++) {
@@ -27,10 +27,10 @@ class ComplexMatrixTest {
     @Test
     void realToComplexMatrixTest() {
         ComplexMatrix complexFortescueMatrix = Fortescue.createComplexMatrix(false);
-        DenseMatrix realFortescueMatrix = complexFortescueMatrix.getRealCartesianMatrix();
+        DenseMatrix realFortescueMatrix = complexFortescueMatrix.toRealCartesianMatrix();
 
-        ComplexMatrix computedComplexFortescueMatrix = ComplexMatrix.getComplexMatrixFromRealCartesian(realFortescueMatrix);
-        DenseMatrix computedMatrix = computedComplexFortescueMatrix.getRealCartesianMatrix();
+        ComplexMatrix computedComplexFortescueMatrix = ComplexMatrix.fromRealCartesian(realFortescueMatrix);
+        DenseMatrix computedMatrix = computedComplexFortescueMatrix.toRealCartesianMatrix();
 
         for (int i = 0; i < realFortescueMatrix.getRowCount(); i++) {
             for (int j = 0; j < realFortescueMatrix.getColumnCount(); j++) {

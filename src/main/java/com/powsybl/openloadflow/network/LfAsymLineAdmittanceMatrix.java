@@ -128,11 +128,11 @@ public class LfAsymLineAdmittanceMatrix {
         Pair<DenseMatrix, DenseMatrix> blocs2M1M2AndM3M4 = getBlocsM1M2AndM3M4(asymLine, asymLine.isSide2FortescueRepresentation(), asymLine.getSide2VariableType(), asymLine.isHasPhaseA2(), asymLine.isHasPhaseB2(), asymLine.isHasPhaseC2());
 
         ComplexMatrix zeroBloc = new ComplexMatrix(3, 3);
-        DenseMatrix zeroBlocReal = zeroBloc.getRealCartesianMatrix();
+        DenseMatrix zeroBlocReal = zeroBloc.toRealCartesianMatrix();
         DenseMatrix m1m2 = AsymThreePhaseTransfo.buildFromBlocs(blocs1M1M2AndM3M4.getFirst(), zeroBlocReal, zeroBlocReal, blocs2M1M2AndM3M4.getFirst());
         DenseMatrix m3m4 = AsymThreePhaseTransfo.buildFromBlocs(blocs1M1M2AndM3M4.getSecond(), zeroBlocReal, zeroBlocReal, blocs2M1M2AndM3M4.getSecond());
 
-        return productMatrixM1M2M3(m1m2, yabc.getRealCartesianMatrix(), m3m4);
+        return productMatrixM1M2M3(m1m2, yabc.toRealCartesianMatrix(), m3m4);
     }
 
     private static Pair<DenseMatrix, DenseMatrix> getBlocsM1M2AndM3M4(LfAsymLine asymLine, boolean isSideFortescueRepresented, AsymBusVariableType asymBusVariableType, boolean hasPhaseA, boolean hasPhaseB, boolean hasPhaseC) {
@@ -157,14 +157,14 @@ public class LfAsymLineAdmittanceMatrix {
         ComplexMatrix permutationMatrix = getPermutationMatrix(hasPhaseA, hasPhaseB, hasPhaseC);
 
         // bloc1 M1 * M2 = transpose([permut]) * [invft] * [phaseId]
-        DenseMatrix blocM1M2 = permutationMatrix.transpose().getRealCartesianMatrix().times(invFt.getRealCartesianMatrix().times(phaseId1.getRealCartesianMatrix()));
+        DenseMatrix blocM1M2 = permutationMatrix.transpose().toRealCartesianMatrix().times(invFt.toRealCartesianMatrix().times(phaseId1.toRealCartesianMatrix()));
         // bloc1 M3 * M4 = [phaseId] * [ft] * [permut]
-        DenseMatrix blocM3M4 = phaseId1.getRealCartesianMatrix().times(ft.getRealCartesianMatrix().times(permutationMatrix.getRealCartesianMatrix()));
+        DenseMatrix blocM3M4 = phaseId1.toRealCartesianMatrix().times(ft.toRealCartesianMatrix().times(permutationMatrix.toRealCartesianMatrix()));
 
         // Delta config : if delta config, we cancel columns related to Vzero and lines related ti Izero
         ComplexMatrix cancelZeroSequence = ComplexMatrix.createIdentity(3);
         cancelZeroSequence.set(1, 1, Complex.ZERO);
-        DenseMatrix cancelZeroSequenceReal = cancelZeroSequence.getRealCartesianMatrix();
+        DenseMatrix cancelZeroSequenceReal = cancelZeroSequence.toRealCartesianMatrix();
         if (asymBusVariableType == AsymBusVariableType.DELTA) {
             blocM1M2 = cancelZeroSequenceReal.times(blocM1M2);
             blocM3M4 = blocM3M4.times(cancelZeroSequenceReal);
@@ -205,7 +205,7 @@ public class LfAsymLineAdmittanceMatrix {
         mYc.set(6, 6, y12n.add(y2n));
         mYc.set(6, 3, y12n.multiply(-1));
 
-        return mYc.getRealCartesianMatrix();
+        return mYc.toRealCartesianMatrix();
     }
 
     private static DenseMatrix update(DenseMatrix mYzpn, boolean phaseOpenA, boolean phaseOpenB, boolean phaseOpenC) {

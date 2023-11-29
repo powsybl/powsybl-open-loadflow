@@ -9,6 +9,7 @@
 package com.powsybl.openloadflow.network.extensions;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
@@ -135,27 +136,31 @@ public class AsymThreePhaseTransfo {
         // [I'abc1] = [M1].[Vabc1] + [M2].[Vabc2] + [M3].[I'abc2] + [M4].vo1 + [M5].vo2
         // [I'abc2] = [M6].[Vabc1] + [M7].[Vabc2] + [M8].[I'abc1] + [M9].vo1 + [M10].vo2
 
-        DenseMatrix b1 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix(); // second member for matrix inversion
+        DenseMatrix b1 = ComplexMatrix.createIdentity(3).toRealCartesianMatrix(); // second member for matrix inversion
 
-        DenseMatrix mId3 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix();
-        DenseMatrix yinv1 = mId3.add(yp11.getRealCartesianMatrix().times(mZg1.getRealCartesianMatrix()), 1., -1.); // matrix to be inverted
-        yinv1.decomposeLU().solve(b1);
+        DenseMatrix mId3 = ComplexMatrix.createIdentity(3).toRealCartesianMatrix();
+        DenseMatrix yinv1 = mId3.add(yp11.toRealCartesianMatrix().times(mZg1.toRealCartesianMatrix()), 1., -1.); // matrix to be inverted
+        try (LUDecomposition lu = yinv1.decomposeLU()) {
+            lu.solve(b1);
+        }
 
-        DenseMatrix m1 = b1.times(yp11.getRealCartesianMatrix().times(c1V.getRealCartesianMatrix()));
-        DenseMatrix m2 = b1.times(yp12.getRealCartesianMatrix().times(c2V.getRealCartesianMatrix()));
-        DenseMatrix m3 = b1.times(yp12.getRealCartesianMatrix().times(mZg2.getRealCartesianMatrix()));
-        DenseMatrix m4 = b1.times(yp11.getRealCartesianMatrix().times(getFullMinusVector3().getRealCartesianMatrix()));
-        DenseMatrix m5 = b1.times(yp12.getRealCartesianMatrix().times(getFullMinusVector3().getRealCartesianMatrix()));
+        DenseMatrix m1 = b1.times(yp11.toRealCartesianMatrix().times(c1V.toRealCartesianMatrix()));
+        DenseMatrix m2 = b1.times(yp12.toRealCartesianMatrix().times(c2V.toRealCartesianMatrix()));
+        DenseMatrix m3 = b1.times(yp12.toRealCartesianMatrix().times(mZg2.toRealCartesianMatrix()));
+        DenseMatrix m4 = b1.times(yp11.toRealCartesianMatrix().times(getFullMinusVector3().toRealCartesianMatrix()));
+        DenseMatrix m5 = b1.times(yp12.toRealCartesianMatrix().times(getFullMinusVector3().toRealCartesianMatrix()));
 
-        DenseMatrix yinv2 = mId3.add(yp22.getRealCartesianMatrix().times(mZg2.getRealCartesianMatrix()), 1., -1.); // matrix to be inverted
-        DenseMatrix b2 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix(); // second member for matrix inversion
-        yinv2.decomposeLU().solve(b2);
+        DenseMatrix yinv2 = mId3.add(yp22.toRealCartesianMatrix().times(mZg2.toRealCartesianMatrix()), 1., -1.); // matrix to be inverted
+        DenseMatrix b2 = ComplexMatrix.createIdentity(3).toRealCartesianMatrix(); // second member for matrix inversion
+        try(LUDecomposition lu = yinv2.decomposeLU()) {
+            lu.solve(b2);
+        }
 
-        DenseMatrix m6 = b2.times(yp21.getRealCartesianMatrix().times(c1V.getRealCartesianMatrix()));
-        DenseMatrix m7 = b2.times(yp22.getRealCartesianMatrix().times(c2V.getRealCartesianMatrix()));
-        DenseMatrix m8 = b2.times(yp21.getRealCartesianMatrix().times(mZg1.getRealCartesianMatrix()));
-        DenseMatrix m9 = b2.times(yp21.getRealCartesianMatrix().times(getFullMinusVector3().getRealCartesianMatrix()));
-        DenseMatrix m10 = b2.times(yp22.getRealCartesianMatrix().times(getFullMinusVector3().getRealCartesianMatrix()));
+        DenseMatrix m6 = b2.times(yp21.toRealCartesianMatrix().times(c1V.toRealCartesianMatrix()));
+        DenseMatrix m7 = b2.times(yp22.toRealCartesianMatrix().times(c2V.toRealCartesianMatrix()));
+        DenseMatrix m8 = b2.times(yp21.toRealCartesianMatrix().times(mZg1.toRealCartesianMatrix()));
+        DenseMatrix m9 = b2.times(yp21.toRealCartesianMatrix().times(getFullMinusVector3().toRealCartesianMatrix()));
+        DenseMatrix m10 = b2.times(yp22.toRealCartesianMatrix().times(getFullMinusVector3().toRealCartesianMatrix()));
 
         // step 2: computation of matrices after I' substitution
         // [I'abc1] = inv([Id]-[M3].[M8]).([M1].[Vabc1] + [M2].[Vabc2] + [M3].([M6].[Vabc1] + [M7].[Vabc2] + [M9].vo1 + [M10].vo2) + [M4].vo1 + [M5].vo2)
@@ -163,8 +168,10 @@ public class AsymThreePhaseTransfo {
         // [I'abc1] = [M11].[Vabc1] + [M12].[Vabc2] + [M13].vo1 + [M14].vo2
 
         DenseMatrix yinv3 = mId3.add(m3.times(m8), 1., -1.); // matrix to be inverted
-        DenseMatrix b3 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix(); // second member for matrix inversion
-        yinv3.decomposeLU().solve(b3);
+        DenseMatrix b3 = ComplexMatrix.createIdentity(3).toRealCartesianMatrix(); // second member for matrix inversion
+        try (LUDecomposition lu = yinv3.decomposeLU()) {
+            lu.solve(b3);
+        }
 
         DenseMatrix m11 = b3.times(m1.add(m3.times(m6))).toDense();
         DenseMatrix m12 = b3.times(m2.add(m3.times(m7))).toDense();
@@ -211,7 +218,7 @@ public class AsymThreePhaseTransfo {
         // [I"abc1] = - [ [M13] [M14] ].[ 0    0  ].[ [Ma] [Mb] ].[ [Vabc1] ] which give the total admittance [Y"abc] to be added to the previous equation system
         // [I"abc2]     [ [M17] [M18] ] [ 0  1/mh ] [ [Me] [Mf] ] [ [Vabc2] ]
 
-        DenseMatrix fullRowReal = getFullRowVector3().getRealCartesianMatrix();
+        DenseMatrix fullRowReal = getFullRowVector3().toRealCartesianMatrix();
 
         DenseMatrix ma = fullRowReal.times(m11);
         DenseMatrix mb = fullRowReal.times(m12);
@@ -228,22 +235,24 @@ public class AsymThreePhaseTransfo {
         DenseMatrix inverse;
         if (!isVo1Zero && !isVo2Zero) {
             DenseMatrix inv4 = buildFromBlocs(mc, md, mg, mh);
-            DenseMatrix b4 = ComplexMatrix.createIdentity(2).getRealCartesianMatrix(); // second member for matrix inversion
-            inv4.decomposeLU().solve(b4);
+            DenseMatrix b4 = ComplexMatrix.createIdentity(2).toRealCartesianMatrix(); // second member for matrix inversion
+            try (LUDecomposition lu = inv4.decomposeLU()) {
+                lu.solve(b4);
+            }
             inverse = b4;
         } else if (!isVo1Zero) {
             Complex mcComplex = new Complex(mc.get(0, 0), mc.get(1, 0));
             ComplexMatrix invmc = new ComplexMatrix(2, 2);
             invmc.set(1, 1, mcComplex.reciprocal());
-            inverse = invmc.getRealCartesianMatrix();
+            inverse = invmc.toRealCartesianMatrix();
         } else if (!isVo2Zero) {
             Complex mhComplex = new Complex(mh.get(0, 0), mh.get(1, 0));
             ComplexMatrix invmh = new ComplexMatrix(2, 2);
             invmh.set(2, 2, mhComplex.reciprocal());
-            inverse = invmh.getRealCartesianMatrix();
+            inverse = invmh.toRealCartesianMatrix();
         } else {
             // vo1 and vo2 are zero
-            inverse = new ComplexMatrix(2, 2).getRealCartesianMatrix();
+            inverse = new ComplexMatrix(2, 2).toRealCartesianMatrix();
         }
 
         DenseMatrix yppabc = m19.times(inverse, -1).times(m20).toDense();
@@ -254,10 +263,10 @@ public class AsymThreePhaseTransfo {
         // [Iabc1] = [ t[c1]   0   ].[I'abc1] = [ t[c1]   0   ]. ( [Y'abc] + [Y"abc] ).[I'abc1] = [Yabc].[I'abc1]
         // [Iabc2]   [   0   t[c2] ] [I'abc2]   [   0   t[c2] ]                        [I'abc2]          [I'abc2]
 
-        DenseMatrix zeroBloc = new ComplexMatrix(3, 3).getRealCartesianMatrix();
+        DenseMatrix zeroBloc = new ComplexMatrix(3, 3).toRealCartesianMatrix();
         ComplexMatrix tc1 = c1I.transpose();
         ComplexMatrix tc2 = c2I.transpose();
-        DenseMatrix tc1tc2 = buildFromBlocs(tc1.getRealCartesianMatrix(), zeroBloc, zeroBloc, tc2.getRealCartesianMatrix());
+        DenseMatrix tc1tc2 = buildFromBlocs(tc1.toRealCartesianMatrix(), zeroBloc, zeroBloc, tc2.toRealCartesianMatrix());
         DenseMatrix yabcTmp = tc1tc2.times(ypabc.add(yppabc)).toDense();
 
         // step 4: handling a phase disconnection if necessary:
@@ -272,7 +281,7 @@ public class AsymThreePhaseTransfo {
 
         if (numDisconnection > 0) {
             ComplexMatrix disconnectionMatrix = ComplexMatrix.createIdentity(6);
-            ComplexMatrix complexYabc = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcTmp);
+            ComplexMatrix complexYabc = ComplexMatrix.fromRealCartesian(yabcTmp);
             Complex diagTerm = complexYabc.getTerm(numDisconnection, numDisconnection);
             for (int j = 1; j <= 6; j++) {
                 if (j != numDisconnection) {
@@ -283,7 +292,7 @@ public class AsymThreePhaseTransfo {
                 }
             }
             // then multiply the disconnection matrix by [Yabc] to get the final matrix [Yabc]
-            yabcTmp = yabcTmp.times(disconnectionMatrix.getRealCartesianMatrix());
+            yabcTmp = yabcTmp.times(disconnectionMatrix.toRealCartesianMatrix());
         }
 
         this.yabc = yabcTmp;

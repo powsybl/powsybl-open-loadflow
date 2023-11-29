@@ -516,16 +516,16 @@ public class Asym4nodesFeederTest {
         zy.set(3, 2, new Complex(0.158, 0.4236));
         zy.set(3, 3, new Complex(0.4615, 1.0651));
 
-        DenseMatrix bwye3 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix();
-        DenseMatrix minusId3 = ComplexMatrix.createIdentity(3).scale(-1.).getRealCartesianMatrix();
-        DenseMatrix zWye = zy.getRealCartesianMatrix();
+        DenseMatrix bwye3 = ComplexMatrix.createIdentity(3).toRealCartesianMatrix();
+        DenseMatrix minusId3 = ComplexMatrix.createIdentity(3).scale(-1.).toRealCartesianMatrix();
+        DenseMatrix zWye = zy.toRealCartesianMatrix();
         try (LUDecomposition lu = zWye.decomposeLU()) {
             lu.solve(bwye3);
         }
 
         DenseMatrix minusBwye3 = bwye3.times(minusId3);
         DenseMatrix realYwyeabc = AsymThreePhaseTransfo.buildFromBlocs(bwye3, minusBwye3, minusBwye3, bwye3);
-        ComplexMatrix ywyeabc = ComplexMatrix.getComplexMatrixFromRealCartesian(realYwyeabc);
+        ComplexMatrix ywyeabc = ComplexMatrix.fromRealCartesian(realYwyeabc);
 
         // building of YDeltaabc from given Y impedance matrix Zd
         ComplexMatrix zd = new ComplexMatrix(3, 3);
@@ -539,15 +539,15 @@ public class Asym4nodesFeederTest {
         zd.set(3, 2, new Complex(0.0953, 0.7802));
         zd.set(3, 3, new Complex(0.4013, 1.4133));
 
-        DenseMatrix bdelta3 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix();
-        DenseMatrix zDelta = zd.getRealCartesianMatrix();
+        DenseMatrix bdelta3 = ComplexMatrix.createIdentity(3).toRealCartesianMatrix();
+        DenseMatrix zDelta = zd.toRealCartesianMatrix();
         try (LUDecomposition lu = zDelta.decomposeLU()) {
             lu.solve(bdelta3);
         }
 
         DenseMatrix minusBdelta3 = bdelta3.times(minusId3);
         DenseMatrix realYdeltaabc = AsymThreePhaseTransfo.buildFromBlocs(bdelta3, minusBdelta3, minusBdelta3, bdelta3);
-        ComplexMatrix yDeltaabc = ComplexMatrix.getComplexMatrixFromRealCartesian(realYdeltaabc);
+        ComplexMatrix yDeltaabc = ComplexMatrix.fromRealCartesian(realYdeltaabc);
 
         Line line12 = network.newLine()
                 .setId("B1_B2")

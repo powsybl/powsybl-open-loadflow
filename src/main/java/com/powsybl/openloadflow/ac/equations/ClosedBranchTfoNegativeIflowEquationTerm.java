@@ -64,7 +64,7 @@ public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractClosedBran
         mRho.set(1, 1, r1);
         mRho.set(2, 2, r2);
 
-        return mRho.getRealCartesianMatrix();
+        return mRho.toRealCartesianMatrix();
     }
 
     public static DenseMatrix getFixedYmatrix(Complex y1, Complex y2, Complex y12) {
@@ -77,7 +77,7 @@ public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractClosedBran
         mY.set(2, 1, y21.multiply(-1));
         mY.set(2, 2, y2.add(y21));
 
-        return mY.getRealCartesianMatrix();
+        return mY.toRealCartesianMatrix();
     }
 
     @Override

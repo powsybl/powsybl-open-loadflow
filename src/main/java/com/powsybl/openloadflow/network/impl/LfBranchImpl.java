@@ -252,7 +252,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 mVbasePu.set(5, 5, vNom2Complex);
                 mVbasePu.set(6, 6, vNom2Complex);
 
-                ComplexMatrix yabcPu = ComplexMatrix.getComplexMatrixFromRealCartesian(mIbasePu.getRealCartesianMatrix().times(yabcReal.times(mVbasePu.getRealCartesianMatrix())));
+                ComplexMatrix yabcPu = ComplexMatrix.fromRealCartesian(mIbasePu.toRealCartesianMatrix().times(yabcReal.times(mVbasePu.toRealCartesianMatrix())));
                 LfAsymLine asymBranch = new LfAsymLine(yabcPu, extension2.getOpenPhaseA1(), extension2.getOpenPhaseB1(), extension2.getOpenPhaseC1(),
                         true, true, true, true, true, true, true, true, side1VariableType, side2VariableType);
 

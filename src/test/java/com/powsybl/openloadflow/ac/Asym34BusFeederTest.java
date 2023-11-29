@@ -1909,8 +1909,8 @@ public class Asym34BusFeederTest {
         rho.set(4, 4, Complex.ONE);
         rho.set(5, 5, Complex.ONE);
         rho.set(6, 6, Complex.ONE);
-        DenseMatrix yabcRg10Real = rho.getRealCartesianMatrix().times(yabc814y850.getRealCartesianMatrix().times(rho.getRealCartesianMatrix()));
-        ComplexMatrix yabcRg10 = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcRg10Real);
+        DenseMatrix yabcRg10Real = rho.toRealCartesianMatrix().times(yabc814y850.toRealCartesianMatrix().times(rho.toRealCartesianMatrix()));
+        ComplexMatrix yabcRg10 = ComplexMatrix.fromRealCartesian(yabcRg10Real);
 
         line814y850.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(yabcRg10.scale(yCoef))
@@ -2339,8 +2339,8 @@ public class Asym34BusFeederTest {
         rho11.set(5, 5, Complex.ONE);
         rho11.set(6, 6, Complex.ONE);
         ComplexMatrix yabc852y832 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length852y832InFeet / feetInMile);
-        DenseMatrix yabcRg11Real = rho11.getRealCartesianMatrix().times(yabc852y832.getRealCartesianMatrix().times(rho11.getRealCartesianMatrix()));
-        ComplexMatrix yabcRg11 = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcRg11Real);
+        DenseMatrix yabcRg11Real = rho11.toRealCartesianMatrix().times(yabc852y832.toRealCartesianMatrix().times(rho11.toRealCartesianMatrix()));
+        ComplexMatrix yabcRg11 = ComplexMatrix.fromRealCartesian(yabcRg11Real);
 
         line852y832.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(yabcRg11.scale(yCoef))
@@ -2910,8 +2910,8 @@ public class Asym34BusFeederTest {
         v.set(5, 1, ComplexUtils.polar2Complex(vBase * 1.0484, Math.toRadians(-120.07)));
         v.set(6, 1, ComplexUtils.polar2Complex(vBase * 1.0484, Math.toRadians(119.95)));
 
-        DenseMatrix i800Real = yabc300.getRealCartesianMatrix().times(v.getRealCartesianMatrix());
-        ComplexMatrix i800 = ComplexMatrix.getComplexMatrixFromRealCartesian(i800Real);
+        DenseMatrix i800Real = yabc300.toRealCartesianMatrix().times(v.toRealCartesianMatrix());
+        ComplexMatrix i800 = ComplexMatrix.fromRealCartesian(i800Real);
 
         assertEquals(0.050698174712604675, i800.getTerm(1, 1).abs(), 0.00001);
         assertEquals(0.04553392610054142, i800.getTerm(5, 1).abs(), 0.00001);

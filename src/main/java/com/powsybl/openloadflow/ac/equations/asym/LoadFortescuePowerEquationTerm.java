@@ -75,9 +75,9 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         LfAsymBus asymBus = bus.getAsym();
 
         // Build of Sabc/3 vector
-        DenseMatrix mSabc3 = sabc.scale(1. / 3.).getRealCartesianMatrix();
-        DenseMatrix mVabc = Fortescue.createMatrix().times(v0V1V2.getRealCartesianMatrix()).toDense(); // vector build with cartesian values of complex abc voltages
-        ComplexMatrix vabc = ComplexMatrix.getComplexMatrixFromRealCartesian(mVabc);
+        DenseMatrix mSabc3 = sabc.scale(1. / 3.).toRealCartesianMatrix();
+        DenseMatrix mVabc = Fortescue.createMatrix().times(v0V1V2.toRealCartesianMatrix()).toDense(); // vector build with cartesian values of complex abc voltages
+        ComplexMatrix vabc = ComplexMatrix.fromRealCartesian(mVabc);
 
         // build  1/Vabc square matrix
         DenseMatrix mInvVabc = getSquareInverseFromVector(bus, asymBus, loadConnectionType, vabc);
@@ -88,10 +88,10 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         DenseMatrix m0T0 = mInvVabc.times(mSabc3);
         DenseMatrix m1T0 = m0T0;
         if (loadConnectionType == LegConnectionType.DELTA) {
-            m1T0 = complexMatrixP(StepType.STEP_DOWN).getRealCartesianMatrix().times(m0T0);
+            m1T0 = complexMatrixP(StepType.STEP_DOWN).toRealCartesianMatrix().times(m0T0);
         }
-        ComplexMatrix mIfortescueConjugate = ComplexMatrix.getComplexMatrixFromRealCartesian(Fortescue.createMatrix().times(m1T0));
-        ComplexMatrix mSfortescue = ComplexMatrix.getComplexMatrixFromRealCartesian(mSquareVFortescue.times(mIfortescueConjugate.getRealCartesianMatrix())); //  term T0 = Sfortescue
+        ComplexMatrix mIfortescueConjugate = ComplexMatrix.fromRealCartesian(Fortescue.createMatrix().times(m1T0));
+        ComplexMatrix mSfortescue = ComplexMatrix.fromRealCartesian(mSquareVFortescue.times(mIfortescueConjugate.toRealCartesianMatrix())); //  term T0 = Sfortescue
 
         switch (sequenceType) {
             case ZERO:
@@ -148,9 +148,9 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         LfAsymBus asymBus = bus.getAsym();
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
-        DenseMatrix mVabc = Fortescue.createMatrix().times(v0V1V2.getRealCartesianMatrix()).toDense(); // vector build with cartesian values of complex abc voltages
-        DenseMatrix mSabc3 = sabc.scale(1. / 3.).getRealCartesianMatrix();
-        ComplexMatrix vabc = ComplexMatrix.getComplexMatrixFromRealCartesian(mVabc);
+        DenseMatrix mVabc = Fortescue.createMatrix().times(v0V1V2.toRealCartesianMatrix()).toDense(); // vector build with cartesian values of complex abc voltages
+        DenseMatrix mSabc3 = sabc.scale(1. / 3.).toRealCartesianMatrix();
+        ComplexMatrix vabc = ComplexMatrix.fromRealCartesian(mVabc);
 
         // build of 1/Vabc square matrix
         DenseMatrix mInvVabc = getSquareInverseFromVector(bus, asymBus, loadConnectionType, vabc);
@@ -163,10 +163,10 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
 
         DenseMatrix m1T1 = m0T1;
         if (loadConnectionType == LegConnectionType.DELTA) {
-            m1T1 = complexMatrixP(StepType.STEP_DOWN).getRealCartesianMatrix().times(m0T1);
+            m1T1 = complexMatrixP(StepType.STEP_DOWN).toRealCartesianMatrix().times(m0T1);
         }
         DenseMatrix m2T1 = Fortescue.createMatrix().times(m1T1);
-        ComplexMatrix mT1 = ComplexMatrix.getComplexMatrixFromRealCartesian(mdVSquare.times(m2T1));
+        ComplexMatrix mT1 = ComplexMatrix.fromRealCartesian(mdVSquare.times(m2T1));
 
         // build Vfortescue square matrix
         DenseMatrix mSquareVFortescue = getSquareMatrixFromVector(v0V1V2);
@@ -175,16 +175,16 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         DenseMatrix mMinusSabc3Square = getSquareMatrixFromVector(sabc.scale(-1. / 3.));
 
         // computation of vector = term T2:
-        DenseMatrix m0T2 = Fortescue.createMatrix().times(dv0V1V2.getRealCartesianMatrix());
+        DenseMatrix m0T2 = Fortescue.createMatrix().times(dv0V1V2.toRealCartesianMatrix());
         DenseMatrix m1T2 = mInvVabc.times(m0T2);
         DenseMatrix m2T2 = mInvVabc.times(m1T2);
         DenseMatrix m3T2 = mMinusSabc3Square.times(m2T2);
         DenseMatrix m4T2 = m3T2;
         if (loadConnectionType == LegConnectionType.DELTA && busVariableType == AsymBusVariableType.DELTA) {
-            m4T2 = complexMatrixP(StepType.STEP_DOWN).getRealCartesianMatrix().times(m3T2);
+            m4T2 = complexMatrixP(StepType.STEP_DOWN).toRealCartesianMatrix().times(m3T2);
         }
-        ComplexMatrix mdIFortescueConjugate = ComplexMatrix.getComplexMatrixFromRealCartesian(Fortescue.createMatrix().times(m4T2));
-        ComplexMatrix mT2 = ComplexMatrix.getComplexMatrixFromRealCartesian(mSquareVFortescue.times(mdIFortescueConjugate.getRealCartesianMatrix()));
+        ComplexMatrix mdIFortescueConjugate = ComplexMatrix.fromRealCartesian(Fortescue.createMatrix().times(m4T2));
+        ComplexMatrix mT2 = ComplexMatrix.fromRealCartesian(mSquareVFortescue.times(mdIFortescueConjugate.toRealCartesianMatrix()));
 
         switch (sequenceType) {
             case ZERO:
@@ -286,7 +286,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         m.set(1, 1, m1m2m3Vector.getTerm(1, 1));
         m.set(2, 2, m1m2m3Vector.getTerm(2, 1));
         m.set(3, 3, m1m2m3Vector.getTerm(3, 1));
-        return m.getRealCartesianMatrix();
+        return m.toRealCartesianMatrix();
     }
 
     public static ComplexMatrix complexMatrixP(StepType stepLegConnectionType) {
