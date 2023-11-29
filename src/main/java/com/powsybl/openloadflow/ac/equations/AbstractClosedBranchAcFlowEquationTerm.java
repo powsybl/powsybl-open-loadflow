@@ -84,10 +84,6 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         return a1Var;
     }
 
-    public Variable<AcVariableType> getR1Var() {
-        return r1Var;
-    }
-
     protected double v1() {
         return sv.get(v1Var.getRow());
     }

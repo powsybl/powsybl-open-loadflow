@@ -54,11 +54,6 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
-    public void onTransformerReactivePowerControlChange(LfBranch controllerBranch, boolean newReactivePowerControllerEnabled) {
-        AcEquationSystemCreator.updateTransformerReactivePowerControlEquations(controllerBranch.getTransformerReactivePowerControl().orElseThrow(), equationSystem);
-    }
-
-    @Override
     public void onGeneratorReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
         controllerBus.getGeneratorReactivePowerControl().ifPresent(generatorReactivePowerControl -> AcEquationSystemCreator.updateGeneratorReactivePowerControlBranchEquations(generatorReactivePowerControl, equationSystem));
     }
@@ -118,7 +113,6 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 branch.getVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 branch.getPhaseControl().ifPresent(phaseControl -> AcEquationSystemCreator.updateTransformerPhaseControlEquations(phaseControl, equationSystem));
                 branch.getGeneratorReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateGeneratorReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
-                branch.getTransformerReactivePowerControl().ifPresent(transformerReactivePowerControl -> AcEquationSystemCreator.updateTransformerReactivePowerControlEquations(transformerReactivePowerControl, equationSystem));
                 break;
             case SHUNT_COMPENSATOR:
                 LfShunt shunt = (LfShunt) element;

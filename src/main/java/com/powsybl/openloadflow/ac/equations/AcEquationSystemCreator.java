@@ -526,41 +526,14 @@ public class AcEquationSystemCreator {
         }
     }
 
-    protected static void createTransformerReactivePowerControlEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                 boolean deriveA1, boolean deriveR1) {
+    protected static void createTransformerReactivePowerControlEquations(LfBranch branch, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         if (branch.isTransformerReactivePowerController()) {
+            // constant R1 equation for sensitivities only
             EquationTerm<AcVariableType, AcEquationType> r1 = equationSystem.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1)
                     .createTerm();
             equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_RHO1)
                     .addTerm(r1);
         }
-//
-//        if (branch.isTransformerReactivePowerControlled()) {
-//            TransformerReactivePowerControl reactivePowerControl = branch.getTransformerReactivePowerControl().orElseThrow();
-//            EquationTerm<AcVariableType, AcEquationType> p = reactivePowerControl.getControlledSide() == TwoSides.ONE
-//                    ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
-//                    : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-//            equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
-//                    .addTerm(p)
-//                    .setActive(false); // by default BRANCH_TARGET_RHO1 is active and BRANCH_TARGET_Q inactive
-//        }
-    }
-
-    public static void updateTransformerReactivePowerControlEquations(TransformerReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        LfBranch controllerBranch = reactivePowerControl.getControllerBranch();
-        LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
-
-        boolean controlEnabled = !controllerBranch.isDisabled() && !controlledBranch.isDisabled() && controllerBranch.isTransformerReactivePowerControlEnabled();
-
-        // activate/de-activate reactive power control equation
-//        equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_Q)
-//                .orElseThrow()
-//                .setActive(controlEnabled);
-
-        // de-activate/activate constant R1 equation
-        equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
-                .orElseThrow()
-                .setActive(!controlEnabled && !controllerBranch.isDisabled());
     }
 
     public static void updateTransformerPhaseControlEquations(TransformerPhaseControl phaseControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
@@ -790,7 +763,7 @@ public class AcEquationSystemCreator {
 
         updateBranchEquations(branch);
 
-        createTransformerReactivePowerControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+        createTransformerReactivePowerControlEquations(branch, equationSystem);
     }
 
     protected static void createImpedantBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,

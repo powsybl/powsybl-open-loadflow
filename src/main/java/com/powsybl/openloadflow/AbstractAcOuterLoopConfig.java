@@ -74,7 +74,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     protected static Optional<AcOuterLoop> createRatioTapChangerReactivePowerControlOuterLoop(LoadFlowParameters parameters,
-                                                                                    int incrementalTransformerVoltageControlOuterLoopMaxTapShift) {
+                                                                                              int incrementalTransformerVoltageControlOuterLoopMaxTapShift) {
         if (parameters.isTransformerReactivePowerControlOn()) {
             return Optional.of(new IncrementalTransformerReactivePowerControlOuterLoop(incrementalTransformerVoltageControlOuterLoopMaxTapShift));
         }
