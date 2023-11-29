@@ -39,4 +39,12 @@ public class AdmittanceShift {
         g += other.getG();
         b += other.getB();
     }
+
+    @Override
+    public String toString() {
+        return "AdmittanceShift(" +
+                "g=" + g +
+                ", b=" + b +
+                ')';
+    }
 }
