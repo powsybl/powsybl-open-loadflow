@@ -187,7 +187,7 @@ public class PropagatedContingency {
         return propagatedContingency;
     }
 
-    private <K> void addBranchToOpenToMap(K branchId, DisabledBranchStatus status, Map<K, DisabledBranchStatus> branchIdsToOpen) {
+    private <K> void addBranchToOpen(K branchId, DisabledBranchStatus status, Map<K, DisabledBranchStatus> branchIdsToOpen) {
         DisabledBranchStatus oldStatus = branchIdsToOpen.get(branchId);
         if (oldStatus == null) {
             branchIdsToOpen.put(branchId, status);
@@ -196,27 +196,9 @@ public class PropagatedContingency {
         }
     }
 
-    private void addBranchIdToOpen(String branchId, DisabledBranchStatus status, Map<String, DisabledBranchStatus> branchIdsToOpen) {
-        addBranchToOpenToMap(branchId, status, branchIdsToOpen);
-    }
-
-    private void addBranchToOpen(LfBranch branch, DisabledBranchStatus status, Map<LfBranch, DisabledBranchStatus> branchIdsToOpen) {
-        DisabledBranchStatus newStatus = status;
-        if (branch instanceof LfSwitch) {
-            newStatus = DisabledBranchStatus.BOTH_SIDES;
-        }
-        if (!branch.isConnectedSide1() && status == DisabledBranchStatus.SIDE_2) {
-            newStatus = DisabledBranchStatus.BOTH_SIDES;
-        }
-        if (!branch.isConnectedSide2() && status == DisabledBranchStatus.SIDE_1) {
-            newStatus = DisabledBranchStatus.BOTH_SIDES;
-        }
-        addBranchToOpenToMap(branch, newStatus, branchIdsToOpen);
-    }
-
     private void complete(LfTopoConfig topoConfig, PropagatedContingencyCreationParameters creationParameters) {
         for (Switch sw : switchesToOpen) {
-            addBranchIdToOpen(sw.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen); // we open both sides
+            addBranchToOpen(sw.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen); // we open both sides
         }
 
         // process terminals disconnected, in particular process injection power shift
@@ -227,10 +209,10 @@ public class PropagatedContingency {
                      TWO_WINDINGS_TRANSFORMER:
                     Branch<?> branch = (Branch<?>) connectable;
                     if (terminal == branch.getTerminal1()) {
-                        addBranchIdToOpen(connectable.getId(), DisabledBranchStatus.SIDE_1, branchIdsToOpen);
+                        addBranchToOpen(connectable.getId(), DisabledBranchStatus.SIDE_1, branchIdsToOpen);
                         topoConfig.getBranchIdsOpenableSide1().add(connectable.getId());
                     } else {
-                        addBranchIdToOpen(connectable.getId(), DisabledBranchStatus.SIDE_2, branchIdsToOpen);
+                        addBranchToOpen(connectable.getId(), DisabledBranchStatus.SIDE_2, branchIdsToOpen);
                         topoConfig.getBranchIdsOpenableSide2().add(connectable.getId());
                     }
                     break;
@@ -238,9 +220,9 @@ public class PropagatedContingency {
                     DanglingLine dl = (DanglingLine) connectable;
                     // as we terminal is only on network side, we open both sides in LF network
                     if (dl.isPaired()) {
-                        addBranchIdToOpen(dl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
+                        addBranchToOpen(dl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     } else {
-                        addBranchIdToOpen(dl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
+                        addBranchToOpen(dl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     }
                     break;
 
@@ -292,7 +274,7 @@ public class PropagatedContingency {
                     ThreeWindingsTransformer twt = (ThreeWindingsTransformer) connectable;
                     for (ThreeSides side : ThreeSides.values()) {
                         if (twt.getTerminal(side) == terminal) {
-                            addBranchIdToOpen(LfLegBranch.getId(side, connectable.getId()), DisabledBranchStatus.SIDE_1, branchIdsToOpen);
+                            addBranchToOpen(LfLegBranch.getId(side, connectable.getId()), DisabledBranchStatus.SIDE_1, branchIdsToOpen);
                             topoConfig.getBranchIdsOpenableSide1().add(LfLegBranch.getId(connectable.getId(), side.getNum()));
                             break;
                         }
@@ -470,14 +452,13 @@ public class PropagatedContingency {
             }
         }
 
-        for (LfBus busToLost : busesToLost) { // be careful with LfTopoConfig...
+        for (LfBus busToLost : busesToLost) {
             busToLost.getBranches()
                     .forEach(branch -> {
-                        if (branch.getBus1() != null && branch.getBus1() == busToLost) { // side 1 should be disconnected
-                            addBranchToOpen(branch, DisabledBranchStatus.SIDE_1, branchesToOpen);
-                        }
-                        if (branch.getBus2() != null && branch.getBus2() == busToLost) { // side 2 should be disconnected
-                            addBranchToOpen(branch, DisabledBranchStatus.SIDE_2, branchesToOpen);
+                        // fully disable if branch is connected to 2 buses to lost
+                        LfBus otherSideBus = branch.getBus1() == busToLost ? branch.getBus2() : branch.getBus1();
+                        if (busesToLost.contains(otherSideBus)) {
+                            addBranchToOpen(branch, DisabledBranchStatus.BOTH_SIDES, branchesToOpen);
                         }
                     });
         }
