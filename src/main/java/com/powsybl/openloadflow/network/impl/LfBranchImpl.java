@@ -226,8 +226,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
                 DenseMatrix yabcReal = asym3phaseTfo.getYabc();
 
-                double vNom1 = t2w.getTerminal(Branch.Side.ONE).getVoltageLevel().getNominalV();
-                double vNom2 = t2w.getTerminal(Branch.Side.TWO).getVoltageLevel().getNominalV();
+                double vNom1 = t2w.getTerminal(TwoSides.ONE).getVoltageLevel().getNominalV();
+                double vNom2 = t2w.getTerminal(TwoSides.TWO).getVoltageLevel().getNominalV();
 
                 double iBase1 = 100. / vNom1;
                 double iBase2 = 100. / vNom2;

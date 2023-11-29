@@ -22,8 +22,9 @@ import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
 import com.powsybl.openloadflow.network.extensions.iidm.*;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
+
+import java.time.ZonedDateTime;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -109,7 +110,8 @@ public class Asym4nodesFeederTest {
         bus4 = network.getBusBreakerView().getBus("B4");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters()
+                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setMaxNewtonRaphsonIterations(100)
@@ -304,7 +306,7 @@ public class Asym4nodesFeederTest {
     public static Network ieee4Feeder(Complex zz, Complex zn, boolean isLoadBalanced, WindingConnectionType loadConnectionType, WindingConnectionType w1, WindingConnectionType w2) {
 
         Network network = Network.create("4n", "test");
-        network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
+        network.setCaseDate(ZonedDateTime.parse("2018-03-05T13:30:30.486+01:00"));
 
         // step up case, we use Vbase of transformer = Vnom
         double vBase1 = 12.47;

@@ -11,8 +11,12 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.network.LfAsymBus;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.Fortescue;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -20,6 +24,12 @@ import com.powsybl.openloadflow.network.util.VoltageInitializer;
 public final class AcSolverUtil {
 
     private AcSolverUtil() {
+    }
+
+    public static boolean isElementAsymBus(LfNetwork network, Variable<AcVariableType> v) {
+        LfBus bus = network.getBus(v.getElementNum());
+        LfAsymBus asymBus = bus.getAsym();
+        return asymBus != null;
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
@@ -32,6 +42,9 @@ public final class AcSolverUtil {
 
                 case BUS_PHI:
                     x[v.getRow()] = initializer.getAngle(network.getBus(v.getElementNum()));
+                    if (isElementAsymBus(network, v)) {
+                        x[v.getRow()] = UniformValueVoltageInitializer.getAngle(network.getBus(v.getElementNum()), Fortescue.SequenceType.POSITIVE);
+                    }
                     break;
 
                 case SHUNT_B:
@@ -46,15 +59,33 @@ public final class AcSolverUtil {
                     x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getR1();
                     break;
 
-                case DUMMY_P,
-                     DUMMY_Q,
-                     BUS_PHI_ZERO,
-                     BUS_PHI_NEGATIVE:
+                case DUMMY_P:
+                case DUMMY_Q:
                     x[v.getRow()] = 0;
                     break;
 
-                case BUS_V_ZERO,
-                     BUS_V_NEGATIVE:
+                case BUS_PHI_ZERO:
+                    x[v.getRow()] = 0;
+                    if (isElementAsymBus(network, v)) {
+                        x[v.getRow()] = UniformValueVoltageInitializer.getAngle(network.getBus(v.getElementNum()), Fortescue.SequenceType.ZERO);
+                    }
+                    break;
+
+                case BUS_PHI_NEGATIVE:
+                    x[v.getRow()] = 0;
+                    if (isElementAsymBus(network, v)) {
+                        x[v.getRow()] = UniformValueVoltageInitializer.getAngle(network.getBus(v.getElementNum()), Fortescue.SequenceType.NEGATIVE);
+                    }
+                    break;
+
+                case BUS_V_ZERO:
+                    x[v.getRow()] = 0.1;
+                    if (isElementAsymBus(network, v)) {
+                        x[v.getRow()] = UniformValueVoltageInitializer.getMagnitude(network.getBus(v.getElementNum()), Fortescue.SequenceType.ZERO);
+                    }
+                    break;
+
+                case BUS_V_NEGATIVE:
                     // when balanced, zero and negative sequence should be zero
                     // v_zero and v_negative initially set to zero will bring a singularity to the Jacobian
                     // We chose to set the initial value to a small one, but different from zero
@@ -62,6 +93,9 @@ public final class AcSolverUtil {
                     // the resolution of the system on the three sequences will bring a singularity
                     // Therefore, if the system is balanced by construction, we should run a balanced load flow only
                     x[v.getRow()] = 0.1;
+                    if (isElementAsymBus(network, v)) {
+                        x[v.getRow()] = UniformValueVoltageInitializer.getMagnitude(network.getBus(v.getElementNum()), Fortescue.SequenceType.NEGATIVE);
+                    }
                     break;
 
                 default:

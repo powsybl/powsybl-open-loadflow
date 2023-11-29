@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.Side;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
@@ -63,8 +62,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
     protected final ComplexPart complexPart;
-    protected final TwoSides side;
-    protected final Side termSide;
+    protected final TwoSides termSide;
     protected final SequenceType sequenceType;
     protected final AsymBusVariableType variableTypeBus1;
     protected final AsymBusVariableType variableTypeBus2;
@@ -76,7 +74,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
     protected final LfAsymBus asymBus2;
 
     protected AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                                      ComplexPart complexPart, Side termSide, SequenceType sequenceType) {
+                                                                      ComplexPart complexPart, TwoSides termSide, SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
@@ -199,19 +197,18 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         };
     }
 
-    protected double v(SequenceType g, Side i) {
-
+    protected double v(SequenceType g, TwoSides i) {
         if (variableTypeBus1 == AsymBusVariableType.DELTA && g == SequenceType.ZERO) {
             //zero sequence called on a delta side
             return 0.;
         }
 
-        // buildong missing sequences if one phase is disconnected
+        // building missing sequences if one phase is disconnected
         double vZero = 0.;
         double vPositive;
         double vNegative = 0.;
 
-        if (i == Side.ONE) {
+        if (i == TwoSides.ONE) {
             vPositive = sv.get(v1Var.getRow());
             if (v1VarZero != null) {
                 vZero = sv.get(v1VarZero.getRow());
@@ -229,29 +226,20 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
             }
         }
 
-        switch (g) {
-            case ZERO:
-                return vZero;
-
-            case POSITIVE:
-                return vPositive;
-
-            case NEGATIVE:
-                return vNegative;
-
-            default:
-                throw new IllegalStateException(UNKNOWN_VAR);
-        }
+        return switch (g) {
+            case ZERO -> vZero;
+            case POSITIVE -> vPositive;
+            case NEGATIVE -> vNegative;
+        };
     }
 
-    protected double ph(SequenceType g, Side i) {
-
-        if (variableTypeBus1 == AsymBusVariableType.DELTA && i == Side.ONE && g == SequenceType.ZERO) {
+    protected double ph(SequenceType g, TwoSides i) {
+        if (variableTypeBus1 == AsymBusVariableType.DELTA && i == TwoSides.ONE && g == SequenceType.ZERO) {
             //zero sequence called on a delta side
             return 0.;
         }
 
-        if (variableTypeBus2 == AsymBusVariableType.DELTA && i == Side.TWO && g == SequenceType.ZERO) {
+        if (variableTypeBus2 == AsymBusVariableType.DELTA && i == TwoSides.TWO && g == SequenceType.ZERO) {
             //zero sequence called on a delta side
             return 0.;
         }
@@ -261,7 +249,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         double phPositive;
         double phNegative = 0.;
 
-        if (i == Side.ONE) {
+        if (i == TwoSides.ONE) {
             phPositive = sv.get(ph1Var.getRow());
             if (v1VarZero != null) {
                 phZero = sv.get(ph1VarZero.getRow());
@@ -269,7 +257,6 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
             if (v1VarNegative != null) {
                 phNegative = sv.get(ph1VarNegative.getRow());
             }
-
         } else {
             phPositive = sv.get(ph2Var.getRow());
             if (v2VarZero != null) {
@@ -280,19 +267,11 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
             }
         }
 
-        switch (g) {
-            case ZERO:
-                return phZero;
-
-            case POSITIVE:
-                return phPositive;
-
-            case NEGATIVE:
-                return phNegative;
-
-            default:
-                throw new IllegalStateException(UNKNOWN_VAR);
-        }
+        return switch (g) {
+            case ZERO -> phZero;
+            case POSITIVE -> phPositive;
+            case NEGATIVE -> phNegative;
+        };
     }
 
     protected double r1() {

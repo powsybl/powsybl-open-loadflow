@@ -22,9 +22,10 @@ import com.powsybl.openloadflow.network.extensions.iidm.*;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.math3.complex.ComplexUtils;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.time.ZonedDateTime;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,7 +53,8 @@ public class Asym34BusFeederTest {
         bus810 = network.getBusBreakerView().getBus("B810");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters()
+                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
     }
 
@@ -180,7 +182,7 @@ public class Asym34BusFeederTest {
 
     public static Network ieee34LoadFeeder() {
         Network network = Network.create("13n", "test");
-        network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
+        network.setCaseDate(ZonedDateTime.parse("2018-03-05T13:30:30.486+01:00"));
 
         double vBase = 24.9;
         double vBaseLow = 4.16;
