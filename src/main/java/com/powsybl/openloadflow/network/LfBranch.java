@@ -241,10 +241,6 @@ public interface LfBranch extends LfElement {
 
     boolean isTransformerReactivePowerControlled();
 
-    boolean isTransformerReactivePowerControlEnabled();
-
-    void setTransformerReactivePowerControlEnabled(boolean transformerReactivePowerControlEnabled);
-
     BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
 
     double computeApparentPower1();

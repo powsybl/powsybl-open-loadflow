@@ -93,7 +93,6 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         context.setData(contextData);
 
         for (LfBranch branch : getControllerBranches(context.getNetwork())) {
-            branch.getTransformerReactivePowerControl().ifPresent(rtcReactivePowerControl -> branch.setTransformerReactivePowerControlEnabled(false));
             contextData.getControllersContexts().put(branch.getId(), new IncrementalReactivePowerContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
     }
@@ -165,15 +164,15 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalReactivePowerContextData) context.getData();
 
-        // branches which are outside of their deadbands
+        // branches which are out of their deadbands
         List<LfBranch> controlledBranchesOutOfDeadband = getControlledBranchesOutOfDeadband(contextData);
-        List<LfBranch> controllerBranchesOutOfDeadand = getControllerBranchesOutOfDeadband(controlledBranchesOutOfDeadband);
+        List<LfBranch> controllerBranchesOutOfDeadband = getControllerBranchesOutOfDeadband(controlledBranchesOutOfDeadband);
 
-        if (controllerBranchesOutOfDeadand.isEmpty()) {
+        if (controllerBranchesOutOfDeadband.isEmpty()) {
             return status.getValue();
         }
 
-        SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutOfDeadand,
+        SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutOfDeadband,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         // for synthetics logs
@@ -196,13 +195,13 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
 
         // Print some info
         if (!controlledBranchesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
-            Map<String, Double> largestMismatches = controllerBranchesOutOfDeadand.stream()
+            Map<String, Double> largestMismatches = controllerBranchesOutOfDeadband.stream()
                     .map(controlledBranch -> Pair.of(controlledBranch.getId(), Math.abs(getDiffQ(controlledBranch.getTransformerReactivePowerControl().get()))))
                     .sorted((p1, p2) -> Double.compare(p2.getRight() * PerUnit.SB, p1.getRight() * PerUnit.SB))
                     .limit(3) // 3 largest
                     .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
             LOGGER.info("{} controlled branch reactive power are outside of their target deadband, largest ones are: {}",
-                    controllerBranchesOutOfDeadand.size(), largestMismatches);
+                    controllerBranchesOutOfDeadband.size(), largestMismatches);
         }
         if (!controlledBranchesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled branch reactive power have been adjusted by changing at least one tap",

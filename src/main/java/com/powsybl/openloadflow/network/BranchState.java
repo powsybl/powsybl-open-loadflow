@@ -15,7 +15,6 @@ public class BranchState extends ElementState<LfBranch> {
     private final double r1;
     private final boolean phaseControlEnabled;
     private final boolean voltageControlEnabled;
-    private final boolean reactivePowerControlEnabled;
     private Integer tapPosition;
     private Boolean connectedSide1;
     private Boolean connectedSide2;
@@ -41,7 +40,6 @@ public class BranchState extends ElementState<LfBranch> {
         if (branch.isDisconnectionAllowedSide2()) {
             connectedSide2 = branch.isConnectedSide2();
         }
-        reactivePowerControlEnabled = branch.isTransformerReactivePowerControlEnabled();
     }
 
     @Override
@@ -61,7 +59,6 @@ public class BranchState extends ElementState<LfBranch> {
         if (connectedSide2 != null) {
             element.setConnectedSide2(connectedSide2);
         }
-        element.setTransformerReactivePowerControlEnabled(reactivePowerControlEnabled);
     }
 
     public static BranchState save(LfBranch branch) {

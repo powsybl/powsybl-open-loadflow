@@ -240,21 +240,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return transformerReactivePowerControl != null && transformerReactivePowerControl.getControlledBranch() == this;
     }
 
-    @Override
-    public boolean isTransformerReactivePowerControlEnabled() {
-        return transformerReactivePowerControlEnabled;
-    }
-
-    @Override
-    public void setTransformerReactivePowerControlEnabled(boolean transformerReactivePowerControlEnabled) {
-        if (this.transformerReactivePowerControlEnabled != transformerReactivePowerControlEnabled) {
-            this.transformerReactivePowerControlEnabled = transformerReactivePowerControlEnabled;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onTransformerReactivePowerControlChange(this, transformerReactivePowerControlEnabled);
-            }
-        }
-    }
-
     public double computeApparentPower1() {
         double p = getP1().eval();
         double q = getQ1().eval();

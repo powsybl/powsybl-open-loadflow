@@ -1068,7 +1068,6 @@ public class AcEquationSystemCreator {
         }
 
         createVoltageControlEquations(equationSystem);
-//        createReactivePowerControlEquations(equationSystem);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 

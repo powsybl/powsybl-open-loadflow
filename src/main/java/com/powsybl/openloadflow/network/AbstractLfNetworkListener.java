@@ -41,11 +41,6 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onTransformerReactivePowerControlChange(LfBranch controllerBranch, boolean newReactivePowerControllerEnabled) {
-        // empty
-    }
-
-    @Override
     public void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled) {
         // empty
     }
