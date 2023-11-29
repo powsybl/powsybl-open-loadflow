@@ -95,7 +95,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         } else if (result.getOuterLoopStatus() == OuterLoopStatus.FAILED) {
             return PostContingencyComputationStatus.FAILED;
         } else {
-            return switch (result.getNewtonRaphsonStatus()) {
+            return switch (result.getSolverStatus()) {
                 case CONVERGED -> PostContingencyComputationStatus.CONVERGED;
                 case MAX_ITERATION_REACHED -> PostContingencyComputationStatus.MAX_ITERATION_REACHED;
                 case SOLVER_FAILED -> PostContingencyComputationStatus.SOLVER_FAILED;

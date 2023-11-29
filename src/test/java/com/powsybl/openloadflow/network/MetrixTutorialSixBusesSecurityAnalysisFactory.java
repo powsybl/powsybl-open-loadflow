@@ -2,7 +2,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.xml.test.MetrixTutorialSixBusesFactory;
+import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 
 import java.util.Set;
 

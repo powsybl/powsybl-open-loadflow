@@ -7,9 +7,9 @@
 package com.powsybl.openloadflow.network.impl.extensions;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.test.AbstractConverterTest;
+import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.xml.NetworkXml;
+import com.powsybl.iidm.serde.NetworkSerDe;
 import com.powsybl.openloadflow.network.AutomationSystemNetworkFactory;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-class SubstationAutomationSystemsTest extends AbstractConverterTest {
+class SubstationAutomationSystemsTest extends AbstractSerDeTest {
 
     @Test
     void errorTest() {
@@ -44,8 +44,8 @@ class SubstationAutomationSystemsTest extends AbstractConverterTest {
         Network network = AutomationSystemNetworkFactory.create();
 
         Network network2 = roundTripXmlTest(network,
-                NetworkXml::writeAndValidate,
-                NetworkXml::read,
+                NetworkSerDe::writeAndValidate,
+                NetworkSerDe::read,
                 "/substationAutomationSystemsRef.xml");
 
         SubstationAutomationSystems substationAutomationSystems = network2.getSubstation("s1").getExtension(SubstationAutomationSystems.class);

@@ -17,6 +17,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -300,7 +301,8 @@ class DistributedSlackOnGenerationTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertFalse(result.isOk());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
-        assertEquals(520, componentResult.getSlackBusActivePowerMismatch(), 1e-6);
+        assertEquals(0, componentResult.getDistributedActivePower(), 1e-4);
+        assertEquals(520, componentResult.getSlackBusActivePowerMismatch(), 1e-4);
     }
 
     @Test
@@ -311,12 +313,13 @@ class DistributedSlackOnGenerationTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isOk());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
-        assertEquals(520, componentResult.getSlackBusActivePowerMismatch(), 1e-6);
+        assertEquals(320, componentResult.getDistributedActivePower(), 1e-4);
+        assertEquals(200, componentResult.getSlackBusActivePowerMismatch(), 1e-4);
     }
 
     @Test
     void generatorWithNegativeTargetP() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setTargetP(-607);
         network.getLoad("LOAD").setP0(-600);
@@ -328,7 +331,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void generatorWithMaxPEqualsToMinP() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setMinP(1000);
         network.getGenerator("GEN").setTargetP(1000);
@@ -357,7 +360,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void generatorWithTargetPLowerThanMinP() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setMinP(200);
         network.getGenerator("GEN").setTargetP(100);

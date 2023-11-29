@@ -152,6 +152,8 @@ public class LfContingency {
             generator.setDisabled(true);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                bus.getGeneratorVoltageControl().ifPresent(vc -> vc.updateReactiveKeys());
+                bus.getGeneratorReactivePowerControl().ifPresent(rc -> rc.updateReactiveKeys());
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
@@ -166,6 +168,9 @@ public class LfContingency {
         for (LfBus bus : generatorBuses) {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
                 bus.setGeneratorVoltageControlEnabled(false);
+            }
+            if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
+                bus.setGeneratorReactivePowerControlEnabled(false);
             }
         }
     }

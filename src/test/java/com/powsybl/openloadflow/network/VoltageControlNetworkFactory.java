@@ -968,7 +968,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setConnectableBus("b1")
                 .setEnergySource(EnergySource.THERMAL)
                 .setMinP(0)
-                .setMaxP(200)
+                .setMaxP(350)
                 .setTargetP(100)
                 .setTargetV(21)
                 .setVoltageRegulatorOn(true)
@@ -1310,7 +1310,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setConnectableBus("b1")
                 .setEnergySource(EnergySource.THERMAL)
                 .setMinP(0)
-                .setMaxP(200)
+                .setMaxP(400)
                 .setTargetP(100)
                 .setTargetV(400)
                 .setRegulatingTerminal(l5.getTerminal())
@@ -1381,6 +1381,28 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .add();
         createLine(network, b1, b2, "l12", 0.00);
 
+        return network;
+    }
+
+    public static Network createFourBusNetworkWithSharedVoltageControl() {
+        // Four bus network with g1 and g1Bis at b1, g4 at b4
+        // Shared voltage control at b4
+        Network network = FourBusNetworkFactory.createWith2GeneratorsAtBus1();
+        Generator g1 = network.getGenerator("g1");
+        Generator g2 = network.getGenerator("g2");
+        Generator g1Bis = network.getGenerator("g1Bis");
+        Generator g4 = network.getGenerator("g4");
+        Terminal regTerminal = network.getLine("l34").getTerminal2();
+        g1.setMaxP(10)
+                .setRegulatingTerminal(regTerminal)
+                .setTargetV(1.2);
+        g2.setMaxP(10);
+        g1Bis.setMaxP(10)
+                .setRegulatingTerminal(regTerminal)
+                .setTargetV(1.2);
+        g4.setMaxP(10)
+                .setRegulatingTerminal(regTerminal)
+                .setTargetV(1.2);
         return network;
     }
 }
