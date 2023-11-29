@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.function.Consumer;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractNetworkResult {
 
@@ -59,7 +59,7 @@ public abstract class AbstractNetworkResult {
         if (!monitor.getThreeWindingsTransformerIds().isEmpty()) {
             monitor.getThreeWindingsTransformerIds().stream()
                     .filter(id -> network.getBusById(LfStarBus.getId(id)) != null && !network.getBusById(LfStarBus.getId(id)).isDisabled())
-                    .forEach(id -> threeWindingsTransformerResults.add(LfLegBranch.createThreeWindingsTransformerResult(network, id)));
+                    .forEach(id -> threeWindingsTransformerResults.add(LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension)));
         }
     }
 

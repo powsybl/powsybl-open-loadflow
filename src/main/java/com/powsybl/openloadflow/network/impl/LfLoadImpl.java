@@ -10,18 +10,23 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
+import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private final LfBus bus;
+
+    private final LfLoadModel loadModel;
 
     private final List<Ref<Load>> loadsRefs = new ArrayList<>();
 
@@ -39,10 +44,15 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
-    LfLoadImpl(LfBus bus, boolean distributedOnConformLoad) {
+    private Evaluable p = EvaluableConstants.NAN;
+
+    private Evaluable q = EvaluableConstants.NAN;
+
+    LfLoadImpl(LfBus bus, boolean distributedOnConformLoad, LfLoadModel loadModel) {
         super(0, 0);
         this.bus = Objects.requireNonNull(bus);
         this.distributedOnConformLoad = distributedOnConformLoad;
+        this.loadModel = loadModel;
     }
 
     @Override
@@ -60,6 +70,11 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     @Override
     public LfBus getBus() {
         return bus;
+    }
+
+    @Override
+    public Optional<LfLoadModel> getLoadModel() {
+        return Optional.ofNullable(loadModel);
     }
 
     void add(Load load, LfNetworkParameters parameters) {
@@ -87,10 +102,10 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     void add(LccConverterStation lccCs, LfNetworkParameters parameters) {
         // note that LCC converter station are out of the slack distribution.
         lccCsRefs.add(Ref.create(lccCs, parameters.isCacheEnabled()));
-        double lccTargetP = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers());
+        double lccTargetP = HvdcUtils.getConverterStationTargetP(lccCs);
         this.targetP += lccTargetP / PerUnit.SB;
         initialTargetP += lccTargetP / PerUnit.SB;
-        targetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()) / PerUnit.SB;
+        targetQ += HvdcUtils.getLccConverterStationLoadTargetQ(lccCs) / PerUnit.SB;
     }
 
     public void add(DanglingLine danglingLine) {
@@ -164,8 +179,22 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(i) / absVariableTargetP : 0;
     }
 
+    private double calculateP() {
+        return p.eval() + getLoadModel()
+                .flatMap(lm -> lm.getExpTermP(0).map(term -> targetP * term.c()))
+                .orElse(0d);
+    }
+
+    private double calculateQ() {
+        return q.eval() + getLoadModel()
+                .flatMap(lm -> lm.getExpTermQ(0).map(term -> targetQ * term.c()))
+                .orElse(0d);
+    }
+
     @Override
     public void updateState(boolean loadPowerFactorConstant, boolean breakers) {
+        double pv = p == EvaluableConstants.NAN ? 1 : calculateP() / targetP; // extract part of p that is dependent to voltage
+        double qv = q == EvaluableConstants.NAN ? 1 : calculateQ() / targetQ;
         double diffLoadTargetP = targetP - initialTargetP;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
@@ -173,15 +202,15 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
             double updatedP0 = load.getP0() + diffP0;
             double updatedQ0 = load.getQ0() + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
             load.getTerminal()
-                    .setP(updatedP0)
-                    .setQ(updatedQ0);
+                    .setP(updatedP0 * pv)
+                    .setQ(updatedQ0 * qv);
         }
 
         // update lcc converter station power
         for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
             LccConverterStation lccCs = lccCsRef.get();
-            double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs, breakers); // A LCC station has active losses.
-            double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, breakers); // A LCC station always consumes reactive power.
+            double pCs = HvdcUtils.getConverterStationTargetP(lccCs); // A LCC station has active losses.
+            double qCs = HvdcUtils.getLccConverterStationLoadTargetQ(lccCs); // A LCC station always consumes reactive power.
             lccCs.getTerminal()
                     .setP(pCs)
                     .setQ(qCs);
@@ -221,5 +250,30 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private static double getPowerFactor(Load load) {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
+    }
+
+    @Override
+    public Evaluable getP() {
+        return p;
+    }
+
+    @Override
+    public void setP(Evaluable p) {
+        this.p = p;
+    }
+
+    @Override
+    public Evaluable getQ() {
+        return q;
+    }
+
+    @Override
+    public void setQ(Evaluable q) {
+        this.q = q;
+    }
+
+    @Override
+    public String toString() {
+        return getId();
     }
 }

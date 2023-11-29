@@ -14,18 +14,14 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcIncrementalPhaseControlOuterLoop;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -33,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AcLoadFlowPhaseShifterTest {
 
@@ -569,18 +565,13 @@ class AcLoadFlowPhaseShifterTest {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setPhaseControl(true);
         LfNetwork lfNetwork = Networks.load(network, lfNetworkParameters).get(0);
-        AcLoadFlowParameters acParameters = new AcLoadFlowParameters(lfNetworkParameters,
-                                                                     new AcEquationSystemCreationParameters(),
-                                                                     new NewtonRaphsonParameters(),
-                                                                     Collections.emptyList(),
-                                                                     AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
-                                                                     new DenseMatrixFactory(),
-                                                                     new UniformValueVoltageInitializer(),
-                                                                     false);
+        AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
+                .setNetworkParameters(lfNetworkParameters)
+                .setMatrixFactory(new DenseMatrixFactory());
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult lfResult = new AcloadFlowEngine(lfContext)
                     .run();
-            assertEquals(NewtonRaphsonStatus.CONVERGED, lfResult.getNewtonRaphsonStatus());
+            assertEquals(AcSolverStatus.CONVERGED, lfResult.getSolverStatus());
             LfBranch ps1 = lfNetwork.getBranchById("PS1");
             List<LfBranch> controllerBranches = List.of(ps1);
             var sensitivityContext = new AcIncrementalPhaseControlOuterLoop.AcSensitivityContext(lfNetwork,
@@ -590,12 +581,12 @@ class AcLoadFlowPhaseShifterTest {
             double da10 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(0).getAlpha();
             double da12 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(2).getAlpha();
             double ib = PerUnit.ib(ps1.getBus1().getNominalV());
-            double sensi1 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, ControlledSide.ONE);
+            double sensi1 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, TwoSides.ONE);
             double di1t10p = sensi1 * da10 * ib;
             double di1t12p = sensi1 * da12 * ib;
             assertEquals(43.007011829925496, di1t10p, 0d);
             assertEquals(-43.007011829925496, di1t12p, 0d);
-            double sensi2 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, ControlledSide.TWO);
+            double sensi2 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, TwoSides.TWO);
             double di2t10p = sensi2 * da10 * ib;
             double di2t12p = sensi2 * da12 * ib;
             assertEquals(43.007011829925496, di2t10p, 0d);

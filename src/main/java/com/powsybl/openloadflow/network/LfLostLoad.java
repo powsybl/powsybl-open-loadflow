@@ -13,7 +13,7 @@ import java.util.Set;
  * A LfLoad is an aggregation of several classical network loads. The loss of a network load is modeled by a power
  * shift, that is a partial shift of the full LfLoad.
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfLostLoad {
 
@@ -27,5 +27,13 @@ public class LfLostLoad {
 
     public Set<String> getOriginalIds() {
         return ids;
+    }
+
+    @Override
+    public String toString() {
+        return "LfLostLoad(" +
+                "ids=" + ids +
+                ", powerShift=" + powerShift +
+                ')';
     }
 }

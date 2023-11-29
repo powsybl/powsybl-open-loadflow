@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
+import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -18,7 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfVscConverterStationImpl extends AbstractLfGenerator implements LfVscConverterStation {
 
@@ -29,7 +30,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     private LfHvdc hvdc; // set only when AC emulation is activated
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, HvdcConverterStations.getConverterStationTargetP(station, parameters.isBreakers()) / PerUnit.SB);
+        super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
 

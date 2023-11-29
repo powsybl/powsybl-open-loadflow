@@ -8,6 +8,7 @@
  */
 package com.powsybl.openloadflow.ac.equations.asym;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -19,8 +20,8 @@ import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator {
 
@@ -339,7 +340,8 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                     .addTerm(iyn2);
         }
 
-        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+        createGeneratorReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+
         createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
 
     }

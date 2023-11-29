@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.graph;
 import org.jgrapht.Graph;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class VertexAdd<V, E> implements GraphModification<V, E> {
     protected final V v;

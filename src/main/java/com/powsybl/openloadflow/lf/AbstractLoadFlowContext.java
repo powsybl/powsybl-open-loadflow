@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import java.util.Objects;
 
 /**
- * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
+ * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
  */
 public abstract class AbstractLoadFlowContext <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity, P extends AbstractLoadFlowParameters>
         implements LoadFlowContext<V, E, P>, AutoCloseable {
@@ -31,13 +31,6 @@ public abstract class AbstractLoadFlowContext <V extends Enum<V> & Quantity, E e
     protected AbstractLoadFlowContext(LfNetwork network, P parameters) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);
-    }
-
-    public JacobianMatrix<V, E> getJacobianMatrix() {
-        if (jacobianMatrix == null) {
-            jacobianMatrix = new JacobianMatrix<>(getEquationSystem(), parameters.getMatrixFactory());
-        }
-        return jacobianMatrix;
     }
 
     public P getParameters() {

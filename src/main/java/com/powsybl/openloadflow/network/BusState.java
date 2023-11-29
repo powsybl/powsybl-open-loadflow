@@ -10,16 +10,16 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class BusState extends BusDcState {
 
     private final double angle;
     private final double voltage;
-    private Double loadTargetQ;
     private final double generationTargetQ;
     private final boolean voltageControlEnabled;
     private final Boolean shuntVoltageControlEnabled;
+    private final Boolean reactiveControlEnabled;
     private final double shuntB;
     private final double shuntG;
     private final double controllerShuntB;
@@ -27,13 +27,31 @@ public class BusState extends BusDcState {
     private final double svcShuntB;
     private final Map<String, LfGenerator.GeneratorControlType> generatorsControlType;
 
+    private static class LoadState extends LoadDcState {
+
+        private double loadTargetQ;
+
+        @Override
+        protected LoadDcState save(LfLoad load) {
+            super.save(load);
+            loadTargetQ = load.getTargetQ();
+            return this;
+        }
+
+        @Override
+        protected void restore(LfLoad load) {
+            super.restore(load);
+            load.setTargetQ(loadTargetQ);
+        }
+    }
+
     public BusState(LfBus bus) {
         super(bus);
         this.angle = bus.getAngle();
         this.voltage = bus.getV();
-        bus.getLoad().ifPresent(load -> this.loadTargetQ = load.getTargetQ());
         this.generationTargetQ = bus.getGenerationTargetQ();
         this.voltageControlEnabled = bus.isGeneratorVoltageControlEnabled();
+        this.reactiveControlEnabled = bus.isGeneratorReactivePowerControlEnabled();
         LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
         shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
         controllerShuntB = controllerShunt != null ? controllerShunt.getB() : Double.NaN;
@@ -47,15 +65,18 @@ public class BusState extends BusDcState {
     }
 
     @Override
+    protected LoadDcState createLoadState() {
+        return new LoadState();
+    }
+
+    @Override
     public void restore() {
         super.restore();
         element.setAngle(angle);
         element.setV(voltage);
-        if (loadTargetQ != null) {
-            element.getLoad().orElseThrow().setTargetQ(loadTargetQ);
-        }
         element.setGenerationTargetQ(generationTargetQ);
         element.setGeneratorVoltageControlEnabled(voltageControlEnabled);
+        element.setGeneratorReactivePowerControlEnabled(reactiveControlEnabled);
         if (shuntVoltageControlEnabled != null) {
             element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
         }

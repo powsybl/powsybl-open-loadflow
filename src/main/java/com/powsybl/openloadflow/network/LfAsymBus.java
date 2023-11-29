@@ -19,7 +19,7 @@ import org.apache.commons.math3.complex.ComplexUtils;
 import java.util.Objects;
 
 /**
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class LfAsymBus {
 

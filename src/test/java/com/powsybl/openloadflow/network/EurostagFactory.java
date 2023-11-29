@@ -10,7 +10,7 @@ import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class EurostagFactory extends AbstractLoadFlowNetworkFactory {
 

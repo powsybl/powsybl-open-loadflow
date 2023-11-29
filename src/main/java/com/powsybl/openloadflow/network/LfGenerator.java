@@ -6,10 +6,12 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.OptionalDouble;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LfGenerator extends PropertyBag {
 
@@ -107,7 +109,7 @@ public interface LfGenerator extends PropertyBag {
 
     LfBranch getControlledBranch();
 
-    ControlledSide getControlledBranchSide();
+    TwoSides getControlledBranchSide();
 
     double getRemoteTargetQ();
 

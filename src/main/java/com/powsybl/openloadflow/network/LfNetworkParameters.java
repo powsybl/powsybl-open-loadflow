@@ -18,7 +18,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkParameters {
 
@@ -49,7 +49,11 @@ public class LfNetworkParameters {
 
     public static final boolean ASYMMETRICAL_DEFAULT_VALUE = false;
 
+    public static final boolean USE_LOAD_MODE_DEFAULT_VALUE = false;
+
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
+
+    public static final boolean SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE = false;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
@@ -73,7 +77,9 @@ public class LfNetworkParameters {
 
     private Set<Country> countriesToBalance = Collections.emptySet();
 
-    private boolean distributedOnConformLoad = false;
+    public static final boolean DISTRIBUTED_ON_CONFORM_LOAD_DEFAULT_VALUE = false;
+
+    private boolean distributedOnConformLoad = DISTRIBUTED_ON_CONFORM_LOAD_DEFAULT_VALUE;
 
     private boolean phaseControl = false;
 
@@ -117,6 +123,10 @@ public class LfNetworkParameters {
 
     private LinePerUnitMode linePerUnitMode = LINE_PER_UNIT_MODE_DEFAULT_VALUE;
 
+    private boolean useLoadModel = USE_LOAD_MODE_DEFAULT_VALUE;
+
+    private boolean simulateAutomationSystems = SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -152,6 +162,9 @@ public class LfNetworkParameters {
         this.secondaryVoltageControl = other.secondaryVoltageControl;
         this.cacheEnabled = other.cacheEnabled;
         this.asymmetrical = other.asymmetrical;
+        this.linePerUnitMode = other.linePerUnitMode;
+        this.useLoadModel = other.useLoadModel;
+        this.simulateAutomationSystems = other.simulateAutomationSystems;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -452,6 +465,24 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isUseLoadModel() {
+        return useLoadModel;
+    }
+
+    public LfNetworkParameters setUseLoadModel(boolean useLoadModel) {
+        this.useLoadModel = useLoadModel;
+        return this;
+    }
+
+    public boolean isSimulateAutomationSystems() {
+        return simulateAutomationSystems;
+    }
+
+    public LfNetworkParameters setSimulateAutomationSystems(boolean simulateAutomationSystems) {
+        this.simulateAutomationSystems = simulateAutomationSystems;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -485,6 +516,8 @@ public class LfNetworkParameters {
                 ", asymmetrical=" + asymmetrical +
                 ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
                 ", linePerUnitMode=" + linePerUnitMode +
+                ", useLoadModel=" + useLoadModel +
+                ", simulateAutomationSystems=" + simulateAutomationSystems +
                 ')';
     }
 }

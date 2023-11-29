@@ -17,7 +17,7 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
 
@@ -95,5 +95,21 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     @Override
     public Evaluable getI2() {
         return i2;
+    }
+
+    protected double getV1() {
+        return getBus1() != null ? getBus1().getV() : Double.NaN;
+    }
+
+    protected double getV2() {
+        return getBus2() != null ? getBus2().getV() : Double.NaN;
+    }
+
+    protected double getAngle1() {
+        return getBus1() != null ? getBus1().getAngle() : Double.NaN;
+    }
+
+    protected double getAngle2() {
+        return getBus2() != null ? getBus2().getAngle() : Double.NaN;
     }
 }

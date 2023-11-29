@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class VoltageControl<T extends LfElement> extends Control {
 
@@ -37,6 +37,8 @@ public class VoltageControl<T extends LfElement> extends Control {
     protected final List<VoltageControl<T>> mergedDependentVoltageControls = new ArrayList<>();
 
     protected VoltageControl<T> mainMergedVoltageControl;
+
+    protected boolean disabled = false;
 
     protected VoltageControl(double targetValue, Type type, int priority, LfBus controlledBus) {
         super(targetValue);
@@ -81,11 +83,18 @@ public class VoltageControl<T extends LfElement> extends Control {
      * status could be updated too.
      */
     public boolean isDisabled() {
+        if (disabled) {
+            return true;
+        }
         if (getMergedControlledBuses().stream().allMatch(LfElement::isDisabled)) {
             return true;
         }
         return getMergedControllerElements().stream()
                 .allMatch(LfElement::isDisabled);
+    }
+
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
     }
 
     public MergeStatus getMergeStatus() {

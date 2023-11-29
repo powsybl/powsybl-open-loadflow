@@ -16,7 +16,7 @@ import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class LfLegBranch extends AbstractImpedantLfBranch {
 
@@ -39,8 +39,8 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         return legRef.get();
     }
 
-    public static LfLegBranch create(LfNetwork network, LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
-                                     LfNetworkParameters parameters) {
+    public static LfLegBranch create(LfNetwork network, LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt,
+                                     ThreeWindingsTransformer.Leg leg, boolean retainPtc, boolean retainRtc, LfNetworkParameters parameters) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
@@ -52,8 +52,8 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
         PhaseTapChanger ptc = leg.getPhaseTapChanger();
         if (ptc != null
-                && ptc.isRegulating()
-                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+                && (ptc.isRegulating()
+                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP || retainPtc)) {
             // we have a phase control, whatever we also have a voltage control or not, we create a pi model array
             // based on phase taps mixed with voltage current tap
             Integer rtcPosition = Transformers.getCurrentPosition(leg.getRatioTapChanger());
@@ -66,7 +66,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         }
 
         RatioTapChanger rtc = leg.getRatioTapChanger();
-        if (rtc != null && rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) {
+        if (rtc != null && (rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities() || retainRtc)) {
             if (piModel == null) {
                 // we have a voltage control, we create a pi model array based on voltage taps mixed with phase current
                 // tap
@@ -108,13 +108,8 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         return twtId + "_leg_" + legNum;
     }
 
-    public static String getId(ThreeWindingsTransformer.Side side, String transformerId) {
-        int legNum = switch (side) {
-            case ONE -> 1;
-            case TWO -> 2;
-            case THREE -> 3;
-        };
-        return getId(transformerId, legNum);
+    public static String getId(ThreeSides side, String transformerId) {
+        return getId(transformerId, side.getNum());
     }
 
     @Override
@@ -194,7 +189,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
                 .setQ(q1 * PerUnit.SB);
     }
 
-    public static ThreeWindingsTransformerResult createThreeWindingsTransformerResult(LfNetwork network, String threeWindingsTransformerId) {
+    public static ThreeWindingsTransformerResult createThreeWindingsTransformerResult(LfNetwork network, String threeWindingsTransformerId, boolean createResultExtension) {
         LfLegBranch leg1 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 1));
         LfLegBranch leg2 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
         LfLegBranch leg3 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 3));
@@ -202,9 +197,20 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         double i1Base = PerUnit.ib(leg1.legRef.get().getTerminal().getVoltageLevel().getNominalV());
         double i2Base = PerUnit.ib(leg2.legRef.get().getTerminal().getVoltageLevel().getNominalV());
         double i3Base = PerUnit.ib(leg3.legRef.get().getTerminal().getVoltageLevel().getNominalV());
-        return new ThreeWindingsTransformerResult(threeWindingsTransformerId,
+        ThreeWindingsTransformerResult result = new ThreeWindingsTransformerResult(threeWindingsTransformerId,
                 leg1.getP1().eval() * PerUnit.SB, leg1.getQ1().eval() * PerUnit.SB, leg1.getI1().eval() * i1Base,
                 leg2.getP1().eval() * PerUnit.SB, leg2.getQ1().eval() * PerUnit.SB, leg2.getI1().eval() * i2Base,
                 leg3.getP1().eval() * PerUnit.SB, leg3.getQ1().eval() * PerUnit.SB, leg3.getI1().eval() * i3Base);
+
+        if (createResultExtension) {
+            result.addExtension(OlfThreeWindingsTransformerResult.class, new OlfThreeWindingsTransformerResult(
+                    leg1.getV1() * leg1.legRef.get().getTerminal().getVoltageLevel().getNominalV(),
+                    leg2.getV1() * leg2.legRef.get().getTerminal().getVoltageLevel().getNominalV(),
+                    leg3.getV1() * leg3.legRef.get().getTerminal().getVoltageLevel().getNominalV(),
+                    Math.toDegrees(leg1.getAngle1()),
+                    Math.toDegrees(leg2.getAngle1()),
+                    Math.toDegrees(leg3.getAngle1())));
+        }
+        return result;
     }
 }

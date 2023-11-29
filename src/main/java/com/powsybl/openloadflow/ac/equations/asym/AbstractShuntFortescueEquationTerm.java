@@ -19,8 +19,8 @@ import com.powsybl.openloadflow.util.Fortescue;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public abstract class AbstractShuntFortescueEquationTerm extends AbstractElementEquationTerm<LfBus, AcVariableType, AcEquationType> {
 

@@ -13,10 +13,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AcloadFlowReactiveLimitsTest {
 
@@ -45,7 +42,7 @@ class AcloadFlowReactiveLimitsTest {
     private LoadFlowParameters parameters;
 
     private void createNetwork() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         // access to already created equipments
         load = network.getLoad("LOAD");

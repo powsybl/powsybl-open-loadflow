@@ -22,7 +22,8 @@ import com.powsybl.contingency.contingency.list.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
-import com.powsybl.iidm.xml.NetworkXml;
+import com.powsybl.iidm.serde.NetworkSerDe;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
@@ -30,15 +31,15 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.impl.LfTopoConfig;
+import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
-import org.joda.time.DateTime;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -47,6 +48,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -57,7 +59,7 @@ import java.util.function.Function;
 import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 @AutoService(SensitivityAnalysisProvider.class)
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
@@ -159,16 +161,22 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
             LfTopoConfig topoConfig = new LfTopoConfig();
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, false);
+            LoadFlowParameters loadFlowParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
+            PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                    .setContingencyPropagation(false)
+                    .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
+                    .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                    .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 
             // debugging
             if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
                 Path debugDir = DebugUtil.getDebugDir(sensitivityAnalysisParametersExt.getDebugDir());
-                String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
+                String dateStr = ZonedDateTime.now().format(DATE_TIME_FORMAT);
 
-                NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
+                NetworkSerDe.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
 
                 ObjectWriter objectWriter = createObjectMapper()
                         .writerWithDefaultPrettyPrinter();
@@ -193,7 +201,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             }
 
             AbstractSensitivityAnalysis<?, ?> analysis;
-            if (sensitivityAnalysisParameters.getLoadFlowParameters().isDc()) {
+            if (loadFlowParameters.isDc()) {
                 analysis = new DcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             } else {
                 analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
@@ -205,15 +213,15 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
         Objects.requireNonNull(resultWriterProvider);
         Objects.requireNonNull(reporter);
 
-        String dateStr = date.toString(DATE_TIME_FORMAT);
+        String dateStr = date.format(DATE_TIME_FORMAT);
 
-        Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
+        Network network = NetworkSerDe.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
 
         ObjectMapper objectMapper = createObjectMapper();
         List<SensitivityFactor> factors;
@@ -256,11 +264,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return new ReplayResult<>(resultWriter, factors, contingencies);
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
         return replay(date, debugDir, resultWriterProvider, Reporter.NO_OP);
     }
 
-    public ReplayResult<SensitivityResultModelWriter> replay(DateTime date, Path debugDir) {
+    public ReplayResult<SensitivityResultModelWriter> replay(ZonedDateTime date, Path debugDir) {
         return replay(date, debugDir, SensitivityResultModelWriter::new);
     }
 }

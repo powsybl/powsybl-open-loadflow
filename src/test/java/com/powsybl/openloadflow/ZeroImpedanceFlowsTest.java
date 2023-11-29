@@ -18,7 +18,6 @@ import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,8 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Luma Zamarreño <zamarrenolm at aia.es>
- * @author José Antonio Marqués <marquesja at aia.es>
+ * @author Luma Zamarreño {@literal <zamarrenolm at aia.es>}
+ * @author José Antonio Marqués {@literal <marquesja at aia.es>}
  */
 class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
 
@@ -230,7 +229,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         Bus b3 = createBus(network, "s", "b3");
         Bus b4 = createBus(network, "s", "b4");
         Bus b5 = createBus(network, "s", "b5");
-        createGenerator(b1, "g1", 2, 1);
+        createGenerator(b1, "g1", 4.5, 1);
         createLoad(b3, "l1", 1.5, 1);
         createLoad(b4, "l2", 1.4, 0.4);
         createLoad(b5, "l3", 1.5, 0.5);

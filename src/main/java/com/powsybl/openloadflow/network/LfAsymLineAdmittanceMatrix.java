@@ -8,6 +8,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
@@ -91,7 +92,7 @@ import org.apache.commons.math3.util.Pair;
  *           [ y_21_pz y_21_pp y_21_pn y_22_pz y_22_pp y_22_pn ]
  *           [ y_21_nz y_21_np y_21_nn y_22_nz y_22_np y_22_nn ]
  *
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class LfAsymLineAdmittanceMatrix {
 
@@ -290,11 +291,11 @@ public class LfAsymLineAdmittanceMatrix {
         return residual > EPS_VALUE;
     }
 
-    public double getX(Side i, Side j, SequenceType g, SequenceType h) {
+    public double getX(TwoSides i, TwoSides j, SequenceType g, SequenceType h) {
         return mYzpn.get(2 * (3 * (i.getNum() - 1) + g.getNum()), 2 * (3 * (j.getNum() - 1) + h.getNum()));
     }
 
-    public double getY(Side i, Side j, SequenceType g, SequenceType h) {
+    public double getY(TwoSides i, TwoSides j, SequenceType g, SequenceType h) {
         return mYzpn.get(2 * (3 * (i.getNum() - 1) + g.getNum()) + 1, 2 * (3 * (j.getNum() - 1) + h.getNum()));
     }
 

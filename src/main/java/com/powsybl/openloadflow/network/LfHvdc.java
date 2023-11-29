@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.openloadflow.util.Evaluable;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public interface LfHvdc extends LfElement {
 

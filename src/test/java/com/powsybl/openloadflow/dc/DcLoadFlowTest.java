@@ -16,10 +16,9 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -35,13 +34,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
+ * @author Sylvain Leclerc {@literal <sylvain.leclerc at rte-france.com>}
  */
 class DcLoadFlowTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowTest.class);
 
     private LoadFlowParameters parameters;
+
+    private OpenLoadFlowParameters parametersExt;
 
     private OpenLoadFlowProvider loadFlowProvider;
 
@@ -51,7 +52,7 @@ class DcLoadFlowTest {
     void setUp() {
         parameters = new LoadFlowParameters()
                 .setDc(true);
-        OpenLoadFlowParameters.create(parameters)
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
@@ -64,7 +65,7 @@ class DcLoadFlowTest {
      */
     @Test
     void tuto1Test() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Line line1 = network.getLine("NHV1_NHV2_1");
         Line line2 = network.getLine("NHV1_NHV2_2");
 
@@ -250,7 +251,7 @@ class DcLoadFlowTest {
 
     @Test
     void shuntCompensatorActivePowerZero() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var sc = network.getVoltageLevel("VLLOAD").newShuntCompensator()
                 .setId("SC")
                 .setBus("NLOAD")
@@ -281,13 +282,13 @@ class DcLoadFlowTest {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setBreakers(true);
-        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
-                                                                             new DcEquationSystemCreationParameters(true, false, true),
-                                                                             new DenseMatrixFactory(),
-                                                                             true,
-                                                                             parameters.getBalanceType(),
-                                                                             false,
-                                                                             1);
+        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters()
+                .setNetworkParameters(lfNetworkParameters)
+                .setMatrixFactory(new DenseMatrixFactory())
+                .setDistributedSlack(true)
+                .setBalanceType(parameters.getBalanceType())
+                .setSetVToNan(false)
+                .setMaxOuterLoopIterations(1);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToClose().add(c1);
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, Reporter.NO_OP)) {
@@ -352,5 +353,30 @@ class DcLoadFlowTest {
         assertEquals(-50, l2.getTerminal2().getP(), 0.01);
         assertEquals(50, ps1.getTerminal1().getP(), 0.01);
         assertEquals(-50, ps1.getTerminal2().getP(), 0.01);
+    }
+
+    @Test
+    void testDcApproxIgnoreG() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        Line line1 = network.getLine("NHV1_NHV2_1");
+        // to get asymmetric flows
+        line1.setR(line1.getR() * 1.1);
+        line1.setX(line1.getX() * 1.05);
+        Line line2 = network.getLine("NHV1_NHV2_2");
+
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(292.682, line1.getTerminal1().getP(), 0.01);
+        assertEquals(-292.682, line1.getTerminal2().getP(), 0.01);
+        assertEquals(307.317, line2.getTerminal1().getP(), 0.01);
+        assertEquals(-307.317, line2.getTerminal2().getP(), 0.01);
+
+        parametersExt.setDcApproximationType(DcApproximationType.IGNORE_G);
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(292.563, line1.getTerminal1().getP(), 0.01);
+        assertEquals(-292.563, line1.getTerminal2().getP(), 0.01);
+        assertEquals(307.436, line2.getTerminal1().getP(), 0.01);
+        assertEquals(-307.436, line2.getTerminal2().getP(), 0.01);
     }
 }

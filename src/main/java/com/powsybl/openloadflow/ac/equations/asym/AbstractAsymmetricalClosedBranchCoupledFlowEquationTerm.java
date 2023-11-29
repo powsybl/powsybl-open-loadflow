@@ -8,6 +8,7 @@
  */
 package com.powsybl.openloadflow.ac.equations.asym;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
@@ -26,8 +27,8 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.A2;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm extends AbstractAsymmetricalBranchFlowEquationTerm {
 
@@ -62,6 +63,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
     protected final ComplexPart complexPart;
+    protected final TwoSides side;
     protected final Side termSide;
     protected final SequenceType sequenceType;
     protected final AsymBusVariableType variableTypeBus1;
@@ -301,12 +303,12 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         return 0;
     }
 
-    protected double r(Side i) {
-        return i == Side.ONE ? r1() : 1.;
+    protected double r(TwoSides i) {
+        return i == TwoSides.ONE ? r1() : 1.;
     }
 
-    protected double a(Side i) {
-        return i == Side.ONE ? a1() : A2;
+    protected double a(TwoSides i) {
+        return i == TwoSides.ONE ? a1() : A2;
     }
 
     @Override
@@ -314,14 +316,14 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         return variables;
     }
 
-    public Side getSide(Variable<AcVariableType> variable) {
+    public TwoSides getSide(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var) || variable.equals(v1VarZero) || variable.equals(v1VarNegative)
                 || variable.equals(ph1Var) || variable.equals(ph1VarZero) || variable.equals(ph1VarNegative)) {
-            return Side.ONE;
+            return TwoSides.ONE;
         } else if (variable.equals(v2Var) || variable.equals(v2VarZero) || variable.equals(v2VarNegative)
                 || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
-            return Side.TWO;
+            return TwoSides.TWO;
         } else {
             throw new IllegalStateException(UNKNOWN_VAR);
         }

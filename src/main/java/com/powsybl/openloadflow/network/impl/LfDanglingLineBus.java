@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import java.util.List;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfDanglingLineBus extends AbstractLfBus {
 
@@ -26,7 +26,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
         super(network, Networks.getPropertyV(danglingLine), Math.toRadians(Networks.getPropertyAngle(danglingLine)), false);
         this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
-        getOrCreateLfLoad().add(danglingLine);
+        getOrCreateLfLoad(null, parameters).add(danglingLine);
         DanglingLine.Generation generation = danglingLine.getGeneration();
         if (generation != null) {
             add(LfDanglingLineGenerator.create(danglingLine, network, getId(), parameters, report));

@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
- * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
  */
 public final class LfAction {
 
@@ -126,6 +126,9 @@ public final class LfAction {
             case PhaseTapChangerTapPositionAction.NAME:
                 return create((PhaseTapChangerTapPositionAction) action, lfNetwork);
 
+            case RatioTapChangerTapPositionAction.NAME:
+                return create((RatioTapChangerTapPositionAction) action, lfNetwork);
+
             case LoadAction.NAME:
                 return create((LoadAction) action, lfNetwork, network, breakers);
 
@@ -185,12 +188,22 @@ public final class LfAction {
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
         String branchId = action.getSide().map(side -> LfLegBranch.getId(side, action.getTransformerId())).orElseGet(action::getTransformerId);
         LfBranch branch = lfNetwork.getBranchById(branchId);
+        return create(branch, action.getId(), action.isRelativeValue(), action.getTapPosition(), lfNetwork);
+    }
+
+    private static Optional<LfAction> create(RatioTapChangerTapPositionAction action, LfNetwork lfNetwork) {
+        String branchId = action.getSide().map(side -> LfLegBranch.getId(side, action.getTransformerId())).orElseGet(action::getTransformerId);
+        LfBranch branch = lfNetwork.getBranchById(branchId);
+        return create(branch, action.getId(), action.isRelativeValue(), action.getTapPosition(), lfNetwork);
+    }
+
+    private static Optional<LfAction> create(LfBranch branch, String actionId, boolean isRelative, int tapPosition, LfNetwork lfNetwork) {
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
-                throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in branch " + branch.getId());
+                throw new UnsupportedOperationException("Tap position action: only one tap in branch " + branch.getId());
             } else {
-                var tapPositionChange = new TapPositionChange(branch, action.getTapPosition(), action.isRelativeValue());
-                return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange, null, null, null));
+                var tapPositionChange = new TapPositionChange(branch, tapPosition, isRelative);
+                return Optional.of(new LfAction(actionId, null, null, tapPositionChange, null, null, null));
             }
         }
         return Optional.empty(); // could be in another component

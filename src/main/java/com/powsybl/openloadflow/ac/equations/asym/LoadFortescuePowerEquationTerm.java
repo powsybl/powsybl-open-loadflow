@@ -22,7 +22,7 @@ import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.complex.Complex;
 
 /**
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
     public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {

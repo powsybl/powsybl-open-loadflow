@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
@@ -421,6 +421,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l01"))));
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDistributedSlack(false)
                 .setTransformerVoltageControlOn(true);
         OpenLoadFlowParameters.create(loadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()

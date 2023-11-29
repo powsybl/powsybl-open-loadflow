@@ -19,7 +19,7 @@ import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import java.io.IOException;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class OpenSensitivityAnalysisParameterJsonSerializer implements ExtensionJsonSerializer<SensitivityAnalysisParameters, OpenSensitivityAnalysisParameters> {
 

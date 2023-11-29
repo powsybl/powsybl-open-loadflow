@@ -16,7 +16,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.nr.StateVectorScalingMode;
+import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,8 +27,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * @author Damien Jeandemange <damien.jeandemange at artelys.com>
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class IllConditionedCaseTest {
 

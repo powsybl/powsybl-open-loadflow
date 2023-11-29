@@ -17,9 +17,9 @@ import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactor
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 class OpenSecurityAnalysisGraphTest {
 
@@ -165,7 +165,9 @@ class OpenSecurityAnalysisGraphTest {
 
         // try to find all switches impacted by at least one contingency
         LfTopoConfig topoConfig = new LfTopoConfig();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, true);
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setHvdcAcEmulation(false);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
         LfNetworkParameters networkParameters = new LfNetworkParameters()
                 .setConnectivityFactory(connectivityFactory)
@@ -173,8 +175,6 @@ class OpenSecurityAnalysisGraphTest {
 
         // create networks including all necessary switches
         LfNetworkList lfNetworks = Networks.load(network, networkParameters, topoConfig, Reporter.NO_OP);
-
-        PropagatedContingency.completeList(propagatedContingencies, false, false, false, true);
 
         // run simulation on each network
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();

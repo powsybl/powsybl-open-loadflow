@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfBranchImpl extends AbstractImpedantLfBranch {
 
@@ -293,7 +293,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2,
-                                                  LfNetworkParameters parameters) {
+                                                  boolean retainPtc, boolean retainRtc, LfNetworkParameters parameters) {
         PiModel piModel = null;
 
         double baseRatio = Transformers.getRatioPerUnitBase(twt);
@@ -302,8 +302,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
         if (ptc != null
-                && ptc.isRegulating()
-                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+                && (ptc.isRegulating()
+                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP || retainPtc)) {
             // we have a phase control, whatever we also have a voltage control or not, we create a pi model array
             // based on phase taps mixed with voltage current tap
             Integer rtcPosition = Transformers.getCurrentPosition(twt.getRatioTapChanger());
@@ -316,7 +316,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
-        if (rtc != null && rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) {
+        if (rtc != null && (rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities() || retainRtc)) {
             if (piModel == null) {
                 // we have a voltage control, we create a pi model array based on voltage taps mixed with phase current
                 // tap
@@ -346,14 +346,16 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return lfBranch;
     }
 
-    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
+    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, LfTopoConfig topoConfig,
+                                      LfNetworkParameters parameters) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         if (branch instanceof Line line) {
             return createLine(line, network, bus1, bus2, parameters);
         } else if (branch instanceof TwoWindingsTransformer twt) {
-            return createTransformer(twt, network, bus1, bus2, parameters);
+            return createTransformer(twt, network, bus1, bus2, topoConfig.isRetainedPtc(twt.getId()),
+                    topoConfig.isRetainedRtc(twt.getId()), parameters);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
@@ -392,7 +394,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
                                             p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
         if (createExtension) {
-            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1()));
+            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
+                    getV1() * branch.getTerminal1().getVoltageLevel().getNominalV(),
+                    getV2() * branch.getTerminal2().getVoltageLevel().getNominalV(),
+                    Math.toDegrees(getAngle1()),
+                    Math.toDegrees(getAngle2())));
         }
         return branchResult;
     }

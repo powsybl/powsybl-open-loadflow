@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
- * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
+ * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
  */
 public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType> {
 

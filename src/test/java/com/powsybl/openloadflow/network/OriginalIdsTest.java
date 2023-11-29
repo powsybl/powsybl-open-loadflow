@@ -14,7 +14,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class OriginalIdsTest {
 
@@ -29,7 +29,7 @@ class OriginalIdsTest {
         assertEquals(List.of("3wt"), lfNetwork.getBusById("3wt_BUS0").getOriginalIds());
         assertEquals(List.of("vl1_0"), lfNetwork.getBusById("vl1_0").getOriginalIds());
         assertEquals("g1", lfNetwork.getGeneratorById("g1").getOriginalId());
-        assertEquals(List.of("ld2"), lfNetwork.getBusById("vl2_0").getLoad().orElseThrow().getOriginalIds());
+        assertEquals(List.of("ld2"), lfNetwork.getBusById("vl2_0").getLoads().get(0).getOriginalIds());
     }
 
     @Test

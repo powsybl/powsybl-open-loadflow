@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.test.AbstractConverterTest;
+import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
@@ -36,9 +36,9 @@ import java.util.Objects;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-class LfNetworkTest extends AbstractConverterTest {
+class LfNetworkTest extends AbstractSerDeTest {
 
     @Override
     @BeforeEach
@@ -54,7 +54,7 @@ class LfNetworkTest extends AbstractConverterTest {
 
     @Test
     void test() throws IOException {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getVoltageLevel("VLLOAD").newShuntCompensator()
                 .setId("SC")
                 .setBus("NLOAD")
@@ -103,7 +103,7 @@ class LfNetworkTest extends AbstractConverterTest {
 
     @Test
     void getBranchByIdtest() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -200,7 +200,7 @@ class LfNetworkTest extends AbstractConverterTest {
         testGraphViz(EurostagTutorialExample1Factory.create(), false, "sim1.dot");
         testGraphViz(NodeBreakerNetworkFactory.create(), true, "nb.dot");
         // with a disconnected line
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         testGraphViz(network, false, "sim1_disconnected.dot");
     }
