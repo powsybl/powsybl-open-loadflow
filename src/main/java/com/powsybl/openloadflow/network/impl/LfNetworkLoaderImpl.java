@@ -696,7 +696,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         double targetDeadband = rtc.getTargetDeadband() / PerUnit.SB;
 
         controlledBranch.getTransformerReactivePowerControl().ifPresentOrElse(transformerReactivePowerControl -> {
-            LOGGER.trace("Controlled branch '{}' already has a reactive power control: not implemented yet.", controlledBranch.getId());
+            LOGGER.warn("Controlled branch '{}' already has a reactive power control: not implemented yet.", controlledBranch.getId());
         }, () -> {
             TransformerReactivePowerControl reactivePowerControl = new TransformerReactivePowerControl(controlledBranch, controlledSide, controllerBranch, targetValue, targetDeadband);
             controllerBranch.setTransformerReactivePowerControl(reactivePowerControl);
