@@ -2406,10 +2406,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         NetworkResult preContingencyNetworkResult = result.getPreContingencyResult().getNetworkResult();
         assertEquals(456.769, preContingencyNetworkResult.getBranchResult("NHV1_NHV2_1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(456.769, preContingencyNetworkResult.getBranchResult("NHV1_NHV2_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(15225.632, preContingencyNetworkResult.getBranchResult("NGEN_NHV1").getI1(), LoadFlowAssert.DELTA_I);
 
         assertEquals(91.606, getPostContingencyResult(result, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(91.606, getPostContingencyResult(result, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(0.024, getPostContingencyResult(result, "NHV2").getNetworkResult().getBranchResult("NGEN_NHV1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(3069.452, getPostContingencyResult(result, "NHV2").getNetworkResult().getBranchResult("NGEN_NHV1").getI1(), LoadFlowAssert.DELTA_I);
         // No output for NGEN and NVH1
 
         lfParameters.setDc(true);
@@ -2421,7 +2422,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         assertEquals(0.0, getPostContingencyResult(result2, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(0.0, getPostContingencyResult(result2, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(0.0, getPostContingencyResult(result, "NHV2").getNetworkResult().getBranchResult("NGEN_NHV1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(3069.452, getPostContingencyResult(result, "NHV2").getNetworkResult().getBranchResult("NGEN_NHV1").getI1(), LoadFlowAssert.DELTA_I);
         // No output for NGEN and NVH1
     }
 
