@@ -48,7 +48,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             LfAsymLine asymLine;
             if (extension2.getYabc() != null) {
                 // the prioritized option is to use data from ABC three phase admittance matrix
-                ComplexMatrix yabcPu = ComplexMatrix.getMatrixScaled(extension2.getYabc(), zb);
+                ComplexMatrix yabcPu = extension2.getYabc().scale(zb);
                 boolean isBus1FortescueRepresented = true;
                 boolean isBus2FortescueRepresented = true;
 

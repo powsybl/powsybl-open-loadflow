@@ -1691,7 +1691,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc800y802 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy300, b300, true, true, true, length800y802InFeet / feetInMile);
         line800y802.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc800y802, yCoef))
+                .withYabc(yabc800y802.scale(yCoef))
                 .withAsymConnector1(c800)
                 .withAsymConnector2(c802)
                 .add();
@@ -1726,7 +1726,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc802y806 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy300, b300, true, true, true, length802y806InFeet / feetInMile);
         line802y806.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc802y806, yCoef))
+                .withYabc(yabc802y806.scale(yCoef))
                 .withAsymConnector1(c802)
                 .withAsymConnector2(c806)
                 .add();
@@ -1761,7 +1761,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc806y808 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy300, b300, true, true, true, length806y808InFeet / feetInMile);
         line806y808.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc806y808, yCoef))
+                .withYabc(yabc806y808.scale(yCoef))
                 .withAsymConnector1(c806)
                 .withAsymConnector2(c808)
                 .add();
@@ -1796,7 +1796,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc808y810 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy303, b303, false, true, false, length808y810InFeet / feetInMile);
         line808y810.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc808y810, yCoef))
+                .withYabc(yabc808y810.scale(yCoef))
                 .withAsymConnector1(c808)
                 .withAsymConnector2(c810)
                 .add();
@@ -1831,7 +1831,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc808y812 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy300, b300, true, true, true, length808y812InFeet / feetInMile);
         line808y812.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc808y812, yCoef))
+                .withYabc(yabc808y812.scale(yCoef))
                 .withAsymConnector1(c808)
                 .withAsymConnector2(c812)
                 .add();
@@ -1866,7 +1866,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc812y814 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy300, b300, true, true, true, length812y814InFeet / feetInMile);
         line812y814.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc812y814, yCoef))
+                .withYabc(yabc812y814.scale(yCoef))
                 .withAsymConnector1(c812)
                 .withAsymConnector2(c814)
                 .add();
@@ -1913,7 +1913,7 @@ public class Asym34BusFeederTest {
         ComplexMatrix yabcRg10 = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcRg10Real);
 
         line814y850.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabcRg10, yCoef))
+                .withYabc(yabcRg10.scale(yCoef))
                 .withAsymConnector1(c814)
                 .withAsymConnector2(c850)
                 .add();
@@ -1948,7 +1948,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc850y816 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length850y816InFeet / feetInMile);
         line850y816.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc850y816, yCoef))
+                .withYabc(yabc850y816.scale(yCoef))
                 .withAsymConnector1(c850)
                 .withAsymConnector2(c816)
                 .add();
@@ -1983,7 +1983,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc816y818 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy302, b302, true, false, false, length816y818InFeet / feetInMile);
         line816y818.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc816y818, yCoef))
+                .withYabc(yabc816y818.scale(yCoef))
                 .withAsymConnector1(c816)
                 .withAsymConnector2(c818)
                 .add();
@@ -2018,7 +2018,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc818y820 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy302, b302, true, false, false, length818y820InFeet / feetInMile);
         line818y820.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc818y820, yCoef))
+                .withYabc(yabc818y820.scale(yCoef))
                 .withAsymConnector1(c818)
                 .withAsymConnector2(c820)
                 .add();
@@ -2053,7 +2053,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc820y822 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy302, b302, true, false, false, length820y822InFeet / feetInMile);
         line820y822.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc820y822, yCoef))
+                .withYabc(yabc820y822.scale(yCoef))
                 .withAsymConnector1(c820)
                 .withAsymConnector2(c822)
                 .add();
@@ -2088,7 +2088,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc816y824 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length816y824InFeet / feetInMile);
         line816y824.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc816y824, yCoef))
+                .withYabc(yabc816y824.scale(yCoef))
                 .withAsymConnector1(c816)
                 .withAsymConnector2(c824)
                 .add();
@@ -2123,7 +2123,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc824y826 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy303, b303, false, true, false, length824y826InFeet / feetInMile);
         line824y826.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc824y826, yCoef))
+                .withYabc(yabc824y826.scale(yCoef))
                 .withAsymConnector1(c824)
                 .withAsymConnector2(c826)
                 .add();
@@ -2158,7 +2158,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc824y828 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length824y828InFeet / feetInMile);
         line824y828.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc824y828, yCoef))
+                .withYabc(yabc824y828.scale(yCoef))
                 .withAsymConnector1(c824)
                 .withAsymConnector2(c828)
                 .add();
@@ -2193,7 +2193,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc828y830 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length828y830InFeet / feetInMile);
         line828y830.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc828y830, yCoef))
+                .withYabc(yabc828y830.scale(yCoef))
                 .withAsymConnector1(c828)
                 .withAsymConnector2(c830)
                 .add();
@@ -2228,7 +2228,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc830y854 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length830y854InFeet / feetInMile);
         line830y854.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc830y854, yCoef))
+                .withYabc(yabc830y854.scale(yCoef))
                 .withAsymConnector1(c830)
                 .withAsymConnector2(c854)
                 .add();
@@ -2263,7 +2263,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc854y856 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy303, b303, false, true, false, length854y856InFeet / feetInMile);
         line854y856.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc854y856, yCoef))
+                .withYabc(yabc854y856.scale(yCoef))
                 .withAsymConnector1(c854)
                 .withAsymConnector2(c856)
                 .add();
@@ -2297,7 +2297,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc854y852 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length854y852InFeet / feetInMile);
         line854y852.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc854y852, yCoef))
+                .withYabc(yabc854y852.scale(yCoef))
                 .withAsymConnector1(c854)
                 .withAsymConnector2(c852)
                 .add();
@@ -2343,7 +2343,7 @@ public class Asym34BusFeederTest {
         ComplexMatrix yabcRg11 = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcRg11Real);
 
         line852y832.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabcRg11, yCoef))
+                .withYabc(yabcRg11.scale(yCoef))
                 .withAsymConnector1(c852)
                 .withAsymConnector2(c832)
                 .add();
@@ -2428,7 +2428,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc888y890 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy300, b300, true, true, true, length888y890InFeet / feetInMile);
         line888y890.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc888y890, yCoef))
+                .withYabc(yabc888y890.scale(yCoef))
                 .withAsymConnector1(c888)
                 .withAsymConnector2(c890)
                 .add();
@@ -2463,7 +2463,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc832y858 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length832y858InFeet / feetInMile);
         line832y858.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc832y858, yCoef))
+                .withYabc(yabc832y858.scale(yCoef))
                 .withAsymConnector1(c832)
                 .withAsymConnector2(c858)
                 .add();
@@ -2498,7 +2498,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc858y864 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy302, b302, true, false, false, length858y864InFeet / feetInMile);
         line858y864.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc858y864, yCoef))
+                .withYabc(yabc858y864.scale(yCoef))
                 .withAsymConnector1(c858)
                 .withAsymConnector2(c864)
                 .add();
@@ -2533,7 +2533,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc858y834 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length858y834InFeet / feetInMile);
         line858y834.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc858y834, yCoef))
+                .withYabc(yabc858y834.scale(yCoef))
                 .withAsymConnector1(c858)
                 .withAsymConnector2(c834)
                 .add();
@@ -2568,7 +2568,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc834y842 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length834y842InFeet / feetInMile);
         line834y842.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc834y842, yCoef))
+                .withYabc(yabc834y842.scale(yCoef))
                 .withAsymConnector1(c834)
                 .withAsymConnector2(c842)
                 .add();
@@ -2603,7 +2603,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc842y844 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length842y844InFeet / feetInMile);
         line842y844.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc842y844, yCoef))
+                .withYabc(yabc842y844.scale(yCoef))
                 .withAsymConnector1(c842)
                 .withAsymConnector2(c844)
                 .add();
@@ -2638,7 +2638,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc844y846 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length844y846InFeet / feetInMile);
         line844y846.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc844y846, yCoef))
+                .withYabc(yabc844y846.scale(yCoef))
                 .withAsymConnector1(c844)
                 .withAsymConnector2(c846)
                 .add();
@@ -2673,7 +2673,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc846y848 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length846y848InFeet / feetInMile);
         line846y848.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc846y848, yCoef))
+                .withYabc(yabc846y848.scale(yCoef))
                 .withAsymConnector1(c846)
                 .withAsymConnector2(c848)
                 .add();
@@ -2708,7 +2708,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc834y860 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length834y860InFeet / feetInMile);
         line834y860.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc834y860, yCoef))
+                .withYabc(yabc834y860.scale(yCoef))
                 .withAsymConnector1(c834)
                 .withAsymConnector2(c860)
                 .add();
@@ -2742,7 +2742,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc860y836 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length860y836InFeet / feetInMile);
         line860y836.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc860y836, yCoef))
+                .withYabc(yabc860y836.scale(yCoef))
                 .withAsymConnector1(c860)
                 .withAsymConnector2(c836)
                 .add();
@@ -2777,7 +2777,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc836y840 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length836y840InFeet / feetInMile);
         line836y840.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc836y840, yCoef))
+                .withYabc(yabc836y840.scale(yCoef))
                 .withAsymConnector1(c836)
                 .withAsymConnector2(c840)
                 .add();
@@ -2812,7 +2812,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc836y862 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length836y862InFeet / feetInMile);
         line836y862.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc836y862, yCoef))
+                .withYabc(yabc836y862.scale(yCoef))
                 .withAsymConnector1(c836)
                 .withAsymConnector2(c862)
                 .add();
@@ -2847,7 +2847,7 @@ public class Asym34BusFeederTest {
 
         ComplexMatrix yabc862y838 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length862y838InFeet / feetInMile);
         line862y838.newExtension(LineAsymmetricalAdder.class)
-                .withYabc(ComplexMatrix.getMatrixScaled(yabc862y838, yCoef))
+                .withYabc(yabc862y838.scale(yCoef))
                 .withAsymConnector1(c862)
                 .withAsymConnector2(c838)
                 .add();
@@ -2898,7 +2898,8 @@ public class Asym34BusFeederTest {
 
         double length800y802InFeet = 2580.;
         double feetInMile = 5280;
-        ComplexMatrix yabc300 = ComplexMatrix.getMatrixScaled(LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy300, b300, true, true, true), feetInMile / length800y802InFeet / Math.sqrt(3));
+        ComplexMatrix yabc300 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy300, b300, true, true, true)
+                .scale(feetInMile / length800y802InFeet / Math.sqrt(3));
 
         double vBase = 24.9;
         ComplexMatrix v = new ComplexMatrix(6, 1);

@@ -15,6 +15,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -515,10 +516,12 @@ public class Asym4nodesFeederTest {
         zy.set(3, 2, new Complex(0.158, 0.4236));
         zy.set(3, 3, new Complex(0.4615, 1.0651));
 
-        DenseMatrix bwye3 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix();
-        DenseMatrix minusId3 = ComplexMatrix.getMatrixScaled(ComplexMatrix.complexMatrixIdentity(3), -1.).getRealCartesianMatrix();
+        DenseMatrix bwye3 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix();
+        DenseMatrix minusId3 = ComplexMatrix.createIdentity(3).scale(-1.).getRealCartesianMatrix();
         DenseMatrix zWye = zy.getRealCartesianMatrix();
-        zWye.decomposeLU().solve(bwye3);
+        try (LUDecomposition lu = zWye.decomposeLU()) {
+            lu.solve(bwye3);
+        }
 
         DenseMatrix minusBwye3 = bwye3.times(minusId3);
         DenseMatrix realYwyeabc = AsymThreePhaseTransfo.buildFromBlocs(bwye3, minusBwye3, minusBwye3, bwye3);
@@ -536,9 +539,11 @@ public class Asym4nodesFeederTest {
         zd.set(3, 2, new Complex(0.0953, 0.7802));
         zd.set(3, 3, new Complex(0.4013, 1.4133));
 
-        DenseMatrix bdelta3 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix();
+        DenseMatrix bdelta3 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix();
         DenseMatrix zDelta = zd.getRealCartesianMatrix();
-        zDelta.decomposeLU().solve(bdelta3);
+        try (LUDecomposition lu = zDelta.decomposeLU()) {
+            lu.solve(bdelta3);
+        }
 
         DenseMatrix minusBdelta3 = bdelta3.times(minusId3);
         DenseMatrix realYdeltaabc = AsymThreePhaseTransfo.buildFromBlocs(bdelta3, minusBdelta3, minusBdelta3, bdelta3);
@@ -561,9 +566,9 @@ public class Asym4nodesFeederTest {
                 .add();
 
         // addition of asymmetrical extensions
-        ComplexMatrix yabc12 = ComplexMatrix.getMatrixScaled(ywyeabc, feetInMile / length1InFeet);
+        ComplexMatrix yabc12 = ywyeabc.scale(feetInMile / length1InFeet);
         if (side1VariableType == BusVariableType.DELTA) {
-            yabc12 = ComplexMatrix.getMatrixScaled(yDeltaabc, feetInMile / length1InFeet);
+            yabc12 = yDeltaabc.scale(feetInMile / length1InFeet);
         }
         // addition of asymmetrical extensions
         line12.newExtension(LineAsymmetricalAdder.class)
@@ -597,9 +602,9 @@ public class Asym4nodesFeederTest {
                 .add();
 
         // addition of asymmetrical extensions
-        ComplexMatrix yabc34 = ComplexMatrix.getMatrixScaled(ywyeabc, feetInMile / length2InFeet);
+        ComplexMatrix yabc34 = ywyeabc.scale(feetInMile / length2InFeet);
         if (side2VariableType == BusVariableType.DELTA) {
-            yabc34 = ComplexMatrix.getMatrixScaled(yDeltaabc, feetInMile / length2InFeet);
+            yabc34 = yDeltaabc.scale(feetInMile / length2InFeet);
         }
         line34.newExtension(LineAsymmetricalAdder.class)
                 .withYabc(yabc34)

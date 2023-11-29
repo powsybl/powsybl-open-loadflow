@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.extensions.iidm;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
@@ -80,8 +81,9 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
         // This function helps to build the Yabc from those in input of the constructor
 
         // second member [b] used as [b] = inv([z]) * [Id]
-        DenseMatrix b3 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix();
-        DenseMatrix minusId3 = ComplexMatrix.getMatrixScaled(ComplexMatrix.complexMatrixIdentity(3), -1.).getRealCartesianMatrix();
+        ComplexMatrix identity3 = ComplexMatrix.createIdentity(3);
+        DenseMatrix b3 = identity3.getRealCartesianMatrix();
+        DenseMatrix minusId3 = identity3.scale(-1.).getRealCartesianMatrix();
 
         // At this stage, zabc is not necessarily invertible since phases might be missing and then equivalent to zero blocs
         Complex one = new Complex(1., 0.);
@@ -110,7 +112,9 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
         }
 
         DenseMatrix zReal = zabc.getRealCartesianMatrix();
-        zReal.decomposeLU().solve(b3);
+        try (LUDecomposition lu = zReal.decomposeLU()) {
+            lu.solve(b3);
+        }
 
         // Then we set to zero blocs with no phase
         ComplexMatrix invZabc = ComplexMatrix.getComplexMatrixFromRealCartesian(b3);
@@ -129,7 +133,7 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
         DenseMatrix minusB3 = b3.times(minusId3);
         DenseMatrix realYabc = AsymThreePhaseTransfo.buildFromBlocs(b3, minusB3, minusB3, b3);
         ComplexMatrix yabc = ComplexMatrix.getComplexMatrixFromRealCartesian(realYabc);
-        yabc = ComplexMatrix.getMatrixScaled(yabc, 1. / length);
+        yabc = yabc.scale(1. / length);
 
         // taking into account susceptance matrix babc
         yabc.set(4, 4, yabc.getTerm(4, 4).add(babc.getTerm(1, 1).multiply(length)));

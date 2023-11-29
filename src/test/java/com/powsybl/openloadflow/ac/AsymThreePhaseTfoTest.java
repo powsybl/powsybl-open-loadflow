@@ -9,6 +9,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.network.extensions.StepType;
@@ -429,10 +430,12 @@ public class AsymThreePhaseTfoTest {
         zy.set(3, 2, new Complex(0.158, 0.4236));
         zy.set(3, 3, new Complex(0.4615, 1.0651));
 
-        DenseMatrix b3 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix();
-        DenseMatrix minusId3 = ComplexMatrix.getMatrixScaled(ComplexMatrix.complexMatrixIdentity(3), -1.).getRealCartesianMatrix();
+        DenseMatrix b3 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix();
+        DenseMatrix minusId3 = ComplexMatrix.createIdentity(3).scale(-1.).getRealCartesianMatrix();
         DenseMatrix zReal = zy.getRealCartesianMatrix();
-        zReal.decomposeLU().solve(b3);
+        try (LUDecomposition lu = zReal.decomposeLU()) {
+            lu.solve(b3);
+        }
 
         double feetInMile = 5280;
         double length1InFeet = 2000;
@@ -440,7 +443,7 @@ public class AsymThreePhaseTfoTest {
 
         DenseMatrix minusB3 = b3.times(minusId3);
         DenseMatrix realYabc34 = AsymThreePhaseTransfo.buildFromBlocs(b3, minusB3, minusB3, b3);
-        ComplexMatrix yabc34 = ComplexMatrix.getMatrixScaled(ComplexMatrix.getComplexMatrixFromRealCartesian(realYabc34), feetInMile / length2InFeet);
+        ComplexMatrix yabc34 = ComplexMatrix.getComplexMatrixFromRealCartesian(realYabc34).scale(feetInMile / length2InFeet);
 
         Complex va3 = ComplexUtils.polar2Complex(2.249, Math.toRadians(-33.7));
         Complex vb3 = ComplexUtils.polar2Complex(2.263, Math.toRadians(-153.4));

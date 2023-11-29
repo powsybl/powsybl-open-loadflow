@@ -220,7 +220,6 @@ public class AsymmetricalLoadFlowTest {
 
     @Test
     void fourNodesBalancedTest() {
-
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 

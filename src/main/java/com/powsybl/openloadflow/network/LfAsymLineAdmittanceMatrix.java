@@ -146,8 +146,8 @@ public class LfAsymLineAdmittanceMatrix {
         }
 
         // First we build the blocs that will be used to build M1, M2, M3 and M4
-        ComplexMatrix ft = ComplexMatrix.complexMatrixIdentity(3); // fortescue transform at side 1
-        ComplexMatrix invFt = ComplexMatrix.complexMatrixIdentity(3); // fortescue inverse at side 1
+        ComplexMatrix ft = ComplexMatrix.createIdentity(3); // fortescue transform at side 1
+        ComplexMatrix invFt = ComplexMatrix.createIdentity(3); // fortescue inverse at side 1
         if (isSideFortescueRepresented) {
             ft = Fortescue.createComplexMatrix(false);
             invFt = Fortescue.createComplexMatrix(true);
@@ -157,12 +157,12 @@ public class LfAsymLineAdmittanceMatrix {
         ComplexMatrix permutationMatrix = getPermutationMatrix(hasPhaseA, hasPhaseB, hasPhaseC);
 
         // bloc1 M1 * M2 = transpose([permut]) * [invft] * [phaseId]
-        DenseMatrix blocM1M2 = ComplexMatrix.getTransposed(permutationMatrix).getRealCartesianMatrix().times(invFt.getRealCartesianMatrix().times(phaseId1.getRealCartesianMatrix()));
+        DenseMatrix blocM1M2 = permutationMatrix.transpose().getRealCartesianMatrix().times(invFt.getRealCartesianMatrix().times(phaseId1.getRealCartesianMatrix()));
         // bloc1 M3 * M4 = [phaseId] * [ft] * [permut]
         DenseMatrix blocM3M4 = phaseId1.getRealCartesianMatrix().times(ft.getRealCartesianMatrix().times(permutationMatrix.getRealCartesianMatrix()));
 
         // Delta config : if delta config, we cancel columns related to Vzero and lines related ti Izero
-        ComplexMatrix cancelZeroSequence = ComplexMatrix.complexMatrixIdentity(3);
+        ComplexMatrix cancelZeroSequence = ComplexMatrix.createIdentity(3);
         cancelZeroSequence.set(1, 1, new Complex(0., 0.));
         DenseMatrix cancelZeroSequenceReal = cancelZeroSequence.getRealCartesianMatrix();
         if (asymBusVariableType == AsymBusVariableType.DELTA) {
@@ -320,7 +320,7 @@ public class LfAsymLineAdmittanceMatrix {
         ComplexMatrix permutationMatrix = new ComplexMatrix(3, 3); // depends on the missing phases
 
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
-            permutationMatrix = ComplexMatrix.complexMatrixIdentity(3);
+            permutationMatrix = ComplexMatrix.createIdentity(3);
         } else if (hasPhaseB && hasPhaseC) {
             // BCN config
             permutationMatrix.set(1, 3, one);

@@ -75,7 +75,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         LfAsymBus asymBus = bus.getAsym();
 
         // Build of Sabc/3 vector
-        DenseMatrix mSabc3 = ComplexMatrix.getMatrixScaled(sabc, 1. / 3.).getRealCartesianMatrix();
+        DenseMatrix mSabc3 = sabc.scale(1. / 3.).getRealCartesianMatrix();
         DenseMatrix mVabc = Fortescue.createMatrix().times(v0V1V2.getRealCartesianMatrix()).toDense(); // vector build with cartesian values of complex abc voltages
         ComplexMatrix vabc = ComplexMatrix.getComplexMatrixFromRealCartesian(mVabc);
 
@@ -149,7 +149,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
         DenseMatrix mVabc = Fortescue.createMatrix().times(v0V1V2.getRealCartesianMatrix()).toDense(); // vector build with cartesian values of complex abc voltages
-        DenseMatrix mSabc3 = ComplexMatrix.getMatrixScaled(sabc, 1. / 3.).getRealCartesianMatrix();
+        DenseMatrix mSabc3 = sabc.scale(1. / 3.).getRealCartesianMatrix();
         ComplexMatrix vabc = ComplexMatrix.getComplexMatrixFromRealCartesian(mVabc);
 
         // build of 1/Vabc square matrix
@@ -172,7 +172,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         DenseMatrix mSquareVFortescue = getSquareMatrixFromVector(v0V1V2);
 
         // build of -1/3.Sabc square matrix
-        DenseMatrix mMinusSabc3Square = getSquareMatrixFromVector(ComplexMatrix.getMatrixScaled(sabc, -1. / 3.));
+        DenseMatrix mMinusSabc3Square = getSquareMatrixFromVector(sabc.scale(-1. / 3.));
 
         // computation of vector = term T2:
         DenseMatrix m0T2 = Fortescue.createMatrix().times(dv0V1V2.getRealCartesianMatrix());
@@ -290,7 +290,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
     }
 
     public static ComplexMatrix complexMatrixP(StepType stepLegConnectionType) {
-        ComplexMatrix complexMatrix = ComplexMatrix.complexMatrixIdentity(3);
+        ComplexMatrix complexMatrix = ComplexMatrix.createIdentity(3);
 
         Complex mOne = new Complex(-1., 0.);
         if (stepLegConnectionType == StepType.STEP_DOWN) {

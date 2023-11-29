@@ -57,8 +57,8 @@ public class AsymThreePhaseTransfo {
         this.yp21 = buildFixedSystemTermYij(2, 1);
         this.yp22 = buildFixedSystemTermYij(2, 2);
 
-        ComplexMatrix c1I = ComplexMatrix.complexMatrixIdentity(3);
-        ComplexMatrix c2I = ComplexMatrix.complexMatrixIdentity(3);
+        ComplexMatrix c1I = ComplexMatrix.createIdentity(3);
+        ComplexMatrix c2I = ComplexMatrix.createIdentity(3);
 
         // Building terms of the variable system
         switch (leg1ConnectionType) {
@@ -69,7 +69,7 @@ public class AsymThreePhaseTransfo {
                 break;
 
             case Y_GROUNDED:
-                mZg1 = ComplexMatrix.getMatrixScaled(complexMatrixFull(), zG1);
+                mZg1 = complexMatrixFull().scale(zG1);
                 isVo1Zero = true;
                 break;
 
@@ -90,7 +90,7 @@ public class AsymThreePhaseTransfo {
                 break;
 
             case Y_GROUNDED:
-                mZg2 = ComplexMatrix.getMatrixScaled(complexMatrixFull(), zG2);
+                mZg2 = complexMatrixFull().scale(zG2);
                 isVo2Zero = true;
                 break;
 
@@ -103,8 +103,8 @@ public class AsymThreePhaseTransfo {
                 throw new IllegalStateException("Unknown leg2 type : ");
         }
 
-        ComplexMatrix c1V = ComplexMatrix.complexMatrixIdentity(3);
-        ComplexMatrix c2V = ComplexMatrix.complexMatrixIdentity(3);
+        ComplexMatrix c1V = ComplexMatrix.createIdentity(3);
+        ComplexMatrix c2V = ComplexMatrix.createIdentity(3);
 
         if (stepType == StepType.STEP_DOWN && (leg2ConnectionType == LegConnectionType.Y_GROUNDED || leg2ConnectionType == LegConnectionType.Y)
                 && leg1ConnectionType == LegConnectionType.DELTA) {
@@ -135,9 +135,9 @@ public class AsymThreePhaseTransfo {
         // [I'abc1] = [M1].[Vabc1] + [M2].[Vabc2] + [M3].[I'abc2] + [M4].vo1 + [M5].vo2
         // [I'abc2] = [M6].[Vabc1] + [M7].[Vabc2] + [M8].[I'abc1] + [M9].vo1 + [M10].vo2
 
-        DenseMatrix b1 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix(); // second member for matrix inversion
+        DenseMatrix b1 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix(); // second member for matrix inversion
 
-        DenseMatrix mId3 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix();
+        DenseMatrix mId3 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix();
         DenseMatrix yinv1 = mId3.add(yp11.getRealCartesianMatrix().times(mZg1.getRealCartesianMatrix()), 1., -1.); // matrix to be inverted
         yinv1.decomposeLU().solve(b1);
 
@@ -148,7 +148,7 @@ public class AsymThreePhaseTransfo {
         DenseMatrix m5 = b1.times(yp12.getRealCartesianMatrix().times(getFullMinusVector3().getRealCartesianMatrix()));
 
         DenseMatrix yinv2 = mId3.add(yp22.getRealCartesianMatrix().times(mZg2.getRealCartesianMatrix()), 1., -1.); // matrix to be inverted
-        DenseMatrix b2 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix(); // second member for matrix inversion
+        DenseMatrix b2 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix(); // second member for matrix inversion
         yinv2.decomposeLU().solve(b2);
 
         DenseMatrix m6 = b2.times(yp21.getRealCartesianMatrix().times(c1V.getRealCartesianMatrix()));
@@ -163,7 +163,7 @@ public class AsymThreePhaseTransfo {
         // [I'abc1] = [M11].[Vabc1] + [M12].[Vabc2] + [M13].vo1 + [M14].vo2
 
         DenseMatrix yinv3 = mId3.add(m3.times(m8), 1., -1.); // matrix to be inverted
-        DenseMatrix b3 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix(); // second member for matrix inversion
+        DenseMatrix b3 = ComplexMatrix.createIdentity(3).getRealCartesianMatrix(); // second member for matrix inversion
         yinv3.decomposeLU().solve(b3);
 
         DenseMatrix m11 = b3.times(m1.add(m3.times(m6))).toDense();
@@ -228,7 +228,7 @@ public class AsymThreePhaseTransfo {
         DenseMatrix inverse;
         if (!isVo1Zero && !isVo2Zero) {
             DenseMatrix inv4 = buildFromBlocs(mc, md, mg, mh);
-            DenseMatrix b4 = ComplexMatrix.complexMatrixIdentity(2).getRealCartesianMatrix(); // second member for matrix inversion
+            DenseMatrix b4 = ComplexMatrix.createIdentity(2).getRealCartesianMatrix(); // second member for matrix inversion
             inv4.decomposeLU().solve(b4);
             inverse = b4;
         } else if (!isVo1Zero) {
@@ -255,8 +255,8 @@ public class AsymThreePhaseTransfo {
         // [Iabc2]   [   0   t[c2] ] [I'abc2]   [   0   t[c2] ]                        [I'abc2]          [I'abc2]
 
         DenseMatrix zeroBloc = new ComplexMatrix(3, 3).getRealCartesianMatrix();
-        ComplexMatrix tc1 = ComplexMatrix.getTransposed(c1I);
-        ComplexMatrix tc2 = ComplexMatrix.getTransposed(c2I);
+        ComplexMatrix tc1 = c1I.transpose();
+        ComplexMatrix tc2 = c2I.transpose();
         DenseMatrix tc1tc2 = buildFromBlocs(tc1.getRealCartesianMatrix(), zeroBloc, zeroBloc, tc2.getRealCartesianMatrix());
         DenseMatrix yabcTmp = tc1tc2.times(ypabc.add(yppabc)).toDense();
 
@@ -271,7 +271,7 @@ public class AsymThreePhaseTransfo {
         }
 
         if (numDisconnection > 0) {
-            ComplexMatrix disconnectionMatrix = ComplexMatrix.complexMatrixIdentity(6);
+            ComplexMatrix disconnectionMatrix = ComplexMatrix.createIdentity(6);
             ComplexMatrix complexYabc = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcTmp);
             Complex diagTerm = complexYabc.getTerm(numDisconnection, numDisconnection);
             for (int j = 1; j <= 6; j++) {
@@ -316,7 +316,7 @@ public class AsymThreePhaseTransfo {
 
     // Test
     public static ComplexMatrix complexMatrixP(boolean isForward) {
-        ComplexMatrix complexMatrix = ComplexMatrix.complexMatrixIdentity(3);
+        ComplexMatrix complexMatrix = ComplexMatrix.createIdentity(3);
 
         // Test artificial invertability with epsilon
         Complex mOne = new Complex(-1., 0.);
@@ -345,7 +345,7 @@ public class AsymThreePhaseTransfo {
         //          [ 1  1  1]
         // [Full] = [ 1  1  1]
         //          [ 1  1  1]
-        ComplexMatrix complexMatrix = ComplexMatrix.complexMatrixIdentity(3);
+        ComplexMatrix complexMatrix = ComplexMatrix.createIdentity(3);
         Complex one = new Complex(1., 0.);
         complexMatrix.set(1, 2, one);
         complexMatrix.set(1, 3, one);
