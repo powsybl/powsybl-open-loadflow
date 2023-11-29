@@ -177,7 +177,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 LegConnectionType leg1Type = getLegConnectionType(extension.getConnectionType1(), t2w);
                 LegConnectionType leg2Type = getLegConnectionType(extension.getConnectionType2(), t2w);
 
-                Complex rho = new Complex(1., 0.).multiply(vTfoBase2 / vTfoBase1);
+                Complex rho = Complex.ONE.multiply(vTfoBase2 / vTfoBase1);
 
                 Complex zG1pu = new Complex(extension.getGroundingR1(), extension.getGroundingX1());
                 Complex zG2pu = new Complex(extension.getGroundingR2(), extension.getGroundingX2());

@@ -247,7 +247,7 @@ public class LfAsymBus {
 
     // init ABC voltage values
     public static Complex getVa0() {
-        return new Complex(1., 0.);
+        return Complex.ONE;
     }
 
     public static Complex getVb0() {
@@ -271,8 +271,8 @@ public class LfAsymBus {
     }
 
     public Complex getItarget(LegConnectionType loadConnectionType, AbcPhaseType abcPhaseType) {
-        Complex s1 = new Complex(0., 0.);
-        Complex s2 = new Complex(0., 0.);
+        Complex s1 = Complex.ZERO;
+        Complex s2 = Complex.ZERO;
 
         AbcPhaseType abcPhaseType2;
         Complex v1;
@@ -323,7 +323,7 @@ public class LfAsymBus {
         } else if (hasPhaseA && hasPhaseB) {
             return getItarget(loadConnectionType, AbcPhaseType.A);
         } else if (hasPhaseC || hasPhaseB || hasPhaseA) {
-            return new Complex(0., 0.);
+            return Complex.ZERO;
         } else {
             throw new IllegalStateException("unknow abc target load config : " + bus.getId());
         }
@@ -359,7 +359,7 @@ public class LfAsymBus {
         if (hasPhaseA && hasPhaseB && hasPhaseC) {
             return getItarget(loadConnectionType, AbcPhaseType.C);
         } else {
-            return new Complex(0., 0.);
+            return Complex.ZERO;
         }
     }
 }

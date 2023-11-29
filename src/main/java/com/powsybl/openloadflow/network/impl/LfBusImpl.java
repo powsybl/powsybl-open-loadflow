@@ -129,8 +129,8 @@ public class LfBusImpl extends AbstractLfBus {
                 }
 
             } else if (Math.abs(load.getP0()) > 0.000001 && Math.abs(load.getQ0()) > 0.000001) {
-                loadWye0 = new LfAsymLoad(lfBus, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.Y_GROUNDED, new Complex(0., 0.),
-                        new Complex(0., 0.), new Complex(0., 0.));
+                loadWye0 = new LfAsymLoad(lfBus, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.Y_GROUNDED, Complex.ZERO,
+                        Complex.ZERO, Complex.ZERO);
             }
         }
 

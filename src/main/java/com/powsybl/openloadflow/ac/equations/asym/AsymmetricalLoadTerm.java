@@ -178,16 +178,16 @@ class AsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariable
     protected static ComplexMatrix getdVvector(LfBus bus, AsymBusVariableType busVariableType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
 
         // computation of dV0/dx , dV1/dx, dV2/dx
-        Complex dV0 = new Complex(0., 0.);
-        Complex dV1 = new Complex(0., 0.);
-        Complex dV2 = new Complex(0., 0.);
+        Complex dV0 = Complex.ZERO;
+        Complex dV1 = Complex.ZERO;
+        Complex dV2 = Complex.ZERO;
 
         if (derVariable.getType() == AcVariableType.BUS_V) {
             dV1 = new Complex(Math.cos(phd), Math.sin(phd));
         } else if (derVariable.getType() == AcVariableType.BUS_V_ZERO) {
             dV0 = new Complex(Math.cos(pho), Math.sin(pho));
             if (busVariableType == AsymBusVariableType.DELTA) {
-                dV0 = new Complex(0., 0.);
+                dV0 = Complex.ZERO;
             }
         } else if (derVariable.getType() == AcVariableType.BUS_V_NEGATIVE) {
             dV2 = new Complex(Math.cos(phi), Math.sin(phi));
@@ -196,7 +196,7 @@ class AsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariable
         } else if (derVariable.getType() == AcVariableType.BUS_PHI_ZERO) {
             dV0 = new Complex(vo * -Math.sin(pho), vo * Math.cos(pho));
             if (busVariableType == AsymBusVariableType.DELTA) {
-                dV0 = new Complex(0., 0.);
+                dV0 = Complex.ZERO;
             }
         } else if (derVariable.getType() == AcVariableType.BUS_PHI_NEGATIVE) {
             dV2 = new Complex(vi * -Math.sin(phi), vi * Math.cos(phi));

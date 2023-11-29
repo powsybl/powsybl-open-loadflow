@@ -102,9 +102,9 @@ public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
         boolean hasPhaseB = asymBus.isHasPhaseB();
         boolean hasPhaseC = asymBus.isHasPhaseC();
 
-        Complex iZero = new Complex(0., 0.);
+        Complex iZero = Complex.ZERO;
         Complex iPosi;
-        Complex iNega = new Complex(0., 0.);
+        Complex iNega = Complex.ZERO;
 
         if (computeDerivative) {
             // if this boolean is true, we use the derivative of V to compute the derivative of I, the rest of the formula is unchanged
@@ -146,7 +146,7 @@ public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
     }
 
     public static Complex getVfortescueInverse(LfBus bus, Variable<AcVariableType> vVar, Complex vComplex) {
-        Complex invV = new Complex(0., 0.);
+        Complex invV = Complex.ZERO;
         if (vVar != null) {
             if (vComplex.abs() > EPSILON) {
                 invV = vComplex.reciprocal();

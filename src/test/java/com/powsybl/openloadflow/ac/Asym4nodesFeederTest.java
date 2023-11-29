@@ -679,7 +679,7 @@ public class Asym4nodesFeederTest {
         double zBase = ratedU3 * ratedU3 / sBase;
 
         Complex zPhase = new Complex(1., 6.).multiply(zBase / 100.);
-        Complex yPhase = new Complex(0., 0.);
+        Complex yPhase = Complex.ZERO;
 
         // test 3 phase tfo
         boolean openPhase1 = false;

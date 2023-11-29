@@ -163,7 +163,7 @@ public class LfAsymLineAdmittanceMatrix {
 
         // Delta config : if delta config, we cancel columns related to Vzero and lines related ti Izero
         ComplexMatrix cancelZeroSequence = ComplexMatrix.createIdentity(3);
-        cancelZeroSequence.set(1, 1, new Complex(0., 0.));
+        cancelZeroSequence.set(1, 1, Complex.ZERO);
         DenseMatrix cancelZeroSequenceReal = cancelZeroSequence.getRealCartesianMatrix();
         if (asymBusVariableType == AsymBusVariableType.DELTA) {
             blocM1M2 = cancelZeroSequenceReal.times(blocM1M2);
@@ -300,7 +300,7 @@ public class LfAsymLineAdmittanceMatrix {
     }
 
     public static ComplexMatrix getPhaseIdMatrix(boolean hasPhaseA, boolean hasPhaseB, boolean hasPhaseC) {
-        Complex one = new Complex(1., 0.);
+        Complex one = Complex.ONE;
         ComplexMatrix phaseId = new ComplexMatrix(3, 3); // identity if phase exist, zero else
         if (hasPhaseA) {
             phaseId.set(1, 1, one);
@@ -316,7 +316,7 @@ public class LfAsymLineAdmittanceMatrix {
 
     public static ComplexMatrix getPermutationMatrix(boolean hasPhaseA, boolean hasPhaseB, boolean hasPhaseC) {
 
-        Complex one = new Complex(1., 0.);
+        Complex one = Complex.ONE;
         ComplexMatrix permutationMatrix = new ComplexMatrix(3, 3); // depends on the missing phases
 
         if (hasPhaseA && hasPhaseB && hasPhaseC) {

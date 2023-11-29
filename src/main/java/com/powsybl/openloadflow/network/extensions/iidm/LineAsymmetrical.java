@@ -86,8 +86,8 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
         DenseMatrix minusId3 = identity3.scale(-1.).getRealCartesianMatrix();
 
         // At this stage, zabc is not necessarily invertible since phases might be missing and then equivalent to zero blocs
-        Complex one = new Complex(1., 0.);
-        Complex zero = new Complex(0., 0.);
+        Complex one = Complex.ONE;
+        Complex zero = Complex.ZERO;
         if (!hasPhaseA) {
             // cancel all lines and columns of phase A and put 1 in the diagonal bloc for invertibility
             zabc.set(1, 1, one);

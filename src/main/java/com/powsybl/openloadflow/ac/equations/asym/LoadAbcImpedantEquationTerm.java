@@ -34,7 +34,7 @@ public class LoadAbcImpedantEquationTerm extends AsymmetricalLoadTerm {
         super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         Objects.requireNonNull(variableSet);
 
-        Complex s0 = new Complex(0., 0.);
+        Complex s0 = Complex.ZERO;
         Complex sa = s0;
         Complex sb = s0;
         Complex sc = s0;
@@ -107,9 +107,9 @@ public class LoadAbcImpedantEquationTerm extends AsymmetricalLoadTerm {
             throw new IllegalStateException("ABC load with delta variables  not yet handled at bus " + bus.getId());
         }
 
-        Complex iZero = new Complex(0., 0.);
+        Complex iZero = Complex.ZERO;
         Complex iPosi;
-        Complex iNega = new Complex(0., 0.);
+        Complex iNega = Complex.ZERO;
 
         Complex vPositiveComplex = v0V1V2.getTerm(2, 1);
         Complex vNegativeComplex = v0V1V2.getTerm(3, 1);

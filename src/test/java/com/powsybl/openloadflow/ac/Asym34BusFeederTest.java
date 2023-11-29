@@ -1561,14 +1561,14 @@ public class Asym34BusFeederTest {
         // building of Yabc from given Y impedance matrix Zy
         ComplexMatrix zy302 = new ComplexMatrix(3, 3);
         zy302.set(1, 1, new Complex(2.7995, 1.4855));
-        zy302.set(1, 2, new Complex(0., 0.));
-        zy302.set(1, 3, new Complex(0., 0.));
-        zy302.set(2, 1, new Complex(0., 0.));
-        zy302.set(2, 2, new Complex(0., 0.));
-        zy302.set(2, 3, new Complex(0., 0.));
-        zy302.set(3, 1, new Complex(0., 0.));
-        zy302.set(3, 2, new Complex(0., 0.));
-        zy302.set(3, 3, new Complex(0., 0.));
+        zy302.set(1, 2, Complex.ZERO);
+        zy302.set(1, 3, Complex.ZERO);
+        zy302.set(2, 1, Complex.ZERO);
+        zy302.set(2, 2, Complex.ZERO);
+        zy302.set(2, 3, Complex.ZERO);
+        zy302.set(3, 1, Complex.ZERO);
+        zy302.set(3, 2, Complex.ZERO);
+        zy302.set(3, 3, Complex.ZERO);
 
         ComplexMatrix b302 = new ComplexMatrix(3, 3);
 
@@ -1585,15 +1585,15 @@ public class Asym34BusFeederTest {
         // config 303 :
         // building of Yabc from given Y impedance matrix Zy
         ComplexMatrix zy303 = new ComplexMatrix(3, 3);
-        zy303.set(1, 1, new Complex(0., 0.));
-        zy303.set(1, 2, new Complex(0., 0.));
-        zy303.set(1, 3, new Complex(0., 0.));
-        zy303.set(2, 1, new Complex(0., 0.));
+        zy303.set(1, 1, Complex.ZERO);
+        zy303.set(1, 2, Complex.ZERO);
+        zy303.set(1, 3, Complex.ZERO);
+        zy303.set(2, 1, Complex.ZERO);
         zy303.set(2, 2, new Complex(2.7995, 1.4855));
-        zy303.set(2, 3, new Complex(0., 0.));
-        zy303.set(3, 1, new Complex(0., 0.));
-        zy303.set(3, 2, new Complex(0., 0.));
-        zy303.set(3, 3, new Complex(0., 0.));
+        zy303.set(2, 3, Complex.ZERO);
+        zy303.set(3, 1, Complex.ZERO);
+        zy303.set(3, 2, Complex.ZERO);
+        zy303.set(3, 3, Complex.ZERO);
 
         ComplexMatrix b303 = new ComplexMatrix(3, 3);
 
@@ -1610,15 +1610,15 @@ public class Asym34BusFeederTest {
         // config 304 :
         // building of Yabc from given Y impedance matrix Zy
         ComplexMatrix zy304 = new ComplexMatrix(3, 3);
-        zy304.set(1, 1, new Complex(0., 0.));
-        zy304.set(1, 2, new Complex(0., 0.));
-        zy304.set(1, 3, new Complex(0., 0.));
-        zy304.set(2, 1, new Complex(0., 0.));
+        zy304.set(1, 1, Complex.ZERO);
+        zy304.set(1, 2, Complex.ZERO);
+        zy304.set(1, 3, Complex.ZERO);
+        zy304.set(2, 1, Complex.ZERO);
         zy304.set(2, 2, new Complex(1.9217, 1.4212));
-        zy304.set(2, 3, new Complex(0., 0.));
-        zy304.set(3, 1, new Complex(0., 0.));
-        zy304.set(3, 2, new Complex(0., 0.));
-        zy304.set(3, 3, new Complex(0., 0.));
+        zy304.set(2, 3, Complex.ZERO);
+        zy304.set(3, 1, Complex.ZERO);
+        zy304.set(3, 2, Complex.ZERO);
+        zy304.set(3, 3, Complex.ZERO);
 
         ComplexMatrix b304 = new ComplexMatrix(3, 3);
 
@@ -1906,9 +1906,9 @@ public class Asym34BusFeederTest {
         rho.set(1, 1, new Complex(1.0177 / 0.9467, 0.));
         rho.set(2, 2, new Complex(1.0255 / 0.9945, 0.));
         rho.set(3, 3, new Complex(1.0203 / 0.9893, 0.));
-        rho.set(4, 4, new Complex(1., 0.));
-        rho.set(5, 5, new Complex(1., 0.));
-        rho.set(6, 6, new Complex(1., 0.));
+        rho.set(4, 4, Complex.ONE);
+        rho.set(5, 5, Complex.ONE);
+        rho.set(6, 6, Complex.ONE);
         DenseMatrix yabcRg10Real = rho.getRealCartesianMatrix().times(yabc814y850.getRealCartesianMatrix().times(rho.getRealCartesianMatrix()));
         ComplexMatrix yabcRg10 = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcRg10Real);
 
@@ -2335,9 +2335,9 @@ public class Asym34BusFeederTest {
         rho11.set(1, 1, new Complex(1.0359 / 0.9581, 0.));
         rho11.set(2, 2, new Complex(1.0345 / 0.9680, 0.));
         rho11.set(3, 3, new Complex(1.0360 / 0.9637, 0.));
-        rho11.set(4, 4, new Complex(1., 0.));
-        rho11.set(5, 5, new Complex(1., 0.));
-        rho11.set(6, 6, new Complex(1., 0.));
+        rho11.set(4, 4, Complex.ONE);
+        rho11.set(5, 5, Complex.ONE);
+        rho11.set(6, 6, Complex.ONE);
         ComplexMatrix yabc852y832 = LineAsymmetrical.getAdmittanceMatrixFromImpedanceAndBmatrix(zy301, b301, true, true, true, length852y832InFeet / feetInMile);
         DenseMatrix yabcRg11Real = rho11.getRealCartesianMatrix().times(yabc852y832.getRealCartesianMatrix().times(rho11.getRealCartesianMatrix()));
         ComplexMatrix yabcRg11 = ComplexMatrix.getComplexMatrixFromRealCartesian(yabcRg11Real);
@@ -2398,7 +2398,7 @@ public class Asym34BusFeederTest {
                 .add();
 
         Complex zPhase = new Complex(rTpc, xTpc).multiply(zBase / 3. / 100.);
-        Complex yPhase = new Complex(0., 0.);
+        Complex yPhase = Complex.ZERO;
 
         t832y888.newExtension(Tfo3PhasesAdder.class)
                 .withIsOpenPhaseA1(false)

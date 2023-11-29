@@ -279,7 +279,7 @@ public class AsymThreePhaseTransfo {
                     Complex term = complexYabc.getTerm(numDisconnection, j).multiply(-1).divide(diagTerm);
                     disconnectionMatrix.set(numDisconnection, j, term);
                 } else {
-                    disconnectionMatrix.set(j, j, new Complex(0., 0.));
+                    disconnectionMatrix.set(j, j, Complex.ZERO);
                 }
             }
             // then multiply the disconnection matrix by [Yabc] to get the final matrix [Yabc]
@@ -297,7 +297,7 @@ public class AsymThreePhaseTransfo {
         ComplexMatrix yij = new ComplexMatrix(3, 3);
         Complex ri = rho.conjugate();
         Complex rj = rho;
-        Complex one = new Complex(1., 0);
+        Complex one = Complex.ONE;
 
         if (i == 2) {
             ri = one;
@@ -346,7 +346,7 @@ public class AsymThreePhaseTransfo {
         // [Full] = [ 1  1  1]
         //          [ 1  1  1]
         ComplexMatrix complexMatrix = ComplexMatrix.createIdentity(3);
-        Complex one = new Complex(1., 0.);
+        Complex one = Complex.ONE;
         complexMatrix.set(1, 2, one);
         complexMatrix.set(1, 3, one);
         complexMatrix.set(2, 1, one);
@@ -370,7 +370,7 @@ public class AsymThreePhaseTransfo {
 
     public static ComplexMatrix getFullRowVector3() {
         ComplexMatrix row3 = new ComplexMatrix(1, 3);
-        Complex one = new Complex(1., 0);
+        Complex one = Complex.ONE;
         row3.set(1, 1, one);
         row3.set(1, 2, one);
         row3.set(1, 3, one);

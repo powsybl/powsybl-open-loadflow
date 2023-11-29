@@ -102,15 +102,15 @@ public class AsymThreePhaseTfoTest {
         double zBase = vWinding3 * vWinding3 / sBase;
 
         Complex zPhase = new Complex(1., 6.).multiply(zBase / 100.);
-        Complex yPhase = new Complex(0., 0.);
+        Complex yPhase = Complex.ZERO;
 
-        Complex rho = new Complex(1., 0.).multiply(vWinding3 / vWinding2);
+        Complex rho = Complex.ONE.multiply(vWinding3 / vWinding2);
 
         LegConnectionType leg1ConnectionType = leg1Type;
         LegConnectionType leg2ConnectionType = leg2Type;
 
-        Complex zG1 = new Complex(0., 0.);
-        Complex zG2 = new Complex(0., 0.);
+        Complex zG1 = Complex.ZERO;
+        Complex zG2 = Complex.ZERO;
 
         List<Boolean> connectionList = new ArrayList<>();
         for (int i = 0; i < 6; i++) {

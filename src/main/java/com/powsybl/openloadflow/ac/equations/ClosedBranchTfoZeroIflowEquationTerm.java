@@ -49,9 +49,9 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         Complex y2 = new Complex(g2, b2);
         if (isFreeFluxes || y1.abs() < epsilon && y2.abs() < epsilon) {
             // magnetizing circuit is open or Y1 or Y2 are zero, leading Ym to zero
-            this.z0T1 = new Complex(0, 0);
+            this.z0T1 = Complex.ZERO;
             this.z0T2 = asymTransfo2W.getZo();
-            this.y0m = new Complex(0, 0);
+            this.y0m = Complex.ZERO;
             isFreeFluxes = true;
         } else {
             Complex z12 = asymTransfo2W.getZo();
@@ -60,7 +60,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
                 throw new IllegalArgumentException("Transfomer " + branch.getId() + " has homopolar input y2 not equal to zero and is not supported in current version of the asymmetric load flow");
             }
 
-            this.z0T1 = new Complex(0, 0);
+            this.z0T1 = Complex.ZERO;
             this.y0m = y1;
             this.z0T2 = z12;
         }
@@ -113,8 +113,8 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
                 return getYgYgForcedFluxesAdmittanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1);
             }
         } else {
-            Complex y11 = new Complex(0., 0.);
-            Complex y22 = new Complex(0., 0.);
+            Complex y11 = Complex.ZERO;
+            Complex y22 = Complex.ZERO;
             Complex y12 = y22;
             if (leg1Type == LegConnectionType.DELTA && leg2Type == LegConnectionType.Y_GROUNDED) {
                 Complex tmp1 = z0T2.add(y0m.add(z0T1.reciprocal()).reciprocal());
@@ -169,7 +169,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
     public static DenseMatrix getId44() {
 
         ComplexMatrix complexMatrix = new ComplexMatrix(2, 2);
-        Complex one = new Complex(1., 0.);
+        Complex one = Complex.ONE;
         complexMatrix.set(1, 1, one);
         complexMatrix.set(2, 2, one);
 
