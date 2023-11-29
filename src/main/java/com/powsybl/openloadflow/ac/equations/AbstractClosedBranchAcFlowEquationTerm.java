@@ -184,23 +184,13 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         return mV;
     }
 
-    public static int getIndexline(ClosedBranchTfoNegativeIflowEquationTerm.FlowType flowType) {
-        switch (flowType) {
-            case I1X:
-                return 0;
-
-            case I1Y:
-                return 1;
-
-            case I2X:
-                return 2;
-
-            case I2Y:
-                return 3;
-
-            default:
-                throw new IllegalStateException("Unknown flow type at branch : ??? ");
-        }
+    public static int getIndexline(FlowType flowType) {
+        return switch (flowType) {
+            case I1X -> 0;
+            case I1Y -> 1;
+            case I2X -> 2;
+            case I2Y -> 3;
+        };
     }
 
     public DenseMatrix getdVdx(Variable<AcVariableType> variable) {

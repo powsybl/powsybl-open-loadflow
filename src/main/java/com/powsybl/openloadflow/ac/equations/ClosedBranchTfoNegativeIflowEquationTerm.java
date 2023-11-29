@@ -27,17 +27,16 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
+    private final FlowType flowType;
+
     public ClosedBranchTfoNegativeIflowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                            boolean deriveA1, boolean deriveR1, FlowType flowType) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
-
-        this.flowType = flowType;
+        this.flowType = Objects.requireNonNull(flowType);
     }
 
-    FlowType flowType;
-
     public double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
-        return 0;
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     public static DenseMatrix getIvector(Complex y1, Complex y2, Complex y12, DenseMatrix mV, Complex r1, Complex r2) {

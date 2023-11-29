@@ -152,7 +152,7 @@ public class AsymThreePhaseTransfo {
 
         DenseMatrix yinv2 = mId3.add(yp22.toRealCartesianMatrix().times(mZg2.toRealCartesianMatrix()), 1., -1.); // matrix to be inverted
         DenseMatrix b2 = ComplexMatrix.createIdentity(3).toRealCartesianMatrix(); // second member for matrix inversion
-        try(LUDecomposition lu = yinv2.decomposeLU()) {
+        try (LUDecomposition lu = yinv2.decomposeLU()) {
             lu.solve(b2);
         }
 
