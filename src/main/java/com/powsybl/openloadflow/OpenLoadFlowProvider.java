@@ -224,11 +224,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     @Override
-    public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters) {
-        return run(network, computationManager, workingVariantId, parameters, Reporter.NO_OP);
-    }
-
-    @Override
     public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(computationManager);
@@ -282,5 +277,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     @Override
     public void updateSpecificParameters(Extension<LoadFlowParameters> extension, Map<String, String> properties) {
         ((OpenLoadFlowParameters) extension).update(properties);
+    }
+
+    @Override
+    public Map<String, String> createMapFromSpecificParameters(Extension<LoadFlowParameters> extension) {
+        return null; // TODO
+    }
+
+    @Override
+    public Optional<Class<? extends Extension<LoadFlowParameters>>> getSpecificParametersClass() {
+        return Optional.empty();
     }
 }

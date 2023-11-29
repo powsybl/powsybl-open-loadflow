@@ -57,9 +57,9 @@ public class NewtonKrylov extends AbstractAcSolver {
             equationVector.minus(targetVector);
             System.arraycopy(equationVector.getArray(), 0, f, 0, equationVector.getArray().length);
         }, (x, j) -> {
-            // nothing to do because jacobian matrix has already been automatically updated with the update
-            // of the state vector of the equation system in the function evaluation callback and we suppose
-            // state vector is still the same
+            // force jacobian values update because on C side we directly get access to internal data structure which
+            // does not update with last state vector
+            NewtonKrylov.this.j.forceUpdate();
         });
         KinsolResult result = kinsol.solveTransposed(equationSystem.getStateVector().get(), kinsolParameters);
 

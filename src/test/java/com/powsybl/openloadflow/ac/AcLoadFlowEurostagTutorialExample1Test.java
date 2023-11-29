@@ -481,8 +481,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertVoltageEquals(402.143, bus1);
         assertAngleEquals(-2.325966, bus1);
         assertVoltageEquals(389.953, bus2);
-        assertAngleEquals(-5.832327, bus2);
+        assertAngleEquals(-5.832323, bus2);
         assertVoltageEquals(147.578, loadBus);
-        assertAngleEquals(-11.940458, loadBus);
+        assertAngleEquals(-11.94045, loadBus);
     }
 }
