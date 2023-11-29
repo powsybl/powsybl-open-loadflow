@@ -187,7 +187,7 @@ public class PropagatedContingency {
         return propagatedContingency;
     }
 
-    private void addBranchIdToOpen(String branchId, DisabledBranchStatus status, Map<String, DisabledBranchStatus> branchIdsToOpen) {
+    private <K> void addBranchToOpenToMap(K branchId, DisabledBranchStatus status, Map<K, DisabledBranchStatus> branchIdsToOpen) {
         DisabledBranchStatus oldStatus = branchIdsToOpen.get(branchId);
         if (oldStatus == null) {
             branchIdsToOpen.put(branchId, status);
@@ -196,7 +196,11 @@ public class PropagatedContingency {
         }
     }
 
-    private void addBranchIdToOpen(LfBranch branch, DisabledBranchStatus status, Map<LfBranch, DisabledBranchStatus> branchIdsToOpen) {
+    private void addBranchIdToOpen(String branchId, DisabledBranchStatus status, Map<String, DisabledBranchStatus> branchIdsToOpen) {
+        addBranchToOpenToMap(branchId, status, branchIdsToOpen);
+    }
+
+    private void addBranchToOpen(LfBranch branch, DisabledBranchStatus status, Map<LfBranch, DisabledBranchStatus> branchIdsToOpen) {
         DisabledBranchStatus newStatus = status;
         if (branch instanceof LfSwitch) {
             newStatus = DisabledBranchStatus.BOTH_SIDES;
@@ -207,12 +211,7 @@ public class PropagatedContingency {
         if (!branch.isConnectedSide2() && status == DisabledBranchStatus.SIDE_1) {
             newStatus = DisabledBranchStatus.BOTH_SIDES;
         }
-        DisabledBranchStatus oldStatus = branchIdsToOpen.get(branch);
-        if (oldStatus == null) {
-            branchIdsToOpen.put(branch, newStatus);
-        } else if (newStatus == DisabledBranchStatus.BOTH_SIDES || newStatus != oldStatus) {
-            branchIdsToOpen.put(branch, DisabledBranchStatus.BOTH_SIDES);
-        }
+        addBranchToOpenToMap(branch, newStatus, branchIdsToOpen);
     }
 
     private void complete(LfTopoConfig topoConfig, PropagatedContingencyCreationParameters creationParameters) {
@@ -415,7 +414,7 @@ public class PropagatedContingency {
         List<LfBranch> branchesToOpen = allBranchIdsToOpen.keySet().stream()
                 .map(network::getBranchById)
                 .filter(Objects::nonNull) // could be in another component
-                .collect(Collectors.toList());
+                .toList();
 
         branchesToOpen.stream()
                 .filter(LfBranch::isConnectedAtBothSides)
@@ -440,16 +439,16 @@ public class PropagatedContingency {
         // we should manage branches open at one side
         branchesToOpen.stream()
                 .filter(branch -> !branch.isConnectedAtBothSides())
-                .forEach(branch -> addBranchIdToOpen(branch, DisabledBranchStatus.BOTH_SIDES, lostBranches));
+                .forEach(branch -> addBranchToOpen(branch, DisabledBranchStatus.BOTH_SIDES, lostBranches));
 
         for (LfBus bus : lostBuses) { // be careful with LfTopoConfig...
-            bus.getBranches().stream()
+            bus.getBranches()
                     .forEach(branch -> {
                         if (branch.getBus1() != null && branch.getBus1().equals(bus)) { // side 1 should be disconnected
-                            addBranchIdToOpen(branch, DisabledBranchStatus.SIDE_1, lostBranches);
+                            addBranchToOpen(branch, DisabledBranchStatus.SIDE_1, lostBranches);
                         }
                         if (branch.getBus2() != null && branch.getBus2().equals(bus)) { // side 2 should be disconnected
-                            addBranchIdToOpen(branch, DisabledBranchStatus.SIDE_2, lostBranches);
+                            addBranchToOpen(branch, DisabledBranchStatus.SIDE_2, lostBranches);
                         }
                     });
         }
