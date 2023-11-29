@@ -28,4 +28,12 @@ public class LfLostLoad {
     public Set<String> getOriginalIds() {
         return ids;
     }
+
+    @Override
+    public String toString() {
+        return "LfLostLoad(" +
+                "ids=" + ids +
+                ", powerShift=" + powerShift +
+                ')';
+    }
 }
