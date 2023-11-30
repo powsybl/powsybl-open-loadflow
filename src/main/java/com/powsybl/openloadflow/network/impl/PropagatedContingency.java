@@ -402,7 +402,7 @@ public class PropagatedContingency {
     }
 
     private ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen) {
-        // update connectivity with triggered lostBranches of this network
+        // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
         try {
@@ -431,7 +431,6 @@ public class PropagatedContingency {
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
-
         // find branch to open because of direct impact of the contingency (including propagation is activated)
         Map<LfBranch, DisabledBranchStatus> branchesToOpen = findBranchToOpenDirectlyImpactedByContingency(network);
 
