@@ -445,7 +445,7 @@ public class PropagatedContingency {
         for (LfBus busToLost : busesToLost) {
             busToLost.getBranches()
                     .forEach(branch -> {
-                        // fully disable if branch is connected to 2 buses to lost
+                        // fully disable if branch is connected to 2 buses to lost or open on the other side
                         LfBus otherSideBus;
                         boolean otherSideConnected;
                         if (branch.getBus1() == busToLost) {
