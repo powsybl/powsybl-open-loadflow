@@ -56,7 +56,6 @@ public class ModificationsContext<V, E> {
 
     public Set<E> getEdgesRemovedFromMainComponent(Graph<V, E> graph) {
         if (edgesRemovedFromMainComponent == null) {
-            Set<V> verticesNotInMainComponent = getVerticesNotInMainComponentAfter();
             edgesRemovedFromMainComponent = computeEdgesRemovedFromMainComponent(graph);
         }
         return edgesRemovedFromMainComponent;
