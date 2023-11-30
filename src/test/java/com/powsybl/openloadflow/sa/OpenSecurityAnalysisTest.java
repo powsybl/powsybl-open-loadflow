@@ -2803,4 +2803,26 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(l34p2, l34Result.getP2(), DELTA_POWER);
         assertEquals(-1.334, l34Result.getQ2(), DELTA_POWER); // ????
     }
+
+    @Test
+    void testBusContingencyWithOpenLinesConnectedToLostBus() {
+        Network network = BusContingencyOpenLinesNetworkFactory.create();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "b1");
+
+        LoadFlowResult lfResult = runLoadFlow(network, lfParameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, lfResult.getComponentResults().get(0).getStatus());
+
+        List<Contingency> contingencies = List.of(Contingency.bus("b3"));
+
+        List<StateMonitor> stateMonitors = Collections.emptyList();
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, stateMonitors, lfParameters);
+
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(1, result.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+    }
 }

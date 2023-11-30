@@ -398,8 +398,7 @@ public class PropagatedContingency {
         return branchesToOpen;
     }
 
-    record ContingencyConnectivityLossImpact(boolean ok, int createdSynchronousComponents, Set<LfBus> busesToLost,
-                                             Set<LfBranch> additionnalBranchesToLost) {
+    record ContingencyConnectivityLossImpact(boolean ok, int createdSynchronousComponents, Set<LfBus> busesToLost) {
     }
 
     private ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen) {
@@ -416,16 +415,15 @@ public class PropagatedContingency {
                 // If a contingency leads to an isolated slack bus, this bus is considered as the main component.
                 // In that case, we have an issue with a different number of variables and equations.
                 LOGGER.error("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
-                return new ContingencyConnectivityLossImpact(false, 0, Collections.emptySet(), Collections.emptySet());
+                return new ContingencyConnectivityLossImpact(false, 0, Collections.emptySet());
             }
 
             // add to contingency description buses and branches that won't be part of the main connected
             // component in post contingency state
             int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
             Set<LfBus> busesToLost = connectivity.getVerticesRemovedFromMainComponent();
-            Set<LfBranch> additionnalBranchesToLost = connectivity.getEdgesRemovedFromMainComponent();
 
-            return new ContingencyConnectivityLossImpact(true, createdSynchronousComponents, busesToLost, additionnalBranchesToLost);
+            return new ContingencyConnectivityLossImpact(true, createdSynchronousComponents, busesToLost);
         } finally {
             // reset connectivity to discard triggered elements
             connectivity.undoTemporaryChanges();
@@ -449,8 +447,16 @@ public class PropagatedContingency {
             busToLost.getBranches()
                     .forEach(branch -> {
                         // fully disable if branch is connected to 2 buses to lost
-                        LfBus otherSideBus = branch.getBus1() == busToLost ? branch.getBus2() : branch.getBus1();
-                        if (busesToLost.contains(otherSideBus)) {
+                        LfBus otherSideBus;
+                        boolean otherSideConnected;
+                        if (branch.getBus1() == busToLost) {
+                            otherSideBus = branch.getBus2();
+                            otherSideConnected = branch.isConnectedSide2();
+                        } else {
+                            otherSideBus = branch.getBus1();
+                            otherSideConnected = branch.isConnectedSide1();
+                        }
+                        if (busesToLost.contains(otherSideBus) || !otherSideConnected) {
                             addBranchToOpen(branch, DisabledBranchStatus.BOTH_SIDES, branchesToOpen);
                         }
                     });
