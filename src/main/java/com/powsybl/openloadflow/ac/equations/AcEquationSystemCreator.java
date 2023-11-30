@@ -623,7 +623,7 @@ public class AcEquationSystemCreator {
 
     protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
                                         EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // current equations are always closed ones
+        // effective equations, could be closed one or open one
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> q1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
@@ -631,6 +631,7 @@ public class AcEquationSystemCreator {
         EquationTerm<AcVariableType, AcEquationType> i1 = null;
         EquationTerm<AcVariableType, AcEquationType> i2 = null;
 
+        // closed equations, could be null because line already open on base case
         EquationTerm<AcVariableType, AcEquationType> closedP1 = null;
         EquationTerm<AcVariableType, AcEquationType> closedQ1 = null;
         EquationTerm<AcVariableType, AcEquationType> closedI1 = null;
