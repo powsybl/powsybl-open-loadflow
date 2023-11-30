@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2023, RTE (http://www.rte-france.com)
+ * Copyright (c) 2023, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
@@ -16,7 +17,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.lf.outerloop.IncrementalReactivePowerContextData;
+import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -90,11 +91,11 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        var contextData = new IncrementalReactivePowerContextData();
+        var contextData = new IncrementalContextData();
         context.setData(contextData);
 
         for (LfBranch branch : getControllerBranches(context.getNetwork())) {
-            contextData.getControllersContexts().put(branch.getId(), new IncrementalReactivePowerContextData.ControllerContext(MAX_DIRECTION_CHANGE));
+            contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
     }
 
@@ -135,7 +136,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         }
     }
 
-    private boolean adjustWithController(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide, IncrementalReactivePowerContextData contextData,
+    private boolean adjustWithController(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide, IncrementalContextData contextData,
                                          double diffQ, SensitivityContext sensitivities,
                                          List<String> controlledBranchesWithAllItsControllersToLimit) {
         // only one transformer controls a branch
@@ -163,7 +164,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
 
         LfNetwork network = context.getNetwork();
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
-        var contextData = (IncrementalReactivePowerContextData) context.getData();
+        var contextData = (IncrementalContextData) context.getData();
 
         // branches which are out of their deadbands
         List<LfBranch> controlledBranchesOutOfDeadband = getControlledBranchesOutOfDeadband(network);

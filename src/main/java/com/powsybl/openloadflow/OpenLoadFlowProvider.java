@@ -280,11 +280,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     @Override
-    public Optional<Class<? extends Extension<LoadFlowParameters>>> getSpecificParametersClass() {
-        return Optional.empty();
-    }
-
-    @Override
     public Optional<ExtensionJsonSerializer> getSpecificParametersSerializer() {
         return Optional.of(new OpenLoadFlowParameterJsonSerializer());
     }
@@ -297,11 +292,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     @Override
     public Optional<Extension<LoadFlowParameters>> loadSpecificParameters(Map<String, String> properties) {
         return Optional.of(OpenLoadFlowParameters.load(properties));
-    }
-
-    @Override
-    public Map<String, String> createMapFromSpecificParameters(Extension<LoadFlowParameters> extension) {
-        return null;
     }
 
     @Override
