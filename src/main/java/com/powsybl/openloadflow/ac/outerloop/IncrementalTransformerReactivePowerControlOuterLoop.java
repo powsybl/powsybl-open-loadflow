@@ -74,8 +74,9 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                 .collect(Collectors.toList());
     }
 
-    public static List<LfBranch> getControlledBranchesOutOfDeadband(IncrementalReactivePowerContextData contextData) {
-        return contextData.getCandidateControlledBranches().stream()
+    public static List<LfBranch> getControlledBranchesOutOfDeadband(LfNetwork network) {
+        return network.getBranches().stream()
+                .filter(LfBranch::isTransformerReactivePowerControlled)
                 .filter(branch -> isOutOfDeadband(branch.getTransformerReactivePowerControl().orElseThrow()))
                 .collect(Collectors.toList());
     }
@@ -89,7 +90,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        var contextData = new IncrementalReactivePowerContextData(context.getNetwork());
+        var contextData = new IncrementalReactivePowerContextData();
         context.setData(contextData);
 
         for (LfBranch branch : getControllerBranches(context.getNetwork())) {
@@ -165,7 +166,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         var contextData = (IncrementalReactivePowerContextData) context.getData();
 
         // branches which are out of their deadbands
-        List<LfBranch> controlledBranchesOutOfDeadband = getControlledBranchesOutOfDeadband(contextData);
+        List<LfBranch> controlledBranchesOutOfDeadband = getControlledBranchesOutOfDeadband(network);
         List<LfBranch> controllerBranchesOutOfDeadband = getControllerBranchesOutOfDeadband(controlledBranchesOutOfDeadband);
 
         if (controllerBranchesOutOfDeadband.isEmpty()) {

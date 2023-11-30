@@ -10,9 +10,7 @@ import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
@@ -51,20 +49,10 @@ public class IncrementalReactivePowerContextData {
 
     private final Map<String, ControllerContext> controllersContexts = new HashMap<>();
 
-    private final List<LfBranch> candidateControlledBranches;
-
     public Map<String, ControllerContext> getControllersContexts() {
         return controllersContexts;
     }
 
-    public List<LfBranch> getCandidateControlledBranches() {
-        return candidateControlledBranches;
-    }
-
-    public IncrementalReactivePowerContextData(LfNetwork network) {
-        candidateControlledBranches = network.getBranches().stream()
-                .filter(LfBranch::isTransformerReactivePowerControlled)
-                .collect(Collectors.toList());
-
+    public IncrementalReactivePowerContextData() {
     }
 }
