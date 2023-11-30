@@ -46,8 +46,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected TransformerReactivePowerControl transformerReactivePowerControl;
 
-    protected boolean transformerReactivePowerControlEnabled = false;
-
     static class ZeroImpedanceContext {
 
         boolean spanningTreeEdge = false;
