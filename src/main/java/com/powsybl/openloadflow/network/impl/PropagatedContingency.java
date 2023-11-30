@@ -445,13 +445,6 @@ public class PropagatedContingency {
         }
         Set<LfBus> busesToLost = connectivityLossImpact.busesToLost(); // nothing else
 
-        for (LfBranch branch : connectivityLossImpact.additionnalBranchesToLost) {
-            // add new branches to fully open because they belong to a lost component
-            if (!branchesToOpen.containsKey(branch)) {
-                addBranchToOpen(branch, DisabledBranchStatus.BOTH_SIDES, branchesToOpen);
-            }
-        }
-
         for (LfBus busToLost : busesToLost) {
             busToLost.getBranches()
                     .forEach(branch -> {
