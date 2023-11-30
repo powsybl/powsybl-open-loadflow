@@ -20,8 +20,6 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGraphConnectivity.class);
-
     private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
 
     private final Deque<ModificationsContext<V, E>> modificationsContexts = new ArrayDeque<>();
@@ -193,11 +191,13 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     }
 
     public void setMainComponentVertex(V mainComponentVertex) {
-        if (!modificationsContexts.isEmpty() && mainComponentVertex != this.defaultMainComponentVertex) {
-            LOGGER.warn("Changing main component vertex after starting temporary changes!");
-            modificationsContexts.peekLast().setMainComponentVertex(mainComponentVertex);
-        } else {
-            defaultMainComponentVertex = mainComponentVertex;
+        if (!modificationsContexts.isEmpty()) {
+            var modificationsContext = modificationsContexts.peekLast();
+            modificationsContext.setMainComponentVertex(mainComponentVertex);
+            if (!modificationsContext.isInMainComponentBefore(mainComponentVertex)) {
+                throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
+            }
         }
+        defaultMainComponentVertex = mainComponentVertex;
     }
 }

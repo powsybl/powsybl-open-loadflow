@@ -167,4 +167,8 @@ public class ModificationsContext<V, E> {
         invalidateComparisons();
         this.mainComponentVertex = mainComponentVertex;
     }
+
+    public boolean isInMainComponentBefore(V vertex) {
+        return !verticesNotInMainComponentBefore.contains(vertex);
+    }
 }
