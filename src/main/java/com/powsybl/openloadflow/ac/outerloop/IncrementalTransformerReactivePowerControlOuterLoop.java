@@ -218,9 +218,17 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
     }
 
     private static double getDiffQ(TransformerReactivePowerControl reactivePowerControl) {
-        double targetQ = reactivePowerControl.getTargetValue();
+        double targetQ = getHighestPriorityReactivePowerTarget(reactivePowerControl.getControlledBranch());
         double q = reactivePowerControl.getControlledSide() == TwoSides.ONE ? reactivePowerControl.getControlledBranch().getQ1().eval()
                 : reactivePowerControl.getControlledBranch().getQ2().eval();
         return targetQ - q;
+    }
+
+    private static double getHighestPriorityReactivePowerTarget(LfBranch controlledBranch) {
+        if (controlledBranch.getGeneratorReactivePowerControl().isPresent()) {
+            return controlledBranch.getGeneratorReactivePowerControl().orElseThrow().getTargetValue();
+        } else {
+            return controlledBranch.getTransformerReactivePowerControl().orElseThrow().getTargetValue();
+        }
     }
 }
