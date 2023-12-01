@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -55,6 +56,62 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(-7.318, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(-0.181, t2wt.getTerminal1());
         assertReactivePowerEquals(3.205e-5, t2wt.getTerminal2());
+    }
+
+    @Test
+    void testGeneratorRemoteReactivePowerControlOutsideReactiveLimits() {
+        Network network = ReactivePowerControlNetworkFactory.create4BusNetworkWithRatioTapChanger();
+
+        // controllers of reactive power
+        Generator g4 = network.getGenerator("g4");
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("l34");
+
+        double gTargetQ = 3.155;
+        double t2wtTargetQ = 1;
+        Terminal regulatedTerminal = t2wt.getTerminal2();
+
+        g4.setTargetQ(0.0).setVoltageRegulatorOn(false);
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(gTargetQ)
+                .withRegulatingTerminal(regulatedTerminal)
+                .withEnabled(true).add();
+        g4.newMinMaxReactiveLimits().setMinQ(-5.0).setMaxQ(5.0).add();
+
+        t2wt.getRatioTapChanger()
+                .setLoadTapChangingCapabilities(true)
+                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setTargetDeadband(0)
+                .setRegulationValue(t2wtTargetQ)
+                .setRegulationTerminal(regulatedTerminal)
+                .setRegulating(true);
+
+        // without transformer regulating, generator does not hold its target
+        parameters.setUseReactiveLimits(true);
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-5.0, g4.getTerminal());
+        assertReactivePowerEquals(2.588, regulatedTerminal); // not targetQ
+
+        // without generator regulating, transformer does not hold its target
+        parameters.setTransformerReactivePowerControlOn(true);
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(false);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(0.891, regulatedTerminal);
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+
+        // with transformer/generator regulating, generator target Q is held
+        t2wt.getRatioTapChanger().setTapPosition(1);
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-5.0, g4.getTerminal()); // limit of generator
+        assertReactivePowerEquals(gTargetQ, regulatedTerminal); // targetQ of generator is held
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test

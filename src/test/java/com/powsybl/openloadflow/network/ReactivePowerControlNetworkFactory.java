@@ -76,4 +76,56 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
         g4.setMaxP(10);
         return network;
     }
+
+    public static Network create4BusNetworkWithRatioTapChanger() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "test_s", "b3");
+        Bus b4 = createBus(network, "test_s", "b4");
+        createGenerator(b1, "g1", 2);
+        createGenerator(b4, "g4", 1);
+        createLoad(b2, "d2", 1);
+        createLoad(b3, "d3", 4);
+        createLine(network, b1, b4, "l14", 0.1f);
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+        TwoWindingsTransformer twt = createTransformer(network, "test_s", b3, b4, "l34", 0.1f, 1d);
+        twt.newRatioTapChanger()
+                .beginStep()
+                .setRho(0.8)
+                .setR(0.1089)
+                .setX(0.01089)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(0.9)
+                .setR(0.121)
+                .setX(0.0121)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.1)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .setTapPosition(1)
+                .setRegulationValue(0.)
+                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .add();
+        createLine(network, b1, b3, "l13", 0.1f);
+
+        return network;
+    }
 }
