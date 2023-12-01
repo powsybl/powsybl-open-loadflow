@@ -79,6 +79,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         return network.getBranches().stream()
                 .filter(LfBranch::isTransformerReactivePowerControlled)
                 .filter(branch -> isOutOfDeadband(branch.getTransformerReactivePowerControl().orElseThrow()))
+                .filter(Predicate.not(LfBranch::isDisabled))
                 .collect(Collectors.toList());
     }
 

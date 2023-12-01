@@ -786,7 +786,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
                 createTransformersVoltageControls(lfNetwork, parameters, loadingContext, report);
             }
-            // TODO : add check if both generator and transformer reactive power control are on
             if (parameters.isTransformerReactivePowerControl()) {
                 createTransformerReactivePowerControls(lfNetwork, parameters, loadingContext, report);
             }
