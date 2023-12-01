@@ -668,11 +668,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             return;
         }
 
-        if (rtc.getRegulationTerminal().getBusView().getBus() == null) {
-            LOGGER.warn("Regulating terminal of reactive power controller branch '{}' is out of voltage: transformer reactive power control discarded", controllerBranchId);
-            return;
-        }
-
         // Get controlled branch
         String controlledBranchId = rtc.getRegulationTerminal().getConnectable().getId();
         if (rtc.getRegulationTerminal().getConnectable() instanceof ThreeWindingsTransformer twt) {

@@ -225,6 +225,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
     }
 
     private static double getHighestPriorityReactivePowerTarget(LfBranch controlledBranch) {
+        //  GeneratorReactivePowerControl has priority on TransformerReactivePowerControl
         if (controlledBranch.getGeneratorReactivePowerControl().isPresent()) {
             return controlledBranch.getGeneratorReactivePowerControl().orElseThrow().getTargetValue();
         } else {
