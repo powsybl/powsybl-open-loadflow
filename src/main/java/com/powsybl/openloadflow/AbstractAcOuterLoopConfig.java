@@ -70,20 +70,20 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return createTransformerVoltageControlOuterLoop(parameters,
                                                         parametersExt.getTransformerVoltageControlMode(),
-                                                        parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+                                                        parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
     }
 
     protected static Optional<AcOuterLoop> createTransformerReactivePowerControlOuterLoop(LoadFlowParameters parameters,
-                                                                                          int incrementalTransformerReactivePowerControlOuterLoopMaxTapShift) {
+                                                                                          int incrementalTransformerRatioTapControlOuterLoopMaxTapShift) {
         if (parameters.isTransformerReactivePowerControlOn()) {
-            return Optional.of(new IncrementalTransformerReactivePowerControlOuterLoop(incrementalTransformerReactivePowerControlOuterLoopMaxTapShift));
+            return Optional.of(new IncrementalTransformerReactivePowerControlOuterLoop(incrementalTransformerRatioTapControlOuterLoopMaxTapShift));
         }
         return Optional.empty();
     }
 
     protected static Optional<AcOuterLoop> createTransformerReactivePowerControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return createTransformerReactivePowerControlOuterLoop(parameters,
-                parametersExt.getIncrementalTransformerReactivePowerControlOuterLoopMaxTapShift());
+                parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
     }
 
     protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode) {
