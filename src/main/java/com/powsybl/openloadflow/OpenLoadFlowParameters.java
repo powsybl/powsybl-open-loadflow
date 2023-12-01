@@ -861,10 +861,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(int incrementalTransformerRatioTapControlOuterLoopMaxTapShift) {
-        if (this.incrementalTransformerRatioTapControlOuterLoopMaxTapShift < 1) {
-            throw new IllegalArgumentException("Invalid max tap shift value: " + this.incrementalTransformerRatioTapControlOuterLoopMaxTapShift);
+        if (incrementalTransformerRatioTapControlOuterLoopMaxTapShift < 1) {
+            throw new IllegalArgumentException("Invalid max tap shift value: " + incrementalTransformerRatioTapControlOuterLoopMaxTapShift);
         }
-        this.incrementalTransformerRatioTapControlOuterLoopMaxTapShift = this.incrementalTransformerRatioTapControlOuterLoopMaxTapShift;
+        this.incrementalTransformerRatioTapControlOuterLoopMaxTapShift = incrementalTransformerRatioTapControlOuterLoopMaxTapShift;
         return this;
     }
 
