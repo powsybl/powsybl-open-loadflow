@@ -76,6 +76,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private boolean valid = true;
 
+    private boolean dead = false;
+
     private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
@@ -555,6 +557,22 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     private void validateBuses(LoadFlowModel loadFlowModel, Reporter reporter) {
+        // DC or AC, if no generator, network is dead
+        boolean hasAtLeastOneBusGenerator = false;
+        for (LfBus bus : busesByIndex) {
+            if (!bus.getGenerators().isEmpty()) {
+                hasAtLeastOneBusGenerator = true;
+                break;
+            }
+        }
+        if (!hasAtLeastOneBusGenerator) {
+            // we don't report because this is too much on real networks
+            LOGGER.debug("Network {} has no generator and will be considered dead", this);
+            dead = true;
+            valid = false;
+            return;
+        }
+        // AC requires at least one bus under voltage control
         if (loadFlowModel == LoadFlowModel.AC) {
             boolean hasAtLeastOneBusGeneratorVoltageControlEnabled = false;
             for (LfBus bus : busesByIndex) {
@@ -575,6 +593,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void validate(LoadFlowModel loadFlowModel, Reporter reporter) {
         valid = true;
+        dead = false;
         validateBuses(loadFlowModel, reporter);
     }
 
@@ -595,6 +614,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
         List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reporter);
+        int deadCount = 0;
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
@@ -602,9 +622,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
                 lfNetwork.reportBalance(reporterNetwork);
+            } else if (lfNetwork.isDead()) {
+                deadCount++;
             } else {
                 LOGGER.info("Network {} is invalid, no calculation will be done", lfNetwork);
             }
+        }
+        if (deadCount > 0) {
+            LOGGER.info("No calculation will be done on {} network(s) that have have no generators", deadCount);
         }
         return lfNetworks;
     }
@@ -650,6 +675,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public boolean isValid() {
         return valid;
+    }
+
+    public boolean isDead() {
+        return dead;
     }
 
     /**
