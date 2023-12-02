@@ -9,18 +9,32 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.Switch;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfTopoConfig {
 
-    private final Set<Switch> switchesToOpen = new HashSet<>();
+    private final Set<Switch> switchesToOpen;
 
-    private final Set<Switch> switchesToClose = new HashSet<>();
+    private final Set<Switch> switchesToClose;
 
-    private final Set<String> busIdsToLose = new HashSet<>();
+    private final Set<String> busIdsToLose;
+
+    public LfTopoConfig() {
+        switchesToOpen = new HashSet<>();
+        switchesToClose = new HashSet<>();
+        busIdsToLose = new HashSet<>();
+    }
+
+    public LfTopoConfig(LfTopoConfig other) {
+        Objects.requireNonNull(other);
+        this.switchesToOpen = new HashSet<>(other.switchesToOpen);
+        this.switchesToClose = new HashSet<>(other.switchesToClose);
+        this.busIdsToLose = new HashSet<>(other.busIdsToLose);
+    }
 
     private final Set<String> branchIdsWithPtcToRetain = new HashSet<>();
 

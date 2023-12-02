@@ -9,13 +9,15 @@ package com.powsybl.openloadflow.network;
 import java.util.List;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LfNetworkListener {
 
     void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
 
     void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage);
+
+    void onGeneratorReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled);
 
     void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled);
 

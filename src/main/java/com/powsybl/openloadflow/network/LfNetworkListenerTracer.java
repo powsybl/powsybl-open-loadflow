@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkListenerTracer implements LfNetworkListener {
 
@@ -45,6 +45,13 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
         LOGGER.trace("onGeneratorVoltageControlTargetChange(controlledBusId='{}', newTargetVoltage={})",
                 control.getControlledBus(), newTargetVoltage);
         delegate.onGeneratorVoltageControlTargetChange(control, newTargetVoltage);
+    }
+
+    @Override
+    public void onGeneratorReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
+        LOGGER.trace("onGeneratorReactivePowerControlChange(controllerBusId='{}', newReactiveControllerEnabled={})",
+                controllerBus.getId(), newReactiveControllerEnabled);
+        delegate.onGeneratorReactivePowerControlChange(controllerBus, newReactiveControllerEnabled);
     }
 
     @Override

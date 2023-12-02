@@ -16,7 +16,7 @@ import net.jafama.FastMath;
 import java.util.Objects;
 
 /**
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 @SuppressWarnings("squid:S00107")
 public class ClosedBranchI2yFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {

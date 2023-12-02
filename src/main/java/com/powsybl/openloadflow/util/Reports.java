@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import java.util.Map;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class Reports {
 
@@ -100,6 +100,15 @@ public final class Reports {
                 .withDefaultMessage("${pqToPvBusCount} buses switched PQ -> PV ({blockedPqBusCount} buses blocked PQ because have reach max number of switch)")
                 .withValue("pqToPvBusCount", pqToPvBusCount)
                 .withValue("blockedPqBusCount", blockedPqBusCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportReactiveControllerBusesToPqBuses(Reporter reporter, int switchCount) {
+        reporter.report(Report.builder()
+                .withKey("remoteReactiveControllerBusToPq")
+                .withDefaultMessage("${count} remote reactive power controller buses have switched PQ")
+                .withValue("count", switchCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -197,18 +206,18 @@ public final class Reports {
                 "contingencyId", contingencyId);
     }
 
-    public static Reporter createDetailedNewtonRaphsonReporter(Reporter reporter, int networkNumCc, int networkNumSc) {
-        return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || No outer loops calculations",
-                Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
-                        "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+    public static Reporter createDetailedSolverReporter(Reporter reporter, String solverName, int networkNumCc, int networkNumSc) {
+        return reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc} || No outer loops calculations",
+                Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                        NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
     }
 
-    public static Reporter createDetailedNewtonRaphsonReporterOuterLoop(Reporter reporter, int networkNumCc, int networkNumSc, int outerLoopIteration, String outerLoopType) {
-        return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || Outer loop iteration ${newtonRaphsonOuterLoopIteration} and type `${newtonRaphsonOuterLoopType}`",
-                Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
-                        "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED),
-                        "newtonRaphsonOuterLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED),
-                        "newtonRaphsonOuterLoopType", new TypedValue(outerLoopType, TypedValue.UNTYPED)));
+    public static Reporter createDetailedSolverReporterOuterLoop(Reporter reporter, String solverName, int networkNumCc, int networkNumSc, int outerLoopIteration, String outerLoopType) {
+        return reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc} || Outer loop iteration ${outerLoopIteration} and type `${outerLoopType}`",
+                Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                        NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED),
+                        "outerLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED),
+                        "outerLoopType", new TypedValue(outerLoopType, TypedValue.UNTYPED)));
     }
 
     public static Reporter createNewtonRaphsonMismatchReporter(Reporter reporter, int iteration) {

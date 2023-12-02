@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.ac.nr;
+package com.powsybl.openloadflow.ac.solver;
 
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Limit voltage magnitude change and voltage angle change between NR iterations
  *
- * @author Damien Jeandemange <damien.jeandemange at artelys.com>
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
 

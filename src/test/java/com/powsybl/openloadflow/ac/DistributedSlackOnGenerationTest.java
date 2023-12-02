@@ -17,6 +17,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,8 +31,8 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEq
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Caio Luke <caio.luke at artelys.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * @author Caio Luke {@literal <caio.luke at artelys.com>}
  */
 class DistributedSlackOnGenerationTest {
 
@@ -56,7 +57,7 @@ class DistributedSlackOnGenerationTest {
                 .setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
-                .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
     }
 
     @Test
@@ -276,25 +277,49 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void zeroParticipatingGeneratorsTest() {
+    void zeroParticipatingGeneratorsThrowTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
         g2.getExtension(ActivePowerControl.class).setDroop(-3);
         g3.getExtension(ActivePowerControl.class).setDroop(0);
         g4.getExtension(ActivePowerControl.class).setDroop(0);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
-                "No more generator participating to slack distribution");
+        CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertTrue(thrown.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
     }
 
     @Test
-    void notEnoughActivePowerFailureTest() {
+    void notEnoughActivePowerThrowTest() {
         network.getLoad("l1").setP0(1000);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
-                "Failed to distribute slack bus active power mismatch");
+        CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertTrue(thrown.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
+    }
+
+    @Test
+    void notEnoughActivePowerFailTest() {
+        network.getLoad("l1").setP0(1000);
+        parameters.getExtension(OpenLoadFlowParameters.class).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertFalse(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
+        assertEquals(0, componentResult.getDistributedActivePower(), 1e-4);
+        assertEquals(520, componentResult.getSlackBusActivePowerMismatch(), 1e-4);
+    }
+
+    @Test
+    void notEnoughActivePowerLeaveOnSlackBusTest() {
+        network.getLoad("l1").setP0(1000);
+        parameters.getExtension(OpenLoadFlowParameters.class).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertTrue(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        assertEquals(320, componentResult.getDistributedActivePower(), 1e-4);
+        assertEquals(200, componentResult.getSlackBusActivePowerMismatch(), 1e-4);
     }
 
     @Test
     void generatorWithNegativeTargetP() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setTargetP(-607);
         network.getLoad("LOAD").setP0(-600);
@@ -306,7 +331,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void generatorWithMaxPEqualsToMinP() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setMinP(1000);
         network.getGenerator("GEN").setTargetP(1000);
@@ -335,7 +360,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void generatorWithTargetPLowerThanMinP() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setMinP(200);
         network.getGenerator("GEN").setTargetP(100);

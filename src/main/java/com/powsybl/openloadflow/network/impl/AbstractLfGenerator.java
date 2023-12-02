@@ -19,7 +19,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractLfGenerator extends AbstractLfInjection implements LfGenerator {
 
@@ -43,7 +43,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected String controlledBranchId;
 
-    protected ControlledSide controlledBranchSide;
+    protected TwoSides controlledBranchSide;
 
     protected double remoteTargetQ = Double.NaN;
 
@@ -250,7 +250,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     public static boolean checkTargetV(String generatorId, double targetV, double nominalV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         // check that targetV has a plausible value (wrong nominal voltage issue)
         if (nominalV > parameters.getMinNominalVoltageTargetVoltageCheck() &&
-                (targetV < parameters.getMinPlausibleTargetVoltage() || targetV > parameters.getMaxPlausibleTargetVoltage())) {
+                LfGenerator.isTargetVoltageNotPlausible(targetV, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage())) {
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu: generator voltage control discarded",
                 generatorId, targetV);
             if (report != null) {
@@ -264,12 +264,12 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
         Connectable<?> connectable = regulatingTerminal.getConnectable();
         if (connectable instanceof Line l) {
-            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
-                    ControlledSide.ONE : ControlledSide.TWO;
+            this.controlledBranchSide = l.getTerminal(TwoSides.ONE) == regulatingTerminal ?
+                    TwoSides.ONE : TwoSides.TWO;
             this.controlledBranchId = l.getId();
         } else if (connectable instanceof TwoWindingsTransformer t) {
-            this.controlledBranchSide = t.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
-                    ControlledSide.ONE : ControlledSide.TWO;
+            this.controlledBranchSide = t.getTerminal(TwoSides.ONE) == regulatingTerminal ?
+                    TwoSides.ONE : TwoSides.TWO;
             this.controlledBranchId = t.getId();
         } else {
             LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
@@ -286,7 +286,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     }
 
     @Override
-    public ControlledSide getControlledBranchSide() {
+    public TwoSides getControlledBranchSide() {
         return controlledBranchSide;
     }
 

@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
@@ -17,7 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LfBranch extends LfElement {
 
@@ -51,7 +52,7 @@ public interface LfBranch extends LfElement {
         }
 
         public static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(null, Integer.MAX_VALUE, valuePerUnit);
+            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, valuePerUnit);
         }
 
         public String getName() {
@@ -185,9 +186,9 @@ public interface LfBranch extends LfElement {
         return phaseControl.get().getTargetValue();
     }
 
-    Optional<ReactivePowerControl> getReactivePowerControl();
+    Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl();
 
-    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
+    void setGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl);
 
     boolean isConnectedAtBothSides();
 

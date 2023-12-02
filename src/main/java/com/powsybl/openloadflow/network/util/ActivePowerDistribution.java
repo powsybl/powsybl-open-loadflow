@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class ActivePowerDistribution {
 
@@ -24,34 +24,18 @@ public final class ActivePowerDistribution {
      */
     public static final double P_RESIDUE_EPS = Math.pow(10, -5);
 
+    public record StepResult(double done, boolean movedBuses) { }
+
     public interface Step {
 
         String getElementType();
 
         List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses);
 
-        double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
+        StepResult run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
     }
 
-    public static class Result {
-
-        private final int iteration;
-
-        private final double remainingMismatch;
-
-        public Result(int iteration, double remainingMismatch) {
-            this.iteration = iteration;
-            this.remainingMismatch = remainingMismatch;
-        }
-
-        public int getIteration() {
-            return iteration;
-        }
-
-        public double getRemainingMismatch() {
-            return remainingMismatch;
-        }
-    }
+    public record Result(int iteration, double remainingMismatch, boolean movedBuses) { }
 
     private final ActivePowerDistribution.Step step;
 
@@ -72,18 +56,23 @@ public final class ActivePowerDistribution {
 
         int iteration = 0;
         double remainingMismatch = activePowerMismatch;
+        boolean movedBuses = false;
         while (!participatingElements.isEmpty()
                 && Math.abs(remainingMismatch) > P_RESIDUE_EPS) {
 
             if (ParticipatingElement.participationFactorNorm(participatingElements) > 0.0) {
-                remainingMismatch -= step.run(participatingElements, iteration, remainingMismatch);
+                StepResult stepResult = step.run(participatingElements, iteration, remainingMismatch);
+                remainingMismatch -= stepResult.done();
+                if (stepResult.movedBuses()) {
+                    movedBuses = true;
+                }
             } else {
                 break;
             }
             iteration++;
         }
 
-        return new Result(iteration, remainingMismatch);
+        return new Result(iteration, remainingMismatch, movedBuses);
     }
 
     public static ActivePowerDistribution create(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits) {

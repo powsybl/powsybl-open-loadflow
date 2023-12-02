@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
@@ -813,75 +813,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
-    private static Injection<?> getInjection(Network network, String injectionId) {
-        Injection<?> injection = network.getGenerator(injectionId);
-        if (injection == null) {
-            injection = network.getLoad(injectionId);
-        }
-        if (injection == null) {
-            injection = network.getDanglingLine(injectionId);
-            if (injection != null && network.getDanglingLine(injectionId).isPaired()) {
-                throw new PowsyblException("The dangling line " + injectionId + " is paired: it cannot be a sensitivity variable");
-            }
-            injection = network.getDanglingLine(injectionId);
-        }
-        if (injection == null) {
-            injection = network.getLccConverterStation(injectionId);
-        }
-        if (injection == null) {
-            injection = network.getVscConverterStation(injectionId);
-        }
-        return injection;
-    }
-
-    protected static String getInjectionBusId(Network network, String injectionId, boolean breakers) {
-        // try with an injection
-        Injection<?> injection = getInjection(network, injectionId);
-        if (injection != null) {
-            Bus bus = breakers ? injection.getTerminal().getBusBreakerView().getBus() : injection.getTerminal().getBusView().getBus();
-            if (bus == null) {
-                return null;
-            }
-            if (injection instanceof DanglingLine dl) {
-                return LfDanglingLineBus.getId(dl);
-            } else {
-                return bus.getId();
-            }
-        }
-
-        // try with a configured bus
-        Bus configuredBus = network.getBusBreakerView().getBus(injectionId);
-        if (configuredBus != null) {
-            // find a bus from bus view corresponding to this configured bus
-            List<Terminal> terminals = new ArrayList<>();
-            configuredBus.visitConnectedEquipments(new AbstractTerminalTopologyVisitor() {
-                @Override
-                public void visitTerminal(Terminal terminal) {
-                    terminals.add(terminal);
-                }
-            });
-            for (Terminal terminal : terminals) {
-                Bus bus = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
-                if (bus != null) {
-                    return bus.getId();
-                }
-            }
-            return null;
-        }
-
-        // try with a busbar section
-        BusbarSection busbarSection = network.getBusbarSection(injectionId);
-        if (busbarSection != null) {
-            Bus bus = breakers ? busbarSection.getTerminal().getBusBreakerView().getBus() : busbarSection.getTerminal().getBusView().getBus();
-            if (bus == null) {
-                return null;
-            }
-            return bus.getId();
-        }
-
-        throw new PowsyblException("Injection '" + injectionId + NOT_FOUND);
-    }
-
     private static LfBranch checkAndGetBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
         Branch<?> branch = network.getBranch(branchId);
         if (branch != null) {
@@ -992,6 +923,84 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
     }
 
+    static class InjectionVariableIdToBusIdCache {
+
+        private final Map<String, String> variableIdToBusId = new HashMap<>();
+
+        private static Injection<?> getInjection(Network network, String injectionId) {
+            Injection<?> injection = network.getGenerator(injectionId);
+            if (injection == null) {
+                injection = network.getLoad(injectionId);
+            }
+            if (injection == null) {
+                injection = network.getDanglingLine(injectionId);
+                if (injection != null && network.getDanglingLine(injectionId).isPaired()) {
+                    throw new PowsyblException("The dangling line " + injectionId + " is paired: it cannot be a sensitivity variable");
+                }
+                injection = network.getDanglingLine(injectionId);
+            }
+            if (injection == null) {
+                injection = network.getLccConverterStation(injectionId);
+            }
+            if (injection == null) {
+                injection = network.getVscConverterStation(injectionId);
+            }
+            return injection;
+        }
+
+        protected static String getInjectionBusId(Network network, String injectionId, boolean breakers) {
+            // try with an injection
+            Injection<?> injection = getInjection(network, injectionId);
+            if (injection != null) {
+                Bus bus = Networks.getBus(injection.getTerminal(), breakers);
+                if (bus == null) {
+                    return null;
+                }
+                if (injection instanceof DanglingLine dl) {
+                    return LfDanglingLineBus.getId(dl);
+                } else {
+                    return bus.getId();
+                }
+            }
+
+            // try with a configured bus
+            Bus configuredBus = network.getBusBreakerView().getBus(injectionId);
+            if (configuredBus != null) {
+                // find a bus from bus view corresponding to this configured bus
+                List<Terminal> terminals = new ArrayList<>();
+                configuredBus.visitConnectedEquipments(new AbstractTerminalTopologyVisitor() {
+                    @Override
+                    public void visitTerminal(Terminal terminal) {
+                        terminals.add(terminal);
+                    }
+                });
+                for (Terminal terminal : terminals) {
+                    Bus bus = Networks.getBus(terminal, breakers);
+                    if (bus != null) {
+                        return bus.getId();
+                    }
+                }
+                return null;
+            }
+
+            // try with a busbar section
+            BusbarSection busbarSection = network.getBusbarSection(injectionId);
+            if (busbarSection != null) {
+                Bus bus = Networks.getBus(busbarSection.getTerminal(), breakers);
+                if (bus == null) {
+                    return null;
+                }
+                return bus.getId();
+            }
+
+            throw new PowsyblException("Injection '" + injectionId + NOT_FOUND);
+        }
+
+        String getBusId(Network network, String variableId, boolean breakers) {
+            return variableIdToBusId.computeIfAbsent(variableId, variableId2 -> getInjectionBusId(network, variableId2, breakers));
+        }
+    }
+
     protected SensitivityFactorHolder<V, E> readAndCheckFactors(Network network, Map<String, SensitivityVariableSet> variableSetsById,
                                                              SensitivityFactorReader factorReader, LfNetwork lfNetwork, boolean breakers) {
         final SensitivityFactorHolder<V, E> factorHolder = new SensitivityFactorHolder<>();
@@ -999,6 +1008,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         final Map<String, Map<LfElement, Double>> injectionBusesByVariableId = new LinkedHashMap<>();
         final Map<String, Set<String>> originalVariableSetIdsByVariableId = new LinkedHashMap<>();
         final Map<String, Bus> busCache = new HashMap<>();
+        InjectionVariableIdToBusIdCache injectionVariableIdToBusIdCache = new InjectionVariableIdToBusIdCache();
         int[] factorIndex = new int[1];
         factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableSet) {
@@ -1019,7 +1029,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             }
                             List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
                             for (WeightedSensitivityVariable variable : set.getVariables()) {
-                                String injectionBusId = getInjectionBusId(network, variable.getId(), breakers);
+                                String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variable.getId(), breakers);
                                 LfBus injectionLfBus = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 if (injectionLfBus == null) {
                                     skippedInjection.add(variable.getId());
@@ -1050,24 +1060,26 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     if (hvdcLine == null) {
                         throw new PowsyblException("HVDC line '" + variableId + "' cannot be found in the network.");
                     }
-                    LfBus bus1 = lfNetwork.getBusById(breakers ? hvdcLine.getConverterStation1().getTerminal().getBusBreakerView().getBus().getId() :
-                            hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
-                    LfBus bus2 = lfNetwork.getBusById(breakers ? hvdcLine.getConverterStation2().getTerminal().getBusBreakerView().getBus().getId() :
-                            hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
+                    Bus bus1 = Networks.getBus(hvdcLine.getConverterStation1().getTerminal(), breakers);
+                    Bus bus2 = Networks.getBus(hvdcLine.getConverterStation2().getTerminal(), breakers);
 
                     // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
                     // => we create a multi (bi) variables factor
                     Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
                     Set<String> originalVariableSetIds = new HashSet<>(2);
                     if (bus1 != null) {
-                        // FIXME: for LCC, Q changes when P changes
-                        injectionLfBuses.put(bus1, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
-                        originalVariableSetIds.add(hvdcLine.getConverterStation1().getId());
+                        LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
+                        if (lfBus1 != null) {
+                            injectionLfBuses.put(lfBus1, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
+                            originalVariableSetIds.add(hvdcLine.getConverterStation1().getId());
+                        }
                     }
                     if (bus2 != null) {
-                        // FIXME: for LCC, Q changes when P changes
-                        injectionLfBuses.put(bus2, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
-                        originalVariableSetIds.add(hvdcLine.getConverterStation2().getId());
+                        LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
+                        if (lfBus2 != null) {
+                            injectionLfBuses.put(lfBus2, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
+                            originalVariableSetIds.add(hvdcLine.getConverterStation2().getId());
+                        }
                     }
 
                     factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
@@ -1080,7 +1092,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         switch (variableType) {
                             case INJECTION_ACTIVE_POWER:
-                                String injectionBusId = getInjectionBusId(network, variableId, breakers);
+                                String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 break;
                             case TRANSFORMER_PHASE:
@@ -1131,7 +1143,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                                                    LfNetwork lfNetwork) {
         checkRegulatingTerminal(network, variableId);
         Terminal regulatingTerminal = Networks.getEquipmentRegulatingTerminal(network, variableId).orElseThrow(); // this cannot fail because it is checked in checkRegulatingTerminal
-        Bus regulatedBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+        Bus regulatedBus = Networks.getBus(regulatingTerminal, breakers);
         return regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
     }
 

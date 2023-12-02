@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
@@ -121,6 +121,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             return lowValue;
         }
     }
+
+    protected final List<LfOverloadManagementSystem> overloadManagementSystems = new ArrayList<>();
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
@@ -601,6 +603,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
             connectivity.setMainComponentVertex(getSlackBus());
+            // this is necessary to create a first temporary changes level in order to allow
+            // some outer loop to change permanently the connectivity (with automation systems for instance)
+            // this one will never be reverted
+            if (connectivity.supportTemporaryChangesNesting()) {
+                connectivity.startTemporaryChanges();
+            }
         }
         return connectivity;
     }
@@ -733,6 +741,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
                 .collect(Collectors.toList());
+    }
+
+    public void addOverloadManagementSystem(LfOverloadManagementSystem overloadManagementSystem) {
+        overloadManagementSystems.add(Objects.requireNonNull(overloadManagementSystem));
+    }
+
+    public List<LfOverloadManagementSystem> getOverloadManagementSystems() {
+        return overloadManagementSystems;
     }
 
     @Override

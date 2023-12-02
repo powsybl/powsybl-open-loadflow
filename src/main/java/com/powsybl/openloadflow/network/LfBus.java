@@ -13,7 +13,7 @@ import com.powsybl.security.results.BusResult;
 import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LfBus extends LfElement {
 
@@ -73,9 +73,15 @@ public interface LfBus extends LfElement {
 
     void removeGeneratorSlopes();
 
-    Optional<ReactivePowerControl> getReactivePowerControl();
+    Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl();
 
-    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
+    void setGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl);
+
+    boolean hasGeneratorReactivePowerControl();
+
+    boolean isGeneratorReactivePowerControlEnabled();
+
+    void setGeneratorReactivePowerControlEnabled(boolean generatorReactivePowerControlEnabled);
 
     double getTargetP();
 
@@ -88,6 +94,8 @@ public interface LfBus extends LfElement {
     void invalidateGenerationTargetP();
 
     double getGenerationTargetP();
+
+    double getMaxP();
 
     double getGenerationTargetQ();
 
@@ -182,9 +190,9 @@ public interface LfBus extends LfElement {
      */
     Map<LfBus, List<LfBranch>> findNeighbors();
 
-    double getRemoteVoltageControlReactivePercent();
+    double getRemoteControlReactivePercent();
 
-    void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
+    void setRemoteControlReactivePercent(double remoteControlReactivePercent);
 
     /**
      * Get active power mismatch.

@@ -16,7 +16,7 @@ import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class LfLegBranch extends AbstractImpedantLfBranch {
 
@@ -108,13 +108,8 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         return twtId + "_leg_" + legNum;
     }
 
-    public static String getId(ThreeWindingsTransformer.Side side, String transformerId) {
-        int legNum = switch (side) {
-            case ONE -> 1;
-            case TWO -> 2;
-            case THREE -> 3;
-        };
-        return getId(transformerId, legNum);
+    public static String getId(ThreeSides side, String transformerId) {
+        return getId(transformerId, side.getNum());
     }
 
     @Override

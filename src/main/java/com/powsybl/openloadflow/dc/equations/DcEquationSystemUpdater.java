@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LoadFlowModel;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVariableType, DcEquationType> {
 

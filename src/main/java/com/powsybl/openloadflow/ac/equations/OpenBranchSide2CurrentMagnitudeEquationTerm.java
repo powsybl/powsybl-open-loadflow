@@ -13,7 +13,7 @@ import net.jafama.FastMath;
 import java.util.Objects;
 
 /**
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 @SuppressWarnings("squid:S00107")
 public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSide2BranchAcFlowEquationTerm {

@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
@@ -29,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class AcIncrementalPhaseControlOuterLoop
         extends AbstractIncrementalPhaseControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
@@ -85,8 +86,8 @@ public class AcIncrementalPhaseControlOuterLoop
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getI2();
         }
 
-        public double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
-            var i = controlledSide == ControlledSide.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
+        public double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide) {
+            var i = controlledSide == TwoSides.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
             return calculateSensitivityFromA2S(controllerBranch, i);
         }
     }
@@ -155,13 +156,13 @@ public class AcIncrementalPhaseControlOuterLoop
     }
 
     private static double computeIb(TransformerPhaseControl phaseControl) {
-        LfBus bus = phaseControl.getControlledSide() == ControlledSide.ONE
+        LfBus bus = phaseControl.getControlledSide() == TwoSides.ONE
                 ? phaseControl.getControlledBranch().getBus1() : phaseControl.getControlledBranch().getBus2();
         return PerUnit.ib(bus.getNominalV());
     }
 
     private static double computeI(TransformerPhaseControl phaseControl) {
-        var i = phaseControl.getControlledSide() == ControlledSide.ONE
+        var i = phaseControl.getControlledSide() == TwoSides.ONE
                 ? phaseControl.getControlledBranch().getI1() : phaseControl.getControlledBranch().getI2();
         return i.eval();
     }

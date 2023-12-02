@@ -19,13 +19,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class MostMeshedSlackBusSelectorTest {
 
     @Test
     void test() {
-        var network = EurostagTutorialExample1Factory.create();
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var provider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         var runner = new LoadFlow.Runner(provider);
         var parameters = new LoadFlowParameters();

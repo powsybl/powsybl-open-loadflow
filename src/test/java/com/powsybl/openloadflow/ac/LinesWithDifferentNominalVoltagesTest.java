@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -30,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @see LinesWithDifferentNominalVoltagesNetworkFactory
  *
- * @author Damien Jeandemange <damien.jeandemange at artelys.com>
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 class LinesWithDifferentNominalVoltagesTest {
 
@@ -91,22 +88,22 @@ class LinesWithDifferentNominalVoltagesTest {
 
         // line flows, load side
         List.of(
-            l225to225.getTerminal(Branch.Side.TWO),
-            l225to220.getTerminal(Branch.Side.TWO),
-            l225to230.getTerminal(Branch.Side.TWO),
-            l220to225.getTerminal(Branch.Side.ONE),
-            l230to225.getTerminal(Branch.Side.ONE)).forEach(terminal -> {
+            l225to225.getTerminal(TwoSides.TWO),
+            l225to220.getTerminal(TwoSides.TWO),
+            l225to230.getTerminal(TwoSides.TWO),
+            l220to225.getTerminal(TwoSides.ONE),
+            l230to225.getTerminal(TwoSides.ONE)).forEach(terminal -> {
                 assertActivePowerEquals(-100, terminal);
                 assertReactivePowerEquals(-40, terminal);
             });
 
         // line flows, generator side
         List.of(
-            l225to225.getTerminal(Branch.Side.ONE),
-            l225to220.getTerminal(Branch.Side.ONE),
-            l225to230.getTerminal(Branch.Side.ONE),
-            l220to225.getTerminal(Branch.Side.TWO),
-            l230to225.getTerminal(Branch.Side.TWO)).forEach(terminal -> {
+            l225to225.getTerminal(TwoSides.ONE),
+            l225to220.getTerminal(TwoSides.ONE),
+            l225to230.getTerminal(TwoSides.ONE),
+            l220to225.getTerminal(TwoSides.TWO),
+            l230to225.getTerminal(TwoSides.TWO)).forEach(terminal -> {
                 assertActivePowerEquals(103.444104, terminal);
                 assertReactivePowerEquals(45.4712006, terminal);
             });

@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.ac.nr;
+package com.powsybl.openloadflow.ac.solver;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.equations.Vectors;
 import com.powsybl.openloadflow.util.PerUnit;
 
 /**
- * @author Alexandre Le Jean <alexandre.le-jean at artelys.com>
+ * @author Alexandre Le Jean {@literal <alexandre.le-jean at artelys.com>}
  */
 public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCriteria {
 

@@ -12,7 +12,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import java.util.List;
 
 /**
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
 

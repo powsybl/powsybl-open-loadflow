@@ -8,12 +8,12 @@
  */
 package com.powsybl.openloadflow.ac.equations.asym;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.Side;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 
@@ -24,8 +24,8 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.A2;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm extends AbstractAsymmetricalBranchFlowEquationTerm {
 
@@ -59,11 +59,11 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
     protected final ComplexPart complexPart;
-    protected final Side side;
+    protected final TwoSides side;
     protected final SequenceType sequenceType;
 
     protected AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                                      ComplexPart complexPart, Side side, SequenceType sequenceType) {
+                                                                      ComplexPart complexPart, TwoSides side, SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
@@ -117,19 +117,19 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         };
     }
 
-    protected double v(SequenceType g, Side i) {
+    protected double v(SequenceType g, TwoSides i) {
         return switch (g) {
-            case ZERO -> i == Side.ONE ? sv.get(v1VarZero.getRow()) : sv.get(v2VarZero.getRow());
-            case POSITIVE -> i == Side.ONE ? sv.get(v1Var.getRow()) : sv.get(v2Var.getRow());
-            case NEGATIVE -> i == Side.ONE ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
+            case ZERO -> i == TwoSides.ONE ? sv.get(v1VarZero.getRow()) : sv.get(v2VarZero.getRow());
+            case POSITIVE -> i == TwoSides.ONE ? sv.get(v1Var.getRow()) : sv.get(v2Var.getRow());
+            case NEGATIVE -> i == TwoSides.ONE ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
         };
     }
 
-    protected double ph(SequenceType g, Side i) {
+    protected double ph(SequenceType g, TwoSides i) {
         return switch (g) {
-            case ZERO -> i == Side.ONE ? sv.get(ph1VarZero.getRow()) : sv.get(ph2VarZero.getRow());
-            case POSITIVE -> i == Side.ONE ? sv.get(ph1Var.getRow()) : sv.get(ph2Var.getRow());
-            case NEGATIVE -> i == Side.ONE ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
+            case ZERO -> i == TwoSides.ONE ? sv.get(ph1VarZero.getRow()) : sv.get(ph2VarZero.getRow());
+            case POSITIVE -> i == TwoSides.ONE ? sv.get(ph1Var.getRow()) : sv.get(ph2Var.getRow());
+            case NEGATIVE -> i == TwoSides.ONE ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
         };
     }
 
@@ -141,12 +141,12 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         return 0;
     }
 
-    protected double r(Side i) {
-        return i == Side.ONE ? r1() : 1.;
+    protected double r(TwoSides i) {
+        return i == TwoSides.ONE ? r1() : 1.;
     }
 
-    protected double a(Side i) {
-        return i == Side.ONE ? a1() : A2;
+    protected double a(TwoSides i) {
+        return i == TwoSides.ONE ? a1() : A2;
     }
 
     @Override
@@ -154,14 +154,14 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         return variables;
     }
 
-    public Side getSide(Variable<AcVariableType> variable) {
+    public TwoSides getSide(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var) || variable.equals(v1VarZero) || variable.equals(v1VarNegative)
                 || variable.equals(ph1Var) || variable.equals(ph1VarZero) || variable.equals(ph1VarNegative)) {
-            return Side.ONE;
+            return TwoSides.ONE;
         } else if (variable.equals(v2Var) || variable.equals(v2VarZero) || variable.equals(v2VarNegative)
                 || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
-            return Side.TWO;
+            return TwoSides.TWO;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
