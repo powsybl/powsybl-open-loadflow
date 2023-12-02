@@ -78,6 +78,9 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     @Override
     public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
+        if (network.isDead()) {
+            return LoadFlowResult.ComponentResult.Status.NO_CALCULATION;
+        }
         if (getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
             return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
         } else if (getOuterLoopStatus() == OuterLoopStatus.FAILED) {
