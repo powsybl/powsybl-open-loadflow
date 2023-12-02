@@ -73,7 +73,7 @@ class LinesWithDifferentNominalVoltagesTest {
     void test() {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
 
         // slack bus

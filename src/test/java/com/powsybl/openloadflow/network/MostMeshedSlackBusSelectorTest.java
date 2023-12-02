@@ -30,11 +30,11 @@ class MostMeshedSlackBusSelectorTest {
         var runner = new LoadFlow.Runner(provider);
         var parameters = new LoadFlowParameters();
         LoadFlowResult result = runner.run(network, parameters);
-        assertEquals("VLHV1_0", result.getComponentResults().get(0).getSlackBusId());
+        assertEquals("VLHV1_0", result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(50);
         result = runner.run(network, parameters);
-        assertEquals("VLLOAD_0", result.getComponentResults().get(0).getSlackBusId());
+        assertEquals("VLLOAD_0", result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> parametersExt.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(120));
         assertEquals("Invalid percent value: 120.0", exception.getMessage());

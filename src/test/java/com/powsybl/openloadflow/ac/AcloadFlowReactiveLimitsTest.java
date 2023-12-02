@@ -121,14 +121,14 @@ class AcloadFlowReactiveLimitsTest {
     void test() {
         parameters.setUseReactiveLimits(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-109.228, gen.getTerminal());
         assertReactivePowerEquals(-152.265, gen2.getTerminal());
         assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
 
         parameters.setUseReactiveLimits(true);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-164.315, gen.getTerminal());
         assertReactivePowerEquals(-100, gen2.getTerminal()); // GEN is correctly limited to 100 MVar
         assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
@@ -152,7 +152,7 @@ class AcloadFlowReactiveLimitsTest {
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-164.315, gen.getTerminal());
         assertReactivePowerEquals(-120, gen2.getTerminal());
         assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
