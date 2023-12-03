@@ -6,15 +6,15 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.openloadflow.ac.equations.asym.AsymmetricalAcEquationSystemCreator;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.asym.AsymmetricalAcEquationSystemCreator;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**

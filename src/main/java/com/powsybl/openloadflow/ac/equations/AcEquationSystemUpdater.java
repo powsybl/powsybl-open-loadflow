@@ -20,10 +20,13 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
 
     private final AcEquationSystemCreator creator;
 
+    private final AcEquationSystemCreationContext creationContext;
+
     public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                   AcEquationSystemCreator creator) {
+                                   AcEquationSystemCreator creator, AcEquationSystemCreationContext creationContext) {
         super(equationSystem, LoadFlowModel.AC);
         this.creator = Objects.requireNonNull(creator);
+        this.creationContext = Objects.requireNonNull(creationContext);
     }
 
     private void updateVoltageControls(LfBus bus) {
@@ -127,7 +130,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         for (LfBus bus : network.getGraph().vertexSet()) {
             bus.getGeneratorVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> creator.recreateReactivePowerDistributionEquations(voltageControl, new AcEquationSystemCreationContext(equationSystem)));
+                    .ifPresent(voltageControl -> creator.recreateReactivePowerDistributionEquations(voltageControl, creationContext));
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(voltageControl, equationSystem));

@@ -859,7 +859,7 @@ public class AcEquationSystemCreator {
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
-        network.addListener(LfNetworkListenerTracer.trace(new AcEquationSystemUpdater(equationSystem, this)));
+        network.addListener(LfNetworkListenerTracer.trace(new AcEquationSystemUpdater(equationSystem, this, creationContext)));
     }
 
     public EquationSystem<AcVariableType, AcEquationType> create() {
