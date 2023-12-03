@@ -4,9 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac.equations;
+package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.DoubleWrapper;
@@ -154,12 +155,12 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                     double a1 = branchVector.a1Row[branchNum] != -1 ? state[branchVector.a1Row[branchNum]]
                                                                     : branchVector.a1[branchNum];
 
-                    double theta1 = AbstractClosedBranchAcFlowEquationTerm.theta1(
+                    double theta1 = AbstractClosedBranchVectorAcFlowEquationTerm.theta1(
                             branchVector.ksi[branchNum],
                             ph1,
                             a1,
                             ph2);
-                    double theta2 = AbstractClosedBranchAcFlowEquationTerm.theta2(
+                    double theta2 = AbstractClosedBranchVectorAcFlowEquationTerm.theta2(
                             branchVector.ksi[branchNum],
                             ph1,
                             a1,

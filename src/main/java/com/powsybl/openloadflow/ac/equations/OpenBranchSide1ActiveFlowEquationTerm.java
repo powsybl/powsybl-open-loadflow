@@ -8,6 +8,9 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -20,10 +23,14 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
 
     private final Variable<AcVariableType> v2Var;
 
-    public OpenBranchSide1ActiveFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus2Num,
-                                                 VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branchVector, branchNum, AcVariableType.BUS_V, bus2Num, variableSet, deriveA1, deriveR1);
-        v2Var = variableSet.getVariable(bus2Num, AcVariableType.BUS_V);
+    public OpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                 boolean deriveA1, boolean deriveR1) {
+        super(branch, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
+        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
+    }
+
+    private double v2() {
+        return sv.get(v2Var.getRow());
     }
 
     public static double p2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double v2) {
@@ -38,14 +45,14 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
 
     @Override
     public double eval() {
-        return branchVector.p2[num];
+        return p2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, v2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
-            return branchVector.dp2dv2[num];
+            return dp2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, v2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

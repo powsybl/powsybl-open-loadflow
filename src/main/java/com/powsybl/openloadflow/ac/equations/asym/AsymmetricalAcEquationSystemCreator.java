@@ -101,7 +101,6 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
     @Override
     protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, AcEquationSystemCreationContext creationContext) {
         var equationSystem = creationContext.getEquationSystem();
-        var branchVector = creationContext.getNetworkVector().getBranchVector();
 
         // positive sequence
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
@@ -130,24 +129,24 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
             if (!branch.isAsymmetric()) {
                 // no asymmetry is detected with this line, we handle the equations as decoupled
                 // positive
-                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
-                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
-                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
-                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
-                i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1);
-                i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1);
+                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
+                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
+                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
+                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
+                i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+                i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
 
                 // zero
-                ixz1 = new ClosedBranchI1xFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
-                iyz1 = new ClosedBranchI1yFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
-                ixz2 = new ClosedBranchI2xFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
-                iyz2 = new ClosedBranchI2yFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                ixz1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                iyz1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                ixz2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
+                iyz2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.ZERO);
 
                 // negative
-                ixn1 = new ClosedBranchI1xFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
-                iyn1 = new ClosedBranchI1yFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
-                ixn2 = new ClosedBranchI2xFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
-                iyn2 = new ClosedBranchI2yFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
+                ixn1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
+                iyn1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
+                ixn2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
+                iyn2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.NEGATIVE);
             } else {
                 // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
                 // positive

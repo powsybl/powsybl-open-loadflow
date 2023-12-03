@@ -18,15 +18,12 @@ import java.util.Objects;
  */
 public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
-    private final AcNetworkVector networkVector;
+    private final AcEquationSystemCreator creator;
 
-    private final AcEquationSystemCreationParameters parameters;
-
-    public AcEquationSystemUpdater(AcNetworkVector networkVector, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                   AcEquationSystemCreationParameters parameters) {
+    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                   AcEquationSystemCreator creator) {
         super(equationSystem, LoadFlowModel.AC);
-        this.networkVector = Objects.requireNonNull(networkVector);
-        this.parameters = Objects.requireNonNull(parameters);
+        this.creator = Objects.requireNonNull(creator);
     }
 
     private void updateVoltageControls(LfBus bus) {
@@ -130,7 +127,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         for (LfBus bus : network.getGraph().vertexSet()) {
             bus.getGeneratorVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateReactivePowerDistributionEquations(voltageControl, new AcEquationSystemCreationContext(equationSystem, networkVector), parameters));
+                    .ifPresent(voltageControl -> creator.recreateReactivePowerDistributionEquations(voltageControl, new AcEquationSystemCreationContext(equationSystem)));
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(voltageControl, equationSystem));

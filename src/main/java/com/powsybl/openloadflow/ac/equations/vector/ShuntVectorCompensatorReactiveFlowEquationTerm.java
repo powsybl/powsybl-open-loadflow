@@ -4,30 +4,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac.equations;
+package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfShunt;
 
 import java.util.List;
 import java.util.Objects;
 
+import static com.powsybl.openloadflow.ac.equations.ShuntCompensatorReactiveFlowEquationTerm.*;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompensatorEquationTerm {
+public class ShuntVectorCompensatorReactiveFlowEquationTerm extends AbstractShuntVectorCompensatorEquationTerm {
 
     private Variable<AcVariableType> bVar;
 
     private final List<Variable<AcVariableType>> variables;
 
-    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet, boolean deriveB) {
-        super(shunt, bus, variableSet);
+    public ShuntVectorCompensatorReactiveFlowEquationTerm(AcShuntVector shuntVector, int num, int busNum, VariableSet<AcVariableType> variableSet, boolean deriveB) {
+        super(shuntVector, num, busNum, variableSet);
         if (deriveB) {
-            bVar = variableSet.getVariable(shunt.getNum(), AcVariableType.SHUNT_B);
+            bVar = variableSet.getVariable(num, AcVariableType.SHUNT_B);
             variables = List.of(vVar, bVar);
         } else {
             variables = List.of(vVar);
@@ -40,33 +41,21 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
     }
 
     private double b() {
-        return bVar != null ? sv.get(bVar.getRow()) : element.getB();
-    }
-
-    public static double q(double v, double b) {
-        return -b * v * v;
-    }
-
-    public static double dqdv(double v, double b) {
-        return -2 * b * v;
-    }
-
-    public static double dqdb(double v) {
-        return -v * v;
+        return bVar != null ? sv.get(bVar.getRow()) : shuntVector.b[num];
     }
 
     @Override
     public double eval() {
-        return q(v(), b());
+        return shuntVector.q[num];
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
-            return dqdv(v(), b());
+            return shuntVector.dqdv[num];
         } else if (variable.equals(bVar)) {
-            return dqdb(v());
+            return shuntVector.dqdb[num];
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
