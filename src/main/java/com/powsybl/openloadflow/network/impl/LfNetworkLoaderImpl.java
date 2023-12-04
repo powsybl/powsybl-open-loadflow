@@ -380,11 +380,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     case VSC:
                         VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
                         lfBus.addVscConverterStation(vscConverterStation, parameters, report);
-                        loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
+                        if (converterStation.getHvdcLine() != null) {
+                            loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
+                        }
                         break;
                     case LCC:
                         lfBus.addLccConverterStation((LccConverterStation) converterStation, parameters);
-                        loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
+                        if (converterStation.getHvdcLine() != null) {
+                            loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
+                        }
                         break;
                     default:
                         throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
