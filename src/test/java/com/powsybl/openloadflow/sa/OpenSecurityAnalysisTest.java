@@ -2571,7 +2571,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("l1", List.of(new LoadContingency("l1"))));
 
         LoadFlowResult lfResult = loadFlowRunner.run(network, lfParameters);
-        assertTrue(lfResult.isOk());
+        assertTrue(lfResult.isFullyConverged());
 
         l1.getTerminal().disconnect();
         // l1 is only load, cannot distribute slack due to generators Pmin
@@ -2647,7 +2647,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         shunt.setVoltageRegulatorOn(true);
         shunt2.setVoltageRegulatorOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(393, b3);
         assertEquals(1, shunt.getSectionCount());
         assertEquals(0, shunt2.getSectionCount());
@@ -2657,7 +2657,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         g2.setTargetV(395);
         shunt.setSectionCount(0);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isOk());
+        assertTrue(result2.isFullyConverged());
         assertVoltageEquals(395, b3);
         assertEquals(1, shunt.getSectionCount());
         assertEquals(1, shunt2.getSectionCount());
