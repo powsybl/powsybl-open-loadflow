@@ -174,9 +174,9 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             branch.setQ2(branch.getClosedQ2());
             branch.setI2(branch.getClosedI2());
         } else if (!branch.isConnectedSide1() && branch.isConnectedSide2()) {
-            branch.setP1(EvaluableConstants.NAN);
-            branch.setQ1(EvaluableConstants.NAN);
-            branch.setI1(EvaluableConstants.NAN);
+            branch.setP1(EvaluableConstants.ZERO);
+            branch.setQ1(EvaluableConstants.ZERO);
+            branch.setI1(EvaluableConstants.ZERO);
             branch.setP2(branch.getOpenP2());
             branch.setQ2(branch.getOpenQ2());
             branch.setI2(branch.getOpenI2());
@@ -184,9 +184,9 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             branch.setP1(branch.getOpenP1());
             branch.setQ1(branch.getOpenQ1());
             branch.setI1(branch.getOpenI1());
-            branch.setP2(EvaluableConstants.NAN);
-            branch.setQ2(EvaluableConstants.NAN);
-            branch.setI2(EvaluableConstants.NAN);
+            branch.setP2(EvaluableConstants.ZERO);
+            branch.setQ2(EvaluableConstants.ZERO);
+            branch.setI2(EvaluableConstants.ZERO);
         } else {
             branch.setP1(EvaluableConstants.NAN);
             branch.setQ1(EvaluableConstants.NAN);

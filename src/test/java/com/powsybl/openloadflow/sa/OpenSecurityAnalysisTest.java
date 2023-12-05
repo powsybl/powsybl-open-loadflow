@@ -405,7 +405,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         assertEquals(new BusResult("b1_vl", "b1", 400, 0.007162421348571367), result.getPreContingencyResult().getNetworkResult().getBusResults().get(0));
         assertEquals(1, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
-        assertEquals(new BranchResult("l34", NaN, NaN, NaN, 0.0, -0.0, 0.0),
+        assertEquals(new BranchResult("l34", 0, 0, 0, 0.0, -0.0, 0.0),
                      result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0));
 
         network = DistributedSlackNetworkFactory.create();
@@ -486,7 +486,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors, parameters);
         assertEquals(1, result2.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().size());
         assertAlmostEquals(new ThreeWindingsTransformerResult("3wt", 161, 82, 258,
-                        -161, -74, 435, NaN, NaN, NaN),
+                        -161, -74, 435, 0, 0, 0),
                 result2.getPreContingencyResult().getNetworkResult().getThreeWindingsTransformerResults().get(0), 1);
     }
 
@@ -2717,8 +2717,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         double q1 = l1.getTerminal1().getQ();
         double p2 = l1.getTerminal2().getP();
         double q2 = l1.getTerminal2().getQ();
-        assertTrue(Double.isNaN(p1));
-        assertTrue(Double.isNaN(q1));
+        assertEquals(0, p1, 0);
+        assertEquals(0, q1, 0);
         assertEquals(0.016, p2, DELTA_POWER);
         assertEquals(-55.873, q2, DELTA_POWER);
 
@@ -2767,10 +2767,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         double l34q2 = l34.getTerminal2().getQ();
         assertEquals(0.002, l23p1, DELTA_POWER);
         assertEquals(-4.793, l23q1, DELTA_POWER);
-        assertTrue(Double.isNaN(l23p2));
-        assertTrue(Double.isNaN(l23q2));
-        assertTrue(Double.isNaN(l34p1));
-        assertTrue(Double.isNaN(l34q1));
+        assertEquals(0, l23p2, 0);
+        assertEquals(0, l23q2, 0);
+        assertEquals(0, l34p1, 0);
+        assertEquals(0, l34q1, 0);
         assertEquals(0, l34p2, DELTA_POWER);
         assertEquals(-1.334, l34q2, DELTA_POWER);
 
