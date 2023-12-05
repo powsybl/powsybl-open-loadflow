@@ -137,7 +137,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         //Default is only compute load flow on the main component
         assertEquals(1, result.getComponentResults().size());
@@ -152,7 +152,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(2, result.getComponentResults().size());
     }
 
@@ -164,7 +164,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         //Default is only compute load flow on the main component
         assertEquals(1, result.getComponentResults().size());
@@ -181,7 +181,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(2, result.getComponentResults().size());
     }
 

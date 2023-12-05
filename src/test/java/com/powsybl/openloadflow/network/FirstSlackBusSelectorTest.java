@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class FirstSlackBusSelectorTest {
     @Test
-    void testCountryToFiler() {
+    void testCountriesToFilter() {
         Network network = FourSubstationsNodeBreakerFactory.create();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
                 new FirstSlackBusSelector()).get(0);

@@ -108,7 +108,8 @@ public class ContingencyTripping {
                  LOAD,
                  SHUNT_COMPENSATOR,
                  STATIC_VAR_COMPENSATOR,
-                 BUSBAR_SECTION:
+                 BUSBAR_SECTION,
+                 BATTERY:
                 return ContingencyTripping.createInjectionTripping(network, (Injection<?>) identifiable);
             case THREE_WINDINGS_TRANSFORMER:
                 return ContingencyTripping.createThreeWindingsTransformerTripping(network, (ThreeWindingsTransformer) identifiable);

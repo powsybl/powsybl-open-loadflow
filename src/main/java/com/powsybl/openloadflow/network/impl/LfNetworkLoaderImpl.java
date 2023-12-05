@@ -380,11 +380,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     case VSC:
                         VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
                         lfBus.addVscConverterStation(vscConverterStation, parameters, report);
-                        loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
+                        if (converterStation.getHvdcLine() != null) {
+                            loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
+                        }
                         break;
                     case LCC:
                         lfBus.addLccConverterStation((LccConverterStation) converterStation, parameters);
-                        loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
+                        if (converterStation.getHvdcLine() != null) {
+                            loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
+                        }
                         break;
                     default:
                         throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
@@ -458,10 +462,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             for (ThreeSides side : ThreeSides.values()) {
                 ThreeWindingsTransformer.Leg leg = t3wt.getLeg(side);
                 LfBus lfBus = getLfBus(leg.getTerminal(), lfNetwork, parameters.isBreakers());
-                LfLegBranch lfBranch = LfLegBranch.create(lfNetwork, lfBus, lfBus0, t3wt, leg,
-                        topoConfig.isRetainedPtc(LfLegBranch.getId(side, t3wt.getId())),
-                        topoConfig.isRetainedRtc(LfLegBranch.getId(side, t3wt.getId())),
-                        parameters);
+                LfLegBranch lfBranch = LfLegBranch.create(lfNetwork, lfBus, lfBus0, t3wt, leg, topoConfig, parameters);
                 addBranch(lfNetwork, lfBranch, report);
                 postProcessors.forEach(pp -> pp.onBranchAdded(t3wt, lfBranch));
             }

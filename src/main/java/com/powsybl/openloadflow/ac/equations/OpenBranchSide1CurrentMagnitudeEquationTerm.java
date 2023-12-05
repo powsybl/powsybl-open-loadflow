@@ -26,9 +26,8 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private final Variable<AcVariableType> ph2Var;
 
-    public OpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                       boolean deriveA1, boolean deriveR1) {
-        super(branch, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
+    public OpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet) {
+        super(branch, AcVariableType.BUS_V, bus2, variableSet);
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
     }
