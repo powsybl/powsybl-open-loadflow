@@ -31,7 +31,7 @@ class AcLoadFlowLccTest {
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         Bus bus1 = network.getBusView().getBus("vl1_0");
         assertVoltageEquals(390, bus1);

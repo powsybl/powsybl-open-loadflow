@@ -45,7 +45,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean generatorVoltageControlEnabled = false;
 
-    protected boolean reactivePowerControlEnabled = false;
+    protected boolean generatorReactivePowerControlEnabled = false;
 
     protected Double generationTargetP;
 
@@ -71,7 +71,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private GeneratorVoltageControl generatorVoltageControl;
 
-    private ReactivePowerControl reactivePowerControl;
+    private GeneratorReactivePowerControl generatorReactivePowerControl;
 
     protected TransformerVoltageControl transformerVoltageControl;
 
@@ -101,7 +101,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isSlack() {
-        network.updateSlackBuses();
+        network.updateSlackBusesAndReferenceBus();
         return slack;
     }
 
@@ -112,7 +112,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isReference() {
-        network.updateSlackBuses();
+        network.updateSlackBusesAndReferenceBus();
         return reference;
     }
 
@@ -184,31 +184,31 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<ReactivePowerControl> getReactivePowerControl() {
-        return Optional.ofNullable(reactivePowerControl);
+    public Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl() {
+        return Optional.ofNullable(generatorReactivePowerControl);
     }
 
     @Override
-    public void setReactivePowerControl(ReactivePowerControl reactivePowerControl) {
-        this.reactivePowerControl = Objects.requireNonNull(reactivePowerControl);
+    public void setGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl) {
+        this.generatorReactivePowerControl = Objects.requireNonNull(generatorReactivePowerControl);
     }
 
     @Override
-    public boolean hasReactivePowerControl() {
-        return reactivePowerControl != null;
+    public boolean hasGeneratorReactivePowerControl() {
+        return generatorReactivePowerControl != null;
     }
 
     @Override
-    public boolean isReactivePowerControlEnabled() {
-        return reactivePowerControlEnabled;
+    public boolean isGeneratorReactivePowerControlEnabled() {
+        return generatorReactivePowerControlEnabled;
     }
 
     @Override
-    public void setReactivePowerControlEnabled(boolean reactivePowerControlEnabled) {
-        if (this.reactivePowerControlEnabled != reactivePowerControlEnabled) {
-            this.reactivePowerControlEnabled = reactivePowerControlEnabled;
+    public void setGeneratorReactivePowerControlEnabled(boolean generatorReactivePowerControlEnabled) {
+        if (this.generatorReactivePowerControlEnabled != generatorReactivePowerControlEnabled) {
+            this.generatorReactivePowerControlEnabled = generatorReactivePowerControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onReactivePowerControlChange(this, reactivePowerControlEnabled);
+                listener.onGeneratorReactivePowerControlChange(this, generatorReactivePowerControlEnabled);
             }
         }
     }
@@ -599,7 +599,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(generatorVoltageControlEnabled || reactivePowerControlEnabled ? (q.eval() + getLoadTargetQ()) : generationTargetQ,
+        updateGeneratorsState(generatorVoltageControlEnabled || generatorReactivePowerControlEnabled ? (q.eval() + getLoadTargetQ()) : generationTargetQ,
                 parameters.isReactiveLimits(), parameters.getReactivePowerDispatchMode());
 
         // update load power

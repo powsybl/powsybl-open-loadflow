@@ -42,7 +42,7 @@ class NewtonRaphsonStoppingCriteriaTest {
         OpenLoadFlowParameters.create(parameters)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.UNIFORM_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(2, result.getComponentResults().get(0).getIterationCount());
     }
@@ -53,7 +53,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setNewtonRaphsonConvEpsPerEq(0.1)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.UNIFORM_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(1, result.getComponentResults().get(0).getIterationCount());
     }
@@ -63,7 +63,7 @@ class NewtonRaphsonStoppingCriteriaTest {
         OpenLoadFlowParameters.create(parameters)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(2, result.getComponentResults().get(0).getIterationCount());
     }
@@ -74,7 +74,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setMaxVoltageMismatch(1)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(2, result.getComponentResults().get(0).getIterationCount());
     }
@@ -85,7 +85,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setMaxActivePowerMismatch(0.038)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(2, result.getComponentResults().get(0).getIterationCount());
     }
@@ -96,7 +96,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setMaxActivePowerMismatch(1E-15)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk());
+        assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
     }
 
@@ -106,7 +106,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setMaxReactivePowerMismatch(1E-11)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(5, result.getComponentResults().get(0).getIterationCount());
     }
@@ -117,7 +117,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setMaxReactivePowerMismatch(1E-15)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk());
+        assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
     }
 
@@ -127,7 +127,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setMaxAngleMismatch(1E-22)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
 
@@ -135,7 +135,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setMaxAngleMismatch(1E-30)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
     }
@@ -148,7 +148,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         parameters.setTransformerVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
     }
@@ -161,7 +161,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
     }
@@ -175,7 +175,7 @@ class NewtonRaphsonStoppingCriteriaTest {
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         double b1Q = network.getBusBreakerView().getBus("b1")
                 .getConnectedTerminalStream()
                 .map(Terminal::getQ)

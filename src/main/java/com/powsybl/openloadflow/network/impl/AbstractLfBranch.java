@@ -26,9 +26,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
-    private final LfBus bus1;
+    protected final LfBus bus1;
 
-    private final LfBus bus2;
+    protected final LfBus bus2;
 
     private final Map<LimitType, List<LfLimit>> limits1 = new EnumMap<>(LimitType.class);
 
@@ -55,7 +55,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected Evaluable a1;
 
-    private ReactivePowerControl reactivePowerControl;
+    private GeneratorReactivePowerControl generatorReactivePowerControl;
 
     protected LfAsymLine asymLine;
 
@@ -261,18 +261,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.a1 = a1;
     }
 
-    public Optional<ReactivePowerControl> getReactivePowerControl() {
-        return Optional.ofNullable(reactivePowerControl);
+    public Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl() {
+        return Optional.ofNullable(generatorReactivePowerControl);
     }
 
     @Override
-    public void setReactivePowerControl(ReactivePowerControl pReactivePowerControl) {
-        this.reactivePowerControl = Objects.requireNonNull(pReactivePowerControl);
+    public void setGeneratorReactivePowerControl(GeneratorReactivePowerControl pGeneratorReactivePowerControl) {
+        this.generatorReactivePowerControl = Objects.requireNonNull(pGeneratorReactivePowerControl);
     }
 
     @Override
     public boolean isConnectedAtBothSides() {
-        return bus1 != null && bus2 != null;
+        return isConnectedSide1() && isConnectedSide2();
     }
 
     @Override
