@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -400,12 +399,6 @@ public class PropagatedContingency {
                         });
                     }
                 });
-        allBranchIdsToOpen.putAll(branchIdsToOpen);
-
-        List<LfBranch> branchesToOpen = allBranchIdsToOpen.keySet().stream()
-                .map(network::getBranchById)
-                .filter(Objects::nonNull) // could be in another component
-                .collect(Collectors.toList());
 
         return branchesToOpen;
     }

@@ -56,8 +56,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private List<LfBus> slackBuses;
 
-    private LfBus referenceBus;
-
     private Set<LfBus> excludedSlackBuses = Collections.emptySet();
 
     private final List<LfBranch> branches = new ArrayList<>();
@@ -268,6 +266,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public LfBus getReferenceBus() {
+        updateSlackBusesAndReferenceBus();
         return referenceBus;
     }
 
@@ -280,11 +279,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return slackBuses;
     }
 
-    public LfBus getReferenceBus() {
-        updateSlackBusesAndReferenceBus();
-        return referenceBus;
-    }
-
     public Set<LfBus> getExcludedSlackBuses() {
         return excludedSlackBuses;
     }
@@ -293,7 +287,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         Objects.requireNonNull(excludedSlackBuses);
         if (!excludedSlackBuses.equals(this.excludedSlackBuses)) {
             this.excludedSlackBuses = excludedSlackBuses;
-            invalidateSlackBusesAndReferenceBus();
+            invalidateSlackAndReference();
         }
     }
 
