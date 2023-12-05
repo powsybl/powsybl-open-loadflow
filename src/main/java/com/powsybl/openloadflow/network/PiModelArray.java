@@ -247,11 +247,11 @@ public class PiModelArray implements PiModel {
     private Range<Integer> getAllowedPositionIndexRange(AllowedDirection allowedDirection) {
         switch (allowedDirection) {
             case INCREASE:
-                return Range.between(tapPositionIndex, models.size() - 1);
+                return Range.of(tapPositionIndex, models.size() - 1);
             case DECREASE:
-                return Range.between(0, tapPositionIndex);
+                return Range.of(0, tapPositionIndex);
             case BOTH:
-                return Range.between(0, models.size() - 1);
+                return Range.of(0, models.size() - 1);
             default:
                 throw new IllegalStateException("Unknown direction: " + allowedDirection);
         }
@@ -391,6 +391,6 @@ public class PiModelArray implements PiModel {
 
     @Override
     public Range<Integer> getTapPositionRange() {
-        return Range.between(lowTapPosition, lowTapPosition + models.size() - 1);
+        return Range.of(lowTapPosition, lowTapPosition + models.size() - 1);
     }
 }
