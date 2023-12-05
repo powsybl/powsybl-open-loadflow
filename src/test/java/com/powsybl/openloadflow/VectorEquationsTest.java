@@ -200,19 +200,19 @@ class VectorEquationsTest {
         // open branch equations
         branchVector = createBranchVector(null, bus2, false, false, equationSystem, v1Var, v2Var, ph1Var, ph2Var, a1Var, r1Var);
         assertArrayEquals(new double[] {0.1717595025847833, Double.NaN, Double.NaN, 0.3204828812456483, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
-                eval(new OpenBranchVectorSide1ActiveFlowEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet, false, false), variables, sv));
+                eval(new OpenBranchVectorSide1ActiveFlowEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet), variables, sv));
         assertArrayEquals(new double[] {-0.36364935827807376, Double.NaN, Double.NaN, -0.6785266162875639, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
-                eval(new OpenBranchVectorSide1ReactiveFlowEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet, false, false), variables, sv));
+                eval(new OpenBranchVectorSide1ReactiveFlowEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet), variables, sv));
         assertArrayEquals(new double[] {0.3752024940555977, Double.NaN, Double.NaN, 0.3500416993992393, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
-                eval(new OpenBranchVectorSide1CurrentMagnitudeEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet, false, false), variables, sv));
+                eval(new OpenBranchVectorSide1CurrentMagnitudeEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet), variables, sv));
 
         branchVector = createBranchVector(bus1, null, false, false, equationSystem, v1Var, v2Var, ph1Var, ph2Var, a1Var, r1Var);
         assertArrayEquals(new double[] {0.15639470221220209, Double.NaN, Double.NaN, 0.2919337476186018, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
-                eval(new OpenBranchVectorSide2ActiveFlowEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet, false, false), variables, sv));
+                eval(new OpenBranchVectorSide2ActiveFlowEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet), variables, sv));
         assertArrayEquals(new double[] {-0.33122369717493005, Double.NaN, Double.NaN, -0.6182778179094991, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
-                eval(new OpenBranchVectorSide2ReactiveFlowEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet, false, false), variables, sv));
+                eval(new OpenBranchVectorSide2ReactiveFlowEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet), variables, sv));
         assertArrayEquals(new double[] {0.34186721585930596, Double.NaN, Double.NaN, 0.31907275662806295, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
-                eval(new OpenBranchVectorSide2CurrentMagnitudeEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet, false, false), variables, sv));
+                eval(new OpenBranchVectorSide2CurrentMagnitudeEquationTerm(branchVector, branch.getNum(), bus2.getNum(), variableSet, false), variables, sv));
 
         branchVector = createBranchVector(bus1, bus2, true, true, equationSystem, v1Var, v2Var, ph1Var, ph2Var, a1Var, r1Var);
         // assert current equation is consistent with active and reactive power ones

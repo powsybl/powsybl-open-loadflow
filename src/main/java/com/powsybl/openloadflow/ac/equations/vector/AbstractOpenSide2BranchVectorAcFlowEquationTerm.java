@@ -21,12 +21,9 @@ abstract class AbstractOpenSide2BranchVectorAcFlowEquationTerm extends AbstractB
 
     protected AbstractOpenSide2BranchVectorAcFlowEquationTerm(AcBranchVector branchVector, int branchNum,
                                                               AcVariableType variableType, int bus1Num,
-                                                              VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
+                                                              VariableSet<AcVariableType> variableSet) {
         super(branchVector, branchNum);
         variables = List.of(variableSet.getVariable(bus1Num, variableType));
-        if (deriveA1 || deriveR1) {
-            throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branchNum);
-        }
     }
 
     protected static double shunt(double y, double cosKsi, double sinKsi, double g2, double b2) {

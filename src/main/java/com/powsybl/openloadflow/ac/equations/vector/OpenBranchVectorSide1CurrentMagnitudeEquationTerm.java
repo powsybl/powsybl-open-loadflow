@@ -26,8 +26,8 @@ public class OpenBranchVectorSide1CurrentMagnitudeEquationTerm extends AbstractO
     private final Variable<AcVariableType> ph2Var;
 
     public OpenBranchVectorSide1CurrentMagnitudeEquationTerm(AcBranchVector branchVector, int branchNum, int bus2Num,
-                                                             VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branchVector, branchNum, AcVariableType.BUS_V, bus2Num, variableSet, deriveA1, deriveR1);
+                                                             VariableSet<AcVariableType> variableSet) {
+        super(branchVector, branchNum, AcVariableType.BUS_V, bus2Num, variableSet);
         v2Var = variableSet.getVariable(bus2Num, AcVariableType.BUS_V);
         ph2Var = variableSet.getVariable(bus2Num, AcVariableType.BUS_PHI);
     }
