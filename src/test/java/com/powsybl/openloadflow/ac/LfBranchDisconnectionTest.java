@@ -50,8 +50,8 @@ class LfBranchDisconnectionTest {
             result = new AcloadFlowEngine(context)
                     .run();
             assertEquals(AcSolverStatus.CONVERGED, result.getSolverStatus());
-            assertTrue(Double.isNaN(lfl1.getP1().eval()));
-            assertTrue(Double.isNaN(lfl1.getQ1().eval()));
+            assertEquals(0, lfl1.getP1().eval(), 0);
+            assertEquals(0, lfl1.getQ1().eval(), 0);
             assertEquals(1.587E-4, lfl1.getP2().eval(), DELTA);
             assertEquals(-0.5432, lfl1.getQ2().eval(), DELTA);
 
@@ -70,8 +70,8 @@ class LfBranchDisconnectionTest {
             assertEquals(AcSolverStatus.CONVERGED, result.getSolverStatus());
             assertEquals(1.752e-4, lfl1.getP1().eval(), DELTA);
             assertEquals(-0.61995, lfl1.getQ1().eval(), DELTA);
-            assertTrue(Double.isNaN(lfl1.getP2().eval()));
-            assertTrue(Double.isNaN(lfl1.getQ2().eval()));
+            assertEquals(0, lfl1.getP2().eval(), 0);
+            assertEquals(0, lfl1.getQ2().eval(), 0);
 
             lfl1.setConnectedSide2(true);
             result = new AcloadFlowEngine(context)

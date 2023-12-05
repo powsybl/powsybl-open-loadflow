@@ -52,6 +52,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
 
+    private LfBus referenceBus;
+
     private List<LfBus> slackBuses;
 
     private LfBus referenceBus;
@@ -161,19 +163,21 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         this.reporter = Objects.requireNonNull(reporter);
     }
 
-    private void invalidateSlackBusesAndReferenceBus() {
+    private void invalidateSlackAndReference() {
         if (slackBuses != null) {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(false);
             }
-            referenceBus.setReference(false);
         }
         slackBuses = null;
+        if (referenceBus != null) {
+            referenceBus.setReference(false);
+        }
         referenceBus = null;
     }
 
     public void updateSlackBusesAndReferenceBus() {
-        if (slackBuses == null) {
+        if (slackBuses == null || referenceBus == null) {
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses().stream()
                     .filter(bus -> !excludedSlackBuses.contains(bus))
@@ -203,7 +207,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         branch.setNum(branches.size());
         branches.add(branch);
         branchesById.put(branch.getId(), branch);
-        invalidateSlackBusesAndReferenceBus();
+        invalidateSlackAndReference();
         connectivity = null;
         invalidateZeroImpedanceNetworks();
 
@@ -240,7 +244,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         bus.setNum(busesByIndex.size());
         busesByIndex.add(bus);
         busesById.put(bus.getId(), bus);
-        invalidateSlackBusesAndReferenceBus();
+        invalidateSlackAndReference();
         connectivity = null;
 
         bus.getShunt().ifPresent(this::addShunt);
@@ -261,6 +265,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public LfBus getBus(int num) {
         return busesByIndex.get(num);
+    }
+
+    public LfBus getReferenceBus() {
+        return referenceBus;
     }
 
     public LfBus getSlackBus() {

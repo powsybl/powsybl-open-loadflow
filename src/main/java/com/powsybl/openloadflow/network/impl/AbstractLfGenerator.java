@@ -250,7 +250,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     public static boolean checkTargetV(String generatorId, double targetV, double nominalV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         // check that targetV has a plausible value (wrong nominal voltage issue)
         if (nominalV > parameters.getMinNominalVoltageTargetVoltageCheck() &&
-                (targetV < parameters.getMinPlausibleTargetVoltage() || targetV > parameters.getMaxPlausibleTargetVoltage())) {
+                LfGenerator.isTargetVoltageNotPlausible(targetV, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage())) {
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu: generator voltage control discarded",
                 generatorId, targetV);
             if (report != null) {

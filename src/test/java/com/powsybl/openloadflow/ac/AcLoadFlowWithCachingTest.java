@@ -449,7 +449,7 @@ class AcLoadFlowWithCachingTest {
         parameters.setTransformerVoltageControlOn(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
     }
 }

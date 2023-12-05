@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -623,14 +624,15 @@ public class AcEquationSystemCreator {
 
     protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
                                         EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // current equations are always closed ones
-        EquationTerm<AcVariableType, AcEquationType> p1 = null;
-        EquationTerm<AcVariableType, AcEquationType> q1 = null;
-        EquationTerm<AcVariableType, AcEquationType> p2 = null;
-        EquationTerm<AcVariableType, AcEquationType> q2 = null;
-        EquationTerm<AcVariableType, AcEquationType> i1 = null;
-        EquationTerm<AcVariableType, AcEquationType> i2 = null;
+        // effective equations, could be closed one or open one
+        Evaluable p1 = null;
+        Evaluable q1 = null;
+        Evaluable p2 = null;
+        Evaluable q2 = null;
+        Evaluable i1 = null;
+        Evaluable i2 = null;
 
+        // closed equations, could be null because line already open on base case
         EquationTerm<AcVariableType, AcEquationType> closedP1 = null;
         EquationTerm<AcVariableType, AcEquationType> closedQ1 = null;
         EquationTerm<AcVariableType, AcEquationType> closedI1 = null;
@@ -678,10 +680,16 @@ public class AcEquationSystemCreator {
             p1 = openP1;
             q1 = openQ1;
             i1 = openI1;
+            p2 = EvaluableConstants.ZERO;
+            q2 = EvaluableConstants.ZERO;
+            i2 = EvaluableConstants.ZERO;
         } else if (bus2 != null) {
             openP2 = new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet());
             openQ2 = new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet());
             openI2 = new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, equationSystem.getVariableSet());
+            p1 = EvaluableConstants.ZERO;
+            q1 = EvaluableConstants.ZERO;
+            i1 = EvaluableConstants.ZERO;
             p2 = openP2;
             q2 = openQ2;
             i2 = openI2;
@@ -703,8 +711,8 @@ public class AcEquationSystemCreator {
     }
 
     protected static void createImpedantBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                        EquationTerm<AcVariableType, AcEquationType> p1, EquationTerm<AcVariableType, AcEquationType> q1, EquationTerm<AcVariableType, AcEquationType> i1,
-                                                        EquationTerm<AcVariableType, AcEquationType> p2, EquationTerm<AcVariableType, AcEquationType> q2, EquationTerm<AcVariableType, AcEquationType> i2,
+                                                        Evaluable p1, Evaluable q1, Evaluable i1,
+                                                        Evaluable p2, Evaluable q2, Evaluable i2,
                                                         EquationTerm<AcVariableType, AcEquationType> closedP1, EquationTerm<AcVariableType, AcEquationType> closedQ1, EquationTerm<AcVariableType, AcEquationType> closedI1,
                                                         EquationTerm<AcVariableType, AcEquationType> closedP2, EquationTerm<AcVariableType, AcEquationType> closedQ2, EquationTerm<AcVariableType, AcEquationType> closedI2,
                                                         EquationTerm<AcVariableType, AcEquationType> openP1, EquationTerm<AcVariableType, AcEquationType> openQ1, EquationTerm<AcVariableType, AcEquationType> openI1,

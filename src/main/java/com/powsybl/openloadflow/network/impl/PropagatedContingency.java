@@ -17,6 +17,7 @@ import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -188,7 +189,7 @@ public class PropagatedContingency {
         return propagatedContingency;
     }
 
-    private void addBranchIdToOpen(String branchId, DisabledBranchStatus status) {
+    private <K> void addBranchToOpen(K branchId, DisabledBranchStatus status, Map<K, DisabledBranchStatus> branchIdsToOpen) {
         DisabledBranchStatus oldStatus = branchIdsToOpen.get(branchId);
         if (oldStatus == null) {
             branchIdsToOpen.put(branchId, status);
@@ -199,7 +200,7 @@ public class PropagatedContingency {
 
     private void complete(LfTopoConfig topoConfig, PropagatedContingencyCreationParameters creationParameters) {
         for (Switch sw : switchesToOpen) {
-            addBranchIdToOpen(sw.getId(), DisabledBranchStatus.BOTH_SIDES); // we open both sides
+            addBranchToOpen(sw.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen); // we open both sides
         }
 
         // process terminals disconnected, in particular process injection power shift
@@ -210,10 +211,10 @@ public class PropagatedContingency {
                      TWO_WINDINGS_TRANSFORMER:
                     Branch<?> branch = (Branch<?>) connectable;
                     if (terminal == branch.getTerminal1()) {
-                        addBranchIdToOpen(connectable.getId(), DisabledBranchStatus.SIDE_1);
+                        addBranchToOpen(connectable.getId(), DisabledBranchStatus.SIDE_1, branchIdsToOpen);
                         topoConfig.getBranchIdsOpenableSide1().add(connectable.getId());
                     } else {
-                        addBranchIdToOpen(connectable.getId(), DisabledBranchStatus.SIDE_2);
+                        addBranchToOpen(connectable.getId(), DisabledBranchStatus.SIDE_2, branchIdsToOpen);
                         topoConfig.getBranchIdsOpenableSide2().add(connectable.getId());
                     }
                     break;
@@ -221,9 +222,9 @@ public class PropagatedContingency {
                     DanglingLine dl = (DanglingLine) connectable;
                     // as we terminal is only on network side, we open both sides in LF network
                     if (dl.isPaired()) {
-                        addBranchIdToOpen(dl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES);
+                        addBranchToOpen(dl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     } else {
-                        addBranchIdToOpen(dl.getId(), DisabledBranchStatus.BOTH_SIDES);
+                        addBranchToOpen(dl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     }
                     break;
 
@@ -275,7 +276,7 @@ public class PropagatedContingency {
                     ThreeWindingsTransformer twt = (ThreeWindingsTransformer) connectable;
                     for (ThreeSides side : ThreeSides.values()) {
                         if (twt.getTerminal(side) == terminal) {
-                            addBranchIdToOpen(LfLegBranch.getId(side, connectable.getId()), DisabledBranchStatus.SIDE_1);
+                            addBranchToOpen(LfLegBranch.getId(side, connectable.getId()), DisabledBranchStatus.SIDE_1, branchIdsToOpen);
                             topoConfig.getBranchIdsOpenableSide1().add(LfLegBranch.getId(connectable.getId(), side.getNum()));
                             break;
                         }
@@ -378,13 +379,13 @@ public class PropagatedContingency {
         return connectivity.getConnectedComponent(bus).size() < network.getBuses().size() / 2;
     }
 
-    public Optional<LfContingency> toLfContingency(LfNetwork network) {
-        // update connectivity with triggered lostBranches of this network
-        GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
-        connectivity.startTemporaryChanges();
+    private Map<LfBranch, DisabledBranchStatus> findBranchToOpenDirectlyImpactedByContingency(LfNetwork network) {
+        // we add the branches connected to buses to lose.
+        Map<LfBranch, DisabledBranchStatus> branchesToOpen = branchIdsToOpen.entrySet().stream()
+                .map(e -> Pair.of(network.getBranchById(e.getKey()), e.getValue()))
+                .filter(e -> e.getKey() != null)
+                .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
 
-        // we add the lostBranches connected to lostBuses to lose.
-        Map<String, DisabledBranchStatus> allBranchIdsToOpen = new HashMap<>();
         busIdsToLose.stream().map(network::getBusById)
                 .filter(Objects::nonNull)
                 .forEach(bus -> {
@@ -393,7 +394,10 @@ public class PropagatedContingency {
                         // we keep the slack bus enabled and the connected lostBranches
                         LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", bus.getId());
                     } else {
-                        bus.getBranches().forEach(branch -> allBranchIdsToOpen.put(branch.getId(), branch.getBus1() == bus ? DisabledBranchStatus.SIDE_1 : DisabledBranchStatus.SIDE_2));
+                        bus.getBranches().forEach(branch -> {
+                            DisabledBranchStatus status = branch.getBus1() == bus ? DisabledBranchStatus.SIDE_1 : DisabledBranchStatus.SIDE_2;
+                            addBranchToOpen(branch, status, branchesToOpen);
+                        });
                     }
                 });
         allBranchIdsToOpen.putAll(branchIdsToOpen);
@@ -403,40 +407,74 @@ public class PropagatedContingency {
                 .filter(Objects::nonNull) // could be in another component
                 .collect(Collectors.toList());
 
-        branchesToOpen.stream()
-                .filter(LfBranch::isConnectedAtBothSides)
-                .forEach(connectivity::removeEdge);
+        return branchesToOpen;
+    }
 
-        if (isIsolatedBus(connectivity, network, network.getSlackBus())) {
-            LOGGER.warn("Contingency '{}' leads to an isolated slack bus: relocate slack bus inside main component",
-                    contingency.getId());
-            // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
-            // we select a new slack bus excluding buses from isolated component
-            Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getVerticesRemovedFromMainComponent());
-            network.setExcludedSlackBuses(excludedBuses);
-            // reverse main component to the one containing the relocated slack bus
-            connectivity.setMainComponentVertex(network.getSlackBus());
+    record ContingencyConnectivityLossImpact(boolean ok, int createdSynchronousComponents, Set<LfBus> busesToLost) {
+    }
+
+    private ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen) {
+        // update connectivity with triggered branches of this network
+        GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+        connectivity.startTemporaryChanges();
+        try {
+            branchesToOpen.keySet().stream()
+                    .filter(LfBranch::isConnectedAtBothSides)
+                    .forEach(connectivity::removeEdge);
+
+            if (isIsolatedBus(connectivity, network, network.getSlackBus())) {
+                LOGGER.warn("Contingency '{}' leads to an isolated slack bus: relocate slack bus inside main component",
+                        contingency.getId());
+                // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
+                // we select a new slack bus excluding buses from isolated component
+                Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getVerticesRemovedFromMainComponent());
+                network.setExcludedSlackBuses(excludedBuses);
+                // reverse main component to the one containing the relocated slack bus
+                connectivity.setMainComponentVertex(network.getSlackBus());
+            }
+
+            // add to contingency description buses and branches that won't be part of the main connected
+            // component in post contingency state
+            int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
+            Set<LfBus> busesToLost = connectivity.getVerticesRemovedFromMainComponent();
+
+            return new ContingencyConnectivityLossImpact(true, createdSynchronousComponents, busesToLost);
+        } finally {
+            // reset connectivity to discard triggered elements
+            connectivity.undoTemporaryChanges();
         }
+    }
 
-        // add to contingency description buses and branches that won't be part of the main connected
-        // component in post contingency state
-        int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
-        Set<LfBus> lostBuses = connectivity.getVerticesRemovedFromMainComponent();
-        Map<LfBranch, DisabledBranchStatus> lostBranches = connectivity.getEdgesRemovedFromMainComponent().stream()
-                .collect(Collectors.toMap(Function.identity(), branch -> allBranchIdsToOpen.getOrDefault(branch.getId(), DisabledBranchStatus.BOTH_SIDES)));
+    public Optional<LfContingency> toLfContingency(LfNetwork network) {
+        // find branch to open because of direct impact of the contingency (including propagation is activated)
+        Map<LfBranch, DisabledBranchStatus> branchesToOpen = findBranchToOpenDirectlyImpactedByContingency(network);
 
-        // we should manage branches open at one side
-        branchesToOpen.stream()
-                .filter(branch -> !branch.isConnectedAtBothSides())
-                .forEach(branch -> lostBranches.put(branch, allBranchIdsToOpen.get(branch.getId())));
-        for (LfBus bus : lostBuses) {
-            bus.getBranches().stream()
-                    .filter(branch -> !branch.isConnectedAtBothSides())
-                    .forEach(branch -> lostBranches.put(branch, DisabledBranchStatus.BOTH_SIDES));
+        // find branches to open and buses to lost not directly from the contingency impact but as a consequence of
+        // loss of connectivity once contingency applied on the network
+        ContingencyConnectivityLossImpact connectivityLossImpact = findBusesAndBranchesImpactedBecauseOfConnectivityLoss(network, branchesToOpen);
+        if (!connectivityLossImpact.ok) {
+            return Optional.empty();
         }
+        Set<LfBus> busesToLost = connectivityLossImpact.busesToLost(); // nothing else
 
-        // reset connectivity to discard triggered lostBranches
-        connectivity.undoTemporaryChanges();
+        for (LfBus busToLost : busesToLost) {
+            busToLost.getBranches()
+                    .forEach(branch -> {
+                        // fully disable if branch is connected to 2 buses to lost or open on the other side
+                        LfBus otherSideBus;
+                        boolean otherSideConnected;
+                        if (branch.getBus1() == busToLost) {
+                            otherSideBus = branch.getBus2();
+                            otherSideConnected = branch.isConnectedSide2();
+                        } else {
+                            otherSideBus = branch.getBus1();
+                            otherSideConnected = branch.isConnectedSide1();
+                        }
+                        if (busesToLost.contains(otherSideBus) || !otherSideConnected) {
+                            addBranchToOpen(branch, DisabledBranchStatus.BOTH_SIDES, branchesToOpen);
+                        }
+                    });
+        }
 
         Map<LfShunt, AdmittanceShift> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {
@@ -477,13 +515,13 @@ public class PropagatedContingency {
             // FIXME
             // if we loose a bus with a converter station, the other converter station should be considered to if in the
             // same synchronous component (hvdc setpoint mode).
-            if (lostBuses.contains(hvdcLine.getBus1()) || lostBuses.contains(hvdcLine.getBus2())) {
+            if (busesToLost.contains(hvdcLine.getBus1()) || busesToLost.contains(hvdcLine.getBus2())) {
                 lostHvdcs.add(hvdcLine);
             }
         }
 
-        if (lostBranches.isEmpty()
-                && lostBuses.isEmpty()
+        if (branchesToOpen.isEmpty()
+                && busesToLost.isEmpty()
                 && shunts.isEmpty()
                 && loads.isEmpty()
                 && generators.isEmpty()
@@ -492,6 +530,6 @@ public class PropagatedContingency {
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, new DisabledNetwork(lostBuses, lostBranches, lostHvdcs), shunts, loads, generators));
+        return Optional.of(new LfContingency(contingency.getId(), index, connectivityLossImpact.createdSynchronousComponents, new DisabledNetwork(busesToLost, branchesToOpen, lostHvdcs), shunts, loads, generators));
     }
 }
