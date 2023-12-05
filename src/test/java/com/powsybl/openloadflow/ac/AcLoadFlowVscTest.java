@@ -272,4 +272,13 @@ class AcLoadFlowVscTest {
         assertActivePowerEquals(-50.00, l12.getTerminal2());
         assertReactivePowerEquals(-624.750, l12.getTerminal2());
     }
+
+    @Test
+    void testVscConverterWithoutHvdcLineNpe() {
+        Network network = HvdcNetworkFactory.createVsc();
+        network.getHvdcLine("hvdc23").remove();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network);
+        assertTrue(result.isFullyConverged());
+    }
 }
