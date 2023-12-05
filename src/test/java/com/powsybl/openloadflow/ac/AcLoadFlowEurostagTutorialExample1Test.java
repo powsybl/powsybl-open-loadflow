@@ -120,8 +120,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertAngleEquals(-9.719157, bus2);
         assertVoltageEquals(141.103, loadBus);
         assertAngleEquals(-16.372920, loadBus);
-        assertUndefinedActivePower(line1.getTerminal1());
-        assertUndefinedReactivePower(line1.getTerminal1());
+        assertActivePowerEquals(0, line1.getTerminal1());
+        assertReactivePowerEquals(0, line1.getTerminal1());
         assertActivePowerEquals(0.016, line1.getTerminal2());
         assertReactivePowerEquals(-54.321, line1.getTerminal2());
         assertActivePowerEquals(609.544, line2.getTerminal1());
@@ -147,8 +147,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertAngleEquals(-16.649943, loadBus);
         assertActivePowerEquals(0.01812, line1.getTerminal1());
         assertReactivePowerEquals(-61.995296, line1.getTerminal1());
-        assertUndefinedActivePower(line1.getTerminal2());
-        assertUndefinedReactivePower(line1.getTerminal2());
+        assertActivePowerEquals(0, line1.getTerminal2());
+        assertReactivePowerEquals(0, line1.getTerminal2());
         assertActivePowerEquals(610.417, line2.getTerminal1());
         assertReactivePowerEquals(330.862, line2.getTerminal1());
         assertActivePowerEquals(-600.983, line2.getTerminal2());
