@@ -75,7 +75,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
     @Test
     void baseCaseTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(24.5, genBus);
@@ -103,7 +103,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
     void dcLfVoltageInitTest() {
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
     }
 
@@ -112,7 +112,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         line1.getTerminal1().disconnect();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(24.5, genBus);
         assertAngleEquals(0, genBus);
@@ -122,8 +122,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertAngleEquals(-9.719157, bus2);
         assertVoltageEquals(141.103, loadBus);
         assertAngleEquals(-16.372920, loadBus);
-        assertUndefinedActivePower(line1.getTerminal1());
-        assertUndefinedReactivePower(line1.getTerminal1());
+        assertActivePowerEquals(0, line1.getTerminal1());
+        assertReactivePowerEquals(0, line1.getTerminal1());
         assertActivePowerEquals(0.016, line1.getTerminal2());
         assertReactivePowerEquals(-54.321, line1.getTerminal2());
         assertActivePowerEquals(609.544, line2.getTerminal1());
@@ -137,7 +137,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         line1.getTerminal2().disconnect();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(24.5, genBus);
         assertAngleEquals(0, genBus);
@@ -149,8 +149,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertAngleEquals(-16.649943, loadBus);
         assertActivePowerEquals(0.01812, line1.getTerminal1());
         assertReactivePowerEquals(-61.995296, line1.getTerminal1());
-        assertUndefinedActivePower(line1.getTerminal2());
-        assertUndefinedReactivePower(line1.getTerminal2());
+        assertActivePowerEquals(0, line1.getTerminal2());
+        assertReactivePowerEquals(0, line1.getTerminal2());
         assertActivePowerEquals(610.417, line2.getTerminal1());
         assertReactivePowerEquals(330.862, line2.getTerminal1());
         assertActivePowerEquals(-600.983, line2.getTerminal2());
@@ -163,7 +163,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         line1.getTerminal2().disconnect();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(24.5, genBus);
         assertAngleEquals(0, genBus);
@@ -197,7 +197,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(152.327, loadBus);
         assertReactivePowerEquals(52.987, line1.getTerminal1());
@@ -224,7 +224,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .add();
         // check that the issue that add an undefined targetQ (NaN) to bus generation sum is solved
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
     }
 
     @Test
@@ -236,7 +236,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .withTerminal(load.getTerminal())
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertNotNull(vlload.getExtension(SlackTerminal.class));
         assertNull(vlgen.getExtension(SlackTerminal.class));
         assertNull(vlhv1.getExtension(SlackTerminal.class));
@@ -251,7 +251,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertNull(vlhv1.getExtension(SlackTerminal.class));
         assertNull(vlhv2.getExtension(SlackTerminal.class));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertNotNull(vlgen.getExtension(SlackTerminal.class));
         assertNull(vlload.getExtension(SlackTerminal.class));
         assertNull(vlhv1.getExtension(SlackTerminal.class));
@@ -262,7 +262,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
     void lineWithDifferentNominalVoltageTest() {
         network.getVoltageLevel("VLHV2").setNominalV(420);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(24.5, genBus);
@@ -277,7 +277,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
         ReporterModel reporter = new ReporterModel("unitTest", "");
         LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reporter);
-        assertFalse(result.isOk());
+        assertFalse(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
 
@@ -304,14 +304,14 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
         parameters.setUseReactiveLimits(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk());
+        assertFalse(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
 
         // but if we do not take into account reactive limits in parameters, calculation should be ok
         parameters.setUseReactiveLimits(false);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
     }
@@ -346,7 +346,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-70.783, network.getShuntCompensator("SC").getTerminal());
         assertReactivePowerEquals(70.783, network.getShuntCompensator("SC2").getTerminal());
     }
@@ -381,7 +381,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(0, network.getShuntCompensator("SC").getTerminal());
         assertReactivePowerEquals(0, network.getShuntCompensator("SC2").getTerminal());
     }
@@ -409,7 +409,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setVoltageRegulatorOn(true)
                 .add();
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isOk());
+        assertTrue(result2.isFullyConverged());
         assertActivePowerEquals(Double.NaN, gen.getTerminal());
         assertReactivePowerEquals(Double.NaN, gen.getTerminal());
     }
@@ -463,7 +463,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         parameters.setDistributedSlack(true);
         parametersExt.setMaxOuterLoopIterations(1);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk());
+        assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
     }
 

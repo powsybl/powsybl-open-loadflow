@@ -120,8 +120,14 @@ public class LfContingency {
     }
 
     public void apply(LoadFlowParameters.BalanceType balanceType) {
-        for (LfBranch branch : disabledNetwork.getBranches()) {
-            branch.setDisabled(true);
+        for (Map.Entry<LfBranch, DisabledBranchStatus> e : disabledNetwork.getBranchesStatus().entrySet()) {
+            LfBranch branch = e.getKey();
+            DisabledBranchStatus status = e.getValue();
+            switch (status) {
+                case BOTH_SIDES -> branch.setDisabled(true);
+                case SIDE_1 -> branch.setConnectedSide1(false);
+                case SIDE_2 -> branch.setConnectedSide2(false);
+            }
         }
         for (LfHvdc hvdc : disabledNetwork.getHvdcs()) {
             hvdc.setDisabled(true);
@@ -153,7 +159,7 @@ public class LfContingency {
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                 bus.getGeneratorVoltageControl().ifPresent(vc -> vc.updateReactiveKeys());
-                bus.getReactivePowerControl().ifPresent(rc -> rc.updateReactiveKeys());
+                bus.getGeneratorReactivePowerControl().ifPresent(rc -> rc.updateReactiveKeys());
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
@@ -170,7 +176,7 @@ public class LfContingency {
                 bus.setGeneratorVoltageControlEnabled(false);
             }
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
-                bus.setReactivePowerControlEnabled(false);
+                bus.setGeneratorReactivePowerControlEnabled(false);
             }
         }
     }

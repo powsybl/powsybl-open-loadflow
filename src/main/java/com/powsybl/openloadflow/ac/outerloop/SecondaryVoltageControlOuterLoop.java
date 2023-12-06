@@ -19,10 +19,12 @@ import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableDouble;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -36,9 +38,18 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     private static final double DV_EPS = 1E-4; // 0.1 kV
     private static final double DK_DIFF_MAX_EPS = 1E-3; // 1 MVar
 
+    private final double minPlausibleTargetVoltage;
+
+    private final double maxPlausibleTargetVoltage;
+
     @Override
     public String getName() {
         return NAME;
+    }
+
+    public SecondaryVoltageControlOuterLoop(double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+        this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
+        this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
     }
 
     private static Map<Integer, Integer> buildBusIndex(List<LfBus> buses) {
@@ -217,8 +228,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return secondaryVoltageControl.getTargetValue() - secondaryVoltageControl.getPilotBus().getV();
     }
 
-    private List<String> processSecondaryVoltageControl(List<LfSecondaryVoltageControl> secondaryVoltageControls,
-                                                        SensitivityContext sensitivityContext) {
+    private Optional<List<String>> processSecondaryVoltageControl(List<LfSecondaryVoltageControl> secondaryVoltageControls,
+                                                                  SensitivityContext sensitivityContext) {
         List<String> adjustedZoneNames = new ArrayList<>();
 
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
@@ -237,7 +248,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         }
 
         if (adjustedZoneNames.isEmpty()) {
-            return Collections.emptyList();
+            return Optional.of(Collections.emptyList());
         }
 
         List<LfBus> allControllerBuses = secondaryVoltageControls.stream()
@@ -277,18 +288,46 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         @SuppressWarnings("UnnecessaryLocalVariable")
         DenseMatrix dv = rhs;
 
+        // compute new controlled bus target voltages
+        Map<LfBus, Double> newControlledBusTargetV = new HashMap<>(allControllerBuses.size());
         for (LfBus controllerBus : allControllerBuses) {
             int i = controllerBusIndex.get(controllerBus.getNum());
-            var pvc = controllerBus.getGeneratorVoltageControl().orElseThrow();
-            LfBus controlledBus = pvc.getControlledBus();
-            double newPvcTargetV = pvc.getTargetValue() + dv.get(i, 0);
-            LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}",
-                    controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
-                    newPvcTargetV * controlledBus.getNominalV());
-            pvc.setTargetValue(newPvcTargetV);
+            var vc = controllerBus.getGeneratorVoltageControl().orElseThrow();
+            LfBus controlledBus = vc.getControlledBus();
+            double newTargetV = vc.getTargetValue() + dv.get(i, 0);
+            newControlledBusTargetV.put(controlledBus, newTargetV);
         }
 
-        return adjustedZoneNames;
+        Map<LfBus, Double> notPlausibleNewControlledBusTargetV = newControlledBusTargetV.entrySet()
+                .stream()
+                .filter(e -> {
+                    double newTargetV = e.getValue();
+                    return LfGenerator.isTargetVoltageNotPlausible(newTargetV, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+                })
+                .map(e -> {
+                    // convert target to Kv for better display
+                    LfBus controlledBus = e.getKey();
+                    double newTargetV = e.getValue();
+                    return Pair.of(controlledBus, newTargetV * controlledBus.getNominalV());
+                })
+                .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+        if (notPlausibleNewControlledBusTargetV.isEmpty()) {
+            for (var e : newControlledBusTargetV.entrySet()) {
+                LfBus controlledBus = e.getKey();
+                double newTargetV = e.getValue();
+                var vc = controlledBus.getGeneratorVoltageControl().orElseThrow();
+                LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}",
+                        controlledBus.getId(), vc.getTargetValue() * controlledBus.getNominalV(),
+                        newTargetV * controlledBus.getNominalV());
+                vc.setTargetValue(newTargetV);
+            }
+        } else {
+            LOGGER.error("Skipping all controlled bus target voltage adjustment because some of the calculated new target voltages are not plausible: {}",
+                    notPlausibleNewControlledBusTargetV);
+            return Optional.empty();
+        }
+
+        return Optional.of(adjustedZoneNames);
     }
 
     private static void classifyControllerBuses(LfSecondaryVoltageControl control, List<LfBus> allControllerBuses,
@@ -381,11 +420,15 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-        List<String> adjustedZoneNames = processSecondaryVoltageControl(secondaryVoltageControls, sensitivityContext);
-        if (!adjustedZoneNames.isEmpty()) {
-            status = OuterLoopStatus.UNSTABLE;
-            LOGGER.info("{} secondary voltage control zones have been adjusted: {}",
-                    adjustedZoneNames.size(), adjustedZoneNames);
+        List<String> adjustedZoneNames = processSecondaryVoltageControl(secondaryVoltageControls, sensitivityContext).orElse(null);
+        if (adjustedZoneNames == null) {
+            status = OuterLoopStatus.FAILED;
+        } else {
+            if (!adjustedZoneNames.isEmpty()) {
+                status = OuterLoopStatus.UNSTABLE;
+                LOGGER.info("{} secondary voltage control zones have been adjusted: {}",
+                        adjustedZoneNames.size(), adjustedZoneNames);
+            }
         }
 
         return status;

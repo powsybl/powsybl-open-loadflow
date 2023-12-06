@@ -71,7 +71,7 @@ class SecondaryVoltageControlTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
-                .setMaxPlausibleTargetVoltage(1.4);
+                .setMaxPlausibleTargetVoltage(1.6);
     }
 
     private static double qToK(Generator g) {
@@ -304,5 +304,20 @@ class SecondaryVoltageControlTest {
         LfNetworkLoaderImpl networkLoader = new LfNetworkLoaderImpl();
         PowsyblException e = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, networkLoader, networkParameters));
         assertEquals("Generator voltage control of controlled bus 'VL8_0' is present in more that one control zone", e.getMessage());
+    }
+
+    @Test
+    void testNotPlausibleTargetV() {
+        // g8 generator is very far from pilot point bus b12, there is no way for generators of the zone to control
+        // the pilot point voltage, this is detected by secondary voltage control outer loop which fails
+        PilotPoint pilotPoint = new PilotPoint(List.of("B12"), 11.5);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B8-G"))))
+                .add();
+
+        parametersExt.setSecondaryVoltageControl(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
     }
 }

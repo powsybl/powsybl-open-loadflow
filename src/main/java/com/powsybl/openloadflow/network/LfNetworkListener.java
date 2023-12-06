@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.List;
 
 /**
@@ -17,7 +19,7 @@ public interface LfNetworkListener {
 
     void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage);
 
-    void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled);
+    void onGeneratorReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled);
 
     void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled);
 
@@ -44,4 +46,6 @@ public interface LfNetworkListener {
     void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowModel loadFlowModel);
 
     void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel);
+
+    void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected);
 }

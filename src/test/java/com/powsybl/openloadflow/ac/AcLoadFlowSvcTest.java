@@ -68,7 +68,7 @@ class AcLoadFlowSvcTest {
     @Test
     void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
@@ -85,7 +85,7 @@ class AcLoadFlowSvcTest {
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
 
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
@@ -105,7 +105,7 @@ class AcLoadFlowSvcTest {
                 .setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         Bus bus = svc1.getTerminal().getBusView().getBus();
         assertVoltageEquals(386.256, bus);
         assertReactivePowerEquals(-svc1.getBmin() * bus.getV() * bus.getV(), svc1.getTerminal()); // min reactive limit has been correctly reached
@@ -119,7 +119,7 @@ class AcLoadFlowSvcTest {
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
@@ -142,7 +142,7 @@ class AcLoadFlowSvcTest {
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
@@ -175,7 +175,7 @@ class AcLoadFlowSvcTest {
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
@@ -205,7 +205,7 @@ class AcLoadFlowSvcTest {
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
@@ -236,7 +236,7 @@ class AcLoadFlowSvcTest {
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
@@ -255,7 +255,7 @@ class AcLoadFlowSvcTest {
         svc1.setReactivePowerSetpoint(100)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(100, svc1.getTerminal());
     }
 
@@ -382,7 +382,7 @@ class AcLoadFlowSvcTest {
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);

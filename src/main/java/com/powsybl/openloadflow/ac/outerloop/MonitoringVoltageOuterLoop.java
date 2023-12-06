@@ -105,7 +105,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
     private static Optional<Range<Double>> getControlledBusVoltageLimits(LfBus controllerCapableBus) {
         return findMonitoringSvc(controllerCapableBus)
                 .flatMap(generator -> generator.getStandByAutomaton()
-                        .map(automaton -> Range.between(automaton.getLowVoltageThreshold(), automaton.getHighVoltageThreshold())));
+                        .map(automaton -> Range.of(automaton.getLowVoltageThreshold(), automaton.getHighVoltageThreshold())));
     }
 
     private static double getSvcTargetV(LfBus bus, VoltageLimitDirection direction) {

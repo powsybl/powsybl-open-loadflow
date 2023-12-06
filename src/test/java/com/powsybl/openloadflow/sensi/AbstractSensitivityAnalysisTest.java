@@ -218,7 +218,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters(), reporter)
                 .join();
-        if (!result.isOk()) {
+        if (!result.isFullyConverged()) {
             throw new PowsyblException("AC LF diverged");
         }
     }
@@ -232,7 +232,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters, reporter)
                 .join();
-        if (!result.isOk()) {
+        if (!result.isFullyConverged()) {
             throw new PowsyblException("DC LF failed");
         }
     }
@@ -245,7 +245,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, loadFlowParameters, reporter)
                 .join();
-        if (!result.isOk()) {
+        if (!result.isFullyConverged()) {
             throw new PowsyblException("LF failed");
         }
     }

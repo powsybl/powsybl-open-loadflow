@@ -271,4 +271,9 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     public void setQ(Evaluable q) {
         this.q = q;
     }
+
+    @Override
+    public String toString() {
+        return getId();
+    }
 }

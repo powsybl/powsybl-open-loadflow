@@ -6,9 +6,11 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import java.util.List;
 import java.util.Objects;
@@ -52,9 +54,8 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
-    public void onReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
-        ReactivePowerControl reactivePowerControl = controllerBus.getReactivePowerControl().orElseThrow();
-        AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem);
+    public void onGeneratorReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
+        controllerBus.getGeneratorReactivePowerControl().ifPresent(generatorReactivePowerControl -> AcEquationSystemCreator.updateGeneratorReactivePowerControlBranchEquations(generatorReactivePowerControl, equationSystem));
     }
 
     @Override
@@ -104,13 +105,14 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 bus.getGeneratorVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 bus.getTransformerVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 bus.getShuntVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
-                bus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
+                bus.getGeneratorReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateGeneratorReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
                 break;
             case BRANCH:
                 LfBranch branch = (LfBranch) element;
+                AcEquationSystemCreator.updateBranchEquations(branch);
                 branch.getVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 branch.getPhaseControl().ifPresent(phaseControl -> AcEquationSystemCreator.updateTransformerPhaseControlEquations(phaseControl, equationSystem));
-                branch.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
+                branch.getGeneratorReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateGeneratorReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
                 break;
             case SHUNT_COMPENSATOR:
                 LfShunt shunt = (LfShunt) element;
@@ -158,6 +160,40 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             // so we have to check here that controllers were spread over network1 and network2 and were not
             // already only on network1 or network2
             recreateDistributionEquations(mergedNetwork);
+        }
+    }
+
+    @Override
+    public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
+        AcEquationSystemCreator.updateBranchEquations(branch);
+        if (branch.isConnectedSide1() && branch.isConnectedSide2()) {
+            branch.setP1(branch.getClosedP1());
+            branch.setQ1(branch.getClosedQ1());
+            branch.setI1(branch.getClosedI1());
+            branch.setP2(branch.getClosedP2());
+            branch.setQ2(branch.getClosedQ2());
+            branch.setI2(branch.getClosedI2());
+        } else if (!branch.isConnectedSide1() && branch.isConnectedSide2()) {
+            branch.setP1(EvaluableConstants.ZERO);
+            branch.setQ1(EvaluableConstants.ZERO);
+            branch.setI1(EvaluableConstants.ZERO);
+            branch.setP2(branch.getOpenP2());
+            branch.setQ2(branch.getOpenQ2());
+            branch.setI2(branch.getOpenI2());
+        } else if (branch.isConnectedSide1() && !branch.isConnectedSide2()) {
+            branch.setP1(branch.getOpenP1());
+            branch.setQ1(branch.getOpenQ1());
+            branch.setI1(branch.getOpenI1());
+            branch.setP2(EvaluableConstants.ZERO);
+            branch.setQ2(EvaluableConstants.ZERO);
+            branch.setI2(EvaluableConstants.ZERO);
+        } else {
+            branch.setP1(EvaluableConstants.NAN);
+            branch.setQ1(EvaluableConstants.NAN);
+            branch.setI1(EvaluableConstants.NAN);
+            branch.setP2(EvaluableConstants.NAN);
+            branch.setQ2(EvaluableConstants.NAN);
+            branch.setI2(EvaluableConstants.NAN);
         }
     }
 }
