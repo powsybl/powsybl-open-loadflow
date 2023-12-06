@@ -87,7 +87,7 @@ public final class Reports {
     public static void reportPvToPqBuses(Reporter reporter, int pvToPqBusCount, int remainingPvBusCount) {
         reporter.report(Report.builder()
                 .withKey("switchPvPq")
-                .withDefaultMessage("${pvToPqBusCount} buses switched PV -> PQ ({remainingPvBusCount} bus remains PV}")
+                .withDefaultMessage("${pvToPqBusCount} buses switched PV -> PQ (${remainingPvBusCount} bus remains PV}")
                 .withValue("pvToPqBusCount", pvToPqBusCount)
                 .withValue("remainingPvBusCount", remainingPvBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -97,7 +97,7 @@ public final class Reports {
     public static void reportPqToPvBuses(Reporter reporter, int pqToPvBusCount, int blockedPqBusCount) {
         reporter.report(Report.builder()
                 .withKey("switchPqPv")
-                .withDefaultMessage("${pqToPvBusCount} buses switched PQ -> PV ({blockedPqBusCount} buses blocked PQ because have reach max number of switch)")
+                .withDefaultMessage("${pqToPvBusCount} buses switched PQ -> PV (${blockedPqBusCount} buses blocked PQ because have reach max number of switch)")
                 .withValue("pqToPvBusCount", pqToPvBusCount)
                 .withValue("blockedPqBusCount", blockedPqBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -116,7 +116,7 @@ public final class Reports {
     public static void reportStandByAutomatonActivation(Reporter reporter, String busId, double newTargetV) {
         reporter.report(Report.builder()
                 .withKey("standByAutomatonActivation")
-                .withDefaultMessage("Activation of voltage control of static var compensator with stand by automaton: bus {busId} switched PQ -> PV with targetV {newTargetV}")
+                .withDefaultMessage("Activation of voltage control of static var compensator with stand by automaton: bus ${busId} switched PQ -> PV with targetV ${newTargetV}")
                 .withValue("busId", busId)
                 .withValue("newTargetV", newTargetV)
                 .withSeverity(TypedValue.INFO_SEVERITY)
