@@ -348,10 +348,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         // a generator or a two windings transformer.
                         // shunt contingency not supported yet.
                         // ratio tap changer in a three windings transformer not supported yet.
-                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getBranchIdsToOpen().contains(variableId);
+                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getBranchIdsToOpen().containsKey(variableId);
                     case TRANSFORMER_PHASE:
                         // a phase shifter on a two windings transformer.
-                        return contingency.getBranchIdsToOpen().contains(variableId);
+                        return contingency.getBranchIdsToOpen().containsKey(variableId);
                     default:
                         return false;
                 }
@@ -754,7 +754,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         // Elements have already been checked and found in PropagatedContingency, so there is no need to
         // check them again
         Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
-        for (String branchId : contingency.getBranchIdsToOpen()) {
+        for (String branchId : contingency.getBranchIdsToOpen().keySet()) {
             LfBranch lfBranch = lfNetwork.getBranchById(branchId);
             if (lfBranch == null) {
                 branchesToRemove.add(branchId); // disconnected branch
@@ -764,7 +764,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 branchesToRemove.add(branchId); // branch connected only on one side
             }
         }
-        contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
+        branchesToRemove.forEach(branchToRemove -> contingency.getBranchIdsToOpen().remove(branchToRemove));
 
         // update branches to open connected with buses in contingency. This is an approximation:
         // these branches are indeed just open at one side.
@@ -778,7 +778,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
                     slackBusId = busId;
                 } else {
-                    bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().add(branch.getId()));
+                    bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().put(branch.getId(), DisabledBranchStatus.BOTH_SIDES));
                 }
             }
         }

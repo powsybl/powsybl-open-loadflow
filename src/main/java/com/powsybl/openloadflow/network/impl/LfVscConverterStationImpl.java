@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
 import com.powsybl.iidm.network.util.HvdcUtils;
@@ -78,12 +79,14 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     @Override
     public double getMinP() {
-        return -getStation().getHvdcLine().getMaxP() / PerUnit.SB;
+        HvdcLine hvdcLine = getStation().getHvdcLine();
+        return hvdcLine != null ? -hvdcLine.getMaxP() / PerUnit.SB : -Double.MAX_VALUE;
     }
 
     @Override
     public double getMaxP() {
-        return getStation().getHvdcLine().getMaxP() / PerUnit.SB;
+        HvdcLine hvdcLine = getStation().getHvdcLine();
+        return hvdcLine != null ? hvdcLine.getMaxP() / PerUnit.SB : Double.MAX_VALUE;
     }
 
     @Override
