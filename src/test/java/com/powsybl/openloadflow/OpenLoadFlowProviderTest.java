@@ -111,6 +111,7 @@ class OpenLoadFlowProviderTest {
                 .createMapFromSpecificParameters(parametersExt);
         assertEquals(56, map.size());
     }
+
     @Test
     void testSpecificParametersClass() {
         assertSame(OpenLoadFlowParameters.class, new OpenLoadFlowProvider(new DenseMatrixFactory()).getSpecificParametersClass().orElseThrow());
