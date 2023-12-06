@@ -101,7 +101,7 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     }
 
     protected LoadFlowResult runLoadFlow(Network network, LoadFlowParameters parameters) {
-        return loadFlowProvider.run(network, computationManager, network.getVariantManager().getWorkingVariantId(), parameters)
+        return loadFlowProvider.run(network, computationManager, network.getVariantManager().getWorkingVariantId(), parameters, Reporter.NO_OP)
                 .join();
     }
 
