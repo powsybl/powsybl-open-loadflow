@@ -50,27 +50,22 @@ class SubstationAutomationSystemsTest extends AbstractSerDeTest {
     /**
      * Writes given network to JSON file, then reads the resulting file and returns the resulting network
      */
-    private static Network jsonWriteAndRead(Network networkInput, ExportOptions options, Path path) {
-        TreeDataFormat previousFormat = options.getFormat();
-        options.setFormat(TreeDataFormat.JSON);
-        Anonymizer anonymizer = NetworkSerDe.write(networkInput, options, path);
+    private Network jsonWriteAndRead(Network networkInput, Path path) {
+        Anonymizer anonymizer = NetworkSerDe.write(networkInput, new ExportOptions().setFormat(TreeDataFormat.JSON), path);
         try (InputStream is = Files.newInputStream(path)) {
-            Network networkOutput = NetworkSerDe.read(is, new ImportOptions().setFormat(TreeDataFormat.JSON), anonymizer);
-            options.setFormat(previousFormat);
-            return networkOutput;
+            return NetworkSerDe.read(is, new ImportOptions().setFormat(TreeDataFormat.JSON), anonymizer);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     @Test
-    void xmlRoundTripTest() throws IOException {
+    void allFormatsRoundTripTest() throws IOException {
         Network network = AutomationSystemNetworkFactory.create();
 
-        ExportOptions exportOptions = new ExportOptions();
         Network network2 = roundTripXmlTest(network,
-                (n, p) -> jsonWriteAndRead(n, exportOptions, p),
-                (n, p) -> NetworkSerDe.write(n, exportOptions, p),
+                this::jsonWriteAndRead,
+                NetworkSerDe::write,
                 NetworkSerDe::validateAndRead,
                 "/substationAutomationSystemsRef.xml");
 
