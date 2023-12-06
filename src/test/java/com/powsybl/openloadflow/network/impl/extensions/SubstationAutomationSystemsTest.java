@@ -7,13 +7,21 @@
 package com.powsybl.openloadflow.network.impl.extensions;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.io.TreeDataFormat;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.serde.ExportOptions;
+import com.powsybl.iidm.serde.ImportOptions;
 import com.powsybl.iidm.serde.NetworkSerDe;
+import com.powsybl.iidm.serde.anonymizer.Anonymizer;
 import com.powsybl.openloadflow.network.AutomationSystemNetworkFactory;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -39,13 +47,31 @@ class SubstationAutomationSystemsTest extends AbstractSerDeTest {
         assertEquals("Switch ID to operate is not set", e.getMessage());
     }
 
+    /**
+     * Writes given network to JSON file, then reads the resulting file and returns the resulting network
+     */
+    private static Network jsonWriteAndRead(Network networkInput, ExportOptions options, Path path) {
+        TreeDataFormat previousFormat = options.getFormat();
+        options.setFormat(TreeDataFormat.JSON);
+        Anonymizer anonymizer = NetworkSerDe.write(networkInput, options, path);
+        try (InputStream is = Files.newInputStream(path)) {
+            Network networkOutput = NetworkSerDe.read(is, new ImportOptions().setFormat(TreeDataFormat.JSON), anonymizer);
+            options.setFormat(previousFormat);
+            return networkOutput;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     @Test
     void xmlRoundTripTest() throws IOException {
         Network network = AutomationSystemNetworkFactory.create();
 
+        ExportOptions exportOptions = new ExportOptions();
         Network network2 = roundTripXmlTest(network,
-                NetworkSerDe::writeAndValidate,
-                NetworkSerDe::read,
+                (n, p) -> jsonWriteAndRead(n, exportOptions, p),
+                (n, p) -> NetworkSerDe.write(n, exportOptions, p),
+                NetworkSerDe::validateAndRead,
                 "/substationAutomationSystemsRef.xml");
 
         SubstationAutomationSystems substationAutomationSystems = network2.getSubstation("s1").getExtension(SubstationAutomationSystems.class);

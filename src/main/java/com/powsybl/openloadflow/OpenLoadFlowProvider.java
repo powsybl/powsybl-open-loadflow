@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author Sylvain Leclerc {@literal <sylvain.leclerc at rte-france.com>}
@@ -246,11 +247,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     @Override
-    public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters) {
-        return run(network, computationManager, workingVariantId, parameters, Reporter.NO_OP);
-    }
-
-    @Override
     public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(computationManager);
@@ -304,5 +300,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     @Override
     public void updateSpecificParameters(Extension<LoadFlowParameters> extension, Map<String, String> properties) {
         ((OpenLoadFlowParameters) extension).update(properties);
+    }
+
+    @Override
+    public Optional<Class<? extends Extension<LoadFlowParameters>>> getSpecificParametersClass() {
+        return Optional.of(OpenLoadFlowParameters.class);
+    }
+
+    @Override
+    public Map<String, String> createMapFromSpecificParameters(Extension<LoadFlowParameters> extension) {
+        return ((OpenLoadFlowParameters) extension).toMap().entrySet()
+                .stream()
+                .collect(Collectors.toMap(e -> (String) e.getValue(), e -> Objects.toString(e.getValue(), "")));
     }
 }
