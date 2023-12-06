@@ -86,7 +86,7 @@ class OpenLoadFlowProviderTest {
     @Test
     void specificParametersTest() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
-        assertEquals(56, provider.getSpecificParameters().size());
+        assertEquals(58, provider.getSpecificParameters().size());
         LoadFlowParameters parameters = new LoadFlowParameters();
 
         provider.loadSpecificParameters(Collections.emptyMap())
@@ -109,7 +109,7 @@ class OpenLoadFlowProviderTest {
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
         Map<String, String> map = new OpenLoadFlowProvider(new DenseMatrixFactory())
                 .createMapFromSpecificParameters(parametersExt);
-        assertEquals(56, map.size());
+        assertEquals(58, map.size());
     }
 
     @Test
