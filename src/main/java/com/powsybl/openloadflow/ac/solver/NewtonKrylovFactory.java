@@ -24,6 +24,6 @@ public class NewtonKrylovFactory implements AcSolverFactory {
     public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                            JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                            EquationVector<AcVariableType, AcEquationType> equationVector) {
-        return new NewtonKrylov(network, equationSystem, j, targetVector, equationVector);
+        return new NewtonKrylov(network, parameters.getNewtonKrylovParameters(), equationSystem, j, targetVector, equationVector);
     }
 }

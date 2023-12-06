@@ -21,15 +21,21 @@ import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class NewtonKrylov extends AbstractAcSolver {
 
-    public NewtonKrylov(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    private final NewtonKrylovParameters parameters;
+
+    public NewtonKrylov(LfNetwork network, NewtonKrylovParameters parameters,
+                        EquationSystem<AcVariableType, AcEquationType> equationSystem,
                         JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                         EquationVector<AcVariableType, AcEquationType> equationVector) {
         super(network, equationSystem, j, targetVector, equationVector, false);
+        this.parameters = Objects.requireNonNull(parameters);
     }
 
     @Override
@@ -51,7 +57,8 @@ public class NewtonKrylov extends AbstractAcSolver {
         AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 
         KinsolParameters kinsolParameters = new KinsolParameters()
-                .setLineSearch(true);
+                .setMaxIters(parameters.getMaxIterations())
+                .setLineSearch(parameters.isLineSearch());
         Kinsol kinsol = new Kinsol((SparseMatrix) j.getMatrix(), (x, f) -> {
             equationSystem.getStateVector().set(x);
             equationVector.minus(targetVector);

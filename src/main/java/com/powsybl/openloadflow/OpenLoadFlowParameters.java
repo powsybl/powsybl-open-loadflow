@@ -437,6 +437,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private AcSolverType acSolverType = AcSolverType.NEWTON_RAPHSON;
 
+    private int maxNewtowKrylovIterations = NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS;
+
+    private boolean newtowKrylovLineSearch = NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE;
+
     @Override
     public String getName() {
         return "open-load-flow-parameters";
@@ -545,7 +549,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxNewtonRaphsonIterations(int maxNewtonRaphsonIterations) {
-        this.maxNewtonRaphsonIterations = NewtonRaphsonParameters.checkMaxIteration(maxNewtonRaphsonIterations);
+        this.maxNewtonRaphsonIterations = AbstractNewtonParameters.checkMaxIteration(maxNewtonRaphsonIterations);
         return this;
     }
 
@@ -554,7 +558,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxOuterLoopIterations(int maxOuterLoopIterations) {
-        this.maxOuterLoopIterations = NewtonRaphsonParameters.checkMaxIteration(maxOuterLoopIterations);
+        this.maxOuterLoopIterations = AbstractNewtonParameters.checkMaxIteration(maxOuterLoopIterations);
         return this;
     }
 
@@ -994,6 +998,24 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setAcSolverType(AcSolverType acSolverType) {
         this.acSolverType = Objects.requireNonNull(acSolverType);
+        return this;
+    }
+
+    public int getMaxNewtowKrylovIterations() {
+        return maxNewtowKrylovIterations;
+    }
+
+    public OpenLoadFlowParameters setMaxNewtowKrylovIterations(int maxNewtowKrylovIterations) {
+        this.maxNewtowKrylovIterations = AbstractNewtonParameters.checkMaxIteration(maxNewtowKrylovIterations);
+        return this;
+    }
+
+    public boolean isNewtowKrylovLineSearch() {
+        return newtowKrylovLineSearch;
+    }
+
+    public OpenLoadFlowParameters setNewtowKrylovLineSearch(boolean newtowKrylovLineSearch) {
+        this.newtowKrylovLineSearch = newtowKrylovLineSearch;
         return this;
     }
 
@@ -1437,6 +1459,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxVoltageChangeStateVectorScalingMaxDphi(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDphi())
                 .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
 
+        NewtonKrylovParameters newtonKrylovParameters = new NewtonKrylovParameters()
+                .setLineSearch(parametersExt.isNewtowKrylovLineSearch())
+                .setMaxIterations(parametersExt.getMaxNewtowKrylovIterations());
+
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 
         AcSolverFactory solverFactory = switch (parametersExt.getAcSolverType()) {
@@ -1448,6 +1474,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setNetworkParameters(networkParameters)
                 .setEquationSystemCreationParameters(equationSystemCreationParameters)
                 .setNewtonRaphsonParameters(newtonRaphsonParameters)
+                .setNewtonKrylovParameters(newtonKrylovParameters)
                 .setOuterLoops(outerLoops)
                 .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations())
                 .setMatrixFactory(matrixFactory)

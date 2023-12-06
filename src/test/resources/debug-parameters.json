@@ -74,7 +74,9 @@
         "useLoadModel" : false,
         "dcApproximationType" : "IGNORE_R",
         "simulateAutomationSystems" : false,
-        "acSolverType" : "NEWTON_RAPHSON"
+        "acSolverType" : "NEWTON_RAPHSON",
+        "maxNewtowKrylovIterations" : 100,
+        "newtowKrylovLineSearch" : false
       }
     }
   },

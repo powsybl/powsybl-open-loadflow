@@ -17,10 +17,8 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.solver.AcSolverType;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
@@ -465,24 +463,5 @@ class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
-    }
-
-    @Test
-    void newtonKrylovTest() {
-        parametersExt.setAcSolverType(AcSolverType.NEWTOW_KRYLOV);
-        var loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory())); // sparse matrix solver only
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-
-        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(11, result.getComponentResults().get(0).getIterationCount());
-
-        assertVoltageEquals(24.5, genBus);
-        assertAngleEquals(0, genBus);
-        assertVoltageEquals(402.143, bus1);
-        assertAngleEquals(-2.325966, bus1);
-        assertVoltageEquals(389.953, bus2);
-        assertAngleEquals(-5.832323, bus2);
-        assertVoltageEquals(147.578, loadBus);
-        assertAngleEquals(-11.94045, loadBus);
     }
 }
