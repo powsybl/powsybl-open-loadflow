@@ -103,4 +103,12 @@ class OpenLoadFlowProviderTest {
         assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getExtension(OpenLoadFlowParameters.class).getSlackBusSelectionMode());
         assertFalse(parameters.getExtension(OpenLoadFlowParameters.class).hasVoltageRemoteControl());
     }
+
+    @Test
+    void testCreateMapFromSpecificParameters() {
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
+        Map<String, String> map = new OpenLoadFlowProvider(new DenseMatrixFactory())
+                .createMapFromSpecificParameters(parametersExt);
+        assertEquals(56, map.size());
+    }
 }
