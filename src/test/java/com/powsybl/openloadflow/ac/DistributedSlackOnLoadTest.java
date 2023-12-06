@@ -66,7 +66,7 @@ class DistributedSlackOnLoadTest {
     @Test
     void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(35.294, l1.getTerminal());
         assertActivePowerEquals(70.588, l2.getTerminal());
         assertActivePowerEquals(58.824, l3.getTerminal());
@@ -92,7 +92,7 @@ class DistributedSlackOnLoadTest {
                 .add();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(30.0, l1.getTerminal());
         assertActivePowerEquals(96.923, l2.getTerminal());
         assertActivePowerEquals(50.0, l3.getTerminal());
@@ -185,17 +185,17 @@ class DistributedSlackOnLoadTest {
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
-        assertEquals(-60., componentResult.getSlackBusActivePowerMismatch(), 1e-6);
+        assertEquals(-60., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-6);
 
         parameters.getExtension(OpenLoadFlowParameters.class)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         result = loadFlowRunner.run(network, parameters);
         componentResult = result.getComponentResults().get(0);
-        assertFalse(result.isOk());
+        assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
-        assertEquals(-60., componentResult.getSlackBusActivePowerMismatch(), 1e-6);
+        assertEquals(-60., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-6);
 
         parameters.getExtension(OpenLoadFlowParameters.class)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
@@ -216,7 +216,7 @@ class DistributedSlackOnLoadTest {
                 .withFixedActivePower(100)
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         double sumBus = 0.0;
         sumBus += network.getLine("l14").getTerminal2().getQ();
         sumBus += network.getLine("l24").getTerminal2().getQ();
@@ -250,7 +250,7 @@ class DistributedSlackOnLoadTest {
                 .withVariableReactivePower(0.0)
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         double sumBus = 0.0;
         sumBus += network.getLine("l14").getTerminal2().getQ();
         sumBus += network.getLine("l24").getTerminal2().getQ();

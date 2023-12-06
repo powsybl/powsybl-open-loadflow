@@ -53,7 +53,7 @@ class AcLoadFlow3wtTest {
     @Test
     void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(405, bus1);
         LoadFlowAssert.assertAngleEquals(0, bus1);
@@ -83,7 +83,7 @@ class AcLoadFlow3wtTest {
                 .endStep()
             .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(405, bus1);
         assertVoltageEquals(209.886, bus2);
         assertVoltageEquals(18.582, bus3);
@@ -111,14 +111,14 @@ class AcLoadFlow3wtTest {
                 .setX(80)
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(21.97, twtParallel.getTerminal1());
         assertActivePowerEquals(-139.088, twt.getLeg2().getTerminal());
 
         // set the phase shifting to 10 degree and check active flow change
         ptc.getStep(0).setAlpha(10);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(121.691, twtParallel.getTerminal1());
         assertActivePowerEquals(-40.451, twt.getLeg2().getTerminal());
     }
@@ -128,7 +128,7 @@ class AcLoadFlow3wtTest {
         parameters.setTwtSplitShuntAdmittance(false);
         twt.getLeg1().setB(0.00004);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(405, bus1);
         LoadFlowAssert.assertAngleEquals(0, bus1);
@@ -145,7 +145,7 @@ class AcLoadFlow3wtTest {
 
         parameters.setTwtSplitShuntAdmittance(true);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(405, bus1);
         LoadFlowAssert.assertAngleEquals(0, bus1);

@@ -101,7 +101,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isSlack() {
-        network.updateSlackBuses();
+        network.updateSlackBusesAndReferenceBus();
         return slack;
     }
 
@@ -112,7 +112,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isReference() {
-        network.updateSlackBuses();
+        network.updateSlackBusesAndReferenceBus();
         return reference;
     }
 

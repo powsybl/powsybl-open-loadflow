@@ -93,7 +93,7 @@ class GeneratorRemoteControlLocalRescaleTest {
     @Test
     void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         LoadFlowAssert.assertVoltageEquals(20.67, b1); // check local targetV has been correctly rescaled
         LoadFlowAssert.assertVoltageEquals(395.927, b2);
     }

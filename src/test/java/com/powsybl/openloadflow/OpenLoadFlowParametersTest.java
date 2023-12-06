@@ -201,7 +201,7 @@ class OpenLoadFlowParametersTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(network.getVoltageLevel("VLHV1").getExtension(SlackTerminal.class).getTerminal().getBusView().getBus().getId(),
-                result.getComponentResults().get(0).getSlackBusId());
+                result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
     }
 
     @Test
@@ -210,12 +210,12 @@ class OpenLoadFlowParametersTest {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertEquals(-0.004, result.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
+        assertEquals(-0.004, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), DELTA_MISMATCH);
 
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
         LoadFlow.Runner loadFlowRunner2 = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result2 = loadFlowRunner2.run(network, parameters);
-        assertEquals(-1.8703e-5, result2.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
+        assertEquals(-1.8703e-5, result2.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), DELTA_MISMATCH);
     }
 
     @Test
