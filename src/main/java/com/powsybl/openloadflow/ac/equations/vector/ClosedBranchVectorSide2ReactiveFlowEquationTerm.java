@@ -7,14 +7,12 @@
 package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ReactiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
-import net.jafama.FastMath;
 
 import java.util.Objects;
-
-import static com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ReactiveFlowEquationTerm.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -27,28 +25,12 @@ public class ClosedBranchVectorSide2ReactiveFlowEquationTerm extends AbstractClo
         super(branchVector, branchNum, bus1Num, bus2Num, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
     }
 
-    public ClosedBranchVectorSide2ReactiveFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num, int bus2Num,
-                                                           VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1,
-                                                           Fortescue.SequenceType sequenceType) {
-        super(branchVector, branchNum, bus1Num, bus2Num, variableSet, deriveA1, deriveR1, sequenceType);
-    }
-
+    @Override
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
         double y = branchVector.y[num];
         double ksi = branchVector.ksi[num];
         double b2 = branchVector.b2[num];
-        double v1 = v1();
-        double r1 = r1();
-        double v2 = v2();
-        double theta = theta2(ksi, ph1(), a1(), ph2());
-        double cosTheta = FastMath.cos(theta);
-        double sinTheta = FastMath.sin(theta);
-        return dq2dph1(y, v1, r1, v2, sinTheta) * dph1
-                + dq2dph2(y, v1, r1, v2, sinTheta) * dph2
-                + dq2dv1(y, r1, v2, cosTheta) * dv1
-                + dq2dv2(y, FastMath.cos(ksi), b2, v1, r1, v2, cosTheta) * dv2
-                + dq2da1(y, v1, r1, v2, sinTheta) * da1
-                + dq2dr1(y, v1, v2, cosTheta) * dr1;
+        return ClosedBranchSide2ReactiveFlowEquationTerm.calculateSensi(y, ksi, b2, v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
     }
 
     @Override

@@ -29,22 +29,22 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
     }
 
-    @Override
-    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+    public static double calculateSensi(double y, double ksi, double g1, double b1,
+                                        double v1, double ph1, double r1, double a1, double v2, double ph2,
+                                        double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
         if (dr1 != 0) {
             throw new IllegalArgumentException("Derivative with respect to r1 not implemented");
         }
-        double v1 = v1();
-        double ph1 = ph1();
-        double r1 = r1();
-        double a1 = a1();
-        double v2 = v2();
-        double ph2 = ph2();
         return di1dph1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dph1
                 + di1dph2(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dph2
                 + di1dv1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dv1
                 + di1dv2(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dv2
                 + di1da1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * da1;
+    }
+
+    @Override
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        return calculateSensi(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
     }
 
     private static double theta(double ksi, double a1, double ph2) {

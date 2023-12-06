@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static com.powsybl.openloadflow.ac.equations.AbstractClosedBranchAcFlowEquationTerm.getVoltageAngleType;
+import static com.powsybl.openloadflow.ac.equations.AbstractClosedBranchAcFlowEquationTerm.getVoltageMagnitudeType;
 import static com.powsybl.openloadflow.network.PiModel.A2;
 
 /**
@@ -36,22 +38,6 @@ public abstract class AbstractClosedBranchVectorAcFlowEquationTerm extends Abstr
     protected final Variable<AcVariableType> r1Var;
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
-
-    private static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
-        return switch (sequenceType) {
-            case POSITIVE -> AcVariableType.BUS_V;
-            case NEGATIVE -> AcVariableType.BUS_V_NEGATIVE;
-            case ZERO -> AcVariableType.BUS_V_ZERO;
-        };
-    }
-
-    private static AcVariableType getVoltageAngleType(Fortescue.SequenceType sequenceType) {
-        return switch (sequenceType) {
-            case POSITIVE -> AcVariableType.BUS_PHI;
-            case NEGATIVE -> AcVariableType.BUS_PHI_NEGATIVE;
-            case ZERO -> AcVariableType.BUS_PHI_ZERO;
-        };
-    }
 
     protected AbstractClosedBranchVectorAcFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num, int bus2Num,
                                                            VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1,

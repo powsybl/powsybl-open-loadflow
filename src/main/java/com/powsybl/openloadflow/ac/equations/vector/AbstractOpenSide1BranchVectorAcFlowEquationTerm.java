@@ -26,10 +26,6 @@ abstract class AbstractOpenSide1BranchVectorAcFlowEquationTerm extends AbstractB
         variables = List.of(variableSet.getVariable(bus2Num, variableType));
     }
 
-    protected static double shunt(double y, double cosKsi, double sinKsi, double g1, double b1) {
-        return (g1 + y * sinKsi) * (g1 + y * sinKsi) + (-b1 + y * cosKsi) * (-b1 + y * cosKsi);
-    }
-
     @Override
     public List<Variable<AcVariableType>> getVariables() {
         return variables;

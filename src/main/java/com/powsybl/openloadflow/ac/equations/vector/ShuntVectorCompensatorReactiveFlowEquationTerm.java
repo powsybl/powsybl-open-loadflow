@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.ShuntCompensatorReactiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 
@@ -65,9 +66,7 @@ public class ShuntVectorCompensatorReactiveFlowEquationTerm extends AbstractShun
     public double calculateSensi(DenseMatrix dx, int column) {
         double dv = dx.get(vVar.getRow(), column);
         double db = bVar != null ? dx.get(bVar.getRow(), column) : 0;
-        double v = v();
-        double b = b();
-        return dqdv(v, b) * dv + dqdb(v) * db;
+        return ShuntCompensatorReactiveFlowEquationTerm.calculateSensi(v(), b(), dv, db);
     }
 
     @Override
