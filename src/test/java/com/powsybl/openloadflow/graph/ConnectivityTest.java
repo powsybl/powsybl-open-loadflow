@@ -47,6 +47,29 @@ class ConnectivityTest {
     }
 
     @Test
+    void setMainComponentVertexExceptionTest() {
+        setMainComponentVertexExceptionTest(new NaiveGraphConnectivity<>(v -> v - 1));
+        setMainComponentVertexExceptionTest(new MinimumSpanningTreeGraphConnectivity<>());
+    }
+
+    private void setMainComponentVertexExceptionTest(GraphConnectivity<Integer, String> c) {
+        Integer v1 = 1;
+        Integer v2 = 2;
+        Integer v3 = 3;
+        String e12 = "1-2";
+        c.addVertex(v1);
+        c.addVertex(v2);
+        c.addVertex(v3);
+        c.addEdge(v1, v2, e12);
+
+        c.setMainComponentVertex(v1);
+        c.startTemporaryChanges();
+        c.setMainComponentVertex(v2); // setting the main component vertex is accepted if already in the main component before
+        PowsyblException e4 = assertThrows(PowsyblException.class, () -> c.setMainComponentVertex(v3));
+        assertEquals("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes", e4.getMessage());
+    }
+
+    @Test
     void exceptionsTest() {
         exceptionsTest(new NaiveGraphConnectivity<>(v -> v - 1));
         exceptionsTest(new EvenShiloachGraphDecrementalConnectivity<>());
@@ -292,13 +315,13 @@ class ConnectivityTest {
         c.startTemporaryChanges();
         c.removeEdge(e12);
         c.removeEdge(e31);
-        String e15 = "1-5";
-        c.addEdge(v1, v4, e15);
-        assertEquals(Set.of(e11, e15), c.getEdgesAddedToMainComponent());
+        String e14 = "1-4";
+        c.addEdge(v1, v4, e14);
+        assertEquals(Set.of(e11, e14), c.getEdgesAddedToMainComponent());
         assertEquals(Set.of(v1), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
         assertEquals(Collections.emptySet(), c.getEdgesRemovedFromMainComponent());
-        //  |---------------|
+        //  |-----------|
         //  1   2---3   4---5
         // |_|
 
@@ -312,38 +335,61 @@ class ConnectivityTest {
         assertEquals(Set.of(v2, v3), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
         assertEquals(Set.of(e11), c.getEdgesRemovedFromMainComponent());
-        //  |---------------|
+        //  |-----------|
         //  1---2   3---4---5
 
         c.undoTemporaryChanges();
-        //  |---------------|
+        //  |-----------|
         //  1   2---3   4---5
         // |_|
 
         c.startTemporaryChanges();
-        String e14 = "1-4";
-        c.addEdge(v1, v4, e14);
+        String e14b = "1-4 duplicate";
+        c.addEdge(v1, v4, e14b);
         c.addEdge(v3, v4, e34);
         c.removeEdge(e45);
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(v1, v4), c.getVerticesRemovedFromMainComponent());
-        assertEquals(Set.of(e11, e15, e45), c.getEdgesRemovedFromMainComponent());
+        assertEquals(Set.of(e11, e14, e45), c.getEdgesRemovedFromMainComponent());
+        //  |-----------|
         //  |-----------|
         //  1   2---3---4   5
         // |_|
 
-        Integer v6 = 6;
-        c.addVertex(v6);
+        c.setMainComponentVertex(1);
+        assertEquals(Set.of(e14b, e23, e34), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(v2, v3), c.getVerticesAddedToMainComponent());
+        assertEquals(Set.of(v5), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Set.of(e45), c.getEdgesRemovedFromMainComponent());
+
+        c.setMainComponentVertex(5);
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(v1, v4), c.getVerticesRemovedFromMainComponent());
-        assertEquals(Set.of(e11, e15, e45), c.getEdgesRemovedFromMainComponent());
+        assertEquals(Set.of(e11, e14, e45), c.getEdgesRemovedFromMainComponent());
+
+        c.setMainComponentVertex(1);
+        Integer v6 = 6;
+        c.addVertex(v6);
+        assertEquals(Set.of(e14b, e23, e34), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(v2, v3), c.getVerticesAddedToMainComponent());
+        assertEquals(Set.of(v5), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Set.of(e45), c.getEdgesRemovedFromMainComponent());
+        //  |-----------|
         //  |-----------|
         //  1   2---3---4   5    6
         // |_|
 
-        c.undoTemporaryChanges();
+        c.undoTemporaryChanges(); // vertex 5 is considered again as main component vertex
+        //  |-----------|
+        //  1   2---3   4---5
+        // |_|
+        assertEquals(Set.of(e11, e14), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(v1), c.getVerticesAddedToMainComponent());
+        assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Collections.emptySet(), c.getEdgesRemovedFromMainComponent());
+
         c.undoTemporaryChanges();
 
         c.startTemporaryChanges();
