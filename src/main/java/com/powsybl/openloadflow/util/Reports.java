@@ -197,6 +197,11 @@ public final class Reports {
                 "AC security analysis on network '${networkId}'", NETWORK_ID, networkId);
     }
 
+    public static Reporter createDcSecurityAnalysis(Reporter reporter, String networkId) {
+        return reporter.createSubReporter("dcSecurityAnalysis",
+                "DC security analysis on network '${networkId}'", NETWORK_ID, networkId);
+    }
+
     public static Reporter createPreContingencySimulation(Reporter reporter) {
         return reporter.createSubReporter("preContingencySimulation", "Pre-contingency simulation");
     }

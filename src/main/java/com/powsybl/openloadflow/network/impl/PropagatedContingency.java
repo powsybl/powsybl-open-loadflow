@@ -431,6 +431,10 @@ public class PropagatedContingency {
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
+        return toLfContingency(network, false);
+    }
+
+    public Optional<LfContingency> toLfContingency(LfNetwork network, boolean dc) {
         // find branch to open because of direct impact of the contingency (including propagation is activated)
         Map<LfBranch, DisabledBranchStatus> branchesToOpen = findBranchToOpenDirectlyImpactedByContingency(network);
 
@@ -459,6 +463,12 @@ public class PropagatedContingency {
                             addBranchToOpen(branch, DisabledBranchStatus.BOTH_SIDES, branchesToOpen);
                         }
                     });
+        }
+
+        if (dc) {
+            for (var branch : branchesToOpen.keySet()) {
+                branchesToOpen.put(branch, DisabledBranchStatus.BOTH_SIDES);
+            }
         }
 
         Map<LfShunt, AdmittanceShift> shunts = new HashMap<>(1);

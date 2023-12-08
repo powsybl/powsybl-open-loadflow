@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -100,9 +101,13 @@ public class DcEquationSystemCreator {
                 equationSystem.createEquation(branch, DcEquationType.BRANCH_TARGET_ALPHA1)
                         .addTerm(a1);
             }
+            ClosedBranchDcCurrentEquationTerm i1 = ClosedBranchDcCurrentEquationTerm.create(branch, TwoSides.ONE, creationParameters.getDcPowerFactor());
+            ClosedBranchDcCurrentEquationTerm i2 = ClosedBranchDcCurrentEquationTerm.create(branch, TwoSides.TWO, creationParameters.getDcPowerFactor());
             if (creationParameters.isUpdateFlows()) {
                 branch.setP1(p1);
                 branch.setP2(p2);
+                branch.setI1(i1);
+                branch.setI2(i2);
             }
         } else if (bus1 != null && creationParameters.isUpdateFlows()) {
             branch.setP1(EvaluableConstants.ZERO);
