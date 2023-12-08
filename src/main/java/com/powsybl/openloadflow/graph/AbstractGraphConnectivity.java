@@ -9,8 +9,6 @@ package com.powsybl.openloadflow.graph;
 import com.powsybl.commons.PowsyblException;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
