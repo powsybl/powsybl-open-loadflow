@@ -83,15 +83,6 @@ public abstract class AbstractAsymmetricalClosedBranchFlowEquationTerm extends A
         return mV;
     }
 
-    public static int getIndexline(FlowType flowType) {
-        return switch (flowType) {
-            case I1X -> 0;
-            case I1Y -> 1;
-            case I2X -> 2;
-            case I2Y -> 3;
-        };
-    }
-
     public DenseMatrix getdVdx(Variable<AcVariableType> variable) {
         double dv1x = 0;
         double dv1y = 0;

@@ -12,8 +12,18 @@ package com.powsybl.openloadflow.ac.equations.asym;
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
 public enum FlowType {
-    I1X,
-    I1Y,
-    I2X,
-    I2Y;
+    I1X(0),
+    I1Y(1),
+    I2X(2),
+    I2Y(3);
+
+    private final int index;
+
+    FlowType(int index) {
+        this.index = index;
+    }
+
+    public int getIndex() {
+        return index;
+    }
 }

@@ -148,7 +148,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractAsymmetricalCl
     @Override
     public double eval() {
         return createIvector(getCartesianVoltageVector(v1(), ph1(), v2(), ph2()), r1(),
-                z0T1, z0T2, y0m, zG1, zG2, leg1ConnectionType, leg2ConnectionType, freeFluxes).get(getIndexline(flowType), 0);
+                z0T1, z0T2, y0m, zG1, zG2, leg1ConnectionType, leg2ConnectionType, freeFluxes).get(flowType.getIndex(), 0);
     }
 
     @Override
@@ -159,7 +159,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractAsymmetricalCl
             throw new PowsyblException("State variable rho1 not yet handled in transformers for asymmetrical load flow, keep in fixed for now ");
         } else {
             DenseMatrix mdV = getdVdx(variable);
-            return createAdmittanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1(), leg1ConnectionType, leg2ConnectionType, freeFluxes).times(mdV).get(getIndexline(flowType), 0);
+            return createAdmittanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1(), leg1ConnectionType, leg2ConnectionType, freeFluxes).times(mdV).get(flowType.getIndex(), 0);
         }
     }
 

@@ -85,7 +85,7 @@ public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractAsymmetric
         return getIvector(new Complex(g1, b1), new Complex(g2, b2), new Complex(g12, b12),
                 getCartesianVoltageVector(v1(), ph1(), v2(), ph2()),
                 ComplexUtils.polar2Complex(r1(), a1()),
-                ComplexUtils.polar2Complex(R2, 0.)).get(getIndexline(flowType), 0);
+                ComplexUtils.polar2Complex(R2, 0.)).get(flowType.getIndex(), 0);
     }
 
     @Override
@@ -109,7 +109,7 @@ public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractAsymmetric
             DenseMatrix mdV = getdVdx(variable);
             return getIvector(new Complex(g1, b1), new Complex(g2, b2), new Complex(g12, b12), mdV,
                     ComplexUtils.polar2Complex(r1(), a1()),
-                    ComplexUtils.polar2Complex(R2, 0.)).get(getIndexline(flowType), 0);
+                    ComplexUtils.polar2Complex(R2, 0.)).get(flowType.getIndex(), 0);
         }
     }
 
