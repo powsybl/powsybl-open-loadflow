@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.ac.equations;
+package com.powsybl.openloadflow.ac.equations.asym;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -25,7 +26,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
+public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractAsymmetricalClosedBranchAcFlowEquationTerm {
 
     private final FlowType flowType;
 

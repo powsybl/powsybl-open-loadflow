@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.ac.equations;
+package com.powsybl.openloadflow.ac.equations.asym;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -26,7 +27,7 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
+public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractAsymmetricalClosedBranchAcFlowEquationTerm {
 
     private final FlowType flowType;
     private final Complex z0T1;
@@ -39,7 +40,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
     private boolean freeFluxes;
 
     public ClosedBranchTfoZeroIflowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                    boolean deriveA1, boolean deriveR1, ClosedBranchTfoNegativeIflowEquationTerm.FlowType flowType) {
+                                                    boolean deriveA1, boolean deriveR1, FlowType flowType) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
 
         this.flowType = Objects.requireNonNull(flowType);
