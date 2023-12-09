@@ -206,7 +206,7 @@ public class AsymmetricalLoadFlowTest {
         Line line1 = network.getLine("l12");
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(1, bus1);
         assertAngleEquals(0, bus1);
@@ -221,7 +221,7 @@ public class AsymmetricalLoadFlowTest {
     @Test
     void fourNodesBalancedTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -242,7 +242,7 @@ public class AsymmetricalLoadFlowTest {
         parametersExt.setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -256,7 +256,7 @@ public class AsymmetricalLoadFlowTest {
         extension.setOpenPhaseB(true);
 
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -268,7 +268,7 @@ public class AsymmetricalLoadFlowTest {
         extension.setOpenPhaseC(true);
 
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -322,7 +322,7 @@ public class AsymmetricalLoadFlowTest {
                 .setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -400,7 +400,7 @@ public class AsymmetricalLoadFlowTest {
                 .setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);

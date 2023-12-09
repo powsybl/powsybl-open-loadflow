@@ -30,6 +30,7 @@ import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -156,19 +157,37 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         for (AcLoadFlowResult result : results) {
             updateAcState(network, parameters, parametersExt, result, acParameters, atLeastOneComponentHasToBeUpdated);
 
-            // FIXME a null slack bus ID should be allowed
-            String slackBusId = result.getNetwork().isValid() ? result.getNetwork().getSlackBus().getId() : "";
+            ReferenceBusAndSlackBusesResults referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
-                                                                            result.getNetwork().getNumSC(),
-                                                                            result.toComponentResultStatus(),
-                                                                            result.getSolverIterations(),
-                                                                            slackBusId, // FIXME manage multiple slack buses
-                                                                            result.getSlackBusActivePowerMismatch() * PerUnit.SB,
-                                                                            result.getDistributedActivePower() * PerUnit.SB));
+                    result.getNetwork().getNumSC(),
+                    result.toComponentResultStatus(),
+                    result.toComponentResultStatus().name(), // statusText: can do better later on
+                    Collections.emptyMap(), // metrics: can do better later on
+                    result.getSolverIterations(),
+                    referenceBusAndSlackBusesResults.referenceBusId(),
+                    referenceBusAndSlackBusesResults.slackBusResultList(),
+                    result.getDistributedActivePower() * PerUnit.SB));
         }
 
         boolean ok = results.stream().anyMatch(AcLoadFlowResult::isOk);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
+    }
+
+    private static ReferenceBusAndSlackBusesResults buildReferenceBusAndSlackBusesResults(AbstractLoadFlowResult result) {
+        String referenceBusId = null;
+        List<LoadFlowResult.SlackBusResult> slackBusResultList = new ArrayList<>();
+        double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch() * PerUnit.SB;
+        if (result.getNetwork().isValid()) {
+            referenceBusId = result.getNetwork().getReferenceBus().getId();
+            List<LfBus> slackBuses = result.getNetwork().getSlackBuses();
+            slackBusResultList = slackBuses.stream().map(
+                    b -> (LoadFlowResult.SlackBusResult) new LoadFlowResultImpl.SlackBusResultImpl(b.getId(),
+                            slackBusActivePowerMismatch / slackBuses.size())).toList();
+        }
+        return new ReferenceBusAndSlackBusesResults(referenceBusId, slackBusResultList);
+    }
+
+    private record ReferenceBusAndSlackBusesResults(String referenceBusId, List<LoadFlowResult.SlackBusResult> slackBusResultList) {
     }
 
     private void computeZeroImpedanceFlows(LfNetwork network, LoadFlowModel loadFlowModel) {
@@ -188,7 +207,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         Networks.resetState(network);
 
-        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, dcParameters.getNetworkParameters().isBreakers())).collect(Collectors.toList());
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, dcParameters.getNetworkParameters().isBreakers())).toList();
         boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSucceeded);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }
@@ -213,19 +232,18 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.DC);
         }
 
+        var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
+        LoadFlowResult.ComponentResult.Status status = result.isSucceeded() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
         return new LoadFlowResultImpl.ComponentResultImpl(
                 result.getNetwork().getNumCC(),
                 result.getNetwork().getNumSC(),
-                result.isSucceeded() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED,
-                0,
-                result.getNetwork().getSlackBus().getId(), // FIXME manage multiple slack buses
-                result.getSlackBusActivePowerMismatch() * PerUnit.SB,
+                status,
+                status.name(), // statusText: can do better later on
+                Collections.emptyMap(), // metrics: can do better later on
+                0, // iterationCount
+                referenceBusAndSlackBusesResults.referenceBusId(),
+                referenceBusAndSlackBusesResults.slackBusResultList(),
                 Double.NaN);
-    }
-
-    @Override
-    public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters) {
-        return run(network, computationManager, workingVariantId, parameters, Reporter.NO_OP);
     }
 
     @Override
@@ -282,5 +300,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     @Override
     public void updateSpecificParameters(Extension<LoadFlowParameters> extension, Map<String, String> properties) {
         ((OpenLoadFlowParameters) extension).update(properties);
+    }
+
+    @Override
+    public Optional<Class<? extends Extension<LoadFlowParameters>>> getSpecificParametersClass() {
+        return Optional.of(OpenLoadFlowParameters.class);
+    }
+
+    @Override
+    public Map<String, String> createMapFromSpecificParameters(Extension<LoadFlowParameters> extension) {
+        return ((OpenLoadFlowParameters) extension).toMap().entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> Objects.toString(e.getValue(), "")));
     }
 }

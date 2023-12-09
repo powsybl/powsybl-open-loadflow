@@ -7,8 +7,11 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -16,13 +19,17 @@ import java.util.Set;
 public final class DisabledNetwork {
 
     private final Set<LfBus> buses;
-    private final Set<LfBranch> branches;
+    private final Map<LfBranch, DisabledBranchStatus> branchesStatus;
     private final Set<LfHvdc> hvdcs;
 
-    public DisabledNetwork(Set<LfBus> buses, Set<LfBranch> branches, Set<LfHvdc> hvdcs) {
+    public DisabledNetwork(Set<LfBus> buses, Map<LfBranch, DisabledBranchStatus> branchesStatus, Set<LfHvdc> hvdcs) {
         this.buses = Objects.requireNonNull(buses);
-        this.branches = Objects.requireNonNull(branches);
+        this.branchesStatus = Objects.requireNonNull(branchesStatus);
         this.hvdcs = Objects.requireNonNull(hvdcs);
+    }
+
+    public DisabledNetwork(Set<LfBus> buses, Set<LfBranch> branches, Set<LfHvdc> hvdcs) {
+        this(buses, Objects.requireNonNull(branches).stream().collect(Collectors.toMap(Function.identity(), branch -> DisabledBranchStatus.BOTH_SIDES)), hvdcs);
     }
 
     public DisabledNetwork() {
@@ -38,7 +45,11 @@ public final class DisabledNetwork {
     }
 
     public Set<LfBranch> getBranches() {
-        return branches;
+        return branchesStatus.keySet();
+    }
+
+    public Map<LfBranch, DisabledBranchStatus> getBranchesStatus() {
+        return branchesStatus;
     }
 
     public Set<LfHvdc> getHvdcs() {
