@@ -27,7 +27,7 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractAsymmetricalClosedBranchAcFlowEquationTerm {
+public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractAsymmetricalClosedBranchFlowEquationTerm {
 
     private final FlowType flowType;
     private final Complex z0T1;

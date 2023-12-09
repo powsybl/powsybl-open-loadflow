@@ -26,7 +26,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractAsymmetricalClosedBranchAcFlowEquationTerm {
+public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractAsymmetricalClosedBranchFlowEquationTerm {
 
     private final FlowType flowType;
 
