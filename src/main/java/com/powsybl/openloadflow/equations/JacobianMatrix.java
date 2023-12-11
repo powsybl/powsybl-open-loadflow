@@ -143,7 +143,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         updateLu(allowIncrementalUpdate);
     }
 
-    public Matrix getMatrix() {
+    public void forceUpdate() {
+        update();
+    }
+
+    private void update() {
         if (status != Status.VALID) {
             switch (status) {
                 case STRUCTURE_INVALID:
@@ -163,6 +167,10 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             }
             status = Status.VALID;
         }
+    }
+
+    public Matrix getMatrix() {
+        update();
         return matrix;
     }
 

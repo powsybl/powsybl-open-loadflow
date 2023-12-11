@@ -202,6 +202,17 @@
             <artifactId>powsybl-iidm-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-psse-model-test</artifactId>
+            <version>${powsybl-core.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-psse-converter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
 

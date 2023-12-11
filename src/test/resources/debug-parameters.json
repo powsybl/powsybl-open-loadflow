@@ -73,7 +73,10 @@
         "linePerUnitMode" : "IMPEDANCE",
         "useLoadModel" : false,
         "dcApproximationType" : "IGNORE_R",
-        "simulateAutomationSystems" : false
+        "simulateAutomationSystems" : false,
+        "acSolverType" : "NEWTON_RAPHSON",
+        "maxNewtowKrylovIterations" : 100,
+        "newtowKrylovLineSearch" : false
       }
     }
   },
