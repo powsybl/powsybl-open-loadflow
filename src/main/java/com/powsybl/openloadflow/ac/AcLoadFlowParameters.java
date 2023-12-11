@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
+import com.powsybl.openloadflow.ac.solver.NewtonKrylovParameters;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
@@ -29,6 +30,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
     private AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters();
 
     private NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
+
+    private NewtonKrylovParameters newtonKrylovParameters = new NewtonKrylovParameters();
 
     private List<AcOuterLoop> outerLoops = Collections.emptyList();
 
@@ -59,6 +62,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     public AcLoadFlowParameters setNewtonRaphsonParameters(NewtonRaphsonParameters newtonRaphsonParameters) {
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
+        return this;
+    }
+
+    public NewtonKrylovParameters getNewtonKrylovParameters() {
+        return newtonKrylovParameters;
+    }
+
+    public AcLoadFlowParameters setNewtonKrylovParameters(NewtonKrylovParameters newtonKrylovParameters) {
+        this.newtonKrylovParameters = Objects.requireNonNull(newtonKrylovParameters);
         return this;
     }
 
@@ -131,6 +143,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 "networkParameters=" + networkParameters +
                 ", equationSystemCreationParameters=" + equationSystemCreationParameters +
                 ", newtonRaphsonParameters=" + newtonRaphsonParameters +
+                ", newtonKrylovParameters=" + newtonKrylovParameters +
                 ", outerLoops=" + outerLoops.stream().map(outerLoop -> outerLoop.getClass().getSimpleName()).toList() +
                 ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
