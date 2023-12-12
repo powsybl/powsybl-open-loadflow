@@ -193,6 +193,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             }
             referenceBus = slackBuses.get(0);
             referenceBus.setReference(true);
+            if (connectivity != null) {
+                connectivity.setMainComponentVertex(slackBuses.get(0));
+            }
         }
     }
 
@@ -638,7 +641,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             getBranches().stream()
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
-            connectivity.setMainComponentVertex(getSlackBus());
+            connectivity.setMainComponentVertex(getSlackBuses().get(0));
             // this is necessary to create a first temporary changes level in order to allow
             // some outer loop to change permanently the connectivity (with automation systems for instance)
             // this one will never be reverted

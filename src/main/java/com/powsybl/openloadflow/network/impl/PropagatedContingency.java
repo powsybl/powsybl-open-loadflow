@@ -375,7 +375,7 @@ public class PropagatedContingency {
     }
 
     private static boolean isIsolatedBus(GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork network, LfBus bus) {
-        return connectivity.getConnectedComponent(bus).size() < network.getBuses().size() / 2;
+        return connectivity.getConnectedComponent(bus).size() < Math.round(1d * network.getBuses().size() / 2);
     }
 
     private Map<LfBranch, DisabledBranchStatus> findBranchToOpenDirectlyImpactedByContingency(LfNetwork network) {
@@ -388,16 +388,10 @@ public class PropagatedContingency {
         busIdsToLose.stream().map(network::getBusById)
                 .filter(Objects::nonNull)
                 .forEach(bus -> {
-                    if (bus.isSlack()) {
-                        // slack bus disabling is not supported
-                        // we keep the slack bus enabled and the connected lostBranches
-                        LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", bus.getId());
-                    } else {
-                        bus.getBranches().forEach(branch -> {
-                            DisabledBranchStatus status = branch.getBus1() == bus ? DisabledBranchStatus.SIDE_1 : DisabledBranchStatus.SIDE_2;
-                            addBranchToOpen(branch, status, branchesToOpen);
-                        });
-                    }
+                    bus.getBranches().forEach(branch -> {
+                        DisabledBranchStatus status = branch.getBus1() == bus ? DisabledBranchStatus.SIDE_1 : DisabledBranchStatus.SIDE_2;
+                        addBranchToOpen(branch, status, branchesToOpen);
+                    });
                 });
 
         return branchesToOpen;

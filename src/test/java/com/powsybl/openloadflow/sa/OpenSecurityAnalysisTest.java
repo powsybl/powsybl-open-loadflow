@@ -2689,6 +2689,20 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(LimitViolationUtils.PERMANENT_LIMIT_NAME, limitViolations.get(0).getLimitName());
     }
 
+    /**
+     *                   G
+     *              C    |
+     * BBS1 -------[+]------- BBS2     VL1
+     *    NBR [+]       [+] B1
+     *         |         |
+     *     L1  |         | L2
+     *         |         |
+     *     B3 [+]       [+] B4
+     * BBS3 -----------------          VL2
+     *             |
+     *             LD
+     * @return
+     */
     private static Network createNodeBreakerNetworkForTestingLineOpenOneSide() {
         Network network = createNodeBreakerNetwork();
         VoltageLevel vl1 = network.getVoltageLevel("VL1");
@@ -2828,14 +2842,16 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testSlackBusRelocation() {
-        Network network = createNodeBreakerNetworkForTestingLineOpenOneSide();
+        Network network = createNodeBreakerNetwork();
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        setSlackBusId(lfParameters, "VL2_0");
+        setSlackBusId(lfParameters, "VL1_0");
 
-        List<Contingency> contingencies = List.of(Contingency.busbarSection("BBS1"),
-                Contingency.busbarSection("BBS3"),
-                Contingency.line("L1"));
+        List<Contingency> contingencies = List.of(
+            Contingency.busbarSection("BBS1"),
+            Contingency.busbarSection("BBS3"),
+            Contingency.line("L1")
+        );
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
         assertEquals(3, result.getPostContingencyResults().size());
