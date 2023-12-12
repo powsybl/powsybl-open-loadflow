@@ -7,11 +7,14 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,57 +23,32 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ConnectivityTest {
 
-    @Test
-    void circleTest() {
-        circleTest(new NaiveGraphConnectivity<>(s -> Integer.parseInt(s) - 1));
-        circleTest(new EvenShiloachGraphDecrementalConnectivity<>());
-        circleTest(new MinimumSpanningTreeGraphConnectivity<>());
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideNonRestrictedConnectivities")
+    void setMainComponentVertexExceptionTest(GraphConnectivity<Integer, String> c) {
+        Integer v1 = 1;
+        Integer v2 = 2;
+        Integer v3 = 3;
+        String e12 = "1-2";
+        c.addVertex(v1);
+        c.addVertex(v2);
+        c.addVertex(v3);
+        c.addEdge(v1, v2, e12);
+
+        c.setMainComponentVertex(v1);
+        c.startTemporaryChanges();
+        c.setMainComponentVertex(v2); // setting the main component vertex is accepted if already in the main component before
+        PowsyblException e4 = assertThrows(PowsyblException.class, () -> c.setMainComponentVertex(v3));
+        assertEquals("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes", e4.getMessage());
     }
 
-    @Test
-    void loopCircleTest() {
-        loopCircleTest(new NaiveGraphConnectivity<>(s -> Integer.parseInt(s) - 1));
-        loopCircleTest(new EvenShiloachGraphDecrementalConnectivity<>());
-        loopCircleTest(new MinimumSpanningTreeGraphConnectivity<>());
-    }
-
-    @Test
-    void saveResetTest() {
-        saveResetTest(new NaiveGraphConnectivity<>(v -> v - 1));
-        saveResetTest(new MinimumSpanningTreeGraphConnectivity<>());
-    }
-
-    @Test
-    void setMainComponentVertexTest() {
-        setMainComponentVertexTest(new NaiveGraphConnectivity<>(v -> v - 1));
-        setMainComponentVertexTest(new MinimumSpanningTreeGraphConnectivity<>());
-    }
-
-    @Test
-    void exceptionsTest() {
-        exceptionsTest(new NaiveGraphConnectivity<>(v -> v - 1));
-        exceptionsTest(new EvenShiloachGraphDecrementalConnectivity<>());
-        exceptionsTest(new MinimumSpanningTreeGraphConnectivity<>());
-    }
-
-    @Test
-    void multipleEdgesTest() {
-        multipleEdgesTest(new NaiveGraphConnectivity<>(s -> Integer.parseInt(s) - 1), true);
-        multipleEdgesTest(new EvenShiloachGraphDecrementalConnectivity<>(), false);
-        multipleEdgesTest(new MinimumSpanningTreeGraphConnectivity<>(), true);
-    }
-
-    @Test
-    void removeThenAddEdgesTest() {
-        removeThenAddEdgesTest(new NaiveGraphConnectivity<>(v -> v - 1));
-        removeThenAddEdgesTest(new MinimumSpanningTreeGraphConnectivity<>());
-    }
-
-    private void circleTest(GraphConnectivity<String, String> c) {
-        String o1 = "1";
-        String o2 = "2";
-        String o3 = "3";
-        String o4 = "4";
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideAllConnectivities")
+    void circleTest(GraphConnectivity<Integer, String> c) {
+        int o1 = 1;
+        int o2 = 2;
+        int o3 = 3;
+        int o4 = 4;
         String e12 = "1-2";
         String e23 = "2-3";
         String e34 = "3-4";
@@ -93,10 +71,12 @@ class ConnectivityTest {
         assertTrue(c.getVerticesRemovedFromMainComponent().isEmpty());
     }
 
-    private void loopCircleTest(GraphConnectivity<String, String> c) {
-        String o1 = "1";
-        String o2 = "2";
-        String o3 = "3";
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideAllConnectivities")
+    void loopCircleTest(GraphConnectivity<Integer, String> c) {
+        int o1 = 1;
+        int o2 = 2;
+        int o3 = 3;
         String e11 = "1-1";
         String e12 = "1-2";
         String e23 = "2-3";
@@ -134,7 +114,9 @@ class ConnectivityTest {
         assertEquals(Set.of(e11, e31, e12), c.getEdgesRemovedFromMainComponent());
     }
 
-    private void saveResetTest(GraphConnectivity<Integer, String> c) {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideNonRestrictedConnectivities")
+    void saveResetTest(GraphConnectivity<Integer, String> c) {
         Integer v1 = 1;
         Integer v2 = 2;
         Integer v3 = 3;
@@ -263,7 +245,9 @@ class ConnectivityTest {
 
     }
 
-    private void setMainComponentVertexTest(GraphConnectivity<Integer, String> c) {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideNonRestrictedConnectivities")
+    void setMainComponentVertexTest(GraphConnectivity<Integer, String> c) {
         Integer v1 = 1;
         Integer v2 = 2;
         Integer v3 = 3;
@@ -292,13 +276,13 @@ class ConnectivityTest {
         c.startTemporaryChanges();
         c.removeEdge(e12);
         c.removeEdge(e31);
-        String e15 = "1-5";
-        c.addEdge(v1, v4, e15);
-        assertEquals(Set.of(e11, e15), c.getEdgesAddedToMainComponent());
+        String e14 = "1-4";
+        c.addEdge(v1, v4, e14);
+        assertEquals(Set.of(e11, e14), c.getEdgesAddedToMainComponent());
         assertEquals(Set.of(v1), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
         assertEquals(Collections.emptySet(), c.getEdgesRemovedFromMainComponent());
-        //  |---------------|
+        //  |-----------|
         //  1   2---3   4---5
         // |_|
 
@@ -312,38 +296,61 @@ class ConnectivityTest {
         assertEquals(Set.of(v2, v3), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
         assertEquals(Set.of(e11), c.getEdgesRemovedFromMainComponent());
-        //  |---------------|
+        //  |-----------|
         //  1---2   3---4---5
 
         c.undoTemporaryChanges();
-        //  |---------------|
+        //  |-----------|
         //  1   2---3   4---5
         // |_|
 
         c.startTemporaryChanges();
-        String e14 = "1-4";
-        c.addEdge(v1, v4, e14);
+        String e14b = "1-4 duplicate";
+        c.addEdge(v1, v4, e14b);
         c.addEdge(v3, v4, e34);
         c.removeEdge(e45);
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(v1, v4), c.getVerticesRemovedFromMainComponent());
-        assertEquals(Set.of(e11, e15, e45), c.getEdgesRemovedFromMainComponent());
+        assertEquals(Set.of(e11, e14, e45), c.getEdgesRemovedFromMainComponent());
+        //  |-----------|
         //  |-----------|
         //  1   2---3---4   5
         // |_|
 
-        Integer v6 = 6;
-        c.addVertex(v6);
+        c.setMainComponentVertex(1);
+        assertEquals(Set.of(e14b, e23, e34), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(v2, v3), c.getVerticesAddedToMainComponent());
+        assertEquals(Set.of(v5), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Set.of(e45), c.getEdgesRemovedFromMainComponent());
+
+        c.setMainComponentVertex(5);
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(v1, v4), c.getVerticesRemovedFromMainComponent());
-        assertEquals(Set.of(e11, e15, e45), c.getEdgesRemovedFromMainComponent());
+        assertEquals(Set.of(e11, e14, e45), c.getEdgesRemovedFromMainComponent());
+
+        c.setMainComponentVertex(1);
+        Integer v6 = 6;
+        c.addVertex(v6);
+        assertEquals(Set.of(e14b, e23, e34), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(v2, v3), c.getVerticesAddedToMainComponent());
+        assertEquals(Set.of(v5), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Set.of(e45), c.getEdgesRemovedFromMainComponent());
+        //  |-----------|
         //  |-----------|
         //  1   2---3---4   5    6
         // |_|
 
-        c.undoTemporaryChanges();
+        c.undoTemporaryChanges(); // vertex 5 is considered again as main component vertex
+        //  |-----------|
+        //  1   2---3   4---5
+        // |_|
+        assertEquals(Set.of(e11, e14), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(v1), c.getVerticesAddedToMainComponent());
+        assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Collections.emptySet(), c.getEdgesRemovedFromMainComponent());
+
         c.undoTemporaryChanges();
 
         c.startTemporaryChanges();
@@ -353,7 +360,9 @@ class ConnectivityTest {
         assertEquals(Collections.emptySet(), c.getEdgesRemovedFromMainComponent());
     }
 
-    private void exceptionsTest(GraphConnectivity<Integer, String> c) {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideAllConnectivities")
+    void exceptionsTest(GraphConnectivity<Integer, String> c) {
         Integer v1 = 1;
         Integer v2 = 2;
         String e12 = "1-2";
@@ -375,10 +384,12 @@ class ConnectivityTest {
         assertEquals("Cannot reset, no remaining saved connectivity", e3.getMessage());
     }
 
-    private void multipleEdgesTest(GraphConnectivity<String, String> c, boolean incrementalSupport) {
-        String o1 = "1";
-        String o2 = "2";
-        String o3 = "3";
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideAllConnectivities")
+    void multipleEdgesTest(GraphConnectivity<Integer, String> c) {
+        int o1 = 1;
+        int o2 = 2;
+        int o3 = 3;
         String e12 = "1-2";
         String e23 = "2-3";
         c.addVertex(o1);
@@ -411,6 +422,7 @@ class ConnectivityTest {
         c.addVertex(o1);
         assertEquals(2, c.getNbConnectedComponents());
 
+        boolean incrementalSupport = !(c instanceof EvenShiloachGraphDecrementalConnectivity);
         if (incrementalSupport) {
             c.addEdge(o1, o2, e12);
             assertEquals(1, c.getNbConnectedComponents());
@@ -422,7 +434,9 @@ class ConnectivityTest {
         }
     }
 
-    private void removeThenAddEdgesTest(GraphConnectivity<Integer, String> c) {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideNonRestrictedConnectivities")
+    void removeThenAddEdgesTest(GraphConnectivity<Integer, String> c) {
         IntStream.range(1, 6).forEach(c::addVertex);
         IntStream.range(1, 5).forEach(i -> c.addEdge(i, i + 1, i + "-" + (i + 1)));
         // 1---2---3---4---5
@@ -475,5 +489,18 @@ class ConnectivityTest {
         assertEquals(Set.of(1, 2), c.getVerticesRemovedFromMainComponent());
         assertEquals(Set.of("1-2", "2-3"), c.getEdgesRemovedFromMainComponent());
         // 1---2   3---4---5   6
+    }
+
+    private static Stream<Arguments> provideNonRestrictedConnectivities() {
+        return Stream.of(
+                Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
+                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()));
+    }
+
+    private static Stream<Arguments> provideAllConnectivities() {
+        return Stream.of(
+                Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
+                Arguments.of(new EvenShiloachGraphDecrementalConnectivity<>()),
+                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()));
     }
 }
