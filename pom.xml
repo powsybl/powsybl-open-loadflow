@@ -48,7 +48,7 @@
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
 
-        <powsybl-core.version>6.1.0-alpha-1</powsybl-core.version>
+        <powsybl-core.version>6.1.0</powsybl-core.version>
     </properties>
 
     <build>
@@ -200,6 +200,17 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-iidm-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-psse-model-test</artifactId>
+            <version>${powsybl-core.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-psse-converter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
