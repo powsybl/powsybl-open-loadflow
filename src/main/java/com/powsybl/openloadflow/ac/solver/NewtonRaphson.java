@@ -158,7 +158,7 @@ public class NewtonRaphson extends AbstractAcSolver {
         }
     }
 
-    private boolean isStateUnrealistic() {
+    private boolean isStateUnrealistic(Reporter reporter) {
         Map<String, Double> busesOutOfNormalVoltageRange = new LinkedHashMap<>();
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             if (v.getType() == AcVariableType.BUS_V && !network.getBus(v.getElementNum()).isFictitious()) {
@@ -176,6 +176,8 @@ public class NewtonRaphson extends AbstractAcSolver {
             }
             LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
                     busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
+
+            Reports.reportNewtonRaphsonBusesWithOutOfNormalRangeVoltage(reporter, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
         }
         return !busesOutOfNormalVoltageRange.isEmpty();
     }
@@ -216,7 +218,7 @@ public class NewtonRaphson extends AbstractAcSolver {
         }
 
         // update network state variable
-        if (status == AcSolverStatus.CONVERGED && isStateUnrealistic()) {
+        if (status == AcSolverStatus.CONVERGED && isStateUnrealistic(reporter)) {
             status = AcSolverStatus.UNREALISTIC_STATE;
         }
 
