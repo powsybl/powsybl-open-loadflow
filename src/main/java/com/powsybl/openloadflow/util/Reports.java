@@ -264,7 +264,7 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportNewtonRaphsonBusesWithOutOfNormalRangeVoltage(Reporter reporter, Map<String, Double> busesOutOfNormalVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
+    public static void reportNewtonRaphsonBusesOutOfNormalVoltageRange(Reporter reporter, Map<String, Double> busesOutOfNormalVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
         reporter.report(Report.builder()
                 .withKey("newtonRaphsonBusesOutOfNormalVoltageRange")
                 .withDefaultMessage("${busCountOutOfNormalVoltageRange} buses have a voltage magnitude out of range [${minRealisticVoltage}, ${maxRealisticVoltage}]: ${busesOutOfNormalVoltageRange}")

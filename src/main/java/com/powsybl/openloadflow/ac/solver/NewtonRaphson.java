@@ -177,7 +177,7 @@ public class NewtonRaphson extends AbstractAcSolver {
             LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
                     busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
 
-            Reports.reportNewtonRaphsonBusesWithOutOfNormalRangeVoltage(reporter, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
+            Reports.reportNewtonRaphsonBusesOutOfNormalVoltageRange(reporter, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
         }
         return !busesOutOfNormalVoltageRange.isEmpty();
     }
