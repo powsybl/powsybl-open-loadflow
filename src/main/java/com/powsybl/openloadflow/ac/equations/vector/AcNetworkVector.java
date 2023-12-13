@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
@@ -139,6 +140,14 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         }
     }
 
+    private boolean isConnectedSide1(int branchNum) {
+        return branchVector.bus1Num[branchNum] != -1 && branchVector.connected1[branchNum];
+    }
+
+    private boolean isConnectedSide2(int branchNum) {
+        return branchVector.bus2Num[branchNum] != -1 && branchVector.connected2[branchNum];
+    }
+
     /**
      * Update all power flows and their derivatives.
      */
@@ -149,7 +158,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         var w = new DoubleWrapper();
         for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
             if (!branchVector.disabled[branchNum]) {
-                if (branchVector.bus1Num[branchNum] != -1 && branchVector.bus2Num[branchNum] != -1) {
+                if (isConnectedSide1(branchNum) && isConnectedSide2(branchNum)) {
                     double ph1 = state[branchVector.ph1Row[branchNum]];
                     double ph2 = state[branchVector.ph2Row[branchNum]];
                     double a1 = branchVector.a1Row[branchNum] != -1 ? state[branchVector.a1Row[branchNum]]
@@ -400,7 +409,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                     // i2
 
                     branchVector.i2[branchNum] = FastMath.hypot(branchVector.p2[branchNum], branchVector.q2[branchNum]) / v2;
-                } else if (branchVector.bus1Num[branchNum] != -1) {
+                } else if (isConnectedSide1(branchNum)) {
                     double v1 = state[branchVector.v1Row[branchNum]];
                     double r1 = branchVector.r1Row[branchNum] != -1 ? state[branchVector.r1Row[branchNum]]
                                                                     : branchVector.r1[branchNum];
@@ -446,7 +455,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             r1);
 
                     branchVector.i1[branchNum] = FastMath.hypot(branchVector.p1[branchNum], branchVector.q1[branchNum]) / v1;
-                } else if (branchVector.bus2Num[branchNum] != -1) {
+                } else if (isConnectedSide2(branchNum)) {
                     double v2 = state[branchVector.v2Row[branchNum]];
 
                     branchVector.p2[branchNum] = OpenBranchSide1ActiveFlowEquationTerm.p2(
@@ -514,6 +523,15 @@ public class AcNetworkVector extends AbstractLfNetworkListener
             branchVector.disabled[element.getNum()] = disabled;
         } else if (element.getType() == ElementType.SHUNT_COMPENSATOR) {
             shuntVector.disabled[element.getNum()] = disabled;
+        }
+    }
+
+    @Override
+    public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
+        if (side == TwoSides.ONE) {
+            branchVector.connected1[branch.getNum()] = connected;
+        } else {
+            branchVector.connected2[branch.getNum()] = connected;
         }
     }
 

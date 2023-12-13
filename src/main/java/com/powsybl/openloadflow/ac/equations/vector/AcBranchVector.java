@@ -26,6 +26,9 @@ public class AcBranchVector {
     final int[] bus1Num;
     final int[] bus2Num;
 
+    final boolean[] connected1;
+    final boolean[] connected2;
+
     final double[] y;
     final double[] g12;
     final double[] b12;
@@ -91,6 +94,8 @@ public class AcBranchVector {
         int size = branches.size();
         bus1Num = new int[size];
         bus2Num = new int[size];
+        connected1 = new boolean[size];
+        connected2 = new boolean[size];
         y = new double[size];
         g12 = new double[size];
         b12 = new double[size];
@@ -156,6 +161,8 @@ public class AcBranchVector {
             LfBus bus2 = branch.getBus2();
             bus1Num[i] = bus1 != null ? bus1.getNum() : -1;
             bus2Num[i] = bus2 != null ? bus2.getNum() : -1;
+            connected1[i] = branch.isConnectedSide1();
+            connected2[i] = branch.isConnectedSide2();
             PiModel piModel = branch.getPiModel();
             if (piModel.getZ() != 0) {
                 y[i] = piModel.getY();

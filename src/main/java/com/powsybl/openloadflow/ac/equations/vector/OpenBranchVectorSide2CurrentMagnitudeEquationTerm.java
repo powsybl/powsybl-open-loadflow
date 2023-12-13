@@ -33,7 +33,7 @@ public class OpenBranchVectorSide2CurrentMagnitudeEquationTerm extends AbstractO
         v1Var = variableSet.getVariable(bus1Num, AcVariableType.BUS_V);
         ph1Var = variableSet.getVariable(bus1Num, AcVariableType.BUS_PHI);
         if (deriveR1) {
-            r1Var = variableSet.getVariable(bus1Num, AcVariableType.BRANCH_RHO1);
+            r1Var = variableSet.getVariable(branchNum, AcVariableType.BRANCH_RHO1);
         }
     }
 

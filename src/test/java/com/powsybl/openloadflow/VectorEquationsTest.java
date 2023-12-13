@@ -109,6 +109,8 @@ class VectorEquationsTest {
         branch = Mockito.mock(LfBranch.class, ANSWER);
         Mockito.doReturn(0).when(branch).getNum();
         Mockito.doReturn(false).when(branch).isDisabled();
+        Mockito.doReturn(true).when(branch).isConnectedSide1();
+        Mockito.doReturn(true).when(branch).isConnectedSide2();
         PiModel piModel = Mockito.mock(PiModel.class, ANSWER);
         Mockito.doReturn(piModel).when(branch).getPiModel();
         Mockito.doReturn(R).when(piModel).getR();
