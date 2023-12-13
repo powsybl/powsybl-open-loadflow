@@ -38,6 +38,7 @@
         + Outer loop VoltageMonitoring
         + Outer loop ReactiveLimits
       + Post-contingency simulation 'NGEN_NHV1'
+         1 buses have a voltage magnitude out of range [0.5, 1.5]: {VLHV1_0=1.5105659472379578}
          AC load flow complete with NR status 'UNREALISTIC_STATE'
       + Post-contingency simulation 'NHV2_NLOAD'
          AC load flow complete with NR status 'CONVERGED'
