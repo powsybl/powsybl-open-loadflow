@@ -32,7 +32,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         if (deriveR1) {
-            r1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BRANCH_RHO1);
+            r1Var = variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1);
         }
     }
 
