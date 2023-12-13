@@ -375,7 +375,7 @@ public class PropagatedContingency {
     }
 
     private static boolean isIsolatedBus(GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork network, LfBus bus) {
-        return connectivity.getConnectedComponent(bus).size() < Math.round(1d * network.getBuses().size() / 2);
+        return connectivity.getConnectedComponent(bus).size() < Math.round(1d * network.getBuses().size() / 3);
     }
 
     private Map<LfBranch, DisabledBranchStatus> findBranchToOpenDirectlyImpactedByContingency(LfNetwork network) {

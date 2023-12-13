@@ -1891,16 +1891,23 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void testBusBarSectionContingencyIssue() {
+    void testBusBarSectionContingencyWithSlackBusRelocation() {
         Network network = NodeBreakerNetworkFactory.create3Bars();
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         setSlackBusId(lfParameters, "VL1_0"); // issue with slack bus to be disabled.
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new SwitchContingency("B1"), new SwitchContingency("C1"))));
-        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<StateMonitor> monitors = createNetworkMonitors(network);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
-        assertTrue(result.getPostContingencyResults().isEmpty());
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "contingency");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(400.0, postContingencyResult.getNetworkResult().getBusResult("BBS2").getV(), DELTA_V);
+        assertEquals(0.0, postContingencyResult.getNetworkResult().getBusResult("BBS2").getAngle(), DELTA_ANGLE);
+        assertEquals(400.0, postContingencyResult.getNetworkResult().getBusResult("BBS3").getV(), DELTA_V);
+        assertEquals(0.0, postContingencyResult.getNetworkResult().getBusResult("BBS3").getAngle(), DELTA_ANGLE);
+        assertEquals(393.577, postContingencyResult.getNetworkResult().getBusResult("BBS4").getV(), DELTA_V);
+        assertEquals(-3.561631, postContingencyResult.getNetworkResult().getBusResult("BBS4").getAngle(), DELTA_ANGLE);
     }
 
     @Test
