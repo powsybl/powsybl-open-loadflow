@@ -348,6 +348,30 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     }
 
     @Test
+    void transformerReactivePowerControlNonImpedantControlled() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerReactivePowerControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0.1)
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(network.getLine("LINE_12").getTerminal1())
+                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationValue(7.3);
+
+        network.getLine("LINE_12").setR(0).setX(0).setG1(0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(7.308, network.getLine("LINE_12").getTerminal1());
+        assertReactivePowerEquals(-7.308, network.getLine("LINE_12").getTerminal2());
+        assertReactivePowerEquals(-0.192, t2wt.getTerminal1());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
     void baseCaseT3wtTest() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
 
