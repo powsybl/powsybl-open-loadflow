@@ -6,8 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.ac.equations;
+package com.powsybl.openloadflow.ac.equations.asym;
 
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -21,7 +22,7 @@ import java.util.Objects;
  * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 @SuppressWarnings("squid:S00107")
-public class ClosedBranchI1xFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
+public class ClosedBranchI1xFlowEquationTerm extends AbstractAsymmetricalClosedBranchFlowEquationTerm {
 
     public ClosedBranchI1xFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {

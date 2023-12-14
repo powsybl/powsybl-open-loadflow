@@ -97,12 +97,12 @@ public class NewtonRaphson extends AbstractAcSolver {
     }
 
     private String getEquationTypeDescription(AcEquationType acEquationType) {
-        return switch (acEquationType) {
-            case BUS_TARGET_P -> "TargetP";
-            case BUS_TARGET_Q -> "TargetQ";
-            case BUS_TARGET_V -> "TargetV";
-            default -> null; // not implemented for other ac equation types
-        };
+        switch (acEquationType) {
+            case BUS_TARGET_P: return "TargetP";
+            case BUS_TARGET_Q: return "TargetQ";
+            case BUS_TARGET_V: return "TargetV";
+            default: return null; // not implemented for other ac equation types
+        }
     }
 
     private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, Reporter reporter) {
