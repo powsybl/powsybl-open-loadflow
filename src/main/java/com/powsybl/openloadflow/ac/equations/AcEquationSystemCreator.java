@@ -89,8 +89,8 @@ public class AcEquationSystemCreator {
     private void createVoltageControlEquations(AcEquationSystemCreationContext creationContext) {
         for (LfBus bus : network.getBuses()) {
             createGeneratorVoltageControlEquations(bus, creationContext);
-            createTransformerVoltageControlEquations(bus, creationContext.getEquationSystem());
-            createShuntVoltageControlEquations(bus, creationContext.getEquationSystem());
+            createTransformerVoltageControlEquations(bus, creationContext);
+            createShuntVoltageControlEquations(bus, creationContext);
         }
     }
 
@@ -111,7 +111,7 @@ public class AcEquationSystemCreator {
                             // create reactive power distribution equations at voltage controller buses
                             createGeneratorReactivePowerDistributionEquations(voltageControl, creationContext, creationParameters);
                         }
-                        updateGeneratorVoltageControl(voltageControl, creationContext.getEquationSystem());
+                        updateGeneratorVoltageControl(voltageControl, creationContext);
                     }
                 });
     }
@@ -144,12 +144,14 @@ public class AcEquationSystemCreator {
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
                         .addTerm(q);
                 createGeneratorReactivePowerDistributionEquations(rpc, creationContext, creationParameters);
-                updateGeneratorReactivePowerControlBranchEquations(rpc, equationSystem);
+                updateGeneratorReactivePowerControlBranchEquations(rpc, creationContext);
             });
         }
     }
 
-    public static void updateGeneratorReactivePowerControlBranchEquations(GeneratorReactivePowerControl generatorReactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    public static void updateGeneratorReactivePowerControlBranchEquations(GeneratorReactivePowerControl generatorReactivePowerControl,
+                                                                          AcEquationSystemCreationContext creationContext) {
+        var equationSystem = creationContext.getEquationSystem();
         LfBranch controlledBranch = generatorReactivePowerControl.getControlledBranch();
         List<LfBus> controllerBuses = generatorReactivePowerControl.getControllerBuses()
                 .stream()
@@ -226,7 +228,7 @@ public class AcEquationSystemCreator {
 
     private void createGeneratorReactivePowerDistributionEquations(Control control, AcEquationSystemCreationContext creationContext,
                                                                    AcEquationSystemCreationParameters creationParameters) {
-        List<LfBus> controllerBuses = null;
+        List<LfBus> controllerBuses;
         if (control instanceof GeneratorVoltageControl generatorVoltageControl) {
             controllerBuses = generatorVoltageControl.getMergedControllerElements();
         } else if (control instanceof GeneratorReactivePowerControl generatorReactivePowerControl) {
@@ -265,13 +267,15 @@ public class AcEquationSystemCreator {
         if (!voltageControl.isLocalControl()) {
             createGeneratorReactivePowerDistributionEquations(voltageControl, creationContext, creationParameters);
         }
-        updateGeneratorVoltageControl(voltageControl, equationSystem);
+        updateGeneratorVoltageControl(voltageControl, creationContext);
     }
 
     static <T extends LfElement> void updateRemoteVoltageControlEquations(VoltageControl<T> voltageControl,
-                                                                          EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                          AcEquationSystemCreationContext creationContext,
                                                                           AcEquationType distrEqType, AcEquationType ctrlEqType) {
         checkNotDependentVoltageControl(voltageControl);
+
+        var equationSystem = creationContext.getEquationSystem();
 
         LfBus controlledBus = voltageControl.getControlledBus();
 
@@ -379,13 +383,13 @@ public class AcEquationSystemCreator {
         return terms;
     }
 
-    public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, AcEquationSystemCreationContext creationContext) {
         checkNotDependentVoltageControl(voltageControl);
 
         // ensure reactive keys are up-to-date
         voltageControl.updateReactiveKeys();
 
-        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
+        updateRemoteVoltageControlEquations(voltageControl, creationContext, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
     }
 
     private static <T extends LfElement> void checkNotDependentVoltageControl(VoltageControl<T> voltageControl) {
@@ -395,8 +399,9 @@ public class AcEquationSystemCreator {
     }
 
     private static void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
-                                                EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                AcEquationSystemCreationContext creationContext,
                                                 boolean spanningTreeEdge) {
+        var equationSystem = creationContext.getEquationSystem();
         if (bus1 != null && bus2 != null) {
             Optional<Equation<AcVariableType, AcEquationType>> v1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_V);
             Optional<Equation<AcVariableType, AcEquationType>> v2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_V);
@@ -501,9 +506,11 @@ public class AcEquationSystemCreator {
         }
     }
 
-    public static void updateTransformerPhaseControlEquations(TransformerPhaseControl phaseControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    public static void updateTransformerPhaseControlEquations(TransformerPhaseControl phaseControl, AcEquationSystemCreationContext creationContext) {
         LfBranch controllerBranch = phaseControl.getControllerBranch();
         LfBranch controlledBranch = phaseControl.getControlledBranch();
+
+        var equationSystem = creationContext.getEquationSystem();
 
         if (phaseControl.getMode() == Mode.CONTROLLER) {
             boolean controlEnabled = !controllerBranch.isDisabled() && !controlledBranch.isDisabled() && controllerBranch.isPhaseControlEnabled();
@@ -524,12 +531,14 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private static void createTransformerVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private static void createTransformerVoltageControlEquations(LfBus bus, AcEquationSystemCreationContext creationContext) {
         bus.getTransformerVoltageControl()
                 .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .ifPresent(voltageControl -> {
                     // add transformer ratio distribution equations
-                    createR1DistributionEquations(voltageControl, equationSystem);
+                    createR1DistributionEquations(voltageControl, creationContext);
+
+                    var equationSystem = creationContext.getEquationSystem();
 
                     // we also create an equation per controller that will be used later to maintain R1 variable constant
                     for (LfBranch controllerBranch : voltageControl.getMergedControllerElements()) {
@@ -537,12 +546,13 @@ public class AcEquationSystemCreator {
                                 .addTerm(equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1).createTerm());
                     }
 
-                    updateTransformerVoltageControlEquations(voltageControl, equationSystem);
+                    updateTransformerVoltageControlEquations(voltageControl, creationContext);
                 });
     }
 
     public static void createR1DistributionEquations(TransformerVoltageControl voltageControl,
-                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+                                                     AcEquationSystemCreationContext creationContext) {
+        var equationSystem = creationContext.getEquationSystem();
         var controllerBranches = voltageControl.getMergedControllerElements();
         for (int i = 0; i < controllerBranches.size(); i++) {
             LfBranch controllerBranch = controllerBranches.get(i);
@@ -565,25 +575,28 @@ public class AcEquationSystemCreator {
         }
     }
 
-    static void updateTransformerVoltageControlEquations(TransformerVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_RHO, AcEquationType.BRANCH_TARGET_RHO1);
+    static void updateTransformerVoltageControlEquations(TransformerVoltageControl voltageControl, AcEquationSystemCreationContext creationContext) {
+        updateRemoteVoltageControlEquations(voltageControl, creationContext, AcEquationType.DISTR_RHO, AcEquationType.BRANCH_TARGET_RHO1);
     }
 
     public static void recreateR1DistributionEquations(TransformerVoltageControl voltageControl,
-                                                       EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+                                                       AcEquationSystemCreationContext creationContext) {
+        var equationSystem = creationContext.getEquationSystem();
         for (LfBranch controllerBranch : voltageControl.getMergedControllerElements()) {
             equationSystem.removeEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO);
         }
-        createR1DistributionEquations(voltageControl, equationSystem);
-        updateTransformerVoltageControlEquations(voltageControl, equationSystem);
+        createR1DistributionEquations(voltageControl, creationContext);
+        updateTransformerVoltageControlEquations(voltageControl, creationContext);
     }
 
-    private static void createShuntVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private static void createShuntVoltageControlEquations(LfBus bus, AcEquationSystemCreationContext creationContext) {
         bus.getShuntVoltageControl()
                 .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .ifPresent(voltageControl -> {
                     // add shunt distribution equations
-                    createShuntSusceptanceDistributionEquations(voltageControl, equationSystem);
+                    createShuntSusceptanceDistributionEquations(voltageControl, creationContext);
+
+                    var equationSystem = creationContext.getEquationSystem();
 
                     for (LfShunt controllerShunt : voltageControl.getMergedControllerElements()) {
                         // we also create an equation that will be used later to maintain B variable constant
@@ -592,12 +605,13 @@ public class AcEquationSystemCreator {
                                 .addTerm(equationSystem.getVariable(controllerShunt.getNum(), AcVariableType.SHUNT_B).createTerm());
                     }
 
-                    updateShuntVoltageControlEquations(voltageControl, equationSystem);
+                    updateShuntVoltageControlEquations(voltageControl, creationContext);
                 });
     }
 
     public static void createShuntSusceptanceDistributionEquations(ShuntVoltageControl voltageControl,
-                                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+                                                                   AcEquationSystemCreationContext creationContext) {
+        var equationSystem = creationContext.getEquationSystem();
         var controllerShunts = voltageControl.getMergedControllerElements();
         for (LfShunt controllerShunt : controllerShunts) {
             // shunt b at controller bus i
@@ -619,17 +633,18 @@ public class AcEquationSystemCreator {
         }
     }
 
-    static void updateShuntVoltageControlEquations(ShuntVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_SHUNT_B, AcEquationType.SHUNT_TARGET_B);
+    static void updateShuntVoltageControlEquations(ShuntVoltageControl voltageControl, AcEquationSystemCreationContext creationContext) {
+        updateRemoteVoltageControlEquations(voltageControl, creationContext, AcEquationType.DISTR_SHUNT_B, AcEquationType.SHUNT_TARGET_B);
     }
 
     public static void recreateShuntSusceptanceDistributionEquations(ShuntVoltageControl voltageControl,
-                                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+                                                                     AcEquationSystemCreationContext creationContext) {
+        var equationSystem = creationContext.getEquationSystem();
         for (LfShunt controllerShunt : voltageControl.getMergedControllerElements()) {
             equationSystem.removeEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B);
         }
-        createShuntSusceptanceDistributionEquations(voltageControl, equationSystem);
-        updateShuntVoltageControlEquations(voltageControl, equationSystem);
+        createShuntSusceptanceDistributionEquations(voltageControl, creationContext);
+        updateShuntVoltageControlEquations(voltageControl, creationContext);
     }
 
     public static boolean isDeriveA1(LfBranch branch, AcEquationSystemCreationParameters creationParameters) {
@@ -911,7 +926,8 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private static void createHvdcAcEmulationEquations(LfHvdc hvdc, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private static void createHvdcAcEmulationEquations(LfHvdc hvdc, AcEquationSystemCreationContext creationContext) {
+        var equationSystem = creationContext.getEquationSystem();
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
         if (hvdc.getBus1() != null && hvdc.getBus2() != null) {
@@ -938,7 +954,7 @@ public class AcEquationSystemCreator {
     private void createImpedantBranchEquations(LfBranch branch, AcEquationSystemCreationContext creationContext) {
         // create zero and non zero impedance branch equations
         if (branch.isZeroImpedance(LoadFlowModel.AC)) {
-            createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), creationContext.getEquationSystem(), branch.isSpanningTreeEdge(LoadFlowModel.AC));
+            createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), creationContext, branch.isSpanningTreeEdge(LoadFlowModel.AC));
         } else {
             createImpedantBranch(branch, branch.getBus1(), branch.getBus2(), creationContext);
         }
@@ -1006,16 +1022,16 @@ public class AcEquationSystemCreator {
         createMultipleSlackBusesEquations(creationContext);
         createBranchesEquations(creationContext);
 
-        var equationSystem = creationContext.getEquationSystem();
         for (LfHvdc hvdc : network.getHvdcs()) {
-            createHvdcAcEmulationEquations(hvdc, equationSystem);
+            createHvdcAcEmulationEquations(hvdc, creationContext);
         }
 
         createVoltageControlEquations(creationContext);
 
+        var equationSystem = creationContext.getEquationSystem();
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
-        network.addListener(LfNetworkListenerTracer.trace(new AcEquationSystemUpdater(equationSystem, this, creationContext)));
+        network.addListener(LfNetworkListenerTracer.trace(new AcEquationSystemUpdater(this, creationContext)));
     }
 
     public EquationSystem<AcVariableType, AcEquationType> create() {
