@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
+import com.powsybl.openloadflow.equations.ElementVector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
@@ -56,7 +57,7 @@ public class AcBranchVector implements ElementVector {
     public final int[] r1Row;
 
     public final double[] p1;
-    final double[] p2;
+    public final double[] p2;
     final double[] q1;
     final double[] q2;
     final double[] i1;
