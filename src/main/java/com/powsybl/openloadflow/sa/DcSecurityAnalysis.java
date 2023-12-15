@@ -11,6 +11,8 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.ThreeSides;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -26,6 +28,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisProvider;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.*;
@@ -49,7 +52,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         private final List<SensitivityFactor> sensitivityFactors;
         private final Map<String, BranchResult> preContingencyAllBranchResults;
-        private final Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolationsMap;
+        private final Map<Pair<String, ThreeSides>, LimitViolation> preContingencyLimitViolationsMap;
         private final SecurityAnalysisParameters parameters;
         private final List<Contingency> contingencies;
         private final DefaultLimitViolationDetector detector;
@@ -79,7 +82,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             return preContingencyAllBranchResults;
         }
 
-        Map<Pair<String, Branch.Side>, LimitViolation> getPreContingencyLimitViolationsMap() {
+        Map<Pair<String, ThreeSides>, LimitViolation> getPreContingencyLimitViolationsMap() {
             return preContingencyLimitViolationsMap;
         }
 
@@ -160,9 +163,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                     BranchResult branchResult = computeBranchResult(branchId, functionReference, branch.getTerminal1().getVoltageLevel().getNominalV(),
                             branch.getTerminal2().getVoltageLevel().getNominalV(), context.getDcPowerFactor(), null, Double.NaN);
                     context.getPreContingencyAllBranchResults().put(branchId, branchResult);
-                    context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(functionReference), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-                    context.getDetector().checkCurrent(branch, Branch.Side.ONE, branchResult.getI1(), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-                    context.getDetector().checkCurrent(branch, Branch.Side.TWO, branchResult.getI2(), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                    context.getDetector().checkActivePower(branch, TwoSides.ONE, Math.abs(functionReference), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                    context.getDetector().checkCurrent(branch, TwoSides.ONE, branchResult.getI1(), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                    context.getDetector().checkCurrent(branch, TwoSides.TWO, branchResult.getI2(), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
                 } else {
                     Contingency contingency = context.getContingencies().get(contingencyIndex);
                     List<BranchResult> branchResultList = context.getBranchResultsPerContingencyId().computeIfAbsent(contingency.getId(), k -> new ArrayList<>());
@@ -181,9 +184,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                                 branch.getTerminal2().getVoltageLevel().getNominalV(), context.getDcPowerFactor(), preContingencyBranchResult, branchInContingencyP1);
                         branchResultList.add(newBranchResult);
                     }
-                    context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(functionReference), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
-                    context.getDetector().checkCurrent(branch, Branch.Side.ONE, branchResult.getI1(), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
-                    context.getDetector().checkCurrent(branch, Branch.Side.TWO, branchResult.getI2(), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
+                    context.getDetector().checkActivePower(branch, TwoSides.ONE, Math.abs(functionReference), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
+                    context.getDetector().checkCurrent(branch, TwoSides.ONE, branchResult.getI1(), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
+                    context.getDetector().checkCurrent(branch, TwoSides.TWO, branchResult.getI2(), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
                 }
             }
 
@@ -238,7 +241,12 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         // try to find all pst to retain because involved in pst actions
         findAllPtcToOperate(actions, topoConfig);
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), topoConfig, false);
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setContingencyPropagation(false)
+                .setShuntCompensatorVoltageControlOn(false)
+                .setHvdcAcEmulation(false)
+                .setSlackDistributionOnConformLoad(context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), topoConfig, creationParameters);
 
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
@@ -251,11 +259,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
 
         try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), topoConfig, Reporter.NO_OP)) {
-
-            // complete definition of contingencies after network loading
-            PropagatedContingency.completeList(propagatedContingencies, false,
-                    context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false, breakers);
-
             return lfNetworks.getLargest().filter(LfNetwork::isValid)
                     .map(largestNetwork -> runActionSimulations(context, largestNetwork, dcParameters, propagatedContingencies,
                                 operatorStrategies, actionsById, neededActions))

@@ -14,8 +14,10 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
@@ -35,7 +37,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 @AutoService(SecurityAnalysisProvider.class)
 public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
@@ -73,17 +75,20 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
         Objects.requireNonNull(stateMonitors);
         Objects.requireNonNull(reporter);
 
+        LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
+        OpenLoadFlowParameters loadFlowParametersExt = OpenLoadFlowParameters.get(loadFlowParameters);
+
         // FIXME implement a fast incremental connectivity algorithm
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (operatorStrategies.isEmpty()) {
+        if (operatorStrategies.isEmpty() && !loadFlowParametersExt.isSimulateAutomationSystems()) {
             selectedConnectivityFactory = connectivityFactory;
         } else {
             LOGGER.warn("Naive (and slow!!!) connectivity algorithm has been selected because at least one operator strategy is configured");
             selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         }
 
-        AbstractSecurityAnalysis securityAnalysis;
-        if (securityAnalysisParameters.getLoadFlowParameters().isDc()) {
+        AbstractSecurityAnalysis<?, ?, ?, ?> securityAnalysis;
+        if (loadFlowParameters.isDc()) {
             securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reporter);
         } else {
             securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reporter);

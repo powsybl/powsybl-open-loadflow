@@ -8,25 +8,31 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfShunt;
 
 import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class ShuntCompensatorActiveFlowEquationTerm extends AbstractShuntCompensatorEquationTerm {
 
     private final List<Variable<AcVariableType>> variables;
 
-    public ShuntCompensatorActiveFlowEquationTerm(AcShuntVector shuntVector, int num, int busNum, VariableSet<AcVariableType> variableSet) {
-        super(shuntVector, num, busNum, variableSet);
+    public ShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet) {
+        super(shunt, bus, variableSet);
         variables = List.of(vVar);
     }
 
     @Override
     public List<Variable<AcVariableType>> getVariables() {
         return variables;
+    }
+
+    private double g() {
+        return element.getG();
     }
 
     public static double p(double v, double g) {
@@ -39,14 +45,14 @@ public class ShuntCompensatorActiveFlowEquationTerm extends AbstractShuntCompens
 
     @Override
     public double eval() {
-        return shuntVector.p[num];
+        return p(v(), g());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
-            return shuntVector.dpdv[num];
+            return dpdv(v(), g());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

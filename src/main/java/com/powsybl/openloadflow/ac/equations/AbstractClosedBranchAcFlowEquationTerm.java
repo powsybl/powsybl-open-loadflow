@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.ArrayList;
@@ -18,7 +20,7 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.A2;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
 
@@ -36,7 +38,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final List<Variable<AcVariableType>> variables;
 
-    private static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
+    public static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
         return switch (sequenceType) {
             case POSITIVE -> AcVariableType.BUS_V;
             case NEGATIVE -> AcVariableType.BUS_V_NEGATIVE;
@@ -44,7 +46,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         };
     }
 
-    private static AcVariableType getVoltageAngleType(Fortescue.SequenceType sequenceType) {
+    public static AcVariableType getVoltageAngleType(Fortescue.SequenceType sequenceType) {
         return switch (sequenceType) {
             case POSITIVE -> AcVariableType.BUS_PHI;
             case NEGATIVE -> AcVariableType.BUS_PHI_NEGATIVE;
@@ -52,10 +54,11 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         };
     }
 
-    protected AbstractClosedBranchAcFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num, int bus2Num,
-                                                     VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1,
-                                                     Fortescue.SequenceType sequenceType) {
-        super(branchVector, branchNum);
+    protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
+        super(branch);
+        Objects.requireNonNull(bus1);
+        Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
         variables = createVariable(branchVector, branchNum, variableSet, deriveA1, deriveR1, sequenceType);
         v1Var = variables.get(0);
@@ -77,15 +80,18 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
                                                                 Fortescue.SequenceType sequenceType) {
         AcVariableType vType = getVoltageMagnitudeType(sequenceType);
         AcVariableType angleType = getVoltageAngleType(sequenceType);
-        int bus1Num = branchVector.bus1Num[branchNum];
-        int bus2Num = branchVector.bus2Num[branchNum];
-        List<Variable<AcVariableType>> variables = new ArrayList<>(6);
-        variables.add(variableSet.getVariable(bus1Num, vType));
-        variables.add(variableSet.getVariable(bus2Num, vType));
-        variables.add(variableSet.getVariable(bus1Num, angleType));
-        variables.add(variableSet.getVariable(bus2Num, angleType));
-        if (deriveA1) {
-            variables.add(variableSet.getVariable(branchNum, AcVariableType.BRANCH_ALPHA1));
+        v1Var = variableSet.getVariable(bus1.getNum(), vType);
+        v2Var = variableSet.getVariable(bus2.getNum(), vType);
+        ph1Var = variableSet.getVariable(bus1.getNum(), angleType);
+        ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
+        a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
+        r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
+        variables.add(v1Var);
+        variables.add(v2Var);
+        variables.add(ph1Var);
+        variables.add(ph2Var);
+        if (a1Var != null) {
+            variables.add(a1Var);
         }
         if (deriveR1) {
             variables.add(variableSet.getVariable(branchNum, AcVariableType.BRANCH_RHO1));
@@ -114,11 +120,11 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     protected double r1() {
-        return r1Var != null ? sv.get(r1Var.getRow()) : branchVector.r1[num];
+        return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
     }
 
     protected double a1() {
-        return a1Var != null ? sv.get(a1Var.getRow()) : branchVector.a1[num];
+        return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
     }
 
     public static double theta1(double ksi, double ph1, double a1, double ph2) {

@@ -22,12 +22,13 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -45,7 +46,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext> {
 
@@ -67,9 +68,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
-        // in some post-contingency computation, it does not remain elements to participate to slack distribution.
-        // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
-        lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
 
         // check actions validity
@@ -86,22 +84,21 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig,
-                securityAnalysisParametersExt.isContingencyPropagation());
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setContingencyPropagation(securityAnalysisParametersExt.isContingencyPropagation())
+                .setShuntCompensatorVoltageControlOn(lfParameters.isShuntCompensatorVoltageControlOn())
+                .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation());
+
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
         boolean breakers = topoConfig.isBreaker();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
-        acParameters.getNetworkParameters()
-                .setCacheEnabled(false); // force not caching as not supported in secu analysis
-        acParameters.getNewtonRaphsonParameters()
-                .setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
+        acParameters.getNetworkParameters().setCacheEnabled(false); // force not caching as not supported in secu analysis
+        acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, saReporter)) {
-            // complete definition of contingencies after network loading
-            PropagatedContingency.completeList(propagatedContingencies, lfParameters.isShuntCompensatorVoltageControlOn(),
-                    lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, lfParameters.isHvdcAcEmulation(), breakers);
-
             // run simulation on largest network
             SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
                     .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategies, actions))
@@ -153,6 +150,13 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
             // only run post-contingency simulations if pre-contingency simulation is ok
             if (preContingencyComputationOk) {
+                // in some post-contingency computation, it does not remain elements to participate to slack distribution.
+                // in that case, no exception should be thrown. If parameters were configured to throw, reconfigure to FAIL.
+                // (the contingency will be marked as not converged)
+                if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW == acParameters.getSlackDistributionFailureBehavior()) {
+                    acParameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+                }
+
                 // update network result
                 preContingencyNetworkResult.update();
 
@@ -216,9 +220,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                 }
             }
 
-            LoadFlowResult.ComponentResult.Status status = loadFlowResultStatusFromNRStatus(preContingencyLoadFlowResult.getNewtonRaphsonStatus());
             return new SecurityAnalysisResult(
-                    new PreContingencyResult(status, new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
+                    new PreContingencyResult(
+                            preContingencyLoadFlowResult.toComponentResultStatus(),
+                            new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),
                     postContingencyResults, operatorStrategyResults);
@@ -230,9 +235,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                                                                SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                PreContingencyNetworkResult preContingencyNetworkResult, boolean createResultExtension) {
         LOGGER.info("Start post contingency '{}' simulation on network {}", lfContingency.getId(), network);
-        LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
-                lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranches(), lfContingency.getLostGenerators(),
-                lfContingency.getShuntsShift(), lfContingency.getLostLoads());
+        LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift {} loads",
+                lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranchesStatus(),
+                lfContingency.getLostGenerators(), lfContingency.getShuntsShift(), lfContingency.getLostLoads());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -241,8 +246,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         AcLoadFlowResult postContingencyLoadFlowResult = new AcloadFlowEngine(context)
                 .run();
 
-        boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-        PostContingencyComputationStatus status = postContingencyStatusFromNRStatus(postContingencyLoadFlowResult.getNewtonRaphsonStatus());
+        boolean postContingencyComputationOk = postContingencyLoadFlowResult.getSolverStatus() == AcSolverStatus.CONVERGED;
+        PostContingencyComputationStatus status = postContingencyStatusFromAcLoadFlowResult(postContingencyLoadFlowResult);
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
         var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
 
@@ -292,6 +297,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         AcLoadFlowResult postActionsLoadFlowResult = new AcloadFlowEngine(context)
                 .run();
 
-        return postContingencyStatusFromNRStatus(postActionsLoadFlowResult.getNewtonRaphsonStatus());
+        return postContingencyStatusFromAcLoadFlowResult(postActionsLoadFlowResult);
     }
 }

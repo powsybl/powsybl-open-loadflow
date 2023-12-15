@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *           |
  *           ld
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
 
@@ -185,7 +185,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 go back PV
         assertVoltageEquals(17.032769, b1); // PQ => v != 17
         assertVoltageEquals(21, b2); // PV
@@ -224,7 +224,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 go back PV
         assertVoltageEquals(17.032769, b1); // PQ => v != 17
         assertVoltageEquals(21, b2); // PV
@@ -233,7 +233,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
         parametersExt.setVoltagePerReactivePowerControl(true);
         svc3.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.00001).add();
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isOk());
+        assertTrue(result2.isFullyConverged());
         // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 does not go back PV
         assertVoltageEquals(17.034003, b1); // PQ => v != 17
         assertVoltageEquals(21, b2); // PV

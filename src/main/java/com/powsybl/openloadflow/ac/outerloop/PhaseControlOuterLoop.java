@@ -7,16 +7,19 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2CurrentMagnitudeEquationTerm;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.lf.outerloop.AbstractPhaseControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.Direction;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.TransformerPhaseControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +27,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class PhaseControlOuterLoop
         extends AbstractPhaseControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
@@ -108,23 +111,26 @@ public class PhaseControlOuterLoop
         double currentLimit = phaseControl.getTargetValue();
         LfBranch controllerBranch = phaseControl.getControllerBranch();
         PiModel piModel = controllerBranch.getPiModel();
-        if (phaseControl.getControlledSide() == ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
-            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, ControlledSide.ONE);
+        if (phaseControl.getControlledSide() == TwoSides.ONE && currentLimit < controllerBranch.getI1().eval()) {
+            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, TwoSides.ONE);
             return isSensibilityPositive ? piModel.shiftOneTapPositionToChangeA1(Direction.DECREASE) : piModel.shiftOneTapPositionToChangeA1(Direction.INCREASE);
-        } else if (phaseControl.getControlledSide() == ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
-            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, ControlledSide.TWO);
+        } else if (phaseControl.getControlledSide() == TwoSides.TWO && currentLimit < controllerBranch.getI2().eval()) {
+            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, TwoSides.TWO);
             return isSensibilityPositive ? piModel.shiftOneTapPositionToChangeA1(Direction.DECREASE) : piModel.shiftOneTapPositionToChangeA1(Direction.INCREASE);
         }
         return false;
     }
 
-    private boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, ControlledSide controlledSide) {
-        if (controlledSide == ControlledSide.ONE) {
-            ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = (ClosedBranchSide1CurrentMagnitudeEquationTerm) controllerBranch.getI1();
-            return i1.der(i1.getA1Var()) > 0;
+    @SuppressWarnings("unchecked")
+    private boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, TwoSides controlledSide) {
+        if (controlledSide == TwoSides.ONE) {
+            EquationTerm<AcVariableType, AcEquationType> i1 = (EquationTerm<AcVariableType, AcEquationType>) controllerBranch.getI1();
+            var a1Var = i1.getVariables().stream().filter(v -> v.getType() == AcVariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
+            return i1.der(a1Var) > 0;
         } else {
-            ClosedBranchSide2CurrentMagnitudeEquationTerm i2 = (ClosedBranchSide2CurrentMagnitudeEquationTerm) controllerBranch.getI2();
-            return i2.der(i2.getA1Var()) > 0;
+            EquationTerm<AcVariableType, AcEquationType> i2 = (EquationTerm<AcVariableType, AcEquationType>) controllerBranch.getI2();
+            var a1Var = i2.getVariables().stream().filter(v -> v.getType() == AcVariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
+            return i2.der(a1Var) > 0;
         }
     }
 }

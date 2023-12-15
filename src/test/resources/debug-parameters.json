@@ -22,7 +22,7 @@
       "open-load-flow-parameters" : {
         "slackBusSelectionMode" : "NAME",
         "slackBusesIds" : [ "b1_vl_0" ],
-        "throwsExceptionInCaseOfSlackDistributionFailure" : false,
+        "slackDistributionFailureBehavior" : "LEAVE_ON_SLACK_BUS",
         "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
         "loadPowerFactorConstant" : false,
         "plausibleActivePowerLimit" : 5000.0,
@@ -71,7 +71,12 @@
         "maxVoltageChangeStateVectorScalingMaxDv" : 0.1,
         "maxVoltageChangeStateVectorScalingMaxDphi" : 0.17453292519943295,
         "linePerUnitMode" : "IMPEDANCE",
-        "useLoadModel" : false
+        "useLoadModel" : false,
+        "dcApproximationType" : "IGNORE_R",
+        "simulateAutomationSystems" : false,
+        "acSolverType" : "NEWTON_RAPHSON",
+        "maxNewtowKrylovIterations" : 100,
+        "newtowKrylovLineSearch" : false
       }
     }
   },

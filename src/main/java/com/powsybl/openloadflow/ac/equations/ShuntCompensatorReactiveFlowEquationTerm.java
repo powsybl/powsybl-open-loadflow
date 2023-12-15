@@ -9,12 +9,14 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfShunt;
 
 import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompensatorEquationTerm {
 
@@ -22,10 +24,10 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
 
     private final List<Variable<AcVariableType>> variables;
 
-    public ShuntCompensatorReactiveFlowEquationTerm(AcShuntVector shuntVector, int num, int busNum, VariableSet<AcVariableType> variableSet, boolean deriveB) {
-        super(shuntVector, num, busNum, variableSet);
+    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet, boolean deriveB) {
+        super(shunt, bus, variableSet);
         if (deriveB) {
-            bVar = variableSet.getVariable(num, AcVariableType.SHUNT_B);
+            bVar = variableSet.getVariable(shunt.getNum(), AcVariableType.SHUNT_B);
             variables = List.of(vVar, bVar);
         } else {
             variables = List.of(vVar);
@@ -38,7 +40,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
     }
 
     private double b() {
-        return bVar != null ? sv.get(bVar.getRow()) : shuntVector.b[num];
+        return bVar != null ? sv.get(bVar.getRow()) : element.getB();
     }
 
     public static double q(double v, double b) {
@@ -55,19 +57,23 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
 
     @Override
     public double eval() {
-        return shuntVector.q[num];
+        return q(v(), b());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
-            return shuntVector.dqdv[num];
+            return dqdv(v(), b());
         } else if (variable.equals(bVar)) {
-            return shuntVector.dqdb[num];
+            return dqdb(v());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
+    }
+
+    public static double calculateSensi(double v, double b, double dv, double db) {
+        return dqdv(v, b) * dv + dqdb(v) * db;
     }
 
     @Override
@@ -76,7 +82,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         double db = bVar != null ? dx.get(bVar.getRow(), column) : 0;
         double v = v();
         double b = b();
-        return dqdv(v, b) * dv + dqdb(v) * db;
+        return calculateSensi(v, b, dv, db);
     }
 
     @Override

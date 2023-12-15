@@ -17,18 +17,11 @@ public class AcEquationSystemCreationContext {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-    private final AcNetworkVector networkVector;
-
-    public AcEquationSystemCreationContext(EquationSystem<AcVariableType, AcEquationType> equationSystem, AcNetworkVector networkVector) {
+    public AcEquationSystemCreationContext(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.networkVector = Objects.requireNonNull(networkVector);
     }
 
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         return equationSystem;
-    }
-
-    public AcNetworkVector getNetworkVector() {
-        return networkVector;
     }
 }

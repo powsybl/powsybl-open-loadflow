@@ -36,7 +36,7 @@ import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
  *
  * </pre>
  *
- * @author Damien Jeandemange <damien.jeandemange at artelys.com>
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 public class LinesWithDifferentNominalVoltagesNetworkFactory extends AbstractLoadFlowNetworkFactory {
 

@@ -8,12 +8,12 @@
  */
 package com.powsybl.openloadflow.ac.equations.asym;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.Side;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 import net.jafama.FastMath;
@@ -39,18 +39,18 @@ import java.util.Objects;
  *           [ y_21_pz y_21_pp y_21_pn y_22_pz y_22_pp y_22_pn ]
  *           [ y_21_nz y_21_np y_21_nn y_22_nz y_22_np y_22_nn ]
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm {
 
     public AsymmetricalClosedBranchCoupledPowerEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                            ComplexPart complexPart, Side side, SequenceType sequenceType) {
+                                                            ComplexPart complexPart, TwoSides side, SequenceType sequenceType) {
         super(branch, bus1, bus2, variableSet, complexPart, side, sequenceType);
     }
 
-    public double dpdv(Side i, Side j, SequenceType g, SequenceType h,
-                       Side derivationSide, SequenceType derivationSequence) {
+    public double dpdv(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                       TwoSides derivationSide, SequenceType derivationSequence) {
         double tmpVal = y.getX(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j)) + y.getY(i, j, g, h) * FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j));
         if (i == derivationSide && g == derivationSequence && j == derivationSide && h == derivationSequence) {
             return 2 * r(i) * r(j) * v(g, i) * tmpVal;
@@ -62,8 +62,8 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
         return 0;
     }
 
-    public double dpdph(Side i, Side j, SequenceType g, SequenceType h,
-                        Side derivationSide, SequenceType derivationSequence) {
+    public double dpdph(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                        TwoSides derivationSide, SequenceType derivationSequence) {
         if (i == derivationSide && g == derivationSequence && j == derivationSide && h == derivationSequence) {
             return 0;
         } else if (i == derivationSide && g == derivationSequence) {
@@ -74,8 +74,8 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
         return 0;
     }
 
-    public double dqdv(Side i, Side j, SequenceType g, SequenceType h,
-                       Side derivationSide, SequenceType derivationSequence) {
+    public double dqdv(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                       TwoSides derivationSide, SequenceType derivationSequence) {
         double tmpVal = y.getX(i, j, g, h) * FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j)) - y.getY(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j));
         if (i == derivationSide && g == derivationSequence && j == derivationSide && h == derivationSequence) {
             return 2 * r(i) * r(j) * v(g, i) * tmpVal;
@@ -87,8 +87,8 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
         return 0;
     }
 
-    public double dqdph(Side i, Side j, SequenceType g, SequenceType h,
-                        Side derivationSide, SequenceType derivationSequence) {
+    public double dqdph(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                        TwoSides derivationSide, SequenceType derivationSequence) {
         if (i == derivationSide && g == derivationSequence && j == derivationSide && h == derivationSequence) {
             return 0;
         } else if (i == derivationSide && g == derivationSequence) {
@@ -99,18 +99,18 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
         return 0;
     }
 
-    public double p(Side i, Side j, SequenceType g, SequenceType h) {
+    public double p(TwoSides i, TwoSides j, SequenceType g, SequenceType h) {
         return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j))
                 + y.getY(i, j, g, h) * FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j)));
     }
 
-    public double q(Side i, Side j, SequenceType g, SequenceType h) {
+    public double q(TwoSides i, TwoSides j, SequenceType g, SequenceType h) {
         return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j))
                 - y.getY(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j)));
     }
 
-    public double dp(Side i, Side j, SequenceType g, SequenceType h,
-                     Side derivationSide, SequenceType derivationSequence, boolean phase) {
+    public double dp(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                     TwoSides derivationSide, SequenceType derivationSequence, boolean phase) {
         if (phase) {
             return dpdph(i, j, g, h, derivationSide, derivationSequence);
         } else {
@@ -118,8 +118,8 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
         }
     }
 
-    public double dq(Side i, Side j, SequenceType g, SequenceType h,
-                     Side derivationSide, SequenceType derivationSequence, boolean phase) {
+    public double dq(TwoSides i, TwoSides j, SequenceType g, SequenceType h,
+                     TwoSides derivationSide, SequenceType derivationSequence, boolean phase) {
         if (phase) {
             return dqdph(i, j, g, h, derivationSide, derivationSequence);
         } else {
@@ -128,14 +128,14 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
     }
 
     public double s() {
-        Side i;
-        Side j;
-        if (side == Side.ONE) {
-            i = Side.ONE;
-            j = Side.TWO;
+        TwoSides i;
+        TwoSides j;
+        if (side == TwoSides.ONE) {
+            i = TwoSides.ONE;
+            j = TwoSides.TWO;
         } else {
-            i = Side.TWO;
-            j = Side.ONE;
+            i = TwoSides.TWO;
+            j = TwoSides.ONE;
         }
 
         if (complexPart == ComplexPart.REAL) { // P
@@ -156,16 +156,16 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
     }
 
     public double ds(Variable<AcVariableType> variable) {
-        Side i;
-        Side j;
-        if (side == Side.ONE) {
-            i = Side.ONE;
-            j = Side.TWO;
+        TwoSides i;
+        TwoSides j;
+        if (side == TwoSides.ONE) {
+            i = TwoSides.ONE;
+            j = TwoSides.TWO;
         } else {
-            i = Side.TWO;
-            j = Side.ONE;
+            i = TwoSides.TWO;
+            j = TwoSides.ONE;
         }
-        Side derivationSide = getSide(variable);
+        TwoSides derivationSide = getSide(variable);
         SequenceType derivationSequence = getSequenceType(variable);
         boolean phase = isPhase(variable);
 

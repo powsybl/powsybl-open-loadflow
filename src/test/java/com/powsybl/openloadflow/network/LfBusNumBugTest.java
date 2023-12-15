@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class LfBusNumBugTest {
 
@@ -23,7 +23,7 @@ class LfBusNumBugTest {
 
     @BeforeEach
     void setUp() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         lfNetwork = Networks.load(network, new FirstSlackBusSelector()).get(0);
     }
 

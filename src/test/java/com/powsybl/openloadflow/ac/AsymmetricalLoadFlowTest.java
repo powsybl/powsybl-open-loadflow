@@ -21,16 +21,16 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.asym.*;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
+import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
@@ -38,7 +38,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class AsymmetricalLoadFlowTest {
 
@@ -80,7 +80,7 @@ public class AsymmetricalLoadFlowTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AsymmetricalAcEquationSystemCreator(mainNetwork, new AcEquationSystemCreationParameters()).create();
-        NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
+        AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
 
         LfBranch branch = mainNetwork.getBranchById("B1_B2");
         assertEquals(2, equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().size());
@@ -202,7 +202,7 @@ public class AsymmetricalLoadFlowTest {
         Line line1 = network.getLine("l12");
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(1, bus1);
         assertAngleEquals(0, bus1);
@@ -217,7 +217,7 @@ public class AsymmetricalLoadFlowTest {
     @Test
     void fourNodesBalancedTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -238,7 +238,7 @@ public class AsymmetricalLoadFlowTest {
         parametersExt.setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -252,7 +252,7 @@ public class AsymmetricalLoadFlowTest {
         extension.setOpenPhaseB(true);
 
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -264,7 +264,7 @@ public class AsymmetricalLoadFlowTest {
         extension.setOpenPhaseC(true);
 
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -313,7 +313,7 @@ public class AsymmetricalLoadFlowTest {
         parametersExt.setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -345,7 +345,7 @@ public class AsymmetricalLoadFlowTest {
         parametersExt.setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
@@ -367,7 +367,7 @@ public class AsymmetricalLoadFlowTest {
      */
     public static Network fourNodescreate() {
         Network network = Network.create("4n", "test");
-        network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
+        network.setCaseDate(ZonedDateTime.parse("2018-03-05T13:30:30.486+01:00"));
 
         // Bus 1
         Substation substation1 = network.newSubstation()

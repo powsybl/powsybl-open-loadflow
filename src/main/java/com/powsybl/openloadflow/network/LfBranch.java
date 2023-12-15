@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
@@ -17,7 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LfBranch extends LfElement {
 
@@ -51,7 +52,7 @@ public interface LfBranch extends LfElement {
         }
 
         public static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(null, Integer.MAX_VALUE, valuePerUnit);
+            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, valuePerUnit);
         }
 
         public String getName() {
@@ -111,6 +112,54 @@ public interface LfBranch extends LfElement {
     Evaluable getI1();
 
     Evaluable getI2();
+
+    Evaluable getOpenP1();
+
+    void setOpenP1(Evaluable openP1);
+
+    Evaluable getOpenQ1();
+
+    void setOpenQ1(Evaluable openQ1);
+
+    Evaluable getOpenI1();
+
+    void setOpenI1(Evaluable openI1);
+
+    Evaluable getOpenP2();
+
+    void setOpenP2(Evaluable openP2);
+
+    Evaluable getOpenQ2();
+
+    void setOpenQ2(Evaluable openQ2);
+
+    Evaluable getOpenI2();
+
+    void setOpenI2(Evaluable openI2);
+
+    Evaluable getClosedP1();
+
+    void setClosedP1(Evaluable closedP1);
+
+    Evaluable getClosedQ1();
+
+    void setClosedQ1(Evaluable closedQ1);
+
+    Evaluable getClosedI1();
+
+    void setClosedI1(Evaluable closedI1);
+
+    Evaluable getClosedP2();
+
+    void setClosedP2(Evaluable closedP2);
+
+    Evaluable getClosedQ2();
+
+    void setClosedQ2(Evaluable closedQ2);
+
+    Evaluable getClosedI2();
+
+    void setClosedI2(Evaluable closedI2);
 
     List<LfLimit> getLimits1(LimitType type);
 
@@ -185,11 +234,27 @@ public interface LfBranch extends LfElement {
         return phaseControl.get().getTargetValue();
     }
 
-    Optional<ReactivePowerControl> getReactivePowerControl();
+    Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl();
 
-    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
+    void setGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl);
 
     boolean isConnectedAtBothSides();
+
+    boolean isConnectedSide1();
+
+    void setConnectedSide1(boolean connectedSide1);
+
+    boolean isConnectedSide2();
+
+    void setConnectedSide2(boolean connectedSide2);
+
+    boolean isDisconnectionAllowedSide1();
+
+    void setDisconnectionAllowedSide1(boolean disconnectionAllowedSide1);
+
+    void setDisconnectionAllowedSide2(boolean disconnectionAllowedSide2);
+
+    boolean isDisconnectionAllowedSide2();
 
     void setMinZ(double lowImpedanceThreshold);
 

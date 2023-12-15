@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
 import net.jafama.FastMath;
 
@@ -17,36 +19,32 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
 /**
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 @SuppressWarnings("squid:S00107")
 public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
-    public ClosedBranchSide2CurrentMagnitudeEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num, int bus2Num,
-                                                         VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branchVector, branchNum, bus1Num, bus2Num, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+    public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                         boolean deriveA1, boolean deriveR1) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
     }
 
-    @Override
-    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+    public static double calculateSensi(double y, double ksi, double g2, double b2,
+                                        double v1, double ph1, double r1, double a1, double v2, double ph2,
+                                        double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
         if (dr1 != 0) {
             throw new IllegalArgumentException("Derivative with respect to r1 not implemented");
         }
-        double y = branchVector.y[num];
-        double ksi = branchVector.ksi[num];
-        double g2 = branchVector.g2[num];
-        double b2 = branchVector.b2[num];
-        double v1 = v1();
-        double ph1 = ph1();
-        double r1 = r1();
-        double a1 = a1();
-        double v2 = v2();
-        double ph2 = ph2();
         return di2dph1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dph1
                 + di2dph2(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dph2
                 + di2dv1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dv1
                 + di2dv2(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dv2
                 + di2da1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * da1;
+    }
+
+    @Override
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        return calculateSensi(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
     }
 
     private static double theta(double ksi, double ph1, double a1) {
@@ -110,42 +108,38 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         return R2 * (-y * r1 * v1 * FastMath.sin(theta));
     }
 
-    private static double di2dv2(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+    public static double di2dv2(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         double theta = theta(ksi, ph1, a1);
         return (reI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dreI2dv2(y, ksi, g2, b2, ph2) + imI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dimI2dv2(y, ksi, g2, b2, ph2)) / i2(y, ksi, g2, b2, v1, r1, v2, ph2, theta);
     }
 
-    private static double di2dv1(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+    public static double di2dv1(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         double theta = theta(ksi, ph1, a1);
         return (reI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dreI2dv1(y, r1, theta) + imI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dimI2dv1(y, ksi, ph1, r1, a1)) / i2(y, ksi, g2, b2, v1, r1, v2, ph2, theta);
     }
 
-    private static double di2dph2(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+    public static double di2dph2(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         double theta = theta(ksi, ph1, a1);
         return (reI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dreI2dph2(y, ksi, g2, b2, v2, ph2) + imI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dimI2dph2(y, ksi, g2, b2, v2, ph2)) / i2(y, ksi, g2, b2, v1, r1, v2, ph2, theta);
     }
 
-    private static double di2dph1(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+    public static double di2dph1(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         double theta = theta(ksi, ph1, a1);
         return (reI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dreI2dph1(y, ksi, v1, ph1, r1, a1) + imI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dimI2dph1(y, v1, r1, theta)) / i2(y, ksi, g2, b2, v1, r1, v2, ph2, theta);
     }
 
-    private static double di2da1(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+    public static double di2da1(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         return di2dph1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2);
     }
 
     @Override
     public double eval() {
-        return branchVector.i2[num];
+        return i2(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        double y = branchVector.y[num];
-        double ksi = branchVector.ksi[num];
-        double g2 = branchVector.g2[num];
-        double b2 = branchVector.b2[num];
         if (variable.equals(v1Var)) {
             return di2dv1(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(v2Var)) {

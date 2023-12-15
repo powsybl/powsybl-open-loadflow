@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * This initializer is particularly useful for cases with a large range of voltage (many transformers with a ratio far
  * from 1pu for instance).
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class VoltageMagnitudeInitializer implements VoltageInitializer {
 

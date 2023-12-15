@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
@@ -67,7 +67,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         Line l23 = createLine(network, b2, b3, "l23", 0); // non impedant branch
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.858, b2);
         assertVoltageEquals(0.858, b3);
@@ -83,7 +83,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         // use low impedance cut strategy (state is changed a little bit)
         parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.856, b2);
         assertVoltageEquals(0.856, b3);
@@ -95,7 +95,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         parameters.setDc(true);
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertTrue(Double.isNaN(b1.getV()));
         assertTrue(Double.isNaN(b2.getV()));
         assertTrue(Double.isNaN(b3.getV()));
@@ -118,7 +118,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b3, b4, "l34", 0.05);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.921, b2);
         assertVoltageEquals(0.921, b3);
@@ -131,7 +131,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         parameters.setDc(true);
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertTrue(Double.isNaN(b1.getV()));
         assertTrue(Double.isNaN(b2.getV()));
         assertTrue(Double.isNaN(b3.getV()));
@@ -160,7 +160,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(Double.isNaN(l23.getTerminal2().getQ()));
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.858, b2);
         assertVoltageEquals(0.944, b3);
@@ -209,7 +209,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23bis", 0); // non impedant branch
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
     }
 
     @Test
@@ -225,7 +225,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23bis", 0); // non impedant branch
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
     }
 
     @Test
@@ -241,12 +241,12 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b1, b3, "l13", 0); // non impedant branch
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         // also test that it works in DC mode
         parameters.setDc(true);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
     }
 
     @Test
@@ -259,7 +259,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         Line l12 = createLine(network, b1, b2, "l12", 0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(1, b2);
         assertAngleEquals(0, b1);
@@ -292,7 +292,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(1, b2);
         assertVoltageEquals(1, b3);
@@ -324,7 +324,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(1, b2);
         assertVoltageEquals(1, b3);
@@ -421,6 +421,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l01"))));
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDistributedSlack(false)
                 .setTransformerVoltageControlOn(true);
         OpenLoadFlowParameters.create(loadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()

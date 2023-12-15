@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkListenerTracer implements LfNetworkListener {
 
@@ -45,6 +46,13 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
         LOGGER.trace("onGeneratorVoltageControlTargetChange(controlledBusId='{}', newTargetVoltage={})",
                 control.getControlledBus(), newTargetVoltage);
         delegate.onGeneratorVoltageControlTargetChange(control, newTargetVoltage);
+    }
+
+    @Override
+    public void onGeneratorReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
+        LOGGER.trace("onGeneratorReactivePowerControlChange(controllerBusId='{}', newReactiveControllerEnabled={})",
+                controllerBus.getId(), newReactiveControllerEnabled);
+        delegate.onGeneratorReactivePowerControlChange(controllerBus, newReactiveControllerEnabled);
     }
 
     @Override
@@ -132,5 +140,11 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel) {
         LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={}, loadFlowModel={})", network1, network2, mergedNetwork, loadFlowModel);
         delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork, loadFlowModel);
+    }
+
+    @Override
+    public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
+        LOGGER.trace("onBranchConnectionStatusChange(branch={}, side={}, connected={})", branch, side, connected);
+        delegate.onBranchConnectionStatusChange(branch, side, connected);
     }
 }

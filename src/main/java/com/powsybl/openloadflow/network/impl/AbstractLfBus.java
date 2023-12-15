@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
@@ -44,6 +44,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     private boolean hasGeneratorsWithSlope;
 
     protected boolean generatorVoltageControlEnabled = false;
+
+    protected boolean generatorReactivePowerControlEnabled = false;
 
     protected Double generationTargetP;
 
@@ -69,7 +71,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private GeneratorVoltageControl generatorVoltageControl;
 
-    private ReactivePowerControl reactivePowerControl;
+    private GeneratorReactivePowerControl generatorReactivePowerControl;
 
     protected TransformerVoltageControl transformerVoltageControl;
 
@@ -79,7 +81,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected Evaluable q = NAN;
 
-    protected double remoteVoltageControlReactivePercent = Double.NaN;
+    protected double remoteControlReactivePercent = Double.NaN;
 
     protected final Map<LoadFlowModel, LfZeroImpedanceNetwork> zeroImpedanceNetwork = new EnumMap<>(LoadFlowModel.class);
 
@@ -99,7 +101,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isSlack() {
-        network.updateSlackBuses();
+        network.updateSlackBusesAndReferenceBus();
         return slack;
     }
 
@@ -110,7 +112,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isReference() {
-        network.updateSlackBuses();
+        network.updateSlackBusesAndReferenceBus();
         return reference;
     }
 
@@ -182,13 +184,33 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<ReactivePowerControl> getReactivePowerControl() {
-        return Optional.ofNullable(reactivePowerControl);
+    public Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl() {
+        return Optional.ofNullable(generatorReactivePowerControl);
     }
 
     @Override
-    public void setReactivePowerControl(ReactivePowerControl reactivePowerControl) {
-        this.reactivePowerControl = Objects.requireNonNull(reactivePowerControl);
+    public void setGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl) {
+        this.generatorReactivePowerControl = Objects.requireNonNull(generatorReactivePowerControl);
+    }
+
+    @Override
+    public boolean hasGeneratorReactivePowerControl() {
+        return generatorReactivePowerControl != null;
+    }
+
+    @Override
+    public boolean isGeneratorReactivePowerControlEnabled() {
+        return generatorReactivePowerControlEnabled;
+    }
+
+    @Override
+    public void setGeneratorReactivePowerControlEnabled(boolean generatorReactivePowerControlEnabled) {
+        if (this.generatorReactivePowerControlEnabled != generatorReactivePowerControlEnabled) {
+            this.generatorReactivePowerControlEnabled = generatorReactivePowerControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onGeneratorReactivePowerControlChange(this, generatorReactivePowerControlEnabled);
+            }
+        }
     }
 
     @Override
@@ -363,9 +385,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 .sum();
     }
 
+    @Override
+    public double getMaxP() {
+        return generators.stream().mapToDouble(LfGenerator::getMaxP).sum();
+    }
+
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
         return generators.stream()
-                .mapToDouble(generator -> generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ?
+                .mapToDouble(generator -> (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ||
+                        generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) ?
                         limitQ.applyAsDouble(generator) : generator.getTargetQ()).sum();
     }
 
@@ -499,19 +527,19 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return true;
     }
 
-    protected static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits,
+    protected static double dispatchQ(List<LfGenerator> generatorsWithControl, boolean reactiveLimits,
                                       ReactivePowerDispatchMode reactivePowerDispatchMode, double qToDispatch) {
         double residueQ = 0;
-        if (generatorsThatControlVoltage.isEmpty()) {
+        if (generatorsWithControl.isEmpty()) {
             throw new IllegalArgumentException("the generator list to dispatch Q can not be empty");
         }
         ToDoubleFunction<String> qToDispatchByGeneratorId = switch (reactivePowerDispatchMode) {
-            case Q_EQUAL_PROPORTION -> splitDispatchQ(generatorsThatControlVoltage, qToDispatch);
-            case K_EQUAL_PROPORTION -> allGeneratorsHavePlausibleReactiveLimits(generatorsThatControlVoltage)
-                    ? splitDispatchQWithEqualProportionOfK(generatorsThatControlVoltage, qToDispatch)
-                    : splitDispatchQ(generatorsThatControlVoltage, qToDispatch); // fallback to q dispatch
+            case Q_EQUAL_PROPORTION -> splitDispatchQ(generatorsWithControl, qToDispatch);
+            case K_EQUAL_PROPORTION -> allGeneratorsHavePlausibleReactiveLimits(generatorsWithControl)
+                    ? splitDispatchQWithEqualProportionOfK(generatorsWithControl, qToDispatch)
+                    : splitDispatchQ(generatorsWithControl, qToDispatch); // fallback to q dispatch
         };
-        Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
+        Iterator<LfGenerator> itG = generatorsWithControl.iterator();
         while (itG.hasNext()) {
             LfGenerator generator = itG.next();
             double generatorAlreadyCalculatedQ = generator.getCalculatedQ();
@@ -534,13 +562,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     void updateGeneratorsState(double generationQ, boolean reactiveLimits, ReactivePowerDispatchMode reactivePowerDispatchMode) {
         double qToDispatch = generationQ;
         List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
+        List<LfGenerator> generatorsThatControlReactivePower = new LinkedList<>();
         for (LfGenerator generator : generators) {
             if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
                 generatorsThatControlVoltage.add(generator);
+            } else if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) {
+                generatorsThatControlReactivePower.add(generator);
             } else {
                 qToDispatch -= generator.getTargetQ();
             }
         }
+
         List<LfGenerator> initialGeneratorsThatControlVoltage = new LinkedList<>(generatorsThatControlVoltage);
         for (LfGenerator generator : generatorsThatControlVoltage) {
             generator.setCalculatedQ(0);
@@ -555,12 +587,19 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             // It could be better to return a global failed status.
             dispatchQ(initialGeneratorsThatControlVoltage, false, reactivePowerDispatchMode, qToDispatch);
         }
+
+        for (LfGenerator generator : generatorsThatControlReactivePower) {
+            generator.setCalculatedQ(0);
+        }
+        while (!generatorsThatControlReactivePower.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
+            qToDispatch = dispatchQ(generatorsThatControlReactivePower, reactiveLimits, reactivePowerDispatchMode, qToDispatch);
+        }
     }
 
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + getLoadTargetQ()) : generationTargetQ,
+        updateGeneratorsState(generatorVoltageControlEnabled || generatorReactivePowerControlEnabled ? (q.eval() + getLoadTargetQ()) : generationTargetQ,
                 parameters.isReactiveLimits(), parameters.getReactivePowerDispatchMode());
 
         // update load power
@@ -645,13 +684,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public double getRemoteVoltageControlReactivePercent() {
-        return remoteVoltageControlReactivePercent;
+    public double getRemoteControlReactivePercent() {
+        return remoteControlReactivePercent;
     }
 
     @Override
-    public void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent) {
-        this.remoteVoltageControlReactivePercent = remoteVoltageControlReactivePercent;
+    public void setRemoteControlReactivePercent(double remoteControlReactivePercent) {
+        this.remoteControlReactivePercent = remoteControlReactivePercent;
     }
 
     @Override

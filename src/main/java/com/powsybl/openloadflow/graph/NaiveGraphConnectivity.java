@@ -16,7 +16,7 @@ import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
 
@@ -26,6 +26,11 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     public NaiveGraphConnectivity(ToIntFunction<V> numGetter) {
         this.numGetter = Objects.requireNonNull(numGetter);
+    }
+
+    @Override
+    public boolean supportTemporaryChangesNesting() {
+        return true;
     }
 
     protected void updateComponents() {

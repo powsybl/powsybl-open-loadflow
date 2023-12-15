@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
 import net.jafama.FastMath;
 
@@ -16,30 +18,25 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 @SuppressWarnings("squid:S00107")
 public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
-    public ClosedBranchSide2ReactiveFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num, int bus2Num,
-                                                     VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branchVector, branchNum, bus1Num, bus2Num, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+    public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                     boolean deriveA1, boolean deriveR1) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
     }
 
-    public ClosedBranchSide2ReactiveFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num, int bus2Num,
-                                                     VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1,
-                                                     Fortescue.SequenceType sequenceType) {
-        super(branchVector, branchNum, bus1Num, bus2Num, variableSet, deriveA1, deriveR1, sequenceType);
+    public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
     }
 
-    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
-        double y = branchVector.y[num];
-        double ksi = branchVector.ksi[num];
-        double b2 = branchVector.b2[num];
-        double v1 = v1();
-        double r1 = r1();
-        double v2 = v2();
-        double theta = theta2(ksi, ph1(), a1(), ph2());
+    public static double calculateSensi(double y, double ksi, double b2,
+                                        double v1, double ph1, double r1, double a1, double v2, double ph2,
+                                        double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        double theta = theta2(ksi, ph1, a1, ph2);
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
         return dq2dph1(y, v1, r1, v2, sinTheta) * dph1
@@ -48,6 +45,11 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
                 + dq2dv2(y, FastMath.cos(ksi), b2, v1, r1, v2, cosTheta) * dv2
                 + dq2da1(y, v1, r1, v2, sinTheta) * da1
                 + dq2dr1(y, v1, v2, cosTheta) * dr1;
+    }
+
+    @Override
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        return calculateSensi(y, ksi, b2, v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
     }
 
     public static double q2(double y, double cosKsi, double b2, double v1, double r1, double v2, double cosTheta) {
@@ -80,24 +82,25 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
 
     @Override
     public double eval() {
-        return branchVector.q2[num];
+        return q2(y, FastMath.cos(ksi), b2, v1(), r1(), v2(), FastMath.cos(theta2(ksi, ph1(), a1(), ph2())));
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
+        double theta = theta2(ksi, ph1(), a1(), ph2());
         if (variable.equals(v1Var)) {
-            return branchVector.dq2dv1[num];
+            return dq2dv1(y, r1(), v2(), FastMath.cos(theta));
         } else if (variable.equals(v2Var)) {
-            return branchVector.dq2dv2[num];
+            return dq2dv2(y, FastMath.cos(ksi), b2, v1(), r1(), v2(), FastMath.cos(theta));
         } else if (variable.equals(ph1Var)) {
-            return branchVector.dq2dph1[num];
+            return dq2dph1(y, v1(), r1(), v2(), FastMath.sin(theta));
         } else if (variable.equals(ph2Var)) {
-            return branchVector.dq2dph2[num];
+            return dq2dph2(y, v1(), r1(), v2(), FastMath.sin(theta));
         } else if (variable.equals(a1Var)) {
-            return branchVector.dq2da1[num];
+            return dq2da1(y, v1(), r1(), v2(), FastMath.sin(theta));
         } else if (variable.equals(r1Var)) {
-            return branchVector.dq2dr1[num];
+            return dq2dr1(y, v1(), v2(), FastMath.cos(theta));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

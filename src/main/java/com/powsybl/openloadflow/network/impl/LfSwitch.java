@@ -15,18 +15,19 @@ import com.powsybl.security.results.BranchResult;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfSwitch extends AbstractLfBranch {
 
     private final Ref<Switch> switchRef;
 
     public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch, LfNetworkParameters parameters) {
-        super(network, bus1, bus2, new SimplePiModel(), parameters);
+        super(network, Objects.requireNonNull(bus1), Objects.requireNonNull(bus2), new SimplePiModel(), parameters);
         this.switchRef = Ref.create(aSwitch, parameters.isCacheEnabled());
     }
 
@@ -47,6 +48,46 @@ public class LfSwitch extends AbstractLfBranch {
     @Override
     public boolean hasPhaseControllerCapability() {
         return false;
+    }
+
+    @Override
+    public boolean isConnectedSide1() {
+        return true;
+    }
+
+    @Override
+    public void setConnectedSide1(boolean connectedSide1) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isConnectedSide2() {
+        return true;
+    }
+
+    @Override
+    public void setConnectedSide2(boolean connectedSide2) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isDisconnectionAllowedSide1() {
+        return false;
+    }
+
+    @Override
+    public void setDisconnectionAllowedSide1(boolean disconnectionAllowedSide1) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isDisconnectionAllowedSide2() {
+        return false;
+    }
+
+    @Override
+    public void setDisconnectionAllowedSide2(boolean disconnectionAllowedSide2) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -107,6 +148,126 @@ public class LfSwitch extends AbstractLfBranch {
     @Override
     public Evaluable getI2() {
         return NAN;
+    }
+
+    @Override
+    public Evaluable getOpenP1() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenP1(Evaluable openP1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getOpenQ1() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenQ1(Evaluable openQ1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getOpenI1() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenI1(Evaluable openI1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getOpenP2() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenP2(Evaluable openP2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getOpenQ2() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenQ2(Evaluable openQ2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getOpenI2() {
+        return NAN;
+    }
+
+    @Override
+    public void setOpenI2(Evaluable openI2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedP1() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedP1(Evaluable closedP1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedQ1() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedQ1(Evaluable closedQ1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedI1() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedI1(Evaluable closedI1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedP2() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedP2(Evaluable closedP2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedQ2() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedQ2(Evaluable closedQ2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getClosedI2() {
+        return NAN;
+    }
+
+    @Override
+    public void setClosedI2(Evaluable closedI2) {
+        // nothing to do
     }
 
     @Override

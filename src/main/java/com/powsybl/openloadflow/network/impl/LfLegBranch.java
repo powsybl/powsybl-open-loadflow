@@ -16,7 +16,7 @@ import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class LfLegBranch extends AbstractImpedantLfBranch {
 
@@ -40,11 +40,15 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     public static LfLegBranch create(LfNetwork network, LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt,
-                                     ThreeWindingsTransformer.Leg leg, boolean retainPtc, boolean retainRtc, LfNetworkParameters parameters) {
+                                     ThreeWindingsTransformer.Leg leg, LfTopoConfig topoConfig, LfNetworkParameters parameters) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
         Objects.requireNonNull(parameters);
+
+        String id = LfLegBranch.getId(leg.getSide(), twt.getId());
+        boolean retainPtc = topoConfig.isRetainedPtc(id);
+        boolean retainRtc = topoConfig.isRetainedRtc(id);
 
         PiModel piModel = null;
 
@@ -89,7 +93,11 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance());
         }
 
-        return new LfLegBranch(network, bus1, bus0, piModel, twt, leg, parameters);
+        LfLegBranch lfBranch = new LfLegBranch(network, bus1, bus0, piModel, twt, leg, parameters);
+        if (bus1 != null && topoConfig.getBranchIdsOpenableSide1().contains(lfBranch.getId())) {
+            lfBranch.setDisconnectionAllowedSide1(true);
+        }
+        return lfBranch;
     }
 
     private int getLegNum() {
@@ -108,13 +116,8 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         return twtId + "_leg_" + legNum;
     }
 
-    public static String getId(ThreeWindingsTransformer.Side side, String transformerId) {
-        int legNum = switch (side) {
-            case ONE -> 1;
-            case TWO -> 2;
-            case THREE -> 3;
-        };
-        return getId(transformerId, legNum);
+    public static String getId(ThreeSides side, String transformerId) {
+        return getId(transformerId, side.getNum());
     }
 
     @Override

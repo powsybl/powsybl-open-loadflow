@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -15,7 +17,7 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
 /**
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 @SuppressWarnings("squid:S00107")
 public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
@@ -24,11 +26,10 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private final Variable<AcVariableType> ph2Var;
 
-    public OpenBranchSide1CurrentMagnitudeEquationTerm(AcBranchVector branchVector, int branchNum, int bus2Num,
-                                                       VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branchVector, branchNum, AcVariableType.BUS_V, bus2Num, variableSet, deriveA1, deriveR1);
-        v2Var = variableSet.getVariable(bus2Num, AcVariableType.BUS_V);
-        ph2Var = variableSet.getVariable(bus2Num, AcVariableType.BUS_PHI);
+    public OpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet) {
+        super(branch, AcVariableType.BUS_V, bus2, variableSet);
+        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
+        ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
     }
 
     private double v2() {
@@ -71,25 +72,19 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
         return R2 * R2 * (gres(y, sinKsi, g1, b1, g2, shunt) * FastMath.sin(ph2) + bres(y, cosKsi, g1, b1, b2, shunt) * FastMath.cos(ph2));
     }
 
-    private static double di2dv2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double v2, double ph2) {
+    public static double di2dv2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double v2, double ph2) {
         return (reI2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2) * dreI2dv2(y, cosKsi, sinKsi, g1, b1, g2, b2, ph2)
                 + imI2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2) * dimI2dv2(y, cosKsi, sinKsi, g1, b1, g2, b2, ph2)) / i2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2);
     }
 
     @Override
     public double eval() {
-        return branchVector.i2[num];
+        return i2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v2(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        double y = branchVector.y[num];
-        double ksi = branchVector.ksi[num];
-        double g1 = branchVector.g1[num];
-        double b1 = branchVector.b1[num];
-        double g2 = branchVector.g2[num];
-        double b2 = branchVector.b2[num];
         if (variable.equals(v2Var)) {
             return di2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v2(), ph2());
         } else if (variable.equals(ph2Var)) {

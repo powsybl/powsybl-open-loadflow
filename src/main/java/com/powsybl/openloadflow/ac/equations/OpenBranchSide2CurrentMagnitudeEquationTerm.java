@@ -8,12 +8,14 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
 import java.util.Objects;
 
 /**
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 @SuppressWarnings("squid:S00107")
 public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSide2BranchAcFlowEquationTerm {
@@ -24,13 +26,13 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private Variable<AcVariableType> r1Var;
 
-    public OpenBranchSide2CurrentMagnitudeEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num,
-                                                       VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branchVector, branchNum, AcVariableType.BUS_V, bus1Num, variableSet, deriveA1, deriveR1);
-        v1Var = variableSet.getVariable(bus1Num, AcVariableType.BUS_V);
-        ph1Var = variableSet.getVariable(bus1Num, AcVariableType.BUS_PHI);
+    public OpenBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet,
+                                                       boolean deriveR1) {
+        super(branch, AcVariableType.BUS_V, bus1, variableSet);
+        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
+        ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         if (deriveR1) {
-            r1Var = variableSet.getVariable(bus1Num, AcVariableType.BRANCH_RHO1);
+            r1Var = variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1);
         }
     }
 
@@ -43,7 +45,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double r1() {
-        return r1Var != null ? sv.get(r1Var.getRow()) : branchVector.r1[num];
+        return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
     }
 
     private static double gres(double y, double sinksi, double g1, double g2, double b2, double shunt) {
@@ -78,25 +80,19 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
         return r1 * r1 * (gres(y, sinKsi, g1, g2, b2, shunt) * FastMath.sin(ph1) + bres(y, cosKsi, b1, g2, b2, shunt) * FastMath.cos(ph1));
     }
 
-    private static double di1dv1(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double v1, double ph1, double r1) {
+    public static double di1dv1(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double v1, double ph1, double r1) {
         return (reI1(y, cosKsi, sinKsi, g1, b1, g2, b2, v1, ph1, r1) * dreI1dv1(y, cosKsi, sinKsi, g1, b1, g2, b2, ph1, r1)
                 + imI1(y, cosKsi, sinKsi, g1, b1, g2, b2, v1, ph1, r1) * dimI1dv1(y, cosKsi, sinKsi, g1, b1, g2, b2, ph1, r1)) / i1(y, cosKsi, sinKsi, g1, b1, g2, b2, v1, ph1, r1);
     }
 
     @Override
     public double eval() {
-        return branchVector.i1[num];
+        return i1(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v1(), ph1(), r1());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        double y = branchVector.y[num];
-        double ksi = branchVector.ksi[num];
-        double g1 = branchVector.g1[num];
-        double b1 = branchVector.b1[num];
-        double b2 = branchVector.b2[num];
-        double g2 = branchVector.g2[num];
         if (variable.equals(v1Var)) {
             return di1dv1(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v1(), ph1(), r1());
         } else if (variable.equals(ph1Var) || variable.equals(r1Var)) {

@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractOpenSecurityAnalysisTest {
 
@@ -101,7 +101,7 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     }
 
     protected LoadFlowResult runLoadFlow(Network network, LoadFlowParameters parameters) {
-        return loadFlowProvider.run(network, computationManager, network.getVariantManager().getWorkingVariantId(), parameters)
+        return loadFlowProvider.run(network, computationManager, network.getVariantManager().getWorkingVariantId(), parameters, Reporter.NO_OP)
                 .join();
     }
 

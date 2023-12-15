@@ -17,6 +17,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +30,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResults
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 class DistributedSlackOnLoadTest {
 
@@ -65,7 +66,7 @@ class DistributedSlackOnLoadTest {
     @Test
     void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(35.294, l1.getTerminal());
         assertActivePowerEquals(70.588, l2.getTerminal());
         assertActivePowerEquals(58.824, l3.getTerminal());
@@ -91,7 +92,7 @@ class DistributedSlackOnLoadTest {
                 .add();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(30.0, l1.getTerminal());
         assertActivePowerEquals(96.923, l2.getTerminal());
         assertActivePowerEquals(50.0, l3.getTerminal());
@@ -125,7 +126,7 @@ class DistributedSlackOnLoadTest {
         // PROPORTIONAL_TO_LOAD and power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parametersExt.setLoadPowerFactorConstant(true);
-        Network network1 = EurostagTutorialExample1Factory.create();
+        Network network1 = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         LoadFlowResult loadFlowResult1 = loadFlowRunner.run(network1, parameters);
 
@@ -139,7 +140,7 @@ class DistributedSlackOnLoadTest {
         // PROPORTIONAL_TO_CONFORM_LOAD and power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         parametersExt.setLoadPowerFactorConstant(true);
-        Network network2 = EurostagTutorialExample1Factory.create();
+        Network network2 = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         // fixedActivePower and FixedReactivePower are unbalanced
         network2.getLoad("LOAD").newExtension(LoadDetailAdder.class)
                 .withFixedActivePower(500).withVariableActivePower(100)
@@ -160,7 +161,7 @@ class DistributedSlackOnLoadTest {
         // PROPORTIONAL_TO_CONFORM_LOAD and power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parametersExt.setLoadPowerFactorConstant(true);
-        Network network3 = EurostagTutorialExample1Factory.create();
+        Network network3 = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network3.getVoltageLevel("VLLOAD").newLoad().setId("LOAD1").setP0(-10).setQ0(1).setBus("NLOAD").setConnectableBus("NLOAD").add();
 
         //when
@@ -181,12 +182,23 @@ class DistributedSlackOnLoadTest {
         parameters
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .getExtension(OpenLoadFlowParameters.class)
-                .setThrowsExceptionInCaseOfSlackDistributionFailure(false);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertTrue(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        assertEquals(-60., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-6);
 
         parameters.getExtension(OpenLoadFlowParameters.class)
-                .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        result = loadFlowRunner.run(network, parameters);
+        componentResult = result.getComponentResults().get(0);
+        assertFalse(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
+        assertEquals(-60., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-6);
+
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
     }
 
@@ -204,7 +216,7 @@ class DistributedSlackOnLoadTest {
                 .withFixedActivePower(100)
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         double sumBus = 0.0;
         sumBus += network.getLine("l14").getTerminal2().getQ();
         sumBus += network.getLine("l24").getTerminal2().getQ();
@@ -238,7 +250,7 @@ class DistributedSlackOnLoadTest {
                 .withVariableReactivePower(0.0)
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         double sumBus = 0.0;
         sumBus += network.getLine("l14").getTerminal2().getQ();
         sumBus += network.getLine("l24").getTerminal2().getQ();

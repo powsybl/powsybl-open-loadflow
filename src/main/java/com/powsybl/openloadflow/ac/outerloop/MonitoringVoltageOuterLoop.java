@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class MonitoringVoltageOuterLoop implements AcOuterLoop {
 
@@ -105,7 +105,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
     private static Optional<Range<Double>> getControlledBusVoltageLimits(LfBus controllerCapableBus) {
         return findMonitoringSvc(controllerCapableBus)
                 .flatMap(generator -> generator.getStandByAutomaton()
-                        .map(automaton -> Range.between(automaton.getLowVoltageThreshold(), automaton.getHighVoltageThreshold())));
+                        .map(automaton -> Range.of(automaton.getLowVoltageThreshold(), automaton.getHighVoltageThreshold())));
     }
 
     private static double getSvcTargetV(LfBus bus, VoltageLimitDirection direction) {
