@@ -92,17 +92,17 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         double theta = theta1(ksi, ph1(), a1(), ph2());
-        if (variable.equals(v1Var)) {
+        if (variable.equals(variables.getV1Var())) {
             return dq1dv1(y, FastMath.cos(ksi), b1, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(v2Var)) {
+        } else if (variable.equals(variables.getV2Var())) {
             return dq1dv2(y, v1(), r1(), FastMath.cos(theta));
-        } else if (variable.equals(ph1Var)) {
+        } else if (variable.equals(variables.getPh1Var())) {
             return dq1dph1(y, v1(), r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(ph2Var)) {
+        } else if (variable.equals(variables.getPh2Var())) {
             return dq1dph2(y, v1(), r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(a1Var)) {
+        } else if (variable.equals(variables.getA1Var())) {
             return dq1da1(y, v1(), r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(r1Var)) {
+        } else if (variable.equals(variables.getR1Var())) {
             return dq1dr1(y, FastMath.cos(ksi), b1, v1(), r1(), v2(), FastMath.cos(theta));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);

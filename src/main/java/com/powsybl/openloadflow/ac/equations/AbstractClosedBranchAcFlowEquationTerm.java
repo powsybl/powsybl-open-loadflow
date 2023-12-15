@@ -7,14 +7,12 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.ac.equations.vector.AcBranchVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -25,106 +23,43 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  */
 public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
 
-    protected final Variable<AcVariableType> v1Var;
-
-    protected final Variable<AcVariableType> v2Var;
-
-    protected final Variable<AcVariableType> ph1Var;
-
-    protected final Variable<AcVariableType> ph2Var;
-
-    protected Variable<AcVariableType> a1Var;
-
-    protected Variable<AcVariableType> r1Var;
-
-    protected final List<Variable<AcVariableType>> variables;
-
-    public static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
-        return switch (sequenceType) {
-            case POSITIVE -> AcVariableType.BUS_V;
-            case NEGATIVE -> AcVariableType.BUS_V_NEGATIVE;
-            case ZERO -> AcVariableType.BUS_V_ZERO;
-        };
-    }
-
-    public static AcVariableType getVoltageAngleType(Fortescue.SequenceType sequenceType) {
-        return switch (sequenceType) {
-            case POSITIVE -> AcVariableType.BUS_PHI;
-            case NEGATIVE -> AcVariableType.BUS_PHI_NEGATIVE;
-            case ZERO -> AcVariableType.BUS_PHI_ZERO;
-        };
-    }
+    protected final ClosedBranchAcVariables variables;
 
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
-        Objects.requireNonNull(variableSet);
-        variables = createVariable(branchVector, branchNum, variableSet, deriveA1, deriveR1, sequenceType);
-        v1Var = variables.get(0);
-        v2Var = variables.get(1);
-        ph1Var = variables.get(2);
-        ph2Var = variables.get(3);
-        if (deriveA1) {
-            a1Var = variables.get(4);
-            if (deriveR1) {
-                r1Var = variables.get(5);
-            }
-        } else if (deriveR1) {
-            r1Var = variables.get(4);
-        }
-    }
-
-    public static List<Variable<AcVariableType>> createVariable(AcBranchVector branchVector, int branchNum,
-                                                                VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1,
-                                                                Fortescue.SequenceType sequenceType) {
-        AcVariableType vType = getVoltageMagnitudeType(sequenceType);
-        AcVariableType angleType = getVoltageAngleType(sequenceType);
-        v1Var = variableSet.getVariable(bus1.getNum(), vType);
-        v2Var = variableSet.getVariable(bus2.getNum(), vType);
-        ph1Var = variableSet.getVariable(bus1.getNum(), angleType);
-        ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
-        a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
-        r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
-        variables.add(v1Var);
-        variables.add(v2Var);
-        variables.add(ph1Var);
-        variables.add(ph2Var);
-        if (a1Var != null) {
-            variables.add(a1Var);
-        }
-        if (deriveR1) {
-            variables.add(variableSet.getVariable(branchNum, AcVariableType.BRANCH_RHO1));
-        }
-        return variables;
+        variables = new ClosedBranchAcVariables(branch.getNum(), bus1.getNum(), bus2.getNum(), variableSet, deriveA1, deriveR1, sequenceType);
     }
 
     public Variable<AcVariableType> getA1Var() {
-        return a1Var;
+        return variables.getA1Var();
     }
 
     protected double v1() {
-        return sv.get(v1Var.getRow());
+        return sv.get(variables.getV1Var().getRow());
     }
 
     protected double v2() {
-        return sv.get(v2Var.getRow());
+        return sv.get(variables.getV2Var().getRow());
     }
 
     protected double ph1() {
-        return sv.get(ph1Var.getRow());
+        return sv.get(variables.getPh1Var().getRow());
     }
 
     protected double ph2() {
-        return sv.get(ph2Var.getRow());
+        return sv.get(variables.getPh2Var().getRow());
     }
 
     protected double r1() {
+        var r1Var = variables.getR1Var();
         return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
     }
 
     protected double a1() {
+        var a1Var = variables.getA1Var();
         return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
     }
 
@@ -141,17 +76,19 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     @Override
     public double calculateSensi(DenseMatrix dx, int column) {
         Objects.requireNonNull(dx);
-        double dph1 = dx.get(ph1Var.getRow(), column);
-        double dph2 = dx.get(ph2Var.getRow(), column);
-        double dv1 = dx.get(v1Var.getRow(), column);
-        double dv2 = dx.get(v2Var.getRow(), column);
+        double dph1 = dx.get(variables.getPh1Var().getRow(), column);
+        double dph2 = dx.get(variables.getPh2Var().getRow(), column);
+        double dv1 = dx.get(variables.getV1Var().getRow(), column);
+        double dv2 = dx.get(variables.getV2Var().getRow(), column);
+        var a1Var = variables.getA1Var();
         double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : 0;
+        var r1Var = variables.getR1Var();
         double dr1 = r1Var != null ? dx.get(r1Var.getRow(), column) : 0;
         return calculateSensi(dph1, dph2, dv1, dv2, da1, dr1);
     }
 
     @Override
     public List<Variable<AcVariableType>> getVariables() {
-        return variables;
+        return variables.getVariables();
     }
 }

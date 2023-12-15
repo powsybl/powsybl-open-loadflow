@@ -24,8 +24,8 @@ import java.util.List;
  */
 public class AcBranchVector implements ElementVector {
 
-    final int[] bus1Num;
-    final int[] bus2Num;
+    public final int[] bus1Num;
+    public final int[] bus2Num;
 
     final boolean[] connected1;
     final boolean[] connected2;

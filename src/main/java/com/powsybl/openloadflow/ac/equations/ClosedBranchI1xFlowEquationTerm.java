@@ -67,13 +67,13 @@ public class ClosedBranchI1xFlowEquationTerm extends AbstractClosedBranchAcFlowE
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        if (variable.equals(v1Var)) {
+        if (variable.equals(variables.getV1Var())) {
             return di1xdv1(g1, b1, ph1(), g12, b12);
-        } else if (variable.equals(v2Var)) {
+        } else if (variable.equals(variables.getV2Var())) {
             return di1xdv2(ph2(), g12, b12);
-        } else if (variable.equals(ph1Var)) {
+        } else if (variable.equals(variables.getPh1Var())) {
             return di1xdph1(g1, b1, v1(), ph1(), g12, b12);
-        } else if (variable.equals(ph2Var)) {
+        } else if (variable.equals(variables.getPh2Var())) {
             return di1xdph2(v2(), ph2(), g12, b12);
         } else {
             throw new IllegalStateException("Unexpected variable: " + variable);

@@ -41,17 +41,17 @@ public class ClosedBranchVectorSide2ReactiveFlowEquationTerm extends AbstractClo
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        if (variable.equals(v1Var)) {
+        if (variable.equals(variables.getV1Var())) {
             return branchVector.dq2dv1[num];
-        } else if (variable.equals(v2Var)) {
+        } else if (variable.equals(variables.getV2Var())) {
             return branchVector.dq2dv2[num];
-        } else if (variable.equals(ph1Var)) {
+        } else if (variable.equals(variables.getPh1Var())) {
             return branchVector.dq2dph1[num];
-        } else if (variable.equals(ph2Var)) {
+        } else if (variable.equals(variables.getPh2Var())) {
             return branchVector.dq2dph2[num];
-        } else if (variable.equals(a1Var)) {
+        } else if (variable.equals(variables.getA1Var())) {
             return branchVector.dq2da1[num];
-        } else if (variable.equals(r1Var)) {
+        } else if (variable.equals(variables.getR1Var())) {
             return branchVector.dq2dr1[num];
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);

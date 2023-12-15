@@ -48,17 +48,17 @@ public class ClosedBranchVectorSide2CurrentMagnitudeEquationTerm extends Abstrac
         double ksi = branchVector.ksi[num];
         double g2 = branchVector.g2[num];
         double b2 = branchVector.b2[num];
-        if (variable.equals(v1Var)) {
+        if (variable.equals(variables.getV1Var())) {
             return di2dv1(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(v2Var)) {
+        } else if (variable.equals(variables.getV2Var())) {
             return di2dv2(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(ph1Var)) {
+        } else if (variable.equals(variables.getPh1Var())) {
             return di2dph1(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(ph2Var)) {
+        } else if (variable.equals(variables.getPh2Var())) {
             return di2dph2(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(a1Var)) {
+        } else if (variable.equals(variables.getA1Var())) {
             return di2da1(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(r1Var)) {
+        } else if (variable.equals(variables.getR1Var())) {
             throw new IllegalArgumentException("Derivative with respect to r1 not implemented");
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);

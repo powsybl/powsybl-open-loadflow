@@ -103,7 +103,7 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
     @Override
     public EquationSystem<AcVariableType, AcEquationType> create() {
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, network);
         AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
         AcVectorizedEquationSystemCreationContext creationContext = new AcVectorizedEquationSystemCreationContext(equationSystem, networkVector);
         create(creationContext);

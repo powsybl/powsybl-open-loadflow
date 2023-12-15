@@ -128,7 +128,9 @@ class VectorEquationsTest {
         bus1 = Mockito.mock(LfBus.class, ANSWER);
         bus2 = Mockito.mock(LfBus.class, ANSWER);
         Mockito.doReturn(0).when(bus1).getNum();
+        Mockito.doReturn(false).when(bus1).isDisabled();
         Mockito.doReturn(1).when(bus2).getNum();
+        Mockito.doReturn(false).when(bus2).isDisabled();
 
         network = Mockito.mock(LfNetwork.class);
         Mockito.doReturn(List.of(bus1, bus2)).when(network).getBuses();
@@ -180,7 +182,7 @@ class VectorEquationsTest {
         a1Var.setRow(5);
         unknownVar.setRow(6);
 
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, network);
         var sv = equationSystem.getStateVector();
         sv.set(new double[] {V_1, PH_1, V_2, PH_2, R_1, A_1, 0});
 
@@ -275,6 +277,7 @@ class VectorEquationsTest {
 
         var bus = Mockito.mock(LfBus.class, ANSWER);
         Mockito.doReturn(0).when(bus).getNum();
+        Mockito.doReturn(false).when(bus).isDisabled();
         Mockito.doReturn(bus).when(shunt).getBus();
 
         LfNetwork network = Mockito.mock(LfNetwork.class);
@@ -291,7 +294,7 @@ class VectorEquationsTest {
         bVar.setRow(1);
         unknownVar.setRow(2);
 
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, network);
         var sv = equationSystem.getStateVector();
         sv.set(new double[] {V_1, B_SHUNT, 0});
 
