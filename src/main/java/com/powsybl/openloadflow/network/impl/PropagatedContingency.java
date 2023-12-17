@@ -430,12 +430,12 @@ public class PropagatedContingency {
         }
     }
 
-    private boolean willBeConnectedAfterContingencySide1(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
+    private boolean isConnectedAfterContingencySide1(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
         DisabledBranchStatus status = branchesToOpen.get(branch);
         return status == null || status == DisabledBranchStatus.SIDE_2;
     }
 
-    private boolean willBeConnectedAfterContingencySide2(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
+    private boolean isConnectedAfterContingencySide2(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
         DisabledBranchStatus status = branchesToOpen.get(branch);
         return status == null || status == DisabledBranchStatus.SIDE_1;
     }
@@ -460,10 +460,10 @@ public class PropagatedContingency {
                         boolean otherSideConnected;
                         if (branch.getBus1() == busToLost) {
                             otherSideBus = branch.getBus2();
-                            otherSideConnected = branch.isConnectedSide2() && willBeConnectedAfterContingencySide2(branchesToOpen, branch);
+                            otherSideConnected = branch.isConnectedSide2() && isConnectedAfterContingencySide2(branchesToOpen, branch);
                         } else {
                             otherSideBus = branch.getBus1();
-                            otherSideConnected = branch.isConnectedSide1() && willBeConnectedAfterContingencySide1(branchesToOpen, branch);
+                            otherSideConnected = branch.isConnectedSide1() && isConnectedAfterContingencySide1(branchesToOpen, branch);
                         }
                         if (busesToLost.contains(otherSideBus) || !otherSideConnected) {
                             addBranchToOpen(branch, DisabledBranchStatus.BOTH_SIDES, branchesToOpen);
