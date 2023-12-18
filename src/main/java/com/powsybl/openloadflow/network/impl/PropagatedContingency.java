@@ -430,12 +430,12 @@ public class PropagatedContingency {
         }
     }
 
-    private boolean isConnectedAfterContingencySide1(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
+    private static boolean isConnectedAfterContingencySide1(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
         DisabledBranchStatus status = branchesToOpen.get(branch);
         return status == null || status == DisabledBranchStatus.SIDE_2;
     }
 
-    private boolean isConnectedAfterContingencySide2(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
+    private static boolean isConnectedAfterContingencySide2(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
         DisabledBranchStatus status = branchesToOpen.get(branch);
         return status == null || status == DisabledBranchStatus.SIDE_1;
     }
