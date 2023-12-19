@@ -48,4 +48,8 @@ public interface LfNetworkListener {
     void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel);
 
     void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected);
+
+    void onSlackBusChange(LfBus bus, boolean slack);
+
+    void onReferenceBusChange(LfBus bus, boolean reference);
 }
