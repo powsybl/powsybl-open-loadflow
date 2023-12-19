@@ -281,12 +281,12 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public void addAdditionalCloseP1(Evaluable closeP1) {
+    public void addAdditionalClosedP1(Evaluable closedP1) {
         // nothing to do
     }
 
     @Override
-    public List<Evaluable> getAdditionalCloseP1() {
+    public List<Evaluable> getAdditionalClosedP1() {
         return Collections.emptyList();
     }
 
@@ -301,12 +301,12 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public void addAdditionalCloseQ1(Evaluable closeQ1) {
+    public void addAdditionalClosedQ1(Evaluable closedQ1) {
         // nothing to do
     }
 
     @Override
-    public List<Evaluable> getAdditionalCloseQ1() {
+    public List<Evaluable> getAdditionalClosedQ1() {
         return Collections.emptyList();
     }
 
@@ -321,12 +321,12 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public void addAdditionalCloseP2(Evaluable closeP2) {
+    public void addAdditionalClosedP2(Evaluable closedP2) {
         // nothing to do
     }
 
     @Override
-    public List<Evaluable> getAdditionalCloseP2() {
+    public List<Evaluable> getAdditionalClosedP2() {
         return Collections.emptyList();
     }
 
@@ -341,12 +341,12 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public void addAdditionalCloseQ2(Evaluable closeQ2) {
+    public void addAdditionalClosedQ2(Evaluable closedQ2) {
         // nothing to do
     }
 
     @Override
-    public List<Evaluable> getAdditionalCloseQ2() {
+    public List<Evaluable> getAdditionalClosedQ2() {
         return Collections.emptyList();
     }
 

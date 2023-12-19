@@ -343,7 +343,7 @@ public class AcEquationSystemCreator {
                     LfBus otherSideBus = branch.getBus2();
                     if (otherSideBus != null) {
                         q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1, deriveR1);
-                        branch.addAdditionalCloseQ1(q);
+                        branch.addAdditionalClosedQ1(q);
                         if (branch.isDisconnectionAllowedSide1()) {
                             openQ = new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
                             branch.addAdditionalOpenP1(openQ);
@@ -356,7 +356,7 @@ public class AcEquationSystemCreator {
                     LfBus otherSideBus = branch.getBus1();
                     if (otherSideBus != null) {
                         q = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1, deriveR1);
-                        branch.addAdditionalCloseQ2(q);
+                        branch.addAdditionalClosedQ2(q);
                         if (branch.isDisconnectionAllowedSide2()) {
                             openQ = new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
                             branch.addAdditionalOpenQ2(openQ);
@@ -836,12 +836,12 @@ public class AcEquationSystemCreator {
                 setActive(branch.getClosedQ2(), true);
                 branch.getAdditionalOpenP1().forEach(openP1 -> setActive(openP1, false));
                 branch.getAdditionalOpenQ1().forEach(openQ1 -> setActive(openQ1, false));
-                branch.getAdditionalCloseP1().forEach(closeP1 -> setActive(closeP1, true));
-                branch.getAdditionalCloseQ1().forEach(closeQ1 -> setActive(closeQ1, true));
+                branch.getAdditionalClosedP1().forEach(closedP1 -> setActive(closedP1, true));
+                branch.getAdditionalClosedQ1().forEach(closedQ1 -> setActive(closedQ1, true));
                 branch.getAdditionalOpenP2().forEach(openP2 -> setActive(openP2, false));
                 branch.getAdditionalOpenQ2().forEach(openQ2 -> setActive(openQ2, false));
-                branch.getAdditionalCloseP2().forEach(closeP2 -> setActive(closeP2, true));
-                branch.getAdditionalCloseQ2().forEach(closeQ2 -> setActive(closeQ2, true));
+                branch.getAdditionalClosedP2().forEach(closedP2 -> setActive(closedP2, true));
+                branch.getAdditionalClosedQ2().forEach(closedQ2 -> setActive(closedQ2, true));
             } else if (branch.isConnectedSide1() && !branch.isConnectedSide2()) {
                 setActive(branch.getOpenP1(), true);
                 setActive(branch.getOpenQ1(), true);
@@ -853,12 +853,12 @@ public class AcEquationSystemCreator {
                 setActive(branch.getClosedQ2(), false);
                 branch.getAdditionalOpenP1().forEach(openP1 -> setActive(openP1, true));
                 branch.getAdditionalOpenQ1().forEach(openQ1 -> setActive(openQ1, true));
-                branch.getAdditionalCloseP1().forEach(closeP1 -> setActive(closeP1, false));
-                branch.getAdditionalCloseQ1().forEach(closeQ1 -> setActive(closeQ1, false));
+                branch.getAdditionalClosedP1().forEach(closedP1 -> setActive(closedP1, false));
+                branch.getAdditionalClosedQ1().forEach(closedQ1 -> setActive(closedQ1, false));
                 branch.getAdditionalOpenP2().forEach(openP2 -> setActive(openP2, false));
                 branch.getAdditionalOpenQ2().forEach(openQ2 -> setActive(openQ2, false));
-                branch.getAdditionalCloseP2().forEach(closeP2 -> setActive(closeP2, false));
-                branch.getAdditionalCloseQ2().forEach(closeQ2 -> setActive(closeQ2, false));
+                branch.getAdditionalClosedP2().forEach(closedP2 -> setActive(closedP2, false));
+                branch.getAdditionalClosedQ2().forEach(closedQ2 -> setActive(closedQ2, false));
             } else if (!branch.isConnectedSide1() && branch.isConnectedSide2()) {
                 setActive(branch.getOpenP2(), true);
                 setActive(branch.getOpenQ2(), true);
@@ -870,12 +870,12 @@ public class AcEquationSystemCreator {
                 setActive(branch.getClosedQ1(), false);
                 branch.getAdditionalOpenP1().forEach(openP1 -> setActive(openP1, false));
                 branch.getAdditionalOpenQ1().forEach(openQ1 -> setActive(openQ1, false));
-                branch.getAdditionalCloseP1().forEach(closeP1 -> setActive(closeP1, false));
-                branch.getAdditionalCloseQ1().forEach(closeQ1 -> setActive(closeQ1, false));
+                branch.getAdditionalClosedP1().forEach(closedP1 -> setActive(closedP1, false));
+                branch.getAdditionalClosedQ1().forEach(closedQ1 -> setActive(closedQ1, false));
                 branch.getAdditionalOpenP2().forEach(openP2 -> setActive(openP2, true));
                 branch.getAdditionalOpenQ2().forEach(openQ2 -> setActive(openQ2, true));
-                branch.getAdditionalCloseP2().forEach(closeP2 -> setActive(closeP2, false));
-                branch.getAdditionalCloseQ2().forEach(closeQ2 -> setActive(closeQ2, false));
+                branch.getAdditionalClosedP2().forEach(closedP2 -> setActive(closedP2, false));
+                branch.getAdditionalClosedQ2().forEach(closedQ2 -> setActive(closedQ2, false));
             } else {
                 setActive(branch.getOpenP1(), false);
                 setActive(branch.getOpenQ1(), false);
@@ -887,12 +887,12 @@ public class AcEquationSystemCreator {
                 setActive(branch.getClosedQ2(), false);
                 branch.getAdditionalOpenP1().forEach(openP1 -> setActive(openP1, false));
                 branch.getAdditionalOpenQ1().forEach(openQ1 -> setActive(openQ1, false));
-                branch.getAdditionalCloseP1().forEach(closeP1 -> setActive(closeP1, false));
-                branch.getAdditionalCloseQ1().forEach(closeQ1 -> setActive(closeQ1, false));
+                branch.getAdditionalClosedP1().forEach(closedP1 -> setActive(closedP1, false));
+                branch.getAdditionalClosedQ1().forEach(closedQ1 -> setActive(closedQ1, false));
                 branch.getAdditionalOpenP2().forEach(openP2 -> setActive(openP2, false));
                 branch.getAdditionalOpenQ2().forEach(openQ2 -> setActive(openQ2, false));
-                branch.getAdditionalCloseP2().forEach(closeP2 -> setActive(closeP2, false));
-                branch.getAdditionalCloseQ2().forEach(closeQ2 -> setActive(closeQ2, false));
+                branch.getAdditionalClosedP2().forEach(closedP2 -> setActive(closedP2, false));
+                branch.getAdditionalClosedQ2().forEach(closedQ2 -> setActive(closedQ2, false));
             }
         }
     }
@@ -925,12 +925,12 @@ public class AcEquationSystemCreator {
                                                EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         branch.getAdditionalOpenP1().clear();
         branch.getAdditionalOpenQ1().clear();
-        branch.getAdditionalCloseP1().clear();
-        branch.getAdditionalCloseQ1().clear();
+        branch.getAdditionalClosedP1().clear();
+        branch.getAdditionalClosedQ1().clear();
         branch.getAdditionalOpenP2().clear();
         branch.getAdditionalOpenQ2().clear();
-        branch.getAdditionalCloseP2().clear();
-        branch.getAdditionalCloseQ2().clear();
+        branch.getAdditionalClosedP2().clear();
+        branch.getAdditionalClosedQ2().clear();
 
         // create zero and non zero impedance branch equations
         if (branch.isZeroImpedance(LoadFlowModel.AC)) {

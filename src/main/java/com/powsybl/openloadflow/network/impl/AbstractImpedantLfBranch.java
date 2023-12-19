@@ -68,19 +68,19 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
 
     protected final List<Evaluable> additionalOpenP1 = new ArrayList<>();
 
-    protected final List<Evaluable> additionalCloseP1 = new ArrayList<>();
+    protected final List<Evaluable> additionalClosedP1 = new ArrayList<>();
 
     protected final List<Evaluable> additionalOpenQ1 = new ArrayList<>();
 
-    protected final List<Evaluable> additionalCloseQ1 = new ArrayList<>();
+    protected final List<Evaluable> additionalClosedQ1 = new ArrayList<>();
 
     protected final List<Evaluable> additionalOpenP2 = new ArrayList<>();
 
-    protected final List<Evaluable> additionalCloseP2 = new ArrayList<>();
+    protected final List<Evaluable> additionalClosedP2 = new ArrayList<>();
 
     protected final List<Evaluable> additionalOpenQ2 = new ArrayList<>();
 
-    protected final List<Evaluable> additionalCloseQ2 = new ArrayList<>();
+    protected final List<Evaluable> additionalClosedQ2 = new ArrayList<>();
 
     protected AbstractImpedantLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
@@ -347,13 +347,13 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void addAdditionalCloseP1(Evaluable closeP1) {
-        additionalCloseP1.add(closeP1);
+    public void addAdditionalClosedP1(Evaluable closedP1) {
+        additionalClosedP1.add(closedP1);
     }
 
     @Override
-    public List<Evaluable> getAdditionalCloseP1() {
-        return additionalCloseP1;
+    public List<Evaluable> getAdditionalClosedP1() {
+        return additionalClosedP1;
     }
 
     @Override
@@ -367,13 +367,13 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void addAdditionalCloseQ1(Evaluable closeQ1) {
-        additionalCloseQ1.add(closeQ1);
+    public void addAdditionalClosedQ1(Evaluable closedQ1) {
+        additionalClosedQ1.add(closedQ1);
     }
 
     @Override
-    public List<Evaluable> getAdditionalCloseQ1() {
-        return additionalCloseQ1;
+    public List<Evaluable> getAdditionalClosedQ1() {
+        return additionalClosedQ1;
     }
 
     @Override
@@ -387,13 +387,13 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void addAdditionalCloseP2(Evaluable closeP2) {
-        additionalCloseP2.add(closeP2);
+    public void addAdditionalClosedP2(Evaluable closedP2) {
+        additionalClosedP2.add(closedP2);
     }
 
     @Override
-    public List<Evaluable> getAdditionalCloseP2() {
-        return additionalCloseP2;
+    public List<Evaluable> getAdditionalClosedP2() {
+        return additionalClosedP2;
     }
 
     @Override
@@ -407,13 +407,13 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void addAdditionalCloseQ2(Evaluable closeQ2) {
-        additionalCloseQ2.add(closeQ2);
+    public void addAdditionalClosedQ2(Evaluable closedQ2) {
+        additionalClosedQ2.add(closedQ2);
     }
 
     @Override
-    public List<Evaluable> getAdditionalCloseQ2() {
-        return additionalCloseQ2;
+    public List<Evaluable> getAdditionalClosedQ2() {
+        return additionalClosedQ2;
     }
 
     protected double getV1() {
