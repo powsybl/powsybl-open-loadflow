@@ -2825,4 +2825,26 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
     }
+
+    @Test
+    void testIssueWithReactiveTerms() {
+        Network network = FourBusNetworkFactory.createWithAdditionalReactiveTerms();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusesIds(List.of("b3"));
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setContingencyPropagation(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(new Contingency("b1", new BusContingency("b1")));
+        contingencies.add(new Contingency("b2", new BusContingency("b2")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+    }
 }
