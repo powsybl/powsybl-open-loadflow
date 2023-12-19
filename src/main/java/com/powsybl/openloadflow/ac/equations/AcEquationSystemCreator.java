@@ -344,20 +344,20 @@ public class AcEquationSystemCreator {
                     if (otherSideBus != null) {
                         q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1, deriveR1);
                         branch.addAdditionalClosedQ1(q);
-                        if (branch.isDisconnectionAllowedSide1()) {
+                        if (branch.isDisconnectionAllowedSide2()) {
                             openQ = new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
-                            branch.addAdditionalOpenP1(openQ);
+                            branch.addAdditionalOpenQ1(openQ);
                         }
                     } else {
                         q = new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
-                        branch.addAdditionalOpenP1(q);
+                        branch.addAdditionalOpenQ1(q);
                     }
                 } else {
                     LfBus otherSideBus = branch.getBus1();
                     if (otherSideBus != null) {
                         q = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1, deriveR1);
                         branch.addAdditionalClosedQ2(q);
-                        if (branch.isDisconnectionAllowedSide2()) {
+                        if (branch.isDisconnectionAllowedSide1()) {
                             openQ = new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
                             branch.addAdditionalOpenQ2(openQ);
                         }
@@ -967,21 +967,27 @@ public class AcEquationSystemCreator {
                     LfBus otherSideBus = branch.getBus2();
                     if (otherSideBus != null) {
                         p = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus, otherSideBus, variableSet, deriveA1, deriveR1);
-                        if (branch.isDisconnectionAllowedSide1()) {
+                        branch.addAdditionalClosedP1(p);
+                        if (branch.isDisconnectionAllowedSide2()) {
                             openP = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus, variableSet);
+                            branch.addAdditionalOpenP1(openP);
                         }
                     } else {
                         p = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus, variableSet);
+                        branch.addAdditionalOpenP1(p);
                     }
                 } else {
                     LfBus otherSideBus = branch.getBus1();
                     if (otherSideBus != null) {
                         p = new ClosedBranchSide2ActiveFlowEquationTerm(branch, otherSideBus, bus, variableSet, deriveA1, deriveR1);
-                        if (branch.isDisconnectionAllowedSide2()) {
+                        branch.addAdditionalClosedP2(p);
+                        if (branch.isDisconnectionAllowedSide1()) {
                             openP = new OpenBranchSide1ActiveFlowEquationTerm(branch, bus, variableSet);
+                            branch.addAdditionalOpenP2(openP);
                         }
                     } else {
                         p = new OpenBranchSide1ActiveFlowEquationTerm(branch, bus, variableSet);
+                        branch.addAdditionalOpenP2(p);
                     }
                 }
                 terms.add(p);
