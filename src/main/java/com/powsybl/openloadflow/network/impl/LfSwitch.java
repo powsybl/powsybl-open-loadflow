@@ -271,6 +271,86 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public void addAdditionalOpenP1(Evaluable openP1) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenP1() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalCloseP1(Evaluable closeP1) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalCloseP1() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalOpenQ1(Evaluable openQ1) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenQ1() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalCloseQ1(Evaluable closeQ1) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalCloseQ1() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalOpenP2(Evaluable openP2) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenP2() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalCloseP2(Evaluable closeP2) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalCloseP2() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalOpenQ2(Evaluable openQ2) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenQ2() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalCloseQ2(Evaluable closeQ2) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalCloseQ2() {
+        return Collections.emptyList();
+    }
+
+    @Override
     public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getSwitch().getId());
     }

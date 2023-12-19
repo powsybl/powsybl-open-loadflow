@@ -11,6 +11,8 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -63,6 +65,22 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     protected Evaluable closedQ2 = NAN;
 
     protected Evaluable closedI2 = NAN;
+
+    protected final List<Evaluable> additionalOpenP1 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalCloseP1 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalOpenQ1 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalCloseQ1 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalOpenP2 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalCloseP2 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalOpenQ2 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalCloseQ2 = new ArrayList<>();
 
     protected AbstractImpedantLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
@@ -316,6 +334,86 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     @Override
     public void setClosedI2(Evaluable closedI2) {
         this.closedI2 = Objects.requireNonNull(closedI2);
+    }
+
+    @Override
+    public void addAdditionalOpenP1(Evaluable openP1) {
+        additionalOpenP1.add(openP1);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenP1() {
+        return additionalOpenP1;
+    }
+
+    @Override
+    public void addAdditionalCloseP1(Evaluable closeP1) {
+        additionalCloseP1.add(closeP1);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalCloseP1() {
+        return additionalCloseP1;
+    }
+
+    @Override
+    public void addAdditionalOpenQ1(Evaluable openQ1) {
+        additionalOpenQ1.add(openQ1);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenQ1() {
+        return additionalOpenQ1;
+    }
+
+    @Override
+    public void addAdditionalCloseQ1(Evaluable closeQ1) {
+        additionalCloseQ1.add(closeQ1);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalCloseQ1() {
+        return additionalCloseQ1;
+    }
+
+    @Override
+    public void addAdditionalOpenP2(Evaluable openP2) {
+        additionalOpenP2.add(openP2);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenP2() {
+        return additionalOpenP2;
+    }
+
+    @Override
+    public void addAdditionalCloseP2(Evaluable closeP2) {
+        additionalCloseP2.add(closeP2);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalCloseP2() {
+        return additionalCloseP2;
+    }
+
+    @Override
+    public void addAdditionalOpenQ2(Evaluable openQ2) {
+        additionalOpenQ2.add(openQ2);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenQ2() {
+        return additionalOpenQ2;
+    }
+
+    @Override
+    public void addAdditionalCloseQ2(Evaluable closeQ2) {
+        additionalCloseQ2.add(closeQ2);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalCloseQ2() {
+        return additionalCloseQ2;
     }
 
     protected double getV1() {

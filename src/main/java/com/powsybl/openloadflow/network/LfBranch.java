@@ -161,6 +161,38 @@ public interface LfBranch extends LfElement {
 
     void setClosedI2(Evaluable closedI2);
 
+    void addAdditionalOpenP1(Evaluable openP1);
+
+    List<Evaluable> getAdditionalOpenP1();
+
+    void addAdditionalCloseP1(Evaluable closeP1);
+
+    List<Evaluable> getAdditionalCloseP1();
+
+    void addAdditionalOpenQ1(Evaluable openQ1);
+
+    List<Evaluable> getAdditionalOpenQ1();
+
+    void addAdditionalCloseQ1(Evaluable closeQ1);
+
+    List<Evaluable> getAdditionalCloseQ1();
+
+    void addAdditionalOpenP2(Evaluable openP2);
+
+    List<Evaluable> getAdditionalOpenP2();
+
+    void addAdditionalCloseP2(Evaluable closeP2);
+
+    List<Evaluable> getAdditionalCloseP2();
+
+    void addAdditionalOpenQ2(Evaluable openQ2);
+
+    List<Evaluable> getAdditionalOpenQ2();
+
+    void addAdditionalCloseQ2(Evaluable closeQ2);
+
+    List<Evaluable> getAdditionalCloseQ2();
+
     List<LfLimit> getLimits1(LimitType type);
 
     default List<LfLimit> getLimits2(LimitType type) {
