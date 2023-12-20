@@ -124,6 +124,10 @@ public class AcEquationSystemCreator {
                             .stream()
                             .map(term -> term.multiply(slope))
                             .collect(Collectors.toList()));
+            // to update open/close terms activation
+            for (LfBranch branch : bus.getBranches()) {
+                updateBranchEquations(branch);
+            }
         }
     }
 
@@ -229,11 +233,19 @@ public class AcEquationSystemCreator {
                     .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(() -> controllerBus.getRemoteControlReactivePercent() - 1))
                             .collect(Collectors.toList()));
+            // to update open/close terms activation
+            for (LfBranch branch : controllerBus.getBranches()) {
+                updateBranchEquations(branch);
+            }
             for (LfBus otherControllerBus : controllerBuses) {
                 if (otherControllerBus != controllerBus) {
                     zero.addTerms(createReactiveTerms(otherControllerBus, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(controllerBus::getRemoteControlReactivePercent))
                             .collect(Collectors.toList()));
+                }
+                // to update open/close terms activation
+                for (LfBranch branch : otherControllerBus.getBranches()) {
+                    updateBranchEquations(branch);
                 }
             }
         }
@@ -1023,6 +1035,10 @@ public class AcEquationSystemCreator {
                         .addTerms(createActiveInjectionTerms(slackBus, equationSystem.getVariableSet()).stream()
                                 .map(EquationTerm::minus)
                                 .collect(Collectors.toList()));
+                // to update open/close terms activation
+                for (LfBranch branch : slackBus.getBranches()) {
+                    updateBranchEquations(branch);
+                }
             }
         }
     }
