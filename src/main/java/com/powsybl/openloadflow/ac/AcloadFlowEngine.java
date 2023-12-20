@@ -124,6 +124,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                                                context.getTargetVector(),
                                                context.getEquationVector());
 
+        System.out.println(context.getEquationSystem().writeToString());
+
         List<AcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
         List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
                 .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork())))
