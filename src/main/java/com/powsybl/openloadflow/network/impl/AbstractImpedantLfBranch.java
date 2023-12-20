@@ -416,6 +416,72 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
         return additionalClosedQ2;
     }
 
+    @Override
+    public void removeEvaluable(Evaluable evaluable) {
+        if (p1 == evaluable) {
+            p1 = NAN;
+        }
+        if (closedP1 == evaluable) {
+            closedP1 = NAN;
+        }
+        if (openP1 == evaluable) {
+            openP1 = NAN;
+        }
+        if (q1 == evaluable) {
+            q1 = NAN;
+        }
+        if (closedQ1 == evaluable) {
+            closedQ1 = NAN;
+        }
+        if (openQ1 == evaluable) {
+            openQ1 = NAN;
+        }
+        if (i1 == evaluable) {
+            i1 = NAN;
+        }
+        if (closedI1 == evaluable) {
+            closedI1 = NAN;
+        }
+        if (openI1 == evaluable) {
+            openI1 = NAN;
+        }
+        if (p2 == evaluable) {
+            p2 = NAN;
+        }
+        if (closedP2 == evaluable) {
+            closedP2 = NAN;
+        }
+        if (openP2 == evaluable) {
+            openP2 = NAN;
+        }
+        if (q2 == evaluable) {
+            q2 = NAN;
+        }
+        if (closedQ2 == evaluable) {
+            closedQ2 = NAN;
+        }
+        if (openQ2 == evaluable) {
+            openQ2 = NAN;
+        }
+        if (i2 == evaluable) {
+            i2 = NAN;
+        }
+        if (closedI2 == evaluable) {
+            closedI2 = NAN;
+        }
+        if (openI2 == evaluable) {
+            openI2 = NAN;
+        }
+        additionalClosedP1.remove(evaluable);
+        additionalOpenP1.remove(evaluable);
+        additionalClosedQ1.remove(evaluable);
+        additionalOpenQ1.remove(evaluable);
+        additionalClosedP2.remove(evaluable);
+        additionalOpenP2.remove(evaluable);
+        additionalClosedQ2.remove(evaluable);
+        additionalOpenQ2.remove(evaluable);
+    }
+
     protected double getV1() {
         return getBus1() != null ? getBus1().getV() : Double.NaN;
     }

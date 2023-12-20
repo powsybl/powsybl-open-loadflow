@@ -239,11 +239,21 @@ public class AcEquationSystemCreator {
         }
     }
 
-    public static void recreateReactivePowerDistributionEquations(GeneratorVoltageControl voltageControl,
+    private static void removeEquationAndCleanElement(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, int elementNum, AcEquationType equationType) {
+        var removedEq = equationSystem.removeEquation(elementNum, equationType);
+        if (removedEq != null) {
+            for (var term : removedEq.getLeafTerms()) {
+                LfElement element = network.getElement(term.getElementType(), term.getElementNum());
+                element.removeEvaluable(term);
+            }
+        }
+    }
+
+    public static void recreateReactivePowerDistributionEquations(LfNetwork network, GeneratorVoltageControl voltageControl,
                                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                   AcEquationSystemCreationParameters parameters) {
         for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
-            equationSystem.removeEquation(controllerBus.getNum(), AcEquationType.DISTR_Q);
+            removeEquationAndCleanElement(network, equationSystem, controllerBus.getNum(), AcEquationType.DISTR_Q);
         }
         if (!voltageControl.isLocalControl()) {
             createGeneratorReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
@@ -572,10 +582,10 @@ public class AcEquationSystemCreator {
         updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_RHO, AcEquationType.BRANCH_TARGET_RHO1);
     }
 
-    public static void recreateR1DistributionEquations(TransformerVoltageControl voltageControl,
+    public static void recreateR1DistributionEquations(LfNetwork network, TransformerVoltageControl voltageControl,
                                                        EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfBranch controllerBranch : voltageControl.getMergedControllerElements()) {
-            equationSystem.removeEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO);
+            removeEquationAndCleanElement(network, equationSystem, controllerBranch.getNum(), AcEquationType.DISTR_RHO);
         }
         createR1DistributionEquations(voltageControl, equationSystem);
         updateTransformerVoltageControlEquations(voltageControl, equationSystem);
@@ -626,10 +636,10 @@ public class AcEquationSystemCreator {
         updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_SHUNT_B, AcEquationType.SHUNT_TARGET_B);
     }
 
-    public static void recreateShuntSusceptanceDistributionEquations(ShuntVoltageControl voltageControl,
+    public static void recreateShuntSusceptanceDistributionEquations(LfNetwork network, ShuntVoltageControl voltageControl,
                                                                      EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfShunt controllerShunt : voltageControl.getMergedControllerElements()) {
-            equationSystem.removeEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B);
+            removeEquationAndCleanElement(network, equationSystem, controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B);
         }
         createShuntSusceptanceDistributionEquations(voltageControl, equationSystem);
         updateShuntVoltageControlEquations(voltageControl, equationSystem);

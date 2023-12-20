@@ -169,6 +169,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     deindexTerm(term);
                 }
             }
+            equation.setRemoved(); // to ensure it is not used anymore
             notifyEquationChange(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;

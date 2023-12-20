@@ -157,6 +157,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         this.reporter = Objects.requireNonNull(reporter);
     }
 
+    public LfElement getElement(ElementType elementType, int num) {
+        return switch (elementType) {
+            case BUS -> getBus(num);
+            case BRANCH -> getBranch(num);
+            case SHUNT_COMPENSATOR -> getShunt(num);
+            case HVDC -> getHvdc(num);
+        };
+    }
+
     private void invalidateSlackAndReference() {
         if (slackBuses != null) {
             for (var slackBus : slackBuses) {
@@ -305,6 +314,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfHvdc> getHvdcs() {
         return hvdcs;
+    }
+
+    public LfHvdc getHvdc(int num) {
+        return hvdcs.get(0);
     }
 
     public LfHvdc getHvdcById(String id) {
