@@ -317,7 +317,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public LfHvdc getHvdc(int num) {
-        return hvdcs.get(0);
+        return hvdcs.get(num);
     }
 
     public LfHvdc getHvdcById(String id) {
