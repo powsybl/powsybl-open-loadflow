@@ -41,7 +41,7 @@ public abstract class AbstractPhaseControlOuterLoop<V extends Enum<V> & Quantity
 
     protected static List<LfBranch> getControllerBranches(LfNetwork network) {
         return network.getBranches().stream()
-                .filter(branch -> !branch.isDisabled() && branch.isPhaseController())
+                .filter(branch -> !branch.isDisabled() && branch.isPhaseController() && branch.isConnectedAtBothSides())
                 .collect(Collectors.toList());
     }
 
