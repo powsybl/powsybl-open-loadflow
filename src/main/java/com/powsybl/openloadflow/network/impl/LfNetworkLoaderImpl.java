@@ -718,7 +718,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);
-            if (parameters.isReactivePowerRemoteControl()) {
+            if (parameters.isGeneratorReactivePowerRemoteControl()) {
                 createGeneratorReactivePowerControls(lfBuses);
             }
             if (parameters.isTransformerVoltageControl()) {
