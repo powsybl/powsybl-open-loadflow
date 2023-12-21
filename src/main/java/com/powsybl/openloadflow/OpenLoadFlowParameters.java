@@ -221,6 +221,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME = "simulateAutomationSystems";
 
+    public static final String MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME = "maxNewtonKrylovIterations";
+
+    public static final String NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME = "newtonKrylovLineSearch";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -281,7 +285,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(LINE_PER_UNIT_MODE_PARAM_NAME, ParameterType.STRING, "Line per unit mode", LinePerUnitMode.IMPEDANCE.name(), getEnumPossibleValues(LinePerUnitMode.class)),
         new Parameter(USE_LOAD_MODEL_PARAM_NAME, ParameterType.BOOLEAN, "Use load model (with voltage dependency) for simulation", LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE),
         new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class)),
-        new Parameter(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, ParameterType.BOOLEAN, "Automation systems simulation", LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE)
+        new Parameter(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, ParameterType.BOOLEAN, "Automation systems simulation", LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE),
+        new Parameter(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Newton Krylov max number of iterations", NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS),
+        new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -435,6 +441,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean simulateAutomationSystems = LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE;
 
+    private AcSolverType acSolverType = AcSolverType.NEWTON_RAPHSON;
+
+    private int maxNewtonKrylovIterations = NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS;
+
+    private boolean newtonKrylovLineSearch = NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE;
+
     @Override
     public String getName() {
         return "open-load-flow-parameters";
@@ -543,7 +555,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxNewtonRaphsonIterations(int maxNewtonRaphsonIterations) {
-        this.maxNewtonRaphsonIterations = NewtonRaphsonParameters.checkMaxIteration(maxNewtonRaphsonIterations);
+        this.maxNewtonRaphsonIterations = AbstractNewtonParameters.checkMaxIteration(maxNewtonRaphsonIterations);
         return this;
     }
 
@@ -552,7 +564,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxOuterLoopIterations(int maxOuterLoopIterations) {
-        this.maxOuterLoopIterations = NewtonRaphsonParameters.checkMaxIteration(maxOuterLoopIterations);
+        this.maxOuterLoopIterations = AbstractNewtonParameters.checkMaxIteration(maxOuterLoopIterations);
         return this;
     }
 
@@ -986,6 +998,33 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public AcSolverType getAcSolverType() {
+        return acSolverType;
+    }
+
+    public OpenLoadFlowParameters setAcSolverType(AcSolverType acSolverType) {
+        this.acSolverType = Objects.requireNonNull(acSolverType);
+        return this;
+    }
+
+    public int getMaxNewtonKrylovIterations() {
+        return maxNewtonKrylovIterations;
+    }
+
+    public OpenLoadFlowParameters setMaxNewtonKrylovIterations(int maxNewtonKrylovIterations) {
+        this.maxNewtonKrylovIterations = AbstractNewtonParameters.checkMaxIteration(maxNewtonKrylovIterations);
+        return this;
+    }
+
+    public boolean isNewtonKrylovLineSearch() {
+        return newtonKrylovLineSearch;
+    }
+
+    public OpenLoadFlowParameters setNewtonKrylovLineSearch(boolean newtonKrylovLineSearch) {
+        this.newtonKrylovLineSearch = newtonKrylovLineSearch;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1050,7 +1089,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLinePerUnitMode(config.getEnumProperty(LINE_PER_UNIT_MODE_PARAM_NAME, LinePerUnitMode.class, LfNetworkParameters.LINE_PER_UNIT_MODE_DEFAULT_VALUE))
                 .setUseLoadModel(config.getBooleanProperty(USE_LOAD_MODEL_PARAM_NAME, LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE))
                 .setDcApproximationType(config.getEnumProperty(DC_APPROXIMATION_TYPE_PARAM_NAME, DcApproximationType.class, DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE))
-                .setSimulateAutomationSystems(config.getBooleanProperty(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE)));
+                .setSimulateAutomationSystems(config.getBooleanProperty(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE))
+                .setMaxNewtonKrylovIterations(config.getIntProperty(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS))
+                .setNewtonKrylovLineSearch(config.getBooleanProperty(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1178,11 +1219,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setDcApproximationType(DcApproximationType.valueOf(prop)));
         Optional.ofNullable(properties.get(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME))
                 .ifPresent(prop -> this.setSimulateAutomationSystems(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxNewtonKrylovIterations(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME))
+                .ifPresent(prop -> this.setNewtonKrylovLineSearch(Boolean.parseBoolean(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(49);
+        Map<String, Object> map = new LinkedHashMap<>(58);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
@@ -1239,6 +1284,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(USE_LOAD_MODEL_PARAM_NAME, useLoadModel);
         map.put(DC_APPROXIMATION_TYPE_PARAM_NAME, dcApproximationType);
         map.put(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, simulateAutomationSystems);
+        map.put(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, maxNewtonKrylovIterations);
+        map.put(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, newtonKrylovLineSearch);
         return map;
     }
 
@@ -1426,18 +1473,29 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxVoltageChangeStateVectorScalingMaxDphi(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDphi())
                 .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
 
+        NewtonKrylovParameters newtonKrylovParameters = new NewtonKrylovParameters()
+                .setLineSearch(parametersExt.isNewtonKrylovLineSearch())
+                .setMaxIterations(parametersExt.getMaxNewtonKrylovIterations());
+
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
+
+        AcSolverFactory solverFactory = switch (parametersExt.getAcSolverType()) {
+            case NEWTON_RAPHSON -> new NewtonRaphsonFactory();
+            case NEWTOW_KRYLOV -> new NewtonKrylovFactory();
+        };
 
         return new AcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
                 .setEquationSystemCreationParameters(equationSystemCreationParameters)
                 .setNewtonRaphsonParameters(newtonRaphsonParameters)
+                .setNewtonKrylovParameters(newtonKrylovParameters)
                 .setOuterLoops(outerLoops)
                 .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations())
                 .setMatrixFactory(matrixFactory)
                 .setVoltageInitializer(voltageInitializer)
                 .setAsymmetrical(parametersExt.isAsymmetrical())
-                .setSlackDistributionFailureBehavior(parametersExt.getSlackDistributionFailureBehavior());
+                .setSlackDistributionFailureBehavior(parametersExt.getSlackDistributionFailureBehavior())
+                .setSolverFactory(solverFactory);
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1582,7 +1640,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getLinePerUnitMode() == extension2.getLinePerUnitMode() &&
                 extension1.isUseLoadModel() == extension2.isUseLoadModel() &&
                 extension1.getDcApproximationType() == extension2.getDcApproximationType() &&
-                extension1.isSimulateAutomationSystems() == extension2.isSimulateAutomationSystems();
+                extension1.isSimulateAutomationSystems() == extension2.isSimulateAutomationSystems() &&
+                extension1.getMaxNewtonKrylovIterations() == extension2.getMaxNewtonKrylovIterations() &&
+                extension1.isNewtonKrylovLineSearch() == extension2.isNewtonKrylovLineSearch();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1655,7 +1715,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxVoltageChangeStateVectorScalingMaxDphi(extension.getMaxVoltageChangeStateVectorScalingMaxDphi())
                     .setLinePerUnitMode(extension.getLinePerUnitMode())
                     .setUseLoadModel(extension.isUseLoadModel())
-                    .setDcApproximationType(extension.getDcApproximationType());
+                    .setDcApproximationType(extension.getDcApproximationType())
+                    .setMaxNewtonKrylovIterations(extension.maxNewtonKrylovIterations)
+                    .setNewtonKrylovLineSearch(extension.isNewtonKrylovLineSearch());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

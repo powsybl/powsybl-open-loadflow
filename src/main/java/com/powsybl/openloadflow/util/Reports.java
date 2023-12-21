@@ -268,4 +268,16 @@ public final class Reports {
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());
     }
+
+    public static void reportNewtonRaphsonBusesOutOfNormalVoltageRange(Reporter reporter, Map<String, Double> busesOutOfNormalVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
+        reporter.report(Report.builder()
+                .withKey("newtonRaphsonBusesOutOfNormalVoltageRange")
+                .withDefaultMessage("${busCountOutOfNormalVoltageRange} buses have a voltage magnitude out of range [${minRealisticVoltage}, ${maxRealisticVoltage}]: ${busesOutOfNormalVoltageRange}")
+                .withValue("busCountOutOfNormalVoltageRange", busesOutOfNormalVoltageRange.size())
+                .withValue("minRealisticVoltage", minRealisticVoltage)
+                .withValue("maxRealisticVoltage", maxRealisticVoltage)
+                .withValue("busesOutOfNormalVoltageRange", busesOutOfNormalVoltageRange.toString())
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .build());
+    }
 }
