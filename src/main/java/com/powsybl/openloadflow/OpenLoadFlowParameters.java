@@ -447,14 +447,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean newtonKrylovLineSearch = NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE;
 
-    public double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
+    public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
             throw new IllegalArgumentException("Invalid value for parameter " + parameterName + ": " + parameterValue);
         }
         return parameterValue;
     }
 
-    public int checkParameterValue(int parameterValue, boolean condition, String parameterName) {
+    public static int checkParameterValue(int parameterValue, boolean condition, String parameterName) {
         if (!condition) {
             throw new IllegalArgumentException("Invalid value for parameter " + parameterName + ": " + parameterValue);
         }

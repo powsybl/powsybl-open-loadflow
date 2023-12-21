@@ -127,11 +127,11 @@ class OpenLoadFlowParametersTest {
         assertEquals("No enum constant com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType.Invalid", exception.getMessage());
 
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(new LoadFlowParameters());
-        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxAngleMismatch(-1));
-        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxVoltageMismatch(-1));
-        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxRatioMismatch(-1));
-        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxActivePowerMismatch(-1));
-        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxReactivePowerMismatch(-1));
+        assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxAngleMismatch(-1));
+        assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxVoltageMismatch(-1));
+        assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxRatioMismatch(-1));
+        assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxActivePowerMismatch(-1));
+        assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxReactivePowerMismatch(-1));
     }
 
     @Test
