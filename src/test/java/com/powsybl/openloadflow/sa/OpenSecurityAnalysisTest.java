@@ -2866,5 +2866,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.0, b2PostContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
         assertEquals(1, b2PostContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
         assertEquals(1, b2PostContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V);
+        assertEquals(0.795, b2PostContingencyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V);
     }
 }

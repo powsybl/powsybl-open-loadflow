@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
@@ -239,5 +240,20 @@ class LfNetworkTest extends AbstractSerDeTest {
         assertTrue(b1.getGeneratorVoltageControl().orElseThrow().isDisabled());
         assertTrue(b2.getGeneratorVoltageControl().orElseThrow().isDisabled());
         assertTrue(b3.getGeneratorVoltageControl().orElseThrow().isDisabled());
+    }
+
+    @Test
+    void testElements() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        assertEquals("b1_vl_0", mainNetwork.getElement(ElementType.BUS, 0).getId());
+        assertEquals("hvdc34", mainNetwork.getElement(ElementType.HVDC, 0).getId());
+        assertEquals("hvdc34", mainNetwork.getHvdc(0).getId());
     }
 }
