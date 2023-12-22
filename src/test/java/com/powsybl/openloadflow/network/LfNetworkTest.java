@@ -275,6 +275,8 @@ class LfNetworkTest extends AbstractSerDeTest {
         testEvaluableGetterAndSetter(branch, LfBranch::getOpenP2, LfBranch::setOpenP2);
         testEvaluableGetterAndSetter(branch, LfBranch::getClosedP2, LfBranch::setClosedP2);
         testEvaluableGetterAndSetter(branch, LfBranch::getI1, LfBranch::setI1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getOpenI1, LfBranch::setOpenI1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getClosedI1, LfBranch::setClosedI1);
         testEvaluableGetterAndSetter(branch, LfBranch::getQ1, LfBranch::setQ1);
         testEvaluableGetterAndSetter(branch, LfBranch::getOpenQ1, LfBranch::setOpenQ1);
         testEvaluableGetterAndSetter(branch, LfBranch::getClosedQ1, LfBranch::setClosedQ1);
@@ -282,6 +284,8 @@ class LfNetworkTest extends AbstractSerDeTest {
         testEvaluableGetterAndSetter(branch, LfBranch::getOpenQ2, LfBranch::setOpenQ2);
         testEvaluableGetterAndSetter(branch, LfBranch::getClosedQ2, LfBranch::setClosedQ2);
         testEvaluableGetterAndSetter(branch, LfBranch::getI2, LfBranch::setI2);
+        testEvaluableGetterAndSetter(branch, LfBranch::getOpenI2, LfBranch::setOpenI2);
+        testEvaluableGetterAndSetter(branch, LfBranch::getClosedI2, LfBranch::setClosedI2);
         testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalClosedP1, LfBranch::addAdditionalClosedP1);
         testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalOpenP1, LfBranch::addAdditionalOpenP1);
         testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalClosedQ1, LfBranch::addAdditionalClosedQ1);
