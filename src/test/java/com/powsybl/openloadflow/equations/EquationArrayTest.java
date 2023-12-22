@@ -69,7 +69,7 @@ class EquationArrayTest {
         p.addTermArray(p1Array);
         EquationTermArray<AcVariableType, AcEquationType> p2Array = new EquationTermArray<>(
                 ElementType.BRANCH,
-                (branchNum, values) -> ClosedBranchSide2ActiveFlowEquationTerm.eval(branchVector, branchNum, values),
+                (branchNums, values) -> ClosedBranchSide2ActiveFlowEquationTerm.eval(branchVector, branchNums, values),
                 branchNum -> new ClosedBranchAcVariables(branchNum,
                                                          branchVector.bus1Num[branchNum],
                                                          branchVector.bus2Num[branchNum],

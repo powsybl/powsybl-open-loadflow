@@ -19,6 +19,13 @@ import java.util.Objects;
  */
 public class ClosedBranchAcVariables {
 
+    public static final int DV1_INDEX = 0;
+    public static final int DV2_INDEX = 1;
+    public static final int DPH1_INDEX = 2;
+    public static final int DPH2_INDEX = 3;
+    public static final int DA1_INDEX = 4;
+    public static final int DR1_INDEX = 5;
+
     private final Variable<AcVariableType> v1Var;
 
     private final Variable<AcVariableType> v2Var;
@@ -99,5 +106,23 @@ public class ClosedBranchAcVariables {
             case NEGATIVE -> AcVariableType.BUS_PHI_NEGATIVE;
             case ZERO -> AcVariableType.BUS_PHI_ZERO;
         };
+    }
+
+    public int getDerIndex(Variable<AcVariableType> variable) {
+        if (variable.equals(v1Var)) {
+            return DV1_INDEX;
+        } else if (variable.equals(v2Var)) {
+            return DV2_INDEX;
+        } else if (variable.equals(ph1Var)) {
+            return DPH1_INDEX;
+        } else if (variable.equals(ph2Var)) {
+            return DPH2_INDEX;
+        } else if (variable.equals(a1Var)) {
+            return DA1_INDEX;
+        } else if (variable.equals(r1Var)) {
+            return DR1_INDEX;
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
+        }
     }
 }
