@@ -39,9 +39,16 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     final VariableCreator<V> variableCreator;
 
+    // for each term, equation element number
     final TIntArrayList equationElementNums = new TIntArrayList();
+
+    // for each term, term element number
     final TIntArrayList equationTermElementNums = new TIntArrayList();
+
+    // for each term, term active status
     final TBooleanArrayList equationTermElementActive = new TBooleanArrayList(1);
+
+    // for each term, list of dependent variables
     final List<List<Variable<V>>> equationTermsVariables = new ArrayList<>();
 
     public EquationTermArray(ElementType elementType, Evaluator evaluator, VariableCreator<V> variableCreator) {
