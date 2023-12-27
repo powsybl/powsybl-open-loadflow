@@ -6,13 +6,11 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.ac.equations.vector.AcBranchVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
-import gnu.trove.list.array.TIntArrayList;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -80,13 +78,6 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
 
     public static double dp2dr1(double y, double v1, double v2, double sinTheta) {
         return -y * R2 * v1 * v2 * sinTheta;
-    }
-
-    public static void eval(AcBranchVector branchVector, TIntArrayList branchNums, double[] values) {
-        for (int i = 0; i < branchNums.size(); i++) {
-            int branchNum = branchNums.getQuick(i);
-            values[branchNum] = branchVector.p2[branchNum];
-        }
     }
 
     @Override

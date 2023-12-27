@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquation
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
+import gnu.trove.list.array.TIntArrayList;
 
 import java.util.Objects;
 
@@ -30,6 +31,26 @@ public class ClosedBranchVectorSide2ActiveFlowEquationTerm extends AbstractClose
         double ksi = branchVector.ksi[num];
         double g2 = branchVector.g2[num];
         return ClosedBranchSide2ActiveFlowEquationTerm.calculateSensi(y, ksi, g2, v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
+    }
+
+    public static void eval(AcBranchVector branchVector, TIntArrayList branchNums, double[] values) {
+        for (int i = 0; i < branchNums.size(); i++) {
+            int branchNum = branchNums.getQuick(i);
+            values[branchNum] = branchVector.p2[branchNum];
+        }
+    }
+
+    public static void der(AcBranchVector branchVector, TIntArrayList branchNums, double[] values) {
+        for (int i = 0; i < branchNums.size(); i++) {
+            int branchNum = branchNums.getQuick(i);
+            values[branchNum] = branchVector.dp2dv1[branchNum];
+            values[branchNum + 1] = branchVector.dp2dv1[branchNum];
+            values[branchNum + 2] = branchVector.dp2dv2[branchNum];
+            values[branchNum + 3] = branchVector.dp2dph1[branchNum];
+            values[branchNum + 4] = branchVector.dp2dph2[branchNum];
+            values[branchNum + 5] = branchVector.dp2da1[branchNum];
+            values[branchNum + 6] = branchVector.dp2dr1[branchNum];
+        }
     }
 
     @Override

@@ -25,6 +25,7 @@ public class ClosedBranchAcVariables {
     public static final int DPH2_INDEX = 3;
     public static final int DA1_INDEX = 4;
     public static final int DR1_INDEX = 5;
+    public static final int DER_COUNT = 6;
 
     private final Variable<AcVariableType> v1Var;
 

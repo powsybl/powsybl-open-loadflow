@@ -122,11 +122,18 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     public interface DerHandler<V extends Enum<V> & Quantity> {
 
-        int onDer(int column, Variable<V> variable, double value, int matrixElementIndex);
+        int onDer(int column, int row, double value, int matrixElementIndex);
     }
 
     public void der(DerHandler<V> handler) {
         // term arrays
-        // TODO
+        for (EquationTermArray<V, E> termArray : termArrays) {
+            for (int i = 0; i < termArray.equationElementNums.size(); i++) {
+                int elementNum = termArray.equationElementNums.get(i);
+                if (elementActive[elementNum] && termArray.equationTermElementActive.get(i)) {
+
+                }
+            }
+        }
     }
 }

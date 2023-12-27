@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Fortescue;
+import gnu.trove.list.array.TIntArrayList;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -58,7 +59,22 @@ class EquationArrayTest {
         EquationArray<AcVariableType, AcEquationType> p = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
         EquationTermArray<AcVariableType, AcEquationType> p1Array = new EquationTermArray<>(
                 ElementType.BRANCH,
-                (branchNums, values) -> ClosedBranchSide1ActiveFlowEquationTerm.eval(branchVector, branchNums, values),
+                new EquationTermArray.Evaluator() {
+                    @Override
+                    public void eval(TIntArrayList branchNums, double[] values) {
+                        ClosedBranchVectorSide1ActiveFlowEquationTerm.eval(branchVector, branchNums, values);
+                    }
+
+                    @Override
+                    public int getDerCount() {
+                        return ClosedBranchAcVariables.DER_COUNT;
+                    }
+
+                    @Override
+                    public void der(TIntArrayList branchNums, double[] values) {
+                        ClosedBranchVectorSide1ActiveFlowEquationTerm.der(branchVector, branchNums, values);
+                    }
+                },
                 branchNum -> new ClosedBranchAcVariables(branchNum,
                                                          branchVector.bus1Num[branchNum],
                                                          branchVector.bus2Num[branchNum],
@@ -69,7 +85,22 @@ class EquationArrayTest {
         p.addTermArray(p1Array);
         EquationTermArray<AcVariableType, AcEquationType> p2Array = new EquationTermArray<>(
                 ElementType.BRANCH,
-                (branchNums, values) -> ClosedBranchSide2ActiveFlowEquationTerm.eval(branchVector, branchNums, values),
+                new EquationTermArray.Evaluator() {
+                    @Override
+                    public void eval(TIntArrayList branchNums, double[] values) {
+                        ClosedBranchVectorSide2ActiveFlowEquationTerm.eval(branchVector, branchNums, values);
+                    }
+
+                    @Override
+                    public int getDerCount() {
+                        return ClosedBranchAcVariables.DER_COUNT;
+                    }
+
+                    @Override
+                    public void der(TIntArrayList branchNums, double[] values) {
+                        ClosedBranchVectorSide2ActiveFlowEquationTerm.der(branchVector, branchNums, values);
+                    }
+                },
                 branchNum -> new ClosedBranchAcVariables(branchNum,
                                                          branchVector.bus1Num[branchNum],
                                                          branchVector.bus2Num[branchNum],
@@ -102,8 +133,7 @@ class EquationArrayTest {
             });
         }
         for (var eq : equationSystem.getEquationArrays()) {
-            eq.der((column, variable, value, matrixElementIndex) -> {
-                int row = variable.getRow();
+            eq.der((column, row, value, matrixElementIndex) -> {
                 m.set(row, column, value);
                 return matrixElementIndex;
             });
