@@ -583,7 +583,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxOuterLoopIterations(int maxOuterLoopIterations) {
         this.maxOuterLoopIterations = checkParameterValue(maxOuterLoopIterations,
-                maxNewtonRaphsonIterations >= 1,
+                maxOuterLoopIterations >= 1,
                 MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME);
         return this;
     }

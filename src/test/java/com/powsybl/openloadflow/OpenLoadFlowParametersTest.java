@@ -347,4 +347,29 @@ class OpenLoadFlowParametersTest {
         assertEquals("Ordered explicit list of outer loop names, supported outer loops are IncrementalPhaseControl, DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl, AutomationSystem",
                      OpenLoadFlowParameters.SPECIFIC_PARAMETERS.stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.OUTER_LOOP_NAMES_PARAM_NAME)).findFirst().orElseThrow().getDescription());
     }
+
+    @Test
+    void testOlfParametersChecker() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
+
+        // for integer parameters
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxNewtonRaphsonIterations(0));
+        assertEquals("Invalid value for parameter maxNewtonRaphsonIterations: 0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxOuterLoopIterations(0));
+        assertEquals("Invalid value for parameter maxOuterLoopIterations: 0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(0));
+        assertEquals("Invalid value for parameter incrementalTransformerVoltageControlOuterLoopMaxTapShift: 0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setReactiveLimitsMaxPqPvSwitch(0));
+        assertEquals("Invalid value for parameter reactiveLimitsMaxPqPvSwitch: 0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setLineSearchStateVectorScalingMaxIteration(0));
+        assertEquals("Invalid value for parameter lineSearchStateVectorScalingMaxIteration: 0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxNewtonKrylovIterations(0));
+        assertEquals("Invalid value for parameter maxNewtonKrylovIterations: 0", e.getMessage());
+    }
 }
