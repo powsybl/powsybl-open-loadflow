@@ -64,6 +64,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return controlledBusesOutOfDeadband.stream()
                 .flatMap(bus -> bus.getTransformerVoltageControl().orElseThrow().getMergedControllerElements().stream())
                 .filter(Predicate.not(LfBranch::isDisabled))
+                .filter(LfBranch::isConnectedAtBothSides)
                 .collect(Collectors.toList());
     }
 

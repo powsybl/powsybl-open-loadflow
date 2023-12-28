@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
+
 import java.util.List;
 
 /**
@@ -28,4 +30,6 @@ public interface LfElement extends PropertyBag {
     void setDisabled(boolean disabled);
 
     LfNetwork getNetwork();
+
+    void removeEvaluable(Evaluable evaluable);
 }
