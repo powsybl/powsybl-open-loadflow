@@ -111,12 +111,14 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         for (EquationTermArray<V, E> termArray : termArrays) {
             double[] termValues = termArray.eval();
             for (int elementNum = 0; elementNum < elementCount; elementNum++) {
-                var termNums = termArray.getTermNums(elementNum);
-                for (int i = 0; i < termNums.size(); i++) {
-                    int termNum = termNums.get(i);
-                    int termElementNum = termArray.termElementNums.get(termNum);
-                    if (elementActive[elementNum] && termArray.termActive.get(termNum)) {
-                        values[getElementNumToColumn(elementNum)] += termValues[termElementNum];
+                if (elementActive[elementNum]) {
+                    var termNums = termArray.getTermNums(elementNum);
+                    for (int i = 0; i < termNums.size(); i++) {
+                        int termNum = termNums.get(i);
+                        int termElementNum = termArray.getTermElementNum(termNum);
+                        if (termArray.isTermActive(termNum)) {
+                            values[getElementNumToColumn(elementNum)] += termValues[termElementNum];
+                        }
                     }
                 }
             }
@@ -137,12 +139,12 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             variablesByElementNum.add(null);
         }
         for (EquationTermArray<V, E> termArray : termArrays) {
-            for (int elementNum = 0; elementNum < termArray.termNumsByEquationElementNum.size(); elementNum++) {
-                var termNums = termArray.termNumsByEquationElementNum.get(elementNum);
-                for (int i = 0; i < termNums.size(); i++) {
-                    int termNum = termNums.get(i);
-                    if (elementActive[elementNum]) {
-                        boolean termActive = termArray.termActive.get(termNum);
+            for (int elementNum = 0; elementNum < elementCount; elementNum++) {
+                if (elementActive[elementNum]) {
+                    var termNums = termArray.getTermNums(elementNum);
+                    for (int i = 0; i < termNums.size(); i++) {
+                        int termNum = termNums.get(i);
+                        boolean termActive = termArray.isTermActive(termNum);
                         if (termActive) {
                             var termVariables = termArray.termVariables.get(termNum);
                             Set<Variable<V>> variables = variablesByElementNum.get(elementNum);
@@ -167,9 +169,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         int matrixElementIndex = 0;
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
             if (elementActive[elementNum]) {
+                int column = getElementNumToColumn(elementNum);
                 Set<Variable<V>> variables = variablesByElementNum.get(elementNum);
                 for (Variable<V> variable : variables) {
-                    int column = getElementNumToColumn(elementNum);
                     int row = variable.getRow();
                     double value = 0;
                     for (int arrayIndex = 0; arrayIndex < termArrays.size(); arrayIndex++) {
@@ -178,7 +180,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                         var termNums = termArray.getTermNums(elementNum);
                         for (int i = 0; i < termNums.size(); i++) {
                             int termNum = termNums.get(i);
-                            boolean termActive = termArray.termActive.get(termNum);
+                            boolean termActive = termArray.isTermActive(termNum);
                             if (termActive) {
                                 value += 0;
                             }

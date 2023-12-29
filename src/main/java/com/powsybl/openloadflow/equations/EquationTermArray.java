@@ -43,13 +43,13 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     private final VariableCreator<V> variableCreator;
 
     // for each equation element number, term numbers
-    final List<TIntArrayList> termNumsByEquationElementNum = new ArrayList<>();
+    private final List<TIntArrayList> termNumsByEquationElementNum = new ArrayList<>();
 
     // for each term number, corresponding element number
-    final TIntArrayList termElementNums = new TIntArrayList();
+    private final TIntArrayList termElementNums = new TIntArrayList();
 
     // for each term number, activity status
-    final TBooleanArrayList termActive = new TBooleanArrayList(1);
+    private final TBooleanArrayList termActive = new TBooleanArrayList(1);
 
     // for each term number, list of dependent variables
     final List<List<Variable<V>>> termVariables = new ArrayList<>();
@@ -68,15 +68,19 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         this.equationSystem = equationSystem;
     }
 
-    private void ensureTermsByEquationElementNumIsLargeEnough(int equationElementNum) {
+    public TIntArrayList getTermNums(int equationElementNum) {
         while (termNumsByEquationElementNum.size() <= equationElementNum) {
             termNumsByEquationElementNum.add(new TIntArrayList());
         }
+        return termNumsByEquationElementNum.get(equationElementNum);
     }
 
-    public TIntArrayList getTermNums(int equationElementNum) {
-        ensureTermsByEquationElementNumIsLargeEnough(equationElementNum);
-        return termNumsByEquationElementNum.get(equationElementNum);
+    public boolean isTermActive(int termNum) {
+        return termActive.get(termNum);
+    }
+
+    public int getTermElementNum(int termNum) {
+        return termElementNums.get(termNum);
     }
 
     public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
