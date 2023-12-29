@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchAcVariables;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
@@ -34,24 +35,28 @@ public class ClosedBranchVectorSide1ActiveFlowEquationTerm extends AbstractClose
                 dph1, dph2, dv1, dv2, da1, dr1);
     }
 
-    public static void eval(AcBranchVector branchVector, TIntArrayList branchNums, double[] values) {
+    public static double[] eval(AcBranchVector branchVector, TIntArrayList branchNums) {
+        double[] values = new double[branchNums.size()];
         for (int i = 0; i < branchNums.size(); i++) {
             int branchNum = branchNums.getQuick(i);
             values[branchNum] = branchVector.p1[branchNum];
         }
+        return values;
     }
 
-    public static void der(AcBranchVector branchVector, TIntArrayList branchNums, double[] values) {
+    public static double[] der(AcBranchVector branchVector, TIntArrayList branchNums) {
+        double[] values = new double[branchNums.size() * ClosedBranchAcVariables.DER_COUNT];
         for (int i = 0; i < branchNums.size(); i++) {
             int branchNum = branchNums.getQuick(i);
-            values[branchNum] = branchVector.dp1dv1[branchNum];
-            values[branchNum + 1] = branchVector.dp1dv1[branchNum];
-            values[branchNum + 2] = branchVector.dp1dv2[branchNum];
-            values[branchNum + 3] = branchVector.dp1dph1[branchNum];
-            values[branchNum + 4] = branchVector.dp1dph2[branchNum];
-            values[branchNum + 5] = branchVector.dp1da1[branchNum];
-            values[branchNum + 6] = branchVector.dp1dr1[branchNum];
+            int index = branchNum * ClosedBranchAcVariables.DER_COUNT;
+            values[index] = branchVector.dp1dv1[branchNum];
+            values[index + 1] = branchVector.dp1dv2[branchNum];
+            values[index + 2] = branchVector.dp1dph1[branchNum];
+            values[index + 3] = branchVector.dp1dph2[branchNum];
+            values[index + 4] = branchVector.dp1da1[branchNum];
+            values[index + 5] = branchVector.dp1dr1[branchNum];
         }
+        return values;
     }
 
     @Override

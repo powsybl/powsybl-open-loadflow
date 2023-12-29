@@ -61,8 +61,8 @@ class EquationArrayTest {
                 ElementType.BRANCH,
                 new EquationTermArray.Evaluator() {
                     @Override
-                    public void eval(TIntArrayList branchNums, double[] values) {
-                        ClosedBranchVectorSide1ActiveFlowEquationTerm.eval(branchVector, branchNums, values);
+                    public double[] eval(TIntArrayList branchNums) {
+                        return ClosedBranchVectorSide1ActiveFlowEquationTerm.eval(branchVector, branchNums);
                     }
 
                     @Override
@@ -71,8 +71,8 @@ class EquationArrayTest {
                     }
 
                     @Override
-                    public void der(TIntArrayList branchNums, double[] values) {
-                        ClosedBranchVectorSide1ActiveFlowEquationTerm.der(branchVector, branchNums, values);
+                    public double[] der(TIntArrayList branchNums) {
+                        return ClosedBranchVectorSide1ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
                 },
                 branchNum -> new ClosedBranchAcVariables(branchNum,
@@ -87,8 +87,8 @@ class EquationArrayTest {
                 ElementType.BRANCH,
                 new EquationTermArray.Evaluator() {
                     @Override
-                    public void eval(TIntArrayList branchNums, double[] values) {
-                        ClosedBranchVectorSide2ActiveFlowEquationTerm.eval(branchVector, branchNums, values);
+                    public double[] eval(TIntArrayList branchNums) {
+                        return ClosedBranchVectorSide2ActiveFlowEquationTerm.eval(branchVector, branchNums);
                     }
 
                     @Override
@@ -97,8 +97,8 @@ class EquationArrayTest {
                     }
 
                     @Override
-                    public void der(TIntArrayList branchNums, double[] values) {
-                        ClosedBranchVectorSide2ActiveFlowEquationTerm.der(branchVector, branchNums, values);
+                    public double[] der(TIntArrayList branchNums) {
+                        return ClosedBranchVectorSide2ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
                 },
                 branchNum -> new ClosedBranchAcVariables(branchNum,
@@ -121,8 +121,8 @@ class EquationArrayTest {
     }
 
     private static DenseMatrix calculateDer(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        int rowCount = equationSystem.getIndex().getSortedVariablesToFind().size();
-        int columnCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int rowCount = equationSystem.getIndex().getRowCount();
+        int columnCount = equationSystem.getIndex().getColumnCount();
         DenseMatrix m = new DenseMatrix(rowCount, columnCount);
         for (var eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int column = eq.getColumn();
@@ -161,6 +161,9 @@ class EquationArrayTest {
         assertArrayEquals(values, values2);
         DenseMatrix derValues = calculateDer(equationSystem);
         DenseMatrix derValues2 = calculateDer(equationSystem2);
+        derValues.print(System.out);
+        System.out.println("------");
+        derValues2.print(System.out);
  //       assertEquals(derValues, derValues2);
     }
 }

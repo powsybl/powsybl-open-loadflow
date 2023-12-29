@@ -25,8 +25,12 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private final Set<Equation<V, E>> equationsToSolve = new HashSet<>();
 
+    private int columnCount = 0;
+
     // variable reference counting in equation terms
     private final Map<Variable<V>, MutableInt> variablesToFindRefCount = new HashMap<>();
+
+    private int rowCount = 0;
 
     private List<Equation<V, E>> sortedEquationsToSolve = Collections.emptyList();
 
@@ -66,7 +70,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     private void update() {
         if (!equationsIndexValid) {
             sortedEquationsToSolve = equationsToSolve.stream().sorted().collect(Collectors.toList());
-            int columnCount = 0;
+            columnCount = 0;
             for (Equation<V, E> equation : sortedEquationsToSolve) {
                 equation.setColumn(columnCount++);
             }
@@ -83,7 +87,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
         if (!variablesIndexValid) {
             sortedVariablesToFind = variablesToFindRefCount.keySet().stream().sorted().collect(Collectors.toList());
-            int rowCount = 0;
+            rowCount = 0;
             for (Variable<V> variable : sortedVariablesToFind) {
                 variable.setRow(rowCount++);
             }
@@ -216,5 +220,15 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     public List<Variable<V>> getSortedVariablesToFind() {
         update();
         return sortedVariablesToFind;
+    }
+
+    public int getColumnCount() {
+        update();
+        return columnCount;
+    }
+
+    public int getRowCount() {
+        update();
+        return rowCount;
     }
 }

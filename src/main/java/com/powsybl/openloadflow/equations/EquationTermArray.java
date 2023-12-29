@@ -9,8 +9,6 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.commons.util.trove.TBooleanArrayList;
 import com.powsybl.openloadflow.network.ElementType;
 import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.TIntIntMap;
-import gnu.trove.map.hash.TIntIntHashMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,11 +21,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public interface Evaluator {
 
-        void eval(TIntArrayList termElementNums, double[] values);
+        double[] eval(TIntArrayList termElementNums);
 
         int getDerCount();
 
-        void der(TIntArrayList termElementNums, double[] values);
+        double[] der(TIntArrayList termElementNums);
     }
 
     @FunctionalInterface
@@ -50,17 +48,13 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each term, term element number
     final TIntArrayList equationTermElementNums = new TIntArrayList();
 
-    // for each variable, term count
-    final TIntIntMap equationTermCountByVariableNum = new TIntIntHashMap();
-
     // for each term, term active status
     final TBooleanArrayList equationTermElementActive = new TBooleanArrayList(1);
 
     // for each term, list of dependent variables
-    final List<List<Variable<V>>> equationTermsVariables = new ArrayList<>();
+    final List<List<Variable<V>>> equationTermVariables = new ArrayList<>();
 
-    // number of equation term derivatives
-    int equationTermDerCount = 0;
+    double[] termDerValues;
 
     public EquationTermArray(ElementType elementType, Evaluator evaluator, VariableCreator<V> variableCreator) {
         this.elementType = Objects.requireNonNull(elementType);
@@ -81,12 +75,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         equationTermElementNums.add(equationTermElementNum);
         equationTermElementActive.add(true);
         List<Variable<V>> variables = variableCreator.create(equationTermElementNum);
-        equationTermsVariables.add(variables);
-        for (Variable<V> variable : variables) {
-            int variableNum = variable.getNum();
-            equationTermCountByVariableNum.adjustValue(variableNum, 1);
-        }
-        equationTermDerCount += variables.size();
+        equationTermVariables.add(variables);
         equationSystem.notifyEquationTermArrayChange(this, equationElementNum, equationTermElementNum, variables);
         return this;
     }
