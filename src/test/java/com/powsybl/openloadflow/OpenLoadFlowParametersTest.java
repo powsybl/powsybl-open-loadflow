@@ -371,5 +371,63 @@ class OpenLoadFlowParametersTest {
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxNewtonKrylovIterations(0));
         assertEquals("Invalid value for parameter maxNewtonKrylovIterations: 0", e.getMessage());
+
+        // for double parameters
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setSlackBusPMaxMismatch(-1.0));
+        assertEquals("Invalid value for parameter slackBusPMaxMismatch: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setNewtonRaphsonConvEpsPerEq(0));
+        assertEquals("Invalid value for parameter newtonRaphsonConvEpsPerEq: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxActivePowerMismatch(0));
+        assertEquals("Invalid value for parameter maxActivePowerMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxReactivePowerMismatch(0));
+        assertEquals("Invalid value for parameter maxReactivePowerMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxVoltageMismatch(0));
+        assertEquals("Invalid value for parameter maxVoltageMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxAngleMismatch(0));
+        assertEquals("Invalid value for parameter maxAngleMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxRatioMismatch(0));
+        assertEquals("Invalid value for parameter maxRatioMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxSusceptanceMismatch(0));
+        assertEquals("Invalid value for parameter maxSusceptanceMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMinPlausibleTargetVoltage(-1.0));
+        assertEquals("Invalid value for parameter minPlausibleTargetVoltage: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxPlausibleTargetVoltage(-1.0));
+        assertEquals("Invalid value for parameter maxPlausibleTargetVoltage: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMinNominalVoltageTargetVoltageCheck(-1.0));
+        assertEquals("Invalid value for parameter minNominalVoltageTargetVoltageCheck: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMinRealisticVoltage(-1.0));
+        assertEquals("Invalid value for parameter minRealisticVoltage: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxRealisticVoltage(-1.0));
+        assertEquals("Invalid value for parameter maxRealisticVoltage: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setLowImpedanceThreshold(0.0));
+        assertEquals("Invalid value for parameter lowImpedanceThreshold: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(0.0));
+        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(100.0));
+        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 100.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setLineSearchStateVectorScalingStepFold(1.0));
+        assertEquals("Invalid value for parameter lineSearchStateVectorScalingStepFold: 1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxVoltageChangeStateVectorScalingMaxDv(0.0));
+        assertEquals("Invalid value for parameter maxVoltageChangeStateVectorScalingMaxDv: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxVoltageChangeStateVectorScalingMaxDphi(0.0));
+        assertEquals("Invalid value for parameter maxVoltageChangeStateVectorScalingMaxDphi: 0.0", e.getMessage());
     }
 }
