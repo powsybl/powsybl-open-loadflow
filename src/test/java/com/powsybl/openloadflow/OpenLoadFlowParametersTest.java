@@ -349,7 +349,7 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
-    void testOlfParametersChecker() {
+    void testOlfIntegerParametersChecker() {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
 
@@ -371,9 +371,15 @@ class OpenLoadFlowParametersTest {
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxNewtonKrylovIterations(0));
         assertEquals("Invalid value for parameter maxNewtonKrylovIterations: 0", e.getMessage());
+    }
+
+    @Test
+    void testOlfDoubleParametersChecker() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
 
         // for double parameters
-        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setSlackBusPMaxMismatch(-1.0));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setSlackBusPMaxMismatch(-1.0));
         assertEquals("Invalid value for parameter slackBusPMaxMismatch: -1.0", e.getMessage());
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setNewtonRaphsonConvEpsPerEq(0));
