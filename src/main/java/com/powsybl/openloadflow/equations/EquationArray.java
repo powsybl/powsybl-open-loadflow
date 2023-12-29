@@ -109,10 +109,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     public void eval(double[] values) {
         Arrays.fill(values, firstColumn, firstColumn + length, 0);
         for (EquationTermArray<V, E> termArray : termArrays) {
-            double[] termValues = termArray.evaluator.eval(termArray.equationTermElementNums);
+            double[] termValues = termArray.evaluator.eval(termArray.termElementNums);
             for (int termNum = 0; termNum < termArray.equationElementNums.size(); termNum++) {
                 int elementNum = termArray.equationElementNums.get(termNum);
-                if (elementActive[elementNum] && termArray.equationTermElementActive.get(termNum)) {
+                if (elementActive[elementNum] && termArray.termElementActive.get(termNum)) {
                     values[getElementNumToColumn(elementNum)] += termValues[termNum];
                 }
             }
@@ -135,9 +135,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             for (int termNum = 0; termNum < termArray.equationElementNums.size(); termNum++) {
                 int elementNum = termArray.equationElementNums.get(termNum);
                 if (elementActive[elementNum]) {
-                    boolean termElementActive = termArray.equationTermElementActive.get(termNum);
+                    boolean termElementActive = termArray.termElementActive.get(termNum);
                     if (termElementActive) {
-                        var termVariables = termArray.equationTermVariables.get(termNum);
+                        var termVariables = termArray.termVariables.get(termNum);
                         Set<Variable<V>> variables = variablesByEquationElementNum.get(elementNum);
                         if (variables == null) {
                             variables = new TreeSet<>();
@@ -152,7 +152,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         // precompute derivatives by term array
         for (EquationTermArray<V, E> termArray : termArrays) {
             if (termArray.termDerValues == null) { // TODO how to invalidate
-                termArray.termDerValues = termArray.evaluator.der(termArray.equationTermElementNums);
+                termArray.termDerValues = termArray.evaluator.der(termArray.termElementNums);
             }
         }
 

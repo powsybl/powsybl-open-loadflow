@@ -46,13 +46,13 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     final TIntArrayList equationElementNums = new TIntArrayList();
 
     // for each term, term element number
-    final TIntArrayList equationTermElementNums = new TIntArrayList();
+    final TIntArrayList termElementNums = new TIntArrayList();
 
     // for each term, term active status
-    final TBooleanArrayList equationTermElementActive = new TBooleanArrayList(1);
+    final TBooleanArrayList termElementActive = new TBooleanArrayList(1);
 
     // for each term, list of dependent variables
-    final List<List<Variable<V>>> equationTermVariables = new ArrayList<>();
+    final List<List<Variable<V>>> termVariables = new ArrayList<>();
 
     double[] termDerValues;
 
@@ -72,10 +72,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public EquationTermArray<V, E> addTerm(int equationElementNum, int equationTermElementNum) {
         equationElementNums.add(equationElementNum);
-        equationTermElementNums.add(equationTermElementNum);
-        equationTermElementActive.add(true);
+        termElementNums.add(equationTermElementNum);
+        termElementActive.add(true);
         List<Variable<V>> variables = variableCreator.create(equationTermElementNum);
-        equationTermVariables.add(variables);
+        termVariables.add(variables);
         equationSystem.notifyEquationTermArrayChange(this, equationElementNum, equationTermElementNum, variables);
         return this;
     }
