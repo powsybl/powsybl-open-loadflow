@@ -144,8 +144,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     var termNums = termArray.getTermNums(elementNum);
                     for (int i = 0; i < termNums.size(); i++) {
                         int termNum = termNums.get(i);
-                        boolean termActive = termArray.isTermActive(termNum);
-                        if (termActive) {
+                        if (termArray.isTermActive(termNum)) {
                             var termVariables = termArray.termVariables.get(termNum);
                             Set<Variable<V>> variables = variablesByElementNum.get(elementNum);
                             if (variables == null) {
@@ -180,8 +179,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                         var termNums = termArray.getTermNums(elementNum);
                         for (int i = 0; i < termNums.size(); i++) {
                             int termNum = termNums.get(i);
-                            boolean termActive = termArray.isTermActive(termNum);
-                            if (termActive) {
+                            if (termArray.isTermActive(termNum)) {
                                 value += 0;
                             }
                         }
