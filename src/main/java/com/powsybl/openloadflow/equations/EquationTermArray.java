@@ -45,10 +45,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each term, equation element number
     final TIntArrayList equationElementNums = new TIntArrayList();
 
-    // for each term, term element number
+    // for each term, corresponding element number
     final TIntArrayList termElementNums = new TIntArrayList();
 
-    // for each term, term active status
+    // for each term, activity status
     final TBooleanArrayList termElementActive = new TBooleanArrayList(1);
 
     // for each term, list of dependent variables
