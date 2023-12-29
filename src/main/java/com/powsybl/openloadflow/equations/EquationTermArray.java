@@ -23,8 +23,6 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         double[] eval(TIntArrayList termElementNums);
 
-        int getDerCount();
-
         double[] der(TIntArrayList termElementNums);
     }
 

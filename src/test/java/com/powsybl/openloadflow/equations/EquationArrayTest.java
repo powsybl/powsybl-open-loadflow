@@ -9,7 +9,10 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.ac.equations.*;
+import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchAcVariables;
 import com.powsybl.openloadflow.ac.equations.vector.AcBranchVector;
 import com.powsybl.openloadflow.ac.equations.vector.AcNetworkVector;
 import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchVectorSide1ActiveFlowEquationTerm;
@@ -66,11 +69,6 @@ class EquationArrayTest {
                     }
 
                     @Override
-                    public int getDerCount() {
-                        return ClosedBranchAcVariables.DER_COUNT;
-                    }
-
-                    @Override
                     public double[] der(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide1ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
@@ -89,11 +87,6 @@ class EquationArrayTest {
                     @Override
                     public double[] eval(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide2ActiveFlowEquationTerm.eval(branchVector, branchNums);
-                    }
-
-                    @Override
-                    public int getDerCount() {
-                        return ClosedBranchAcVariables.DER_COUNT;
                     }
 
                     @Override
