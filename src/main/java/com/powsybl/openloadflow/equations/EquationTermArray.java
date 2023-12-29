@@ -38,23 +38,21 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     private EquationSystem<V, E> equationSystem;
 
-    final Evaluator evaluator;
+    private final Evaluator evaluator;
 
-    final VariableCreator<V> variableCreator;
+    private final VariableCreator<V> variableCreator;
 
-    // for each term, equation element number
-    final TIntArrayList equationElementNums = new TIntArrayList();
+    // for each equation element number, term numbers
+    final List<TIntArrayList> termNumsByEquationElementNum = new ArrayList<>();
 
-    // for each term, corresponding element number
+    // for each term number, corresponding element number
     final TIntArrayList termElementNums = new TIntArrayList();
 
-    // for each term, activity status
-    final TBooleanArrayList termElementActive = new TBooleanArrayList(1);
+    // for each term number, activity status
+    final TBooleanArrayList termActive = new TBooleanArrayList(1);
 
-    // for each term, list of dependent variables
+    // for each term number, list of dependent variables
     final List<List<Variable<V>>> termVariables = new ArrayList<>();
-
-    double[] termDerValues;
 
     public EquationTermArray(ElementType elementType, Evaluator evaluator, VariableCreator<V> variableCreator) {
         this.elementType = Objects.requireNonNull(elementType);
@@ -70,13 +68,33 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         this.equationSystem = equationSystem;
     }
 
-    public EquationTermArray<V, E> addTerm(int equationElementNum, int equationTermElementNum) {
-        equationElementNums.add(equationElementNum);
-        termElementNums.add(equationTermElementNum);
-        termElementActive.add(true);
-        List<Variable<V>> variables = variableCreator.create(equationTermElementNum);
+    private void ensureTermsByEquationElementNumIsLargeEnough(int equationElementNum) {
+        while (termNumsByEquationElementNum.size() <= equationElementNum) {
+            termNumsByEquationElementNum.add(new TIntArrayList());
+        }
+    }
+
+    public TIntArrayList getTermNums(int equationElementNum) {
+        ensureTermsByEquationElementNumIsLargeEnough(equationElementNum);
+        return termNumsByEquationElementNum.get(equationElementNum);
+    }
+
+    public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
+        int termNum = termElementNums.size();
+        getTermNums(equationElementNum).add(termNum);
+        termElementNums.add(termElementNum);
+        termActive.add(true);
+        List<Variable<V>> variables = variableCreator.create(termElementNum);
         termVariables.add(variables);
-        equationSystem.notifyEquationTermArrayChange(this, equationElementNum, equationTermElementNum, variables);
+        equationSystem.notifyEquationTermArrayChange(this, equationElementNum, termElementNum, variables);
         return this;
+    }
+
+    public double[] eval() {
+        return evaluator.eval(termElementNums);
+    }
+
+    public double[] der() {
+        return evaluator.der(termElementNums);
     }
 }
