@@ -34,7 +34,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     private final ElementType elementType;
 
-    private EquationSystem<V, E> equationSystem;
+    private EquationArray<V, E> equationArray;
 
     private final Evaluator evaluator;
 
@@ -65,8 +65,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return elementType;
     }
 
-    void setEquationSystem(EquationSystem<V, E> equationSystem) {
-        this.equationSystem = equationSystem;
+    void setEquationArray(EquationArray<V, E> equationArray) {
+        this.equationArray = equationArray;
     }
 
     public TIntArrayList getTermNums(int equationElementNum) {
@@ -108,7 +108,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         for (var v : variables) {
             flattenTermVariableNums.add(v != null ? v.getNum() : -1);
         }
-        equationSystem.notifyEquationTermArrayChange(this, equationElementNum, termElementNum, nonNullVariables);
+        equationArray.invalidateTermsByVariableIndex();
+        equationArray.getEquationSystem().notifyEquationTermArrayChange(this, equationElementNum, termElementNum, nonNullVariables);
         return this;
     }
 

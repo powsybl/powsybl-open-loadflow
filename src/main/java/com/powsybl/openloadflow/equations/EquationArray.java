@@ -27,6 +27,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private int length;
 
+    private List<Set<Variable<V>>> variablesByElementNum;
+
     public EquationArray(E type, int elementCount, EquationSystem<V, E> equationSystem) {
         this.type = Objects.requireNonNull(type);
         this.elementCount = elementCount;
@@ -102,8 +104,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     public void addTermArray(EquationTermArray<V, E> termArray) {
         Objects.requireNonNull(termArray);
-        termArray.setEquationSystem(equationSystem);
+        termArray.setEquationArray(this);
         termArrays.add(termArray);
+        invalidateTermsByVariableIndex();
     }
 
     public void eval(double[] values) {
@@ -130,29 +133,38 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         int onDer(int column, int row, double value, int matrixElementIndex);
     }
 
-    public void der(DerHandler<V> handler) {
-        Objects.requireNonNull(handler);
-
-        // index terms by variables
-        List<Set<Variable<V>>> variablesByElementNum = new ArrayList<>(elementActive.length);
-        for (int elementNum = 0; elementNum < elementCount; elementNum++) {
-            variablesByElementNum.add(null);
-        }
-        for (EquationTermArray<V, E> termArray : termArrays) {
+    private void updateTermsByVariableIndex() {
+        if (variablesByElementNum == null) {
+            variablesByElementNum = new ArrayList<>(elementActive.length);
             for (int elementNum = 0; elementNum < elementCount; elementNum++) {
-                var termNums = termArray.getTermNums(elementNum);
-                for (int i = 0; i < termNums.size(); i++) {
-                    int termNum = termNums.get(i);
-                    var termVariables = termArray.getTermVariables(termNum);
-                    Set<Variable<V>> variables = variablesByElementNum.get(elementNum);
-                    if (variables == null) {
-                        variables = new TreeSet<>();
-                        variablesByElementNum.set(elementNum, variables);
+                variablesByElementNum.add(null);
+            }
+            for (EquationTermArray<V, E> termArray : termArrays) {
+                for (int elementNum = 0; elementNum < elementCount; elementNum++) {
+                    var termNums = termArray.getTermNums(elementNum);
+                    for (int i = 0; i < termNums.size(); i++) {
+                        int termNum = termNums.get(i);
+                        var termVariables = termArray.getTermVariables(termNum);
+                        Set<Variable<V>> variables = variablesByElementNum.get(elementNum);
+                        if (variables == null) {
+                            variables = new TreeSet<>();
+                            variablesByElementNum.set(elementNum, variables);
+                        }
+                        variables.addAll(termVariables);
                     }
-                    variables.addAll(termVariables);
                 }
             }
         }
+    }
+
+    void invalidateTermsByVariableIndex() {
+        variablesByElementNum = null;
+    }
+
+    public void der(DerHandler<V> handler) {
+        Objects.requireNonNull(handler);
+
+        updateTermsByVariableIndex();
 
         // compute all derivatives for each of the term array
         List<double[]> termDerValuesByArrayIndex = new ArrayList<>(termArrays.size());
