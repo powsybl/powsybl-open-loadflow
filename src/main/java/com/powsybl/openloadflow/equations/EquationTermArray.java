@@ -52,6 +52,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each term number, list of dependent variables
     private final List<List<Variable<V>>> termVariables = new ArrayList<>();
 
+    // flatten list of term variable numbers
+    final TIntArrayList flattentTermVariableNums = new TIntArrayList();
+
     public EquationTermArray(ElementType elementType, Evaluator evaluator, VariableCreator<V> variableCreator) {
         this.elementType = Objects.requireNonNull(elementType);
         this.evaluator = Objects.requireNonNull(evaluator);
@@ -91,8 +94,12 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         termElementNums.add(termElementNum);
         termActive.add(true);
         List<Variable<V>> variables = variableCreator.create(termElementNum);
-        termVariables.add(variables);
-        equationSystem.notifyEquationTermArrayChange(this, equationElementNum, termElementNum, variables);
+        List<Variable<V>> nonNullVariables = variables.stream().filter(Objects::nonNull).toList();
+        termVariables.add(nonNullVariables);
+        for (var v : variables) {
+            flattentTermVariableNums.add(v != null ? v.getNum() : -1);
+        }
+        equationSystem.notifyEquationTermArrayChange(this, equationElementNum, termElementNum, nonNullVariables);
         return this;
     }
 

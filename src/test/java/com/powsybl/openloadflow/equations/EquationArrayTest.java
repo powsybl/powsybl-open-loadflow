@@ -26,6 +26,7 @@ import gnu.trove.list.array.TIntArrayList;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -79,7 +80,8 @@ class EquationArrayTest {
                                                          variableSet,
                                                          branchVector.deriveA1[branchNum],
                                                          branchVector.deriveR1[branchNum],
-                                                         Fortescue.SequenceType.POSITIVE).getVariables());
+                                                         Fortescue.SequenceType.POSITIVE,
+                                                         true).getVariables());
         p.addTermArray(p1Array);
         EquationTermArray<AcVariableType, AcEquationType> p2Array = new EquationTermArray<>(
                 ElementType.BRANCH,
@@ -100,7 +102,8 @@ class EquationArrayTest {
                                                          variableSet,
                                                          branchVector.deriveA1[branchNum],
                                                          branchVector.deriveR1[branchNum],
-                                                         Fortescue.SequenceType.POSITIVE).getVariables());
+                                                         Fortescue.SequenceType.POSITIVE,
+                                                         true).getVariables());
         p.addTermArray(p2Array);
         for (LfBranch branch : lfNetwork.getBranches()) {
             LfBus bus1 = branch.getBus1();
@@ -154,9 +157,9 @@ class EquationArrayTest {
         assertArrayEquals(values, values2);
         DenseMatrix derValues = calculateDer(equationSystem);
         DenseMatrix derValues2 = calculateDer(equationSystem2);
-        derValues.print(System.out);
-        System.out.println("------");
-        derValues2.print(System.out);
- //       assertEquals(derValues, derValues2);
+//        derValues.print(System.out);
+//        System.out.println("------");
+//        derValues2.print(System.out);
+        assertEquals(derValues, derValues2);
     }
 }

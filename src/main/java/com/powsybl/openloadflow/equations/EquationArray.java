@@ -180,7 +180,12 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                         for (int i = 0; i < termNums.size(); i++) {
                             int termNum = termNums.get(i);
                             if (termArray.isTermActive(termNum)) {
-                                value += 0;
+                                for (int j = termNum * 6; j < termNum * 6 + 6; j++) {
+                                    int variableNum = termArray.flattentTermVariableNums.getQuick(j);
+                                    if (variableNum != -1 && variableNum == variable.getNum()) {
+                                        value += termDerValues[j];
+                                    }
+                                }
                             }
                         }
                     }

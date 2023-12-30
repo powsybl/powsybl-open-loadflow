@@ -43,6 +43,12 @@ public class ClosedBranchAcVariables {
 
     public ClosedBranchAcVariables(int branchNum, int bus1Num, int bus2Num, VariableSet<AcVariableType> variableSet,
                                    boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
+        this(branchNum, bus1Num, bus2Num, variableSet, deriveA1, deriveR1, sequenceType, false);
+    }
+
+    public ClosedBranchAcVariables(int branchNum, int bus1Num, int bus2Num, VariableSet<AcVariableType> variableSet,
+                                   boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType,
+                                   boolean allowNull) {
         Objects.requireNonNull(variableSet);
         Objects.requireNonNull(sequenceType);
         AcVariableType vType = getVoltageMagnitudeType(sequenceType);
@@ -59,9 +65,13 @@ public class ClosedBranchAcVariables {
         variables.add(ph2Var);
         if (a1Var != null) {
             variables.add(a1Var);
+        } else if (allowNull) {
+            variables.add(null);
         }
         if (r1Var != null) {
             variables.add(r1Var);
+        } else if (allowNull) {
+            variables.add(null);
         }
     }
 
