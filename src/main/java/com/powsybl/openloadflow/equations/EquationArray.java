@@ -140,20 +140,16 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
         for (EquationTermArray<V, E> termArray : termArrays) {
             for (int elementNum = 0; elementNum < elementCount; elementNum++) {
-                if (elementActive[elementNum]) {
-                    var termNums = termArray.getTermNums(elementNum);
-                    for (int i = 0; i < termNums.size(); i++) {
-                        int termNum = termNums.get(i);
-                        if (termArray.isTermActive(termNum)) {
-                            var termVariables = termArray.getTermVariables(termNum);
-                            Set<Variable<V>> variables = variablesByElementNum.get(elementNum);
-                            if (variables == null) {
-                                variables = new TreeSet<>();
-                                variablesByElementNum.set(elementNum, variables);
-                            }
-                            variables.addAll(termVariables);
-                        }
+                var termNums = termArray.getTermNums(elementNum);
+                for (int i = 0; i < termNums.size(); i++) {
+                    int termNum = termNums.get(i);
+                    var termVariables = termArray.getTermVariables(termNum);
+                    Set<Variable<V>> variables = variablesByElementNum.get(elementNum);
+                    if (variables == null) {
+                        variables = new TreeSet<>();
+                        variablesByElementNum.set(elementNum, variables);
                     }
+                    variables.addAll(termVariables);
                 }
             }
         }
@@ -180,11 +176,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                         for (int i = 0; i < termNums.size(); i++) {
                             int termNum = termNums.get(i);
                             if (termArray.isTermActive(termNum)) {
-                                for (int j = termNum * 6; j < termNum * 6 + 6; j++) {
-                                    int variableNum = termArray.flattentTermVariableNums.getQuick(j);
-                                    if (variableNum != -1 && variableNum == variable.getNum()) {
-                                        value += termDerValues[j];
-                                    }
+                                int derIndex = termArray.getTermDerIndex(termNum, variable.getNum());
+                                if (derIndex != -1) {
+                                    value += termDerValues[derIndex];
                                 }
                             }
                         }

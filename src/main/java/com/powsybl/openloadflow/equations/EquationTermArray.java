@@ -53,7 +53,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     private final List<List<Variable<V>>> termVariables = new ArrayList<>();
 
     // flatten list of term variable numbers
-    final TIntArrayList flattentTermVariableNums = new TIntArrayList();
+    private final TIntArrayList flattenTermVariableNums = new TIntArrayList();
 
     public EquationTermArray(ElementType elementType, Evaluator evaluator, VariableCreator<V> variableCreator) {
         this.elementType = Objects.requireNonNull(elementType);
@@ -88,6 +88,15 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return termVariables.get(termNum);
     }
 
+    public int getTermDerIndex(int termNum, int variableNum) {
+        for (int j = termNum * 6; j < (termNum + 1) * 6; j++) {
+            if (variableNum == flattenTermVariableNums.getQuick(j)) {
+                return j;
+            }
+        }
+        return -1;
+    }
+
     public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
         int termNum = termElementNums.size();
         getTermNums(equationElementNum).add(termNum);
@@ -97,7 +106,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         List<Variable<V>> nonNullVariables = variables.stream().filter(Objects::nonNull).toList();
         termVariables.add(nonNullVariables);
         for (var v : variables) {
-            flattentTermVariableNums.add(v != null ? v.getNum() : -1);
+            flattenTermVariableNums.add(v != null ? v.getNum() : -1);
         }
         equationSystem.notifyEquationTermArrayChange(this, equationElementNum, termElementNum, nonNullVariables);
         return this;
