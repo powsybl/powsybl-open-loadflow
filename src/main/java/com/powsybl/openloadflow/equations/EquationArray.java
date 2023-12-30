@@ -145,7 +145,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     for (int i = 0; i < termNums.size(); i++) {
                         int termNum = termNums.get(i);
                         if (termArray.isTermActive(termNum)) {
-                            var termVariables = termArray.termVariables.get(termNum);
+                            var termVariables = termArray.getTermVariables(termNum);
                             Set<Variable<V>> variables = variablesByElementNum.get(elementNum);
                             if (variables == null) {
                                 variables = new TreeSet<>();

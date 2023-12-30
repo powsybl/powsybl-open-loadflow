@@ -29,7 +29,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     @FunctionalInterface
     public interface VariableCreator<V extends Enum<V> & Quantity> {
 
-        List<Variable<V>> create(int elementNum);
+        List<Variable<V>> create(int termElementNum);
     }
 
     private final ElementType elementType;
@@ -50,7 +50,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     private final TBooleanArrayList termActive = new TBooleanArrayList(1);
 
     // for each term number, list of dependent variables
-    final List<List<Variable<V>>> termVariables = new ArrayList<>();
+    private final List<List<Variable<V>>> termVariables = new ArrayList<>();
 
     public EquationTermArray(ElementType elementType, Evaluator evaluator, VariableCreator<V> variableCreator) {
         this.elementType = Objects.requireNonNull(elementType);
@@ -79,6 +79,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public int getTermElementNum(int termNum) {
         return termElementNums.get(termNum);
+    }
+
+    public List<Variable<V>> getTermVariables(int termNum) {
+        return termVariables.get(termNum);
     }
 
     public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
