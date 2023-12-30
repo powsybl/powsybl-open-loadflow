@@ -12,15 +12,15 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchAcVariables;
 import com.powsybl.openloadflow.ac.equations.vector.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
-import com.powsybl.openloadflow.util.Fortescue;
 import gnu.trove.list.array.TIntArrayList;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,7 +60,7 @@ class EquationArrayTest {
         EquationArray<AcVariableType, AcEquationType> p = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
         EquationTermArray<AcVariableType, AcEquationType> p1Array = new EquationTermArray<>(
                 ElementType.BRANCH,
-                new EquationTermArray.Evaluator() {
+                new EquationTermArray.Evaluator<AcVariableType>() {
                     @Override
                     public double[] eval(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide1ActiveFlowEquationTerm.eval(branchVector, branchNums);
@@ -70,19 +70,16 @@ class EquationArrayTest {
                     public double[] der(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide1ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
-                },
-                branchNum -> new ClosedBranchAcVariables(branchNum,
-                                                         branchVector.bus1Num[branchNum],
-                                                         branchVector.bus2Num[branchNum],
-                                                         variableSet,
-                                                         branchVector.deriveA1[branchNum],
-                                                         branchVector.deriveR1[branchNum],
-                                                         Fortescue.SequenceType.POSITIVE,
-                                                         true).getVariables());
+
+                    @Override
+                    public List<Variable<AcVariableType>> getVariables(int branchNum) {
+                        return ClosedBranchVectorAcVariables.getVariables(branchVector, branchNum, variableSet);
+                    }
+                });
         p.addTermArray(p1Array);
         EquationTermArray<AcVariableType, AcEquationType> p2Array = new EquationTermArray<>(
                 ElementType.BRANCH,
-                new EquationTermArray.Evaluator() {
+                new EquationTermArray.Evaluator<AcVariableType>() {
                     @Override
                     public double[] eval(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide2ActiveFlowEquationTerm.eval(branchVector, branchNums);
@@ -92,15 +89,12 @@ class EquationArrayTest {
                     public double[] der(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide2ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
-                },
-                branchNum -> new ClosedBranchAcVariables(branchNum,
-                                                         branchVector.bus1Num[branchNum],
-                                                         branchVector.bus2Num[branchNum],
-                                                         variableSet,
-                                                         branchVector.deriveA1[branchNum],
-                                                         branchVector.deriveR1[branchNum],
-                                                         Fortescue.SequenceType.POSITIVE,
-                                                         true).getVariables());
+
+                    @Override
+                    public List<Variable<AcVariableType>> getVariables(int branchNum) {
+                        return ClosedBranchVectorAcVariables.getVariables(branchVector, branchNum, variableSet);
+                    }
+                });
         p.addTermArray(p2Array);
         for (LfBranch branch : lfNetwork.getBranches()) {
             LfBus bus1 = branch.getBus1();

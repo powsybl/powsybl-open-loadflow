@@ -19,26 +19,20 @@ import java.util.Objects;
  */
 public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-    public interface Evaluator {
+    public interface Evaluator<V extends Enum<V> & Quantity> {
 
         double[] eval(TIntArrayList termElementNums);
 
         double[] der(TIntArrayList termElementNums);
-    }
 
-    @FunctionalInterface
-    public interface VariableCreator<V extends Enum<V> & Quantity> {
-
-        List<Variable<V>> create(int termElementNum);
+        List<Variable<V>> getVariables(int termElementNum);
     }
 
     private final ElementType elementType;
 
     private EquationArray<V, E> equationArray;
 
-    private final Evaluator evaluator;
-
-    private final VariableCreator<V> variableCreator;
+    private final Evaluator<V> evaluator;
 
     // for each equation element number, term numbers
     private final List<TIntArrayList> termNumsByEquationElementNum = new ArrayList<>();
@@ -55,10 +49,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // flatten list of term variable numbers
     private final TIntArrayList flattenTermVariableNums = new TIntArrayList();
 
-    public EquationTermArray(ElementType elementType, Evaluator evaluator, VariableCreator<V> variableCreator) {
+    public EquationTermArray(ElementType elementType, Evaluator<V> evaluator) {
         this.elementType = Objects.requireNonNull(elementType);
         this.evaluator = Objects.requireNonNull(evaluator);
-        this.variableCreator = Objects.requireNonNull(variableCreator);
     }
 
     public ElementType getElementType() {
@@ -102,7 +95,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         getTermNums(equationElementNum).add(termNum);
         termElementNums.add(termElementNum);
         termActive.add(true);
-        List<Variable<V>> variables = variableCreator.create(termElementNum);
+        List<Variable<V>> variables = evaluator.getVariables(termElementNum);
         List<Variable<V>> nonNullVariables = variables.stream().filter(Objects::nonNull).toList();
         termVariables.add(nonNullVariables);
         for (var v : variables) {
