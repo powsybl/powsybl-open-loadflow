@@ -68,7 +68,7 @@ class EquationArrayTest {
                     }
 
                     @Override
-                    public TDoubleArrayList der(TIntArrayList branchNums) {
+                    public TDoubleArrayList evalDer(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide1ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
 
@@ -87,7 +87,7 @@ class EquationArrayTest {
                     }
 
                     @Override
-                    public TDoubleArrayList der(TIntArrayList branchNums) {
+                    public TDoubleArrayList evalDer(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide2ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
 
@@ -100,8 +100,8 @@ class EquationArrayTest {
         for (LfBranch branch : lfNetwork.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            p1Array.addTerm(bus1.getNum(), branch.getNum());
-            p2Array.addTerm(bus2.getNum(), branch.getNum());
+            p1Array.addTerm(bus1, branch);
+            p2Array.addTerm(bus2, branch);
         }
         networkVector.startListening();
         AcSolverUtil.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());

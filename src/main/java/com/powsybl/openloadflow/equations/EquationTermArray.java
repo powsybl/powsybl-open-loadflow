@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.util.trove.TBooleanArrayList;
 import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.LfElement;
 import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 
@@ -24,7 +25,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         double[] eval(TIntArrayList termElementNums);
 
-        TDoubleArrayList der(TIntArrayList termElementNums);
+        TDoubleArrayList evalDer(TIntArrayList termElementNums);
 
         List<Variable<V>> getVariables(int termElementNum);
     }
@@ -63,7 +64,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     }
 
     void setEquationArray(EquationArray<V, E> equationArray) {
-        this.equationArray = equationArray;
+        if (this.equationArray != null) {
+            throw new IllegalArgumentException("Equation term array already added to an equation array");
+        }
+        this.equationArray = Objects.requireNonNull(equationArray);
     }
 
     public TIntArrayList getTermNums(int equationElementNum) {
@@ -97,6 +101,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return -1;
     }
 
+    public EquationTermArray<V, E> addTerm(LfElement equationElement, LfElement termElement) {
+        return addTerm(Objects.requireNonNull(equationElement).getNum(), Objects.requireNonNull(termElement).getNum());
+    }
+
     public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
         int termNum = termElementNums.size();
         getTermNums(equationElementNum).add(termNum);
@@ -105,9 +113,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         List<Variable<V>> variables = evaluator.getVariables(termElementNum);
         termVariables.add(variables);
         termFirstVariableIndex.add(termsVariableNums.size());
-        for (var v : variables) {
-            termsVariableNums.add(v.getNum());
-        }
+        variables.stream().mapToInt(Variable::getNum).forEach(termsVariableNums::add);
         equationArray.invalidateTermsByVariableIndex();
         equationArray.getEquationSystem().notifyEquationTermArrayChange(this, equationElementNum, termElementNum, variables);
         return this;
@@ -117,7 +123,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return evaluator.eval(termElementNums);
     }
 
-    public TDoubleArrayList der() {
-        return evaluator.der(termElementNums);
+    public TDoubleArrayList evalDer() {
+        return evaluator.evalDer(termElementNums);
     }
 }

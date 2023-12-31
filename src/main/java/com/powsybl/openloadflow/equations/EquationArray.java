@@ -190,7 +190,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         // compute all derivatives for each of the term array
         List<TDoubleArrayList> termDerValuesByArrayIndex = new ArrayList<>(termArrays.size());
         for (EquationTermArray<V, E> termArray : termArrays) {
-            termDerValuesByArrayIndex.add(termArray.der());
+            termDerValuesByArrayIndex.add(termArray.evalDer());
         }
 
         // calculate all derivative values
