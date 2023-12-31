@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import gnu.trove.list.array.TDoubleArrayList;
+
 import java.util.*;
 
 /**
@@ -161,18 +163,18 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         variablesByElementNum = null;
     }
 
-    private double calculateDerValue(Variable<V> variable, List<double[]> termDerValuesByArrayIndex, int elementNum) {
+    private double calculateDerValue(Variable<V> variable, List<TDoubleArrayList> termDerValuesByArrayIndex, int elementNum) {
         double value = 0;
         for (int arrayIndex = 0; arrayIndex < termArrays.size(); arrayIndex++) {
             var termArray = termArrays.get(arrayIndex);
-            double[] termDerValues = termDerValuesByArrayIndex.get(arrayIndex);
+            TDoubleArrayList termDerValues = termDerValuesByArrayIndex.get(arrayIndex);
             var termNums = termArray.getTermNums(elementNum);
             for (int i = 0; i < termNums.size(); i++) {
                 int termNum = termNums.get(i);
                 if (termArray.isTermActive(termNum)) {
                     int derIndex = termArray.getTermDerIndex(termNum, variable.getNum());
                     if (derIndex != -1) {
-                        value += termDerValues[derIndex];
+                        value += termDerValues.getQuick(derIndex);
                     }
                 }
             }
@@ -186,7 +188,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         updateTermsByVariableIndex();
 
         // compute all derivatives for each of the term array
-        List<double[]> termDerValuesByArrayIndex = new ArrayList<>(termArrays.size());
+        List<TDoubleArrayList> termDerValuesByArrayIndex = new ArrayList<>(termArrays.size());
         for (EquationTermArray<V, E> termArray : termArrays) {
             termDerValuesByArrayIndex.add(termArray.der());
         }

@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import org.junit.jupiter.api.Test;
 
@@ -67,7 +68,7 @@ class EquationArrayTest {
                     }
 
                     @Override
-                    public double[] der(TIntArrayList branchNums) {
+                    public TDoubleArrayList der(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide1ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
 
@@ -86,7 +87,7 @@ class EquationArrayTest {
                     }
 
                     @Override
-                    public double[] der(TIntArrayList branchNums) {
+                    public TDoubleArrayList der(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide2ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
 

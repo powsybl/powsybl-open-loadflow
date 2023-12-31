@@ -30,8 +30,7 @@ public final class ClosedBranchVectorAcVariables {
                                            variableSet,
                                            branchVector.deriveA1[branchNum],
                                            branchVector.deriveR1[branchNum],
-                                           Fortescue.SequenceType.POSITIVE,
-                                           true)
+                                           Fortescue.SequenceType.POSITIVE)
                 .getVariables();
     }
 }

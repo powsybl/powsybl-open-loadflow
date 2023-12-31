@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.util.trove.TBooleanArrayList;
 import com.powsybl.openloadflow.network.ElementType;
+import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         double[] eval(TIntArrayList termElementNums);
 
-        double[] der(TIntArrayList termElementNums);
+        TDoubleArrayList der(TIntArrayList termElementNums);
 
         List<Variable<V>> getVariables(int termElementNum);
     }
@@ -46,8 +47,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each term number, list of dependent variables
     private final List<List<Variable<V>>> termVariables = new ArrayList<>();
 
-    // flatten list of term variable numbers
-    private final TIntArrayList flattenTermVariableNums = new TIntArrayList();
+    // for each term number, first variable index in {@link flattenTermVariableNums}
+    private final TIntArrayList termFirstVariableIndex = new TIntArrayList();
+
+    // flatten list of terms variable numbers
+    private final TIntArrayList termsVariableNums = new TIntArrayList();
 
     public EquationTermArray(ElementType elementType, Evaluator<V> evaluator) {
         this.elementType = Objects.requireNonNull(elementType);
@@ -82,8 +86,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     }
 
     public int getTermDerIndex(int termNum, int variableNum) {
-        for (int j = termNum * 6; j < (termNum + 1) * 6; j++) {
-            if (variableNum == flattenTermVariableNums.getQuick(j)) {
+        int firstVariableIndex = termFirstVariableIndex.getQuick(termNum);
+        int nextVariableIndex = termNum < termFirstVariableIndex.size() - 1
+                ? termFirstVariableIndex.getQuick(termNum + 1) : termsVariableNums.size();
+        for (int j = firstVariableIndex; j < nextVariableIndex; j++) {
+            if (variableNum == termsVariableNums.getQuick(j)) {
                 return j;
             }
         }
@@ -96,13 +103,13 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         termElementNums.add(termElementNum);
         termActive.add(true);
         List<Variable<V>> variables = evaluator.getVariables(termElementNum);
-        List<Variable<V>> nonNullVariables = variables.stream().filter(Objects::nonNull).toList();
-        termVariables.add(nonNullVariables);
+        termVariables.add(variables);
+        termFirstVariableIndex.add(termsVariableNums.size());
         for (var v : variables) {
-            flattenTermVariableNums.add(v != null ? v.getNum() : -1);
+            termsVariableNums.add(v.getNum());
         }
         equationArray.invalidateTermsByVariableIndex();
-        equationArray.getEquationSystem().notifyEquationTermArrayChange(this, equationElementNum, termElementNum, nonNullVariables);
+        equationArray.getEquationSystem().notifyEquationTermArrayChange(this, equationElementNum, termElementNum, variables);
         return this;
     }
 
@@ -110,7 +117,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return evaluator.eval(termElementNums);
     }
 
-    public double[] der() {
+    public TDoubleArrayList der() {
         return evaluator.der(termElementNums);
     }
 }

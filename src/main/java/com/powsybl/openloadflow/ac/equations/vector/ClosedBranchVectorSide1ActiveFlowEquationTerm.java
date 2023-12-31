@@ -7,11 +7,11 @@
 package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchAcVariables;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
+import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.util.Objects;
@@ -44,17 +44,20 @@ public class ClosedBranchVectorSide1ActiveFlowEquationTerm extends AbstractClose
         return values;
     }
 
-    public static double[] der(AcBranchVector branchVector, TIntArrayList branchNums) {
-        double[] values = new double[branchNums.size() * ClosedBranchAcVariables.DER_COUNT];
+    public static TDoubleArrayList der(AcBranchVector branchVector, TIntArrayList branchNums) {
+        TDoubleArrayList values = new TDoubleArrayList(branchNums.size() * 5); // in average
         for (int i = 0; i < branchNums.size(); i++) {
             int branchNum = branchNums.getQuick(i);
-            int index = branchNum * ClosedBranchAcVariables.DER_COUNT;
-            values[index] = branchVector.dp1dv1[branchNum];
-            values[index + 1] = branchVector.dp1dv2[branchNum];
-            values[index + 2] = branchVector.dp1dph1[branchNum];
-            values[index + 3] = branchVector.dp1dph2[branchNum];
-            values[index + 4] = branchVector.dp1da1[branchNum];
-            values[index + 5] = branchVector.dp1dr1[branchNum];
+            values.add(branchVector.dp1dv1[branchNum]);
+            values.add(branchVector.dp1dv2[branchNum]);
+            values.add(branchVector.dp1dph1[branchNum]);
+            values.add(branchVector.dp1dph2[branchNum]);
+            if (branchVector.deriveA1[branchNum]) {
+                values.add(branchVector.dp1da1[branchNum]);
+            }
+            if (branchVector.deriveR1[branchNum]) {
+                values.add(branchVector.dp1dr1[branchNum]);
+            }
         }
         return values;
     }
