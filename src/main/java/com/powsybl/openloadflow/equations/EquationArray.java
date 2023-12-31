@@ -161,6 +161,25 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         variablesByElementNum = null;
     }
 
+    private double calculateDerValue(Variable<V> variable, List<double[]> termDerValuesByArrayIndex, int elementNum) {
+        double value = 0;
+        for (int arrayIndex = 0; arrayIndex < termArrays.size(); arrayIndex++) {
+            var termArray = termArrays.get(arrayIndex);
+            double[] termDerValues = termDerValuesByArrayIndex.get(arrayIndex);
+            var termNums = termArray.getTermNums(elementNum);
+            for (int i = 0; i < termNums.size(); i++) {
+                int termNum = termNums.get(i);
+                if (termArray.isTermActive(termNum)) {
+                    int derIndex = termArray.getTermDerIndex(termNum, variable.getNum());
+                    if (derIndex != -1) {
+                        value += termDerValues[derIndex];
+                    }
+                }
+            }
+        }
+        return value;
+    }
+
     public void der(DerHandler<V> handler) {
         Objects.requireNonNull(handler);
 
@@ -172,29 +191,15 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             termDerValuesByArrayIndex.add(termArray.der());
         }
 
-        // calculate
-        int matrixElementIndex = 0;
+        // calculate all derivative values
+        int matrixElementIndex = 0; // FIXME
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
             if (elementActive[elementNum]) {
                 int column = getElementNumToColumn(elementNum);
                 Set<Variable<V>> variables = variablesByElementNum.get(elementNum);
                 for (Variable<V> variable : variables) {
                     int row = variable.getRow();
-                    double value = 0;
-                    for (int arrayIndex = 0; arrayIndex < termArrays.size(); arrayIndex++) {
-                        var termArray = termArrays.get(arrayIndex);
-                        double[] termDerValues = termDerValuesByArrayIndex.get(arrayIndex);
-                        var termNums = termArray.getTermNums(elementNum);
-                        for (int i = 0; i < termNums.size(); i++) {
-                            int termNum = termNums.get(i);
-                            if (termArray.isTermActive(termNum)) {
-                                int derIndex = termArray.getTermDerIndex(termNum, variable.getNum());
-                                if (derIndex != -1) {
-                                    value += termDerValues[derIndex];
-                                }
-                            }
-                        }
-                    }
+                    double value = calculateDerValue(variable, termDerValuesByArrayIndex, elementNum);
                     handler.onDer(column, row, value, matrixElementIndex++);
                 }
             }
