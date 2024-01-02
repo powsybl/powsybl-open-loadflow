@@ -551,7 +551,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LOGGER.warn("Phase controlled branch '{}' is out of voltage or in a different synchronous component: phase control discarded", controlledBranchId);
                 return;
             }
-            if (controlledBranch.getBus1() == null || controlledBranch.getBus2() == null) {
+            if (!controlledBranch.isConnectedAtBothSides()) { // FIXME, should be managed later.
                 LOGGER.warn("Phase controlled branch '{}' is open: phase control discarded", controlledBranch.getId());
                 return;
             }
@@ -598,7 +598,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             return;
         }
         LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
-        if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
+        if (!controllerBranch.isConnectedAtBothSides()) { // FIXME, should be managed later.
             LOGGER.trace("Voltage controller branch '{}' is open: voltage control discarded", controllerBranch.getId());
             report.transformerVoltageControlDiscardedBecauseControllerBranchIsOpen++;
             return;
