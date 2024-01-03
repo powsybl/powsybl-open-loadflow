@@ -542,6 +542,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             double maxRangeQ = generator.getRangeQ(LfGenerator.ReactiveRangeMode.MAX);
             sumMaxRanges += maxRangeQ;
         }
+        if (sumMaxRanges == 0) { // to avoid division by zero
+            sumMaxRanges = 1;
+        }
 
         Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsWithControl.size());
         for (LfGenerator generator : generatorsWithControl) {
