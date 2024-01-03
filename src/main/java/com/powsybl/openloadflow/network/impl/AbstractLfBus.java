@@ -518,10 +518,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     private static ToDoubleFunction<String> splitDispatchQWithReactiveKeys(List<LfGenerator> generatorsWithControl, double qToDispatch) {
-        double sumQkeys = 0.0;
+        double sumQkeys = 0;
         for (LfGenerator generator : generatorsWithControl) {
             double qKey = generator.getRemoteControlReactiveKey().orElseThrow();
             sumQkeys += qKey;
+        }
+        if (sumQkeys == 0) { // to avoid division by zero
+            sumQkeys = 1;
         }
 
         Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsWithControl.size());
