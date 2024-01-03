@@ -856,7 +856,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setReactiveLimitsMaxPqPvSwitch(int reactiveLimitsMaxPqPvSwitch) {
         this.reactiveLimitsMaxPqPvSwitch = checkParameterValue(reactiveLimitsMaxPqPvSwitch,
-                reactiveLimitsMaxPqPvSwitch >= 1,
+                reactiveLimitsMaxPqPvSwitch >= 0,
                 REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME);
         return this;
     }
@@ -885,8 +885,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(double mostMeshedSlackBusSelectorMaxNominalVoltagePercentile) {
         this.mostMeshedSlackBusSelectorMaxNominalVoltagePercentile = checkParameterValue(mostMeshedSlackBusSelectorMaxNominalVoltagePercentile,
-                mostMeshedSlackBusSelectorMaxNominalVoltagePercentile > 0 &&
-                        mostMeshedSlackBusSelectorMaxNominalVoltagePercentile < 100,
+                mostMeshedSlackBusSelectorMaxNominalVoltagePercentile >= 0 &&
+                        mostMeshedSlackBusSelectorMaxNominalVoltagePercentile <= 100,
                 MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME);
         return this;
     }

@@ -363,8 +363,8 @@ class OpenLoadFlowParametersTest {
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(0));
         assertEquals("Invalid value for parameter incrementalTransformerVoltageControlOuterLoopMaxTapShift: 0", e.getMessage());
 
-        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setReactiveLimitsMaxPqPvSwitch(0));
-        assertEquals("Invalid value for parameter reactiveLimitsMaxPqPvSwitch: 0", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setReactiveLimitsMaxPqPvSwitch(-1));
+        assertEquals("Invalid value for parameter reactiveLimitsMaxPqPvSwitch: -1", e.getMessage());
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setLineSearchStateVectorScalingMaxIteration(0));
         assertEquals("Invalid value for parameter lineSearchStateVectorScalingMaxIteration: 0", e.getMessage());
@@ -421,11 +421,11 @@ class OpenLoadFlowParametersTest {
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setLowImpedanceThreshold(0.0));
         assertEquals("Invalid value for parameter lowImpedanceThreshold: 0.0", e.getMessage());
 
-        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(0.0));
-        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 0.0", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(-1.0));
+        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: -1.0", e.getMessage());
 
-        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(100.0));
-        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 100.0", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(101.0));
+        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 101.0", e.getMessage());
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setLineSearchStateVectorScalingStepFold(1.0));
         assertEquals("Invalid value for parameter lineSearchStateVectorScalingStepFold: 1.0", e.getMessage());
