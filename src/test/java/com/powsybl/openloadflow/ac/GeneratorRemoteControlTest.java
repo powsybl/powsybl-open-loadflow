@@ -572,7 +572,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         g1Bis.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(20).add();
 
         parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true)
-                .setReactivePowerDispatchMode(ReactivePowerDispatchMode.REACTIVE_KEYS);
+                .setReactivePowerDispatchMode(ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -596,7 +596,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         g1Bis.newMinMaxReactiveLimits().setMinQ(-10).setMaxQ(10).add();
 
         parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true)
-                .setReactivePowerDispatchMode(ReactivePowerDispatchMode.REACTIVE_KEYS);
+                .setReactivePowerDispatchMode(ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -619,7 +619,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         // Q should be equally split between g1 and g1Bis
 
         parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true)
-                .setReactivePowerDispatchMode(ReactivePowerDispatchMode.REACTIVE_KEYS);
+                .setReactivePowerDispatchMode(ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());

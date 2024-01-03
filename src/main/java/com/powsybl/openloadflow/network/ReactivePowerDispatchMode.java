@@ -11,6 +11,5 @@ package com.powsybl.openloadflow.network;
  */
 public enum ReactivePowerDispatchMode {
     Q_EQUAL_PROPORTION,
-    K_EQUAL_PROPORTION,
-    REACTIVE_KEYS,
+    K_EQUAL_PROPORTION
 }

@@ -488,6 +488,21 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     private static ToDoubleFunction<String> splitDispatchQ(List<LfGenerator> generatorsWithControl, double qToDispatch) {
+        // proportional to reactive keys
+        if (allGeneratorsHaveReactiveKeys(generatorsWithControl)) {
+            return splitDispatchQWithReactiveKeys(generatorsWithControl, qToDispatch);
+        }
+
+        // fallback on dispatch q proportional to max reactive power range
+        if (allGeneratorsHavePlausibleReactiveLimits(generatorsWithControl)) {
+            return splitDispatchQFromMaxReactivePowerRange(generatorsWithControl, qToDispatch);
+        }
+
+        // fall back on dispatch q equally
+        return splitDispatchQEqually(generatorsWithControl, qToDispatch);
+    }
+
+    private static ToDoubleFunction<String> splitDispatchQEqually(List<LfGenerator> generatorsWithControl, double qToDispatch) {
         int size = generatorsWithControl.size();
         return id -> qToDispatch / size;
     }
@@ -585,12 +600,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             case Q_EQUAL_PROPORTION -> splitDispatchQ(generatorsWithControl, qToDispatch);
             case K_EQUAL_PROPORTION -> allGeneratorsHavePlausibleReactiveLimits(generatorsWithControl)
                     ? splitDispatchQWithEqualProportionOfK(generatorsWithControl, qToDispatch)
-                    : splitDispatchQ(generatorsWithControl, qToDispatch); // fallback to q dispatch
-            case REACTIVE_KEYS -> allGeneratorsHaveReactiveKeys(generatorsWithControl)
-                    ? splitDispatchQWithReactiveKeys(generatorsWithControl, qToDispatch)
-                    : allGeneratorsHavePlausibleReactiveLimits(generatorsWithControl)
-                        ? splitDispatchQFromMaxReactivePowerRange(generatorsWithControl, qToDispatch) // fallback to max reactive power range
-                        : splitDispatchQ(generatorsWithControl, qToDispatch); // fallback to q dispatch
+                    : splitDispatchQEqually(generatorsWithControl, qToDispatch); // fallback to dispatch q equally
         };
         Iterator<LfGenerator> itG = generatorsWithControl.iterator();
         while (itG.hasNext()) {
