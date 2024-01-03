@@ -81,6 +81,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         findAllPtcToOperate(actions, topoConfig);
         findAllRtcToOperate(actions, topoConfig);
 
+        // try to find all branches to be closed.
+        findAllBranchToOpen(network, actions, topoConfig);
+
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted

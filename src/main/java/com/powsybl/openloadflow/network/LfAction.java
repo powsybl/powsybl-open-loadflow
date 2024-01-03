@@ -212,10 +212,12 @@ public final class LfAction {
     private static Optional<LfAction> create(LineConnectionAction action, LfNetwork lfNetwork) {
         LfBranch branch = lfNetwork.getBranchById(action.getLineId());
         if (branch != null) {
-            if (action.isOpenSide1() && action.isOpenSide2()) {
-                return Optional.of(new LfAction(action.getId(), branch, null, null, null, null, null));
+            if (action.isOpenSide1() == action.isOpenSide2()) {
+                LfBranch disabledBranch = action.isOpenSide1() ? branch : null;
+                LfBranch enabledBranch = action.isOpenSide1() ? null : branch;
+                return Optional.of(new LfAction(action.getId(), disabledBranch, enabledBranch, null, null, null, null));
             } else {
-                throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
+                throw new UnsupportedOperationException("Line connection action: only open or close line at both sides is supported yet.");
             }
         }
         return Optional.empty(); // could be in another component

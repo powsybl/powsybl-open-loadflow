@@ -290,6 +290,20 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
     }
 
+    protected static void findAllBranchToOpen(Network network, List<Action> actions, LfTopoConfig topoConfig) {
+        // only lines open at both side or open at one side are visible in the LfNetwork.
+        for (Action action : actions) {
+            if (LineConnectionAction.NAME.equals(action.getType())) {
+                LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
+                Line line = network.getLine(lineConnectionAction.getLineId());
+                if (!(lineConnectionAction.isOpenSide1() || line.getTerminal1().isConnected()
+                        || lineConnectionAction.isOpenSide2() || line.getTerminal2().isConnected())) {
+                    topoConfig.getBranchIdsToClose().add(line.getId());
+                }
+            }
+        }
+    }
+
     protected OperatorStrategyResult runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,
                                                          List<String> actionsIds,
                                                          LimitViolationManager preContingencyLimitViolationManager,

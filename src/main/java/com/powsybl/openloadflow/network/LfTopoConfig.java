@@ -31,6 +31,8 @@ public class LfTopoConfig {
 
     private final Set<String> branchIdsOpenableSide2 = new HashSet<>();
 
+    private final Set<String> branchIdsToClose = new HashSet<>();
+
     public LfTopoConfig() {
         switchesToOpen = new HashSet<>();
         switchesToClose = new HashSet<>();
@@ -82,5 +84,9 @@ public class LfTopoConfig {
 
     public Set<String> getBranchIdsOpenableSide2() {
         return branchIdsOpenableSide2;
+    }
+
+    public Set<String> getBranchIdsToClose() {
+        return branchIdsToClose;
     }
 }
