@@ -35,6 +35,7 @@
         "maxSusceptanceMismatch" : 1.0E-4,
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
+        "transformerReactivePowerControl" : false,
         "maxNewtonRaphsonIterations" : 15,
         "maxOuterLoopIterations" : 20,
         "newtonRaphsonConvEpsPerEq" : 1.0E-4,

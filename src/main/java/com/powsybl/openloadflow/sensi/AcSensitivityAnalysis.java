@@ -212,6 +212,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setTransformerVoltageControl(lfParameters.isTransformerVoltageControlOn())
                 .setVoltagePerReactivePowerControl(lfParametersExt.isVoltagePerReactivePowerControl())
                 .setGeneratorReactivePowerRemoteControl(lfParametersExt.hasGeneratorReactivePowerRemoteControl())
+                .setTransformerReactivePowerControl(lfParametersExt.isTransformerReactivePowerControl())
                 .setLoadFlowModel(lfParameters.isDc() ? LoadFlowModel.DC : LoadFlowModel.AC)
                 .setShuntVoltageControl(lfParameters.isShuntCompensatorVoltageControlOn())
                 .setReactiveLimits(lfParameters.isUseReactiveLimits())
