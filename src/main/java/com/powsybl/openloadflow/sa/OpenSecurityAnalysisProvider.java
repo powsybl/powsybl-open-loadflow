@@ -87,7 +87,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
             selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         }
 
-        AbstractSecurityAnalysis<?, ?, ?, ?> securityAnalysis;
+        AbstractSecurityAnalysis<?, ?, ?, ?, ?> securityAnalysis;
         if (loadFlowParameters.isDc()) {
             securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reporter);
         } else {
