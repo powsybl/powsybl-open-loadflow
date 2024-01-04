@@ -37,6 +37,6 @@ class MostMeshedSlackBusSelectorTest {
         assertEquals("VLLOAD_0", result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> parametersExt.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(120));
-        assertEquals("Invalid percent value: 120.0", exception.getMessage());
+        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 120.0", exception.getMessage());
     }
 }
