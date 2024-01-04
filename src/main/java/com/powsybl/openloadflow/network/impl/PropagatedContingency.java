@@ -378,7 +378,9 @@ public class PropagatedContingency {
         Map<LfBranch, DisabledBranchStatus> branchesToOpen = branchIdsToOpen.entrySet().stream()
                 .map(e -> Pair.of(network.getBranchById(e.getKey()), e.getValue()))
                 .filter(e -> e.getKey() != null)
-                .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+                .collect(Collectors.toMap(Pair::getKey, Pair::getValue, (disabledBranchStatus, disabledBranchStatus2) -> {
+                    throw new IllegalStateException();
+                }, LinkedHashMap::new));
 
         busIdsToLose.stream().map(network::getBusById)
                 .filter(Objects::nonNull)
@@ -430,6 +432,16 @@ public class PropagatedContingency {
         }
     }
 
+    private static boolean isConnectedAfterContingencySide1(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
+        DisabledBranchStatus status = branchesToOpen.get(branch);
+        return status == null || status == DisabledBranchStatus.SIDE_2;
+    }
+
+    private static boolean isConnectedAfterContingencySide2(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
+        DisabledBranchStatus status = branchesToOpen.get(branch);
+        return status == null || status == DisabledBranchStatus.SIDE_1;
+    }
+
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
         // find branch to open because of direct impact of the contingency (including propagation is activated)
         Map<LfBranch, DisabledBranchStatus> branchesToOpen = findBranchToOpenDirectlyImpactedByContingency(network);
@@ -450,10 +462,10 @@ public class PropagatedContingency {
                         boolean otherSideConnected;
                         if (branch.getBus1() == busToLost) {
                             otherSideBus = branch.getBus2();
-                            otherSideConnected = branch.isConnectedSide2();
+                            otherSideConnected = branch.isConnectedSide2() && isConnectedAfterContingencySide2(branchesToOpen, branch);
                         } else {
                             otherSideBus = branch.getBus1();
-                            otherSideConnected = branch.isConnectedSide1();
+                            otherSideConnected = branch.isConnectedSide1() && isConnectedAfterContingencySide1(branchesToOpen, branch);
                         }
                         if (busesToLost.contains(otherSideBus) || !otherSideConnected) {
                             addBranchToOpen(branch, DisabledBranchStatus.BOTH_SIDES, branchesToOpen);
@@ -461,7 +473,7 @@ public class PropagatedContingency {
                     });
         }
 
-        Map<LfShunt, AdmittanceShift> shunts = new HashMap<>(1);
+        Map<LfShunt, AdmittanceShift> shunts = new LinkedHashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {
             LfShunt shunt = network.getShuntById(e.getKey());
             if (shunt != null) { // could be in another component
@@ -470,7 +482,7 @@ public class PropagatedContingency {
             }
         }
 
-        Set<LfGenerator> generators = new HashSet<>(1);
+        Set<LfGenerator> generators = new LinkedHashSet<>(1);
         for (String generatorId : generatorIdsToLose) {
             LfGenerator generator = network.getGeneratorById(generatorId);
             if (generator != null) { // could be in another component
@@ -478,7 +490,7 @@ public class PropagatedContingency {
             }
         }
 
-        Map<LfLoad, LfLostLoad> loads = new HashMap<>(1);
+        Map<LfLoad, LfLostLoad> loads = new LinkedHashMap<>(1);
         for (var e : loadIdsToLoose.entrySet()) {
             String loadId = e.getKey();
             PowerShift powerShift = e.getValue();
@@ -494,7 +506,7 @@ public class PropagatedContingency {
         Set<LfHvdc> lostHvdcs = hvdcIdsToOpen.stream()
                 .map(network::getHvdcById)
                 .filter(Objects::nonNull) // could be in another component
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         for (LfHvdc hvdcLine : network.getHvdcs()) {
             // FIXME

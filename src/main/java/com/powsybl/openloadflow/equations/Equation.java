@@ -25,7 +25,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private final E type;
 
-    private final EquationSystem<V, E> equationSystem;
+    private EquationSystem<V, E> equationSystem;
 
     private int column = -1;
 
@@ -59,7 +59,19 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
     }
 
     public EquationSystem<V, E> getEquationSystem() {
+        checkNotRemoved();
         return equationSystem;
+    }
+
+    public void setRemoved() {
+        equationSystem = null;
+        column = -1;
+    }
+
+    private void checkNotRemoved() {
+        if (equationSystem == null) {
+            throw new PowsyblException(this + " has been removed from its equation system");
+        }
     }
 
     public int getColumn() {
@@ -75,6 +87,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
     }
 
     public Equation<V, E> setActive(boolean active) {
+        checkNotRemoved();
         if (active != this.active) {
             this.active = active;
             equationSystem.notifyEquationChange(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
@@ -84,6 +97,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {
         Objects.requireNonNull(term);
+        checkNotRemoved();
         if (term.getEquation() != null) {
             throw new PowsyblException("Equation term already added to another equation: "
                     + term.getEquation());
@@ -110,6 +124,25 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     public List<EquationTerm<V, E>> getTerms() {
         return terms;
+    }
+
+    public List<EquationTerm<V, E>> getLeafTerms() {
+        List<EquationTerm<V, E>> leafTerms = new ArrayList<>();
+        for (var term : terms) {
+            addLeafTerms(term, leafTerms);
+        }
+        return leafTerms;
+    }
+
+    private void addLeafTerms(EquationTerm<V, E> term, List<EquationTerm<V, E>> leafTerms) {
+        var children = term.getChildren();
+        if (children.isEmpty()) {
+            leafTerms.add(term);
+        } else {
+            for (var child : children) {
+                addLeafTerms(child, leafTerms);
+            }
+        }
     }
 
     public Map<Variable<V>, List<EquationTerm<V, E>>> getTermsByVariable() {
