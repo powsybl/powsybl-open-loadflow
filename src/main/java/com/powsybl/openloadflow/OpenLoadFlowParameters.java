@@ -862,7 +862,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(int incrementalTransformerRatioTapControlOuterLoopMaxTapShift) {
         if (incrementalTransformerRatioTapControlOuterLoopMaxTapShift < 1) {
-            throw new IllegalArgumentException("Invalid max tap shift value: " + incrementalTransformerRatioTapControlOuterLoopMaxTapShift);
+            throw new IllegalArgumentException("Invalid value for parameter incrementalTransformerRatioTapControlOuterLoopMaxTapShift: " + incrementalTransformerRatioTapControlOuterLoopMaxTapShift);
         }
         this.incrementalTransformerRatioTapControlOuterLoopMaxTapShift = incrementalTransformerRatioTapControlOuterLoopMaxTapShift;
         return this;
@@ -1441,7 +1441,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(parameters.isTransformerVoltageControlOn())
-                .setTransformerReactivePowerControl(parameters.isTransformerReactivePowerControlOn())
                 .setVoltagePerReactivePowerControl(parametersExt.isVoltagePerReactivePowerControl())
                 .setGeneratorReactivePowerRemoteControl(parametersExt.hasGeneratorReactivePowerRemoteControl())
                 .setTransformerReactivePowerControl(parametersExt.isTransformerReactivePowerControl())
@@ -1582,7 +1581,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(false)
-                .setTransformerReactivePowerControl(false)
                 .setVoltagePerReactivePowerControl(false)
                 .setGeneratorReactivePowerRemoteControl(false)
                 .setTransformerReactivePowerControl(false)

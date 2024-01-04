@@ -35,6 +35,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
@@ -42,7 +43,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         parameters = new LoadFlowParameters();
         parameters.setTransformerVoltageControlOn(false);
         parameters.setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
     }
 
@@ -88,7 +89,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
 
         // without transformer regulating, generator does not hold its target
         parameters.setUseReactiveLimits(true);
-        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+        parametersExt.setGeneratorReactivePowerRemoteControl(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -96,8 +97,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(2.588, regulatedTerminal); // not targetQ
 
         // without generator regulating, transformer does not hold its target
-        parameters.setTransformerReactivePowerControlOn(true);
-        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(false);
+        parametersExt.setGeneratorReactivePowerRemoteControl(false)
+                .setTransformerReactivePowerControl(true);
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -106,7 +107,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
 
         // with transformer/generator regulating, generator target Q is held
         t2wt.getRatioTapChanger().setTapPosition(1);
-        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+        parametersExt.setGeneratorReactivePowerRemoteControl(true)
+                .setTransformerReactivePowerControl(true);
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -133,7 +135,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void transformerReactivePowerControlT2wtTest() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -155,7 +157,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void transformerReactivePowerControlT2wtTest2() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -177,7 +179,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void transformerReactivePowerControlT2wtTest3() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -199,7 +201,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void transformerReactivePowerControlT2wtTest4() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -221,7 +223,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void transformerReactivePowerControlT2wtTest5() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -243,7 +245,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void transformerReactivePowerControlT2wtTest6() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -296,7 +298,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void transformerReactivePowerControl2T2wtTest() {
         selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -320,7 +322,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void transformerReactivePowerControl2T2wtTest2() {
         selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0.1)
                 .setRegulating(true)
@@ -352,7 +354,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void transformerReactivePowerControlOnNonImpedantBranch() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0.1)
                 .setRegulating(true)
@@ -405,7 +407,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void transformerReactivePowerControlT3wtTest() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t3wt.getLeg2().getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -429,8 +431,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     @Test
     void openedControllerBranchTest() {
         selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
-        parameters.setTransformerReactivePowerControlOn(true);
 
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -456,8 +458,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     @Test
     void openedControlledBranchTest() {
         selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
-        parameters.setTransformerReactivePowerControlOn(true);
 
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -489,7 +491,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         Load load = network.getLoad("LOAD_2");
         load.getTerminal().disconnect();
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -507,7 +509,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     void twoControllersOnTheSameBranchTest() {
         selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
 
-        parameters.setTransformerReactivePowerControlOn(true);
+        parametersExt.setTransformerReactivePowerControl(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)

@@ -86,8 +86,6 @@ public class LfNetworkParameters {
 
     private boolean transformerVoltageControl = false;
 
-    private boolean transformerReactivePowerControl = false;
-
     private boolean voltagePerReactivePowerControl = false;
 
     private boolean generatorReactivePowerRemoteControl = false;
@@ -288,15 +286,6 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setTransformerVoltageControl(boolean transformerVoltageControl) {
         this.transformerVoltageControl = transformerVoltageControl;
-        return this;
-    }
-
-    public boolean isTransformerReactivePowerControl() {
-        return transformerReactivePowerControl;
-    }
-
-    public LfNetworkParameters setTransformerReactivePowerControl(boolean transformerReactivePowerControl) {
-        this.transformerReactivePowerControl = transformerReactivePowerControl;
         return this;
     }
 
@@ -523,7 +512,6 @@ public class LfNetworkParameters {
                 ", distributedOnConformLoad=" + distributedOnConformLoad +
                 ", phaseControl=" + phaseControl +
                 ", transformerVoltageControl=" + transformerVoltageControl +
-                ", transformerReactivePowerControl=" + transformerReactivePowerControl +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", generatorReactivePowerRemoteControl=" + generatorReactivePowerRemoteControl +
                 ", transformerReactivePowerControl=" + transformerReactivePowerControl +

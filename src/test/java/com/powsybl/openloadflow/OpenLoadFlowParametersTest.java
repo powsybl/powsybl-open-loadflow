@@ -360,8 +360,8 @@ class OpenLoadFlowParametersTest {
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxOuterLoopIterations(0));
         assertEquals("Invalid value for parameter maxOuterLoopIterations: 0", e.getMessage());
 
-        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(0));
-        assertEquals("Invalid value for parameter incrementalTransformerVoltageControlOuterLoopMaxTapShift: 0", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(0));
+        assertEquals("Invalid value for parameter incrementalTransformerRatioTapControlOuterLoopMaxTapShift: 0", e.getMessage());
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setReactiveLimitsMaxPqPvSwitch(-1));
         assertEquals("Invalid value for parameter reactiveLimitsMaxPqPvSwitch: -1", e.getMessage());
