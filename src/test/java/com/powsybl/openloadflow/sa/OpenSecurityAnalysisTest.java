@@ -1658,17 +1658,17 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 buildTestAcLoadFlowResult(AcSolverStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE).toComponentResultStatus());
 
         assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.UNSTABLE)));
+                AcSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.UNSTABLE)));
         assertEquals(PostContingencyComputationStatus.CONVERGED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE)));
+                AcSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE)));
+                AcSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.SOLVER_FAILED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.SOLVER_FAILED, OuterLoopStatus.STABLE)));
+                AcSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.SOLVER_FAILED, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.NO_IMPACT,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE)));
+                AcSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE)));
         assertEquals(PostContingencyComputationStatus.FAILED,
-                AbstractSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE)));
+                AcSecurityAnalysis.postContingencyStatusFromAcLoadFlowResult(buildTestAcLoadFlowResult(AcSolverStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE)));
     }
 
     private AcLoadFlowResult buildTestAcLoadFlowResult(AcSolverStatus solverStatus, OuterLoopStatus outerLoopStatus) {

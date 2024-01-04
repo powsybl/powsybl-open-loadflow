@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -21,7 +22,17 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
         this.succeeded = succeeded;
     }
 
+    @Override
+    public boolean isOk() {
+        return isSucceeded();
+    }
+
     public boolean isSucceeded() {
         return succeeded;
+    }
+
+    @Override
+    public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
+        return succeeded ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
     }
 }

@@ -65,6 +65,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return distributedActivePower;
     }
 
+    @Override
     public boolean isOk() {
         return solverStatus == AcSolverStatus.CONVERGED && outerLoopStatus == OuterLoopStatus.STABLE;
     }
@@ -75,6 +76,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return isOk() && solverIterations > 0;
     }
 
+    @Override
     public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
         if (getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
             return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
