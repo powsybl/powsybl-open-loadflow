@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -97,7 +98,7 @@ public class LfNetworkParameters {
 
     private boolean reactiveLimits = true;
 
-    private boolean hvdcAcEmulation = false;
+    private boolean hvdcAcEmulation = LoadFlowParameters.DEFAULT_HVDC_AC_EMULATION_ON;
 
     private double minPlausibleTargetVoltage = MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 

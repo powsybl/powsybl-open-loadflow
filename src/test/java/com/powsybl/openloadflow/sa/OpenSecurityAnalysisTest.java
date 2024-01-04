@@ -2825,4 +2825,47 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
     }
+
+    @Test
+    void testIssueWithReactiveTerms() {
+        Network network = FourBusNetworkFactory.createWithAdditionalReactiveTerms();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusesIds(List.of("b3"));
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setContingencyPropagation(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(new Contingency("b1", new BusContingency("b1")));
+        contingencies.add(new Contingency("b2", new BusContingency("b2")));
+
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(0.0858, preContingencyResult.getNetworkResult().getBranchResult("l24").getQ2(), DELTA_POWER);
+        assertEquals(-0.0859, preContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(1, preContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(1.06, preContingencyResult.getNetworkResult().getBusResult("b2").getV(), DELTA_V);
+        assertEquals(1.21, preContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V);
+        assertEquals(0.966, preContingencyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V);
+        // b1 contingency
+        PostContingencyResult b1PostContingencyResult = getPostContingencyResult(result, "b1");
+        assertEquals(0.0, b1PostContingencyResult.getNetworkResult().getBranchResult("l24").getQ2(), DELTA_POWER);
+        assertEquals(0.0, b1PostContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(1, b1PostContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(1.802, b1PostContingencyResult.getNetworkResult().getBusResult("b2").getV(), DELTA_V);
+        assertEquals(1.802, b1PostContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V);
+        // b2 contingency
+        PostContingencyResult b2PostContingencyResult = getPostContingencyResult(result, "b2");
+        assertEquals(0.0, b2PostContingencyResult.getNetworkResult().getBranchResult("l24").getQ2(), DELTA_POWER);
+        assertEquals(0.0, b2PostContingencyResult.getNetworkResult().getBranchResult("l34").getQ2(), DELTA_POWER);
+        assertEquals(1, b2PostContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(1, b2PostContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V);
+        assertEquals(0.795, b2PostContingencyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V);
+    }
 }

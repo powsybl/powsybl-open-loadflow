@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -284,5 +285,17 @@ class EquationSystemTest {
         assertEquals(3, equationSystem.getEquationTerms(ElementType.BRANCH, 1).size());
         assertEquals(3, equationSystem.getEquationTerms(ElementType.BRANCH, 2).size());
         assertEquals(4, equationSystem.getEquationTerms(ElementType.BRANCH, 3).size());
+    }
+
+    @Test
+    void removeEquationIllegalAccessTest() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork)
+                .create();
+        var removedEq = equationSystem.removeEquation(1, AcEquationType.BUS_TARGET_P);
+        assertThrows(PowsyblException.class, () -> removedEq.setActive(false));
     }
 }
