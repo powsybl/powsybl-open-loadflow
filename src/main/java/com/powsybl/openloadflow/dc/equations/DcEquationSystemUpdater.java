@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -52,5 +53,10 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
             default:
                 throw new IllegalStateException("Unknown element type: " + element.getType());
         }
+    }
+
+    @Override
+    public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
+        super.onBranchConnectionStatusChange(branch, side, connected);
     }
 }

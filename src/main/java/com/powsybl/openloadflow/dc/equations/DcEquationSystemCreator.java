@@ -101,11 +101,11 @@ public class DcEquationSystemCreator {
                 equationSystem.createEquation(branch, DcEquationType.BRANCH_TARGET_ALPHA1)
                         .addTerm(a1);
             }
-            ClosedBranchDcCurrentEquationTerm i1 = ClosedBranchDcCurrentEquationTerm.create(branch, TwoSides.ONE, creationParameters.getDcPowerFactor());
-            ClosedBranchDcCurrentEquationTerm i2 = ClosedBranchDcCurrentEquationTerm.create(branch, TwoSides.TWO, creationParameters.getDcPowerFactor());
             if (creationParameters.isUpdateFlows()) {
                 branch.setP1(p1);
                 branch.setP2(p2);
+                ClosedBranchDcCurrent i1 = new ClosedBranchDcCurrent(branch, TwoSides.ONE, creationParameters.getDcPowerFactor());
+                ClosedBranchDcCurrent i2 = new ClosedBranchDcCurrent(branch, TwoSides.TWO, creationParameters.getDcPowerFactor());
                 branch.setI1(i1);
                 branch.setI2(i2);
             }

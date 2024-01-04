@@ -10,33 +10,27 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.Objects;
+
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public final class ClosedBranchDcCurrentEquationTerm implements Evaluable {
+public final class ClosedBranchDcCurrent implements Evaluable {
 
-    LfBranch branch;
+    private final LfBranch branch;
 
-    TwoSides side;
+    private final TwoSides side;
 
-    double dcPowerFactor;
+    private final double dcPowerFactor;
 
-    private ClosedBranchDcCurrentEquationTerm(LfBranch branch, TwoSides side, double dcPowerFactor) {
-        this.branch = branch;
-        this.side = side;
+    public ClosedBranchDcCurrent(LfBranch branch, TwoSides side, double dcPowerFactor) {
+        this.branch = Objects.requireNonNull(branch);
+        this.side = Objects.requireNonNull(side);
         this.dcPowerFactor = dcPowerFactor;
-    }
-
-    public static ClosedBranchDcCurrentEquationTerm create(LfBranch branch, TwoSides side, double dcPowerFactor) {
-        return new ClosedBranchDcCurrentEquationTerm(branch, side, dcPowerFactor);
     }
 
     public double eval() {
         double p = side == TwoSides.ONE ? branch.getP1().eval() : branch.getP2().eval();
         return Math.abs(p) / dcPowerFactor;
-    }
-
-    protected String getName() {
-        return "dc_i_" + side.getNum();
     }
 }
