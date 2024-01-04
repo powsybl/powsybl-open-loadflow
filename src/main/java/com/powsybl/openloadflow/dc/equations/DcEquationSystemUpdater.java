@@ -8,11 +8,14 @@ package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LoadFlowModel;
+import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -48,7 +51,7 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
                 break;
             case BRANCH, HVDC, SHUNT_COMPENSATOR:
-                // nothing to do.
+                // nothing to do
                 break;
             default:
                 throw new IllegalStateException("Unknown element type: " + element.getType());
@@ -58,5 +61,34 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
     @Override
     public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
         super.onBranchConnectionStatusChange(branch, side, connected);
+        if (!branch.isDisabled() && !branch.isZeroImpedance(LoadFlowModel.DC)) {
+            if (branch.isConnectedSide1() && branch.isConnectedSide2()) {
+                setActive(branch.getClosedP1(), true);
+                setActive(branch.getClosedP2(), true);
+                branch.setP1(branch.getClosedP1());
+                branch.setP2(branch.getClosedP2());
+            } else if (!branch.isConnectedSide1() && branch.isConnectedSide2()) {
+                setActive(branch.getClosedP1(), false);
+                setActive(branch.getClosedP2(), false);
+                branch.setP1(EvaluableConstants.ZERO);
+                branch.setP2(EvaluableConstants.ZERO);
+            } else if (branch.isConnectedSide1() && !branch.isConnectedSide2()) {
+                setActive(branch.getClosedP1(), false);
+                setActive(branch.getClosedP2(), false);
+                branch.setP1(EvaluableConstants.ZERO);
+                branch.setP2(EvaluableConstants.ZERO);
+            } else {
+                setActive(branch.getClosedP1(), false);
+                setActive(branch.getClosedP2(), false);
+                branch.setP1(EvaluableConstants.NAN);
+                branch.setP2(EvaluableConstants.NAN);
+            }
+        }
+    }
+
+    private static void setActive(Evaluable evaluable, boolean active) {
+        if (evaluable instanceof EquationTerm<?, ?> term) {
+            term.setActive(active);
+        }
     }
 }

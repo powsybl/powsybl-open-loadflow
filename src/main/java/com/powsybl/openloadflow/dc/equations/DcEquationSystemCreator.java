@@ -103,7 +103,9 @@ public class DcEquationSystemCreator {
             }
             if (creationParameters.isUpdateFlows()) {
                 branch.setP1(p1);
+                branch.setClosedP1(p1);
                 branch.setP2(p2);
+                branch.setClosedP2(p2);
                 ClosedBranchDcCurrent i1 = new ClosedBranchDcCurrent(branch, TwoSides.ONE, creationParameters.getDcPowerFactor());
                 ClosedBranchDcCurrent i2 = new ClosedBranchDcCurrent(branch, TwoSides.TWO, creationParameters.getDcPowerFactor());
                 branch.setI1(i1);
