@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
-import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystemsAdder;
+import com.powsybl.iidm.network.ThreeSides;
 
 import java.time.ZonedDateTime;
 
@@ -61,14 +61,17 @@ public final class AutomationSystemNetworkFactory extends AbstractLoadFlowNetwor
         createTransformer(network, "s1", b1, b3, "tr1", 0.2, 2, 1);
         createTransformer(network, "s2", b2, b4, "tr2", 0.3, 3, 1);
         Substation s1 = network.getSubstation("s1");
-        s1.newExtension(SubstationAutomationSystemsAdder.class)
-            .newOverloadManagementSystem()
-                .withMonitoredLineId("l34")
-                .withThreshold(300)
-                .withSwitchIdToOperate("br1")
-                .withSwitchOpen(true)
-            .add()
-            .add();
+        s1.newOverloadManagementSystem()
+                .setId("l34_opens_br1")
+                .setEnabled(true)
+                .setMonitoredElementId("l34")
+                .setMonitoredElementSide(ThreeSides.ONE)
+                .newSwitchTripping()
+                .setKey("br1 key")
+                .setSwitchToOperateId("br1")
+                .setCurrentLimit(300.)
+                .add()
+                .add();
         return network;
     }
 }

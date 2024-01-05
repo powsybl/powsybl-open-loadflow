@@ -15,8 +15,6 @@ import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
-import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -905,26 +903,29 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createOverloadManagementSystem(LfNetwork lfNetwork, OverloadManagementSystem system) {
         if (system.isEnabled()) {
-            LfBranch lfLineToMonitor = lfNetwork.getBranchById(system.getMonitoredLineId());
-            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(system.getSwitchIdToOperate());
-            if (lfLineToMonitor != null && lfSwitchToOperate != null) {
-                LfBus bus = lfLineToMonitor.getBus1() != null ? lfLineToMonitor.getBus1() : lfLineToMonitor.getBus2();
-                double threshold = system.getThreshold() / PerUnit.ib(bus.getNominalV());
-                lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, threshold, lfSwitchToOperate, system.isSwitchOpen()));
+            LfBranch lfMonitoredElement = lfNetwork.getBranchById(system.getMonitoredElementId());
+            if (system.getTrippings().size() != 1 && system.getTrippings().get(0).getType() != OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+                // FIXME
+                LOGGER.warn("Unsupported overload management system {}: only single switch tripping supported", system.getId());
+                return;
+            }
+            OverloadManagementSystem.SwitchTripping switchTripping = (OverloadManagementSystem.SwitchTripping) system.getTrippings().get(0);
+            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(switchTripping.getSwitchToOperate().getId());
+            if (lfMonitoredElement != null && lfSwitchToOperate != null) {
+                LfBus bus = lfMonitoredElement.getBus1() != null ? lfMonitoredElement.getBus1() : lfMonitoredElement.getBus2();
+                double threshold = switchTripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
+                lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfMonitoredElement, threshold, lfSwitchToOperate, switchTripping.isOpenAction()));
             } else {
-                LOGGER.warn("Invalid overload management system: line to monitor is '{}', switch to operate is '{}'",
-                        system.getMonitoredLineId(), system.getSwitchIdToOperate());
+                LOGGER.warn("Invalid overload management system: element to monitor is '{}', switch to operate is '{}'",
+                        system.getMonitoredElementId(), switchTripping.getSwitchToOperate().getId());
             }
         }
     }
 
     private void createAutomationSystems(Network network, LfNetwork lfNetwork) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
-            if (systems != null) {
-                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
-                    createOverloadManagementSystem(lfNetwork, system);
-                }
+            for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
+                createOverloadManagementSystem(lfNetwork, system);
             }
         }
     }
