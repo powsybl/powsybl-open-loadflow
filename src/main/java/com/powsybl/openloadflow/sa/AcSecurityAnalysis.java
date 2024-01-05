@@ -19,11 +19,13 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfContingency;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
-import com.powsybl.security.action.Action;
 import com.powsybl.security.monitor.StateMonitor;
 
 import java.util.List;
@@ -41,12 +43,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     @Override
     protected Reporter createSaRootReporter() {
         return Reports.createAcSecurityAnalysis(reporter, network.getId());
-    }
-
-    @Override
-    protected void afterActionsProcessing(List<Action> actions, LfTopoConfig topoConfig) {
-        // try to find all rtc to retain because involved in rtc actions
-        findAllRtcToOperate(actions, topoConfig);
     }
 
     @Override

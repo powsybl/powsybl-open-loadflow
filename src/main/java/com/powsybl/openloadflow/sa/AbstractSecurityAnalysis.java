@@ -98,9 +98,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract Reporter createSaRootReporter();
 
-    protected void afterActionsProcessing(List<Action> actions, LfTopoConfig topoConfig) {
-    }
-
     protected abstract boolean isShuntCompensatorVoltageControlOn(LoadFlowParameters lfParameters);
 
     protected abstract boolean isHvdcAcEmulation(LoadFlowParameters lfParameters);
@@ -124,9 +121,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         LfTopoConfig topoConfig = new LfTopoConfig();
         findAllSwitchesToOperate(network, actions, topoConfig);
 
-        // try to find all ptc to retain because involved in ptc actions
+        // try to find all ptc and rtc to retain because involved in ptc and rtc actions
         findAllPtcToOperate(actions, topoConfig);
-        afterActionsProcessing(actions, topoConfig);
+        findAllRtcToOperate(actions, topoConfig);
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
