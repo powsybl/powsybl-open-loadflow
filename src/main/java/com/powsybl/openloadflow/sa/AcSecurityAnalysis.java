@@ -6,11 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.google.common.base.Stopwatch;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.computation.ComputationManager;
-import com.powsybl.contingency.ContingenciesProvider;
-import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -24,22 +20,13 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
-import com.powsybl.security.SecurityAnalysisParameters;
-import com.powsybl.security.SecurityAnalysisReport;
-import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.monitor.StateMonitor;
-import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -52,56 +39,31 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
-                                   ComputationManager computationManager, List<OperatorStrategy> operatorStrategies, List<Action> actions) {
-        var saReporter = Reports.createAcSecurityAnalysis(reporter, network.getId());
+    protected Reporter createSaRootReporter() {
+        return Reports.createAcSecurityAnalysis(reporter, network.getId());
+    }
 
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
-        LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
-        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
-        OpenSecurityAnalysisParameters securityAnalysisParametersExt = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
-
-        // check actions validity
-        checkActions(network, actions);
-
-        // try for find all switches to be operated as actions.
-        LfTopoConfig topoConfig = new LfTopoConfig();
-        findAllSwitchesToOperate(network, actions, topoConfig);
-
-        // try to find all pst and rtc to retain because involved in pst and rtc actions
-        findAllPtcToOperate(actions, topoConfig);
+    @Override
+    protected void completeActionsProcessing(List<Action> actions, LfTopoConfig topoConfig) {
         findAllRtcToOperate(actions, topoConfig);
+    }
 
-        // load contingencies
-        List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
-        // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
-        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
-                .setContingencyPropagation(securityAnalysisParametersExt.isContingencyPropagation())
-                .setShuntCompensatorVoltageControlOn(lfParameters.isShuntCompensatorVoltageControlOn())
-                .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation());
+    @Override
+    protected boolean isShuntCompensatorVoltageControlOn(LoadFlowParameters lfParameters) {
+        return lfParameters.isShuntCompensatorVoltageControlOn();
+    }
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
+    @Override
+    protected boolean isHvdcAcEmulation(LoadFlowParameters lfParameters) {
+        return lfParameters.isHvdcAcEmulation();
+    }
 
-        boolean breakers = topoConfig.isBreaker();
+    @Override
+    protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
         acParameters.getNetworkParameters().setCacheEnabled(false); // force not caching as not supported in secu analysis
         acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
-
-        // create networks including all necessary switches
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, saReporter)) {
-            // run simulation on largest network
-            SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
-                    .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategies, actions))
-                    .orElse(createNoResult());
-
-            stopwatch.stop();
-            LOGGER.info("Security analysis {} in {} ms", Thread.currentThread().isInterrupted() ? "cancelled" : "done",
-                    stopwatch.elapsed(TimeUnit.MILLISECONDS));
-
-            return new SecurityAnalysisReport(result);
-        }
+        return acParameters;
     }
 
     @Override
