@@ -98,7 +98,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract Reporter createSaRootReporter();
 
-    protected void completeActionsProcessing(List<Action> actions, LfTopoConfig topoConfig) {
+    protected void afterActionsProcessing(List<Action> actions, LfTopoConfig topoConfig) {
     }
 
     protected abstract boolean isShuntCompensatorVoltageControlOn(LoadFlowParameters lfParameters);
@@ -126,7 +126,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         // try to find all ptc to retain because involved in ptc actions
         findAllPtcToOperate(actions, topoConfig);
-        completeActionsProcessing(actions, topoConfig);
+        afterActionsProcessing(actions, topoConfig);
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
@@ -355,7 +355,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract LoadFlowEngine<V, E, P, R> createLoadFlowEngine(C context);
 
-    protected void hackParametersAfterPreContingencySimulation(P acParameters) {
+    protected void afterPreContingencySimulation(P acParameters) {
     }
 
     protected abstract double calculateMismatch(LfNetwork lfNetwork, LfContingency lfContingency);
@@ -390,7 +390,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
             // only run post-contingency simulations if pre-contingency simulation is ok
             if (preContingencyComputationOk) {
-                hackParametersAfterPreContingencySimulation(acParameters);
+                afterPreContingencySimulation(acParameters);
 
                 // update network result
                 preContingencyNetworkResult.update();

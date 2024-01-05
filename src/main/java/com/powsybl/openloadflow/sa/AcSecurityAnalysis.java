@@ -44,7 +44,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void completeActionsProcessing(List<Action> actions, LfTopoConfig topoConfig) {
+    protected void afterActionsProcessing(List<Action> actions, LfTopoConfig topoConfig) {
+        // try to find all rtc to retain because involved in rtc actions
         findAllRtcToOperate(actions, topoConfig);
     }
 
@@ -77,7 +78,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void hackParametersAfterPreContingencySimulation(AcLoadFlowParameters acParameters) {
+    protected void afterPreContingencySimulation(AcLoadFlowParameters acParameters) {
         // in some post-contingency computation, it does not remain elements to participate to slack distribution.
         // in that case, no exception should be thrown. If parameters were configured to throw, reconfigure to FAIL.
         // (the contingency will be marked as not converged)
