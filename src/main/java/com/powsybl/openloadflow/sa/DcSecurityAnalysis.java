@@ -20,14 +20,12 @@ import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.monitor.StateMonitor;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcLoadFlowResult> {
 
@@ -69,11 +67,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     @Override
     protected DcLoadFlowEngine createLoadFlowEngine(DcLoadFlowContext context) {
         return new DcLoadFlowEngine(context);
-    }
-
-    @Override
-    protected double calculateMismatch(LfNetwork lfNetwork, LfContingency lfContingency) {
-        return DcLoadFlowEngine.getActivePowerMismatch(lfNetwork.getBuses().stream().filter(bus -> !bus.isDisabled()).collect(Collectors.toSet()));
     }
 
     @Override

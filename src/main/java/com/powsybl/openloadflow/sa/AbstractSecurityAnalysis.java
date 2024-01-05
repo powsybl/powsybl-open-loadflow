@@ -355,8 +355,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected void afterPreContingencySimulation(P acParameters) {
     }
 
-    protected abstract double calculateMismatch(LfNetwork lfNetwork, LfContingency lfContingency);
-
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, P acParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                     List<Action> actions) {
@@ -409,7 +407,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                                 lfContingency.apply(loadFlowParameters.getBalanceType());
 
-                                distributedMismatch(lfNetwork, calculateMismatch(lfNetwork, lfContingency), loadFlowParameters, openLoadFlowParameters);
+                                distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
                                 var postContingencyResult = runPostContingencySimulation(lfNetwork, context, propagatedContingency.getContingency(),
                                         lfContingency, preContingencyLimitViolationManager,
