@@ -382,7 +382,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             R preContingencyLoadFlowResult = createLoadFlowEngine(context)
                     .run();
 
-            boolean preContingencyComputationOk = preContingencyLoadFlowResult.isOk();
+            boolean preContingencyComputationOk = preContingencyLoadFlowResult.isSuccess();
             var preContingencyLimitViolationManager = new LimitViolationManager();
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
             var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);

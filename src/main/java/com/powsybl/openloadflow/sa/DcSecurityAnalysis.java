@@ -78,6 +78,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
     @Override
     protected PostContingencyComputationStatus postContingencyStatusFromLoadFlowResult(DcLoadFlowResult result) {
-        return result.isSucceeded() ? PostContingencyComputationStatus.CONVERGED : PostContingencyComputationStatus.FAILED;
+        return result.isSuccess() ? PostContingencyComputationStatus.CONVERGED : PostContingencyComputationStatus.FAILED;
     }
 }

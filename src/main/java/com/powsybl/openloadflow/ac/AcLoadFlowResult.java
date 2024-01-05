@@ -66,14 +66,14 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
     }
 
     @Override
-    public boolean isOk() {
+    public boolean isSuccess() {
         return solverStatus == AcSolverStatus.CONVERGED && outerLoopStatus == OuterLoopStatus.STABLE;
     }
 
     public boolean isWithNetworkUpdate() {
         // do not reset state in case all results are ok and no NR iterations because it means that the network was
         // not changed and no calculation update was needed.
-        return isOk() && solverIterations > 0;
+        return isSuccess() && solverIterations > 0;
     }
 
     @Override

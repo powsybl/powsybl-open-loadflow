@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public interface LoadFlowResult {
 
-    boolean isOk();
+    boolean isSuccess();
 
     LfNetwork getNetwork();
 

@@ -15,24 +15,20 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class DcLoadFlowResult extends AbstractLoadFlowResult {
 
-    private final boolean succeeded;
+    private final boolean success;
 
-    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, boolean succeeded) {
+    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, boolean success) {
         super(network, slackBusActivePowerMismatch);
-        this.succeeded = succeeded;
+        this.success = success;
     }
 
     @Override
-    public boolean isOk() {
-        return isSucceeded();
-    }
-
-    public boolean isSucceeded() {
-        return succeeded;
+    public boolean isSuccess() {
+        return success;
     }
 
     @Override
     public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
-        return succeeded ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
+        return success ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
     }
 }

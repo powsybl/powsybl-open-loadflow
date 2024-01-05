@@ -72,7 +72,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
         try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
             DcLoadFlowEngine engine = new DcLoadFlowEngine(context);
-            if (!engine.run().isSucceeded()) {
+            if (!engine.run().isSuccess()) {
                 throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
             }
         }
