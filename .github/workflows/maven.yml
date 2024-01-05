@@ -24,7 +24,16 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 17
+# delete/revert me begin
+      - name: Checkout powsybl-core sources
+        uses: actions/checkout@v1
+        with:
+          repository: powsybl/powsybl-core
+          ref: refs/heads/automation_systems
 
+      - name: Build and install powsybl-core with Maven
+        run: mvn --batch-mode -DskipTests=true --file ../powsybl-core/pom.xml install
+# delete/revert me end
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
         run: ./mvnw --batch-mode -Pjacoco install
