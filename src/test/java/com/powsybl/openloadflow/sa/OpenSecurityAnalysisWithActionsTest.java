@@ -497,7 +497,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(0, preContingencyResult.getLimitViolationsResult().getLimitViolations().size());
 
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "branch_S_SO_1");
-        assertEquals(1, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
 
         for (LimitViolation limitViolation : postContingencyResult.getLimitViolationsResult().getLimitViolations()) {
             assertEquals("S_SO_2", limitViolation.getSubjectId());
