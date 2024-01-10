@@ -18,6 +18,8 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.equations.EquationTerm.setActive;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -848,12 +850,6 @@ public class AcEquationSystemCreator {
         }
         if (i2 != null) {
             branch.setI2(i2);
-        }
-    }
-
-    private static void setActive(Evaluable evaluable, boolean active) {
-        if (evaluable instanceof EquationTerm<?, ?> term) {
-            term.setActive(active);
         }
     }
 

@@ -1597,7 +1597,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setUpdateFlows(true)
                 .setForcePhaseControlOffAndAddAngle1Var(forcePhaseControlOffAndAddAngle1Var)
                 .setUseTransformerRatio(parameters.isDcUseTransformerRatio())
-                .setDcApproximationType(parametersExt.getDcApproximationType());
+                .setDcApproximationType(parametersExt.getDcApproximationType())
+                .setDcPowerFactor(parameters.getDcPowerFactor());
 
         return new DcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)

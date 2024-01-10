@@ -66,10 +66,11 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     @Override
     public void update() {
         clear();
-        addResults(monitorIndex.getAllStateMonitor());
         StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(contingency.getId());
         if (stateMonitor != null) {
             addResults(stateMonitor);
+        } else {
+            addResults(monitorIndex.getAllStateMonitor());
         }
     }
 
