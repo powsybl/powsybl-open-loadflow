@@ -571,7 +571,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         g1.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(80).add();
         g1Bis.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(20).add();
 
-        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true)
+        parameters.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
                 .setReactivePowerDispatchMode(ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -595,7 +595,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         g1.newMinMaxReactiveLimits().setMinQ(-20).setMaxQ(20).add();
         g1Bis.newMinMaxReactiveLimits().setMinQ(-10).setMaxQ(10).add();
 
-        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true)
+        parameters.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
                 .setReactivePowerDispatchMode(ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -618,7 +618,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         // not valid max ranges => fallback equally distributed
         // Q should be equally split between g1 and g1Bis
 
-        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true)
+        parameters.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
                 .setReactivePowerDispatchMode(ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
