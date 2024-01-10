@@ -7,9 +7,10 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.StaticVarCompensator.RegulationMode;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractLoadFlowNetworkFactory {
 
@@ -62,7 +63,7 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setConnectableBus(b.getId())
                 .setEnergySource(EnergySource.OTHER)
                 .setMinP(0)
-                .setMaxP(p)
+                .setMaxP(2 * p)
                 .setTargetP(p)
                 .setTargetV(v)
                 .setVoltageRegulatorOn(true)
@@ -79,7 +80,7 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setConnectableBus(b.getId())
                 .setEnergySource(EnergySource.OTHER)
                 .setMinP(0)
-                .setMaxP(p)
+                .setMaxP(2 * p)
                 .add();
         return g;
     }
@@ -101,13 +102,17 @@ public abstract class AbstractLoadFlowNetworkFactory {
     }
 
     protected static Line createLine(Network network, Bus b1, Bus b2, String id, double x) {
+        return createLine(network, b1, b2, id, 0, x);
+    }
+
+    protected static Line createLine(Network network, Bus b1, Bus b2, String id, double r, double x) {
         return network.newLine()
                 .setId(id)
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
                 .setBus2(b2.getId())
                 .setConnectableBus2(b2.getId())
-                .setR(0)
+                .setR(r)
                 .setX(x)
                 .add();
     }
@@ -122,15 +127,19 @@ public abstract class AbstractLoadFlowNetworkFactory {
     }
 
     protected static TwoWindingsTransformer createTransformer(Network network, String substationId, Bus b1, Bus b2, String id, double x, double rho) {
+        return createTransformer(network, substationId, b1, b2, id, 0, x, rho);
+    }
+
+    protected static TwoWindingsTransformer createTransformer(Network network, String substationId, Bus b1, Bus b2, String id, double r, double x, double rho) {
         return network.getSubstation(substationId).newTwoWindingsTransformer()
                 .setId(id)
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
                 .setBus2(b2.getId())
                 .setConnectableBus2(b2.getId())
-                .setRatedU1(1)
-                .setRatedU2(rho)
-                .setR(0)
+                .setRatedU1(b1.getVoltageLevel().getNominalV())
+                .setRatedU2(b2.getVoltageLevel().getNominalV() * rho)
+                .setR(r)
                 .setX(x)
                 .add();
     }
@@ -208,8 +217,65 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setR(r)
             .setActivePowerSetpoint(activePowerSetpoint)
             .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
-            .setMaxP(activePowerSetpoint)
+            .setMaxP(2 * activePowerSetpoint)
             .add();
+    }
+
+    protected static ShuntCompensator createFixedShuntCompensator(Bus bus, String id, double gPerSection, double bPersection) {
+        ShuntCompensator sh = bus.getVoltageLevel()
+            .newShuntCompensator()
+            .setId(id)
+            .setBus(bus.getId())
+            .setConnectableBus(bus.getId())
+            .setSectionCount(1)
+            .newLinearModel()
+            .setGPerSection(gPerSection)
+            .setBPerSection(bPersection)
+            .setMaximumSectionCount(1)
+            .add()
+            .add();
+        return sh;
+    }
+
+    protected static ShuntCompensator createShuntCompensator(Bus bus, String id, double g, double b, double v,
+        boolean voltageControl) {
+        ShuntCompensator sh = bus.getVoltageLevel()
+            .newShuntCompensator()
+            .setId(id)
+            .setBus(bus.getId())
+            .setConnectableBus(bus.getId())
+            .setSectionCount(1)
+            .newNonLinearModel()
+            .beginSection()
+            .setB(b)
+            .setG(g)
+            .endSection()
+            .add()
+            .add();
+        sh.setTargetV(v)
+            .setRegulatingTerminal(sh.getTerminal())
+            .setTargetDeadband(0.0)
+            .setVoltageRegulatorOn(voltageControl);
+        return sh;
+    }
+
+    protected static StaticVarCompensator createStaticVarCompensator(Bus bus, String id, double qSetpoint,
+        double vSetpoint, RegulationMode regulationMode) {
+        StaticVarCompensator svc = bus.getVoltageLevel()
+            .newStaticVarCompensator()
+            .setId(id)
+            .setBus(bus.getId())
+            .setConnectableBus(bus.getId())
+            .setBmin(-1.0)
+            .setBmax(1.0)
+            .setRegulationMode(RegulationMode.OFF)
+            .add();
+        svc.setRegulatingTerminal(svc.getTerminal())
+            .setVoltageSetpoint(vSetpoint)
+            .setReactivePowerSetpoint(qSetpoint)
+            .setRegulationMode(regulationMode);
+
+        return svc;
     }
 }
 

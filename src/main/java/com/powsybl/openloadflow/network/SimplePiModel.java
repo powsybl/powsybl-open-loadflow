@@ -12,7 +12,7 @@ import org.apache.commons.lang3.Range;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class SimplePiModel implements PiModel {
 
@@ -167,8 +167,8 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public boolean setMinZ(double minZ, boolean dc) {
-        if (dc) {
+    public boolean setMinZ(double minZ, LoadFlowModel loadFlowModel) {
+        if (loadFlowModel == LoadFlowModel.DC) {
             if (FastMath.abs(this.x) < minZ) {
                 this.x = minZ;
                 return true;

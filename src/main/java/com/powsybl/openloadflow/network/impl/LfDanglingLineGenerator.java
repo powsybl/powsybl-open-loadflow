@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class LfDanglingLineGenerator extends AbstractLfGenerator {
 
@@ -31,8 +31,8 @@ public final class LfDanglingLineGenerator extends AbstractLfGenerator {
         // local control only
         if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(parameters, report)) {
             // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
-            if (checkTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(),
-                    parameters, report)) {
+            if (checkTargetV(getId(), danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(),
+                    danglingLine.getTerminal().getVoltageLevel().getNominalV(), parameters, report)) {
                 this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
                 this.targetV = danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV();
                 this.generatorControlType = GeneratorControlType.VOLTAGE;

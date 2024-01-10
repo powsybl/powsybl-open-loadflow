@@ -6,10 +6,12 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class TransformerPhaseControl extends Control {
 
@@ -26,11 +28,11 @@ public class TransformerPhaseControl extends Control {
     private final LfBranch controllerBranch;
     private final LfBranch controlledBranch;
     private final double targetDeadband;
-    private final ControlledSide controlledSide;
+    private final TwoSides controlledSide;
     private final Mode mode;
     private final Unit unit;
 
-    public TransformerPhaseControl(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide, TransformerPhaseControl.Mode mode,
+    public TransformerPhaseControl(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide, TransformerPhaseControl.Mode mode,
                                    double targetValue, double targetDeadband, Unit unit) {
         super(targetValue);
         this.controllerBranch = Objects.requireNonNull(controllerBranch);
@@ -41,7 +43,7 @@ public class TransformerPhaseControl extends Control {
         this.unit = Objects.requireNonNull(unit);
     }
 
-    public ControlledSide getControlledSide() {
+    public TwoSides getControlledSide() {
         return controlledSide;
     }
 

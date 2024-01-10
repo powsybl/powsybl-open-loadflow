@@ -18,8 +18,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class LfShuntImpl extends AbstractLfShunt {
 
@@ -265,7 +265,7 @@ public class LfShuntImpl extends AbstractLfShunt {
             throw new PowsyblException("Cannot re-init a shunt compensator with voltage control capabilities");
         }
         List<ShuntCompensator> shuntCompensators = shuntCompensatorsRefs.stream().map(Ref::get).collect(Collectors.toList());
-        b = computeB(shuntCompensators, zb);
-        g = computeG(shuntCompensators, zb);
+        setB(computeB(shuntCompensators, zb));
+        setG(computeG(shuntCompensators, zb));
     }
 }

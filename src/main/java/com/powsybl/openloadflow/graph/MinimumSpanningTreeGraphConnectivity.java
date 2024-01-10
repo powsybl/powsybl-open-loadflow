@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
 
@@ -43,6 +43,11 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
             mst = null;
             componentSets = null;
         }
+    }
+
+    @Override
+    public boolean supportTemporaryChangesNesting() {
+        return true;
     }
 
     @Override

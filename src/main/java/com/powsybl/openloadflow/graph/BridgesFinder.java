@@ -16,7 +16,7 @@ import java.util.Objects;
 import java.util.function.ToIntFunction;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 class BridgesFinder<V> {
 

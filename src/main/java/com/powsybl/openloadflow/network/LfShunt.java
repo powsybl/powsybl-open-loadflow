@@ -16,7 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LfShunt extends LfElement {
 
@@ -73,16 +73,11 @@ public interface LfShunt extends LfElement {
         }
 
         private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
-            switch (allowedDirection) {
-                case INCREASE:
-                    return Range.between(position, sectionsB.size() - 1);
-                case DECREASE:
-                    return Range.between(0, position);
-                case BOTH:
-                    return Range.between(0, sectionsB.size() - 1);
-                default:
-                    throw new IllegalStateException("Unknown direction: " + allowedDirection);
-            }
+            return switch (allowedDirection) {
+                case INCREASE -> Range.of(position, sectionsB.size() - 1);
+                case DECREASE -> Range.of(0, position);
+                case BOTH -> Range.of(0, sectionsB.size() - 1);
+            };
         }
 
         public Optional<Direction> updateSectionB(double deltaB, int maxSectionShift, AllowedDirection allowedDirection) {
@@ -146,6 +141,10 @@ public interface LfShunt extends LfElement {
     void reInit();
 
     List<Controller> getControllers();
+
+    Evaluable getP();
+
+    void setP(Evaluable evaluable);
 
     Evaluable getQ();
 

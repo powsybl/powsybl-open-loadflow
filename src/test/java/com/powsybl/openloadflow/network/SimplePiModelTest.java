@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class SimplePiModelTest {
 
@@ -23,7 +23,7 @@ class SimplePiModelTest {
         assertEquals(1, piModel.getR(), 0);
         assertEquals(2.4, piModel.getX(), 0);
         assertEquals(2.6, piModel.getZ(), 0);
-        piModel.setMinZ(5.2, false);
+        piModel.setMinZ(5.2, LoadFlowModel.AC);
         assertEquals(2, piModel.getR(), 10e-16);
         assertEquals(4.8, piModel.getX(), 10e-16);
         assertEquals(5.2, piModel.getZ(), 10e-16);

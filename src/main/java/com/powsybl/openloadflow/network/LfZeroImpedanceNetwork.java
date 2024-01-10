@@ -17,28 +17,29 @@ import org.jgrapht.graph.Pseudograph;
 import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfZeroImpedanceNetwork {
 
     private final LfNetwork network;
 
-    private final boolean dc;
+    private final LoadFlowModel loadFlowModel;
 
     private final Graph<LfBus, LfBranch> graph;
 
     private SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree;
 
-    public LfZeroImpedanceNetwork(LfNetwork network, boolean dc, Graph<LfBus, LfBranch> graph) {
+    public LfZeroImpedanceNetwork(LfNetwork network, LoadFlowModel loadFlowModel, Graph<LfBus, LfBranch> graph) {
         this.network = Objects.requireNonNull(network);
-        this.dc = dc;
+        this.loadFlowModel = Objects.requireNonNull(loadFlowModel);
         this.graph = Objects.requireNonNull(graph);
         for (LfBus bus : graph.vertexSet()) {
-            bus.setZeroImpedanceNetwork(dc, this);
+            bus.setZeroImpedanceNetwork(loadFlowModel, this);
         }
         updateSpanningTree();
-        if (!dc) {
+        if (loadFlowModel == LoadFlowModel.AC) {
             updateVoltageControlMergeStatus();
+            disableInvalidGeneratorVoltageControls();
         }
     }
 
@@ -48,24 +49,24 @@ public class LfZeroImpedanceNetwork {
         return subGraph;
     }
 
-    public static Set<LfZeroImpedanceNetwork> create(LfNetwork network, boolean dc) {
+    public static Set<LfZeroImpedanceNetwork> create(LfNetwork network, LoadFlowModel loadFlowModel) {
         Objects.requireNonNull(network);
         Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = new LinkedHashSet<>();
-        var graph = createZeroImpedanceSubGraph(network, dc);
+        var graph = createZeroImpedanceSubGraph(network, loadFlowModel);
         List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
         for (Set<LfBus> connectedSet : connectedSets) {
             var subGraph = createSubgraph(graph, connectedSet);
-            zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
+            zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, loadFlowModel, subGraph));
         }
         return zeroImpedanceNetworks;
     }
 
-    private static Graph<LfBus, LfBranch> createZeroImpedanceSubGraph(LfNetwork network, boolean dc) {
+    private static Graph<LfBus, LfBranch> createZeroImpedanceSubGraph(LfNetwork network, LoadFlowModel loadFlowModel) {
         Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (bus1 != null && bus2 != null && branch.isZeroImpedance(dc)) {
+            if (bus1 != null && bus2 != null && branch.isZeroImpedance(loadFlowModel)) {
                 // add to zero impedance graph all buses that could be connected to a zero impedance branch
                 if (!subGraph.containsVertex(bus1)) {
                     subGraph.addVertex(bus1);
@@ -85,8 +86,8 @@ public class LfZeroImpedanceNetwork {
         return network;
     }
 
-    public boolean isDc() {
-        return dc;
+    public LoadFlowModel getLoadFlowModel() {
+        return loadFlowModel;
     }
 
     public Graph<LfBus, LfBranch> getGraph() {
@@ -101,7 +102,7 @@ public class LfZeroImpedanceNetwork {
         spanningTree = new KruskalMinimumSpanningTree<>(graph).getSpanningTree();
         Set<LfBranch> spanningTreeEdges = spanningTree.getEdges();
         for (LfBranch branch : graph.edgeSet()) {
-            branch.setSpanningTreeEdge(dc, spanningTreeEdges.contains(branch));
+            branch.setSpanningTreeEdge(loadFlowModel, spanningTreeEdges.contains(branch));
         }
     }
 
@@ -114,11 +115,14 @@ public class LfZeroImpedanceNetwork {
     private void updateVoltageControlMergeStatus() {
         Map<VoltageControl.Type, List<VoltageControl<?>>> voltageControlsByType = new EnumMap<>(VoltageControl.Type.class);
         for (LfBus zb : graph.vertexSet()) { // all enabled by design
-            for (VoltageControl<?> vc : zb.getVoltageControls()) {
-                voltageControlsByType.computeIfAbsent(vc.getType(), k -> new ArrayList<>())
-                        .add(vc);
-                vc.getMergedDependentVoltageControls().clear();
-                vc.mainMergedVoltageControl = null;
+            if (zb.isVoltageControlled()) {
+                for (VoltageControl<?> vc : zb.getVoltageControls()) {
+                    voltageControlsByType.computeIfAbsent(vc.getType(), k -> new ArrayList<>())
+                            .add(vc);
+                    vc.getMergedDependentVoltageControls().clear();
+                    vc.mainMergedVoltageControl = null;
+                    vc.disabled = false;
+                }
             }
         }
         for (List<VoltageControl<?>> voltageControls : voltageControlsByType.values()) {
@@ -142,28 +146,47 @@ public class LfZeroImpedanceNetwork {
         }
     }
 
+    private void disableInvalidGeneratorVoltageControls() {
+        List<LfBus> controlledBuses = new ArrayList<>(1);
+        for (LfBus zb : graph.vertexSet()) {
+            if (zb.isGeneratorVoltageControlEnabled()) {
+                controlledBuses.add(zb.getGeneratorVoltageControl().orElseThrow().getMainVoltageControl().getControlledBus());
+            }
+        }
+        List<LfBus> uniqueControlledBusesSortedByMaxP = controlledBuses.stream()
+                .distinct()
+                .sorted(Comparator.comparingDouble(LfBus::getMaxP))
+                .toList();
+        if (uniqueControlledBusesSortedByMaxP.size() > 1) {
+            // we have an issue, just keep first one with max active power
+            for (int i = 1; i < uniqueControlledBusesSortedByMaxP.size(); i++) {
+                uniqueControlledBusesSortedByMaxP.get(i).getGeneratorVoltageControl().orElseThrow().setDisabled(true);
+            }
+        }
+    }
+
     public void removeBranchAndTryToSplit(LfBranch disabledBranch) {
         graph.removeEdge(disabledBranch);
 
         List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
         if (connectedSets.size() > 1) { // real split
-            disabledBranch.setSpanningTreeEdge(dc, false);
+            disabledBranch.setSpanningTreeEdge(loadFlowModel, false);
 
-            Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
+            Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(loadFlowModel);
             zeroImpedanceNetworks.remove(this);
             List<LfZeroImpedanceNetwork> splitZns = new ArrayList<>(2);
             for (Set<LfBus> connectedSet : connectedSets) {
                 var subGraph = createSubgraph(graph, connectedSet);
-                splitZns.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
+                splitZns.add(new LfZeroImpedanceNetwork(network, loadFlowModel, subGraph));
             }
             zeroImpedanceNetworks.addAll(splitZns);
 
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onZeroImpedanceNetworkSplit(this, splitZns, dc);
+                listener.onZeroImpedanceNetworkSplit(this, splitZns, loadFlowModel);
             }
         } else {
-            if (disabledBranch.isSpanningTreeEdge(dc)) {
-                disabledBranch.setSpanningTreeEdge(dc, false);
+            if (disabledBranch.isSpanningTreeEdge(loadFlowModel)) {
+                disabledBranch.setSpanningTreeEdge(loadFlowModel, false);
 
                 // just update the spanning
                 updateSpanningTree();
@@ -176,19 +199,19 @@ public class LfZeroImpedanceNetwork {
         Objects.requireNonNull(zn2);
         Objects.requireNonNull(enabledBranch);
         LfNetwork network = zn1.getNetwork();
-        boolean dc = zn1.isDc();
-        Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
+        LoadFlowModel loadFlowModel = zn1.getLoadFlowModel();
+        Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(loadFlowModel);
         Graph<LfBus, LfBranch> mergedGraph = new Pseudograph<>(LfBranch.class);
         Graphs.addGraph(mergedGraph, zn1.getGraph());
         Graphs.addGraph(mergedGraph, zn2.getGraph());
         mergedGraph.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
         zeroImpedanceNetworks.remove(zn1);
         zeroImpedanceNetworks.remove(zn2);
-        LfZeroImpedanceNetwork mergedZn = new LfZeroImpedanceNetwork(network, dc, mergedGraph);
+        LfZeroImpedanceNetwork mergedZn = new LfZeroImpedanceNetwork(network, loadFlowModel, mergedGraph);
         zeroImpedanceNetworks.add(mergedZn);
 
         for (LfNetworkListener listener : network.getListeners()) {
-            listener.onZeroImpedanceNetworkMerge(zn1, zn2, mergedZn, dc);
+            listener.onZeroImpedanceNetworkMerge(zn1, zn2, mergedZn, loadFlowModel);
         }
     }
 
@@ -198,7 +221,7 @@ public class LfZeroImpedanceNetwork {
 
     @Override
     public String toString() {
-        return "LfZeroImpedanceNetwork(dc=" + dc
+        return "LfZeroImpedanceNetwork(loadFlowModel=" + loadFlowModel
                 + ", buses=" + graph.vertexSet()
                 + ", branches=" + graph.edgeSet()
                 + ")";

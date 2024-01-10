@@ -10,23 +10,22 @@ package com.powsybl.openloadflow.lf;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.Quantity;
-import com.powsybl.openloadflow.network.AbstractLfNetworkListener;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.*;
+
+import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener {
 
     protected final EquationSystem<V, E> equationSystem;
 
-    protected final boolean dc;
+    protected final LoadFlowModel loadFlowModel;
 
-    protected AbstractEquationSystemUpdater(EquationSystem<V, E> equationSystem, boolean dc) {
-        this.equationSystem = equationSystem;
-        this.dc = dc;
+    protected AbstractEquationSystemUpdater(EquationSystem<V, E> equationSystem, LoadFlowModel loadFlowModel) {
+        this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.loadFlowModel = Objects.requireNonNull(loadFlowModel);
     }
 
     protected static void checkSlackBus(LfBus bus, boolean disabled) {
@@ -38,15 +37,15 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
     protected abstract void updateNonImpedantBranchEquations(LfBranch branch, boolean enable);
 
     @Override
-    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
-        if (dc == this.dc) {
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, LoadFlowModel loadFlowModel, boolean spanningTree) {
+        if (loadFlowModel == this.loadFlowModel) {
             updateNonImpedantBranchEquations(branch, !branch.isDisabled() && spanningTree);
         }
     }
 
     protected void updateElementEquations(LfElement element, boolean enable) {
-        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedance(dc)) {
-            updateNonImpedantBranchEquations((LfBranch) element, enable && ((LfBranch) element).isSpanningTreeEdge(dc));
+        if (element instanceof LfBranch branch && branch.isZeroImpedance(loadFlowModel)) {
+            updateNonImpedantBranchEquations(branch, enable && branch.isSpanningTreeEdge(loadFlowModel));
         } else {
             // update all equations related to the element
             for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {

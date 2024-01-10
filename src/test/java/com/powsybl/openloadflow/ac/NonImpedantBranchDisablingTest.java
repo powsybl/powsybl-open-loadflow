@@ -26,16 +26,14 @@ import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class NonImpedantBranchDisablingTest {
 
@@ -86,14 +84,14 @@ class NonImpedantBranchDisablingTest {
         loadFlowRunner.run(network);
         assertEquals(600.018, network.getLine("L2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-600.018, network.getLine("L2").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, network.getLine("L1").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, network.getLine("L1").getTerminal1().getP(), 0);
 
         network.getLine("L1").getTerminal1().connect();
         network.getLine("L1").getTerminal2().disconnect();
         loadFlowRunner.run(network);
         assertEquals(600.0, network.getLine("L2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-600.0, network.getLine("L2").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, network.getLine("L1").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, network.getLine("L1").getTerminal2().getP(), 0);
     }
 
     @Test
@@ -120,7 +118,9 @@ class NonImpedantBranchDisablingTest {
                                                             new NaiveGraphConnectivityFactory<>(LfElement::getNum),
                                                             true,
                                                             false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), Collections.emptySet(), Set.of(c1), Reporter.NO_OP)) {
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        topoConfig.getSwitchesToClose().add(c1);
+        try (LfNetworkList lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), topoConfig, Reporter.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
             try (AcLoadFlowContext context = new AcLoadFlowContext(largestNetwork, acLoadFlowParameters)) {

@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
+import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -17,7 +18,7 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
@@ -53,7 +54,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.power = hvdcLine.getActivePowerSetpoint();
-        this.isControllerSide1 = HvdcConverterStations.isRectifier(hvdcLine.getConverterStation1());
+        this.isControllerSide1 = HvdcUtils.isRectifier(hvdcLine.getConverterStation1());
         double zb = PerUnit.zb(hvdcLine.getNominalV());
         this.r = hvdcLine.getR() / zb;
         HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);

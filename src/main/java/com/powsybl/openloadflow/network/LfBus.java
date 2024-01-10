@@ -13,9 +13,14 @@ import com.powsybl.security.results.BusResult;
 import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LfBus extends LfElement {
+
+    enum QLimitType {
+        MIN_Q,
+        MAX_Q
+    }
 
     String getVoltageLevelId();
 
@@ -39,16 +44,17 @@ public interface LfBus extends LfElement {
      */
     boolean isVoltageControlled();
 
+    boolean isVoltageControlled(VoltageControl.Type type);
+
+    Optional<VoltageControl<?>> getVoltageControl(VoltageControl.Type type);
+
     /**
      * Get the highest priority voltage control connected to a bus of the zero impedance subgraph to which this bus
      * belong.
      */
-    Optional<VoltageControl<?>> getHighestPriorityVoltageControl();
+    Optional<VoltageControl<?>> getHighestPriorityMainVoltageControl();
 
     // generator voltage control
-
-    boolean hasGeneratorVoltageControllerCapability();
-
     Optional<GeneratorVoltageControl> getGeneratorVoltageControl();
 
     void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl);
@@ -67,9 +73,15 @@ public interface LfBus extends LfElement {
 
     void removeGeneratorSlopes();
 
-    Optional<ReactivePowerControl> getReactivePowerControl();
+    Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl();
 
-    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
+    void setGeneratorReactivePowerControl(GeneratorReactivePowerControl generatorReactivePowerControl);
+
+    boolean hasGeneratorReactivePowerControl();
+
+    boolean isGeneratorReactivePowerControlEnabled();
+
+    void setGeneratorReactivePowerControlEnabled(boolean generatorReactivePowerControlEnabled);
 
     double getTargetP();
 
@@ -77,19 +89,13 @@ public interface LfBus extends LfElement {
 
     double getLoadTargetP();
 
-    double getInitialLoadTargetP();
-
-    void setLoadTargetP(double loadTargetP);
-
     double getLoadTargetQ();
-
-    void setLoadTargetQ(double loadTargetQ);
-
-    boolean ensurePowerFactorConstantByLoad();
 
     void invalidateGenerationTargetP();
 
     double getGenerationTargetP();
+
+    double getMaxP();
 
     double getGenerationTargetQ();
 
@@ -98,6 +104,10 @@ public interface LfBus extends LfElement {
     double getMinQ();
 
     double getMaxQ();
+
+    Optional<QLimitType> getQLimitType();
+
+    void setQLimitType(QLimitType qLimitType);
 
     double getV();
 
@@ -133,7 +143,7 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getSvcShunt();
 
-    LfAggregatedLoads getAggregatedLoads();
+    List<LfLoad> getLoads();
 
     List<LfBranch> getBranches();
 
@@ -180,9 +190,9 @@ public interface LfBus extends LfElement {
      */
     Map<LfBus, List<LfBranch>> findNeighbors();
 
-    double getRemoteVoltageControlReactivePercent();
+    double getRemoteControlReactivePercent();
 
-    void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
+    void setRemoteControlReactivePercent(double remoteControlReactivePercent);
 
     /**
      * Get active power mismatch.
@@ -194,7 +204,11 @@ public interface LfBus extends LfElement {
         return Optional.empty();
     }
 
-    void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork);
+    void setZeroImpedanceNetwork(LoadFlowModel loadFlowModel, LfZeroImpedanceNetwork zeroImpedanceNetwork);
 
-    LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc);
+    LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel loadFlowModel);
+
+    LfAsymBus getAsym();
+
+    void setAsym(LfAsymBus asym);
 }

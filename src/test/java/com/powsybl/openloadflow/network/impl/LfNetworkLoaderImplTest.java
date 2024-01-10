@@ -21,7 +21,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
@@ -132,7 +132,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void defaultMethodsTest() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
@@ -203,5 +203,18 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         network.getDanglingLine("dl1").setP0(Double.NaN).setQ0(Double.NaN);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
         assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
+    }
+
+    @Test
+    void testMinImpedance() {
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        network.getLine("NHV1_NHV2_1").setR(0.0).setX(0.0).setB1(0.0).setB2(0.0).setG1(0.0).setG2(0.0);
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfBranch line = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
+        assertTrue(line.isZeroImpedance(LoadFlowModel.AC));
+        assertTrue(line.isZeroImpedance(LoadFlowModel.DC));
+        line.setMinZ(10); // for both AC and DC load flow model
+        assertFalse(line.isZeroImpedance(LoadFlowModel.AC));
+        assertFalse(line.isZeroImpedance(LoadFlowModel.DC));
     }
 }

@@ -14,18 +14,14 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalPhaseControlOuterLoop.SensitivityContext;
+import com.powsybl.openloadflow.ac.outerloop.AcIncrementalPhaseControlOuterLoop;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -33,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AcLoadFlowPhaseShifterTest {
 
@@ -66,7 +62,7 @@ class AcLoadFlowPhaseShifterTest {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(400, bus1);
         assertAngleEquals(0, bus1);
@@ -90,7 +86,7 @@ class AcLoadFlowPhaseShifterTest {
         t2wt.getPhaseTapChanger().setTapPosition(2);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(400, bus1);
         assertAngleEquals(0, bus1);
@@ -120,7 +116,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(83);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(83.587, line2.getTerminal1());
         assertActivePowerEquals(-83.486, line2.getTerminal2());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
@@ -133,7 +129,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationTerminal(t2wt.getTerminal2());
 
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(16.528, line2.getTerminal1());
         assertActivePowerEquals(-16.514, line2.getTerminal2());
         assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
@@ -151,7 +147,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(83);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(83.688, line1.getTerminal1());
         assertActivePowerEquals(16.527, line2.getTerminal1());
         assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
@@ -169,7 +165,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(83); // in A
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertCurrentEquals(129.436, t2wt.getTerminal1());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
 
@@ -181,7 +177,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(83); // in A
 
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isOk());
+        assertTrue(result2.isFullyConverged());
         assertCurrentEquals(48.482, t2wt.getTerminal1());
         assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
 
@@ -193,7 +189,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(90); // A
 
         LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
-        assertTrue(result3.isOk());
+        assertTrue(result3.isFullyConverged());
         assertCurrentEquals(83.680, line2.getTerminal1());
         assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
 
@@ -208,7 +204,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(83); // A
 
         LoadFlowResult result4 = loadFlowRunner.run(network, parameters);
-        assertTrue(result4.isOk());
+        assertTrue(result4.isFullyConverged());
         assertCurrentEquals(48.492, line2.getTerminal1());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
     }
@@ -226,7 +222,7 @@ class AcLoadFlowPhaseShifterTest {
         t2wt.getTerminal1().disconnect();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
     }
 
@@ -245,7 +241,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(83);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
     }
 
@@ -261,7 +257,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(83);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
     }
 
@@ -287,7 +283,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(83);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
     }
 
@@ -295,7 +291,7 @@ class AcLoadFlowPhaseShifterTest {
     void baseCaseT3wtTest() {
         selectNetwork(PhaseControlFactory.createNetworkWithT3wt());
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(400, bus1);
         assertAngleEquals(0, bus1);
@@ -321,7 +317,7 @@ class AcLoadFlowPhaseShifterTest {
         t3wt.getLeg2().getPhaseTapChanger().setTapPosition(2);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(400, bus1);
         assertAngleEquals(0, bus1);
@@ -353,7 +349,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(0.);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-0.7403999884197101, line2.getTerminal1());
         assertActivePowerEquals(0.7428793087142719, line2.getTerminal2());
         assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getTapPosition());
@@ -371,7 +367,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(75);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(75.94143342722937, line1.getTerminal1());
         assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getTapPosition());
     }
@@ -389,7 +385,7 @@ class AcLoadFlowPhaseShifterTest {
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertActivePowerEquals(76.830, t2wt.getTerminal1());
         assertReactivePowerEquals(-4.922, t2wt.getTerminal1());
@@ -408,7 +404,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setRegulating(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(100.0805, network.getLine("l12").getTerminal1());
     }
 
@@ -425,7 +421,7 @@ class AcLoadFlowPhaseShifterTest {
         t2wt.getTerminal1().disconnect();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
     }
 
@@ -459,7 +455,7 @@ class AcLoadFlowPhaseShifterTest {
 
         parameters.setPhaseShifterRegulationOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(100.3689, t2wt.getTerminal1());
         assertActivePowerEquals(-100.1844, t2wt.getTerminal2());
     }
@@ -479,12 +475,12 @@ class AcLoadFlowPhaseShifterTest {
         parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertCurrentEquals(129.436, t2wt.getTerminal1());
 
         t2wt.getPhaseTapChanger().setRegulating(true);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertCurrentEquals(48.482, t2wt.getTerminal1());
     }
 
@@ -503,19 +499,19 @@ class AcLoadFlowPhaseShifterTest {
         parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(50.088, t2wt.getTerminal1());
 
         t2wt.getPhaseTapChanger().setRegulating(true);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
         assertActivePowerEquals(83.686, t2wt.getTerminal1());
 
         t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
         t2wt.getPhaseTapChanger().setRegulationValue(10);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
         assertActivePowerEquals(16.541, t2wt.getTerminal1());
     }
@@ -534,19 +530,19 @@ class AcLoadFlowPhaseShifterTest {
         parameters.setPhaseShifterRegulationOn(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         double i1t1 = t2wt.getTerminal1().getI();
         double i2t1 = t2wt.getTerminal1().getI();
 
         t2wt.getPhaseTapChanger().setTapPosition(0);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         double i1t0 = t2wt.getTerminal1().getI();
         double i2t0 = t2wt.getTerminal1().getI();
 
         t2wt.getPhaseTapChanger().setTapPosition(2);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         double i1t2 = t2wt.getTerminal1().getI();
         double i2t2 = t2wt.getTerminal1().getI();
 
@@ -562,39 +558,35 @@ class AcLoadFlowPhaseShifterTest {
         // compare with sensi on tap 1
         t2wt.getPhaseTapChanger().setTapPosition(1);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         t2wt.getPhaseTapChanger().setRegulating(true);
 
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setPhaseControl(true);
         LfNetwork lfNetwork = Networks.load(network, lfNetworkParameters).get(0);
-        AcLoadFlowParameters acParameters = new AcLoadFlowParameters(lfNetworkParameters,
-                                                                     new AcEquationSystemCreationParameters(),
-                                                                     new NewtonRaphsonParameters(),
-                                                                     Collections.emptyList(),
-                                                                     AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
-                                                                     new DenseMatrixFactory(),
-                                                                     new UniformValueVoltageInitializer());
+        AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
+                .setNetworkParameters(lfNetworkParameters)
+                .setMatrixFactory(new DenseMatrixFactory());
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult lfResult = new AcloadFlowEngine(lfContext)
                     .run();
-            assertEquals(NewtonRaphsonStatus.CONVERGED, lfResult.getNewtonRaphsonStatus());
+            assertEquals(AcSolverStatus.CONVERGED, lfResult.getSolverStatus());
             LfBranch ps1 = lfNetwork.getBranchById("PS1");
             List<LfBranch> controllerBranches = List.of(ps1);
-            var sensitivityContext = new SensitivityContext(lfNetwork,
-                                                            controllerBranches,
-                                                            lfContext.getEquationSystem(),
-                                                            lfContext.getJacobianMatrix());
+            var sensitivityContext = new AcIncrementalPhaseControlOuterLoop.AcSensitivityContext(lfNetwork,
+                                                                                                 controllerBranches,
+                                                                                                 lfContext.getEquationSystem(),
+                                                                                                 lfContext.getJacobianMatrix());
             double da10 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(0).getAlpha();
             double da12 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(2).getAlpha();
             double ib = PerUnit.ib(ps1.getBus1().getNominalV());
-            double sensi1 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, ControlledSide.ONE);
+            double sensi1 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, TwoSides.ONE);
             double di1t10p = sensi1 * da10 * ib;
             double di1t12p = sensi1 * da12 * ib;
             assertEquals(43.007011829925496, di1t10p, 0d);
             assertEquals(-43.007011829925496, di1t12p, 0d);
-            double sensi2 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, ControlledSide.TWO);
+            double sensi2 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, TwoSides.TWO);
             double di2t10p = sensi2 * da10 * ib;
             double di2t12p = sensi2 * da12 * ib;
             assertEquals(43.007011829925496, di2t10p, 0d);
@@ -615,20 +607,21 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulationValue(100);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(112.197, line2.getTerminal1());
         assertActivePowerEquals(-112.019, line2.getTerminal2());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
 
-        line1.setR(0).setX(0);
+        line1.setR(0.0).setX(0.0);
         t2wt.setR(2.0).setX(100.0);
         t2wt.getPhaseTapChanger()
                 .setRegulationTerminal(line1.getTerminal1())
                 .setTapPosition(0);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
-        assertActivePowerEquals(-12.006, line1.getTerminal1());
-        assertActivePowerEquals(112.197, line2.getTerminal1());
-        assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
+        assertTrue(result2.isFullyConverged());
+        assertActivePowerEquals(100.0, line1.getTerminal1());
+        assertActivePowerEquals(0.0, line2.getTerminal1());
+        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
     }
 }

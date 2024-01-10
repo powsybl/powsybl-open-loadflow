@@ -7,44 +7,58 @@
 package com.powsybl.openloadflow.network;
 
 /**
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 public class BranchState extends ElementState<LfBranch> {
 
-    private double a1 = Double.NaN;
-    private double r1 = Double.NaN;
+    private final double a1;
+    private final double r1;
     private final boolean phaseControlEnabled;
     private final boolean voltageControlEnabled;
     private Integer tapPosition;
+    private Boolean connectedSide1;
+    private Boolean connectedSide2;
 
     public BranchState(LfBranch branch) {
         super(branch);
         PiModel piModel = branch.getPiModel();
-        if (piModel instanceof PiModelArray) {
+        if (piModel instanceof PiModelArray piModelArray) {
             tapPosition = piModel.getTapPosition();
+            // also save modified a1 and r1 and not directly a1 and r1 to avoid restoring
+            // with same values as current tap position
+            a1 = piModelArray.getModifiedA1();
+            r1 = piModelArray.getModifiedR1();
         } else {
             a1 = piModel.getA1();
             r1 = piModel.getR1();
         }
         phaseControlEnabled = branch.isPhaseControlEnabled();
         voltageControlEnabled = branch.isVoltageControlEnabled();
+        if (branch.isDisconnectionAllowedSide1()) {
+            connectedSide1 = branch.isConnectedSide1();
+        }
+        if (branch.isDisconnectionAllowedSide2()) {
+            connectedSide2 = branch.isConnectedSide2();
+        }
     }
 
     @Override
     public void restore() {
         super.restore();
         PiModel piModel = element.getPiModel();
-        if (tapPosition != null) {
+        if (piModel instanceof PiModelArray) {
             piModel.setTapPosition(tapPosition);
         }
-        if (!Double.isNaN(a1)) {
-            piModel.setA1(a1);
-        }
-        if (!Double.isNaN(r1)) {
-            piModel.setR1(r1);
-        }
+        piModel.setA1(a1);
+        piModel.setR1(r1);
         element.setPhaseControlEnabled(phaseControlEnabled);
         element.setVoltageControlEnabled(voltageControlEnabled);
+        if (connectedSide1 != null) {
+            element.setConnectedSide1(connectedSide1);
+        }
+        if (connectedSide2 != null) {
+            element.setConnectedSide2(connectedSide2);
+        }
     }
 
     public static BranchState save(LfBranch branch) {

@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.*;
 
 /**
- * @author Gael Macherel <gael.macherel at artelys.com>
+ * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 public class T3wtFactory extends AbstractLoadFlowNetworkFactory {
 
@@ -25,7 +25,7 @@ public class T3wtFactory extends AbstractLoadFlowNetworkFactory {
      *         |
      *         sc3
      *
-     * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
      */
     public static Network create() {
         Network network = Network.create("vsc", "test");

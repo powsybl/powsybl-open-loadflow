@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
@@ -146,12 +146,30 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return equations.containsKey(p);
     }
 
+    private void deindexTerm(EquationTerm<V, E> term) {
+        if (term.getElementType() != null && term.getElementNum() != -1) {
+            List<EquationTerm<V, E>> termsForThisElement = equationTermsByElement.get(Pair.of(term.getElementType(), term.getElementNum()));
+            if (termsForThisElement != null) {
+                termsForThisElement.remove(term);
+            }
+        }
+        for (EquationTerm<V, E> child : term.getChildren()) {
+            deindexTerm(child);
+        }
+    }
+
     public Equation<V, E> removeEquation(int num, E type) {
         Pair<Integer, E> p = Pair.of(num, type);
         Equation<V, E> equation = equations.remove(p);
         if (equation != null) {
             Pair<ElementType, Integer> element = Pair.of(type.getElementType(), num);
-            equationsByElement.remove(element);
+            equationsByElement.get(element).remove(equation);
+            if (equationTermsByElement != null) {
+                for (EquationTerm<V, E> term : equation.getTerms()) {
+                    deindexTerm(term);
+                }
+            }
+            equation.setRemoved(); // to ensure it is not used anymore
             notifyEquationChange(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;

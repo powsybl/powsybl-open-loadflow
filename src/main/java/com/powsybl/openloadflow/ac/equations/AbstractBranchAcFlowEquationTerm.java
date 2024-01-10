@@ -11,7 +11,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
@@ -21,6 +21,8 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
     protected final double g2;
     protected final double y;
     protected final double ksi;
+    protected final double g12;
+    protected final double b12;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
         super(branch);
@@ -34,5 +36,8 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
         g2 = piModel.getG2();
         y = piModel.getY();
         ksi = piModel.getKsi();
+        // y12 = g12+j.b12 = 1/(r+j.x)
+        g12 = piModel.getR() * y * y;
+        b12 = -piModel.getX() * y * y;
     }
 }

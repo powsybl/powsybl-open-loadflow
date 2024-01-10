@@ -6,23 +6,30 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
+import com.powsybl.iidm.network.extensions.GeneratorFortescue;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
+import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class LfGeneratorImpl extends AbstractLfGenerator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfGeneratorImpl.class);
 
     private final Ref<Generator> generatorRef;
 
@@ -31,6 +38,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     private double droop;
 
     private double participationFactor;
+
+    private Double qPercent;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB);
@@ -51,7 +60,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
 
         if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                parameters.getPlausibleActivePowerLimit(), report)) {
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }
 
@@ -61,8 +70,50 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
 
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
-        if (reactivePowerControl != null && reactivePowerControl.isEnabled() && !generator.isVoltageRegulatorOn()) {
+        if (reactivePowerControl != null && reactivePowerControl.isEnabled() && !generator.isVoltageRegulatorOn() && parameters.isReactivePowerRemoteControl()) {
             setReactivePowerControl(reactivePowerControl.getRegulatingTerminal(), reactivePowerControl.getTargetQ());
+        }
+
+        CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
+        if (coordinatedReactiveControl != null) {
+            if (coordinatedReactiveControl.getQPercent() == 0) {
+                LOGGER.trace("Generator '{}' remote voltage control reactive power key value is zero", generator.getId());
+                report.generatorsWithZeroRemoteVoltageControlReactivePowerKey++;
+            } else {
+                qPercent = coordinatedReactiveControl.getQPercent();
+            }
+        }
+    }
+
+    private static void createAsym(Generator generator, LfGeneratorImpl lfGenerator) {
+        var extension = generator.getExtension(GeneratorFortescue.class);
+        if (extension != null) {
+            double vNom = generator.getTerminal().getVoltageLevel().getNominalV();
+            double zb = vNom * vNom / PerUnit.SB;
+            double r0 = extension.getRz() / zb;
+            double x0 = extension.getXz() / zb;
+            double r2 = extension.getRn() / zb;
+            double x2 = extension.getXn() / zb;
+            double z0Square = r0 * r0 + x0 * x0;
+            double z2Square = r2 * r2 + x2 * x2;
+            double epsilon = 0.0000000001;
+            double bZero;
+            double gZero;
+            double bNegative;
+            double gNegative;
+            if (z0Square > epsilon) {
+                bZero = -x0 / z0Square;
+                gZero = r0 / z0Square;
+            } else {
+                throw new PowsyblException("Generator '" + generator.getId() + "' has fortescue zero sequence values that will bring singularity in the equation system");
+            }
+            if (z2Square > epsilon) {
+                bNegative = -x2 / z2Square;
+                gNegative = r2 / z2Square;
+            } else {
+                throw new PowsyblException("Generator '" + generator.getId() + "' has fortescue negative sequence values that will bring singularity in the equation system");
+            }
+            lfGenerator.setAsym(new LfAsymGenerator(gZero, bZero, gNegative, bNegative));
         }
     }
 
@@ -72,7 +123,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, network, parameters, report);
+        LfGeneratorImpl lfGenerator = new LfGeneratorImpl(generator, network, parameters, report);
+        if (parameters.isAsymmetrical()) {
+            createAsym(generator, lfGenerator);
+        }
+        return lfGenerator;
     }
 
     private Generator getGenerator() {
@@ -91,11 +146,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public OptionalDouble getRemoteControlReactiveKey() {
-        CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
-        if (coordinatedReactiveControl == null) {
-            return OptionalDouble.empty();
-        }
-        return OptionalDouble.of(coordinatedReactiveControl.getQPercent());
+        return qPercent != null ? OptionalDouble.of(qPercent) : OptionalDouble.empty();
     }
 
     @Override

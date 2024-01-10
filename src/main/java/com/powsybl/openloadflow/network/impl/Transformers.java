@@ -14,8 +14,8 @@ import java.util.Objects;
 import java.util.OptionalInt;
 
 /**
- * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Sylvain Leclerc {@literal <sylvain.leclerc at rte-france.com>}
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public final class Transformers {
 
@@ -206,6 +206,12 @@ public final class Transformers {
     public static double getRatioPerUnitBase(Branch<?> branch) {
         double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
+        return nominalV2 / nominalV1;
+    }
+
+    public static double getRatioPerUnitBase(TieLine line) {
+        double nominalV1 = line.getDanglingLine1().getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV();
         return nominalV2 / nominalV1;
     }
 }

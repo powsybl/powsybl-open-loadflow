@@ -21,9 +21,8 @@ import com.powsybl.contingency.contingency.list.ContingencyList;
 import com.powsybl.contingency.contingency.list.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.VariantManagerConstants;
-import com.powsybl.iidm.xml.NetworkXml;
+import com.powsybl.iidm.serde.NetworkSerDe;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -32,14 +31,15 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
-import org.joda.time.DateTime;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -48,14 +48,18 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 @AutoService(SensitivityAnalysisProvider.class)
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
@@ -63,6 +67,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     private final MatrixFactory matrixFactory;
 
     private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+
+    private static final String JSON_EXTENSION = ".json";
 
     public OpenSensitivityAnalysisProvider() {
         this(new SparseMatrixFactory());
@@ -154,61 +160,68 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
-            Set<Switch> allSwitchesToOpen = new HashSet<>();
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, Collections.emptySet(), false, false,
-                    sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                    sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc());
+            LfTopoConfig topoConfig = new LfTopoConfig();
+            LoadFlowParameters loadFlowParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
+            PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                    .setContingencyPropagation(false)
+                    .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
+                    .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                    .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 
             // debugging
             if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
                 Path debugDir = DebugUtil.getDebugDir(sensitivityAnalysisParametersExt.getDebugDir());
-                String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
+                String dateStr = ZonedDateTime.now().format(DATE_TIME_FORMAT);
 
-                NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
+                NetworkSerDe.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
 
                 ObjectWriter objectWriter = createObjectMapper()
                         .writerWithDefaultPrettyPrinter();
                 try {
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                         ContingencyList contingencyList = new DefaultContingencyList("default", contingencies);
                         objectWriter.writeValue(writer, contingencyList);
                     }
 
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                         objectWriter.writeValue(writer, variableSets);
                     }
 
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                         objectWriter.writeValue(writer, sensitivityAnalysisParameters);
                     }
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
 
-                decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + ".json"));
+                decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + JSON_EXTENSION));
             }
 
             AbstractSensitivityAnalysis<?, ?> analysis;
-            if (sensitivityAnalysisParameters.getLoadFlowParameters().isDc()) {
+            if (loadFlowParameters.isDc()) {
                 analysis = new DcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             } else {
                 analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             }
-            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReporter, topoConfig);
         }, computationManager.getExecutor());
     }
 
-    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
+    public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
+    }
+
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
         Objects.requireNonNull(resultWriterProvider);
         Objects.requireNonNull(reporter);
 
-        String dateStr = date.toString(DATE_TIME_FORMAT);
+        String dateStr = date.format(DATE_TIME_FORMAT);
 
-        Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
+        Network network = NetworkSerDe.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
 
         ObjectMapper objectMapper = createObjectMapper();
         List<SensitivityFactor> factors;
@@ -216,19 +229,19 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         List<SensitivityVariableSet> variableSets;
         SensitivityAnalysisParameters sensitivityAnalysisParameters;
         try {
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("factors-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("factors-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 factors = objectMapper.readValue(reader, new TypeReference<>() {
                 });
             }
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 ContingencyList contingencyList = objectMapper.readValue(reader, DefaultContingencyList.class);
                 contingencies = contingencyList.getContingencies(network);
             }
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("variable-sets-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 variableSets = objectMapper.readValue(reader, new TypeReference<>() {
                 });
             }
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("parameters-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 sensitivityAnalysisParameters = objectMapper.readValue(reader, new TypeReference<>() {
                 });
             }
@@ -248,15 +261,14 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reporter)
                 .join();
 
-        return resultWriter;
+        return new ReplayResult<>(resultWriter, factors, contingencies);
     }
 
-    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
         return replay(date, debugDir, resultWriterProvider, Reporter.NO_OP);
     }
 
-    public List<SensitivityValue> replay(DateTime date, Path debugDir) {
-        SensitivityResultModelWriter resultWriter = replay(date, debugDir, SensitivityResultModelWriter::new);
-        return resultWriter.getValues();
+    public ReplayResult<SensitivityResultModelWriter> replay(ZonedDateTime date, Path debugDir) {
+        return replay(date, debugDir, SensitivityResultModelWriter::new);
     }
 }

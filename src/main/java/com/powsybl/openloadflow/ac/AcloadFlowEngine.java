@@ -9,14 +9,15 @@ package com.powsybl.openloadflow.ac;
 import com.google.common.collect.Lists;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
-import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.ac.solver.*;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
+import com.powsybl.openloadflow.lf.LoadFlowEngine;
+import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
@@ -25,14 +26,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowResult> {
 
@@ -40,8 +37,15 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
     private final AcLoadFlowContext context;
 
+    private final AcSolverFactory solverFactory;
+
     public AcloadFlowEngine(AcLoadFlowContext context) {
+        this(context, new NewtonRaphsonFactory());
+    }
+
+    public AcloadFlowEngine(AcLoadFlowContext context, AcSolverFactory solverFactory) {
         this.context = Objects.requireNonNull(context);
+        this.solverFactory = Objects.requireNonNull(solverFactory);
     }
 
     @Override
@@ -51,42 +55,54 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
     private static class RunningContext {
 
-        private NewtonRaphsonResult lastNrResult;
+        private AcSolverResult lastSolverResult;
 
         private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
 
         private int outerLoopTotalIterations = 0;
 
         private final MutableInt nrTotalIterations = new MutableInt();
+
+        private OuterLoopStatus lastOuterLoopStatus;
     }
 
-    private void runOuterLoop(OuterLoop outerLoop, OuterLoopContextImpl outerLoopContext, NewtonRaphson newtonRaphson, RunningContext runningContext) {
-        Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getType());
+    private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext) {
+        Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getName());
 
-        // for each outer loop re-run Newton-Raphson until stabilization
+        // for each outer loop re-run solver until stabilization
         OuterLoopStatus outerLoopStatus;
         do {
-            MutableInt outerLoopIteration = runningContext.outerLoopIterationByType.computeIfAbsent(outerLoop.getType(), k -> new MutableInt());
+            MutableInt outerLoopIteration = runningContext.outerLoopIterationByType.computeIfAbsent(outerLoop.getName(), k -> new MutableInt());
 
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration.getValue());
-            outerLoopContext.setLastNewtonRaphsonResult(runningContext.lastNrResult);
-            outerLoopContext.setAcLoadFlowContext(context);
+            outerLoopContext.setLastSolverResult(runningContext.lastSolverResult);
+            outerLoopContext.setLoadFlowContext(context);
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
+            runningContext.lastOuterLoopStatus = outerLoopStatus;
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
-                LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getType(), runningContext.outerLoopTotalIterations);
+                LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getName(), runningContext.outerLoopTotalIterations);
 
-                // if not yet stable, restart Newton-Raphson
-                runningContext.lastNrResult = newtonRaphson.run(new PreviousValueVoltageInitializer());
+                Reporter nrReporter = context.getNetwork().getReporter();
+                if (context.getParameters().isDetailedReport()) {
+                    nrReporter = Reports.createDetailedSolverReporterOuterLoop(nrReporter,
+                            solver.getName(),
+                            context.getNetwork().getNumCC(),
+                            context.getNetwork().getNumSC(),
+                            outerLoopIteration.toInteger() + 1, outerLoop.getName());
+                }
 
-                runningContext.nrTotalIterations.add(runningContext.lastNrResult.getIterations());
+                // if not yet stable, restart solver
+                runningContext.lastSolverResult = solver.run(new PreviousValueVoltageInitializer(), nrReporter);
+
+                runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
                 runningContext.outerLoopTotalIterations++;
 
                 outerLoopIteration.increment();
             }
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
-                && runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED
+                && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
     }
 
@@ -101,17 +117,17 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         voltageInitializer.prepare(context.getNetwork());
 
         RunningContext runningContext = new RunningContext();
-        NewtonRaphson newtonRaphson = new NewtonRaphson(context.getNetwork(),
-                                                        context.getParameters().getNewtonRaphsonParameters(),
-                                                        context.getEquationSystem(),
-                                                        context.getJacobianMatrix(),
-                                                        context.getTargetVector(),
-                                                        context.getEquationVector());
+        AcSolver solver = solverFactory.create(context.getNetwork(),
+                                               context.getParameters(),
+                                               context.getEquationSystem(),
+                                               context.getJacobianMatrix(),
+                                               context.getTargetVector(),
+                                               context.getEquationVector());
 
-        List<OuterLoop> outerLoops = context.getParameters().getOuterLoops();
-        List<Pair<OuterLoop, OuterLoopContextImpl>> outerLoopsAndContexts = outerLoops.stream()
-                .map(outerLoop -> Pair.of(outerLoop, new OuterLoopContextImpl(context.getNetwork())))
-                .collect(Collectors.toList());
+        List<AcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
+        List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
+                .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork())))
+                .toList();
 
         // outer loops initialization
         for (var outerLoopAndContext : outerLoopsAndContexts) {
@@ -120,76 +136,95 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoop.initialize(outerLoopContext);
         }
 
-        // run initial Newton-Raphson
-        runningContext.lastNrResult = newtonRaphson.run(voltageInitializer);
-        double initialSlackBusActivePowerMismatch = runningContext.lastNrResult.getSlackBusActivePowerMismatch();
+        Reporter nrReporter = context.getNetwork().getReporter();
+        if (context.getParameters().isDetailedReport()) {
+            nrReporter = Reports.createDetailedSolverReporter(nrReporter,
+                    solver.getName(),
+                    context.getNetwork().getNumCC(),
+                    context.getNetwork().getNumSC());
+        }
+        // initial solver run
+        runningContext.lastSolverResult = solver.run(voltageInitializer, nrReporter);
 
-        runningContext.nrTotalIterations.add(runningContext.lastNrResult.getIterations());
+        runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
 
-        // continue with outer loops only if initial Newton-Raphson succeed
-        if (runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
+        // continue with outer loops only if solver succeed
+        if (runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED) {
 
-            // re-run all outer loops until Newton-Raphson failed or no more Newton-Raphson iterations are needed
+            // re-run all outer loops until solver failed or no more solver iterations are needed
             int oldNrTotalIterations;
             do {
                 oldNrTotalIterations = runningContext.nrTotalIterations.getValue();
 
-                // outer loops are nested: inner most loop first in the list, outer most loop last
+                // outer loops are nested: innermost loop first in the list, outermost loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
-                    runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), newtonRaphson, runningContext);
+                    runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), solver, runningContext);
 
-                    // continue with next outer loop only if last Newton-Raphson succeed
-                    // and we have not reach max number of outer loop iteration
-                    if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED
+                    // continue with next outer loop only if:
+                    // - last solver run succeed,
+                    // - last OuterLoopStatus is not FAILED
+                    // - we have not reached max number of outer loop iteration
+                    if (runningContext.lastSolverResult.getStatus() != AcSolverStatus.CONVERGED
+                            || runningContext.lastOuterLoopStatus == OuterLoopStatus.FAILED
                             || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
                         break;
                     }
                 }
             } while (runningContext.nrTotalIterations.getValue() > oldNrTotalIterations
-                    && runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED
+                    && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
+                    && runningContext.lastOuterLoopStatus != OuterLoopStatus.FAILED
                     && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
         }
 
+        double distributedActivePower = 0.0;
         // outer loops finalization (in reverse order to allow correct cleanup)
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
+            if (outerLoop instanceof DistributedSlackOuterLoop) {
+                distributedActivePower = ((DistributedSlackContextData) outerLoopContext.getData()).getDistributedActivePower();
+            }
             outerLoop.cleanup(outerLoopContext);
         }
 
-        OuterLoopStatus outerLoopFinalStatus = runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations()
-                ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
+        final OuterLoopStatus outerLoopFinalStatus;
+        if (runningContext.lastOuterLoopStatus == OuterLoopStatus.FAILED) {
+            outerLoopFinalStatus = OuterLoopStatus.FAILED;
+        } else {
+            outerLoopFinalStatus = runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations()
+                    ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
+        }
 
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
                                                        runningContext.outerLoopTotalIterations,
                                                        runningContext.nrTotalIterations.getValue(),
-                                                       runningContext.lastNrResult.getStatus(),
+                                                       runningContext.lastSolverResult.getStatus(),
                                                        outerLoopFinalStatus,
-                                                       runningContext.lastNrResult.getSlackBusActivePowerMismatch(),
-                                                       initialSlackBusActivePowerMismatch - runningContext.lastNrResult.getSlackBusActivePowerMismatch());
+                                                       runningContext.lastSolverResult.getSlackBusActivePowerMismatch(),
+                                                       distributedActivePower
+                                                       );
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
-        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name(),
-                result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY);
+        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getSolverStatus().name(),
+                result.getSolverStatus() == AcSolverStatus.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY);
 
         context.setResult(result);
 
         return result;
     }
 
-    public static <T> List<AcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, AcLoadFlowParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter)
-                .stream()
+    public static List<AcLoadFlowResult> run(List<LfNetwork> lfNetworks, AcLoadFlowParameters parameters) {
+        return lfNetworks.stream()
                 .map(n -> {
                     if (n.isValid()) {
                         try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {
-                            return new AcloadFlowEngine(context)
+                            return new AcloadFlowEngine(context, parameters.getSolverFactory())
                                     .run();
                         }
                     }
                     return AcLoadFlowResult.createNoCalculationResult(n);
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 }

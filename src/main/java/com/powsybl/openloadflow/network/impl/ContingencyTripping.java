@@ -13,17 +13,17 @@ import com.powsybl.math.graph.TraverseResult;
 import java.util.*;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class ContingencyTripping {
 
-    private static final ContingencyTripping NO_OP_TRIPPING = new ContingencyTripping(Collections.emptyList(), (s, tt, nt, n, nbv) -> null);
+    private static final ContingencyTripping NO_OP_TRIPPING = new ContingencyTripping(Collections.emptyList(), (s, tt, nt, nbv) -> null);
 
     @FunctionalInterface
     private interface NodeBreakerTraverserFactory {
         VoltageLevel.NodeBreakerView.TopologyTraverser create(
                 Set<Switch> stoppingSwitches, Set<Terminal> traversedTerminals, List<Terminal> neighbourTerminals,
-                int initNode, VoltageLevel.NodeBreakerView nodeBreakerView);
+                VoltageLevel.NodeBreakerView nodeBreakerView);
     }
 
     private final List<? extends Terminal> terminals;
@@ -55,7 +55,7 @@ public class ContingencyTripping {
                 throw new PowsyblException("VoltageLevel '" + voltageLevelId + "' not connected to branch '" + branch.getId() + "'");
             }
         } else {
-            return new ContingencyTripping(branch.getTerminals(), NodeBreakerTraverser::new);
+            return new ContingencyTripping(List.of(branch.getTerminal1(), branch.getTerminal2()), NodeBreakerTraverser::new);
         }
     }
 
@@ -77,7 +77,7 @@ public class ContingencyTripping {
         Objects.requireNonNull(network);
         Objects.requireNonNull(bbs);
 
-        NodeBreakerTraverserFactory minimalTraverserFactory = (stoppingSwitches, neighbourTerminals, traversedTerminals, n, nbv) ->
+        NodeBreakerTraverserFactory minimalTraverserFactory = (stoppingSwitches, neighbourTerminals, traversedTerminals, nbv) ->
             // To have the minimal tripping ("no propagation") with a busbar section we still need to traverse the
             // voltage level starting from that busbar section, stopping at first switch encountered (which will be
             // marked as retained afterwards), in order to have the smallest lost bus in breaker view
@@ -99,20 +99,22 @@ public class ContingencyTripping {
 
     public static ContingencyTripping createContingencyTripping(Network network, Identifiable<?> identifiable) {
         switch (identifiable.getType()) {
-            case LINE:
-            case TWO_WINDINGS_TRANSFORMER:
+            case LINE,
+                 TWO_WINDINGS_TRANSFORMER,
+                 TIE_LINE:
                 return ContingencyTripping.createBranchTripping(network, (Branch<?>) identifiable);
-            case DANGLING_LINE:
-            case GENERATOR:
-            case LOAD:
-            case SHUNT_COMPENSATOR:
-            case STATIC_VAR_COMPENSATOR:
-            case BUSBAR_SECTION:
+            case DANGLING_LINE,
+                 GENERATOR,
+                 LOAD,
+                 SHUNT_COMPENSATOR,
+                 STATIC_VAR_COMPENSATOR,
+                 BUSBAR_SECTION,
+                 BATTERY:
                 return ContingencyTripping.createInjectionTripping(network, (Injection<?>) identifiable);
             case THREE_WINDINGS_TRANSFORMER:
                 return ContingencyTripping.createThreeWindingsTransformerTripping(network, (ThreeWindingsTransformer) identifiable);
-            case HVDC_LINE:
-            case SWITCH:
+            case HVDC_LINE,
+                 SWITCH:
                 return ContingencyTripping.NO_OP_TRIPPING;
             default:
                 throw new UnsupportedOperationException("Unsupported contingency element type: " + identifiable.getType());
@@ -162,7 +164,7 @@ public class ContingencyTripping {
 
         List<Terminal> neighbourTerminals = new ArrayList<>();
         VoltageLevel.NodeBreakerView.TopologyTraverser traverser = nodeBreakerTraverserFactory.create(
-                switchesToOpen, traversedTerminals, neighbourTerminals, initNode, nodeBreakerView);
+                switchesToOpen, traversedTerminals, neighbourTerminals, nodeBreakerView);
         nodeBreakerView.traverse(initNode, traverser);
 
         return neighbourTerminals;

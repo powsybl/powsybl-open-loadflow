@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class AdmittanceShift {
 
@@ -38,5 +38,13 @@ public class AdmittanceShift {
         Objects.requireNonNull(other);
         g += other.getG();
         b += other.getB();
+    }
+
+    @Override
+    public String toString() {
+        return "AdmittanceShift(" +
+                "g=" + g +
+                ", b=" + b +
+                ')';
     }
 }

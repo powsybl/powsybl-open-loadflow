@@ -26,12 +26,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
@@ -49,6 +50,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
 
+    private LfBus referenceBus;
+
     private List<LfBus> slackBuses;
 
     private final List<LfBranch> branches = new ArrayList<>();
@@ -63,6 +66,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final Map<String, LfGenerator> generatorsById = new HashMap<>();
 
+    private final Map<String, LfLoad> loadsById = new HashMap<>();
+
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
     private final Map<String, LfHvdc> hvdcsById = new HashMap<>();
@@ -75,12 +80,51 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
 
-    private Set<LfZeroImpedanceNetwork> dcLfZeroImpedanceNetworks;
-
-    private Set<LfZeroImpedanceNetwork> acLfZeroImpedanceNetworks;
+    private final Map<LoadFlowModel, Set<LfZeroImpedanceNetwork>> zeroImpedanceNetworksByModel = new EnumMap<>(LoadFlowModel.class);
 
     private Reporter reporter;
+
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
+
+    private final List<LfVoltageAngleLimit> voltageAngleLimits = new ArrayList<>();
+
+    public static class LfVoltageAngleLimit {
+        private final String id;
+        private final LfBus from;
+        private final LfBus to;
+        private final double highValue;
+        private final double lowValue;
+
+        public LfVoltageAngleLimit(String id, LfBus from, LfBus to, double highValue, double lowValue) {
+            this.id = Objects.requireNonNull(id);
+            this.from = Objects.requireNonNull(from);
+            this.to = Objects.requireNonNull(to);
+            this.highValue = highValue;
+            this.lowValue = lowValue;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public LfBus getFrom() {
+            return from;
+        }
+
+        public LfBus getTo() {
+            return to;
+        }
+
+        public double getHighValue() {
+            return highValue;
+        }
+
+        public double getLowValue() {
+            return lowValue;
+        }
+    }
+
+    protected final List<LfOverloadManagementSystem> overloadManagementSystems = new ArrayList<>();
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
@@ -113,31 +157,43 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         this.reporter = Objects.requireNonNull(reporter);
     }
 
-    private void invalidateSlack() {
+    public LfElement getElement(ElementType elementType, int num) {
+        return switch (elementType) {
+            case BUS -> getBus(num);
+            case BRANCH -> getBranch(num);
+            case SHUNT_COMPENSATOR -> getShunt(num);
+            case HVDC -> getHvdc(num);
+        };
+    }
+
+    private void invalidateSlackAndReference() {
         if (slackBuses != null) {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(false);
             }
-            slackBuses.get(0).setReference(false);
         }
         slackBuses = null;
+        if (referenceBus != null) {
+            referenceBus.setReference(false);
+        }
+        referenceBus = null;
     }
 
-    public void updateSlackBuses() {
-        if (slackBuses == null) {
+    public void updateSlackBusesAndReferenceBus() {
+        if (slackBuses == null || referenceBus == null) {
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses();
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(true);
             }
-            slackBuses.get(0).setReference(true);
+            referenceBus = slackBuses.get(0);
+            referenceBus.setReference(true);
         }
     }
 
     private void invalidateZeroImpedanceNetworks() {
-        dcLfZeroImpedanceNetworks = null;
-        acLfZeroImpedanceNetworks = null;
+        zeroImpedanceNetworksByModel.clear();
     }
 
     public void addBranch(LfBranch branch) {
@@ -145,7 +201,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         branch.setNum(branches.size());
         branches.add(branch);
         branchesById.put(branch.getId(), branch);
-        invalidateSlack();
+        invalidateSlackAndReference();
         connectivity = null;
         invalidateZeroImpedanceNetworks();
 
@@ -171,30 +227,25 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return branchesById.get(branchId);
     }
 
+    private void addShunt(LfShunt shunt) {
+        shunt.setNum(shuntCount++);
+        shuntsByIndex.add(shunt);
+        shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
+    }
+
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
         bus.setNum(busesByIndex.size());
         busesByIndex.add(bus);
         busesById.put(bus.getId(), bus);
-        invalidateSlack();
+        invalidateSlackAndReference();
         connectivity = null;
 
-        bus.getShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
-        bus.getControllerShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
-        bus.getSvcShunt().ifPresent(shunt -> {
-            shunt.setNum(shuntCount++);
-            shuntsByIndex.add(shunt);
-            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
-        });
+        bus.getShunt().ifPresent(this::addShunt);
+        bus.getControllerShunt().ifPresent(this::addShunt);
+        bus.getSvcShunt().ifPresent(this::addShunt);
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
+        bus.getLoads().forEach(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
     }
 
     public List<LfBus> getBuses() {
@@ -210,12 +261,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return busesByIndex.get(num);
     }
 
+    public LfBus getReferenceBus() {
+        return referenceBus;
+    }
+
     public LfBus getSlackBus() {
         return getSlackBuses().get(0);
     }
 
     public List<LfBus> getSlackBuses() {
-        updateSlackBuses();
+        updateSlackBusesAndReferenceBus();
         return slackBuses;
     }
 
@@ -237,6 +292,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return generatorsById.get(id);
     }
 
+    public LfLoad getLoadById(String id) {
+        Objects.requireNonNull(id);
+        return loadsById.get(id);
+    }
+
     public void addHvdc(LfHvdc hvdc) {
         Objects.requireNonNull(hvdc);
         hvdc.setNum(hvdcs.size());
@@ -254,6 +314,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfHvdc> getHvdcs() {
         return hvdcs;
+    }
+
+    public LfHvdc getHvdc(int num) {
+        return hvdcs.get(num);
     }
 
     public LfHvdc getHvdcById(String id) {
@@ -391,7 +455,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void writeJson(Writer writer) {
         Objects.requireNonNull(writer);
-        updateSlackBuses();
+        updateSlackBusesAndReferenceBus();
         try (JsonGenerator jsonGenerator = new JsonFactory()
                 .createGenerator(writer)
                 .useDefaultPrettyPrinter()) {
@@ -483,33 +547,35 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 branch.setMinZ(lowImpedanceThreshold);
             }
         } else {
-            // zero impedance controller phase shifter is not supported
+            // zero impedance phase shifter controller or controlled branch is not supported
             branches.stream()
-                    .filter(LfBranch::isPhaseController)
+                    .filter(b -> b.isPhaseController() || b.isPhaseControlled())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
 
-    private void validateBuses(boolean dc, Reporter reporter) {
-        if (!dc) {
-            boolean hasAtLeastOneBusVoltageControlled = false;
+    private void validateBuses(LoadFlowModel loadFlowModel, Reporter reporter) {
+        if (loadFlowModel == LoadFlowModel.AC) {
+            boolean hasAtLeastOneBusGeneratorVoltageControlEnabled = false;
             for (LfBus bus : busesByIndex) {
-                if (bus.isGeneratorVoltageControlled()) {
-                    hasAtLeastOneBusVoltageControlled = true;
+                if (bus.isGeneratorVoltageControlEnabled()) {
+                    hasAtLeastOneBusGeneratorVoltageControlEnabled = true;
                     break;
                 }
             }
-            if (!hasAtLeastOneBusVoltageControlled) {
-                LOGGER.error("Network {} must have at least one bus voltage controlled", this);
-                Reports.reportNetworkMustHaveAtLeastOneBusVoltageControlled(reporter);
+            if (!hasAtLeastOneBusGeneratorVoltageControlEnabled) {
+                LOGGER.error("Network {} must have at least one bus with generator voltage control enabled", this);
+                if (reporter != null) {
+                    Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reporter);
+                }
                 valid = false;
             }
         }
     }
 
-    public void validate(boolean dc, Reporter reporter) {
+    public void validate(LoadFlowModel loadFlowModel, Reporter reporter) {
         valid = true;
-        validateBuses(dc, reporter);
+        validateBuses(loadFlowModel, reporter);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
@@ -520,19 +586,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return load(network, networkLoader, parameters, Reporter.NO_OP);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), reporter);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
+        return load(network, networkLoader, new LfTopoConfig(), parameters, reporter);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
-        List<LfNetwork> lfNetworks = networkLoader.load(network, parameters, reporter);
+        List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reporter);
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
-            lfNetwork.validate(parameters.isDc(), reporterNetwork);
+            lfNetwork.validate(parameters.getLoadFlowModel(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
                 lfNetwork.reportBalance(reporterNetwork);
@@ -543,21 +609,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return lfNetworks;
     }
 
-    public void updateZeroImpedanceCache(boolean dc) {
-        if (dc) {
-            if (dcLfZeroImpedanceNetworks == null) {
-                dcLfZeroImpedanceNetworks = LfZeroImpedanceNetwork.create(this, true);
-            }
-        } else {
-            if (acLfZeroImpedanceNetworks == null) {
-                acLfZeroImpedanceNetworks = LfZeroImpedanceNetwork.create(this, false);
-            }
-        }
+    public void updateZeroImpedanceCache(LoadFlowModel loadFlowModel) {
+        zeroImpedanceNetworksByModel.computeIfAbsent(loadFlowModel, m -> LfZeroImpedanceNetwork.create(this, loadFlowModel));
     }
 
-    public Set<LfZeroImpedanceNetwork> getZeroImpedanceNetworks(boolean dc) {
-        updateZeroImpedanceCache(dc);
-        return dc ? dcLfZeroImpedanceNetworks : acLfZeroImpedanceNetworks;
+    public Set<LfZeroImpedanceNetwork> getZeroImpedanceNetworks(LoadFlowModel loadFlowModel) {
+        updateZeroImpedanceCache(loadFlowModel);
+        return zeroImpedanceNetworksByModel.get(loadFlowModel);
     }
 
     public GraphConnectivity<LfBus, LfBranch> getConnectivity() {
@@ -568,6 +626,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
             connectivity.setMainComponentVertex(getSlackBus());
+            // this is necessary to create a first temporary changes level in order to allow
+            // some outer loop to change permanently the connectivity (with automation systems for instance)
+            // this one will never be reverted
+            if (connectivity.supportTemporaryChangesNesting()) {
+                connectivity.startTemporaryChanges();
+            }
         }
         return connectivity;
     }
@@ -635,17 +699,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    public void writeGraphViz(Path file, boolean dc) {
+    public void writeGraphViz(Path file, LoadFlowModel loadFlowModel) {
         try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-            writeGraphViz(writer, dc);
+            writeGraphViz(writer, loadFlowModel);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    public void writeGraphViz(Writer writer, boolean dc) {
+    public void writeGraphViz(Writer writer, LoadFlowModel loadFlowModel) {
         try {
-            GraphVizGraph gvGraph = new GraphVizGraphBuilder(this).build(dc);
+            GraphVizGraph gvGraph = new GraphVizGraphBuilder(this).build(loadFlowModel);
             gvGraph.writeTo(writer);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -662,6 +726,52 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfSecondaryVoltageControl> getSecondaryVoltageControls() {
         return secondaryVoltageControls;
+    }
+
+    private static boolean filterSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
+        return !secondaryVoltageControl.getPilotBus().isDisabled();
+    }
+
+    public List<LfSecondaryVoltageControl> getEnabledSecondaryVoltageControls() {
+        return secondaryVoltageControls.stream()
+                .filter(LfNetwork::filterSecondaryVoltageControl)
+                .toList();
+    }
+
+    public void addVoltageAngleLimit(LfVoltageAngleLimit limit) {
+        voltageAngleLimits.add(Objects.requireNonNull(limit));
+    }
+
+    public List<LfVoltageAngleLimit> getVoltageAngleLimits() {
+        return voltageAngleLimits;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <E extends LfElement> List<E> getControllerElements(VoltageControl.Type type) {
+        return busesByIndex.stream()
+                .filter(bus -> bus.isVoltageControlled(type))
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
+                .flatMap(bus -> bus.getVoltageControl(type).orElseThrow().getMergedControllerElements().stream())
+                .filter(Predicate.not(LfElement::isDisabled))
+                .map(element -> (E) element)
+                .collect(Collectors.toList());
+    }
+
+    public List<LfBus> getControlledBuses(VoltageControl.Type type) {
+        return busesByIndex.stream()
+                .filter(bus -> bus.isVoltageControlled(type))
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
+                .collect(Collectors.toList());
+    }
+
+    public void addOverloadManagementSystem(LfOverloadManagementSystem overloadManagementSystem) {
+        overloadManagementSystems.add(Objects.requireNonNull(overloadManagementSystem));
+    }
+
+    public List<LfOverloadManagementSystem> getOverloadManagementSystems() {
+        return overloadManagementSystems;
     }
 
     @Override

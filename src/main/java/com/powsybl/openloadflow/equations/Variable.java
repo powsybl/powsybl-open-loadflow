@@ -11,7 +11,7 @@ import java.io.Writer;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variable<V>> {
 
@@ -52,8 +52,8 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
         if (obj == this) {
             return true;
         }
-        if (obj instanceof Variable) {
-            return compareTo((Variable) obj) == 0;
+        if (obj instanceof Variable variable) {
+            return compareTo(variable) == 0;
         }
         return false;
     }

@@ -6,14 +6,14 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
+import com.powsybl.openloadflow.network.LfLoad;
 
 import java.util.List;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class ParticipatingElement {
 
@@ -34,23 +34,24 @@ public class ParticipatingElement {
         return factor;
     }
 
-    public static void normalizeParticipationFactors(List<ParticipatingElement> participatingElements, String elementType) {
-        double factorSum = participatingElements.stream()
+    public static double participationFactorNorm(List<ParticipatingElement> participatingElements) {
+        return participatingElements.stream()
                 .mapToDouble(participatingGenerator -> participatingGenerator.factor)
                 .sum();
-        if (factorSum == 0) {
-            throw new PowsyblException("No more " + elementType + " participating to slack distribution");
-        }
+    }
+
+    public static void normalizeParticipationFactors(List<ParticipatingElement> participatingElements) {
+        double factorSum = participationFactorNorm(participatingElements);
         for (ParticipatingElement participatingElement : participatingElements) {
             participatingElement.factor /= factorSum;
         }
     }
 
     public LfBus getLfBus() {
-        if (element instanceof LfGenerator) {
-            return ((LfGenerator) element).getBus();
-        } else if (element instanceof LfBus) {
-            return (LfBus) element;
+        if (element instanceof LfGenerator generator) {
+            return generator.getBus();
+        } else if (element instanceof LfLoad load) {
+            return load.getBus();
         } else {
             return null;
         }

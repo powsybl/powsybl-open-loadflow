@@ -19,7 +19,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 class NetworkSlackBusSelectorTest {
 
@@ -31,7 +31,7 @@ class NetworkSlackBusSelectorTest {
 
     @BeforeEach
     void setUp() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         MostMeshedSlackBusSelector selectorFallback = new MostMeshedSlackBusSelector();
         selectorMock = (buses, limit) -> {
             fallbackBusCount = buses.size();

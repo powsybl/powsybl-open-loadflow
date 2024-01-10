@@ -15,12 +15,12 @@
     <parent>
         <groupId>com.powsybl</groupId>
         <artifactId>powsybl-parent</artifactId>
-        <version>9</version>
+        <version>16</version>
         <relativePath/>
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.7.0-SNAPSHOT</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
@@ -39,16 +39,22 @@
             <organization>RTE</organization>
             <organizationUrl>http://www.rte-france.com</organizationUrl>
         </developer>
+        <developer>
+            <name>Anne TILLOY</name>
+            <email>anne.tilloy@rte-france.com</email>
+            <organization>RTE</organization>
+            <organizationUrl>http://www.rte-france.com</organizationUrl>
+        </developer>
     </developers>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
 
         <jafama.version>2.3.2</jafama.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
 
-        <powsybl-core.version>5.2.0</powsybl-core.version>
+        <powsybl-core.version>6.1.1</powsybl-core.version>
     </properties>
 
     <build>
@@ -200,6 +206,17 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-iidm-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-psse-model-test</artifactId>
+            <version>${powsybl-core.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-psse-converter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

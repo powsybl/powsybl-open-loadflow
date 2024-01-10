@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
+import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -20,7 +21,7 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, DcVariableType, DcEquationType> {
 
@@ -35,7 +36,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
     protected final double power;
 
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
-                                                     boolean deriveA1, boolean useTransformerRatio) {
+                                                     boolean deriveA1, boolean useTransformerRatio, DcApproximationType dcApproximationType) {
         super(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getX() == 0) {
@@ -44,12 +45,24 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1) : null;
-        power = 1 / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
+        power = calculatePower(useTransformerRatio, dcApproximationType, piModel);
         if (a1Var != null) {
             variables = List.of(ph1Var, ph2Var, a1Var);
         } else {
             variables = List.of(ph1Var, ph2Var);
         }
+    }
+
+    public static double calculatePower(boolean useTransformerRatio, DcApproximationType dcApproximationType, PiModel piModel) {
+        double b = switch (dcApproximationType) {
+            case IGNORE_R -> 1d / piModel.getX();
+            case IGNORE_G -> {
+                double r = piModel.getR();
+                double x = piModel.getX();
+                yield x / (r * r + x * x);
+            }
+        };
+        return b * (useTransformerRatio ? piModel.getR1() * R2 : 1);
     }
 
     public Variable<DcVariableType> getPh1Var() {
@@ -69,18 +82,40 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         return calculateSensi(dph1, dph2, da1);
     }
 
-    protected double ph1() {
+    protected double ph1(StateVector sv) {
         return sv.get(ph1Var.getRow());
     }
 
-    protected double ph2() {
+    protected double ph1() {
+        return ph1(sv);
+    }
+
+    protected double ph2(StateVector sv) {
         return sv.get(ph2Var.getRow());
+    }
+
+    protected double ph2() {
+        return ph2(sv);
     }
 
     protected abstract double calculateSensi(double ph1, double ph2, double a1);
 
-    protected double a1() {
+    @Override
+    public double eval() {
+        return calculateSensi(ph1(), ph2(), a1());
+    }
+
+    @Override
+    public double eval(StateVector sv) {
+        return calculateSensi(ph1(sv), ph2(sv), a1(sv));
+    }
+
+    protected double a1(StateVector sv) {
         return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
+    }
+
+    protected double a1() {
+        return a1(sv);
     }
 
     @Override

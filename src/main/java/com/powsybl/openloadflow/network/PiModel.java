@@ -11,7 +11,7 @@ import org.apache.commons.lang3.Range;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface PiModel {
 
@@ -63,7 +63,7 @@ public interface PiModel {
 
     Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection);
 
-    boolean setMinZ(double minZ, boolean dc);
+    boolean setMinZ(double minZ, LoadFlowModel loadFlowModel);
 
     void setBranch(LfBranch branch);
 

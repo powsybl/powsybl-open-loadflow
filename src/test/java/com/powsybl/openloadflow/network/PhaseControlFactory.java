@@ -8,10 +8,11 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
-import org.joda.time.DateTime;
+
+import java.time.ZonedDateTime;
 
 /**
- * @author Anne Tilloy <anne.tilloy@rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy@rte-france.com>}
  */
 public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
 
@@ -53,7 +54,7 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
      */
     public static Network createNetworkWithT3wt() {
         Network network = NetworkFactory.findDefault().createNetwork("three-windings-transformer", "test");
-        network.setCaseDate(DateTime.parse("2020-04-05T14:11:00.000+01:00"));
+        network.setCaseDate(ZonedDateTime.parse("2020-04-05T14:11:00.000+01:00"));
         Substation s1 = network.newSubstation()
                 .setId("S1")
                 .setCountry(Country.FR)

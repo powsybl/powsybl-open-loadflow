@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
  * Due to time computation optimizations, this current implementation is only for graphs which initially have ONLY ONE
  * connected component. If more, an exception is thrown.
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
 
@@ -78,6 +78,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
     @Override
     protected void updateComponents() {
         computeConnectivity();
+    }
+
+    @Override
+    public boolean supportTemporaryChangesNesting() {
+        return false;
     }
 
     @Override

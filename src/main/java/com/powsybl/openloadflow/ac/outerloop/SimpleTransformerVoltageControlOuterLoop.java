@@ -7,30 +7,35 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.VoltageControl;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
+    public static final String NAME = "SimpleTransformerVoltageControl";
+
     @Override
-    public String getType() {
-        return "Simple transformer voltage control";
+    public String getName() {
+        return NAME;
     }
 
     @Override
-    public void initialize(OuterLoopContext context) {
-        for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
-            controllerBranch.setVoltageControlEnabled(true);
+    public void initialize(AcOuterLoopContext context) {
+        for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
+            if (controllerBranch.isConnectedAtBothSides()) {
+                controllerBranch.setVoltageControlEnabled(true);
+            }
         }
         context.getNetwork().fixTransformerVoltageControls();
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         if (context.getIteration() == 0) {
             status = roundVoltageRatios(context);

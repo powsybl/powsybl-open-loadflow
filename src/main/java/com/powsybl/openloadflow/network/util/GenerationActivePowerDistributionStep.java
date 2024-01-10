@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Caio Luke <caio.luke at artelys.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * @author Caio Luke {@literal <caio.luke at artelys.com>}
  */
 public class GenerationActivePowerDistributionStep implements ActivePowerDistribution.Step {
 
@@ -35,8 +35,11 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
 
     private final ParticipationType participationType;
 
-    public GenerationActivePowerDistributionStep(ParticipationType pParticipationType) {
+    private final boolean useActiveLimits;
+
+    public GenerationActivePowerDistributionStep(ParticipationType pParticipationType, boolean useActiveLimits) {
         this.participationType = pParticipationType;
+        this.useActiveLimits = useActiveLimits;
     }
 
     @Override
@@ -55,10 +58,10 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
-    public double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
+    public ActivePowerDistribution.StepResult run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // generators might have reach a limit and have been discarded
-        ParticipatingElement.normalizeParticipationFactors(participatingElements, "generator");
+        ParticipatingElement.normalizeParticipationFactors(participatingElements);
 
         double done = 0d;
         int modifiedBuses = 0;
@@ -70,8 +73,8 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
             LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
             double factor = participatingGenerator.getFactor();
 
-            double minP = generator.getMinP();
-            double maxP = generator.getMaxP();
+            double minP = useActiveLimits ? generator.getMinP() : -Double.MAX_VALUE;
+            double maxP = useActiveLimits ? generator.getMaxP() : Double.MAX_VALUE;
             double targetP = generator.getTargetP();
 
             // we don't want to change the generation sign
@@ -105,22 +108,16 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 done * PerUnit.SB, remainingMismatch * PerUnit.SB, iteration, modifiedBuses,
                 generatorsAtMax, generatorsAtMin);
 
-        return done;
+        return new ActivePowerDistribution.StepResult(done, modifiedBuses != 0);
     }
 
     private double getParticipationFactor(LfGenerator generator) {
-        switch (participationType) {
-            case MAX:
-                return generator.getMaxP() / generator.getDroop();
-            case TARGET:
-                return Math.abs(generator.getTargetP());
-            case PARTICIPATION_FACTOR:
-                return generator.getParticipationFactor();
-            case REMAINING_MARGIN:
-                return Math.max(0.0, generator.getMaxP() - generator.getTargetP());
-            default:
-                throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
-        }
+        return switch (participationType) {
+            case MAX -> generator.getMaxP() / generator.getDroop();
+            case TARGET -> Math.abs(generator.getTargetP());
+            case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
+            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxP() - generator.getTargetP());
+        };
     }
 
     private boolean isParticipating(LfGenerator generator) {
@@ -134,8 +131,8 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 return generator.getDroop() != 0;
             case PARTICIPATION_FACTOR:
                 return generator.getParticipationFactor() > 0;
-            case TARGET:
-            case REMAINING_MARGIN:
+            case TARGET,
+                 REMAINING_MARGIN:
                 // nothing more to do here: the check whether TargetP is within Pmin-Pmax range
                 // was already made in AbstractLfGenerator#checkActivePowerControl
                 // whose result is reflected in generator.isParticipating()

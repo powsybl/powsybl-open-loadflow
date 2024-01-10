@@ -6,40 +6,63 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class BusDcState extends ElementState<LfBus> {
 
-    private final double loadTargetP;
     private final Map<String, Double> generatorsTargetP;
     private final Map<String, Boolean> participatingGenerators;
     private final Map<String, Boolean> disablingStatusGenerators;
-    private final double absVariableLoadTargetP;
-    private final Map<String, Boolean> loadsDisablingStatus;
+    private final List<LoadDcState> loadStates;
+
+    protected static class LoadDcState {
+
+        private double loadTargetP;
+        private double absVariableLoadTargetP;
+        private Map<String, Boolean> loadsDisablingStatus;
+
+        protected LoadDcState save(LfLoad load) {
+            loadTargetP = load.getTargetP();
+            absVariableLoadTargetP = load.getAbsVariableTargetP();
+            loadsDisablingStatus = new HashMap<>(load.getOriginalLoadsDisablingStatus());
+            return this;
+        }
+
+        protected void restore(LfLoad load) {
+            load.setTargetP(loadTargetP);
+            load.setAbsVariableTargetP(absVariableLoadTargetP);
+            load.setOriginalLoadsDisablingStatus(loadsDisablingStatus);
+        }
+    }
 
     public BusDcState(LfBus bus) {
         super(bus);
-        this.loadTargetP = bus.getLoadTargetP();
         this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
         this.participatingGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isParticipating));
         this.disablingStatusGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isDisabled));
-        this.absVariableLoadTargetP = bus.getAggregatedLoads().getAbsVariableLoadTargetP();
-        this.loadsDisablingStatus = bus.getAggregatedLoads().getLoadsDisablingStatus();
+        loadStates = bus.getLoads().stream().map(load -> createLoadState().save(load)).toList();
+    }
+
+    protected LoadDcState createLoadState() {
+        return new LoadDcState();
     }
 
     @Override
     public void restore() {
         super.restore();
-        element.setLoadTargetP(loadTargetP);
         element.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
         element.getGenerators().forEach(g -> g.setParticipating(participatingGenerators.get(g.getId())));
         element.getGenerators().forEach(g -> g.setDisabled(disablingStatusGenerators.get(g.getId())));
-        element.getAggregatedLoads().setAbsVariableLoadTargetP(absVariableLoadTargetP);
-        element.getAggregatedLoads().setLoadsDisablingStatus(loadsDisablingStatus);
+        for (int i = 0; i < loadStates.size(); i++) {
+            LfLoad load = element.getLoads().get(i);
+            loadStates.get(i).restore(load);
+        }
     }
 
     public static BusDcState save(LfBus bus) {

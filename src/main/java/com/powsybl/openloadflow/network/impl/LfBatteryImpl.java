@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class LfBatteryImpl extends AbstractLfGenerator {
 
@@ -47,7 +47,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         }
 
         if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMinP(), battery.getMaxP(),
-                parameters.getPlausibleActivePowerLimit(), report)) {
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }
     }

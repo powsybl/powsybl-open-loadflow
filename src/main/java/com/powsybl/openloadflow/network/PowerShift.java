@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class PowerShift {
 
@@ -46,5 +46,13 @@ public class PowerShift {
         active += other.getActive();
         variableActive += other.getVariableActive();
         reactive += other.getReactive();
+    }
+
+    @Override
+    public String toString() {
+        return "PowerShift("
+                + active + ", "
+                + variableActive + ", "
+                + reactive + ")";
     }
 }

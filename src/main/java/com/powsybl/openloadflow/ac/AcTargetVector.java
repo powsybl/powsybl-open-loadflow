@@ -14,16 +14,16 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
 
-import java.util.Objects;
+import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType> {
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        double targetV = bus.getHighestPriorityVoltageControl()
+        double targetV = bus.getHighestPriorityMainVoltageControl()
                 .map(Control::getTargetValue)
                 .orElseThrow(() -> new IllegalStateException("No active voltage control has been found for bus '" + bus.getId() + "'"));
         if (bus.hasGeneratorsWithSlope()) {
@@ -34,21 +34,34 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         return targetV;
     }
 
-    private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
+    private static double getGeneratorReactivePowerDistributionTarget(LfNetwork network, int busNum) {
         LfBus controllerBus = network.getBus(busNum);
-        double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
-        for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getMergedControllerElements()) {
+        double target = (controllerBus.getRemoteControlReactivePercent() - 1) * controllerBus.getTargetQ();
+        List<LfBus> mergedControllerBuses;
+        if (controllerBus.getGeneratorVoltageControl().isPresent()) {
+            mergedControllerBuses = controllerBus.getGeneratorVoltageControl().orElseThrow().getMergedControllerElements();
+        } else if (controllerBus.hasGeneratorReactivePowerControl()) {
+            mergedControllerBuses = controllerBus.getGeneratorReactivePowerControl().orElseThrow().getControllerBuses();
+        } else {
+            throw new PowsyblException("Controller bus '" + controllerBus.getId() + "' has no voltage or reactive remote control");
+        }
+        return updateReactivePowerDistributionTarget(target, controllerBus, mergedControllerBuses);
+    }
+
+    private static double updateReactivePowerDistributionTarget(double target, LfBus controllerBus, List<LfBus> controllerBuses) {
+        double updatedTarget = target;
+        for (LfBus otherControllerBus : controllerBuses) {
             if (otherControllerBus != controllerBus) {
-                target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
+                updatedTarget += controllerBus.getRemoteControlReactivePercent() * otherControllerBus.getTargetQ();
             }
         }
-        return target;
+        return updatedTarget;
     }
 
     private static double getReactivePowerControlTarget(LfBranch branch) {
         Objects.requireNonNull(branch);
-        return branch.getReactivePowerControl().map(ReactivePowerControl::getTargetValue)
-                .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no target in for reactive remote control"));
+        return branch.getGeneratorReactivePowerControl().map(GeneratorReactivePowerControl::getTargetValue)
+                .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no target in for generator reactive remote control"));
     }
 
     public static void init(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
@@ -90,7 +103,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             case DISTR_Q:
-                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getElementNum());
+                targets[equation.getColumn()] = getGeneratorReactivePowerDistributionTarget(network, equation.getElementNum());
                 break;
 
             case ZERO_V:
@@ -101,11 +114,15 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getElementNum()));
                 break;
 
-            case DISTR_RHO:
-            case DISTR_SHUNT_B:
-            case DUMMY_TARGET_P:
-            case DUMMY_TARGET_Q:
-            case BUS_DISTR_SLACK_P:
+            case DISTR_RHO,
+                 DISTR_SHUNT_B,
+                 DUMMY_TARGET_P,
+                 DUMMY_TARGET_Q,
+                 BUS_DISTR_SLACK_P,
+                 BUS_TARGET_IX_ZERO,
+                 BUS_TARGET_IY_ZERO,
+                 BUS_TARGET_IX_NEGATIVE,
+                 BUS_TARGET_IY_NEGATIVE:
                 targets[equation.getColumn()] = 0;
                 break;
 

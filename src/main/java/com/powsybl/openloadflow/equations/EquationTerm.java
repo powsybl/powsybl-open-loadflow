@@ -20,9 +20,15 @@ import java.util.function.DoubleSupplier;
 /**
  * An equation term, i.e part of the equation sum.
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Evaluable {
+
+    static void setActive(Evaluable evaluable, boolean active) {
+        if (evaluable instanceof EquationTerm<?, ?> term) {
+            term.setActive(active);
+        }
+    }
 
     class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
@@ -164,6 +170,14 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * @return value of the equation term
      */
     double eval();
+
+    /**
+     * Evaluate the equation term with an alternative state vector.
+     * @return value of the equation term
+     */
+    default double eval(StateVector sv) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 
     /**
      * Get partial derivative.

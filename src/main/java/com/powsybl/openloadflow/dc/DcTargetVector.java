@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
- * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
+ * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
  */
 public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType> {
 
@@ -26,8 +26,8 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
                 targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP();
                 break;
 
-            case BUS_TARGET_PHI:
-            case DUMMY_TARGET_P:
+            case BUS_TARGET_PHI,
+                 DUMMY_TARGET_P:
                 targets[equation.getColumn()] = 0;
                 break;
 

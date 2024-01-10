@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.function.ToDoubleFunction;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class PiModelArray implements PiModel {
 
@@ -24,9 +24,9 @@ public class PiModelArray implements PiModel {
 
     private int tapPositionIndex;
 
-    private double a1 = Double.NaN;
+    private double a1 = Double.NaN; // override a1 at current tap position if not NaN
 
-    private double r1 = Double.NaN;
+    private double r1 = Double.NaN; // override r1 at current tap position if not NaN
 
     private double continuousR1 = Double.NaN;
 
@@ -99,6 +99,14 @@ public class PiModelArray implements PiModel {
     @Override
     public double getB2() {
         return getModel().getB2();
+    }
+
+    public double getModifiedR1() {
+        return r1;
+    }
+
+    public double getModifiedA1() {
+        return a1;
     }
 
     @Override
@@ -208,8 +216,8 @@ public class PiModelArray implements PiModel {
                 double nextValue = valueGetter.applyAsDouble(models.get(nextTapPositionIndex));
                 currentTapPositionIndex = nextTapPositionIndex;
                 // stop when shift is not enough to go to next position
-                if ((remainingValueShift < 0 && value + remainingValueShift > nextValue)
-                        || (remainingValueShift > 0 && value + remainingValueShift < nextValue)) {
+                if (remainingValueShift < 0 && value + remainingValueShift > nextValue
+                        || remainingValueShift > 0 && value + remainingValueShift < nextValue) {
                     break;
                 }
                 remainingValueShift -= nextValue - value;
@@ -239,11 +247,11 @@ public class PiModelArray implements PiModel {
     private Range<Integer> getAllowedPositionIndexRange(AllowedDirection allowedDirection) {
         switch (allowedDirection) {
             case INCREASE:
-                return Range.between(tapPositionIndex, models.size() - 1);
+                return Range.of(tapPositionIndex, models.size() - 1);
             case DECREASE:
-                return Range.between(0, tapPositionIndex);
+                return Range.of(0, tapPositionIndex);
             case BOTH:
-                return Range.between(0, models.size() - 1);
+                return Range.of(0, models.size() - 1);
             default:
                 throw new IllegalStateException("Unknown direction: " + allowedDirection);
         }
@@ -283,16 +291,16 @@ public class PiModelArray implements PiModel {
 
         if (tapPositionIndex < models.size() - 1) {
             double nextA1 = models.get(tapPositionIndex + 1).getA1(); // abs?
-            if ((direction == Direction.INCREASE && nextA1 > currentA1)
-                    || (direction == Direction.DECREASE && nextA1 < currentA1)) {
+            if (direction == Direction.INCREASE && nextA1 > currentA1
+                    || direction == Direction.DECREASE && nextA1 < currentA1) {
                 tapPositionIndex++;
             }
         }
 
         if (tapPositionIndex > 0) {
             double previousA1 = models.get(tapPositionIndex - 1).getA1(); // abs?
-            if ((direction == Direction.INCREASE && previousA1 > currentA1)
-                    || (direction == Direction.DECREASE && previousA1 < currentA1)) {
+            if (direction == Direction.INCREASE && previousA1 > currentA1
+                    || direction == Direction.DECREASE && previousA1 < currentA1) {
                 tapPositionIndex--;
             }
         }
@@ -344,10 +352,10 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public boolean setMinZ(double minZ, boolean dc) {
+    public boolean setMinZ(double minZ, LoadFlowModel loadFlowModel) {
         boolean done = false;
         for (PiModel model : models) {
-            done |= model.setMinZ(minZ, dc);
+            done |= model.setMinZ(minZ, loadFlowModel);
         }
         return done;
     }
@@ -383,6 +391,6 @@ public class PiModelArray implements PiModel {
 
     @Override
     public Range<Integer> getTapPositionRange() {
-        return Range.between(lowTapPosition, lowTapPosition + models.size() - 1);
+        return Range.of(lowTapPosition, lowTapPosition + models.size() - 1);
     }
 }

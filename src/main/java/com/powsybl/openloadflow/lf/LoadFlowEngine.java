@@ -10,11 +10,11 @@ package com.powsybl.openloadflow.lf;
 import com.powsybl.openloadflow.equations.Quantity;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LoadFlowEngine<V extends Enum<V> & Quantity,
                                 E extends Enum<E> & Quantity,
-                                P extends AbstractLoadFlowParameters,
+                                P extends AbstractLoadFlowParameters<P>,
                                 R extends LoadFlowResult> {
 
     LoadFlowContext<V, E, P> getContext();

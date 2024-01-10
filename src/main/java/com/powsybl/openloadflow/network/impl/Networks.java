@@ -10,11 +10,13 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
+import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 
 import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class Networks {
 
@@ -106,18 +108,22 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reporter);
     }
 
-    private static void retainAndCloseNecessarySwitches(Network network, Set<Switch> switchesToOpen, Set<Switch> switchesToClose) {
+    public static List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, parameters, reporter);
+    }
+
+    private static void retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig) {
         network.getSwitchStream()
                 .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                 .forEach(sw -> sw.setRetained(false));
-        switchesToOpen.stream()
+        topoConfig.getSwitchesToOpen().stream()
                 .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                 .forEach(sw -> sw.setRetained(true));
-        switchesToClose.stream()
+        topoConfig.getSwitchesToClose().stream()
                 .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                 .forEach(sw -> sw.setRetained(true));
 
-        switchesToClose.forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
+        topoConfig.getSwitchesToClose().forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
     }
 
     private static void restoreInitialTopology(LfNetwork network, Set<Switch> allSwitchesToClose) {
@@ -137,20 +143,52 @@ public final class Networks {
         removedBranches.forEach(branch -> branch.setDisabled(true));
     }
 
-    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
-                                     Set<Switch> switchesToOpen, Set<Switch> switchesToClose, Reporter reporter) {
-        return load(network, networkParameters, switchesToOpen, switchesToClose, LfNetworkList.DefaultVariantCleaner::new, reporter);
+    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem system) {
+        Switch aSwitch = network.getSwitch(system.getSwitchIdToOperate());
+        if (aSwitch != null) {
+            if (system.isSwitchOpen()) {
+                topoConfig.getSwitchesToOpen().add(aSwitch);
+            } else {
+                topoConfig.getSwitchesToClose().add(aSwitch);
+            }
+        }
+    }
+
+    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig) {
+        for (Substation substation : network.getSubstations()) {
+            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
+            if (systems != null) {
+                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
+                    addSwitchesOperatedByAutomationSystem(network, topoConfig, system);
+                }
+            }
+        }
     }
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
-                                     Set<Switch> switchesToOpen, Set<Switch> switchesToClose,
+                                     LfTopoConfig topoConfig, Reporter reporter) {
+        return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reporter);
+    }
+
+    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
                                      LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
-        if (switchesToOpen.isEmpty() && switchesToClose.isEmpty()) {
-            return new LfNetworkList(load(network, networkParameters, reporter));
+        LfTopoConfig modifiedTopoConfig;
+        if (networkParameters.isSimulateAutomationSystems()) {
+            modifiedTopoConfig = new LfTopoConfig(topoConfig);
+            addSwitchesOperatedByAutomationSystem(network, modifiedTopoConfig);
+            if (modifiedTopoConfig.isBreaker()) {
+                networkParameters.setBreakers(true);
+            }
+        } else {
+            modifiedTopoConfig = topoConfig;
+        }
+        if (!modifiedTopoConfig.isBreaker()) {
+            return new LfNetworkList(load(network, topoConfig, networkParameters, reporter));
         } else {
             if (!networkParameters.isBreakers()) {
                 throw new PowsyblException("LF networks have to be built from bus/breaker view");
             }
+
             // create a temporary working variant to build LF networks
             String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
             String workingVariantId = network.getVariantManager().getWorkingVariantId();
@@ -159,14 +197,14 @@ public final class Networks {
 
             // retain in topology all switches that could be open or close
             // and close switches that could be closed during the simulation
-            retainAndCloseNecessarySwitches(network, switchesToOpen, switchesToClose);
+            retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
-            List<LfNetwork> lfNetworks = load(network, networkParameters, reporter);
+            List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reporter);
 
-            if (!switchesToClose.isEmpty()) {
+            if (!modifiedTopoConfig.getSwitchesToClose().isEmpty()) {
                 for (LfNetwork lfNetwork : lfNetworks) {
                     // disable all buses and branches not connected to main component (because of switch to close)
-                    restoreInitialTopology(lfNetwork, switchesToClose);
+                    restoreInitialTopology(lfNetwork, modifiedTopoConfig.getSwitchesToClose());
                 }
             }
 

@@ -11,6 +11,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -21,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * @author Damien Jeandemange <damien.jeandemange at artelys.com>
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 class DcValueVoltageInitializerTest {
 
@@ -54,7 +55,9 @@ class DcValueVoltageInitializerTest {
                 false,
                 LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                 true,
-                matrixFactory);
+                DcApproximationType.IGNORE_R,
+                matrixFactory,
+                1);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", -0.025);
@@ -71,7 +74,9 @@ class DcValueVoltageInitializerTest {
                 false,
                 LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                 true,
-                matrixFactory);
+                DcApproximationType.IGNORE_R,
+                matrixFactory,
+                1);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", 0.0);
@@ -88,7 +93,9 @@ class DcValueVoltageInitializerTest {
                 false,
                 LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                 true,
-                matrixFactory);
+                DcApproximationType.IGNORE_R,
+                matrixFactory,
+                1);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", 0.0);

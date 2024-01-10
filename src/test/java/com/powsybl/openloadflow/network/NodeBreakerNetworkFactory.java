@@ -51,7 +51,7 @@ public final class NodeBreakerNetworkFactory {
      *         |
      *         LD
      *
-     * @author Gael Macharel <gael.macherel at artelys.com>
+ * @author Gael Macharel {@literal <gael.macherel at artelys.com>}
      */
     public static Network create() {
         Network network = Network.create("test", "test");
@@ -230,7 +230,7 @@ public final class NodeBreakerNetworkFactory {
      *                     LD (600MW)
      *</pre>
      *
-     * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
+ * @author Sylvain Leclerc {@literal <sylvain.leclerc at rte-france.com>}
      */
     public static Network create3Bars() {
         Network network = Network.create("test", "test");
@@ -293,7 +293,7 @@ public final class NodeBreakerNetworkFactory {
      *                           LD (5)
      *</pre>
      *
-     * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
      */
     public static Network create3barsAndJustOneVoltageLevel() {
         Network network = Network.create("test", "test");

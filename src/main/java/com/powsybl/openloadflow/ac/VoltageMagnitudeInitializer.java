@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * This initializer is particularly useful for cases with a large range of voltage (many transformers with a ratio far
  * from 1pu for instance).
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
@@ -200,7 +200,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         for (LfBus bus : network.getBuses()) {
             EquationTerm<InitVmVariableType, InitVmEquationType> v = equationSystem.getVariable(bus.getNum(), InitVmVariableType.BUS_V)
                     .createTerm();
-            if (bus.isGeneratorVoltageControlled() || (transformerVoltageControlOn && bus.isTransformerVoltageControlled())) {
+            if (bus.isGeneratorVoltageControlled() || transformerVoltageControlOn && bus.isTransformerVoltageControlled()) {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
                         .addTerm(v);
             } else {

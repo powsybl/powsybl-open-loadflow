@@ -16,32 +16,28 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.A2;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBranchDcFlowEquationTerm {
 
-    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet, boolean deriveA1, boolean useTransformerRatio) {
-        super(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
+    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
+                                                boolean deriveA1, boolean useTransformerRatio, DcApproximationType dcApproximationType) {
+        super(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio, dcApproximationType);
     }
 
     public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
-                                                             boolean deriveA1, boolean useTransformerRatio) {
+                                                             boolean deriveA1, boolean useTransformerRatio, DcApproximationType dcApproximationType) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
-        return new ClosedBranchSide1DcFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
+        return new ClosedBranchSide1DcFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio, dcApproximationType);
     }
 
     @Override
     protected double calculateSensi(double ph1, double ph2, double a1) {
         double deltaPhase = ph2 - ph1 + A2 - a1;
         return -power * deltaPhase;
-    }
-
-    @Override
-    public double eval() {
-        return calculateSensi(ph1(), ph2(), a1());
     }
 
     @Override

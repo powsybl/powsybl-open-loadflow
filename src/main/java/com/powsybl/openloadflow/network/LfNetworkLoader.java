@@ -11,7 +11,7 @@ import com.powsybl.commons.reporter.Reporter;
 import java.util.List;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LfNetworkLoader<T> {
 
@@ -24,5 +24,5 @@ public interface LfNetworkLoader<T> {
      * components number (hence sorted by descending connected components size then by descending synchronous components
      * size)
      */
-    List<LfNetwork> load(T network, LfNetworkParameters parameters, Reporter reporter);
+    List<LfNetwork> load(T network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter);
 }

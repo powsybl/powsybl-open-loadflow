@@ -23,7 +23,7 @@ import com.powsybl.iidm.network.Network;
  *      200 MW, 100 MVar
  *</pre>
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class TwoBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
@@ -34,6 +34,25 @@ public class TwoBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createGenerator(b1, "g1", 2, 1);
         createLoad(b2, "l1", 2, 1);
         createLine(network, b1, b2, "l12", 0.1f);
+        return network;
+    }
+
+    public static Network createZeroImpedanceToShuntCompensator() {
+        Network network = create();
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        Bus b3 = createOtherBus(network, "b3", b2.getVoltageLevel().getId());
+        createLine(network, b2, b3, "l23", 0.0); // zero impedance
+        b3.getVoltageLevel().newShuntCompensator()
+                .setId("sc")
+                .setName("sc")
+                .setConnectableBus(b3.getId())
+                .setBus(b3.getId())
+                .setSectionCount(1)
+                .newLinearModel()
+                .setBPerSection(-2.0)
+                .setMaximumSectionCount(1)
+                .add()
+                .add();
         return network;
     }
 }

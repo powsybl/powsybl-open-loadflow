@@ -7,12 +7,12 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.ac.OuterLoop;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfStaticVarCompensator;
+import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
 import org.slf4j.Logger;
@@ -23,15 +23,17 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public class MonitoringVoltageOuterLoop implements OuterLoop {
+public class MonitoringVoltageOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MonitoringVoltageOuterLoop.class);
 
+    public static final String NAME = "VoltageMonitoring";
+
     @Override
-    public String getType() {
-        return "Voltage monitoring";
+    public String getName() {
+        return NAME;
     }
 
     private enum VoltageLimitDirection {
@@ -103,7 +105,7 @@ public class MonitoringVoltageOuterLoop implements OuterLoop {
     private static Optional<Range<Double>> getControlledBusVoltageLimits(LfBus controllerCapableBus) {
         return findMonitoringSvc(controllerCapableBus)
                 .flatMap(generator -> generator.getStandByAutomaton()
-                        .map(automaton -> Range.between(automaton.getLowVoltageThreshold(), automaton.getHighVoltageThreshold())));
+                        .map(automaton -> Range.of(automaton.getLowVoltageThreshold(), automaton.getHighVoltageThreshold())));
     }
 
     private static double getSvcTargetV(LfBus bus, VoltageLimitDirection direction) {
@@ -121,15 +123,13 @@ public class MonitoringVoltageOuterLoop implements OuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.hasGeneratorVoltageControllerCapability() && !bus.isDisabled()) {
-                getControlledBusVoltageLimits(bus).ifPresent(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits));
-            }
-        }
+        context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).stream()
+                .filter(bus -> !bus.isGeneratorVoltageControlEnabled())
+                .forEach(bus -> getControlledBusVoltageLimits(bus).ifPresent(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits)));
 
         if (!pqToPvBuses.isEmpty()) {
             switchPqPv(pqToPvBuses, reporter);

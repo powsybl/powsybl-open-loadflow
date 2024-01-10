@@ -7,9 +7,9 @@
 package com.powsybl.openloadflow.network.impl;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-class LfNetworkLoadingReport {
+public class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromVoltageControlBecauseNotStarted = 0;
 
@@ -32,4 +32,8 @@ class LfNetworkLoadingReport {
     int nonImpedantBranches = 0;
 
     int generatorsWithInconsistentTargetVoltage = 0;
+
+    int generatorsWithZeroRemoteVoltageControlReactivePowerKey = 0;
+
+    int transformerVoltageControlDiscardedBecauseControllerBranchIsOpen = 0;
 }

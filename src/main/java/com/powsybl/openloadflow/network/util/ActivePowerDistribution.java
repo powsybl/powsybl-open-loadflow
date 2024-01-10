@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class ActivePowerDistribution {
 
@@ -24,34 +24,18 @@ public final class ActivePowerDistribution {
      */
     public static final double P_RESIDUE_EPS = Math.pow(10, -5);
 
+    public record StepResult(double done, boolean movedBuses) { }
+
     public interface Step {
 
         String getElementType();
 
         List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses);
 
-        double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
+        StepResult run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
     }
 
-    public static class Result {
-
-        private final int iteration;
-
-        private final double remainingMismatch;
-
-        public Result(int iteration, double remainingMismatch) {
-            this.iteration = iteration;
-            this.remainingMismatch = remainingMismatch;
-        }
-
-        public int getIteration() {
-            return iteration;
-        }
-
-        public double getRemainingMismatch() {
-            return remainingMismatch;
-        }
-    }
+    public record Result(int iteration, double remainingMismatch, boolean movedBuses) { }
 
     private final ActivePowerDistribution.Step step;
 
@@ -72,39 +56,47 @@ public final class ActivePowerDistribution {
 
         int iteration = 0;
         double remainingMismatch = activePowerMismatch;
+        boolean movedBuses = false;
         while (!participatingElements.isEmpty()
                 && Math.abs(remainingMismatch) > P_RESIDUE_EPS) {
 
-            remainingMismatch -= step.run(participatingElements, iteration, remainingMismatch);
-
+            if (ParticipatingElement.participationFactorNorm(participatingElements) > 0.0) {
+                StepResult stepResult = step.run(participatingElements, iteration, remainingMismatch);
+                remainingMismatch -= stepResult.done();
+                if (stepResult.movedBuses()) {
+                    movedBuses = true;
+                }
+            } else {
+                break;
+            }
             iteration++;
         }
 
-        return new Result(iteration, remainingMismatch);
+        return new Result(iteration, remainingMismatch, movedBuses);
     }
 
-    public static ActivePowerDistribution create(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant) {
-        return new ActivePowerDistribution(getStep(balanceType, loadPowerFactorConstant));
+    public static ActivePowerDistribution create(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits) {
+        return new ActivePowerDistribution(getStep(balanceType, loadPowerFactorConstant, useActiveLimits));
     }
 
-    public static Step getStep(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant) {
+    public static Step getStep(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits) {
         Step step;
         switch (balanceType) {
-            case PROPORTIONAL_TO_LOAD:
-            case PROPORTIONAL_TO_CONFORM_LOAD:
+            case PROPORTIONAL_TO_LOAD,
+                 PROPORTIONAL_TO_CONFORM_LOAD:
                 step = new LoadActivePowerDistributionStep(loadPowerFactorConstant);
                 break;
             case PROPORTIONAL_TO_GENERATION_P_MAX:
-                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX);
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX, useActiveLimits);
                 break;
             case PROPORTIONAL_TO_GENERATION_P:
-                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET);
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET, useActiveLimits);
                 break;
             case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR:
-                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.PARTICIPATION_FACTOR);
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.PARTICIPATION_FACTOR, useActiveLimits);
                 break;
             case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN:
-                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.REMAINING_MARGIN);
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.REMAINING_MARGIN, useActiveLimits);
                 break;
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + balanceType);

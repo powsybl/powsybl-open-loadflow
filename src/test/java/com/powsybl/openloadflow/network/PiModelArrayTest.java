@@ -19,7 +19,7 @@ import static com.powsybl.openloadflow.network.PiModelArray.FirstTapPositionAbov
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class PiModelArrayTest {
 
@@ -57,7 +57,7 @@ class PiModelArrayTest {
     @Test
     void test() {
         assertEquals(2, piModelArray.getTapPosition());
-        assertEquals(Range.between(1, 3), piModelArray.getTapPositionRange());
+        assertEquals(Range.of(1, 3), piModelArray.getTapPositionRange());
         var e = assertThrows(IllegalArgumentException.class, () -> piModelArray.setTapPosition(4));
         assertEquals("Tap position 4 out of range [1..3]", e.getMessage());
         piModelArray.setTapPosition(1);
@@ -141,14 +141,14 @@ class PiModelArrayTest {
 
     @Test
     void findFirstTapPositionAboveTest() {
-        assertEquals(0, new FirstTapPositionAboveFinder(-0.01).find(piModelArray.getModels(), 1, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
-        assertEquals(1, new FirstTapPositionAboveFinder(-0.01).find(piModelArray.getModels(), 2, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
-        assertEquals(0, new FirstTapPositionAboveFinder(-0.11).find(piModelArray.getModels(), 2, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
-        assertEquals(0, new FirstTapPositionAboveFinder(-100).find(piModelArray.getModels(), 2, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
-        assertEquals(1, new FirstTapPositionAboveFinder(0.01).find(piModelArray.getModels(), 0, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
-        assertEquals(2, new FirstTapPositionAboveFinder(0.12).find(piModelArray.getModels(), 0, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
-        assertEquals(2, new FirstTapPositionAboveFinder(5).find(piModelArray.getModels(), 0, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
-        assertEquals(1, new FirstTapPositionAboveFinder(5).find(piModelArray.getModels(), 0, PiModel::getA1, Range.between(0, 1), Integer.MAX_VALUE));
-        assertEquals(1, new FirstTapPositionAboveFinder(5).find(piModelArray.getModels(), 0, PiModel::getA1, Range.between(0, 2), 1));
+        assertEquals(0, new FirstTapPositionAboveFinder(-0.01).find(piModelArray.getModels(), 1, PiModel::getA1, Range.of(0, 2), Integer.MAX_VALUE));
+        assertEquals(1, new FirstTapPositionAboveFinder(-0.01).find(piModelArray.getModels(), 2, PiModel::getA1, Range.of(0, 2), Integer.MAX_VALUE));
+        assertEquals(0, new FirstTapPositionAboveFinder(-0.11).find(piModelArray.getModels(), 2, PiModel::getA1, Range.of(0, 2), Integer.MAX_VALUE));
+        assertEquals(0, new FirstTapPositionAboveFinder(-100).find(piModelArray.getModels(), 2, PiModel::getA1, Range.of(0, 2), Integer.MAX_VALUE));
+        assertEquals(1, new FirstTapPositionAboveFinder(0.01).find(piModelArray.getModels(), 0, PiModel::getA1, Range.of(0, 2), Integer.MAX_VALUE));
+        assertEquals(2, new FirstTapPositionAboveFinder(0.12).find(piModelArray.getModels(), 0, PiModel::getA1, Range.of(0, 2), Integer.MAX_VALUE));
+        assertEquals(2, new FirstTapPositionAboveFinder(5).find(piModelArray.getModels(), 0, PiModel::getA1, Range.of(0, 2), Integer.MAX_VALUE));
+        assertEquals(1, new FirstTapPositionAboveFinder(5).find(piModelArray.getModels(), 0, PiModel::getA1, Range.of(0, 1), Integer.MAX_VALUE));
+        assertEquals(1, new FirstTapPositionAboveFinder(5).find(piModelArray.getModels(), 0, PiModel::getA1, Range.of(0, 2), 1));
     }
 }

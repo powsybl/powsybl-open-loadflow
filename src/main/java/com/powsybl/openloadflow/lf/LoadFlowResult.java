@@ -10,11 +10,15 @@ package com.powsybl.openloadflow.lf;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface LoadFlowResult {
+
+    boolean isSuccess();
 
     LfNetwork getNetwork();
 
     double getSlackBusActivePowerMismatch();
+
+    com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status toComponentResultStatus();
 }

@@ -6,9 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -26,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AcLoadFlowTwoBusNetworkTest {
 
@@ -55,7 +53,7 @@ class AcLoadFlowTwoBusNetworkTest {
     @Test
     void baseCaseTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(1, bus1);
         assertAngleEquals(0, bus1);
@@ -70,11 +68,11 @@ class AcLoadFlowTwoBusNetworkTest {
     @Test
     void voltageInitModeTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
         // restart loadflow from previous calculated state, it should convergence in zero iteration
         result = loadFlowRunner.run(network, parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().get(0).getIterationCount());
     }
 
@@ -89,7 +87,7 @@ class AcLoadFlowTwoBusNetworkTest {
                 .setMaxP(0)
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(1, bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(0.784, bus2);
@@ -116,7 +114,7 @@ class AcLoadFlowTwoBusNetworkTest {
         parameters.setDistributedSlack(true);
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(1, bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(0.829, bus2);
@@ -142,7 +140,7 @@ class AcLoadFlowTwoBusNetworkTest {
         parameters.setDistributedSlack(true);
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertVoltageEquals(1, bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(0.812, bus2);
@@ -152,5 +150,47 @@ class AcLoadFlowTwoBusNetworkTest {
         assertActivePowerEquals(-2.600, line1.getTerminal2());
         assertReactivePowerEquals(-1.0999, line1.getTerminal2());
         assertActivePowerEquals(0.600, network.getBattery("bt2").getTerminal());
+    }
+
+    @Test
+    void zeroImpedanceToShuntCompensator() {
+        var network = TwoBusNetworkFactory.createZeroImpedanceToShuntCompensator();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(0.9038788263615884, network.getLine("l23").getTerminal1());
+        assertActivePowerEquals(0.0, network.getLine("l23").getTerminal1());
+    }
+
+    @Test
+    void modifiedLoadCaseTest() {
+        // previous value : l1 (P0, Q0) = (2, 1)
+        // new values :     l1 (P0, Q0) = (0, 1) and
+        //                  l2 (P0, Q0) = (2, 0)
+        network.getLoad("l1").setP0(0);
+        Load l2 = bus2.getVoltageLevel().newLoad()
+                .setId("l2")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setP0(2)
+                .setQ0(0)
+                .add();
+        l2.getTerminal().setP(2).setQ(0);
+
+        parameters = new LoadFlowParameters()
+                .setReadSlackBus(false)
+                .setDistributedSlack(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setLoadPowerFactorConstant(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        Double bus2BalanceQ = bus2.getConnectedTerminalStream().map(Terminal::getQ)
+                .filter(d -> !Double.isNaN(d))
+                .reduce(0.0, Double::sum);
+
+        assertEquals(0.0, bus2BalanceQ, DELTA_POWER);
     }
 }
