@@ -52,48 +52,38 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
             var type = eq.getType();
             var idx = eq.getColumn();
             switch (type) {
-                case BRANCH_TARGET_P,
-                     BUS_TARGET_P,
-                     DUMMY_TARGET_P:
+                case BRANCH_TARGET_P, BUS_TARGET_P, DUMMY_TARGET_P, BUS_DISTR_SLACK_P -> {
                     if (Math.abs(fx[idx]) * PerUnit.SB >= maxActivePowerMismatch) {
                         return false;
                     }
-                    break;
-                case BRANCH_TARGET_Q,
-                     BUS_TARGET_Q,
-                     DISTR_Q,
-                     DUMMY_TARGET_Q:
+                }
+                case BRANCH_TARGET_Q, BUS_TARGET_Q, DISTR_Q, DUMMY_TARGET_Q -> {
                     if (Math.abs(fx[idx]) * PerUnit.SB >= maxReactivePowerMismatch) {
                         return false;
                     }
-                    break;
-                case BUS_TARGET_V,
-                     ZERO_V:
+                }
+                case BUS_TARGET_V, ZERO_V -> {
                     if (Math.abs(fx[idx]) >= maxVoltageMismatch) {
                         return false;
                     }
-                    break;
-                case BRANCH_TARGET_RHO1,
-                     DISTR_RHO:
+                }
+                case BRANCH_TARGET_RHO1, DISTR_RHO -> {
                     if (Math.abs(fx[idx]) >= maxDefaultRatioMismatch) {
                         return false;
                     }
-                    break;
-                case DISTR_SHUNT_B,
-                     SHUNT_TARGET_B:
+                }
+                case DISTR_SHUNT_B, SHUNT_TARGET_B -> {
                     if (Math.abs(fx[idx]) >= maxDefaultSusceptanceMismatch) {
                         return false;
                     }
-                    break;
-                case BUS_TARGET_PHI,
-                     ZERO_PHI,
-                     BRANCH_TARGET_ALPHA1:
+                }
+                case BUS_TARGET_PHI, ZERO_PHI, BRANCH_TARGET_ALPHA1 -> {
                     if (Math.abs(fx[idx]) >= maxDefaultAngleMismatch) {
                         return false;
                     }
-                    break;
-                default:
-                    throw new PowsyblException("Unknown equation term");
+                }
+                // FIXME what about BUS_TARGET_IX_ZERO, BUS_TARGET_IY_ZERO, BUS_TARGET_IX_NEGATIVE, BUS_TARGET_IY_NEGATIVE ?
+                default -> throw new PowsyblException("Unknown equation term");
             }
         }
         return true;
