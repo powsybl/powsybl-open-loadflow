@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -18,6 +17,8 @@ import com.powsybl.openloadflow.util.PerUnit;
  * @author Alexandre Le Jean {@literal <alexandre.le-jean at artelys.com>}
  */
 public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCriteria {
+
+    private final double convEpsPerEq;
 
     private final double maxDefaultAngleMismatch;
 
@@ -31,10 +32,11 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
 
     private final double maxVoltageMismatch;
 
-    public PerEquationTypeStoppingCriteria(double maxActivePowerMismatch,
+    public PerEquationTypeStoppingCriteria(double convEpsPerEq, double maxActivePowerMismatch,
                                            double maxReactivePowerMismatch, double maxVoltageMismatch,
                                            double maxDefaultAngleMismatch, double maxDefaultRatioMismatch,
                                            double maxDefaultSusceptanceMismatch) {
+        this.convEpsPerEq = convEpsPerEq;
         this.maxActivePowerMismatch = maxActivePowerMismatch;
         this.maxReactivePowerMismatch = maxReactivePowerMismatch;
         this.maxVoltageMismatch = maxVoltageMismatch;
@@ -82,8 +84,11 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
                         return false;
                     }
                 }
-                // FIXME what about BUS_TARGET_IX_ZERO, BUS_TARGET_IY_ZERO, BUS_TARGET_IX_NEGATIVE, BUS_TARGET_IY_NEGATIVE ?
-                default -> throw new PowsyblException("Unknown equation term");
+                default -> {
+                    if (Math.abs(fx[idx]) >= convEpsPerEq) {
+                        return false;
+                    }
+                }
             }
         }
         return true;
