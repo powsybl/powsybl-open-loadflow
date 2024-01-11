@@ -33,7 +33,8 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                      ShuntVoltageControlOuterLoop.NAME,
                                                      SimpleTransformerVoltageControlOuterLoop.NAME,
                                                      TransformerVoltageControlOuterLoop.NAME,
-                                                     AutomationSystemOuterLoop.NAME);
+                                                     AutomationSystemOuterLoop.NAME,
+                                                     IncrementalTransformerReactivePowerControlOuterLoop.NAME);
 
     private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return switch (name) {
@@ -59,6 +60,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                                                                      OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL,
                                                                                                      parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
             case AutomationSystemOuterLoop.NAME -> createAutomationSystemOuterLoop(parametersExt);
+            case IncrementalTransformerReactivePowerControlOuterLoop.NAME -> createTransformerReactivePowerControlOuterLoop(parametersExt);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "'");
         };
     }
