@@ -21,13 +21,9 @@ abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchA
     protected final List<Variable<AcVariableType>> variables;
 
     protected AbstractOpenSide1BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
-                                                        LfBus bus, VariableSet<AcVariableType> variableSet,
-                                                        boolean deriveA1, boolean deriveR1) {
+                                                        LfBus bus, VariableSet<AcVariableType> variableSet) {
         super(branch);
         variables = List.of(variableSet.getVariable(bus.getNum(), variableType));
-        if (deriveA1 || deriveR1) {
-            throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branch.getId());
-        }
     }
 
     protected static double shunt(double y, double cosKsi, double sinKsi, double g1, double b1) {

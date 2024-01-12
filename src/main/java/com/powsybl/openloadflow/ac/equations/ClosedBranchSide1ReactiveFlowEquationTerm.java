@@ -33,11 +33,10 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
     }
 
-    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
-        double v1 = v1();
-        double r1 = r1();
-        double v2 = v2();
-        double theta = theta1(ksi, ph1(), a1(), ph2());
+    public static double calculateSensi(double y, double ksi, double b1,
+                                        double v1, double ph1, double r1, double a1, double v2, double ph2,
+                                        double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        double theta = theta1(ksi, ph1, a1, ph2);
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
         double cosKsi = FastMath.cos(ksi);
@@ -47,6 +46,11 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
                 + dq1dv2(y, v1, r1, cosTheta) * dv2
                 + dq1da1(y, v1, r1, v2, sinTheta) * da1
                 + dq1dr1(y, cosKsi, b1, v1, r1, v2, cosTheta) * dr1;
+    }
+
+    @Override
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        return calculateSensi(y, ksi, b1, v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
     }
 
     public static double q1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {

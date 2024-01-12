@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -128,5 +129,18 @@ class LfContingencyTest extends AbstractSerDeTest {
         assertThrows(PowsyblException.class, () ->
                         PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters),
                 "Load 'LOAD' not found in the network");
+    }
+
+    @Test
+    void testOpenBranchOutOfMainComponentIssue() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters().setBreakers(true)).get(0);
+        Contingency contingency = Contingency.threeWindingsTransformer("T3wT");
+        PropagatedContingency propagatedContingency = PropagatedContingency.createList(network, List.of(contingency), new LfTopoConfig(), new PropagatedContingencyCreationParameters()).get(0);
+        LfContingency lfContingency = propagatedContingency.toLfContingency(lfNetwork).orElseThrow();
+        assertEquals(Map.of(lfNetwork.getBranchById("T3wT_leg_1"), DisabledBranchStatus.BOTH_SIDES,
+                            lfNetwork.getBranchById("T3wT_leg_2"), DisabledBranchStatus.BOTH_SIDES,
+                            lfNetwork.getBranchById("T3wT_leg_3"), DisabledBranchStatus.BOTH_SIDES),
+                lfContingency.getDisabledNetwork().getBranchesStatus());
     }
 }

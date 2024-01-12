@@ -87,7 +87,7 @@ public final class Reports {
     public static void reportPvToPqBuses(Reporter reporter, int pvToPqBusCount, int remainingPvBusCount) {
         reporter.report(Report.builder()
                 .withKey("switchPvPq")
-                .withDefaultMessage("${pvToPqBusCount} buses switched PV -> PQ ({remainingPvBusCount} bus remains PV}")
+                .withDefaultMessage("${pvToPqBusCount} buses switched PV -> PQ (${remainingPvBusCount} bus remains PV}")
                 .withValue("pvToPqBusCount", pvToPqBusCount)
                 .withValue("remainingPvBusCount", remainingPvBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -97,7 +97,7 @@ public final class Reports {
     public static void reportPqToPvBuses(Reporter reporter, int pqToPvBusCount, int blockedPqBusCount) {
         reporter.report(Report.builder()
                 .withKey("switchPqPv")
-                .withDefaultMessage("${pqToPvBusCount} buses switched PQ -> PV ({blockedPqBusCount} buses blocked PQ because have reach max number of switch)")
+                .withDefaultMessage("${pqToPvBusCount} buses switched PQ -> PV (${blockedPqBusCount} buses blocked PQ because have reach max number of switch)")
                 .withValue("pqToPvBusCount", pqToPvBusCount)
                 .withValue("blockedPqBusCount", blockedPqBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -116,7 +116,7 @@ public final class Reports {
     public static void reportStandByAutomatonActivation(Reporter reporter, String busId, double newTargetV) {
         reporter.report(Report.builder()
                 .withKey("standByAutomatonActivation")
-                .withDefaultMessage("Activation of voltage control of static var compensator with stand by automaton: bus {busId} switched PQ -> PV with targetV {newTargetV}")
+                .withDefaultMessage("Activation of voltage control of static var compensator with stand by automaton: bus ${busId} switched PQ -> PV with targetV ${newTargetV}")
                 .withValue("busId", busId)
                 .withValue("newTargetV", newTargetV)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -197,6 +197,11 @@ public final class Reports {
                 "AC security analysis on network '${networkId}'", NETWORK_ID, networkId);
     }
 
+    public static Reporter createDcSecurityAnalysis(Reporter reporter, String networkId) {
+        return reporter.createSubReporter("dcSecurityAnalysis",
+                "DC security analysis on network '${networkId}'", NETWORK_ID, networkId);
+    }
+
     public static Reporter createPreContingencySimulation(Reporter reporter) {
         return reporter.createSubReporter("preContingencySimulation", "Pre-contingency simulation");
     }
@@ -261,6 +266,18 @@ public final class Reports {
         }
         reporter.report(reportBuilder.withValue("norm", norm)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
+    }
+
+    public static void reportNewtonRaphsonBusesOutOfNormalVoltageRange(Reporter reporter, Map<String, Double> busesOutOfNormalVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
+        reporter.report(Report.builder()
+                .withKey("newtonRaphsonBusesOutOfNormalVoltageRange")
+                .withDefaultMessage("${busCountOutOfNormalVoltageRange} buses have a voltage magnitude out of range [${minRealisticVoltage}, ${maxRealisticVoltage}]: ${busesOutOfNormalVoltageRange}")
+                .withValue("busCountOutOfNormalVoltageRange", busesOutOfNormalVoltageRange.size())
+                .withValue("minRealisticVoltage", minRealisticVoltage)
+                .withValue("maxRealisticVoltage", maxRealisticVoltage)
+                .withValue("busesOutOfNormalVoltageRange", busesOutOfNormalVoltageRange.toString())
+                .withSeverity(TypedValue.ERROR_SEVERITY)
                 .build());
     }
 }

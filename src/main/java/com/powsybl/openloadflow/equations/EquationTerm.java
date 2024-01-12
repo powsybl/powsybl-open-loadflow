@@ -24,6 +24,12 @@ import java.util.function.DoubleSupplier;
  */
 public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Evaluable {
 
+    static void setActive(Evaluable evaluable, boolean active) {
+        if (evaluable instanceof EquationTerm<?, ?> term) {
+            term.setActive(active);
+        }
+    }
+
     class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
         private final EquationTerm<V, E> term;

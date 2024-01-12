@@ -120,8 +120,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertAngleEquals(-9.719157, bus2);
         assertVoltageEquals(141.103, loadBus);
         assertAngleEquals(-16.372920, loadBus);
-        assertUndefinedActivePower(line1.getTerminal1());
-        assertUndefinedReactivePower(line1.getTerminal1());
+        assertActivePowerEquals(0, line1.getTerminal1());
+        assertReactivePowerEquals(0, line1.getTerminal1());
         assertActivePowerEquals(0.016, line1.getTerminal2());
         assertReactivePowerEquals(-54.321, line1.getTerminal2());
         assertActivePowerEquals(609.544, line2.getTerminal1());
@@ -147,8 +147,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertAngleEquals(-16.649943, loadBus);
         assertActivePowerEquals(0.01812, line1.getTerminal1());
         assertReactivePowerEquals(-61.995296, line1.getTerminal1());
-        assertUndefinedActivePower(line1.getTerminal2());
-        assertUndefinedReactivePower(line1.getTerminal2());
+        assertActivePowerEquals(0, line1.getTerminal2());
+        assertReactivePowerEquals(0, line1.getTerminal2());
         assertActivePowerEquals(610.417, line2.getTerminal1());
         assertReactivePowerEquals(330.862, line2.getTerminal1());
         assertActivePowerEquals(-600.983, line2.getTerminal2());
@@ -421,7 +421,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMinP(-9999.99D).setMaxP(9999.99D)
                 .setVoltageRegulatorOn(true).setTargetV(24.5D)
                 .setTargetP(607.0D).setTargetQ(301.0D).add();
-        network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(160).add();
+        // GEN1 reactive limits are not plausible => fallback into split Q equally
+        network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(-10000).setMaxQ(10000).add();
         LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(false)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
