@@ -22,10 +22,7 @@ import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.*;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.StateVector;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -64,12 +61,27 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         private double alphaForFunctionReference = Double.NaN;
         private final ContingencyElement element;
         private final LfBranch lfBranch;
-        private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
+        private LfBus lfBus1 = null;
+        private LfBus lfBus2 = null;
+        private Variable<DcVariableType> ph1Var = null;
+        private Variable<DcVariableType> ph2Var = null;
+        private boolean hasEquation = false;
 
         private ComputedContingencyElement(final ContingencyElement element, LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
             this.element = element;
             lfBranch = lfNetwork.getBranchById(element.getId());
-            branchEquation = equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+            if (lfBranch != null) {
+                lfBus1 = lfBranch.getBus1();
+                lfBus2 = lfBranch.getBus2();
+                ClosedBranchSide1DcFlowEquationTerm eq = equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(),
+                        ClosedBranchSide1DcFlowEquationTerm.class);
+                if (eq != null) {
+                    hasEquation = true;
+                    ph1Var = eq.getPh1Var();
+                    ph2Var = eq.getPh2Var();
+                }
+            }
+            // TODO add hvdc line when in ac emulation
         }
 
         private int getContingencyIndex() {
@@ -112,8 +124,24 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             return lfBranch;
         }
 
-        private ClosedBranchSide1DcFlowEquationTerm getLfBranchEquation() {
-            return branchEquation;
+        private LfBus getLfBus1() {
+            return lfBus1;
+        }
+
+        private LfBus getLfBus2() {
+            return lfBus2;
+        }
+
+        private Variable<DcVariableType> getPh1Var() {
+            return ph1Var;
+        }
+
+        private Variable<DcVariableType> getPh2Var() {
+            return ph2Var;
+        }
+
+        private boolean hasEquation() {
+            return hasEquation;
         }
 
         private static void setContingencyIndexes(Collection<ComputedContingencyElement> elements) {
@@ -144,7 +172,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().keySet().stream()
                         .filter(element -> !elementIdsToSkip.contains(element))
                         .map(contingencyElementByBranch::get)
-                        .map(ComputedContingencyElement::getLfBranch)
+                        .map(ComputedContingencyElement::getLfBranch) // TODO filter not null
                         .filter(LfBranch::hasPhaseControllerCapability)
                         .collect(Collectors.toSet());
                 if (lostTransformers.isEmpty()) {
@@ -423,12 +451,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                   DenseMatrix contingenciesStates, int columnState, ObjDoubleConsumer<ComputedContingencyElement> setValue) {
         if (contingencyElements.size() == 1) {
             ComputedContingencyElement element = contingencyElements.iterator().next();
-            LfBranch lfBranch = element.getLfBranch();
-            ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
             // we solve a*alpha = b
-            double a = 1d / calculatePower(loadFlowContext, lfBranch) - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getContingencyIndex())
-                    - contingenciesStates.get(p1.getPh2Var().getRow(), element.getContingencyIndex()));
-            double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState);
+            double a = 1d / calculatePower(loadFlowContext, element) - (contingenciesStates.get(element.getPh1Var().getRow(), element.getContingencyIndex())
+                    - contingenciesStates.get(element.getPh2Var().getRow(), element.getContingencyIndex()));
+            double b = states.get(element.getPh1Var().getRow(), columnState) - states.get(element.getPh2Var().getRow(), columnState);
             setValue.accept(element, b / a);
         } else {
             // FIXME: direct resolution if contingencyElements.size() == 2
@@ -436,18 +462,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             DenseMatrix rhs = new DenseMatrix(contingencyElements.size(), 1);
             DenseMatrix matrix = new DenseMatrix(contingencyElements.size(), contingencyElements.size());
             for (ComputedContingencyElement element : contingencyElements) {
-                LfBranch lfBranch = element.getLfBranch();
-                ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
-                rhs.set(element.getLocalIndex(), 0, states.get(p1.getPh1Var().getRow(), columnState)
-                        - states.get(p1.getPh2Var().getRow(), columnState)
+                rhs.set(element.getLocalIndex(), 0, states.get(element.getPh1Var().getRow(), columnState)
+                        - states.get(element.getPh2Var().getRow(), columnState)
                 );
                 for (ComputedContingencyElement element2 : contingencyElements) {
                     double value = 0d;
                     if (element.equals(element2)) {
-                        value = 1d / calculatePower(loadFlowContext, lfBranch);
+                        value = 1d / calculatePower(loadFlowContext, element);
                     }
-                    value = value - (contingenciesStates.get(p1.getPh1Var().getRow(), element2.getContingencyIndex())
-                            - contingenciesStates.get(p1.getPh2Var().getRow(), element2.getContingencyIndex()));
+                    value = value - (contingenciesStates.get(element.getPh1Var().getRow(), element2.getContingencyIndex())
+                            - contingenciesStates.get(element.getPh2Var().getRow(), element2.getContingencyIndex()));
                     matrix.set(element.getLocalIndex(), element2.getLocalIndex(), value);
                 }
             }
@@ -458,24 +482,27 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    private static double calculatePower(DcLoadFlowContext loadFlowContext, LfBranch lfBranch) {
-        PiModel piModel = lfBranch.getPiModel();
-        DcEquationSystemCreationParameters creationParameters = loadFlowContext.getParameters().getEquationSystemCreationParameters();
-        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
+    private static double calculatePower(DcLoadFlowContext loadFlowContext, ComputedContingencyElement computedContingencyElement) {
+        if (computedContingencyElement.getLfBranch() != null) {
+            LfBranch lfBranch = computedContingencyElement.getLfBranch();
+            PiModel piModel = lfBranch.getPiModel();
+            DcEquationSystemCreationParameters creationParameters = loadFlowContext.getParameters().getEquationSystemCreationParameters();
+            return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
+        }
+        return 0.0;
     }
 
     /**
      * Fills the right hand side with +1/-1 to model a branch contingency.
      */
-    private static void fillRhsContingency(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+    private static void fillRhsContingency(EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                            Collection<ComputedContingencyElement> contingencyElements, Matrix rhs) {
         for (ComputedContingencyElement element : contingencyElements) {
-            LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
-            if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
+            LfBus bus1 = element.getLfBus1();
+            LfBus bus2 = element.getLfBus2();
+            if (bus1 == null || bus2 == null) {
                 continue;
             }
-            LfBus bus1 = lfBranch.getBus1();
-            LfBus bus2 = lfBranch.getBus2();
             if (bus1.isSlack()) {
                 Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p.getColumn(), element.getContingencyIndex(), -1);
@@ -491,7 +518,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
+    static DenseMatrix initContingencyRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
         int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
@@ -501,12 +528,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
 
         DenseMatrix rhs = new DenseMatrix(equationCount, contingencyElements.size());
-        fillRhsContingency(lfNetwork, equationSystem, contingencyElements, rhs);
+        fillRhsContingency(equationSystem, contingencyElements, rhs);
         return rhs;
     }
 
     private static DenseMatrix calculateContingenciesStates(DcLoadFlowContext loadFlowContext, Map<String, ComputedContingencyElement> contingencyElementByBranch) {
-        DenseMatrix contingenciesStates = initContingencyRhs(loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), contingencyElementByBranch.values()); // rhs with +1 -1 on contingency elements
+        DenseMatrix contingenciesStates = initContingencyRhs(loadFlowContext.getEquationSystem(), contingencyElementByBranch.values()); // rhs with +1 -1 on contingency elements
         loadFlowContext.getJacobianMatrix().solveTransposed(contingenciesStates);
         return contingenciesStates;
     }
@@ -575,7 +602,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .distinct()
                     .map(lfNetwork::getBranchById)
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                    .forEach(connectivity::removeEdge);
+                    .forEach(connectivity::removeEdge); // TODO ask Hadrien
 
             // filter the branches that really impacts connectivity
             Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream()
@@ -608,8 +635,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private static boolean isBreakingConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity, ComputedContingencyElement element) {
-        LfBranch lfBranch = element.getLfBranch();
-        return connectivity.getComponentNumber(lfBranch.getBus1()) != connectivity.getComponentNumber(lfBranch.getBus2());
+        return connectivity.getComponentNumber(element.getLfBus1()) != connectivity.getComponentNumber(element.getLfBus2());
     }
 
     /**
@@ -622,8 +648,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // At each step we look if the reconnection was needed on the connectivity level by maintaining a list of grouped connected components.
         List<Set<Integer>> reconnectedCc = new ArrayList<>();
         for (DcSensitivityAnalysis.ComputedContingencyElement element : breakingConnectivityElements) {
-            int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
-            int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
+            int cc1 = connectivity.getComponentNumber(element.getLfBus1());
+            int cc2 = connectivity.getComponentNumber(element.getLfBus2());
 
             Set<Integer> recCc1 = reconnectedCc.stream().filter(s -> s.contains(cc1)).findFirst().orElseGet(() -> new HashSet<>(List.of(cc1)));
             Set<Integer> recCc2 = reconnectedCc.stream().filter(s -> s.contains(cc2)).findFirst().orElseGet(() -> Set.of(cc2));
@@ -837,7 +863,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 contingencies.stream()
                         .flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream())
                         .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
-                        .filter(element -> element.getLfBranchEquation() != null)
+                        .filter(ComputedContingencyElement::hasEquation)
                         .collect(Collectors.toMap(
                             computedContingencyElement -> computedContingencyElement.getElement().getId(),
                             computedContingencyElement -> computedContingencyElement,
@@ -892,7 +918,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
-                .setHvdcAcEmulation(false) // FIXME
+                .setHvdcAcEmulation(true)
                 .setCacheEnabled(false); // force not caching as not supported in sensi analysis
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reporter)) {
