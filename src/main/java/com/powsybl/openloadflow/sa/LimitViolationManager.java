@@ -119,7 +119,7 @@ public class LimitViolationManager {
         if (!limits.isEmpty()) {
             double p = pGetter.apply(branch).eval();
             limits.stream()
-                    .filter(temporaryLimit -> p > temporaryLimit.getValue())
+                    .filter(temporaryLimit -> Math.abs(p) > temporaryLimit.getValue())
                     .findFirst()
                     .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side))
                     .ifPresent(this::addBranchLimitViolation);

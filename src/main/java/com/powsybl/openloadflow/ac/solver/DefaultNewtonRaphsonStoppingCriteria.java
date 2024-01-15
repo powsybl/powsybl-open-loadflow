@@ -17,15 +17,10 @@ import net.jafama.FastMath;
  */
 public class DefaultNewtonRaphsonStoppingCriteria implements NewtonRaphsonStoppingCriteria {
 
-    /**
-     * Convergence epsilon per equation: 10^-4 in p.u => 10^-2 in Kv, Mw or MVar
-     */
-    public static final double DEFAULT_CONV_EPS_PER_EQ = Math.pow(10, -4);
-
     private final double convEpsPerEq;
 
     public DefaultNewtonRaphsonStoppingCriteria() {
-        this(DEFAULT_CONV_EPS_PER_EQ);
+        this(NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ);
     }
 
     public DefaultNewtonRaphsonStoppingCriteria(double convEpsPerEq) {

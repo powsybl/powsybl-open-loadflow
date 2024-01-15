@@ -29,6 +29,8 @@ public class DcEquationSystemCreationParameters {
 
     private DcApproximationType dcApproximationType = DC_APPROXIMATION_TYPE_DEFAULT_VALUE;
 
+    private double dcPowerFactor = LoadFlowParameters.DEFAULT_DC_POWER_FACTOR;
+
     public boolean isUpdateFlows() {
         return updateFlows;
     }
@@ -63,6 +65,15 @@ public class DcEquationSystemCreationParameters {
     public DcEquationSystemCreationParameters setDcApproximationType(DcApproximationType dcApproximationType) {
         this.dcApproximationType = Objects.requireNonNull(dcApproximationType);
         return this;
+    }
+
+    public DcEquationSystemCreationParameters setDcPowerFactor(double dcPowerFactor) {
+        this.dcPowerFactor = dcPowerFactor;
+        return this;
+    }
+
+    public double getDcPowerFactor() {
+        return dcPowerFactor;
     }
 
     @Override

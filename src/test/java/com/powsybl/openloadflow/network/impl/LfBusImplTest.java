@@ -17,7 +17,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
@@ -173,7 +172,10 @@ class LfBusImplTest {
 
     @Test
     void dispatchQForMaxTest() {
-        List<LfGenerator> generators = createLfGeneratorsWithInitQ(Arrays.asList(0d, 0d, 0d));
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        // GH1 reactive limits are not plausible => fallback into split Q equally
+        network.getGenerator("GH1").newMinMaxReactiveLimits().setMinQ(-10000).setMaxQ(10000).add();
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(0d, 0d, 0d));
         LfGenerator generatorToRemove = generators.get(1);
         double qToDispatch = 21;
         double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, qToDispatch);
@@ -187,14 +189,17 @@ class LfBusImplTest {
 
     @Test
     void dispatchQTestWithInitialQForMax() {
-        List<LfGenerator> generators = createLfGeneratorsWithInitQ(Arrays.asList(1.5d, 1d, 3d));
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        // GH1 reactive limits are not plausible => fallback into split Q equally
+        network.getGenerator("GH1").newMinMaxReactiveLimits().setMinQ(-10000).setMaxQ(10000).add();
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(1.5d, 1d, 3d));
         double qInitial = generators.get(0).getCalculatedQ() + generators.get(1).getCalculatedQ() + generators.get(2).getCalculatedQ();
         LfGenerator generatorToRemove1 = generators.get(1);
         LfGenerator generatorToRemove2 = generators.get(2);
         double qToDispatch = 20;
         double residueQ = AbstractLfBus.dispatchQ(generators, true, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, qToDispatch);
-        double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove1.getCalculatedQ() + generatorToRemove2.getCalculatedQ();
         assertEquals(1, generators.size());
+        double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove1.getCalculatedQ() + generatorToRemove2.getCalculatedQ();
         assertEquals(qToDispatch + qInitial - totalCalculatedQ, residueQ, 0.0001);
         assertEquals(8.17, generators.get(0).getCalculatedQ(), 0.01);
         assertEquals(generatorToRemove1.getMaxQ(), generatorToRemove1.getCalculatedQ(), 0.01);
@@ -203,7 +208,10 @@ class LfBusImplTest {
 
     @Test
     void dispatchQForMinTest() {
-        List<LfGenerator> generators = createLfGeneratorsWithInitQ(Arrays.asList(0d, 0d, 0d));
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        // GH1 reactive limits are not plausible => fallback into split Q equally
+        network.getGenerator("GH1").newMinMaxReactiveLimits().setMinQ(-10000).setMaxQ(10000).add();
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(network, List.of(0d, 0d, 0d));
         LfGenerator generatorToRemove2 = generators.get(1);
         LfGenerator generatorToRemove3 = generators.get(2);
         double qToDispatch = -21;

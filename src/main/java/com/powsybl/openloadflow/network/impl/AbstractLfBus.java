@@ -487,8 +487,23 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         hvdcs.add(Objects.requireNonNull(hvdc));
     }
 
-    private static ToDoubleFunction<String> splitDispatchQ(List<LfGenerator> generatorsThatControlVoltage, double qToDispatch) {
-        int size = generatorsThatControlVoltage.size();
+    private static ToDoubleFunction<String> splitDispatchQ(List<LfGenerator> generatorsWithControl, double qToDispatch) {
+        // proportional to reactive keys
+        if (allGeneratorsHaveReactiveKeys(generatorsWithControl)) {
+            return splitDispatchQWithReactiveKeys(generatorsWithControl, qToDispatch);
+        }
+
+        // fallback on dispatch q proportional to max reactive power range
+        if (allGeneratorsHavePlausibleReactiveLimits(generatorsWithControl)) {
+            return splitDispatchQFromMaxReactivePowerRange(generatorsWithControl, qToDispatch);
+        }
+
+        // fall back on dispatch q equally
+        return splitDispatchQEqually(generatorsWithControl, qToDispatch);
+    }
+
+    private static ToDoubleFunction<String> splitDispatchQEqually(List<LfGenerator> generatorsWithControl, double qToDispatch) {
+        int size = generatorsWithControl.size();
         return id -> qToDispatch / size;
     }
 
@@ -498,10 +513,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
      * we have to find the k value for qToDispatch
      * k = (2 * qToDispatch - qmax1 - qmin1 - qmax2 - qmin2 - ...) / (qmax1 - qmin1 + qmax2 - qmin2 + ...)
      */
-    private static ToDoubleFunction<String> splitDispatchQWithEqualProportionOfK(List<LfGenerator> generatorsThatControlVoltage, double qToDispatch) {
+    private static ToDoubleFunction<String> splitDispatchQWithEqualProportionOfK(List<LfGenerator> generatorsWithControl, double qToDispatch) {
         double k = 2 * qToDispatch;
         double denom = 0;
-        for (LfGenerator generator : generatorsThatControlVoltage) {
+        for (LfGenerator generator : generatorsWithControl) {
             k -= generator.getMaxQ() + generator.getMinQ();
             denom += generator.getMaxQ() - generator.getMinQ();
         }
@@ -509,12 +524,60 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             k /= denom;
         }
 
-        Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsThatControlVoltage.size());
-        for (LfGenerator generator : generatorsThatControlVoltage) {
+        Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsWithControl.size());
+        for (LfGenerator generator : generatorsWithControl) {
             qToDispatchByGeneratorId.put(generator.getId(), LfGenerator.kToQ(k, generator));
         }
 
         return qToDispatchByGeneratorId::get;
+    }
+
+    private static ToDoubleFunction<String> splitDispatchQWithReactiveKeys(List<LfGenerator> generatorsWithControl, double qToDispatch) {
+        double sumQkeys = 0;
+        for (LfGenerator generator : generatorsWithControl) {
+            double qKey = generator.getRemoteControlReactiveKey().orElseThrow();
+            sumQkeys += qKey;
+        }
+        if (sumQkeys == 0) { // to avoid division by zero
+            sumQkeys = 1;
+        }
+
+        Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsWithControl.size());
+        for (LfGenerator generator : generatorsWithControl) {
+            double qKey = generator.getRemoteControlReactiveKey().orElseThrow();
+            qToDispatchByGeneratorId.put(generator.getId(), (qKey / sumQkeys) * qToDispatch);
+        }
+
+        return qToDispatchByGeneratorId::get;
+    }
+
+    private static ToDoubleFunction<String> splitDispatchQFromMaxReactivePowerRange(List<LfGenerator> generatorsWithControl, double qToDispatch) {
+        double sumMaxRanges = 0.0;
+        for (LfGenerator generator : generatorsWithControl) {
+            double maxRangeQ = generator.getRangeQ(LfGenerator.ReactiveRangeMode.MAX);
+            sumMaxRanges += maxRangeQ;
+        }
+        if (sumMaxRanges == 0) { // to avoid division by zero
+            sumMaxRanges = 1;
+        }
+
+        Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsWithControl.size());
+        for (LfGenerator generator : generatorsWithControl) {
+            double maxRangeQ = generator.getRangeQ(LfGenerator.ReactiveRangeMode.MAX);
+            qToDispatchByGeneratorId.put(generator.getId(), (maxRangeQ / sumMaxRanges) * qToDispatch);
+        }
+
+        return qToDispatchByGeneratorId::get;
+    }
+
+    private static boolean allGeneratorsHaveReactiveKeys(List<LfGenerator> generators) {
+        for (LfGenerator generator : generators) {
+            double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
+            if (Double.isNaN(qKey)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean allGeneratorsHavePlausibleReactiveLimits(List<LfGenerator> generators) {
@@ -537,7 +600,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             case Q_EQUAL_PROPORTION -> splitDispatchQ(generatorsWithControl, qToDispatch);
             case K_EQUAL_PROPORTION -> allGeneratorsHavePlausibleReactiveLimits(generatorsWithControl)
                     ? splitDispatchQWithEqualProportionOfK(generatorsWithControl, qToDispatch)
-                    : splitDispatchQ(generatorsWithControl, qToDispatch); // fallback to q dispatch
+                    : splitDispatchQEqually(generatorsWithControl, qToDispatch); // fallback to dispatch q equally
         };
         Iterator<LfGenerator> itG = generatorsWithControl.iterator();
         while (itG.hasNext()) {
