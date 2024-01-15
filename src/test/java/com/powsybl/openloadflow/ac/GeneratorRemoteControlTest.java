@@ -396,7 +396,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void testGeneratorRemoteReactivePowerControlOnNonImpdantBranch() {
+    void testGeneratorRemoteReactivePowerControlOnZeroImpedanceBranch() {
         // create a basic 4-buses network
         Network network = FourBusNetworkFactory.createBaseNetwork();
         Generator g4 = network.getGenerator("g4");
@@ -408,14 +408,15 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         // disable voltage control on g4
         g4.setTargetQ(0).setVoltageRegulatorOn(false);
 
-        // first test: generator g4 regulates reactive power on line 4->3 (on side of g4)
+        // generator g4 regulates reactive power on line 4->3 (on side of g4)
+        // which is zero impedant
         g4.newExtension(RemoteReactivePowerControlAdder.class)
             .withTargetQ(targetQ)
             .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
             .withEnabled(true).add();
 
-        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
-
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setReactivePowerRemoteControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(targetQ, l34.getTerminal(TwoSides.TWO));
