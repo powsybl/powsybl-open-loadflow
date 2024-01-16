@@ -1303,7 +1303,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getContingencyStatus("NHV1"));
         assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("NHV2", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.066, result.getBranchFlow1FunctionReferenceValue("NHV2", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
         // FIXME
         // Contingency 'NGEN' leads to the loss of a slack bus: slack bus kept
         // we clean the contingency in order to keep the slack bus in the network, leading to a wrong computation.

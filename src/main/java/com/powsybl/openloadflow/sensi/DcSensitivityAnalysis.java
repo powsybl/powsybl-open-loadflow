@@ -376,9 +376,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSlackBus(), -1d);
         } else {
             slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
-                ParticipatingElement::getLfBus,
-                element -> -element.getFactor(),
-                Double::sum));
+                    ParticipatingElement::getLfBus,
+                    element -> -element.getFactor(),
+                    Double::sum));
         }
 
         DenseMatrix factorStates = initFactorsRhs(loadFlowContext.getEquationSystem(), factorGroups, slackParticipationByBus);
@@ -839,13 +839,87 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
                         .filter(element -> element.getLfBranchEquation() != null)
                         .collect(Collectors.toMap(
-                            computedContingencyElement -> computedContingencyElement.getElement().getId(),
-                            computedContingencyElement -> computedContingencyElement,
-                            (existing, replacement) -> existing,
-                            LinkedHashMap::new
+                                computedContingencyElement -> computedContingencyElement.getElement().getId(),
+                                computedContingencyElement -> computedContingencyElement,
+                                (existing, replacement) -> existing,
+                                LinkedHashMap::new
                         ));
         ComputedContingencyElement.setContingencyIndexes(contingencyElementByBranch.values());
         return contingencyElementByBranch;
+    }
+
+    private static void cleanBranchIdsToOpen(LfNetwork lfNetwork, PropagatedContingency contingency) {
+        // elements have already been checked and found in PropagatedContingency, so there is no need to
+        // check them again
+        Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
+        for (String branchId : contingency.getBranchIdsToOpen().keySet()) {
+            LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+            if (lfBranch == null) {
+                branchesToRemove.add(branchId); // disconnected branch
+                continue;
+            }
+            if (!lfBranch.isConnectedAtBothSides()) {
+                branchesToRemove.add(branchId); // branch connected only on one side
+            }
+        }
+        branchesToRemove.forEach(branchToRemove -> contingency.getBranchIdsToOpen().remove(branchToRemove));
+
+        // update branches to open connected with buses in contingency. This is an approximation:
+        // these branches are indeed just open at one side.
+        String slackBusId = null;
+        for (String busId : contingency.getBusIdsToLose()) {
+            LfBus bus = lfNetwork.getBusById(busId);
+            if (bus != null) {
+                if (bus.isSlack()) {
+                    // slack bus disabling is not supported
+                    // we keep the slack bus enabled and the connected branches
+                    LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
+                    slackBusId = busId;
+                } else {
+                    bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().put(branch.getId(), DisabledBranchStatus.BOTH_SIDES));
+                }
+            }
+        }
+        if (slackBusId != null) {
+            contingency.getBusIdsToLose().remove(slackBusId);
+        }
+    }
+
+    private static void cleanHvdcIdsToOpen(LfNetwork lfNetwork, PropagatedContingency contingency, LfNetworkParameters lfNetworkParameters) {
+        Set<String> hvdcsToRemove = new HashSet<>();
+        Set<String> generatorsToRemove = new HashSet<>();
+        for (String hvdcId : contingency.getHvdcIdsToOpen()) {
+            LfHvdc hvdc = lfNetwork.getHvdcById(hvdcId);
+            if (hvdc == null) {
+                hvdcsToRemove.add(hvdcId); // not really useful for the moment
+            } else if (hvdc.isAcEmulationEnabled() && lfNetworkParameters.isHvdcAcEmulation()) {
+                LOGGER.error("Contingency '{}' leads to the loss of an hvdc line in AC emulation: line kept", contingency.getContingency().getId());
+                hvdcsToRemove.add(hvdcId);
+                generatorsToRemove.add(hvdc.getConverterStation1().getId());
+                generatorsToRemove.add(hvdc.getConverterStation2().getId());
+            }
+        }
+        contingency.getHvdcIdsToOpen().removeAll(hvdcsToRemove);
+        contingency.getGeneratorIdsToLose().removeAll(generatorsToRemove);
+    }
+
+    protected void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies, LfNetworkParameters lfNetworkParameters) {
+        Set<String> contingenciesIds = new HashSet<>();
+        for (PropagatedContingency contingency : contingencies) {
+            // check ID are unique because, later contingency are indexed by their IDs
+            String contingencyId = contingency.getContingency().getId();
+            if (contingenciesIds.contains(contingencyId)) {
+                throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
+            }
+            contingenciesIds.add(contingencyId);
+
+            cleanBranchIdsToOpen(lfNetwork, contingency);
+            cleanHvdcIdsToOpen(lfNetwork, contingency, lfNetworkParameters);
+
+            if (contingency.hasNoImpact()) {
+                LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
+            }
+        }
     }
 
     @Override
@@ -867,10 +941,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         // create the network (we only manage main connected component)
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(),
-                                                                      lfParametersExt.getSlackBusesIds(),
-                                                                      lfParametersExt.getPlausibleActivePowerLimit(),
-                                                                      lfParametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(),
-                                                                      lfParametersExt.getSlackBusCountryFilter());
+                lfParametersExt.getSlackBusesIds(),
+                lfParametersExt.getPlausibleActivePowerLimit(),
+                lfParametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(),
+                lfParametersExt.getSlackBusCountryFilter());
         if (lfParameters.isReadSlackBus()) {
             slackBusSelector = new NetworkSlackBusSelector(network, lfParametersExt.getSlackBusCountryFilter(), slackBusSelector);
         }
@@ -892,13 +966,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
-                .setHvdcAcEmulation(false) // FIXME
+                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation())
                 .setCacheEnabled(false); // force not caching as not supported in sensi analysis
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
 
-            checkContingencies(lfNetwork, contingencies);
+            checkContingencies(lfNetwork, contingencies, lfNetworkParameters);
             checkLoadFlowParameters(lfParameters);
 
             Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
@@ -907,10 +981,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             allLfFactors.stream()
                     .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
-                                && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
+                            && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
                             || lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
-                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
-                                && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER)
+                            && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
+                            && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER)
                     .findFirst()
                     .ifPresent(ignored -> {
                         throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1 and BRANCH_ACTIVE_POWER_2 are yet supported in DC");

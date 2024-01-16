@@ -391,7 +391,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         }
                         break;
                     default:
-                        throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
+                        throw new IllegalStateException("Unknown hvdc converter station type: " + converterStation.getHvdcType());
                 }
                 postProcessors.forEach(pp -> pp.onInjectionAdded(converterStation, lfBus));
             }
@@ -486,23 +486,28 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         for (HvdcLine hvdcLine : loadingContext.hvdcLineSet) {
+            // we create an hvdc line only when both converter stations are in the network.
             LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine);
             LfGenerator g1 = lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
             LfGenerator g2 = lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
             if (g1 != null && g2 != null) {
+                // It is VSC hvdc line.
                 if (g1 instanceof LfVscConverterStation && g2 instanceof LfVscConverterStation) {
                     LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) g1;
                     LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) g2;
                     lfHvdc.setConverterStation1(cs1);
                     lfHvdc.setConverterStation2(cs2);
-                    lfNetwork.addHvdc(lfHvdc); // we create an hvdc line only when both converter stations are in the network // FIXME
+                    lfNetwork.addHvdc(lfHvdc);
                     HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
                     if (control != null && control.isEnabled() && parameters.isHvdcAcEmulation()) {
                         lfHvdc.enableAcEmulation(true);
                     }
                 }
+            } else {
+                // It is a LCC hvdc line, both LCC converter stations are not explicitly modeled.
+                // TODO
             }
         }
     }

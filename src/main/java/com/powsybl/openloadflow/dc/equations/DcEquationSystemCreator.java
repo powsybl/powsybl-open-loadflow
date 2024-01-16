@@ -163,10 +163,7 @@ public class DcEquationSystemCreator {
 
         createBuses(equationSystem);
         createBranches(equationSystem);
-
-        for (LfHvdc hvdc : network.getHvdcs()) {
-            createHvdcEquations(hvdc, equationSystem);
-        }
+        network.getHvdcs().stream().forEach(hvdc -> createHvdcEquations(hvdc, equationSystem));
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 

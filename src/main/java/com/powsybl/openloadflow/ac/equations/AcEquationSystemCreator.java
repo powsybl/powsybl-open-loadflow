@@ -1044,10 +1044,7 @@ public class AcEquationSystemCreator {
         createBusesEquations(equationSystem);
         createMultipleSlackBusesEquations(equationSystem);
         createBranchesEquations(equationSystem);
-
-        for (LfHvdc hvdc : network.getHvdcs()) {
-            createHvdcEquations(hvdc, equationSystem);
-        }
+        network.getHvdcs().stream().forEach(hvdc -> createHvdcEquations(hvdc, equationSystem));
 
         createVoltageControlEquations(equationSystem);
 

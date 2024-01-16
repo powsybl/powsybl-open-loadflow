@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
@@ -249,15 +248,10 @@ public class PropagatedContingency {
 
                 case HVDC_CONVERTER_STATION:
                     HvdcConverterStation<?> station = (HvdcConverterStation<?>) connectable;
-                    HvdcAngleDroopActivePowerControl control = station.getHvdcLine().getExtension(HvdcAngleDroopActivePowerControl.class);
-                    if (control != null && control.isEnabled() && creationParameters.isHvdcAcEmulation()) {
-                        hvdcIdsToOpen.add(station.getHvdcLine().getId());
-                    }
-                    // FIXME
-                    // the other converter station should be considered to if in the same synchronous component (hvdc setpoint mode).
                     if (connectable instanceof VscConverterStation) {
                         generatorIdsToLose.add(connectable.getId());
-                        hvdcIdsToOpen.add(station.getHvdcLine().getId());
+                        station.getOtherConverterStation().ifPresent(otherStation -> generatorIdsToLose.add(otherStation.getId()));
+                        hvdcIdsToOpen.add(station.getHvdcLine().getId()); // in AC emulation or not.
                     } else {
                         LccConverterStation lcc = (LccConverterStation) connectable;
                         PowerShift lccPowerShift = new PowerShift(HvdcUtils.getConverterStationTargetP(lcc) / PerUnit.SB, 0,

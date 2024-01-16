@@ -125,6 +125,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public boolean isControllerSide1() {
+        // useful for remedial action
         return isControllerSide1;
     }
 
