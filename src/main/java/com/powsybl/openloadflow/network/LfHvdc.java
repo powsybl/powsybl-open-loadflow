@@ -39,9 +39,9 @@ public interface LfHvdc extends LfElement {
 
     double getP0();
 
-    LfVscConverterStation getConverterStation1(); // optional ?
+    LfVscConverterStation getConverterStation1();
 
-    LfVscConverterStation getConverterStation2(); // optional ?
+    LfVscConverterStation getConverterStation2();
 
     void setConverterStation1(LfVscConverterStation converterStation1);
 
