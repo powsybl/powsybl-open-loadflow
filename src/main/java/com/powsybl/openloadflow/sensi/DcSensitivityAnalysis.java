@@ -376,9 +376,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSlackBus(), -1d);
         } else {
             slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
-                    ParticipatingElement::getLfBus,
-                    element -> -element.getFactor(),
-                    Double::sum));
+                ParticipatingElement::getLfBus,
+                element -> -element.getFactor(),
+                Double::sum));
         }
 
         DenseMatrix factorStates = initFactorsRhs(loadFlowContext.getEquationSystem(), factorGroups, slackParticipationByBus);
@@ -839,10 +839,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
                         .filter(element -> element.getLfBranchEquation() != null)
                         .collect(Collectors.toMap(
-                                computedContingencyElement -> computedContingencyElement.getElement().getId(),
-                                computedContingencyElement -> computedContingencyElement,
-                                (existing, replacement) -> existing,
-                                LinkedHashMap::new
+                            computedContingencyElement -> computedContingencyElement.getElement().getId(),
+                            computedContingencyElement -> computedContingencyElement,
+                            (existing, replacement) -> existing,
+                            LinkedHashMap::new
                         ));
         ComputedContingencyElement.setContingencyIndexes(contingencyElementByBranch.values());
         return contingencyElementByBranch;
@@ -941,10 +941,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         // create the network (we only manage main connected component)
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(),
-                lfParametersExt.getSlackBusesIds(),
-                lfParametersExt.getPlausibleActivePowerLimit(),
-                lfParametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(),
-                lfParametersExt.getSlackBusCountryFilter());
+                                                                      lfParametersExt.getSlackBusesIds(),
+                                                                      lfParametersExt.getPlausibleActivePowerLimit(),
+                                                                      lfParametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(),
+                                                                      lfParametersExt.getSlackBusCountryFilter());
         if (lfParameters.isReadSlackBus()) {
             slackBusSelector = new NetworkSlackBusSelector(network, lfParametersExt.getSlackBusCountryFilter(), slackBusSelector);
         }

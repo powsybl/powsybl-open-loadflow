@@ -50,11 +50,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected boolean isHvdcAcEmulation(LoadFlowParameters lfParameters) {
-        return lfParameters.isHvdcAcEmulation();
-    }
-
-    @Override
     protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
         acParameters.getNetworkParameters().setCacheEnabled(false); // force not caching as not supported in secu analysis

@@ -45,11 +45,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     }
 
     @Override
-    protected boolean isHvdcAcEmulation(LoadFlowParameters lfParameters) {
-        return lfParameters.isHvdcAcEmulation(); // TODO refactor
-    }
-
-    @Override
     protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, lfParameters,
                 lfParametersExt, matrixFactory, connectivityFactory, false);

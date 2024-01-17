@@ -100,8 +100,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract boolean isShuntCompensatorVoltageControlOn(LoadFlowParameters lfParameters);
 
-    protected abstract boolean isHvdcAcEmulation(LoadFlowParameters lfParameters);
-
     protected abstract P createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers);
 
     SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
@@ -132,7 +130,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .setContingencyPropagation(securityAnalysisParametersExt.isContingencyPropagation())
                 .setShuntCompensatorVoltageControlOn(isShuntCompensatorVoltageControlOn(lfParameters))
                 .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                .setHvdcAcEmulation(isHvdcAcEmulation(lfParameters));
+                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation());
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
