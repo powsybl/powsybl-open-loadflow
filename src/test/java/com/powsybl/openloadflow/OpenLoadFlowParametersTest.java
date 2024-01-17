@@ -442,10 +442,12 @@ class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
 
-        PowsyblException e = assertThrows(PowsyblException.class, () -> olfParameters.setVoltageTargetPriority(List.of()));
+        List<String> voltageTargetPriority = List.of();
+        PowsyblException e = assertThrows(PowsyblException.class, () -> olfParameters.setVoltageTargetPriority(voltageTargetPriority));
         assertEquals("voltageTargetPriority must be contains exactly {0, 1, 2}", e.getMessage());
 
-        PowsyblException e2 = assertThrows(PowsyblException.class, () -> olfParameters.setVoltageTargetPriority(List.of("0", "1", "4")));
+        List<String> voltageTargetPriority2 = List.of("0", "1", "4");
+        PowsyblException e2 = assertThrows(PowsyblException.class, () -> olfParameters.setVoltageTargetPriority(voltageTargetPriority2));
         assertEquals("voltageTargetPriority must be contains exactly {0, 1, 2}", e2.getMessage());
     }
 }
