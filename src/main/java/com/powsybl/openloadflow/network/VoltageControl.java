@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -40,6 +41,8 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     protected boolean disabled = false;
 
+    private static List<Integer> voltageTargetPriorities;
+
     protected VoltageControl(double targetValue, Type type, int priority, LfBus controlledBus) {
         super(targetValue);
         this.type = Objects.requireNonNull(type);
@@ -61,6 +64,18 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     public boolean isControllerEnabled(T controllerElement) {
         throw new IllegalStateException();
+    }
+
+    public static List<Integer> getVoltageTargetPriorities() {
+        return voltageTargetPriorities;
+    }
+
+    public static void setVoltageTargetPriorities(List<Integer> voltageTargetPriorities) {
+        Objects.requireNonNull(voltageTargetPriorities);
+        if (voltageTargetPriorities.size() != 3 || !voltageTargetPriorities.containsAll(List.of(0, 1, 2))) {
+            throw new IllegalStateException();
+        }
+        VoltageControl.voltageTargetPriorities = voltageTargetPriorities;
     }
 
     public List<VoltageControl<T>> getMergedDependentVoltageControls() {
@@ -149,11 +164,17 @@ public class VoltageControl<T extends LfElement> extends Control {
         }
     }
 
+    public static List<VoltageControl<?>> findMainVoltageControlsSortedByPriority(LfBus bus) {
+        return findMainVoltageControlsSortedByPriority(bus, LfNetworkParameters.VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE.stream()
+                                                                                                                        .map(Integer::parseInt)
+                                                                                                                        .collect(Collectors.toList()));
+    }
+
     /**
      * Find the list of voltage control with merge status as main, connected to a given bus (so including by traversing
-     * non impedant branches).
+     * non impedant branches), sorted by the given list of priorities.
      */
-    public static List<VoltageControl<?>> findMainVoltageControlsSortedByPriority(LfBus bus) {
+    public static List<VoltageControl<?>> findMainVoltageControlsSortedByPriority(LfBus bus, List<Integer> priorities) {
         List<VoltageControl<?>> voltageControls = new ArrayList<>();
         LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(LoadFlowModel.AC);
         if (zn != null) { // bus is part of a zero impedance graph
@@ -163,7 +184,7 @@ public class VoltageControl<T extends LfElement> extends Control {
         } else {
             addMainVoltageControls(voltageControls, bus);
         }
-        voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
+        voltageControls.sort(Comparator.comparingInt(voltageControl -> priorities.indexOf(voltageControl.getPriority())));
         return voltageControls;
     }
 

@@ -13,10 +13,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -61,6 +58,8 @@ public class LfNetworkParameters {
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
     public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
+
+    public static final List<String> VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE = List.of("0", "1", "2"); // 0 for generator, 1 for transformer and 2 for shunts
 
     private boolean generatorVoltageRemoteControl = true;
 
@@ -128,6 +127,8 @@ public class LfNetworkParameters {
 
     private boolean simulateAutomationSystems = SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE;
 
+    private List<String> voltageTargetPriority = VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -166,6 +167,7 @@ public class LfNetworkParameters {
         this.linePerUnitMode = other.linePerUnitMode;
         this.useLoadModel = other.useLoadModel;
         this.simulateAutomationSystems = other.simulateAutomationSystems;
+        this.voltageTargetPriority = new ArrayList<>(other.voltageTargetPriority);
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -484,6 +486,23 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public List<String> getVoltageTargetPriority() {
+        return voltageTargetPriority;
+    }
+
+    public static List<String> checkVoltageTargetPriority(List<String> voltageTargetPriority) {
+        Objects.requireNonNull(voltageTargetPriority);
+        if (voltageTargetPriority.size() != 3 || !voltageTargetPriority.containsAll(VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE)) {
+            throw new PowsyblException("voltageTargetPriority must be a list containing only 0, 1 and 2");
+        }
+        return voltageTargetPriority;
+    }
+
+    public LfNetworkParameters setVoltageTargetPriority(List<String> voltageTargetPriority) {
+        this.voltageTargetPriority = checkVoltageTargetPriority(voltageTargetPriority);
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -519,6 +538,7 @@ public class LfNetworkParameters {
                 ", linePerUnitMode=" + linePerUnitMode +
                 ", useLoadModel=" + useLoadModel +
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
+                ", voltageTargetPriority=" + voltageTargetPriority +
                 ')';
     }
 }

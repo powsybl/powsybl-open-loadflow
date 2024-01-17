@@ -161,7 +161,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     }
 
     private static double getDiffV(ShuntVoltageControl voltageControl) {
-        double targetV = voltageControl.getControlledBus().getHighestPriorityMainVoltageControl().orElseThrow().getTargetValue();
+        double targetV = voltageControl.getControlledBus().getHighestPriorityMainVoltageControl(VoltageControl.getVoltageTargetPriorities()).orElseThrow().getTargetValue();
         double v = voltageControl.getControlledBus().getV();
         return targetV - v;
     }

@@ -76,7 +76,8 @@
         "simulateAutomationSystems" : false,
         "acSolverType" : "NEWTON_RAPHSON",
         "maxNewtonKrylovIterations" : 100,
-        "newtonKrylovLineSearch" : false
+        "newtonKrylovLineSearch" : false,
+        "voltageTargetPriority" : [ "0", "1", "2" ]
       }
     }
   },
