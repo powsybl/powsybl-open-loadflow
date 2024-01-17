@@ -493,7 +493,7 @@ public class LfNetworkParameters {
     public static List<String> checkVoltageTargetPriority(List<String> voltageTargetPriority) {
         Objects.requireNonNull(voltageTargetPriority);
         if (voltageTargetPriority.size() != 3 || !voltageTargetPriority.containsAll(VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE)) {
-            throw new PowsyblException("voltageTargetPriority must be a list containing only 0, 1 and 2");
+            throw new PowsyblException("voltageTargetPriority must be contains exactly {0, 1, 2}");
         }
         return voltageTargetPriority;
     }

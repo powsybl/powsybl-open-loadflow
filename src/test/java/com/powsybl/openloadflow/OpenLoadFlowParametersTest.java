@@ -436,4 +436,16 @@ class OpenLoadFlowParametersTest {
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxVoltageChangeStateVectorScalingMaxDphi(0.0));
         assertEquals("Invalid value for parameter maxVoltageChangeStateVectorScalingMaxDphi: 0.0", e.getMessage());
     }
+
+    @Test
+    void testVoltageTargetPriorityChecker() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> olfParameters.setVoltageTargetPriority(List.of()));
+        assertEquals("voltageTargetPriority must be contains exactly {0, 1, 2}", e.getMessage());
+
+        PowsyblException e2 = assertThrows(PowsyblException.class, () -> olfParameters.setVoltageTargetPriority(List.of("0", "1", "4")));
+        assertEquals("voltageTargetPriority must be contains exactly {0, 1, 2}", e2.getMessage());
+    }
 }
