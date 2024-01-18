@@ -102,7 +102,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     void add(LccConverterStation lccCs, LfNetworkParameters parameters) {
         // note that LCC converter station are out of the slack distribution.
         lccCsRefs.add(Ref.create(lccCs, parameters.isCacheEnabled()));
-        double lccTargetP = HvdcUtils.getConverterStationTargetP(lccCs);
+        double lccTargetP = LfHvdc.getActualTargetP(lccCs);
         this.targetP += lccTargetP / PerUnit.SB;
         initialTargetP += lccTargetP / PerUnit.SB;
         targetQ += HvdcUtils.getLccConverterStationLoadTargetQ(lccCs) / PerUnit.SB;
@@ -209,7 +209,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         // update lcc converter station power
         for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
             LccConverterStation lccCs = lccCsRef.get();
-            double pCs = HvdcUtils.getConverterStationTargetP(lccCs); // A LCC station has active losses.
+            // TODO: Update pCs with dynamic load model taking into account disconnection by contingencies
+            double pCs = LfHvdc.getActualTargetP(lccCs); // A LCC station has active losses.
             double qCs = HvdcUtils.getLccConverterStationLoadTargetQ(lccCs); // A LCC station always consumes reactive power.
             lccCs.getTerminal()
                     .setP(pCs)
