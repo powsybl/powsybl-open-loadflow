@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2023, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac.equations;
+package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.openloadflow.equations.AbstractHvdcAcEmulationFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
@@ -15,16 +15,18 @@ import com.powsybl.openloadflow.network.LfHvdc;
 import java.util.Objects;
 
 /**
- * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ * @author Anne Tilloy {@literal anne.tilloy at rte-france.com}
  */
-public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEmulationFlowEquationTerm<AcVariableType, AcEquationType> {
+
+public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEmulationFlowEquationTerm<DcVariableType, DcEquationType> {
 
     @Override
-    protected AcVariableType getBusPhi() {
-        return AcVariableType.BUS_PHI;
+    protected DcVariableType getBusPhi() {
+        return DcVariableType.BUS_PHI;
     }
 
-    public HvdcAcEmulationSide2ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
+    public HvdcAcEmulationSide2ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2,
+                                                      VariableSet<DcVariableType> variableSet) {
         super(hvdc, bus1, bus2, variableSet);
     }
 
@@ -39,7 +41,7 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
+    public double der(Variable<DcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
             return dp2dph1(k, lossFactor1, lossFactor2, ph1(), ph2());

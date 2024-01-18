@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.AbstractHvdcAcEmulationFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
@@ -16,26 +17,20 @@ import java.util.Objects;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEmulationFlowEquationTerm {
+public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEmulationFlowEquationTerm<AcVariableType, AcEquationType> {
+
+    @Override
+    protected AcVariableType getBusPhi() {
+        return AcVariableType.BUS_PHI;
+    }
 
     public HvdcAcEmulationSide1ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc, bus1, bus2, variableSet);
     }
 
-    private static double p1(double p0, double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
-        return (isController(ph1, ph2) ? 1 : getLossMultiplier(lossFactor1, lossFactor2)) * (p0 + k * (ph1 - ph2));
-    }
-
-    private static boolean isController(double ph1, double ph2) {
+    @Override
+    protected boolean isController(double ph1, double ph2) {
         return (ph1 - ph2) >= 0;
-    }
-
-    private static double dp1dph1(double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
-        return (isController(ph1, ph2) ? 1 : getLossMultiplier(lossFactor1, lossFactor2)) * k;
-    }
-
-    private static double dp1dph2(double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
-        return -dp1dph1(k, lossFactor1, lossFactor2, ph1, ph2);
     }
 
     @Override

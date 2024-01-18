@@ -2139,10 +2139,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getContingencyStatus("hvdc34"));
+        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getContingencyStatus("hvdc34"));
 
-        network.getHvdcLine("hvdc34").getConverterStation1().getTerminal().disconnect();
-        network.getHvdcLine("hvdc34").getConverterStation2().getTerminal().disconnect();
         SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
         assertEquals(6, result.getValues("hvdc34").size());

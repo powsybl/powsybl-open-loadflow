@@ -123,6 +123,29 @@ public class DcEquationSystemCreator {
                 || creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControllerCapability() && branch.isConnectedAtBothSides();
     }
 
+    private static void createHvdcEquations(LfHvdc hvdc, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        EquationTerm<DcVariableType, DcEquationType> p1 = null;
+        EquationTerm<DcVariableType, DcEquationType> p2 = null;
+        if (hvdc.getBus1() != null && hvdc.getBus2() != null && hvdc.isAcEmulationEnabled()) {
+            p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+            p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+        }
+
+        if (p1 != null) {
+            equationSystem.getEquation(hvdc.getBus1().getNum(), DcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(p1);
+            hvdc.setP1(p1);
+        }
+
+        if (p2 != null) {
+            equationSystem.getEquation(hvdc.getBus2().getNum(), DcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(p2);
+            hvdc.setP2(p2);
+        }
+    }
+
     private void createBranches(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
@@ -140,6 +163,7 @@ public class DcEquationSystemCreator {
 
         createBuses(equationSystem);
         createBranches(equationSystem);
+        network.getHvdcs().stream().forEach(hvdc -> createHvdcEquations(hvdc, equationSystem));
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 

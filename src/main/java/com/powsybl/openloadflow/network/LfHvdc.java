@@ -25,13 +25,23 @@ public interface LfHvdc extends LfElement {
 
     Evaluable getP2();
 
+    double getPower();
+
+    double getLosses(double p);
+
+    boolean isControllerSide1();
+
+    void enableAcEmulation(boolean enabled);
+
+    boolean isAcEmulationEnabled();
+
     double getDroop();
 
     double getP0();
 
-    LfVscConverterStation getConverterStation1();
+    LfVscConverterStation getConverterStation1(); // optional ?
 
-    LfVscConverterStation getConverterStation2();
+    LfVscConverterStation getConverterStation2(); // optional ?
 
     void setConverterStation1(LfVscConverterStation converterStation1);
 

@@ -915,14 +915,12 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private static void createHvdcAcEmulationEquations(LfHvdc hvdc, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private static void createHvdcEquations(LfHvdc hvdc, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
-        if (hvdc.getBus1() != null && hvdc.getBus2() != null) {
+        if (hvdc.getBus1() != null && hvdc.getBus2() != null && hvdc.isAcEmulationEnabled()) {
             p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
             p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
-        } else {
-            // nothing to do
         }
 
         if (p1 != null) {
@@ -1046,10 +1044,7 @@ public class AcEquationSystemCreator {
         createBusesEquations(equationSystem);
         createMultipleSlackBusesEquations(equationSystem);
         createBranchesEquations(equationSystem);
-
-        for (LfHvdc hvdc : network.getHvdcs()) {
-            createHvdcAcEmulationEquations(hvdc, equationSystem);
-        }
+        network.getHvdcs().stream().forEach(hvdc -> createHvdcEquations(hvdc, equationSystem));
 
         createVoltageControlEquations(equationSystem);
 

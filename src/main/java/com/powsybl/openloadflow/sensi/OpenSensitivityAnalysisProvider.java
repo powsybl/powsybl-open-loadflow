@@ -166,7 +166,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                     .setContingencyPropagation(false)
                     .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
                     .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                    .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
+                    .setHvdcAcEmulation(loadFlowParameters.isHvdcAcEmulation());
             List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
