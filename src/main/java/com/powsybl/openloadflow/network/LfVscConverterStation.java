@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.Optional;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -14,4 +16,6 @@ public interface LfVscConverterStation extends LfGenerator {
     double getLossFactor();
 
     void setHvdc(LfHvdc hvdc);
+
+    Optional<LfBus> getOtherStationBus();
 }

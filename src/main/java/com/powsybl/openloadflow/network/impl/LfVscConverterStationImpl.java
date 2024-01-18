@@ -108,4 +108,12 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
             station.getTerminal().setP(-targetP * PerUnit.SB);
         }
     }
+
+    @Override
+    public Optional<LfBus> getOtherStationBus() {
+        if (hvdc == null) {
+            return Optional.empty();
+        }
+        return Optional.of(this == hvdc.getConverterStation1() ? hvdc.getBus2() : hvdc.getBus1());
+    }
 }

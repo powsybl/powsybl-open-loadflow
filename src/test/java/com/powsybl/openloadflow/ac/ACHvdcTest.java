@@ -1,7 +1,9 @@
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.HvdcConverterStation;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
@@ -13,9 +15,16 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.sa.AbstractOpenSecurityAnalysisTest;
+import com.powsybl.security.LimitViolation;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
+import com.powsybl.security.action.Action;
+import com.powsybl.security.action.LineConnectionAction;
+import com.powsybl.security.action.SwitchAction;
+import com.powsybl.security.condition.AnyViolationCondition;
+import com.powsybl.security.results.OperatorStrategyResult;
 import com.powsybl.security.results.PostContingencyResult;
+import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -74,8 +83,8 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {/*"LCC",*/"VSC" /*, "VSC-AcEmul"*/})
-    void testHvdcSecurityAnalysis(String testType) {
+    @ValueSource(strings = {"LCC", "VSC", "VSC-AcEmul"})
+    void testHvdcSecurityAnalysisWithOperatorStrategy(String testType) {
         HvdcConverterStation.HvdcType hvdcType = switch (testType) {
             case "LCC" -> HvdcConverterStation.HvdcType.LCC;
             default -> HvdcConverterStation.HvdcType.VSC;
@@ -108,7 +117,27 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters());
+        List<Action> actions = List.of(new SwitchAction("action1", "s2", false));
+
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1",
+                                                            ContingencyContext.specificContingency("l12"),
+                                                            new AnyViolationCondition(),
+                                                            List.of("action1")));
+
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network,
+                contingencies,
+                Collections.emptyList(),
+                // We want to see all violations here.
+                new SecurityAnalysisParameters()
+                        .setIncreasedViolationsParameters(new SecurityAnalysisParameters.IncreasedViolationsParameters(-1000,
+                                -1000,
+                                -1000,
+                                -1000,
+                                -1000)),
+                operatorStrategies,
+                actions,
+                Reporter.NO_OP);
 
         for (String line : new String[] {"l12", "l34"}) {
             boolean lineHasCurrentPreContingency =
@@ -122,10 +151,10 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
         for (PostContingencyResult postContingencyResult : result.getPostContingencyResults()) {
             boolean line14HasCurrentCOntingency =
                     postContingencyResult.getLimitViolationsResult().getLimitViolations().stream()
-                    .filter(l -> l.getSubjectId().equals("l14"))
-                    .findFirst()
-                    .isPresent();
-            assertTrue(line14HasCurrentCOntingency, "All current should flow throuigh l14");
+                            .filter(l -> l.getSubjectId().equals("l14"))
+                            .findFirst()
+                            .isPresent();
+            assertTrue(line14HasCurrentCOntingency, "All current should flow through l14");
             for (String line : new String[] {"l12", "l34"}) {
                 boolean lineHasCurrentPreContingency =
                         postContingencyResult.getLimitViolationsResult().getLimitViolations().stream()
@@ -136,6 +165,11 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
                         " for contingency " + postContingencyResult.getContingency().getId());
             }
         }
+        assertTrue(result.getOperatorStrategyResults().size() == 1, "One operator strategy run");
+        OperatorStrategyResult operatorStrategyResult = result.getOperatorStrategyResults().get(0);
+        assertTrue(operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size() == 1, "One violation exepcted after operator strategy");
+        LimitViolation limitViolation = operatorStrategyResult.getLimitViolationsResult().getLimitViolations().get(0);
+        assertTrue(limitViolation.getSubjectId().equals("l34"), "l34 expected to transport current again because l12Bis is connected");
     }
 
     // TODO: Test DC

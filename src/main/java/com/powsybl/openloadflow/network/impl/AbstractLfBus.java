@@ -711,6 +711,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (controllerShunt != null) {
             controllerShunt.setDisabled(disabled);
         }
+        // For VSC HVDC this changes the targetP on the other side
+        generators.stream()
+                .filter(g -> g instanceof LfVscConverterStation)
+                .forEach(g -> ((LfVscConverterStation) g).getOtherStationBus().ifPresent(LfBus::invalidateGenerationTargetP));
     }
 
     @Override

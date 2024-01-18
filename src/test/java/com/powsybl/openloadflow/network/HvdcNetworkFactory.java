@@ -350,10 +350,13 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1", 400);
         Bus b2 = createBus(network, "b2", 400);
+        Bus b2Bis = b2.getVoltageLevel().getBusBreakerView().newBus().setId("b2Bis").add();
         Bus b3 = createBus(network, "b3", 400);
         Bus b4 = createBus(network, "b4", 400);
         createGenerator(b1, "g1", 400, 400);
         createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b2Bis, "l12Bis", 0.1f);
+        createSwitch(network, b2, b2Bis, "s2").setOpen(true);
         HvdcConverterStation cs2 = switch (type) {
             case LCC -> createLcc(b2, "cs2");
             case VSC -> createVsc(b2, "cs2", 400, 0);
