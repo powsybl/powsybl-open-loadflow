@@ -485,23 +485,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
-        if (parameters.isHvdcAcEmulation()) {
-            for (HvdcLine hvdcLine : loadingContext.hvdcLineSet) {
-                HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
-                if (control != null && control.isEnabled()) {
-                    LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
-                    LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
-                    if (cs1 != null && cs2 != null) {
-                        LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, control);
-                        lfHvdc.setConverterStation1((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId()));
-                        lfHvdc.setConverterStation2((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId()));
-                        lfNetwork.addHvdc(lfHvdc);
-                    } else {
-                        LOGGER.warn("Hvdc line '{}' in AC emulation but converter stations are not in the same synchronous component: operated using active set point.", hvdcLine.getId());
-                    }
+        for (HvdcLine hvdcLine : loadingContext.hvdcLineSet) {
+            HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
+            boolean isHvdcAcEmulation = parameters.isHvdcAcEmulation() && control != null && control.isEnabled();
+            LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
+            LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
+            LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
+            LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
+            if (cs1 != null && cs2 != null) {
+                LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, control, isHvdcAcEmulation);
+                lfHvdc.setConverterStation1((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId()));
+                lfHvdc.setConverterStation2((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId()));
+                if (isHvdcAcEmulation) {
+                    lfNetwork.addHvdc(lfHvdc);
                 }
+            } else {
+                LOGGER.warn("Hvdc line '{}' in AC emulation but converter stations are not in the same synchronous component: operated using active set point.", hvdcLine.getId());
             }
         }
     }

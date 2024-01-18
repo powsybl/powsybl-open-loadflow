@@ -26,6 +26,8 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private final LfBus bus2;
 
+    private final boolean isACEmulationMode;
+
     private Evaluable p1 = NAN;
 
     private Evaluable p2 = NAN;
@@ -38,14 +40,14 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private LfVscConverterStation converterStation2;
 
-    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcAngleDroopActivePowerControl control) {
+    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcAngleDroopActivePowerControl control, boolean isACEmulationMode) {
         super(network);
         this.id = Objects.requireNonNull(id);
         this.bus1 = bus1;
         this.bus2 = bus2;
-        Objects.requireNonNull(control);
-        droop = control.getDroop();
-        p0 = control.getP0();
+        this.isACEmulationMode = isACEmulationMode;
+        droop = control != null ? control.getDroop() : Double.NaN;
+        p0 = control != null ? control.getP0() : Double.NaN;
     }
 
     @Override
@@ -90,11 +92,17 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public double getDroop() {
+        if (Double.isNaN(droop)) {
+            throw new IllegalStateException("HVDC droop is used but control is not initialized");
+        }
         return droop / PerUnit.SB;
     }
 
     @Override
     public double getP0() {
+        if (Double.isNaN(p0)) {
+            throw new IllegalStateException("HVDC P0 is used but control is not initialized");
+        }
         return p0 / PerUnit.SB;
     }
 
@@ -125,4 +133,38 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
         ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
     }
+
+    @Override
+    public boolean isInjectingActiveFlow() {
+        return !isDisabled() && isACEmulationMode;
+    }
+
+    @Override
+    public boolean canTransferActivePower() {
+        // Criteria: if one of the bus is only connected to the HVDC station and nothing else,
+        // no power is transferred. Otherwise the HVDC works as configured
+        return !isolated(bus1) && !isolated(bus2);
+    }
+
+    private boolean isolated(LfBus bus) {
+        if (bus.getGenerators().stream()
+                .filter(g -> !g.isDisabled())
+                .filter(g -> !(g == converterStation1))
+                .filter(g -> !(g == converterStation2))
+                .findFirst()
+                .isPresent()) {
+            return false;
+        }
+        if (bus.getBranches().stream()
+                .filter(b -> !b.isDisabled())
+                .findFirst()
+                .isPresent()) {
+            return false;
+        }
+        if (!bus.getLoads().isEmpty()) {
+            return false;
+        }
+        return true;
+    }
+
 }

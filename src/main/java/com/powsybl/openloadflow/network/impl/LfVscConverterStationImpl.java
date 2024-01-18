@@ -9,11 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
-import com.powsybl.iidm.network.util.HvdcUtils;
-import com.powsybl.openloadflow.network.LfHvdc;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfVscConverterStation;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -28,10 +24,10 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     private final double lossFactor;
 
-    private LfHvdc hvdc; // set only when AC emulation is activated
+    private LfHvdc hvdc; // always set excepted if HVDCLine is not in the network
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB);
+        super(network, LfHvdc.getActualTargetP(station) / PerUnit.SB);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
 
@@ -58,8 +54,17 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     @Override
     public double getTargetP() {
+
+        if (hvdc == null) {
+            // HVDC is not set during superClass initialization, or if the HVDC line is not in the network
+            return super.getTargetP();
+        }
         // because in case of AC emulation, active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equations
-        return (hvdc == null || hvdc.isDisabled()) ? super.getTargetP() : 0;
+        if (hvdc.isInjectingActiveFlow()) {
+            return 0;
+        }
+
+        return hvdc.canTransferActivePower() ? super.getTargetP() : 0;
     }
 
     @Override
@@ -99,7 +104,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         var station = getStation();
         station.getTerminal()
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ * PerUnit.SB);
-        if (hvdc == null) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
+        if (hvdc == null || !hvdc.isInjectingActiveFlow()) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
             station.getTerminal().setP(-targetP * PerUnit.SB);
         }
     }

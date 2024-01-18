@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.HvdcConverterStation;
+import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.util.Evaluable;
 
 /**
@@ -38,4 +41,32 @@ public interface LfHvdc extends LfElement {
     void setConverterStation2(LfVscConverterStation converterStation2);
 
     void updateState();
+
+    boolean isInjectingActiveFlow();
+
+    boolean canTransferActivePower();
+
+    static double getActualTargetP(HvdcConverterStation<?> station) {
+        if (isIsolated(station.getTerminal().getBusBreakerView().getBus())) {
+            return 0d;
+        }
+        boolean otherBuseIsolated = station.getOtherConverterStation().map(otherConverterStation -> {
+            Bus bus = otherConverterStation.getTerminal().getBusView().getBus();
+            return isIsolated(bus);
+        }).orElse(true); // it means there is no HVDC line connected to station
+
+        if (otherBuseIsolated) {
+            return 0d;
+        }
+
+        return HvdcUtils.getConverterStationTargetP(station);
+    }
+
+    private static boolean isIsolated(Bus bus) {
+        if (bus == null) {
+            return true;
+        }
+        // Isolated if only connected to the station
+        return bus.getConnectedTerminalCount() == 1;
+    }
 }

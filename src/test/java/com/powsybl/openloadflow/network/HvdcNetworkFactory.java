@@ -346,7 +346,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * </pre>
      * @return
      */
-    public static Network createHvdcLinkedByTwoLinesWithGeneratorAndLoad() {
+    public static Network createHvdcLinkedByTwoLinesWithGeneratorAndLoad(HvdcConverterStation.HvdcType type) {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1", 400);
         Bus b2 = createBus(network, "b2", 400);
@@ -354,8 +354,14 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Bus b4 = createBus(network, "b4", 400);
         createGenerator(b1, "g1", 400, 400);
         createLine(network, b1, b2, "l12", 0.1f);
-        HvdcConverterStation cs2 = createLcc(b2, "cs2");
-        HvdcConverterStation cs3 = createLcc(b3, "cs3");
+        HvdcConverterStation cs2 = switch (type) {
+            case LCC -> createLcc(b2, "cs2");
+            case VSC -> createVsc(b2, "cs2", 400, 0);
+        };
+        HvdcConverterStation cs3 = switch (type) {
+            case LCC -> createLcc(b3, "cs3");
+            case VSC -> createVsc(b3, "cs3", 400, 0);
+        };
         createHvdcLine(network, "hvdc23", cs3, cs2, 400, 0.1, 200);
         createLine(network, b3, b4, "l34", 0.1f);
         createLine(network, b1, b4, "l14", 0.1f);
