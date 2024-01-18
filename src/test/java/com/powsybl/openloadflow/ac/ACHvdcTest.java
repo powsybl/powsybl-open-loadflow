@@ -19,7 +19,6 @@ import com.powsybl.security.LimitViolation;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.action.Action;
-import com.powsybl.security.action.LineConnectionAction;
 import com.powsybl.security.action.SwitchAction;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.results.OperatorStrategyResult;
@@ -147,6 +146,97 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
                             .isPresent();
             assertTrue(lineHasCurrentPreContingency, "Current is passing through " + line + " pre contingency");
         }
+
+        for (PostContingencyResult postContingencyResult : result.getPostContingencyResults()) {
+            boolean line14HasCurrentCOntingency =
+                    postContingencyResult.getLimitViolationsResult().getLimitViolations().stream()
+                            .filter(l -> l.getSubjectId().equals("l14"))
+                            .findFirst()
+                            .isPresent();
+            assertTrue(line14HasCurrentCOntingency, "All current should flow through l14");
+            for (String line : new String[] {"l12", "l34"}) {
+                boolean lineHasCurrentPreContingency =
+                        postContingencyResult.getLimitViolationsResult().getLimitViolations().stream()
+                                .filter(l -> l.getSubjectId().equals(line))
+                                .findFirst()
+                                .isPresent();
+                assertFalse(lineHasCurrentPreContingency, "No current should pass through " + line +
+                        " for contingency " + postContingencyResult.getContingency().getId());
+            }
+        }
+        assertTrue(result.getOperatorStrategyResults().size() == 1, "One operator strategy run");
+        OperatorStrategyResult operatorStrategyResult = result.getOperatorStrategyResults().get(0);
+        assertTrue(operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size() == 1, "One violation exepcted after operator strategy");
+        LimitViolation limitViolation = operatorStrategyResult.getLimitViolationsResult().getLimitViolations().get(0);
+        assertTrue(limitViolation.getSubjectId().equals("l34"), "l34 expected to transport current again because l12Bis is connected");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"LCC", "VSC", "VSC-AcEmul"})
+    void testHvdcDisconnectedThenConnectedByStrategy(String testType) {
+        HvdcConverterStation.HvdcType hvdcType = switch (testType) {
+            case "LCC" -> HvdcConverterStation.HvdcType.LCC;
+            default -> HvdcConverterStation.HvdcType.VSC;
+        };
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setHvdcAcEmulation(
+                switch (testType) {
+                    case "VSC-AcEmul" -> true;
+                    default -> false;
+                });
+
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesWithGeneratorAndLoad(hvdcType);
+
+        // Disconnect the HVDC Initially
+        network.getLine("l12").getTerminals().forEach(Terminal::disconnect);
+
+        network.getLine("l34").newCurrentLimits2()
+                .setPermanentLimit(200) // 360 for 2MW
+                .add();
+
+        // Detect HVDC closed
+        network.getLine("l14").newCurrentLimits1()
+                .setPermanentLimit(300)  // 260 for 100MB
+                .add();
+
+        // double l14
+        network.newLine()
+                .setId("l14Bis")
+                .setBus1("b1")
+                .setConnectableBus1("b1")
+                .setBus2("b4")
+                .setConnectableBus2("b4")
+                .setR(0d)
+                .setX(0.1d)
+                .add();
+
+        List<Contingency> contingencies = List.of(new Contingency("l14Bis", new BranchContingency("l14Bis")));
+
+        List<Action> actions = List.of(new SwitchAction("action1", "s2", false));
+
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1",
+                ContingencyContext.specificContingency("l14Bis"),
+                new AnyViolationCondition(),
+                List.of("action1")));
+
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network,
+                contingencies,
+                Collections.emptyList(),
+                // We want to see all violations here.
+                new SecurityAnalysisParameters()
+                        .setIncreasedViolationsParameters(new SecurityAnalysisParameters.IncreasedViolationsParameters(-1000,
+                                -1000,
+                                -1000,
+                                -1000,
+                                -1000)),
+                operatorStrategies,
+                actions,
+                Reporter.NO_OP);
+
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty(), "No violation expected precontingency");
+
 
         for (PostContingencyResult postContingencyResult : result.getPostContingencyResults()) {
             boolean line14HasCurrentCOntingency =

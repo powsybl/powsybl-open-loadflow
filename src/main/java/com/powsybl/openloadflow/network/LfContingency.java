@@ -56,7 +56,6 @@ public class LfContingency {
 
         for (LfBus bus : disabledNetwork.getBuses()) {
             disconnectedLoadActivePower += bus.getLoadTargetP();
-            // TODO: Ajouter ici les HVDC VSC (non emulation AC) dans un premier temps
             disconnectedGenerationActivePower += bus.getGenerationTargetP();
             disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.toList()));
             disconnectedElementIds.addAll(bus.getLoads().stream().flatMap(l -> l.getOriginalIds().stream()).collect(Collectors.toList()));

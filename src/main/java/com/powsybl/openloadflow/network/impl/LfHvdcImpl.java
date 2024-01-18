@@ -150,15 +150,12 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         if (bus.getGenerators().stream()
                 .filter(g -> !g.isDisabled())
                 .filter(g -> !(g == converterStation1))
-                .filter(g -> !(g == converterStation2))
-                .findFirst()
-                .isPresent()) {
+                .anyMatch(g -> !(g == converterStation2))) {
             return false;
         }
         if (bus.getBranches().stream()
-                .filter(b -> !b.isDisabled())
-                .findFirst()
-                .isPresent()) {
+                .anyMatch(b -> !b.isDisabled())
+        ) {
             return false;
         }
         if (!bus.getLoads().isEmpty()) {
