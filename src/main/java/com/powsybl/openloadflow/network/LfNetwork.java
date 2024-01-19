@@ -550,6 +550,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             // zero impedance phase shifter controller or controlled branch is not supported
             branches.stream()
                     .filter(b -> b.isPhaseController() || b.isPhaseControlled()
+                            || b.isTransformerReactivePowerController() || b.isTransformerReactivePowerControlled()
                             || b.getGeneratorReactivePowerControl().isPresent())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
