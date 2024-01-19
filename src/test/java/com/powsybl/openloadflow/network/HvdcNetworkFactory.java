@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 
 /**
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
@@ -369,7 +370,14 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             case LCC -> createLcc(b3, "cs3");
             case VSC -> createVsc(b3, "cs3", 400, 0);
         };
-        createHvdcLine(network, "hvdc23", cs3, cs2, 400, 0.1, 200);
+        createHvdcLine(network, "hvdc23", cs2, cs3, 400, 0.1, 200)
+                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)  // Need this mode or there is a bug in AC Emulation at time of writing this test
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(200)  // Seems to ignore the HVDC Mode...
+                .withEnabled(true)
+                .add();
+
         createLine(network, b3, b4, "l34", 0.1f);
         createLine(network, b1, b4, "l14", 0.1f);
 
