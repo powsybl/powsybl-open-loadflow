@@ -26,15 +26,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Checkout powsybl-core sources
-        uses: actions/checkout@v1
-        with:
-          repository: powsybl/powsybl-core
-          ref: refs/heads/rtc_reactive_power_regulation
-
-      - name: Build and install powsybl-core with Maven
-        run: mvn --batch-mode -DskipTests=true --file ../powsybl-core/pom.xml install
-
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
         run: ./mvnw --batch-mode -Pjacoco install
