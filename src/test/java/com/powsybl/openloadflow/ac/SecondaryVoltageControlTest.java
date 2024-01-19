@@ -91,7 +91,7 @@ class SecondaryVoltageControlTest {
                 .add()
                 .add();
         SecondaryVoltageControl control = network.getExtension(SecondaryVoltageControl.class);
-        PilotPoint pilotPoint = control.getControlZones().get(0).getPilotPoint();
+        PilotPoint pilotPoint = control.getControlZone("z1").orElseThrow().getPilotPoint();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
