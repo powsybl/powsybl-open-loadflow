@@ -9,10 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlUnit;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -85,11 +82,16 @@ class SecondaryVoltageControlTest {
     @Test
     void testNoReactiveLimits() {
         parameters.setUseReactiveLimits(false);
-        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 13);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-                        new ControlUnit("B8-G"))))
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
                 .add();
+        SecondaryVoltageControl control = network.getExtension(SecondaryVoltageControl.class);
+        PilotPoint pilotPoint = control.getControlZone("z1").orElseThrow().getPilotPoint();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -134,10 +136,13 @@ class SecondaryVoltageControlTest {
 
     @Test
     void testReactiveLimits() {
-        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 11.5);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-                        new ControlUnit("B8-G"))))
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(11.5).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -164,10 +169,13 @@ class SecondaryVoltageControlTest {
 
     @Test
     void testUnblockGeneratorFromLimit() {
-        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 15);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-                        new ControlUnit("B8-G"))))
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(15).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
                 .add();
 
         // to put g6 and g8 at q min
@@ -191,11 +199,20 @@ class SecondaryVoltageControlTest {
     @Test
     void multiNoReactiveLimitsZonesTest() {
         parameters.setUseReactiveLimits(false);
-        PilotPoint pilotPoint1 = new PilotPoint(List.of("B4"), 142);
-        PilotPoint pilotPoint2 = new PilotPoint(List.of("B10"), 14.5);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint1, List.of(new ControlUnit("B1-G"), new ControlUnit("B2-G"), new ControlUnit("B3-G"))))
-                .addControlZone(new ControlZone("z2", pilotPoint2, List.of(new ControlUnit("B6-G"), new ControlUnit("B8-G"))))
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(142).withBusbarSectionsOrBusesIds(List.of("B4")).add()
+                .newControlUnit().withId("B1-G").add()
+                .newControlUnit().withId("B2-G").add()
+                .newControlUnit().withId("B3-G").add()
+                .add()
+                .newControlZone()
+                .withName("z2")
+                .newPilotPoint().withTargetV(14.5).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
                 .add();
 
         parametersExt.setSecondaryVoltageControl(true);
@@ -214,10 +231,13 @@ class SecondaryVoltageControlTest {
         parameters.setUseReactiveLimits(false);
         parametersExt.setSecondaryVoltageControl(true);
 
-        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 14.4);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-                        new ControlUnit("B8-G"))))
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(14.4).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
                 .add();
 
         var result = loadFlowRunner.run(network, parameters);
@@ -230,10 +250,12 @@ class SecondaryVoltageControlTest {
 
     @Test
     void pilotPointNotFoundTest() {
-        PilotPoint pilotPoint = new PilotPoint(List.of("XX", "YY"), 13);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-                                                                          new ControlUnit("B8-G"))))
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("XX", "YY")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add();
 
         LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
@@ -244,10 +266,13 @@ class SecondaryVoltageControlTest {
 
     @Test
     void controlUnitNotFoundTest() {
-        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 13);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B99-G"),
-                                                                          new ControlUnit("B8-G"))))
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B99-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
                 .add();
 
         LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
@@ -260,10 +285,13 @@ class SecondaryVoltageControlTest {
 
     @Test
     void testOptionalNoValueIssue() {
-        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 13);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-                                                                          new ControlUnit("B9-SH")))) // this is a shunt which is not supported
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B9-SH").add() // this is a shunt which is not supported
+                .add()
                 .add();
 
         parametersExt.setSecondaryVoltageControl(true);
@@ -279,10 +307,13 @@ class SecondaryVoltageControlTest {
                 .setMinQ(100)
                 .setMaxQ(100.000001)
                 .add();
-        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 13);
+
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
-                                                                          new ControlUnit("B8-G"))))
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add();
 
         parametersExt.setSecondaryVoltageControl(true);
@@ -292,12 +323,19 @@ class SecondaryVoltageControlTest {
 
     @Test
     void disjointControlZoneTest() {
-        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 13);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B99-G"),
-                                                                          new ControlUnit("B8-G"))))
-                .addControlZone(new ControlZone("z2", pilotPoint, List.of(new ControlUnit("B1-G"),
-                                                                          new ControlUnit("B8-G"))))
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B99-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
+                .newControlZone()
+                .withName("z2")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B1-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
                 .add();
 
         LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
@@ -310,9 +348,12 @@ class SecondaryVoltageControlTest {
     void testNotPlausibleTargetV() {
         // g8 generator is very far from pilot point bus b12, there is no way for generators of the zone to control
         // the pilot point voltage, this is detected by secondary voltage control outer loop which fails
-        PilotPoint pilotPoint = new PilotPoint(List.of("B12"), 11.5);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B8-G"))))
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(11.5).withBusbarSectionsOrBusesIds(List.of("B12")).add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
                 .add();
 
         parametersExt.setSecondaryVoltageControl(true);
