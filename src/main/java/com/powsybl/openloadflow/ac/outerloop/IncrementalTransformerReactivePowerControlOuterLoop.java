@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -226,11 +227,10 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
     }
 
     private static double getHighestPriorityReactivePowerTarget(LfBranch controlledBranch) {
-        //  GeneratorReactivePowerControl has priority on TransformerReactivePowerControl
-        if (controlledBranch.getGeneratorReactivePowerControl().isPresent()) {
-            return controlledBranch.getGeneratorReactivePowerControl().orElseThrow().getTargetValue();
-        } else {
-            return controlledBranch.getTransformerReactivePowerControl().orElseThrow().getTargetValue();
-        }
+        return controlledBranch.getGeneratorReactivePowerControl()
+                .map(GeneratorReactivePowerControl::getTargetValue)
+                .orElseGet(() -> controlledBranch.getTransformerReactivePowerControl()
+                        .orElseThrow()
+                        .getTargetValue());
     }
 }
