@@ -53,10 +53,8 @@
         <jafama.version>2.3.2</jafama.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
-<!-- delete/revert me begin -->
-<!--        <powsybl-core.version>6.1.1</powsybl-core.version>-->
-        <powsybl-core.version>6.2.0-SNAPSHOT</powsybl-core.version>
-<!--delete/revert me end -->
+
+        <powsybl-core.version>6.2.0-RC1</powsybl-core.version>
     </properties>
 
     <build>

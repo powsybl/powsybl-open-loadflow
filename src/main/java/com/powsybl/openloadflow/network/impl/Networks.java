@@ -147,7 +147,7 @@ public final class Networks {
                 .filter(t -> t.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING)
                 .forEach(tripping -> {
                     Switch aSwitch =
-                            network.getSwitch(((OverloadManagementSystem.SwitchTripping) tripping).getSwitchToOperate().getId());
+                            network.getSwitch(((OverloadManagementSystem.SwitchTripping) tripping).getSwitchToOperateId());
                     if (aSwitch != null) {
                         if (tripping.isOpenAction()) {
                             topoConfig.getSwitchesToOpen().add(aSwitch);

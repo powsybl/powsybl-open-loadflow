@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<iidm:network xmlns:iidm="http://www.powsybl.org/schema/iidm/1_11" xmlns:sas="http://www.powsybl.org/schema/iidm/ext/substation_automation_systems/1_0" id="OverloadManagementSystemTestCase" caseDate="2020-04-05T14:11:00.000+01:00" forecastDistance="0" sourceFormat="code" minimumValidationLevel="STEADY_STATE_HYPOTHESIS">
+<iidm:network xmlns:iidm="http://www.powsybl.org/schema/iidm/1_12" xmlns:sas="http://www.powsybl.org/schema/iidm/ext/substation_automation_systems/1_0" id="OverloadManagementSystemTestCase" caseDate="2020-04-05T14:11:00.000+01:00" forecastDistance="0" sourceFormat="code" minimumValidationLevel="STEADY_STATE_HYPOTHESIS">
     <iidm:substation id="s1" country="FR">
         <iidm:voltageLevel id="b1_vl" nominalV="225.0" topologyKind="BUS_BREAKER">
             <iidm:busBreakerTopology>

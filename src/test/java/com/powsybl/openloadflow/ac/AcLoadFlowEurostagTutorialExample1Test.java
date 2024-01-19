@@ -421,7 +421,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMinP(-9999.99D).setMaxP(9999.99D)
                 .setVoltageRegulatorOn(true).setTargetV(24.5D)
                 .setTargetP(607.0D).setTargetQ(301.0D).add();
-        network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(160).add();
+        // GEN1 reactive limits are not plausible => fallback into split Q equally
+        network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(-10000).setMaxQ(10000).add();
         LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(false)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);

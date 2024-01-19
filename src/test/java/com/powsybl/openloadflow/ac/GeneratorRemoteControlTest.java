@@ -396,6 +396,33 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
+    void testGeneratorRemoteReactivePowerControlOnZeroImpedanceBranch() {
+        // create a basic 4-buses network
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        Generator g4 = network.getGenerator("g4");
+        Line l34 = network.getLine("l34");
+        l34.setR(0).setX(0);
+
+        double targetQ = 1.0;
+
+        // disable voltage control on g4
+        g4.setTargetQ(0).setVoltageRegulatorOn(false);
+
+        // generator g4 regulates reactive power on line 4->3 (on side of g4)
+        // which is zero impedant
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+            .withTargetQ(targetQ)
+            .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
+            .withEnabled(true).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setReactivePowerRemoteControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(targetQ, l34.getTerminal(TwoSides.TWO));
+    }
+
+    @Test
     void testDiscardedGeneratorRemoteReactivePowerControls() {
         // create a basic 4-buses network
         Network network = FourBusNetworkFactory.createBaseNetwork();
@@ -556,6 +583,76 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(2, l34.getTerminal(TwoSides.TWO));
         // reactive power partitioned 2 (bus1 with 2 generators) : 1 (bus4)
         assertEquals(Math.abs(g1.getTerminal().getQ()), Math.abs(g4.getTerminal().getQ()), DELTA_POWER);
+    }
+
+    @Test
+    void testSharedGeneratorRemoteReactivePowerControlReactiveKeys() {
+        // generator g1 and g1Bis regulate reactive power on line 4->3
+        // they are on the same bus
+        Network network = FourBusNetworkFactory.createWithReactiveControl2GeneratorsOnSameBus();
+        Generator g1 = network.getGenerator("g1");
+        Generator g1Bis = network.getGenerator("g1Bis");
+        Line l34 = network.getLine("l34");
+
+        // Q should be split 1 : 4 for g1 and g1Bis respectively
+        g1.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(80).add();
+        g1Bis.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(20).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true)
+                .setReactivePowerDispatchMode(ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(2, l34.getTerminal(TwoSides.TWO));
+        assertEquals(g1.getTerminal().getQ(), 4 * g1Bis.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(5.8386, g1.getTerminal().getQ() + g1Bis.getTerminal().getQ(), DELTA_POWER);
+    }
+
+    @Test
+    void testSharedGeneratorRemoteReactivePowerControlReactiveKeysFallbackMaxRange() {
+        // generator g1 and g1Bis regulate reactive power on line 4->3
+        // they are on the same bus
+        Network network = FourBusNetworkFactory.createWithReactiveControl2GeneratorsOnSameBus();
+        Generator g1 = network.getGenerator("g1");
+        Generator g1Bis = network.getGenerator("g1Bis");
+        Line l34 = network.getLine("l34");
+
+        // no reactive keys set => fallback
+        // Q should be split 1 : 2 for g1 and g1Bis respectively
+        g1.newMinMaxReactiveLimits().setMinQ(-20).setMaxQ(20).add();
+        g1Bis.newMinMaxReactiveLimits().setMinQ(-10).setMaxQ(10).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true)
+                .setReactivePowerDispatchMode(ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(2, l34.getTerminal(TwoSides.TWO));
+        assertEquals(g1.getTerminal().getQ(), 2 * g1Bis.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(5.8386, g1.getTerminal().getQ() + g1Bis.getTerminal().getQ(), DELTA_POWER);
+    }
+
+    @Test
+    void testSharedGeneratorRemoteReactivePowerControlReactiveKeysFallbackEquallyDistributed() {
+        // generator g1 and g1Bis regulate reactive power on line 4->3
+        // they are on the same bus
+        Network network = FourBusNetworkFactory.createWithReactiveControl2GeneratorsOnSameBus();
+        Generator g1 = network.getGenerator("g1");
+        Generator g1Bis = network.getGenerator("g1Bis");
+        Line l34 = network.getLine("l34");
+
+        // no reactive keys set => fallback max range
+        // not valid max ranges => fallback equally distributed
+        // Q should be equally split between g1 and g1Bis
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true)
+                .setReactivePowerDispatchMode(ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(2, l34.getTerminal(TwoSides.TWO));
+        assertEquals(g1.getTerminal().getQ(), g1Bis.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(5.8386, g1.getTerminal().getQ() + g1Bis.getTerminal().getQ(), DELTA_POWER);
     }
 
     @Test

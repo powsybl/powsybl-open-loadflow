@@ -10,10 +10,7 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -824,7 +821,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static Set<GeneratorVoltageControl> findControlZoneGeneratorVoltageControl(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork, ControlZone controlZone) {
         return controlZone.getControlUnits().stream()
-                .filter(SecondaryVoltageControl.ControlUnit::isParticipate)
+                .filter(ControlUnit::isParticipate)
                 .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                 .flatMap(regulatingTerminal -> {
                     Connectable<?> connectable = regulatingTerminal.getConnectable();
@@ -910,14 +907,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 return;
             }
             OverloadManagementSystem.SwitchTripping switchTripping = (OverloadManagementSystem.SwitchTripping) system.getTrippings().get(0);
-            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(switchTripping.getSwitchToOperate().getId());
+            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(switchTripping.getSwitchToOperateId());
             if (lfMonitoredElement != null && lfSwitchToOperate != null) {
                 LfBus bus = lfMonitoredElement.getBus1() != null ? lfMonitoredElement.getBus1() : lfMonitoredElement.getBus2();
                 double threshold = switchTripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
                 lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfMonitoredElement, threshold, lfSwitchToOperate, switchTripping.isOpenAction()));
             } else {
                 LOGGER.warn("Invalid overload management system: element to monitor is '{}', switch to operate is '{}'",
-                        system.getMonitoredElementId(), switchTripping.getSwitchToOperate().getId());
+                        system.getMonitoredElementId(), switchTripping.getSwitchToOperateId());
             }
         }
     }
