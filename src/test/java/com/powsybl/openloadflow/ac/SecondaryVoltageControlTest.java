@@ -86,8 +86,8 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B6-G").withParticipate(true).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add()
                 .add();
         SecondaryVoltageControl control = network.getExtension(SecondaryVoltageControl.class);
@@ -140,8 +140,8 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(11.5).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B6-G").withParticipate(true).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add()
                 .add();
 
@@ -173,8 +173,8 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(15).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B6-G").withParticipate(true).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add()
                 .add();
 
@@ -203,15 +203,15 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(142).withBusbarSectionsOrBusesIds(List.of("B4")).add()
-                .newControlUnit().withId("B1-G").withParticipate(true).add()
-                .newControlUnit().withId("B2-G").withParticipate(true).add()
-                .newControlUnit().withId("B3-G").withParticipate(true).add()
+                .newControlUnit().withId("B1-G").add()
+                .newControlUnit().withId("B2-G").add()
+                .newControlUnit().withId("B3-G").add()
                 .add()
                 .newControlZone()
                 .withName("z2")
                 .newPilotPoint().withTargetV(14.5).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B6-G").withParticipate(true).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add()
                 .add();
 
@@ -235,8 +235,8 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(14.4).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B6-G").withParticipate(true).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add()
                 .add();
 
@@ -254,8 +254,8 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("XX", "YY")).add()
-                .newControlUnit().withId("B6-G").withParticipate(true).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add();
 
         LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
@@ -270,8 +270,8 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B99-G").withParticipate(true).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B99-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add()
                 .add();
 
@@ -289,8 +289,8 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B6-G").withParticipate(true).add()
-                .newControlUnit().withId("B9-SH").withParticipate(true).add() // this is a shunt which is not supported
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B9-SH").add() // this is a shunt which is not supported
                 .add()
                 .add();
 
@@ -312,8 +312,8 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B6-G").withParticipate(true).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add();
 
         parametersExt.setSecondaryVoltageControl(true);
@@ -327,14 +327,14 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B99-G").withParticipate(true).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B99-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add()
                 .newControlZone()
                 .withName("z2")
                 .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B1-G").withParticipate(true).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B1-G").add()
+                .newControlUnit().withId("B8-G").add()
                 .add()
                 .add();
 
@@ -352,7 +352,7 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(11.5).withBusbarSectionsOrBusesIds(List.of("B12")).add()
-                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .newControlUnit().withId("B8-G").add()
                 .add()
                 .add();
 
