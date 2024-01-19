@@ -68,7 +68,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
             return initialized ? targetPInIdmTopology : super.getTargetP();
         }
         // because in case of AC emulation, active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equations
-        if (hvdc.isInjectingActiveFlow()) {
+        if (hvdc.isAcEmulationActive()) {
             return 0;
         }
 
@@ -112,7 +112,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         var station = getStation();
         station.getTerminal()
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ * PerUnit.SB);
-        if (hvdc == null || !hvdc.isInjectingActiveFlow()) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
+        if (hvdc == null || !hvdc.isAcEmulationActive()) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
             station.getTerminal().setP(-targetP * PerUnit.SB);
         }
     }

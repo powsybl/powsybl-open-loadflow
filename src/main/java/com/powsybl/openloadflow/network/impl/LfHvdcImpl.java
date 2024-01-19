@@ -163,7 +163,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public boolean isInjectingActiveFlow() {
+    public boolean isAcEmulationActive() {
         return !isDisabled() && acEmulation && bus1.isInternal() && bus2.isInternal();
     }
 

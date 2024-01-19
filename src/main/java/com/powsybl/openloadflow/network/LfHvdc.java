@@ -35,6 +35,7 @@ public interface LfHvdc extends LfElement {
     double getP0();
 
     boolean isAcEmulationEnabled();
+    boolean isAcEmulationActive();
 
     Optional<LfVscConverterStation> getConverterStation1();
 
@@ -45,8 +46,6 @@ public interface LfHvdc extends LfElement {
     void setConverterStation2(LfVscConverterStation converterStation2);
 
     void updateState();
-
-    boolean isInjectingActiveFlow();
 
     boolean canTransferActivePower();
 

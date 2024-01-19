@@ -341,6 +341,10 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     /**
      * <pre>
      *     Gen -- b1 -- l12 -- b2 -- HVDC23--b3--l34---b4--Load
+     *            |            |                       |
+     *            |          s2 (open)                 |
+     *            |            |                       |
+     *            |---l12Bis --                        |
      *            |                                    |
      *            ---------------------l14--------------
      * </pre>
