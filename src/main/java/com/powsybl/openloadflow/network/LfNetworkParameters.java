@@ -147,7 +147,6 @@ public class LfNetworkParameters {
         this.distributedOnConformLoad = other.distributedOnConformLoad;
         this.phaseControl = other.phaseControl;
         this.transformerVoltageControl = other.transformerVoltageControl;
-        this.transformerReactivePowerControl = other.transformerReactivePowerControl;
         this.voltagePerReactivePowerControl = other.voltagePerReactivePowerControl;
         this.generatorReactivePowerRemoteControl = other.generatorReactivePowerRemoteControl;
         this.transformerReactivePowerControl = other.transformerReactivePowerControl;

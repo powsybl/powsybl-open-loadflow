@@ -32,8 +32,7 @@ public class LfNetworkStateUpdateParameters {
     private final ReactivePowerDispatchMode reactivePowerDispatchMode;
 
     public LfNetworkStateUpdateParameters(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
-                                          boolean transformerVoltageControlOn, boolean transformerReactivePowerControlOn,
-                                          boolean loadPowerFactorConstant, boolean dc,
+                                          boolean transformerVoltageControlOn, boolean transformerReactivePowerControlOn, boolean loadPowerFactorConstant, boolean dc,
                                           boolean breakers, ReactivePowerDispatchMode reactivePowerDispatchMode) {
         this.reactiveLimits = reactiveLimits;
         this.writeSlackBus = writeSlackBus;
