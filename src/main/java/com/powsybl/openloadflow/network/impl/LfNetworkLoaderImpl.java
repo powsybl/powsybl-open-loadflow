@@ -10,10 +10,7 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
 import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
@@ -895,7 +892,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static Set<GeneratorVoltageControl> findControlZoneGeneratorVoltageControl(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork, ControlZone controlZone) {
         return controlZone.getControlUnits().stream()
-                .filter(SecondaryVoltageControl.ControlUnit::isParticipate)
+                .filter(ControlUnit::isParticipate)
                 .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                 .flatMap(regulatingTerminal -> {
                     Connectable<?> connectable = regulatingTerminal.getConnectable();

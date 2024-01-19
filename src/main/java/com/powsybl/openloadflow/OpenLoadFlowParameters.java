@@ -248,7 +248,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Transformer reactive power control", TRANSFORMER_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE),
         new Parameter(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max iterations per Newton-Raphson", NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS),
         new Parameter(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max outer loop iterations", AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS),
-        new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, ParameterType.DOUBLE, "Newton-Raphson convergence epsilon per equation", DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
+        new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, ParameterType.DOUBLE, "Newton-Raphson convergence epsilon per equation", NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
         new Parameter(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, ParameterType.STRING, "Voltage init mode override", VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE.name(), getEnumPossibleValues(VoltageInitModeOverride.class)),
         new Parameter(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Transformer voltage control mode", TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(TransformerVoltageControlMode.class)),
         new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Shunt voltage control mode", SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class)),
@@ -369,7 +369,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private int maxOuterLoopIterations = AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
 
-    private double newtonRaphsonConvEpsPerEq = DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
+    private double newtonRaphsonConvEpsPerEq = NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
 
     private VoltageInitModeOverride voltageInitModeOverride = VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE;
 
@@ -1100,7 +1100,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setTransformerReactivePowerControl(config.getBooleanProperty(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, TRANSFORMER_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
                 .setMaxNewtonRaphsonIterations(config.getIntProperty(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS))
                 .setMaxOuterLoopIterations(config.getIntProperty(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS))
-                .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
+                .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
                 .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 .setShuntVoltageControlMode(config.getEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ShuntVoltageControlMode.class, SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
@@ -1481,17 +1481,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     private static NewtonRaphsonStoppingCriteria createNewtonRaphsonStoppingCriteria(OpenLoadFlowParameters parametersExt) {
-        switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
-            case UNIFORM_CRITERIA:
-                return new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
-            case PER_EQUATION_TYPE_CRITERIA:
-                return new PerEquationTypeStoppingCriteria(parametersExt.getMaxActivePowerMismatch(),
-                        parametersExt.getMaxReactivePowerMismatch(), parametersExt.getMaxVoltageMismatch(),
-                        parametersExt.getMaxAngleMismatch(), parametersExt.getMaxRatioMismatch(),
-                        parametersExt.getMaxSusceptanceMismatch());
-            default:
-                throw new PowsyblException("Unknown Newton Raphson stopping criteria type: " + parametersExt.getNewtonRaphsonStoppingCriteriaType());
-        }
+        return switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
+            case UNIFORM_CRITERIA ->
+                    new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
+            case PER_EQUATION_TYPE_CRITERIA ->
+                    new PerEquationTypeStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq(), parametersExt.getMaxActivePowerMismatch(),
+                            parametersExt.getMaxReactivePowerMismatch(), parametersExt.getMaxVoltageMismatch(),
+                            parametersExt.getMaxAngleMismatch(), parametersExt.getMaxRatioMismatch(),
+                            parametersExt.getMaxSusceptanceMismatch());
+        };
     }
 
     static List<AcOuterLoop> createOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
