@@ -225,7 +225,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME = "newtonKrylovLineSearch";
 
-    public static final String VOLTAGE_TARGET_PRIORITIES_PARAM_NAME = "voltageTargetPriorities";
+    public static final String VOLTAGE_TARGET_PRIORITIES_PARAM_NAME = "voltageTargetPriority";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());

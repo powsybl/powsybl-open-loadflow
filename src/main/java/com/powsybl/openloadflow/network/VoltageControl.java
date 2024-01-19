@@ -41,7 +41,7 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     protected boolean disabled = false;
 
-    private static List<Integer> voltageTargetPriorities;
+    private static List<Integer> voltageTargetPriority;
 
     protected VoltageControl(double targetValue, Type type, int priority, LfBus controlledBus) {
         super(targetValue);
@@ -66,16 +66,16 @@ public class VoltageControl<T extends LfElement> extends Control {
         throw new IllegalStateException();
     }
 
-    public static List<Integer> getVoltageTargetPriorities() {
-        return voltageTargetPriorities;
+    public static List<Integer> getVoltageTargetPriority() {
+        return voltageTargetPriority;
     }
 
-    public static void setVoltageTargetPriorities(List<Integer> voltageTargetPriorities) {
-        Objects.requireNonNull(voltageTargetPriorities);
-        if (voltageTargetPriorities.size() != 3 || !voltageTargetPriorities.containsAll(List.of(0, 1, 2))) {
+    public static void setVoltageTargetPriority(List<Integer> voltageTargetPriority) {
+        Objects.requireNonNull(voltageTargetPriority);
+        if (voltageTargetPriority.size() != 3 || !voltageTargetPriority.containsAll(List.of(0, 1, 2))) {
             throw new IllegalStateException();
         }
-        VoltageControl.voltageTargetPriorities = voltageTargetPriorities;
+        VoltageControl.voltageTargetPriority = voltageTargetPriority;
     }
 
     public List<VoltageControl<T>> getMergedDependentVoltageControls() {

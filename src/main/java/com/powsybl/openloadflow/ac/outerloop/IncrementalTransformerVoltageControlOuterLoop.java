@@ -202,7 +202,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private static double getDiffV(TransformerVoltageControl voltageControl) {
-        double targetV = voltageControl.getControlledBus().getHighestPriorityMainVoltageControl(VoltageControl.getVoltageTargetPriorities()).orElseThrow().getTargetValue();
+        double targetV = voltageControl.getControlledBus().getHighestPriorityMainVoltageControl(VoltageControl.getVoltageTargetPriority()).orElseThrow().getTargetValue();
         double v = voltageControl.getControlledBus().getV();
         return targetV - v;
     }

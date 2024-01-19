@@ -730,7 +730,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     createShuntVoltageControl(lfNetwork, shunt, parameters);
                 }
             }
-            VoltageControl.setVoltageTargetPriorities(parameters.getVoltageTargetPriority().stream()
+            VoltageControl.setVoltageTargetPriority(parameters.getVoltageTargetPriority().stream()
                                                                                                 .map(Integer::parseInt)
                                                                                                 .collect(Collectors.toList()));
         }
