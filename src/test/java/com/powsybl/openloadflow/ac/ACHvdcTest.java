@@ -123,7 +123,6 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
                                                             new AnyViolationCondition(),
                                                             List.of("action1")));
 
-
         SecurityAnalysisResult result = runSecurityAnalysis(network,
                 contingencies,
                 Collections.emptyList(),
@@ -181,10 +180,10 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setHvdcAcEmulation(
-                switch (testType) {
-                    case "VSC-AcEmul" -> true;
-                    default -> false;
-                });
+            switch (testType) {
+                case "VSC-AcEmul" -> true;
+                default -> false;
+            });
 
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesWithGeneratorAndLoad(hvdcType);
 
@@ -220,7 +219,6 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
                 new AnyViolationCondition(),
                 List.of("action1")));
 
-
         SecurityAnalysisResult result = runSecurityAnalysis(network,
                 contingencies,
                 Collections.emptyList(),
@@ -236,7 +234,6 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
                 Reporter.NO_OP);
 
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty(), "No violation expected precontingency");
-
 
         for (PostContingencyResult postContingencyResult : result.getPostContingencyResults()) {
             boolean line14HasCurrentCOntingency =

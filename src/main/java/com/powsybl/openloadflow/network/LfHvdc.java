@@ -32,6 +32,8 @@ public interface LfHvdc extends LfElement {
 
     double getP0();
 
+    boolean isAcEmulationEnabled();
+
     LfVscConverterStation getConverterStation1();
 
     LfVscConverterStation getConverterStation2();

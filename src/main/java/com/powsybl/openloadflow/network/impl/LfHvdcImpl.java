@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -26,28 +27,31 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private final LfBus bus2;
 
-    private final boolean isACEmulationMode;
+    private boolean acEmulation = false;
 
     private Evaluable p1 = NAN;
 
     private Evaluable p2 = NAN;
 
-    private final double droop;
+    private double droop = Double.NaN;
 
-    private final double p0;
+    private double p0 = Double.NaN;
 
     private LfVscConverterStation converterStation1;
 
     private LfVscConverterStation converterStation2;
 
-    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcAngleDroopActivePowerControl control, boolean isACEmulationMode) {
+    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine, boolean isHvdcAcEmulation) {
         super(network);
         this.id = Objects.requireNonNull(id);
         this.bus1 = bus1;
         this.bus2 = bus2;
-        this.isACEmulationMode = isACEmulationMode;
-        droop = control != null ? control.getDroop() : Double.NaN;
-        p0 = control != null ? control.getP0() : Double.NaN;
+        HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
+        if (control != null && isHvdcAcEmulation) {
+            acEmulation = control.isEnabled();
+            droop = control.getDroop();
+            p0 = control.getP0();
+        }
     }
 
     @Override
@@ -93,7 +97,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public double getDroop() {
         if (Double.isNaN(droop)) {
-            throw new IllegalStateException("HVDC droop is used but control is not initialized");
+            throw new IllegalStateException("Hvdc droop is used but control is not present");
         }
         return droop / PerUnit.SB;
     }
@@ -101,9 +105,14 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public double getP0() {
         if (Double.isNaN(p0)) {
-            throw new IllegalStateException("HVDC P0 is used but control is not initialized");
+            throw new IllegalStateException("Hvdc P0 is used but control is not present");
         }
         return p0 / PerUnit.SB;
+    }
+
+    @Override
+    public boolean isAcEmulationEnabled() {
+        return acEmulation;
     }
 
     @Override
@@ -136,7 +145,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public boolean isInjectingActiveFlow() {
-        return !isDisabled() && isACEmulationMode;
+        return !isDisabled() && acEmulation;
     }
 
     @Override

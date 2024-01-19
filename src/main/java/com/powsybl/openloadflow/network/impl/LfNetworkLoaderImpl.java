@@ -10,7 +10,6 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
@@ -486,17 +485,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         for (HvdcLine hvdcLine : loadingContext.hvdcLineSet) {
-            HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
-            boolean isHvdcAcEmulation = parameters.isHvdcAcEmulation() && control != null && control.isEnabled();
             LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
             LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
             if (cs1 != null && cs2 != null) {
-                LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, control, isHvdcAcEmulation);
-                lfHvdc.setConverterStation1((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId()));
-                lfHvdc.setConverterStation2((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId()));
-                if (isHvdcAcEmulation) {
+                LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, parameters.isHvdcAcEmulation());
+                lfHvdc.setConverterStation1(cs1);
+                lfHvdc.setConverterStation2(cs2);
+                if (lfHvdc.isAcEmulationEnabled()) {
                     lfNetwork.addHvdc(lfHvdc);
                 }
             } else {
