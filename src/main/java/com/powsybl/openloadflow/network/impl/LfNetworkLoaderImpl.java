@@ -901,8 +901,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void createOverloadManagementSystem(LfNetwork lfNetwork, OverloadManagementSystem system) {
         if (system.isEnabled()) {
             LfBranch lfMonitoredElement = lfNetwork.getBranchById(system.getMonitoredElementId());
-            if (system.getTrippings().size() != 1 && system.getTrippings().get(0).getType() != OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
-                // FIXME
+            if (system.getTrippings().size() != 1 || system.getTrippings().get(0).getType() != OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
                 LOGGER.warn("Unsupported overload management system {}: only single switch tripping supported", system.getId());
                 return;
             }
