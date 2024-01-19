@@ -366,8 +366,8 @@ public final class LfAction {
 
         if (hvdc != null) {
             hvdc.setDisabled(true);
-            hvdc.getConverterStation1().setTargetP(-hvdc.getP1().eval());
-            hvdc.getConverterStation2().setTargetP(-hvdc.getP2().eval());
+            hvdc.getConverterStation1().ifPresent(s -> s.setTargetP(-hvdc.getP1().eval()));
+            hvdc.getConverterStation2().ifPresent(s -> s.setTargetP(-hvdc.getP2().eval()));
         }
     }
 }

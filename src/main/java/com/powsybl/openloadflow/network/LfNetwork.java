@@ -304,12 +304,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         hvdcsById.put(hvdc.getId(), hvdc);
 
         // create bus -> branches link
-        if (hvdc.getBus1() != null) {
-            hvdc.getBus1().addHvdc(hvdc);
-        }
-        if (hvdc.getBus2() != null) {
-            hvdc.getBus2().addHvdc(hvdc);
-        }
+        hvdc.getBus1().orElseThrow().addHvdc(hvdc);
+        hvdc.getBus2().orElseThrow().addHvdc(hvdc);
     }
 
     public List<LfHvdc> getHvdcs() {

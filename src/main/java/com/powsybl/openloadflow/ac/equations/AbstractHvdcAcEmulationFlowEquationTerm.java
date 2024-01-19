@@ -40,8 +40,8 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         variables = List.of(ph1Var, ph2Var);
         k = hvdc.getDroop() * 180 / Math.PI;
         p0 = hvdc.getP0();
-        lossFactor1 = hvdc.getConverterStation1().getLossFactor() / 100;
-        lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
+        lossFactor1 = hvdc.getConverterStation1().orElseThrow().getLossFactor() / 100;
+        lossFactor2 = hvdc.getConverterStation2().orElseThrow().getLossFactor() / 100;
     }
 
     protected double ph1() {

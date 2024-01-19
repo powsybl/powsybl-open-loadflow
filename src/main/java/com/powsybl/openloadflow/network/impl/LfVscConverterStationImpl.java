@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
+import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -24,17 +25,23 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     private final double lossFactor;
 
+    private final double targetPInIdmTopology;
+
     private LfHvdc hvdc; // always set excepted if HVDCLine is not in the network
 
+    private boolean initialized = false;
+
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, LfHvdc.getActualTargetP(station) / PerUnit.SB);
+        super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
+        this.targetPInIdmTopology = LfHvdc.getTargetPInIdmTopology(station) / PerUnit.SB;
 
         // local control only
         if (station.isVoltageRegulatorOn()) {
             setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
         }
+        initialized = true;
     }
 
     public static LfVscConverterStationImpl create(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
@@ -56,8 +63,9 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     public double getTargetP() {
 
         if (hvdc == null) {
-            // HVDC is not set during superClass initialization, or if the HVDC line is not in the network
-            return super.getTargetP();
+            // If called during initialization return the nominal target P
+            // If called at runtime, may return 0 if there is no transit per IDM topology
+            return initialized ? targetPInIdmTopology : super.getTargetP();
         }
         // because in case of AC emulation, active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equations
         if (hvdc.isInjectingActiveFlow()) {
@@ -114,6 +122,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         if (hvdc == null) {
             return Optional.empty();
         }
-        return Optional.of(this == hvdc.getConverterStation1() ? hvdc.getBus2() : hvdc.getBus1());
+        boolean isStation1 = hvdc.getConverterStation1().map(s -> s == this).orElse(false);
+        return isStation1 ? hvdc.getBus2() : hvdc.getBus1();
     }
 }

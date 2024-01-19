@@ -919,20 +919,20 @@ public class AcEquationSystemCreator {
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
         if (hvdc.getBus1() != null && hvdc.getBus2() != null) {
-            p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
-            p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+            p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1().orElseThrow(), hvdc.getBus2().orElseThrow(), equationSystem.getVariableSet());
+            p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1().orElseThrow(), hvdc.getBus2().orElseThrow(), equationSystem.getVariableSet());
         } else {
             // nothing to do
         }
 
         if (p1 != null) {
-            equationSystem.getEquation(hvdc.getBus1().getNum(), AcEquationType.BUS_TARGET_P)
+            equationSystem.getEquation(hvdc.getBus1().orElseThrow().getNum(), AcEquationType.BUS_TARGET_P)
                     .orElseThrow()
                     .addTerm(p1);
             hvdc.setP1(p1);
         }
         if (p2 != null) {
-            equationSystem.getEquation(hvdc.getBus2().getNum(), AcEquationType.BUS_TARGET_P)
+            equationSystem.getEquation(hvdc.getBus2().orElseThrow().getNum(), AcEquationType.BUS_TARGET_P)
                     .orElseThrow()
                     .addTerm(p2);
             hvdc.setP2(p2);

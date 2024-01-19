@@ -194,6 +194,10 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
                 .setPermanentLimit(200) // 360 for 2MW
                 .add();
 
+        network.getLine("l12Bis").newCurrentLimits2()
+                .setPermanentLimit(200) // 360 for 2MW
+                .add();
+
         // Detect HVDC closed
         network.getLine("l14").newCurrentLimits1()
                 .setPermanentLimit(300)  // 260 for 100MB
@@ -254,9 +258,19 @@ public class ACHvdcTest extends AbstractOpenSecurityAnalysisTest {
         }
         assertTrue(result.getOperatorStrategyResults().size() == 1, "One operator strategy run");
         OperatorStrategyResult operatorStrategyResult = result.getOperatorStrategyResults().get(0);
-        assertTrue(operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size() == 1, "One violation exepcted after operator strategy");
-        LimitViolation limitViolation = operatorStrategyResult.getLimitViolationsResult().getLimitViolations().get(0);
-        assertTrue(limitViolation.getSubjectId().equals("l34"), "l34 expected to transport current again because l12Bis is connected");
+        assertTrue(operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size() == 2, "l13 and l12Bis should have current");
+        boolean line12BisHasCurrent =
+                operatorStrategyResult.getLimitViolationsResult().getLimitViolations().stream()
+                        .filter(l -> l.getSubjectId().equals("l12Bis"))
+                        .findFirst()
+                        .isPresent();
+        assertTrue(line12BisHasCurrent, "l12Bis should have current");
+        boolean line34HasCurrent =
+                operatorStrategyResult.getLimitViolationsResult().getLimitViolations().stream()
+                        .filter(l -> l.getSubjectId().equals("l34"))
+                        .findFirst()
+                        .isPresent();
+        assertTrue(line12BisHasCurrent, "l34 should have current");
     }
 
     // TODO: Test DC

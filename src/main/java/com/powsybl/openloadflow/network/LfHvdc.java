@@ -11,14 +11,16 @@ import com.powsybl.iidm.network.HvdcConverterStation;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.Optional;
+
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public interface LfHvdc extends LfElement {
 
-    LfBus getBus1();
+    Optional<LfBus> getBus1();
 
-    LfBus getBus2();
+    Optional<LfBus> getBus2();
 
     void setP1(Evaluable p1);
 
@@ -34,9 +36,9 @@ public interface LfHvdc extends LfElement {
 
     boolean isAcEmulationEnabled();
 
-    LfVscConverterStation getConverterStation1();
+    Optional<LfVscConverterStation> getConverterStation1();
 
-    LfVscConverterStation getConverterStation2();
+    Optional<LfVscConverterStation> getConverterStation2();
 
     void setConverterStation1(LfVscConverterStation converterStation1);
 
@@ -48,7 +50,8 @@ public interface LfHvdc extends LfElement {
 
     boolean canTransferActivePower();
 
-    static double getActualTargetP(HvdcConverterStation<?> station) {
+    static double getTargetPInIdmTopology(HvdcConverterStation<?> station) {
+
         if (isIsolated(station.getTerminal().getBusBreakerView().getBus())) {
             return 0d;
         }

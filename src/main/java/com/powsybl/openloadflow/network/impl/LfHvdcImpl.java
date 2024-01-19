@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openloadflow.network.*;
@@ -13,6 +14,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -23,9 +25,9 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private final String id;
 
-    private final LfBus bus1;
+    private HvdcBus bus1;
 
-    private final LfBus bus2;
+    private HvdcBus bus2;
 
     private boolean acEmulation = false;
 
@@ -37,21 +39,28 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private double p0 = Double.NaN;
 
-    private LfVscConverterStation converterStation1;
+    private LfVscConverterStation converterStation1; // can be null if not in this syncrhonous network
 
-    private LfVscConverterStation converterStation2;
+    private LfVscConverterStation converterStation2; // can be null not in this synchronous network
 
-    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine, boolean isHvdcAcEmulation) {
+    public LfHvdcImpl(String id, LfNetwork network, HvdcLine hvdcLine, boolean isHvdcAcEmulation) {
         super(network);
         this.id = Objects.requireNonNull(id);
-        this.bus1 = bus1;
-        this.bus2 = bus2;
+        // buses will be updated if an LF station is connected
+        this.bus1 = makeEternalHvdcBus(hvdcLine.getConverterStation1().getTerminal().getBusView().getBus());
+        this.bus2 = makeEternalHvdcBus(hvdcLine.getConverterStation2().getTerminal().getBusView().getBus());
         HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
         if (control != null && isHvdcAcEmulation) {
             acEmulation = control.isEnabled();
             droop = control.getDroop();
             p0 = control.getP0();
         }
+    }
+
+    private HvdcBus makeEternalHvdcBus(Bus bus) {
+        // Simple criteria. If hte bus is only connected to the HVDC station it cannot flow
+        // power. Otherwise it can.
+        return new ExternalHvdcBus(bus != null && bus.getConnectedTerminalCount() > 1);
     }
 
     @Override
@@ -65,13 +74,13 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public LfBus getBus1() {
-        return this.bus1;
+    public Optional<LfBus> getBus1() {
+        return this.bus1.getLfBus();
     }
 
     @Override
-    public LfBus getBus2() {
-        return this.bus2;
+    public Optional<LfBus> getBus2() {
+        return this.bus2.getLfBus();
     }
 
     @Override
@@ -116,61 +125,51 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public LfVscConverterStation getConverterStation1() {
-        return converterStation1;
+    public Optional<LfVscConverterStation> getConverterStation1() {
+        return Optional.ofNullable(converterStation1);
     }
 
     @Override
-    public LfVscConverterStation getConverterStation2() {
-        return converterStation2;
+    public Optional<LfVscConverterStation> getConverterStation2() {
+        return Optional.ofNullable(converterStation2);
     }
 
     @Override
     public void setConverterStation1(LfVscConverterStation converterStation1) {
-        this.converterStation1 = Objects.requireNonNull(converterStation1);
-        converterStation1.setHvdc(this);
+        this.converterStation1 = converterStation1;
+        if (converterStation1 != null) {
+            this.bus1 = new LfHvdcBus(converterStation1.getBus(), converterStation1);
+            converterStation1.setHvdc(this);
+        }
     }
 
     @Override
     public void setConverterStation2(LfVscConverterStation converterStation2) {
-        this.converterStation2 = Objects.requireNonNull(converterStation2);
-        converterStation2.setHvdc(this);
+        this.converterStation2 = converterStation2;
+        if (converterStation2 != null) {
+            this.bus2 = new LfHvdcBus(converterStation2.getBus(), converterStation2);
+            converterStation2.setHvdc(this);
+        }
     }
 
     @Override
     public void updateState() {
-        ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
-        ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
+        if (converterStation1 != null) {
+            ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
+        }
+        if (converterStation2 != null) {
+            ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
+        }
     }
 
     @Override
     public boolean isInjectingActiveFlow() {
-        return !isDisabled() && acEmulation;
+        return !isDisabled() && acEmulation && bus1.isInternal() && bus2.isInternal();
     }
 
     @Override
     public boolean canTransferActivePower() {
-        // Criteria: if one of the bus is only connected to the HVDC station and nothing else,
-        // no power is transferred. Otherwise the HVDC works as configured
-        return !isolated(bus1) && !isolated(bus2);
-    }
-
-    private boolean isolated(LfBus bus) {
-        if (bus.getGenerators().stream()
-                .filter(g -> !g.isDisabled())
-                .filter(g -> !(g == converterStation1))
-                .anyMatch(g -> !(g == converterStation2))) {
-            return false;
-        }
-        if (bus.getBranches().stream()
-                .anyMatch(b -> !b.isDisabled())
-        ) {
-            return false;
-        }
-        if (!bus.getLoads().isEmpty()) {
-            return false;
-        }
-        return true;
+        return bus1.canTransferActivePower() && bus2.canTransferActivePower();
     }
 
 }

@@ -24,6 +24,7 @@ import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -258,8 +259,8 @@ class EquationsTest {
         Mockito.doReturn(P_0).when(hvdc).getP0();
         LfVscConverterStationImpl station1 = Mockito.mock(LfVscConverterStationImpl.class, new RuntimeExceptionAnswer());
         LfVscConverterStationImpl station2 = Mockito.mock(LfVscConverterStationImpl.class, new RuntimeExceptionAnswer());
-        Mockito.doReturn(station1).when(hvdc).getConverterStation1();
-        Mockito.doReturn(station2).when(hvdc).getConverterStation2();
+        Mockito.doReturn(Optional.of(station1)).when(hvdc).getConverterStation1();
+        Mockito.doReturn(Optional.of(station2)).when(hvdc).getConverterStation2();
         Mockito.doReturn(LOSS_FACTOR_1).when(station1).getLossFactor();
         Mockito.doReturn(LOSS_FACTOR_2).when(station2).getLossFactor();
 
