@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
@@ -73,7 +72,7 @@ public class PropagatedContingency {
 
     public Set<String> getHvdcIdsToOpen() {
         return hvdcIdsToOpen;
-    }
+    } // not used for the moment.
 
     public Set<String> getGeneratorIdsToLose() {
         return generatorIdsToLose;
@@ -248,13 +247,11 @@ public class PropagatedContingency {
                     break;
 
                 case HVDC_CONVERTER_STATION:
+                    // in case of a hvdc contingency, both converter station will go through this case.
+                    // in case of the lost of one VSC converter station only, the transmission of active power is stopped
+                    // but the other converter station, if present, keeps it voltage control if present.
                     HvdcConverterStation<?> station = (HvdcConverterStation<?>) connectable;
-                    HvdcAngleDroopActivePowerControl control = station.getHvdcLine().getExtension(HvdcAngleDroopActivePowerControl.class);
-                    if (control != null && control.isEnabled() && creationParameters.isHvdcAcEmulation()) {
-                        hvdcIdsToOpen.add(station.getHvdcLine().getId());
-                    }
-                    // FIXME
-                    // the other converter station should be considered to if in the same synchronous component (hvdc setpoint mode).
+                    hvdcIdsToOpen.add(station.getHvdcLine().getId());
                     if (connectable instanceof VscConverterStation) {
                         generatorIdsToLose.add(connectable.getId());
                     } else {

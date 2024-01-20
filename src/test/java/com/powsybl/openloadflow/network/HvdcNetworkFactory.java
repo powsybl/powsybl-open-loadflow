@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 
 /**
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
@@ -529,6 +530,49 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         network.getGenerator("g5").setMaxP(5);
 
         createLoad(b2, "d2", 4);
+        return network;
+    }
+
+    /**
+     * <pre>
+     *     g1 - b1 -- l12 -- b2 -- hvdc23 -- b3 -- l34 -- b4 - l4
+     *          |            |                            |
+     *          |           s2 (open)                     |
+     *          |            |                            |
+     *          |---l12Bis --                             |
+     *          |                                         |
+     *          ---------------------l14-------------------
+     * </pre>
+     * @return
+     */
+    public static Network createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType type) {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1", 400);
+        Bus b2 = createBus(network, "b2", 400);
+        Bus b2Bis = b2.getVoltageLevel().getBusBreakerView().newBus().setId("b2Bis").add();
+        Bus b3 = createBus(network, "b3", 400);
+        Bus b4 = createBus(network, "b4", 400);
+        createGenerator(b1, "g1", 400, 400);
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b2Bis, "l12Bis", 0.1f);
+        createSwitch(network, b2, b2Bis, "s2").setOpen(true);
+        HvdcConverterStation cs2 = switch (type) {
+            case LCC -> createLcc(b2, "cs2");
+            case VSC -> createVsc(b2, "cs2", 400, 0);
+        };
+        HvdcConverterStation cs3 = switch (type) {
+            case LCC -> createLcc(b3, "cs3");
+            case VSC -> createVsc(b3, "cs3", 400, 0);
+        };
+        createHvdcLine(network, "hvdc23", cs2, cs3, 400, 0.1, 200)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(200)
+                .withEnabled(true)
+                .add();
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b1, b4, "l14", 0.1f);
+        createLoad(b4, "l4", 300, 0);
         return network;
     }
 }

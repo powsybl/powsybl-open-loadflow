@@ -483,6 +483,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public List<LfHvdc> getHvdcs() {
+        return hvdcs;
+    }
+
+    @Override
     public void addHvdc(LfHvdc hvdc) {
         hvdcs.add(Objects.requireNonNull(hvdc));
     }
@@ -710,6 +715,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
         if (controllerShunt != null) {
             controllerShunt.setDisabled(disabled);
+        }
+        for (LfHvdc hvdc : hvdcs) {
+            if (disabled) {
+                hvdc.setDisabled(true);
+            } else if (!disabled && !hvdc.getOtherBus(this).isDisabled()) {
+                // both enabled
+                hvdc.setDisabled(false);
+            }
         }
     }
 
