@@ -120,8 +120,8 @@ public final class LfAction {
             case SwitchAction.NAME:
                 return create((SwitchAction) action, lfNetwork);
 
-            case LineConnectionAction.NAME:
-                return create((LineConnectionAction) action, lfNetwork);
+            case TerminalsConnectionAction.NAME:
+                return create((TerminalsConnectionAction) action, lfNetwork);
 
             case PhaseTapChangerTapPositionAction.NAME:
                 return create((PhaseTapChangerTapPositionAction) action, lfNetwork);
@@ -209,15 +209,17 @@ public final class LfAction {
         return Optional.empty(); // could be in another component
     }
 
-    private static Optional<LfAction> create(LineConnectionAction action, LfNetwork lfNetwork) {
-        LfBranch branch = lfNetwork.getBranchById(action.getLineId());
+    private static Optional<LfAction> create(TerminalsConnectionAction action, LfNetwork lfNetwork) {
+        LfBranch branch = lfNetwork.getBranchById(action.getElementId());
         if (branch != null) {
-            if (action.isOpenSide1() == action.isOpenSide2()) {
-                LfBranch disabledBranch = action.isOpenSide1() ? branch : null;
-                LfBranch enabledBranch = action.isOpenSide1() ? null : branch;
-                return Optional.of(new LfAction(action.getId(), disabledBranch, enabledBranch, null, null, null, null));
+            if (action.getSide().isEmpty()) {
+                if (action.isOpen()) {
+                    return Optional.of(new LfAction(action.getId(), branch, null, null, null, null, null));
+                } else {
+                    return Optional.of(new LfAction(action.getId(), null, branch, null, null, null, null));
+                }
             } else {
-                throw new UnsupportedOperationException("Line connection action: only open or close line at both sides is supported yet.");
+                throw new UnsupportedOperationException("Terminals connection action: only open or close branch at both sides is supported yet.");
             }
         }
         return Optional.empty(); // could be in another component

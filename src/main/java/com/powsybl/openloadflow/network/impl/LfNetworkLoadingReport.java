@@ -36,4 +36,6 @@ public class LfNetworkLoadingReport {
     int generatorsWithZeroRemoteVoltageControlReactivePowerKey = 0;
 
     int transformerVoltageControlDiscardedBecauseControllerBranchIsOpen = 0;
+
+    int transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen = 0;
 }

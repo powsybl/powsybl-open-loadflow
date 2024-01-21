@@ -107,6 +107,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
+                                                                          parametersExt.isTransformerReactivePowerControl(),
                                                                           parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
                                                                           parameters.isDc(),
                                                                           acParameters.getNetworkParameters().isBreakers(),
@@ -169,7 +170,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     result.getDistributedActivePower() * PerUnit.SB));
         }
 
-        boolean ok = results.stream().anyMatch(AcLoadFlowResult::isOk);
+        boolean ok = results.stream().anyMatch(AcLoadFlowResult::isSuccess);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
@@ -208,20 +209,21 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         Networks.resetState(network);
 
         List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, dcParameters.getNetworkParameters().isBreakers())).toList();
-        boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSucceeded);
+        boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSuccess);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }
 
     private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters, boolean breakers) {
-        if (result.isSucceeded() && parameters.isWriteSlackBus()) {
+        if (result.isSuccess() && parameters.isWriteSlackBus()) {
             SlackTerminal.reset(network);
         }
 
-        if (result.isSucceeded()) {
+        if (result.isSuccess()) {
             var updateParameters = new LfNetworkStateUpdateParameters(false,
                                                                       parameters.isWriteSlackBus(),
                                                                       parameters.isPhaseShifterRegulationOn(),
                                                                       parameters.isTransformerVoltageControlOn(),
+                                                                      false,
                                                                       false,
                                                                       true,
                                                                       breakers,
@@ -233,7 +235,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
-        LoadFlowResult.ComponentResult.Status status = result.isSucceeded() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
+        LoadFlowResult.ComponentResult.Status status = result.isSuccess() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
         return new LoadFlowResultImpl.ComponentResultImpl(
                 result.getNetwork().getNumCC(),
                 result.getNetwork().getNumSC(),

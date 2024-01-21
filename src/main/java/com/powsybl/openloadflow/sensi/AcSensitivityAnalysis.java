@@ -147,7 +147,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     private static boolean runLoadFlow(AcLoadFlowContext context, boolean throwsExceptionIfNoConvergence) {
         AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
-        if (result.isOk() || result.getSolverStatus() == AcSolverStatus.NO_CALCULATION) {
+        if (result.isSuccess() || result.getSolverStatus() == AcSolverStatus.NO_CALCULATION) {
             return true;
         } else {
             if (throwsExceptionIfNoConvergence) {
@@ -211,7 +211,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setPhaseControl(lfParameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(lfParameters.isTransformerVoltageControlOn())
                 .setVoltagePerReactivePowerControl(lfParametersExt.isVoltagePerReactivePowerControl())
-                .setReactivePowerRemoteControl(lfParametersExt.hasReactivePowerRemoteControl())
+                .setGeneratorReactivePowerRemoteControl(lfParametersExt.hasGeneratorReactivePowerRemoteControl())
+                .setTransformerReactivePowerControl(lfParametersExt.isTransformerReactivePowerControl())
                 .setLoadFlowModel(lfParameters.isDc() ? LoadFlowModel.DC : LoadFlowModel.AC)
                 .setShuntVoltageControl(lfParameters.isShuntCompensatorVoltageControlOn())
                 .setReactiveLimits(lfParameters.isUseReactiveLimits())

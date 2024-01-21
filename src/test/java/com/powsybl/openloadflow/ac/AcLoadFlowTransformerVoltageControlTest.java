@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-class AcLoadFlowTransformerControlTest {
+class AcLoadFlowTransformerVoltageControlTest {
 
     private Network network;
     private Bus bus1;

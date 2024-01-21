@@ -12,6 +12,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -79,10 +80,10 @@ class LfActionTest extends AbstractSerDeTest {
             });
 
             assertTrue(LfAction.create(new SwitchAction("switchAction", "S", true), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
-            assertTrue(LfAction.create(new LineConnectionAction("A line action", "x", true), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
+            assertTrue(LfAction.create(new TerminalsConnectionAction("A line action", "x", true), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
             assertTrue(LfAction.create(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
-            var lineAction = new LineConnectionAction("A line action", "L1", true, false);
-            assertEquals("Line connection action: only open or close line at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers())).getMessage());
+            var lineAction = new TerminalsConnectionAction("A line action", "L1", ThreeSides.ONE, false);
+            assertEquals("Terminals connection action: only open or close branch at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers())).getMessage());
         }
     }
 
