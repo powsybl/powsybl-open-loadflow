@@ -39,8 +39,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     public static final String NAME = "IncrementalTransformerVoltageControl";
 
-    public static final int DEFAULT_MAX_TAP_SHIFT = 3;
-
     private static final int MAX_DIRECTION_CHANGE = 2;
 
     private final int maxTapShift;

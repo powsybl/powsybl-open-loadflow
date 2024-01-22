@@ -120,8 +120,8 @@ public final class LfAction {
             case SwitchAction.NAME:
                 return create((SwitchAction) action, lfNetwork);
 
-            case LineConnectionAction.NAME:
-                return create((LineConnectionAction) action, lfNetwork);
+            case TerminalsConnectionAction.NAME:
+                return create((TerminalsConnectionAction) action, lfNetwork);
 
             case PhaseTapChangerTapPositionAction.NAME:
                 return create((PhaseTapChangerTapPositionAction) action, lfNetwork);
@@ -209,10 +209,10 @@ public final class LfAction {
         return Optional.empty(); // could be in another component
     }
 
-    private static Optional<LfAction> create(LineConnectionAction action, LfNetwork lfNetwork) {
-        LfBranch branch = lfNetwork.getBranchById(action.getLineId());
+    private static Optional<LfAction> create(TerminalsConnectionAction action, LfNetwork lfNetwork) {
+        LfBranch branch = lfNetwork.getBranchById(action.getElementId());
         if (branch != null) {
-            if (action.isOpenSide1() && action.isOpenSide2()) {
+            if (action.getSide().isEmpty() && action.isOpen()) {
                 return Optional.of(new LfAction(action.getId(), branch, null, null, null, null, null));
             } else {
                 throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");

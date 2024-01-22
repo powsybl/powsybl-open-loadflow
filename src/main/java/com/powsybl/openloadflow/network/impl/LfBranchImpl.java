@@ -271,7 +271,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
         }
 
-        if (parameters.isTransformerVoltageControlOn() && isVoltageController()) { // it means there is a regulating ratio tap changer
+        if (parameters.isTransformerVoltageControlOn() && isVoltageController()
+                || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
             RatioTapChanger rtc = twt.getRatioTapChanger();
             double baseRatio = Transformers.getRatioPerUnitBase(twt);

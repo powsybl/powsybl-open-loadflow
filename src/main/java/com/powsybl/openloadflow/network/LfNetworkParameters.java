@@ -88,7 +88,9 @@ public class LfNetworkParameters {
 
     private boolean voltagePerReactivePowerControl = false;
 
-    private boolean reactivePowerRemoteControl = false;
+    private boolean generatorReactivePowerRemoteControl = false;
+
+    private boolean transformerReactivePowerControl = false;
 
     private LoadFlowModel loadFlowModel = LoadFlowModel.AC;
 
@@ -149,7 +151,8 @@ public class LfNetworkParameters {
         this.phaseControl = other.phaseControl;
         this.transformerVoltageControl = other.transformerVoltageControl;
         this.voltagePerReactivePowerControl = other.voltagePerReactivePowerControl;
-        this.reactivePowerRemoteControl = other.reactivePowerRemoteControl;
+        this.generatorReactivePowerRemoteControl = other.generatorReactivePowerRemoteControl;
+        this.transformerReactivePowerControl = other.transformerReactivePowerControl;
         this.loadFlowModel = other.loadFlowModel;
         this.shuntVoltageControl = other.shuntVoltageControl;
         this.reactiveLimits = other.reactiveLimits;
@@ -298,12 +301,21 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isReactivePowerRemoteControl() {
-        return reactivePowerRemoteControl;
+    public boolean isGeneratorReactivePowerRemoteControl() {
+        return generatorReactivePowerRemoteControl;
     }
 
-    public LfNetworkParameters setReactivePowerRemoteControl(boolean reactivePowerRemoteControl) {
-        this.reactivePowerRemoteControl = reactivePowerRemoteControl;
+    public LfNetworkParameters setGeneratorReactivePowerRemoteControl(boolean generatorReactivePowerRemoteControl) {
+        this.generatorReactivePowerRemoteControl = generatorReactivePowerRemoteControl;
+        return this;
+    }
+
+    public boolean isTransformerReactivePowerControl() {
+        return transformerReactivePowerControl;
+    }
+
+    public LfNetworkParameters setTransformerReactivePowerControl(boolean transformerReactivePowerControl) {
+        this.transformerReactivePowerControl = transformerReactivePowerControl;
         return this;
     }
 
@@ -513,7 +525,8 @@ public class LfNetworkParameters {
                 ", phaseControl=" + phaseControl +
                 ", transformerVoltageControl=" + transformerVoltageControl +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
-                ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
+                ", generatorReactivePowerRemoteControl=" + generatorReactivePowerRemoteControl +
+                ", transformerReactivePowerControl=" + transformerReactivePowerControl +
                 ", loadFlowModel=" + loadFlowModel +
                 ", reactiveLimits=" + reactiveLimits +
                 ", hvdcAcEmulation=" + hvdcAcEmulation +
