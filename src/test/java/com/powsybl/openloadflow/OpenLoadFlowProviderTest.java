@@ -101,7 +101,7 @@ class OpenLoadFlowProviderTest {
         updateParametersMap.put("voltageRemoteControl", "false");
         provider.updateSpecificParameters(parameters.getExtension(OpenLoadFlowParameters.class), updateParametersMap);
         assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getExtension(OpenLoadFlowParameters.class).getSlackBusSelectionMode());
-        assertFalse(parameters.getExtension(OpenLoadFlowParameters.class).hasVoltageRemoteControl());
+        assertFalse(parameters.getExtension(OpenLoadFlowParameters.class).isVoltageRemoteControl());
     }
 
     @Test
