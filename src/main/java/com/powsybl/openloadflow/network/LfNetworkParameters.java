@@ -520,8 +520,10 @@ public class LfNetworkParameters {
 
     public static List<String> checkVoltageTargetPriority(List<String> voltageTargetPriority) {
         Objects.requireNonNull(voltageTargetPriority);
-        if (voltageTargetPriority.size() != 3 || !voltageTargetPriority.containsAll(VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE)) {
-            throw new PowsyblException("voltageTargetPriority must be contains exactly {GENERATOR, TRANSFORMER, SHUNT}");
+        boolean valid = voltageTargetPriority.size() == VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE.size()
+                && new HashSet<>(voltageTargetPriority).containsAll(VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE);
+        if (!valid) {
+            throw new PowsyblException("voltageTargetPriority should contain exactly the following values once: " + VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE);
         }
         return voltageTargetPriority;
     }

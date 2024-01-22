@@ -444,10 +444,10 @@ class OpenLoadFlowParametersTest {
 
         List<String> voltageTargetPriority = List.of();
         PowsyblException e = assertThrows(PowsyblException.class, () -> olfParameters.setVoltageTargetPriority(voltageTargetPriority));
-        assertEquals("voltageTargetPriority must be contains exactly {GENERATOR, TRANSFORMER, SHUNT}", e.getMessage());
+        assertEquals("voltageTargetPriority should contain exactly the following values once: [GENERATOR, TRANSFORMER, SHUNT]", e.getMessage());
 
         List<String> voltageTargetPriority2 = List.of("GENERATOR", "TRANSFORMER", "foo");
         PowsyblException e2 = assertThrows(PowsyblException.class, () -> olfParameters.setVoltageTargetPriority(voltageTargetPriority2));
-        assertEquals("voltageTargetPriority must be contains exactly {GENERATOR, TRANSFORMER, SHUNT}", e2.getMessage());
+        assertEquals("voltageTargetPriority should contain exactly the following values once: [GENERATOR, TRANSFORMER, SHUNT]", e2.getMessage());
     }
 }

@@ -72,7 +72,11 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     public static void setVoltageTargetPriority(List<Integer> voltageTargetPriority) {
         Objects.requireNonNull(voltageTargetPriority);
-        if (voltageTargetPriority.size() != 3 || !voltageTargetPriority.containsAll(List.of(0, 1, 2))) {
+        boolean valid = voltageTargetPriority.size() == ControlTargetPriority.values().length
+                && new HashSet<>(voltageTargetPriority).containsAll(Arrays.stream(ControlTargetPriority.values())
+                                                                            .map(ControlTargetPriority::getPriority)
+                                                                            .toList());
+        if (!valid) {
             throw new IllegalStateException();
         }
         VoltageControl.voltageTargetPriority = voltageTargetPriority;
