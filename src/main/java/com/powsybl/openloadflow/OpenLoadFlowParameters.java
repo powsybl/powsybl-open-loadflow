@@ -506,7 +506,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean hasVoltageRemoteControl() {
+    public boolean isVoltageRemoteControl() {
         return voltageRemoteControl;
     }
 
@@ -565,7 +565,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean hasGeneratorReactivePowerRemoteControl() {
+    public boolean isGeneratorReactivePowerRemoteControl() {
         return generatorReactivePowerRemoteControl;
     }
 
@@ -1429,7 +1429,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
-                .setGeneratorVoltageRemoteControl(parametersExt.hasVoltageRemoteControl())
+                .setGeneratorVoltageRemoteControl(parametersExt.isVoltageRemoteControl())
                 .setMinImpedance(parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE)
                 .setTwtSplitShuntAdmittance(parameters.isTwtSplitShuntAdmittance())
                 .setBreakers(breakers)
@@ -1441,7 +1441,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(parameters.isTransformerVoltageControlOn())
                 .setVoltagePerReactivePowerControl(parametersExt.isVoltagePerReactivePowerControl())
-                .setGeneratorReactivePowerRemoteControl(parametersExt.hasGeneratorReactivePowerRemoteControl())
+                .setGeneratorReactivePowerRemoteControl(parametersExt.isGeneratorReactivePowerRemoteControl())
                 .setTransformerReactivePowerControl(parametersExt.isTransformerReactivePowerControl())
                 .setLoadFlowModel(parameters.isDc() ? LoadFlowModel.DC : LoadFlowModel.AC)
                 .setShuntVoltageControl(parameters.isShuntCompensatorVoltageControlOn())
@@ -1645,13 +1645,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return extension1.getSlackBusSelectionMode() == extension2.getSlackBusSelectionMode() &&
                 extension1.getSlackBusesIds().equals(extension2.getSlackBusesIds()) &&
                 extension1.getSlackDistributionFailureBehavior() == extension2.getSlackDistributionFailureBehavior() &&
-                extension1.hasVoltageRemoteControl() == extension2.hasVoltageRemoteControl() &&
+                extension1.isVoltageRemoteControl() == extension2.isVoltageRemoteControl() &&
                 extension1.getLowImpedanceBranchMode() == extension2.getLowImpedanceBranchMode() &&
                 extension1.isLoadPowerFactorConstant() == extension2.isLoadPowerFactorConstant() &&
                 extension1.getPlausibleActivePowerLimit() == extension2.getPlausibleActivePowerLimit() &&
                 extension1.getSlackBusPMaxMismatch() == extension2.getSlackBusPMaxMismatch() &&
                 extension1.isVoltagePerReactivePowerControl() == extension2.isVoltagePerReactivePowerControl() &&
-                extension1.hasGeneratorReactivePowerRemoteControl() == extension2.hasGeneratorReactivePowerRemoteControl() &&
+                extension1.isGeneratorReactivePowerRemoteControl() == extension2.isGeneratorReactivePowerRemoteControl() &&
                 extension1.isTransformerReactivePowerControl() == extension2.isTransformerReactivePowerControl() &&
                 extension1.getMaxNewtonRaphsonIterations() == extension2.getMaxNewtonRaphsonIterations() &&
                 extension1.getMaxOuterLoopIterations() == extension2.getMaxOuterLoopIterations() &&
@@ -1722,13 +1722,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setSlackBusSelectionMode(extension.getSlackBusSelectionMode())
                     .setSlackBusesIds(new ArrayList<>(extension.getSlackBusesIds()))
                     .setSlackDistributionFailureBehavior(extension.getSlackDistributionFailureBehavior())
-                    .setVoltageRemoteControl(extension.hasVoltageRemoteControl())
+                    .setVoltageRemoteControl(extension.isVoltageRemoteControl())
                     .setLowImpedanceBranchMode(extension.getLowImpedanceBranchMode())
                     .setLoadPowerFactorConstant(extension.isLoadPowerFactorConstant())
                     .setPlausibleActivePowerLimit(extension.getPlausibleActivePowerLimit())
                     .setSlackBusPMaxMismatch(extension.getSlackBusPMaxMismatch())
                     .setVoltagePerReactivePowerControl(extension.isVoltagePerReactivePowerControl())
-                    .setGeneratorReactivePowerRemoteControl(extension.hasGeneratorReactivePowerRemoteControl())
+                    .setGeneratorReactivePowerRemoteControl(extension.isGeneratorReactivePowerRemoteControl())
                     .setTransformerReactivePowerControl(extension.isTransformerReactivePowerControl())
                     .setMaxNewtonRaphsonIterations(extension.getMaxNewtonRaphsonIterations())
                     .setMaxOuterLoopIterations(extension.getMaxOuterLoopIterations())

@@ -83,7 +83,7 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
         assertEquals(OpenLoadFlowParameters.SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE, olfParameters.getSlackDistributionFailureBehavior());
-        assertTrue(olfParameters.hasVoltageRemoteControl());
+        assertTrue(olfParameters.isVoltageRemoteControl());
         assertEquals(OpenLoadFlowParameters.LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
         assertEquals(LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, olfParameters.getMinPlausibleTargetVoltage());
         assertEquals(LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, olfParameters.getMaxPlausibleTargetVoltage());
@@ -102,11 +102,11 @@ class OpenLoadFlowParametersTest {
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(OpenLoadFlowParameters.SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE, olfParameters.getSlackBusSelectionMode());
-        assertEquals(OpenLoadFlowParameters.VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
+        assertEquals(OpenLoadFlowParameters.VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.isVoltageRemoteControl());
         assertEquals(OpenLoadFlowParameters.LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
         assertEquals(OpenLoadFlowParameters.SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE, olfParameters.getSlackDistributionFailureBehavior());
         assertEquals(OpenLoadFlowParameters.SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE, olfParameters.getSlackBusPMaxMismatch(), 0.0);
-        assertEquals(OpenLoadFlowParameters.GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasGeneratorReactivePowerRemoteControl());
+        assertEquals(OpenLoadFlowParameters.GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.isGeneratorReactivePowerRemoteControl());
     }
 
     @Test
@@ -278,17 +278,17 @@ class OpenLoadFlowParametersTest {
         parametersMap.put("reactivePowerRemoteControl", "false");
         OpenLoadFlowParameters parameters = OpenLoadFlowParameters.load(parametersMap);
         assertEquals(SlackBusSelectionMode.FIRST, parameters.getSlackBusSelectionMode());
-        assertTrue(parameters.hasVoltageRemoteControl());
-        assertFalse(parameters.hasGeneratorReactivePowerRemoteControl());
+        assertTrue(parameters.isVoltageRemoteControl());
+        assertFalse(parameters.isGeneratorReactivePowerRemoteControl());
         Map<String, String> updateParametersMap = new HashMap<>();
         updateParametersMap.put("slackBusSelectionMode", "MOST_MESHED");
         updateParametersMap.put("voltageRemoteControl", "false");
         updateParametersMap.put("maxNewtonRaphsonIterations", "10");
         parameters.update(updateParametersMap);
         assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getSlackBusSelectionMode());
-        assertFalse(parameters.hasVoltageRemoteControl());
+        assertFalse(parameters.isVoltageRemoteControl());
         assertEquals(10, parameters.getMaxNewtonRaphsonIterations());
-        assertFalse(parameters.hasGeneratorReactivePowerRemoteControl());
+        assertFalse(parameters.isGeneratorReactivePowerRemoteControl());
     }
 
     @Test
