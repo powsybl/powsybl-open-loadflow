@@ -166,7 +166,8 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     public static List<VoltageControl<?>> findMainVoltageControlsSortedByPriority(LfBus bus) {
         return findMainVoltageControlsSortedByPriority(bus, LfNetworkParameters.VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE.stream()
-                                                                                                                        .map(Integer::parseInt)
+                                                                                                                        .map(ControlTargetPriority::valueOf)
+                                                                                                                        .map(ControlTargetPriority::getPriority)
                                                                                                                         .collect(Collectors.toList()));
     }
 

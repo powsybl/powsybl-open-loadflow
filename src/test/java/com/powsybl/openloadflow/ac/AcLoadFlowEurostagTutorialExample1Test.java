@@ -19,6 +19,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.ControlTargetPriority;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
@@ -499,13 +500,13 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertVoltageEquals(24.5, genBus);
 
         // Transformer has target priority
-        parametersExt.setVoltageTargetPriority(List.of("1", "0", "2"));
+        parametersExt.setVoltageTargetPriority(List.of(ControlTargetPriority.TRANSFORMER.name(), ControlTargetPriority.GENERATOR.name(), ControlTargetPriority.SHUNT.name()));
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(25.115, genBus);
 
         // Shunt has target priority
-        parametersExt.setVoltageTargetPriority(List.of("2", "0", "1"));
+        parametersExt.setVoltageTargetPriority(List.of(ControlTargetPriority.SHUNT.name(), ControlTargetPriority.GENERATOR.name(), ControlTargetPriority.TRANSFORMER.name()));
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(23.75, genBus);

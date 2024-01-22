@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -59,7 +60,9 @@ public class LfNetworkParameters {
 
     public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
 
-    public static final List<String> VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE = List.of("0", "1", "2"); // 0 for generator, 1 for transformer and 2 for shunts
+    public static final List<String> VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE = Arrays.stream(ControlTargetPriority.values())
+                                                                                                                .map(ControlTargetPriority::name)
+                                                                                                                .collect(Collectors.toList());
 
     private boolean generatorVoltageRemoteControl = true;
 
@@ -518,7 +521,7 @@ public class LfNetworkParameters {
     public static List<String> checkVoltageTargetPriority(List<String> voltageTargetPriority) {
         Objects.requireNonNull(voltageTargetPriority);
         if (voltageTargetPriority.size() != 3 || !voltageTargetPriority.containsAll(VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE)) {
-            throw new PowsyblException("voltageTargetPriority must be contains exactly {0, 1, 2}");
+            throw new PowsyblException("voltageTargetPriority must be contains exactly {GENERATOR, TRANSFORMER, SHUNT}");
         }
         return voltageTargetPriority;
     }
