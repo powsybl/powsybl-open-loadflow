@@ -33,7 +33,8 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                      ShuntVoltageControlOuterLoop.NAME,
                                                      SimpleTransformerVoltageControlOuterLoop.NAME,
                                                      TransformerVoltageControlOuterLoop.NAME,
-                                                     AutomationSystemOuterLoop.NAME);
+                                                     AutomationSystemOuterLoop.NAME,
+                                                     IncrementalTransformerReactivePowerControlOuterLoop.NAME);
 
     private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return switch (name) {
@@ -44,7 +45,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                                                                     OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
             case IncrementalTransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
                                                                                                                 OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL,
-                                                                                                                parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+                                                                                                                parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
             case MonitoringVoltageOuterLoop.NAME -> createMonitoringVoltageOuterLoop(parametersExt);
             case PhaseControlOuterLoop.NAME -> createPhaseControlOuterLoop(parameters,
                                                                                   OpenLoadFlowParameters.PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION);
@@ -54,11 +55,12 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                                                          OpenLoadFlowParameters.ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
             case SimpleTransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
                                                                                                            OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL,
-                                                                                                           parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+                                                                                                           parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
             case TransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
                                                                                                      OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL,
-                                                                                                     parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+                                                                                                     parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
             case AutomationSystemOuterLoop.NAME -> createAutomationSystemOuterLoop(parametersExt);
+            case IncrementalTransformerReactivePowerControlOuterLoop.NAME -> createTransformerReactivePowerControlOuterLoop(parametersExt);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "'");
         };
     }
