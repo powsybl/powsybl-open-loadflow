@@ -29,7 +29,7 @@ PowSyBl Open Load Flow provides:
 - An open-source implementation of the [SecurityAnalysis API from PowSyBl Core](https://www.powsybl.org/pages/documentation/simulation/securityanalysis/), supporting DC and AC calculations.
 - An open-source implementation of the [SensitivityAnalysis API from PowSyBl Core](https://www.powsybl.org/pages/documentation/simulation/sensitivity/), supporting DC and AC calculations.
 
-Most of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) sparse linear solver. Linux, Windows and MacOS are supported. It is distributed with license LGPL-2.1+.
+Most of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) sparse linear solver. Linux, Windows and MacOS are supported. KLU is distributed with license LGPL-2.1+.
 
 ### Common features
 
