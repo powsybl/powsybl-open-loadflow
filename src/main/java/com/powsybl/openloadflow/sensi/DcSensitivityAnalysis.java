@@ -888,12 +888,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setPhaseControl(false)
                 .setTransformerVoltageControl(false)
                 .setVoltagePerReactivePowerControl(false)
-                .setReactivePowerRemoteControl(false)
+                .setGeneratorReactivePowerRemoteControl(false)
+                .setTransformerReactivePowerControl(false)
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
                 .setHvdcAcEmulation(false)
-                .setCacheEnabled(false); // force not caching as not supported in sensi analysis
+                .setCacheEnabled(false) // force not caching as not supported in sensi analysis
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));

@@ -21,7 +21,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractLfGenerator extends AbstractLfInjection implements LfGenerator {
+public abstract class AbstractLfGenerator extends AbstractLfInjection implements LfGenerator, LfReferencePriorityInjection {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
 
@@ -50,6 +50,10 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     private boolean disabled;
 
     protected LfAsymGenerator asym;
+
+    protected int referencePriority;
+
+    protected boolean reference;
 
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
         super(targetP, targetP);
@@ -376,5 +380,25 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     @Override
     public void setAsym(LfAsymGenerator asym) {
         this.asym = asym;
+    }
+
+    @Override
+    public int getReferencePriority() {
+        return referencePriority;
+    }
+
+    @Override
+    public void setReferencePriority(int referencePriority) {
+        this.referencePriority = referencePriority;
+    }
+
+    @Override
+    public boolean isReference() {
+        return reference;
+    }
+
+    @Override
+    public void setReference(boolean reference) {
+        this.reference = reference;
     }
 }

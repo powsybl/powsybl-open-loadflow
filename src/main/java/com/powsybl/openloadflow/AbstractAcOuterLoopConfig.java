@@ -70,7 +70,14 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return createTransformerVoltageControlOuterLoop(parameters,
                                                         parametersExt.getTransformerVoltageControlMode(),
-                                                        parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+                                                        parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
+    }
+
+    protected static Optional<AcOuterLoop> createTransformerReactivePowerControlOuterLoop(OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isTransformerReactivePowerControl()) {
+            return Optional.of(new IncrementalTransformerReactivePowerControlOuterLoop(parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift()));
+        }
+        return Optional.empty();
     }
 
     protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode) {

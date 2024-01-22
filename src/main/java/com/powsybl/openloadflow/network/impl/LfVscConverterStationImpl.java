@@ -10,10 +10,7 @@ import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
 import com.powsybl.iidm.network.util.HvdcUtils;
-import com.powsybl.openloadflow.network.LfHvdc;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfVscConverterStation;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -95,7 +92,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     }
 
     @Override
-    public void updateState() {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var station = getStation();
         station.getTerminal()
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ * PerUnit.SB);

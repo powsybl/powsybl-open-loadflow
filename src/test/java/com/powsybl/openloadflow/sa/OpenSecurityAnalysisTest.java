@@ -1927,7 +1927,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         );
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(lfParameters);
-        openLoadFlowParameters.setReactivePowerRemoteControl(true)
+        openLoadFlowParameters.setGeneratorReactivePowerRemoteControl(true)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
                 .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER
                                                            // tolerance in Q for the controlled branch
@@ -1970,7 +1970,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setUseReactiveLimits(true);
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(lfParameters);
-        openLoadFlowParameters.setReactivePowerRemoteControl(true)
+        openLoadFlowParameters.setGeneratorReactivePowerRemoteControl(true)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
                 .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER
                                                            // tolerance in Q for the controlled branch
@@ -2021,7 +2021,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setUseReactiveLimits(true);
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(lfParameters);
-        openLoadFlowParameters.setReactivePowerRemoteControl(true)
+        openLoadFlowParameters.setGeneratorReactivePowerRemoteControl(true)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
                 .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER
                                                            // tolerance in Q for the controlled branch

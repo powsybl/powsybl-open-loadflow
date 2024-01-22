@@ -341,7 +341,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
         List<Action> actions = List.of(new SwitchAction("openSwitchS0", "SOO1_SOO1_DJ_OMN", true),
-                                       new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
+                                       new TerminalsConnectionAction("openLineSSO2", "S_SO_2", true),
                                        new PhaseTapChangerTapPositionAction("pst", "NE_NO_1", false, 1), // PST at tap position 17.
                                        new PhaseTapChangerTapPositionAction("pst2", "NE_NO_1", true, -16));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitchS0")),
@@ -396,7 +396,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<StateMonitor> monitors = createNetworkMonitors(network);
 
         List<Action> actions = List.of(new SwitchAction("openSwitch", "SS1_SS1_DJ_OMN", true),
-                                       new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
+                                       new TerminalsConnectionAction("openLineSSO2", "S_SO_2", true),
                                        new PhaseTapChangerTapPositionAction("pstChangeTap", "NE_NO_1", false, 8));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")),
                                                             new OperatorStrategy("strategy2", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
@@ -484,7 +484,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<StateMonitor> monitors = createNetworkMonitors(network);
 
         List<Action> actions = List.of(new SwitchAction("openSwitch", "SS1_SS1_DJ_OMN", true),
-                                       new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
+                                       new TerminalsConnectionAction("openLineSSO2", "S_SO_2", true),
                                        new PhaseTapChangerTapPositionAction("pstChangeTap", "NE_NO_1", false, 8));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")),
                                                             new OperatorStrategy("strategy2", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
@@ -528,7 +528,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<StateMonitor> monitors = createNetworkMonitors(network);
 
         List<Action> actions = List.of(new SwitchAction("openSwitch", "SS1_SS1_DJ_OMN", true),
-                                       new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
+                                       new TerminalsConnectionAction("openLineSSO2", "S_SO_2", true),
                                        new PhaseTapChangerTapPositionAction("pstChangeTap", "NE_NO_1", false, 8));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")),
                                                             new OperatorStrategy("strategy2", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
@@ -587,7 +587,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 operatorStrategies, actions, Reporter.NO_OP));
         assertEquals("Switch 'switch' not found in the network", exception.getCause().getMessage());
 
-        List<Action> actions2 = List.of(new LineConnectionAction("openLine", "line", true, true));
+        List<Action> actions2 = List.of(new TerminalsConnectionAction("openLine", "line", true));
         List<OperatorStrategy> operatorStrategies2 = List.of(new OperatorStrategy("strategy2", ContingencyContext.specificContingency("S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLine")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies2, actions2, Reporter.NO_OP));
@@ -687,7 +687,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        List<Action> actions = List.of(new LineConnectionAction("openLine", "l13", true, true));
+        List<Action> actions = List.of(new TerminalsConnectionAction("openLine", "l13", true));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", ContingencyContext.specificContingency("l14"), new TrueCondition(), List.of("openLine")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1052,7 +1052,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new TieLineContingency("t12"))));
         List<StateMonitor> monitors = createNetworkMonitors(network);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        List<Action> actions = List.of(new LineConnectionAction("openTieLine", "t12bis", true, true)); // just for testing, not relevant
+        List<Action> actions = List.of(new TerminalsConnectionAction("openTieLine", "t12bis", true)); // just for testing, not relevant
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("contingency"), new TrueCondition(), List.of("openTieLine")));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
         assertEquals(400.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBusResult("b3").getV(), LoadFlowAssert.DELTA_V);
