@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 
 /**
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
@@ -335,6 +336,56 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b4, b5, "l45", 0.1f);
         createLine(network, b4, b6, "l46", 0.1f);
         createLine(network, b5, b6, "l56", 0.1f);
+        return network;
+    }
+
+    /**
+     * <pre>
+     *     Gen -- b1 -- l12 -- b2 -- HVDC23--b3--l34---b4--Load
+     *            |            |                       |
+     *            |          s2 (open)                 |
+     *            |            |                       |
+     *            |---l12Bis --                        |
+     *            |                                    |
+     *            ---------------------l14--------------
+     * </pre>
+     * @return
+     */
+    public static Network createHvdcLinkedByTwoLinesWithGeneratorAndLoad(HvdcConverterStation.HvdcType type, HvdcLine.ConvertersMode mode) {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1", 400);
+        Bus b2 = createBus(network, "b2", 400);
+        Bus b2Bis = b2.getVoltageLevel().getBusBreakerView().newBus().setId("b2Bis").add();
+        Bus b3 = createBus(network, "b3", 400);
+        Bus b4 = createBus(network, "b4", 400);
+        createGenerator(b1, "g1", 400, 400);
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b2Bis, "l12Bis", 0.1f);
+        createSwitch(network, b2, b2Bis, "s2").setOpen(true);
+        HvdcConverterStation cs2 = switch (type) {
+            case LCC -> createLcc(b2, "cs2");
+            case VSC -> createVsc(b2, "cs2", 400, 0);
+        };
+        HvdcConverterStation cs3 = switch (type) {
+            case LCC -> createLcc(b3, "cs3");
+            case VSC -> createVsc(b3, "cs3", 400, 0);
+        };
+        createHvdcLine(network, "hvdc23",
+                mode == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER ? cs2 : cs3,
+                mode == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER ? cs3 : cs2,
+                400, 0.1, 200)
+                .setConvertersMode(mode)  // Need this mode or there is a bug in AC Emulation at time of writing this test
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(200)  // Seems to ignore the HVDC Mode...
+                .withEnabled(true)
+                .add();
+
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b1, b4, "l14", 0.1f);
+
+        createLoad(b4, "l4", 300, 0);
+
         return network;
     }
 
