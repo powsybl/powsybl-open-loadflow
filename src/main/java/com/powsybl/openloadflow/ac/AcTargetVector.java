@@ -26,7 +26,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         double targetV = bus.getHighestPriorityMainVoltageControl(VoltageControl.getVoltageTargetPriority())
                 .map(Control::getTargetValue)
                 .orElseThrow(() -> new IllegalStateException("No active voltage control has been found for bus '" + bus.getId() + "'"));
-        if (VoltageControl.getVoltageTargetPriority().get(0) == 0 && bus.hasGeneratorsWithSlope()) {
+        if (Objects.equals(VoltageControl.getVoltageTargetPriority().get(0), ControlTargetPriority.GENERATOR.getPriority()) && bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
             targetV -= slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());

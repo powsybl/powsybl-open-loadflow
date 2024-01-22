@@ -792,9 +792,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
             }
             VoltageControl.setVoltageTargetPriority(parameters.getVoltageTargetPriority().stream()
-                                                                                                .map(ControlTargetPriority::valueOf)
-                                                                                                .map(ControlTargetPriority::getPriority)
-                                                                                                .collect(Collectors.toList()));
+                                                                                        .map(ControlTargetPriority::valueOf)
+                                                                                        .map(ControlTargetPriority::getPriority)
+                                                                                        .collect(Collectors.toList()));
         }
 
         if (parameters.isBreakers()) {

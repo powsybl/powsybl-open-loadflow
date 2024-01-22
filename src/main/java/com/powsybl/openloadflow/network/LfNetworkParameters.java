@@ -61,8 +61,8 @@ public class LfNetworkParameters {
     public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
 
     public static final List<String> VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE = Arrays.stream(ControlTargetPriority.values())
-                                                                                                                .map(ControlTargetPriority::name)
-                                                                                                                .collect(Collectors.toList());
+                                                                                    .map(ControlTargetPriority::name)
+                                                                                    .collect(Collectors.toList());
 
     private boolean generatorVoltageRemoteControl = true;
 
