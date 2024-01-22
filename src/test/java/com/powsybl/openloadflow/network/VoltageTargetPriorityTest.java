@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
-public class VoltageTargetPriorityTest {
+class VoltageTargetPriorityTest {
 
     @Test
     void testControlTargetPriority() {
