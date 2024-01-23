@@ -13,7 +13,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface LfGenerator extends PropertyBag {
+public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     enum GeneratorControlType {
         OFF, REMOTE_REACTIVE_POWER, VOLTAGE, MONITORING_VOLTAGE
@@ -99,7 +99,7 @@ public interface LfGenerator extends PropertyBag {
 
     void setCalculatedQ(double calculatedQ);
 
-    void updateState();
+    void updateState(LfNetworkStateUpdateParameters parameters);
 
     LfBus getControlledBus();
 

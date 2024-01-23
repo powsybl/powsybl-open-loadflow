@@ -112,6 +112,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     protected static final int INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_DEFAULT_VALUE = 3;
 
+    public static final boolean WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE = false;
+
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -230,6 +232,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME = "newtonKrylovLineSearch";
 
+    public static final String REFERENCE_BUS_SELECTION_MODE_PARAM_NAME = "referenceBusSelectionMode";
+
+    public static final String WRITE_REFERENCE_TERMINALS_PARAM_NAME = "writeReferenceTerminals";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -293,7 +299,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class)),
         new Parameter(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, ParameterType.BOOLEAN, "Automation systems simulation", LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE),
         new Parameter(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Newton Krylov max number of iterations", NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS),
-        new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE)
+        new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE),
+        new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Reference bus selection mode", ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class)),
+        new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -454,6 +462,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private int maxNewtonKrylovIterations = NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS;
 
     private boolean newtonKrylovLineSearch = NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE;
+
+    private ReferenceBusSelectionMode referenceBusSelectionMode = ReferenceBusSelector.DEFAULT_MODE;
+
+    private boolean writeReferenceTerminals = WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1071,6 +1083,24 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public ReferenceBusSelectionMode getReferenceBusSelectionMode() {
+        return referenceBusSelectionMode;
+    }
+
+    public OpenLoadFlowParameters setReferenceBusSelectionMode(ReferenceBusSelectionMode referenceBusSelectionMode) {
+        this.referenceBusSelectionMode = referenceBusSelectionMode;
+        return this;
+    }
+
+    public boolean isWriteReferenceTerminals() {
+        return writeReferenceTerminals;
+    }
+
+    public OpenLoadFlowParameters setWriteReferenceTerminals(boolean writeReferenceTerminals) {
+        this.writeReferenceTerminals = writeReferenceTerminals;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1138,7 +1168,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDcApproximationType(config.getEnumProperty(DC_APPROXIMATION_TYPE_PARAM_NAME, DcApproximationType.class, DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE))
                 .setSimulateAutomationSystems(config.getBooleanProperty(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE))
                 .setMaxNewtonKrylovIterations(config.getIntProperty(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS))
-                .setNewtonKrylovLineSearch(config.getBooleanProperty(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE)));
+                .setNewtonKrylovLineSearch(config.getBooleanProperty(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE))
+                .setReferenceBusSelectionMode(config.getEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class, ReferenceBusSelector.DEFAULT_MODE))
+                .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1272,6 +1304,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMaxNewtonKrylovIterations(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME))
                 .ifPresent(prop -> this.setNewtonKrylovLineSearch(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME))
+                .ifPresent(prop -> this.setReferenceBusSelectionMode(ReferenceBusSelectionMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(WRITE_REFERENCE_TERMINALS_PARAM_NAME))
+                .ifPresent(prop -> this.setWriteReferenceTerminals(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -1336,6 +1372,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, simulateAutomationSystems);
         map.put(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, maxNewtonKrylovIterations);
         map.put(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, newtonKrylovLineSearch);
+        map.put(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, referenceBusSelectionMode);
+        map.put(WRITE_REFERENCE_TERMINALS_PARAM_NAME, writeReferenceTerminals);
         return map;
     }
 
@@ -1460,7 +1498,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinNominalVoltageTargetVoltageCheck(parametersExt.getMinNominalVoltageTargetVoltageCheck())
                 .setLinePerUnitMode(parametersExt.getLinePerUnitMode())
                 .setUseLoadModel(parametersExt.isUseLoadModel())
-                .setSimulateAutomationSystems(parametersExt.isSimulateAutomationSystems());
+                .setSimulateAutomationSystems(parametersExt.isSimulateAutomationSystems())
+                .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()));
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
