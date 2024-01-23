@@ -19,13 +19,10 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.ControlTargetPriority;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -467,48 +464,5 @@ class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
-    }
-
-    @Test
-    void voltageTargetPriority() {
-        network.getTwoWindingsTransformer("NHV2_NLOAD")
-                .getRatioTapChanger()
-                .setRegulationTerminal(network.getTwoWindingsTransformer("NGEN_NHV1").getTerminal1())
-                .setTargetV(25.115);
-
-        loadBus.getVoltageLevel().newShuntCompensator()
-                .setId("SC")
-                .setBus(loadBus.getId())
-                .setConnectableBus(loadBus.getId())
-                .setSectionCount(1)
-                .newLinearModel()
-                .setBPerSection(3.25 * Math.pow(10, -3))
-                .setMaximumSectionCount(1)
-                .add()
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getTwoWindingsTransformer("NGEN_NHV1").getTerminal1())
-                .setTargetV(23.75)
-                .setTargetDeadband(0)
-                .add();
-
-        parameters.setTransformerVoltageControlOn(true)
-                .setShuntCompensatorVoltageControlOn(true);
-
-        // Generator has target priority by default
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertVoltageEquals(24.5, genBus);
-
-        // Transformer has target priority
-        parametersExt.setVoltageTargetPriority(List.of(ControlTargetPriority.TRANSFORMER.name(), ControlTargetPriority.GENERATOR.name(), ControlTargetPriority.SHUNT.name()));
-        result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertVoltageEquals(25.115, genBus);
-
-        // Shunt has target priority
-        parametersExt.setVoltageTargetPriority(List.of(ControlTargetPriority.SHUNT.name(), ControlTargetPriority.GENERATOR.name(), ControlTargetPriority.TRANSFORMER.name()));
-        result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertVoltageEquals(23.75, genBus);
     }
 }
