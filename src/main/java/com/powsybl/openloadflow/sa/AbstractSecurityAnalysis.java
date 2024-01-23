@@ -124,7 +124,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         findAllPtcToOperate(actions, topoConfig);
         findAllRtcToOperate(actions, topoConfig);
 
-        // try to find branches (lines, tie lines and two windings transformer, three windings transformer.
+        // try to find branches (lines and two windings transformers).
+        // tie lines and three windings transformers missing.
         findAllBranchesToClose(network, actions, topoConfig);
 
         // load contingencies
@@ -349,21 +350,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 TerminalsConnectionAction terminalsConnectionAction = (TerminalsConnectionAction) action;
                 if (terminalsConnectionAction.getSide().isEmpty() && !terminalsConnectionAction.isOpen()) {
                     Branch branch = network.getBranch(terminalsConnectionAction.getElementId());
-                    if (branch != null) {
-                        if (branch instanceof TieLine) {
-                            topoConfig.getBranchIdsToClose().add(((TieLine) branch).getDanglingLine1().getId());
-                            topoConfig.getBranchIdsToClose().add(((TieLine) branch).getDanglingLine2().getId());
-                        } else {
-                            topoConfig.getBranchIdsToClose().add(terminalsConnectionAction.getElementId());
-                        }
-                    } else {
-                        ThreeWindingsTransformer transformer =
-                                network.getThreeWindingsTransformer(terminalsConnectionAction.getElementId());
-                        if (transformer != null) {
-                            topoConfig.getBranchIdsToClose().add(LfLegBranch.getId(transformer.getId(), 1));
-                            topoConfig.getBranchIdsToClose().add(LfLegBranch.getId(transformer.getId(), 2));
-                            topoConfig.getBranchIdsToClose().add(LfLegBranch.getId(transformer.getId(), 3));
-                        }
+                    if (branch != null && !(branch instanceof TieLine)) {
+                        topoConfig.getBranchIdsToClose().add(terminalsConnectionAction.getElementId());
                     }
                 }
             }
