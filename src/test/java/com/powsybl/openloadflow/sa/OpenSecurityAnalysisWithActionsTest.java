@@ -1215,7 +1215,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
-    void testAcEmulation() {
+    void testVSCLossAcEmulation() {
         // contingency leads to the lost of one converter station.
         // contingency leads to zero active power transmission in the hvdc line.
         // but other converter station keeps its voltage control capability.
@@ -1236,7 +1236,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
-    void testSetpoint() {
+    void testVSCLossSetpoint() {
         // contingency leads to the lost of one converter station.
         // contingency leads to zero active power transmission in the hvdc line.
         // but other converter station keeps its voltage control capability.

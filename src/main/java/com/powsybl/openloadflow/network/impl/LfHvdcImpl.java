@@ -84,8 +84,8 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         if (!acEmulation) {
             if (disabled) {
                 // no active power in the hvdc line.
-                converterStation1.setTargetP(0.0);
-                converterStation2.setTargetP(0.0);
+                // converterStation1.setTargetP(0.0);
+                // converterStation2.setTargetP(0.0);
             } else {
                 // re-active power transmission to initial target values.
                 converterStation1.setTargetP(converterStation1.getInitialTargetP());
