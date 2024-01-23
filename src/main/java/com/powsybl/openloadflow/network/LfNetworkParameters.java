@@ -27,7 +27,7 @@ public class LfNetworkParameters {
 
     public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
 
-    public static final boolean ENABLE_GENERATORS_OUTSIDE_ACTIVE_LIMITS_TO_CONTROL_VOLTAGE = true;
+    public static final boolean ENABLE_GENERATORS_OUTSIDE_ACTIVE_LIMITS_TO_CONTROL_VOLTAGE_DEFAULT_VALUE = true;
 
     /**
      * Minimal and maximal plausible target V in p.u
@@ -76,7 +76,7 @@ public class LfNetworkParameters {
 
     private boolean useActiveLimits = USE_ACTIVE_LIMITS_DEFAULT_VALUE;
 
-    private boolean enableGeneratorsOutsideActiveLimitsToControlVoltage = ENABLE_GENERATORS_OUTSIDE_ACTIVE_LIMITS_TO_CONTROL_VOLTAGE;
+    private boolean enableGeneratorsOutsideActiveLimitsToControlVoltage = ENABLE_GENERATORS_OUTSIDE_ACTIVE_LIMITS_TO_CONTROL_VOLTAGE_DEFAULT_VALUE;
 
     private boolean computeMainConnectedComponentOnly = true;
 
