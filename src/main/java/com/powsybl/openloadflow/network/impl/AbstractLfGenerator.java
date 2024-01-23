@@ -248,6 +248,13 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
             consistency = false;
         }
+        if (parameters.isUseActiveLimits() &&
+            !parameters.isEnableGeneratorsOutsideActiveLimitsToControlVoltage() &&
+            (getTargetP() < getMinP() || getTargetP() > getMaxP())) {
+            LOGGER.trace("Discard generator '{}' from voltage control because targetP is outside active limits (targetP={} MW, minP={} MW, maxP={} MW)", getId(), getTargetP(), getMinP(), getMaxP());
+            report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits++;
+            consistency = false;
+        }
         return consistency;
     }
 

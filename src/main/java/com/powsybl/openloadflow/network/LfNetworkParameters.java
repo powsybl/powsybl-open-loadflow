@@ -27,6 +27,8 @@ public class LfNetworkParameters {
 
     public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
 
+    public static final boolean ENABLE_GENERATORS_OUTSIDE_ACTIVE_LIMITS_TO_CONTROL_VOLTAGE = true;
+
     /**
      * Minimal and maximal plausible target V in p.u
      */
@@ -73,6 +75,8 @@ public class LfNetworkParameters {
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
 
     private boolean useActiveLimits = USE_ACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private boolean enableGeneratorsOutsideActiveLimitsToControlVoltage = ENABLE_GENERATORS_OUTSIDE_ACTIVE_LIMITS_TO_CONTROL_VOLTAGE;
 
     private boolean computeMainConnectedComponentOnly = true;
 
@@ -145,6 +149,7 @@ public class LfNetworkParameters {
         this.breakers = other.breakers;
         this.plausibleActivePowerLimit = other.plausibleActivePowerLimit;
         this.useActiveLimits = other.useActiveLimits;
+        this.enableGeneratorsOutsideActiveLimitsToControlVoltage = other.enableGeneratorsOutsideActiveLimitsToControlVoltage;
         this.computeMainConnectedComponentOnly = other.computeMainConnectedComponentOnly;
         this.countriesToBalance = new HashSet<>(other.countriesToBalance);
         this.distributedOnConformLoad = other.distributedOnConformLoad;
@@ -244,6 +249,15 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setUseActiveLimits(boolean useActiveLimits) {
         this.useActiveLimits = useActiveLimits;
+        return this;
+    }
+
+    public boolean isEnableGeneratorsOutsideActiveLimitsToControlVoltage() {
+        return enableGeneratorsOutsideActiveLimitsToControlVoltage;
+    }
+
+    public LfNetworkParameters setEnableGeneratorsOutsideActiveLimitsToControlVoltage(boolean enableGeneratorsOutsideActiveLimitsToControlVoltage) {
+        this.enableGeneratorsOutsideActiveLimitsToControlVoltage = enableGeneratorsOutsideActiveLimitsToControlVoltage;
         return this;
     }
 
