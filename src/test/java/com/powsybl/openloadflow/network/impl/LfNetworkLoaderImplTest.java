@@ -12,6 +12,11 @@ import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -216,5 +221,43 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         line.setMinZ(10); // for both AC and DC load flow model
         assertFalse(line.isZeroImpedance(LoadFlowModel.AC));
         assertFalse(line.isZeroImpedance(LoadFlowModel.DC));
+    }
+
+    @Test
+    void testDiscardGeneratorsWithTargetPOutsideActiveLimitsFromVoltageControl() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setUseActiveLimits(true).setEnableGeneratorsOutsideActiveLimitsToControlVoltage(false);
+
+        AcLoadFlowParameters acLoadFlowParameters = OpenLoadFlowParameters.createAcParameters(parameters,
+                parametersExt,
+                new DenseMatrixFactory(),
+                new EvenShiloachGraphDecrementalConnectivityFactory<>(),
+                true,
+                false);
+        LfNetworkParameters networkParameters = acLoadFlowParameters.getNetworkParameters();
+
+        Network network = Network.create("test", "code");
+        Bus b = createBus(network, "b", 380);
+
+        // discarded from voltage control because targetP < minP (50 < 100)
+        Generator g1 = createGenerator(b, "g1", 50, 400);
+        g1.setMinP(100).setMaxP(200);
+
+        // discarded from voltage control because targetP > maxP (250 < 200)
+        Generator g2 = createGenerator(b, "g2", 250, 400);
+        g2.setMinP(100).setMaxP(200);
+
+        // kept
+        Generator g3 = createGenerator(b, "g3", 150, 400);
+        g3.setMinP(100).setMaxP(200);
+
+        List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        List<LfGenerator> generators = lfNetwork.getBus(0).getGenerators();
+
+        assertEquals(LfGenerator.GeneratorControlType.OFF, generators.get(0).getGeneratorControlType());
+        assertEquals(LfGenerator.GeneratorControlType.OFF, generators.get(1).getGeneratorControlType());
+        assertEquals(LfGenerator.GeneratorControlType.VOLTAGE, generators.get(2).getGeneratorControlType());
     }
 }
