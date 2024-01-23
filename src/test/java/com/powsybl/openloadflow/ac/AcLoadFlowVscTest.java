@@ -293,4 +293,46 @@ class AcLoadFlowVscTest {
         assertActivePowerEquals(-304.335, network.getGenerator("g1").getTerminal());
         assertActivePowerEquals(300.0, network.getLoad("l4").getTerminal());
     }
+
+    @Test
+    public void testHvdcDirectionChangeAcEmulation() {
+        Network network = HvdcNetworkFactory.createHvdcInAcEmulationInSymetricNetwork();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
+
+        double pg2 = network.getGenerator("g2").getTerminal().getP();
+        double pg1 = network.getGenerator("g1").getTerminal().getP();
+        double pcs1 = network.getVscConverterStation("cs1").getTerminal().getP();
+        double pcs2 = network.getVscConverterStation("cs2").getTerminal().getP();
+
+        // Test basic energy conservation terms
+        assertTrue(pg2 == 0, "g2 should be off");
+        assertTrue(-pg1 >= 5.99999, "g1 generates power for all loads");
+        assertTrue(-pg1 <= 6.06, "reasonable loss");
+        assertTrue(pcs1 > 0, "Power enters at cs1");
+        assertTrue(pcs2 < 0, "Power delivered by cs2");
+        assertTrue(Math.abs(pcs1) > Math.abs(pcs2), "Loss at HVDC output");
+
+        // Reverse power flow direction
+        network.getGenerator("g2").setTargetP(5);
+        network.getGenerator("g1").setTargetP(0);
+        result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
+
+        pg2 = network.getGenerator("g2").getTerminal().getP();
+        pg1 = network.getGenerator("g1").getTerminal().getP();
+        pcs1 = network.getVscConverterStation("cs1").getTerminal().getP();
+        pcs2 = network.getVscConverterStation("cs2").getTerminal().getP();
+
+        // Test basic energy conservation terms in symetric network
+        // (active power is not a close enough symetric as in first run for some reason - so we can't compare b1 and b2 values for all termnals)
+        assertTrue(pg1 == 0, "g1 should be off");
+        assertTrue(-pg2 >= 5.99999, "g2 generates power for all loads");
+        assertTrue(-pg2 <= 6.06, "reasonable loss");
+        assertTrue(pcs2 > 0, "Power enters at cs2");
+        assertTrue(pcs1 < 0, "Power delivered by cs1");
+        assertTrue(Math.abs(pcs2) > Math.abs(pcs1), "Loss at HVDC output");
+
+    }
 }
