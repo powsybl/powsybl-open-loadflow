@@ -719,8 +719,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         for (LfHvdc hvdc : hvdcs) {
             if (disabled) {
                 hvdc.setDisabled(true);
-            } else if (!disabled && !hvdc.getOtherBus(this).isDisabled()) {
-                // both enabled
+            } else if (!hvdc.getOtherBus(this).isDisabled()) {
+                // if both buses enabled only
                 hvdc.setDisabled(false);
             }
         }

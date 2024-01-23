@@ -30,11 +30,8 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     private LfHvdc hvdc; // set only when AC emulation is activated
 
-    private double initialTargetP;
-
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB);
-        this.initialTargetP = HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB;
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
 
@@ -63,11 +60,6 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     public double getTargetP() {
         // because in case of AC emulation, active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equations
         return hvdc == null || !hvdc.isAcEmulation() ? super.getTargetP() : 0;
-    }
-
-    @Override
-    public double getInitialTargetP() {
-        return initialTargetP;
     }
 
     @Override

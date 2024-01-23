@@ -13,7 +13,5 @@ public interface LfVscConverterStation extends LfGenerator {
 
     double getLossFactor();
 
-    double getInitialTargetP();
-
     void setHvdc(LfHvdc hvdc);
 }

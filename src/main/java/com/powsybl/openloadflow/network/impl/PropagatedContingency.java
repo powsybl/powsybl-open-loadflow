@@ -414,15 +414,13 @@ public class PropagatedContingency {
             // if one bus of the line is lost.
             Set<LfHvdc> hvdcsWithoutFlow = new HashSet<>();
             for (LfHvdc hvdcLine : network.getHvdcs()) {
-                if (busesToLost.contains(hvdcLine.getBus1()) && !busesToLost.contains(hvdcLine.getBus2())) {
-                    if (connectivity.getConnectedComponent(hvdcLine.getBus1()).size() == 1) {
-                        hvdcsWithoutFlow.add(hvdcLine);
-                    }
+                if (busesToLost.contains(hvdcLine.getBus1()) && !busesToLost.contains(hvdcLine.getBus2())
+                        && connectivity.getConnectedComponent(hvdcLine.getBus1()).size() == 1) {
+                    hvdcsWithoutFlow.add(hvdcLine);
                 }
-                if (busesToLost.contains(hvdcLine.getBus2()) && !busesToLost.contains(hvdcLine.getBus1())) {
-                    if (connectivity.getConnectedComponent(hvdcLine.getBus2()).size() == 1) {
-                        hvdcsWithoutFlow.add(hvdcLine);
-                    }
+                if (busesToLost.contains(hvdcLine.getBus2()) && !busesToLost.contains(hvdcLine.getBus1())
+                        && connectivity.getConnectedComponent(hvdcLine.getBus2()).size() == 1) {
+                    hvdcsWithoutFlow.add(hvdcLine);
                 }
             }
 

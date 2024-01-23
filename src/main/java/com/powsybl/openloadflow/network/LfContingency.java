@@ -106,10 +106,6 @@ public class LfContingency {
         return lostGenerators;
     }
 
-    public Set<LfHvdc> getHvdcsWithoutPower() {
-        return hvdcsWithoutPower;
-    }
-
     public Set<String> getDisconnectedElementIds() {
         return disconnectedElementIds;
     }
