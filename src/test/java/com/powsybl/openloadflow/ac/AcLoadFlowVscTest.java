@@ -17,6 +17,8 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -335,4 +337,42 @@ class AcLoadFlowVscTest {
         assertTrue(pcs1 < 0, "Power delivered by cs1");
         assertTrue(Math.abs(pcs2) > Math.abs(pcs1), "Loss at HVDC output");
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"LCC", "VSC"})
+    void testHvdcDisconnectedInIDM(String testType) {
+        HvdcConverterStation.HvdcType hvdcType = switch (testType) {
+            case "LCC" -> HvdcConverterStation.HvdcType.LCC;
+            default -> HvdcConverterStation.HvdcType.VSC;
+        };
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setHvdcAcEmulation(
+            switch (testType) {
+                case "VSC-AcEmul" -> true;
+                default -> false;
+            });
+
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(hvdcType);
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertTrue(network.getGenerator("g1").getTerminal().getP() < -299.99, "Generator expected to deliver enough power for the load");
+        assertTrue(network.getGenerator("g1").getTerminal().getP() > -310, "Power loss should  be realistic");
+
+        Line l34 = network.getLine("l34");
+        l34.getTerminals().stream().forEach(Terminal::disconnect);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isPartiallyConverged() || result.isFullyConverged()); // disconnected line does not converge.... and this is reported..
+
+        double pcs2 = network.getHvdcConverterStation("cs2").getTerminal().getP();
+        double pcs3 = network.getHvdcConverterStation("cs3").getTerminal().getP();
+        assertTrue(network.getGenerator("g1").getTerminal().getP() < -299.99, "Generator expected to deliver enough power for the load - delivered only " + network.getGenerator("g1").getTerminal().getP());
+        assertTrue(network.getGenerator("g1").getTerminal().getP() > -310, "Power loss should  be realistic");
+        assertTrue(pcs2 == 0 || Double.isNaN(pcs2), "HVDC Station should not generate power " + network.getHvdcConverterStation("cs2").getTerminal().getP());
+        assertTrue(pcs3 == 0 || Double.isNaN(pcs3), "HVDC Station should not generate power");
+    }
+
 }
