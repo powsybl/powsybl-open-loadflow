@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AcLoadFlowVscTest {
@@ -283,7 +284,7 @@ class AcLoadFlowVscTest {
     }
 
     @Test
-    public void testHvdcPowerAcEmulation() {
+    void testHvdcPowerAcEmulation() {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
@@ -295,7 +296,7 @@ class AcLoadFlowVscTest {
     }
 
     @Test
-    public void testHvdcDirectionChangeAcEmulation() {
+    void testHvdcDirectionChangeAcEmulation() {
         Network network = HvdcNetworkFactory.createHvdcInAcEmulationInSymetricNetwork();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
@@ -307,7 +308,7 @@ class AcLoadFlowVscTest {
         double pcs2 = network.getVscConverterStation("cs2").getTerminal().getP();
 
         // Test basic energy conservation terms
-        assertTrue(pg2 == 0, "g2 should be off");
+        assertEquals(0.0, pg2, DELTA_POWER, "g2 should be off");
         assertTrue(-pg1 >= 5.99999, "g1 generates power for all loads");
         assertTrue(-pg1 <= 6.06, "reasonable loss");
         assertTrue(pcs1 > 0, "Power enters at cs1");
@@ -327,12 +328,11 @@ class AcLoadFlowVscTest {
 
         // Test basic energy conservation terms in symetric network
         // (active power is not a close enough symetric as in first run for some reason - so we can't compare b1 and b2 values for all termnals)
-        assertTrue(pg1 == 0, "g1 should be off");
+        assertEquals(0.0, pg1, DELTA_POWER, "g1 should be off");
         assertTrue(-pg2 >= 5.99999, "g2 generates power for all loads");
         assertTrue(-pg2 <= 6.06, "reasonable loss");
         assertTrue(pcs2 > 0, "Power enters at cs2");
         assertTrue(pcs1 < 0, "Power delivered by cs1");
         assertTrue(Math.abs(pcs2) > Math.abs(pcs1), "Loss at HVDC output");
-
     }
 }
