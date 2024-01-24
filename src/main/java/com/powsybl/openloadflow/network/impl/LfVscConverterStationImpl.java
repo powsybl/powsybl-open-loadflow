@@ -33,11 +33,11 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     private LfHvdc hvdc;
 
-    private final boolean hvdcDandlingInIDM;
+    private final boolean hvdcDandlingInIidm;
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB);
-        this.hvdcDandlingInIDM = LfHvdcUtils.isHvdcDandlingInIdm(station, network);
+        this.hvdcDandlingInIidm = LfHvdcUtils.isHvdcDandlingInIidm(station, network);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
 
@@ -65,10 +65,10 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     @Override
     public double getTargetP() {
         if (hvdc == null) {
-            // Because in case one node is not in the LfNetwork, the connectivty of that node is given by IDM
-            return hvdcDandlingInIDM ? 0 : super.getTargetP();
+            // Because in case one node is not in the LfNetwork, the connectivity of that node is given by IIDM
+            return hvdcDandlingInIidm ? 0 : super.getTargetP();
         } else {
-            // Because in case of AC emulation, active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equationsn
+            // Because in case of AC emulation, active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equations
             return hvdc.isAcEmulation() ? 0 : super.getTargetP();
         }
     }

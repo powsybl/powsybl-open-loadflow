@@ -9,7 +9,7 @@ public final class LfHvdcUtils {
     private LfHvdcUtils() {
     }
 
-    public static boolean isHvdcDandlingInIdm(HvdcConverterStation<?> station, LfNetwork network) {
+    public static boolean isHvdcDandlingInIidm(HvdcConverterStation<?> station, LfNetwork network) {
 
         if (isIsolated(station.getTerminal().getBusBreakerView().getBus(), network)) {
             return true;
