@@ -414,12 +414,8 @@ public class PropagatedContingency {
             // if one bus of the line is lost.
             Set<LfHvdc> hvdcsWithoutFlow = new HashSet<>();
             for (LfHvdc hvdcLine : network.getHvdcs()) {
-                if (busesToLost.contains(hvdcLine.getBus1()) && !busesToLost.contains(hvdcLine.getBus2())
-                        && connectivity.getConnectedComponent(hvdcLine.getBus1()).size() == 1) {
-                    hvdcsWithoutFlow.add(hvdcLine);
-                }
-                if (busesToLost.contains(hvdcLine.getBus2()) && !busesToLost.contains(hvdcLine.getBus1())
-                        && connectivity.getConnectedComponent(hvdcLine.getBus2()).size() == 1) {
+                if (checkIsolatedBus(hvdcLine.getBus1(), hvdcLine.getBus2(), busesToLost, connectivity)
+                        || checkIsolatedBus(hvdcLine.getBus2(), hvdcLine.getBus1(), busesToLost, connectivity)) {
                     hvdcsWithoutFlow.add(hvdcLine);
                 }
             }
@@ -429,6 +425,10 @@ public class PropagatedContingency {
             // reset connectivity to discard triggered elements
             connectivity.undoTemporaryChanges();
         }
+    }
+
+    private boolean checkIsolatedBus(LfBus bus1, LfBus bus2, Set<LfBus> busesToLost, GraphConnectivity<LfBus, LfBranch> connectivity) {
+        return busesToLost.contains(bus1) && !busesToLost.contains(bus2) && connectivity.getConnectedComponent(bus1).size() == 1;
     }
 
     private static boolean isConnectedAfterContingencySide1(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
