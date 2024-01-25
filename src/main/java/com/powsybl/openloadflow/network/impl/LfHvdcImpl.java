@@ -30,22 +30,27 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private Evaluable p2 = NAN;
 
-    private final double droop;
+    private double droop = Double.NaN;
 
-    private final double p0;
+    private double p0 = Double.NaN;
 
     private LfVscConverterStation converterStation1;
 
     private LfVscConverterStation converterStation2;
 
-    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcAngleDroopActivePowerControl control) {
+    private boolean acEmulation;
+
+    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcAngleDroopActivePowerControl control,
+                      boolean acEmulation) {
         super(network);
         this.id = Objects.requireNonNull(id);
         this.bus1 = bus1;
         this.bus2 = bus2;
-        Objects.requireNonNull(control);
-        droop = control.getDroop();
-        p0 = control.getP0();
+        this.acEmulation = acEmulation && control != null && control.isEnabled();
+        if (this.acEmulation) {
+            droop = control.getDroop();
+            p0 = control.getP0();
+        }
     }
 
     @Override
@@ -66,6 +71,21 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public LfBus getBus2() {
         return this.bus2;
+    }
+
+    @Override
+    public LfBus getOtherBus(LfBus bus) {
+        return bus.equals(bus1) ? bus2 : bus1;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        super.setDisabled(disabled); // for AC emulation equations only.
+        if (!acEmulation && !disabled) {
+            // re-active power transmission to initial target values.
+            converterStation1.setTargetP(converterStation1.getInitialTargetP());
+            converterStation2.setTargetP(converterStation2.getInitialTargetP());
+        }
     }
 
     @Override
@@ -99,6 +119,16 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
+    public boolean isAcEmulation() {
+        return acEmulation;
+    }
+
+    @Override
+    public void setAcEmulation(boolean acEmulation) {
+        this.acEmulation = acEmulation;
+    }
+
+    @Override
     public LfVscConverterStation getConverterStation1() {
         return converterStation1;
     }
@@ -122,7 +152,9 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public void updateState() {
-        ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
-        ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
+        if (acEmulation) {
+            ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
+            ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
+        }
     }
 }
