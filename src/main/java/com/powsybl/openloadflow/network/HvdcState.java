@@ -11,11 +11,20 @@ package com.powsybl.openloadflow.network;
  */
 public class HvdcState extends ElementState<LfHvdc> {
 
+    private boolean acEmulation;
+
     public HvdcState(LfHvdc hvdc) {
         super(hvdc);
+        this.acEmulation = hvdc.isAcEmulation();
     }
 
     public static HvdcState save(LfHvdc hvdc) {
         return new HvdcState(hvdc);
+    }
+
+    @Override
+    public void restore() {
+        super.restore();
+        element.setAcEmulation(acEmulation);
     }
 }
