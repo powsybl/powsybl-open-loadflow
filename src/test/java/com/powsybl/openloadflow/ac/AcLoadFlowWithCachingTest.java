@@ -6,9 +6,14 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.extensions.ControlZone;
+import com.powsybl.iidm.network.extensions.PilotPoint;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlow;
@@ -18,15 +23,12 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
-import com.powsybl.openloadflow.network.ShuntNetworkFactory;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -451,5 +453,43 @@ class AcLoadFlowWithCachingTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+    }
+
+    @Test
+    void testSecondaryVoltageControl() {
+        parametersExt.setSecondaryVoltageControl(true);
+        var network = IeeeCdfNetworkFactory.create14();
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                    .withName("z1")
+                    .newPilotPoint()
+                        .withTargetV(12.7)
+                        .withBusbarSectionsOrBusesIds(List.of("B10"))
+                    .add()
+                    .newControlUnit()
+                        .withId("B6-G")
+                        .add()
+                    .newControlUnit()
+                        .withId("B8-G")
+                        .add()
+                    .add()
+                .add();
+        SecondaryVoltageControl control = network.getExtension(SecondaryVoltageControl.class);
+        ControlZone z1 = control.getControlZone("z1").orElseThrow();
+        PilotPoint pilotPoint = z1.getPilotPoint();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        var b10 = network.getBusBreakerView().getBus("B10");
+        assertVoltageEquals(12.7, b10);
+
+        // update pilot point target voltage
+        pilotPoint.setTargetV(12.5);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(12.5, b10);
     }
 }

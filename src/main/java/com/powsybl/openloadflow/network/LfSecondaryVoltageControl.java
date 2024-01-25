@@ -22,7 +22,7 @@ public class LfSecondaryVoltageControl {
 
     private final Set<GeneratorVoltageControl> generatorVoltageControls;
 
-    private final double targetValue;
+    private double targetValue;
 
     public LfSecondaryVoltageControl(String zoneName, LfBus pilotBus, double targetValue, Set<GeneratorVoltageControl> generatorVoltageControls) {
         this.zoneName = Objects.requireNonNull(zoneName);
@@ -37,6 +37,10 @@ public class LfSecondaryVoltageControl {
 
     public double getTargetValue() {
         return targetValue;
+    }
+
+    public void setTargetValue(double targetValue) {
+        this.targetValue = targetValue;
     }
 
     public LfBus getPilotBus() {
