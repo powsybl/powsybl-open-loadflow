@@ -12,11 +12,6 @@ import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -225,17 +220,9 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testDiscardGeneratorsWithTargetPOutsideActiveLimitsFromVoltageControl() {
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
-                .setUseActiveLimits(true).setEnableGeneratorsOutsideActiveLimitsToControlVoltage(false);
-
-        AcLoadFlowParameters acLoadFlowParameters = OpenLoadFlowParameters.createAcParameters(parameters,
-                parametersExt,
-                new DenseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(),
-                true,
-                false);
-        LfNetworkParameters networkParameters = acLoadFlowParameters.getNetworkParameters();
+        LfNetworkParameters networkParameters = new LfNetworkParameters()
+                .setUseActiveLimits(true)
+                .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(true);
 
         Network network = Network.create("test", "code");
         Bus b = createBus(network, "b", 380);

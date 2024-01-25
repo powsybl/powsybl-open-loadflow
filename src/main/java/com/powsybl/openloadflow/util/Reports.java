@@ -162,7 +162,7 @@ public final class Reports {
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(Reporter reporter, int impactedGeneratorCount) {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
-                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because targetP is outside active limits")
+                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because targetP is outside active power limits")
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
