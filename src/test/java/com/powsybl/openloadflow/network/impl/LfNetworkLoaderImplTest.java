@@ -231,7 +231,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         Generator g1 = createGenerator(b, "g1", 50, 400);
         g1.setMinP(100).setMaxP(200);
 
-        // discarded from voltage control because targetP > maxP (250 < 200)
+        // discarded from voltage control because targetP > maxP (250 > 200)
         Generator g2 = createGenerator(b, "g2", 250, 400);
         g2.setMinP(100).setMaxP(200);
 
