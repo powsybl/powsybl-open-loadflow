@@ -17,6 +17,8 @@ public interface LfHvdc extends LfElement {
 
     LfBus getBus2();
 
+    LfBus getOtherBus(LfBus bus);
+
     void setP1(Evaluable p1);
 
     Evaluable getP1();
@@ -28,6 +30,10 @@ public interface LfHvdc extends LfElement {
     double getDroop();
 
     double getP0();
+
+    boolean isAcEmulation();
+
+    void setAcEmulation(boolean acEmulation);
 
     LfVscConverterStation getConverterStation1();
 
