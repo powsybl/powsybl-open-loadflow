@@ -8,6 +8,7 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.ControlUnit;
 import com.powsybl.iidm.network.extensions.ControlZone;
 import com.powsybl.iidm.network.extensions.PilotPoint;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
@@ -264,12 +265,25 @@ public enum NetworkCache {
                     ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
                     for (AcLoadFlowContext context : contexts) {
                         LfNetwork lfNetwork = context.getNetwork();
-                        // search for corresponding LF control zone
-                        lfNetwork.getSecondaryVoltageControls().stream()
-                                .filter(lfSvc -> lfSvc.getZoneName().equals(controlZone.getName()))
-                                .findFirst()
+                        lfNetwork.getSecondaryVoltageControl(controlZone.getName())
                                 .ifPresent(lfSvc -> {
                                     lfSvc.setTargetValue(event.value() / lfSvc.getPilotBus().getNominalV());
+                                    context.setNetworkUpdated(true);
+                                    done[0] = true;
+                                });
+                    }
+                } else if ("controlUnitParticipate".equals(attribute)) {
+                    ControlUnit.ParticipateEvent event = (ControlUnit.ParticipateEvent) newValue;
+                    ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
+                    for (AcLoadFlowContext context : contexts) {
+                        LfNetwork lfNetwork = context.getNetwork();
+                        lfNetwork.getSecondaryVoltageControl(controlZone.getName())
+                                .ifPresent(lfSvc -> {
+                                    if (event.value()) {
+                                        lfSvc.getParticipatingControlUnitIds().add(event.controlUnitId());
+                                    } else {
+                                        lfSvc.getParticipatingControlUnitIds().remove(event.controlUnitId());
+                                    }
                                     context.setNetworkUpdated(true);
                                     done[0] = true;
                                 });
