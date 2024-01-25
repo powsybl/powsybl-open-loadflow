@@ -506,5 +506,13 @@ class AcLoadFlowWithCachingTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(12.613, b10); // we cannot reach back to 12.7 Kv with only one control unit
+
+        // get b6 generator back
+        b6g.setParticipate(true);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(12.7, b10); // we can reach now 12.7 Kv with the 2 control units
     }
 }
