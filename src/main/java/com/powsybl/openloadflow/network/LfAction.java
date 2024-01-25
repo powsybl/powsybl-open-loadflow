@@ -365,9 +365,10 @@ public final class LfAction {
         }
 
         if (hvdc != null) {
-            hvdc.setDisabled(true);
-            hvdc.getConverterStation1().setTargetP(-hvdc.getP1().eval());
-            hvdc.getConverterStation2().setTargetP(-hvdc.getP2().eval());
+            hvdc.setAcEmulation(false);
+            hvdc.setDisabled(true); // for equations only, but should be hidden
+            hvdc.getConverterStation1().setTargetP(-hvdc.getP1().eval()); // override
+            hvdc.getConverterStation2().setTargetP(-hvdc.getP2().eval()); // override
         }
     }
 }
