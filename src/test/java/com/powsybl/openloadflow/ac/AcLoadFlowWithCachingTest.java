@@ -479,6 +479,8 @@ class AcLoadFlowWithCachingTest {
         assertEquals(5, result.getComponentResults().get(0).getIterationCount());
         var b10 = network.getBusBreakerView().getBus("B10");
         assertVoltageEquals(12.7, b10);
+        assertReactivePowerEquals(-17.826, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-17.827, network.getGenerator("B8-G").getTerminal());
 
         // update pilot point target voltage
         pilotPoint.setTargetV(12.5);
@@ -488,6 +490,8 @@ class AcLoadFlowWithCachingTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(12.5, b10);
+        assertReactivePowerEquals(-11.832, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-11.832, network.getGenerator("B8-G").getTerminal());
 
         ControlUnit b6g = z1.getControlUnit("B6-G").orElseThrow();
         b6g.setParticipate(false);
@@ -499,6 +503,8 @@ class AcLoadFlowWithCachingTest {
         // there is no re-run of secondary voltage control outer loop, this is expected as pilot point has already reached
         // its target voltage and remaining control unit is necessarily aligned.
         assertVoltageEquals(12.5, b10);
+        assertReactivePowerEquals(-11.832, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-11.832, network.getGenerator("B8-G").getTerminal());
 
         pilotPoint.setTargetV(12.7);
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
@@ -506,6 +512,8 @@ class AcLoadFlowWithCachingTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(12.613, b10); // we cannot reach back to 12.7 Kv with only one control unit
+        assertReactivePowerEquals(-6.771, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-24.0, network.getGenerator("B8-G").getTerminal());
 
         // get b6 generator back
         b6g.setParticipate(true);
@@ -514,6 +522,8 @@ class AcLoadFlowWithCachingTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(12.7, b10); // we can reach now 12.7 Kv with the 2 control units
+        assertReactivePowerEquals(-17.826, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-17.826, network.getGenerator("B8-G").getTerminal());
     }
 
     @Test
