@@ -1250,12 +1250,15 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setHvdcAcEmulation(
-                switch (testType) {
-                    case "VSC-AcEmul" -> true;
-                    default -> false;
-                });
+            switch (testType) {
+                case "VSC-AcEmul" -> true;
+                default -> false;
+            });
 
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(hvdcType);
+
+        // mahe hvdc fkiw power from generator to load
+        network.getHvdcLine("hvdc23").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
 
         // Disconnect the HVDC Initially
         network.getLine("l12").getTerminals().forEach(Terminal::disconnect);
@@ -1293,9 +1296,11 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 new AnyViolationCondition(),
                 List.of("action1")));
 
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+
         SecurityAnalysisResult result = runSecurityAnalysis(network,
                 contingencies,
-                Collections.emptyList(),
+                monitors,
                 // We want to see all violations here.
                 new SecurityAnalysisParameters()
                         .setIncreasedViolationsParameters(new SecurityAnalysisParameters.IncreasedViolationsParameters(-1000,
@@ -1308,6 +1313,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 actions,
                 Reporter.NO_OP);
 
+        assertTrue(result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1() < 1, "No current expected in l34"); // No power expected since switch is open and L12 is open
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty(), "No violation expected precontingency");
 
         for (PostContingencyResult postContingencyResult : result.getPostContingencyResults()) {
