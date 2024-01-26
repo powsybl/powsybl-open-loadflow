@@ -568,4 +568,16 @@ class AcLoadFlowWithCachingTest {
         assertEquals(2, twt.getLeg2().getRatioTapChanger().getTapPosition());
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
     }
+
+    @Test
+    void testTerminalDeconnection() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+
+        var l1 = network.getLine("NHV1_NHV2_1");
+        l1.getTerminal2().disconnect();
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+    }
 }

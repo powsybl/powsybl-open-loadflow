@@ -50,6 +50,8 @@ public enum NetworkCache {
 
         private boolean pause = false;
 
+        private boolean ongoingConnectOrDisconnect = false;
+
         public Entry(Network network, LoadFlowParameters parameters) {
             Objects.requireNonNull(network);
             this.networkRef = new WeakReference<>(network);
@@ -280,6 +282,22 @@ public enum NetworkCache {
                             }
                         } else if (attribute.equals("ratioTapChanger3.regulationValue")) {
                             if (onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), ThreeSides.THREE.getNum()), (double) newValue)) {
+                                done = true;
+                            }
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.LINE) {
+                        if (attribute.equals("beginDisconnect")) {
+                            ongoingConnectOrDisconnect = true;
+                            done = true;
+                        } else if (attribute.equals("endDisconnect")) {
+                            ongoingConnectOrDisconnect = false;
+                            if (Boolean.TRUE.equals(newValue)) {
+                                // TODO
+                                done = true;
+                            }
+                        } else if (attribute.equals("connected1") || attribute.equals("connected2")) {
+                            if (ongoingConnectOrDisconnect) {
+                                // skip
                                 done = true;
                             }
                         }
