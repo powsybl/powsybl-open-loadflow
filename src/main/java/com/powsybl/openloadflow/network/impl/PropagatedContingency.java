@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
@@ -43,7 +42,7 @@ public class PropagatedContingency {
 
     private final Map<String, DisabledBranchStatus> branchIdsToOpen = new LinkedHashMap<>();
 
-    private final Set<String> hvdcIdsToOpen = new HashSet<>(); // for HVDC in AC emulation
+    private final Set<String> hvdcIdsToOpen = new HashSet<>();
 
     private final Set<String> generatorIdsToLose = new HashSet<>();
 
@@ -67,24 +66,12 @@ public class PropagatedContingency {
         return branchIdsToOpen;
     }
 
-    public Set<Switch> getSwitchesToOpen() {
-        return switchesToOpen;
-    }
-
-    public Set<String> getHvdcIdsToOpen() {
-        return hvdcIdsToOpen;
-    }
-
     public Set<String> getGeneratorIdsToLose() {
         return generatorIdsToLose;
     }
 
     public Map<String, PowerShift> getLoadIdsToLoose() {
         return loadIdsToLoose;
-    }
-
-    public Map<String, AdmittanceShift> getShuntIdsToShift() {
-        return shuntIdsToShift;
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect,
@@ -248,13 +235,11 @@ public class PropagatedContingency {
                     break;
 
                 case HVDC_CONVERTER_STATION:
+                    // in case of a hvdc contingency, both converter station will go through this case.
+                    // in case of the lost of one VSC converter station only, the transmission of active power is stopped
+                    // but the other converter station, if present, keeps it voltage control if present.
                     HvdcConverterStation<?> station = (HvdcConverterStation<?>) connectable;
-                    HvdcAngleDroopActivePowerControl control = station.getHvdcLine().getExtension(HvdcAngleDroopActivePowerControl.class);
-                    if (control != null && control.isEnabled() && creationParameters.isHvdcAcEmulation()) {
-                        hvdcIdsToOpen.add(station.getHvdcLine().getId());
-                    }
-                    // FIXME
-                    // the other converter station should be considered to if in the same synchronous component (hvdc setpoint mode).
+                    hvdcIdsToOpen.add(station.getHvdcLine().getId());
                     if (connectable instanceof VscConverterStation) {
                         generatorIdsToLose.add(connectable.getId());
                     } else {
@@ -400,7 +385,7 @@ public class PropagatedContingency {
         return branchesToOpen;
     }
 
-    record ContingencyConnectivityLossImpact(boolean ok, int createdSynchronousComponents, Set<LfBus> busesToLost) {
+    record ContingencyConnectivityLossImpact(boolean ok, int createdSynchronousComponents, Set<LfBus> busesToLost, Set<LfHvdc> hvdcsWithoutPower) {
     }
 
     private ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen) {
@@ -417,7 +402,7 @@ public class PropagatedContingency {
                 // If a contingency leads to an isolated slack bus, this bus is considered as the main component.
                 // In that case, we have an issue with a different number of variables and equations.
                 LOGGER.error("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
-                return new ContingencyConnectivityLossImpact(false, 0, Collections.emptySet());
+                return new ContingencyConnectivityLossImpact(false, 0, Collections.emptySet(), Collections.emptySet());
             }
 
             // add to contingency description buses and branches that won't be part of the main connected
@@ -425,11 +410,25 @@ public class PropagatedContingency {
             int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
             Set<LfBus> busesToLost = connectivity.getVerticesRemovedFromMainComponent();
 
-            return new ContingencyConnectivityLossImpact(true, createdSynchronousComponents, busesToLost);
+            // as we know here the connectivity after contingency, we have to reset active power flow of a hvdc line
+            // if one bus of the line is lost.
+            Set<LfHvdc> hvdcsWithoutFlow = new HashSet<>();
+            for (LfHvdc hvdcLine : network.getHvdcs()) {
+                if (checkIsolatedBus(hvdcLine.getBus1(), hvdcLine.getBus2(), busesToLost, connectivity)
+                        || checkIsolatedBus(hvdcLine.getBus2(), hvdcLine.getBus1(), busesToLost, connectivity)) {
+                    hvdcsWithoutFlow.add(hvdcLine);
+                }
+            }
+
+            return new ContingencyConnectivityLossImpact(true, createdSynchronousComponents, busesToLost, hvdcsWithoutFlow);
         } finally {
             // reset connectivity to discard triggered elements
             connectivity.undoTemporaryChanges();
         }
+    }
+
+    private boolean checkIsolatedBus(LfBus bus1, LfBus bus2, Set<LfBus> busesToLost, GraphConnectivity<LfBus, LfBranch> connectivity) {
+        return busesToLost.contains(bus1) && !busesToLost.contains(bus2) && connectivity.getConnectedComponent(bus1).size() == 1;
     }
 
     private static boolean isConnectedAfterContingencySide1(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {
@@ -509,9 +508,6 @@ public class PropagatedContingency {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
         for (LfHvdc hvdcLine : network.getHvdcs()) {
-            // FIXME
-            // if we loose a bus with a converter station, the other converter station should be considered to if in the
-            // same synchronous component (hvdc setpoint mode).
             if (busesToLost.contains(hvdcLine.getBus1()) || busesToLost.contains(hvdcLine.getBus2())) {
                 lostHvdcs.add(hvdcLine);
             }
@@ -522,11 +518,14 @@ public class PropagatedContingency {
                 && shunts.isEmpty()
                 && loads.isEmpty()
                 && generators.isEmpty()
-                && lostHvdcs.isEmpty()) {
+                && lostHvdcs.isEmpty()
+                && connectivityLossImpact.hvdcsWithoutPower().isEmpty()) {
             LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, connectivityLossImpact.createdSynchronousComponents, new DisabledNetwork(busesToLost, branchesToOpen, lostHvdcs), shunts, loads, generators));
+        return Optional.of(new LfContingency(contingency.getId(), index, connectivityLossImpact.createdSynchronousComponents,
+                           new DisabledNetwork(busesToLost, branchesToOpen, lostHvdcs), shunts, loads, generators,
+                           connectivityLossImpact.hvdcsWithoutPower()));
     }
 }
