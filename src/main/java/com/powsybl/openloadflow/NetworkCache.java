@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,6 +210,24 @@ public enum NetworkCache {
             }
         }
 
+        private boolean onTransformerTargetVoltageUpdate(String twtId, double newValue) {
+            boolean found = false;
+            for (AcLoadFlowContext context : contexts) {
+                LfNetwork lfNetwork = context.getNetwork();
+                LfBranch lfBranch = lfNetwork.getBranchById(twtId);
+                if (lfBranch != null) {
+                    var vc = lfBranch.getVoltageControl().orElseThrow();
+                    vc.setTargetValue(newValue / vc.getControlledBus().getNominalV());
+                    context.setNetworkUpdated(true);
+                    found = true;
+                }
+            }
+            if (!found) {
+                LOGGER.warn("Cannot update voltage target of transformer '{}'", twtId);
+            }
+            return found;
+        }
+
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
             if (contexts == null || pause) {
@@ -223,7 +242,9 @@ public enum NetworkCache {
                      "p1",
                      "q1",
                      "p2",
-                     "q2" -> done = true; // ignore because it is related to state update and won't affect LF calculation
+                     "q2",
+                     "p3",
+                     "q3" -> done = true; // ignore because it is related to state update and won't affect LF calculation
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
@@ -241,6 +262,26 @@ public enum NetworkCache {
                             && attribute.equals("open")) {
                         if (onSwitchUpdate(identifiable.getId(), (boolean) newValue)) {
                             done = true;
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER) {
+                        if (attribute.equals("ratioTapChanger.regulationValue")) {
+                            if (onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue)) {
+                                done = true;
+                            }
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.THREE_WINDINGS_TRANSFORMER) {
+                        if (attribute.equals("ratioTapChanger1.regulationValue")) {
+                            if (onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), ThreeSides.ONE.getNum()), (double) newValue)) {
+                                done = true;
+                            }
+                        } else if (attribute.equals("ratioTapChanger2.regulationValue")) {
+                            if (onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), ThreeSides.TWO.getNum()), (double) newValue)) {
+                                done = true;
+                            }
+                        } else if (attribute.equals("ratioTapChanger3.regulationValue")) {
+                            if (onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), ThreeSides.THREE.getNum()), (double) newValue)) {
+                                done = true;
+                            }
                         }
                     }
                 }
