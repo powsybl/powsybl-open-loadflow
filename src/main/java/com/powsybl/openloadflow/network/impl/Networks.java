@@ -234,14 +234,14 @@ public final class Networks {
         // used only for hvdc lines.
         // this criteria can be improved later depending on use case
         return connectivity.getConnectedComponent(bus).size() == 1 && bus.getLoadTargetP() == 0.0
-                && bus.getGenerators().stream().noneMatch(gen -> gen instanceof LfGeneratorImpl);
+                && bus.getGenerators().stream().noneMatch(LfGeneratorImpl.class::isInstance);
     }
 
     public static boolean isIsolatedBusForHvdc(LfBus bus, Set<LfBus> disabledBuses) {
         // used only for hvdc lines for DC sensitivity analysis where we don't have the connectivity.
         // this criteria can be improved later depending on use case
         return disabledBuses.contains(bus) && bus.getLoadTargetP() == 0.0
-                && bus.getGenerators().stream().noneMatch(gen -> gen instanceof LfGeneratorImpl);
+                && bus.getGenerators().stream().noneMatch(LfGeneratorImpl.class::isInstance);
     }
 
     public static Optional<Terminal> getEquipmentRegulatingTerminal(Network network, String equipmentId) {

@@ -349,7 +349,7 @@ class AcLoadFlowVscTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setHvdcAcEmulation(
             switch (testType) {
-                case "VSC-AcEmul" -> true;
+                case "VSC-AcEmulation" -> true;
                 default -> false;
             });
 
@@ -375,4 +375,15 @@ class AcLoadFlowVscTest {
         assertTrue(pcs3 == 0 || Double.isNaN(pcs3), "HVDC Station should not generate power");
     }
 
+    @Test
+    void testHvdcAndGenerator() {
+        Network network = HvdcNetworkFactory.createWithHvdcAndGenerator();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-1.956, network.getVscConverterStation("cs3").getTerminal());
+        assertActivePowerEquals(2.0, network.getVscConverterStation("cs4").getTerminal());
+        assertActivePowerEquals(-2.0, network.getGenerator("g4").getTerminal());
+        assertActivePowerEquals(-2.047, network.getGenerator("g1").getTerminal());
+    }
 }

@@ -1238,10 +1238,10 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"VSC", "VSC-AcEmul"})  // Not supported: "LCC", "
+    @ValueSource(strings = {"VSC", "VSC-AcEmulation"})  // Not supported: "LCC", "
     void testHvdcDisconnectedThenConnectedByStrategy(String testType) {
-        // HVDC initially disconnected in IIDM network
-        // contingency leads to an action that reconnects the HVDC link
+        // Hvdc initially disconnected in iidm network
+        // contingency leads to an action that reconnects the hvdc link
 
         HvdcConverterStation.HvdcType hvdcType = switch (testType) {
             case "LCC" -> HvdcConverterStation.HvdcType.LCC;
@@ -1251,7 +1251,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setHvdcAcEmulation(
             switch (testType) {
-                case "VSC-AcEmul" -> true;
+                case "VSC-AcEmulation" -> true;
                 default -> false;
             });
 
@@ -1300,21 +1300,17 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 Reporter.NO_OP);
 
         assertTrue(result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1() < 1, "No current expected in l34"); // No power expected since switch is open and L12 is open
-        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty(), "No violation expected precontingency");
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty(), "No violation expected pre-contingency");
 
-        assertTrue(result.getPostContingencyResults().size() == 1);
-        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
-        assertTrue(postContingencyResult.getNetworkResult().getBranchResult("l14").getP1() >= 299, "All active power shuold flow in l14");
-        assertTrue(postContingencyResult.getNetworkResult().getBranchResult("l14").getP1() >= 299, "All active power shuold flow in l14");
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "l14Bis");
+        assertTrue(postContingencyResult.getNetworkResult().getBranchResult("l14").getP1() >= 299, "All active power should flow in l14");
+        assertTrue(postContingencyResult.getNetworkResult().getBranchResult("l14").getP1() >= 299, "All active power should flow in l14");
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty(), "One violation expected for l34");
 
-        assertTrue(result.getOperatorStrategyResults().size() == 1, "One operator strategy run");
-        OperatorStrategyResult operatorStrategyResult = result.getOperatorStrategyResults().get(0);
-
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategyL1");
         assertTrue(operatorStrategyResult.getNetworkResult().getBranchResult("l12Bis").getP1() >= 195, "Active power should flow in l12");
         assertTrue(operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1() >= 190, "Active power should flow in l34");
         assertTrue(operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1() >= 100, "Active power should flow in l12Bis");
-
     }
 
     @Test

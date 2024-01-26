@@ -29,11 +29,9 @@ public final class LfHvdcUtils {
             return true;
         }
 
-        // The criteris should as close as possible to Networks.isIsolatedBusForHvdc - only connected to the station
+        // The criteria should as close as possible to Networks.isIsolatedBusForHvdc - only connected to the station
         return bus.getConnectedTerminalStream()
                 .map(Terminal::getConnectable)
-                .filter(c -> !(c instanceof HvdcConverterStation<?>))
-                .noneMatch(c -> !(c instanceof BusbarSection));
+                .noneMatch(c -> !(c instanceof HvdcConverterStation<?> || c instanceof BusbarSection));
     }
-
 }
