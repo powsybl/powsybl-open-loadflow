@@ -34,6 +34,8 @@ import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.util.*;
@@ -1233,6 +1235,113 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(193.822, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(193.822, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"VSC", "VSC-AcEmul"})  // Not supported: "LCC", "
+    void testHvdcDisconnectedThenConnectedByStrategy(String testType) {
+        // HVDC initially disconnected in IIDM network
+        // contingency leads to an action that reconnects the HVDC link
+
+        HvdcConverterStation.HvdcType hvdcType = switch (testType) {
+            case "LCC" -> HvdcConverterStation.HvdcType.LCC;
+            default -> HvdcConverterStation.HvdcType.VSC;
+        };
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setHvdcAcEmulation(
+                switch (testType) {
+                    case "VSC-AcEmul" -> true;
+                    default -> false;
+                });
+
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(hvdcType);
+
+        // Disconnect the HVDC Initially
+        network.getLine("l12").getTerminals().forEach(Terminal::disconnect);
+
+        network.getLine("l34").newCurrentLimits2()
+                .setPermanentLimit(200) // 360 for 2MW
+                .add();
+
+        network.getLine("l12Bis").newCurrentLimits2()
+                .setPermanentLimit(200) // 360 for 2MW
+                .add();
+
+        // Detect HVDC closed
+        network.getLine("l14").newCurrentLimits1()
+                .setPermanentLimit(300)  // 260 for 100MB
+                .add();
+
+        // double l14
+        network.newLine()
+                .setId("l14Bis")
+                .setBus1("b1")
+                .setConnectableBus1("b1")
+                .setBus2("b4")
+                .setConnectableBus2("b4")
+                .setR(0d)
+                .setX(0.1d)
+                .add();
+
+        List<Contingency> contingencies = List.of(new Contingency("l14Bis", new BranchContingency("l14Bis")));
+
+        List<Action> actions = List.of(new SwitchAction("action1", "s2", false));
+
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1",
+                ContingencyContext.specificContingency("l14Bis"),
+                new AnyViolationCondition(),
+                List.of("action1")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network,
+                contingencies,
+                Collections.emptyList(),
+                // We want to see all violations here.
+                new SecurityAnalysisParameters()
+                        .setIncreasedViolationsParameters(new SecurityAnalysisParameters.IncreasedViolationsParameters(-1000,
+                                -1000,
+                                -1000,
+                                -1000,
+                                -1000))
+                        .setLoadFlowParameters(parameters),
+                operatorStrategies,
+                actions,
+                Reporter.NO_OP);
+
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty(), "No violation expected precontingency");
+
+        for (PostContingencyResult postContingencyResult : result.getPostContingencyResults()) {
+            boolean line14HasCurrentCOntingency =
+                    postContingencyResult.getLimitViolationsResult().getLimitViolations().stream()
+                            .filter(l -> l.getSubjectId().equals("l14"))
+                            .findFirst()
+                            .isPresent();
+            assertTrue(line14HasCurrentCOntingency, "All current should flow through l14");
+            for (String line : new String[] {"l12", "l34"}) {
+                boolean lineHasCurrentPreContingency =
+                        postContingencyResult.getLimitViolationsResult().getLimitViolations().stream()
+                                .filter(l -> l.getSubjectId().equals(line))
+                                .findFirst()
+                                .isPresent();
+                assertFalse(lineHasCurrentPreContingency, "No current should pass through " + line +
+                        " for contingency " + postContingencyResult.getContingency().getId());
+            }
+        }
+        assertTrue(result.getOperatorStrategyResults().size() == 1, "One operator strategy run");
+        OperatorStrategyResult operatorStrategyResult = result.getOperatorStrategyResults().get(0);
+        assertTrue(operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size() == 2, "l13 and l12Bis should have current");
+        boolean line12BisHasCurrent =
+                operatorStrategyResult.getLimitViolationsResult().getLimitViolations().stream()
+                        .filter(l -> l.getSubjectId().equals("l12Bis"))
+                        .findFirst()
+                        .isPresent();
+        assertTrue(line12BisHasCurrent, "l12Bis should have current");
+        boolean line34HasCurrent =
+                operatorStrategyResult.getLimitViolationsResult().getLimitViolations().stream()
+                        .filter(l -> l.getSubjectId().equals("l34"))
+                        .findFirst()
+                        .isPresent();
+        assertTrue(line12BisHasCurrent, "l34 should have current");
     }
 
     @Test
