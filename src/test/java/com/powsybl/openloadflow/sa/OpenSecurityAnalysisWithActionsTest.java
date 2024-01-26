@@ -1257,19 +1257,11 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(hvdcType);
 
-        // mahe hvdc fkiw power from generator to load
+        // mahe hvdc flow power from generator to load
         network.getHvdcLine("hvdc23").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
 
         // Disconnect the HVDC Initially
         network.getLine("l12").getTerminals().forEach(Terminal::disconnect);
-
-        network.getLine("l34").newCurrentLimits2()
-                .setPermanentLimit(200) // 360 for 2MW
-                .add();
-
-        network.getLine("l12Bis").newCurrentLimits2()
-                .setPermanentLimit(200) // 360 for 2MW
-                .add();
 
         // Detect HVDC closed
         network.getLine("l14").newCurrentLimits1()
@@ -1302,13 +1294,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 contingencies,
                 monitors,
                 // We want to see all violations here.
-                new SecurityAnalysisParameters()
-                        .setIncreasedViolationsParameters(new SecurityAnalysisParameters.IncreasedViolationsParameters(-1000,
-                                -1000,
-                                -1000,
-                                -1000,
-                                -1000))
-                        .setLoadFlowParameters(parameters),
+                new SecurityAnalysisParameters().setLoadFlowParameters(parameters),
                 operatorStrategies,
                 actions,
                 Reporter.NO_OP);
@@ -1316,38 +1302,19 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertTrue(result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1() < 1, "No current expected in l34"); // No power expected since switch is open and L12 is open
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty(), "No violation expected precontingency");
 
-        for (PostContingencyResult postContingencyResult : result.getPostContingencyResults()) {
-            boolean line14HasCurrentCOntingency =
-                    postContingencyResult.getLimitViolationsResult().getLimitViolations().stream()
-                            .filter(l -> l.getSubjectId().equals("l14"))
-                            .findFirst()
-                            .isPresent();
-            assertTrue(line14HasCurrentCOntingency, "All current should flow through l14");
-            for (String line : new String[] {"l12", "l34"}) {
-                boolean lineHasCurrentPreContingency =
-                        postContingencyResult.getLimitViolationsResult().getLimitViolations().stream()
-                                .filter(l -> l.getSubjectId().equals(line))
-                                .findFirst()
-                                .isPresent();
-                assertFalse(lineHasCurrentPreContingency, "No current should pass through " + line +
-                        " for contingency " + postContingencyResult.getContingency().getId());
-            }
-        }
+        assertTrue(result.getPostContingencyResults().size() == 1);
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        assertTrue(postContingencyResult.getNetworkResult().getBranchResult("l14").getP1() >= 299, "All active power shuold flow in l14");
+        assertTrue(postContingencyResult.getNetworkResult().getBranchResult("l14").getP1() >= 299, "All active power shuold flow in l14");
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty(), "One violation expected for l34");
+
         assertTrue(result.getOperatorStrategyResults().size() == 1, "One operator strategy run");
         OperatorStrategyResult operatorStrategyResult = result.getOperatorStrategyResults().get(0);
-        assertTrue(operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size() == 2, "l13 and l12Bis should have current");
-        boolean line12BisHasCurrent =
-                operatorStrategyResult.getLimitViolationsResult().getLimitViolations().stream()
-                        .filter(l -> l.getSubjectId().equals("l12Bis"))
-                        .findFirst()
-                        .isPresent();
-        assertTrue(line12BisHasCurrent, "l12Bis should have current");
-        boolean line34HasCurrent =
-                operatorStrategyResult.getLimitViolationsResult().getLimitViolations().stream()
-                        .filter(l -> l.getSubjectId().equals("l34"))
-                        .findFirst()
-                        .isPresent();
-        assertTrue(line12BisHasCurrent, "l34 should have current");
+
+        assertTrue(operatorStrategyResult.getNetworkResult().getBranchResult("l12Bis").getP1() >= 195, "Active power should flow in l12");
+        assertTrue(operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1() >= 190, "Active power should flow in l34");
+        assertTrue(operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1() >= 100, "Active power should flow in l12Bis");
+
     }
 
     @Test

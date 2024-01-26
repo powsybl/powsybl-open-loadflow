@@ -286,7 +286,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
-        if (!LfHvdcUtils.isHvdcDanglingInIidm(lccCs, null)) {
+        if (!LfHvdcUtils.isHvdcDanglingInIidm(lccCs, parameters)) {
             // Note: Load is determined statically - contingencies or actions that change an LCC Station connectivity
             // will continue to give incorrect result
             getOrCreateLfLoad(null, parameters).add(lccCs, parameters);

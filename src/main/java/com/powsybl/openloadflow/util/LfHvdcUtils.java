@@ -1,36 +1,39 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.BusbarSection;
 import com.powsybl.iidm.network.HvdcConverterStation;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.iidm.network.Terminal;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 
 public final class LfHvdcUtils {
 
     private LfHvdcUtils() {
     }
 
-    public static boolean isHvdcDanglingInIidm(HvdcConverterStation<?> station, LfNetwork network) {
+    public static boolean isHvdcDanglingInIidm(HvdcConverterStation<?> station, LfNetworkParameters parameters) {
 
-        if (isIsolated(station.getTerminal().getBusBreakerView().getBus(), network)) {
+        if (isIsolated(station.getTerminal(), parameters)) {
             return true;
         } else {
             return station.getOtherConverterStation().map(otherConverterStation -> {
-                Bus bus = otherConverterStation.getTerminal().getBusView().getBus();
-                return isIsolated(bus, network);
+                Terminal otherTerminal = otherConverterStation.getTerminal();
+                return isIsolated(otherTerminal, parameters);
             }).orElse(true); // it means there is no HVDC line connected to station
         }
     }
 
-    private static boolean isIsolated(Bus bus, LfNetwork network) {
+    private static boolean isIsolated(Terminal terminal, LfNetworkParameters parameters) {
+        Bus bus = parameters.isBreakers() ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
         if (bus == null) {
             return true;
         }
-        if (network != null && network.getBusById(bus.getId()) != null) {
-            // connectivity for that bus to be determined by LfNetwork
-            return false;
-        }
-        // Isolated if only connected to the station
-        return bus.getConnectedTerminalCount() == 1;
+
+        // The criteris should as close as possible to Networks.isIsolatedBusForHvdc - only connected to the station
+        return bus.getConnectedTerminalStream()
+                .map(Terminal::getConnectable)
+                .filter(c -> !(c instanceof HvdcConverterStation<?>))
+                .noneMatch(c -> !(c instanceof BusbarSection));
     }
 
 }
