@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
 import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
@@ -141,6 +142,13 @@ public final class Networks {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
         }
         removedBranches.forEach(branch -> branch.setDisabled(true));
+        for (LfHvdc hvdc : network.getHvdcs()) {
+            if (isIsolatedBusForHvdc(hvdc.getBus1(), connectivity) || isIsolatedBusForHvdc(hvdc.getBus2(), connectivity)) {
+                hvdc.setDisabled(true);
+                hvdc.getConverterStation1().setTargetP(0.0);
+                hvdc.getConverterStation2().setTargetP(0.0);
+            }
+        }
     }
 
     private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem system) {
@@ -220,6 +228,20 @@ public final class Networks {
     public static Bus getBus(Terminal terminal, boolean breakers) {
         return breakers ? terminal.getBusBreakerView().getBus()
                         : terminal.getBusView().getBus();
+    }
+
+    public static boolean isIsolatedBusForHvdc(LfBus bus, GraphConnectivity<LfBus, LfBranch> connectivity) {
+        // used only for hvdc lines.
+        // this criteria can be improved later depending on use case
+        return connectivity.getConnectedComponent(bus).size() == 1 && bus.getLoadTargetP() == 0.0
+                && bus.getGenerators().stream().noneMatch(gen -> gen instanceof LfGeneratorImpl);
+    }
+
+    public static boolean isIsolatedBusForHvdc(LfBus bus, Set<LfBus> disabledBuses) {
+        // used only for hvdc lines for DC sensitivity analysis where we don't have the connectivity.
+        // this criteria can be improved later depending on use case
+        return disabledBuses.contains(bus) && bus.getLoadTargetP() == 0.0
+                && bus.getGenerators().stream().noneMatch(gen -> gen instanceof LfGeneratorImpl);
     }
 
     public static Optional<Terminal> getEquipmentRegulatingTerminal(Network network, String equipmentId) {

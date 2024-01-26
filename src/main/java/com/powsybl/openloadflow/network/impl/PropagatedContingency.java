@@ -428,7 +428,7 @@ public class PropagatedContingency {
     }
 
     private boolean checkIsolatedBus(LfBus bus1, LfBus bus2, Set<LfBus> busesToLost, GraphConnectivity<LfBus, LfBranch> connectivity) {
-        return busesToLost.contains(bus1) && !busesToLost.contains(bus2) && connectivity.getConnectedComponent(bus1).size() == 1;
+        return busesToLost.contains(bus1) && !busesToLost.contains(bus2) && Networks.isIsolatedBusForHvdc(bus1, connectivity);
     }
 
     private static boolean isConnectedAfterContingencySide1(Map<LfBranch, DisabledBranchStatus> branchesToOpen, LfBranch branch) {

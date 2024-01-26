@@ -797,7 +797,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
         // if one bus of the line is lost.
         for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
-            if (disabledBuses.contains(hvdc.getBus1()) ^ disabledBuses.contains(hvdc.getBus2())) {
+            if (Networks.isIsolatedBusForHvdc(hvdc.getBus1(), disabledBuses) ^ Networks.isIsolatedBusForHvdc(hvdc.getBus2(), disabledBuses)) {
                 connectivityAnalysisResult.getContingencies().forEach(contingency -> {
                     contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation1().getId());
                     contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation2().getId());
