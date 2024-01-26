@@ -6,7 +6,12 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.extensions.Extension;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.ControlUnit;
+import com.powsybl.iidm.network.extensions.ControlZone;
+import com.powsybl.iidm.network.extensions.PilotPoint;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
@@ -243,6 +248,55 @@ public enum NetworkCache {
 
             if (!done) {
                 reset();
+            }
+        }
+
+        @Override
+        public void onExtensionUpdate(Extension<?> extension, String attribute, Object oldValue, Object newValue) {
+            if (contexts == null || pause) {
+                return;
+            }
+
+            boolean[] done = new boolean[1];
+            if ("secondaryVoltageControl".equals(extension.getName())) {
+                SecondaryVoltageControl svc = (SecondaryVoltageControl) extension;
+                onSecondaryVoltageControlExtensionUpdate(svc, attribute, newValue, done);
+            }
+
+            if (!done[0]) {
+                reset();
+            }
+        }
+
+        private void onSecondaryVoltageControlExtensionUpdate(SecondaryVoltageControl svc, String attribute, Object newValue, boolean[] done) {
+            if ("pilotPointTargetV".equals(attribute)) {
+                PilotPoint.TargetVoltageEvent event = (PilotPoint.TargetVoltageEvent) newValue;
+                ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
+                for (AcLoadFlowContext context : contexts) {
+                    LfNetwork lfNetwork = context.getNetwork();
+                    lfNetwork.getSecondaryVoltageControl(controlZone.getName())
+                            .ifPresent(lfSvc -> {
+                                lfSvc.setTargetValue(event.value() / lfSvc.getPilotBus().getNominalV());
+                                context.setNetworkUpdated(true);
+                                done[0] = true;
+                            });
+                }
+            } else if ("controlUnitParticipate".equals(attribute)) {
+                ControlUnit.ParticipateEvent event = (ControlUnit.ParticipateEvent) newValue;
+                ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
+                for (AcLoadFlowContext context : contexts) {
+                    LfNetwork lfNetwork = context.getNetwork();
+                    lfNetwork.getSecondaryVoltageControl(controlZone.getName())
+                            .ifPresent(lfSvc -> {
+                                if (event.value()) {
+                                    lfSvc.getParticipatingControlUnitIds().add(event.controlUnitId());
+                                } else {
+                                    lfSvc.getParticipatingControlUnitIds().remove(event.controlUnitId());
+                                }
+                                context.setNetworkUpdated(true);
+                                done[0] = true;
+                            });
+                }
             }
         }
 
