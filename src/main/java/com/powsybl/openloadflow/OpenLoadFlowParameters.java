@@ -213,6 +213,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String USE_ACTIVE_LIMITS_PARAM_NAME = "useActiveLimits";
 
+    public static final String DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME = "disableVoltageControlOfGeneratorsOutsideActivePowerLimits";
+
     private static final String LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME = "lineSearchStateVectorScalingMaxIteration";
 
     private static final String LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME = "lineSearchStateVectorScalingStepFold";
@@ -291,6 +293,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ParameterType.STRING, "Generators reactive power from bus dispatch mode", REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactivePowerDispatchMode.class)),
         new Parameter(OUTER_LOOP_NAMES_PARAM_NAME, ParameterType.STRING_LIST, "Ordered explicit list of outer loop names, supported outer loops are " + String.join(", ", ExplicitAcOuterLoopConfig.NAMES), OUTER_LOOP_NAMES_DEFAULT_VALUE),
         new Parameter(USE_ACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Use active power limits in slack distribution", LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE),
+        new Parameter(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Disable voltage control of generators outside active power limits", LfNetworkParameters.DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE),
         new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME, ParameterType.INTEGER, "Max iteration for the line search state vector scaling", LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION),
         new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, ParameterType.DOUBLE, "Step fold for the line search state vector scaling", LineSearchStateVectorScaling.DEFAULT_STEP_FOLD),
         new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, ParameterType.DOUBLE, "Max voltage magnitude change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV),
@@ -441,6 +444,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private List<String> outerLoopNames = OUTER_LOOP_NAMES_DEFAULT_VALUE;
 
     private boolean useActiveLimits = LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits = LfNetworkParameters.DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE;
 
     private int lineSearchStateVectorScalingMaxIteration = LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION;
 
@@ -860,6 +865,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() {
+        return disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
+    }
+
+    public OpenLoadFlowParameters setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits) {
+        this.disableVoltageControlOfGeneratorsOutsideActivePowerLimits = disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
+        return this;
+    }
+
     public String getDebugDir() {
         return debugDir;
     }
@@ -1160,6 +1174,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactivePowerDispatchMode(config.getEnumProperty(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ReactivePowerDispatchMode.class, REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE))
                 .setOuterLoopNames(config.getStringListProperty(OUTER_LOOP_NAMES_PARAM_NAME, OUTER_LOOP_NAMES_DEFAULT_VALUE))
                 .setUseActiveLimits(config.getBooleanProperty(USE_ACTIVE_LIMITS_PARAM_NAME, LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE))
+                .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(config.getBooleanProperty(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME, LfNetworkParameters.DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE))
                 .setLineSearchStateVectorScalingMaxIteration(config.getIntProperty(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME, LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION))
                 .setLineSearchStateVectorScalingStepFold(config.getDoubleProperty(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, LineSearchStateVectorScaling.DEFAULT_STEP_FOLD))
                 .setMaxVoltageChangeStateVectorScalingMaxDv(config.getDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV))
@@ -1285,6 +1300,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setOuterLoopNames(parseStringListProp(prop)));
         Optional.ofNullable(properties.get(USE_ACTIVE_LIMITS_PARAM_NAME))
                 .ifPresent(prop -> this.setUseActiveLimits(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME))
+                .ifPresent(prop -> this.setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME))
                 .ifPresent(prop -> this.setLineSearchStateVectorScalingMaxIteration(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME))
@@ -1363,6 +1380,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, reactivePowerDispatchMode);
         map.put(OUTER_LOOP_NAMES_PARAM_NAME, outerLoopNames);
         map.put(USE_ACTIVE_LIMITS_PARAM_NAME, useActiveLimits);
+        map.put(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME, disableVoltageControlOfGeneratorsOutsideActivePowerLimits);
         map.put(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME, lineSearchStateVectorScalingMaxIteration);
         map.put(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, lineSearchStateVectorScalingStepFold);
         map.put(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, maxVoltageChangeStateVectorScalingMaxDv);
@@ -1474,6 +1492,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setBreakers(breakers)
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
                 .setUseActiveLimits(parametersExt.isUseActiveLimits())
+                .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
@@ -1613,6 +1632,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setBreakers(false)
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
                 .setUseActiveLimits(parametersExt.isUseActiveLimits())
+                .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
@@ -1724,6 +1744,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getReactivePowerDispatchMode() == extension2.getReactivePowerDispatchMode() &&
                 Objects.equals(extension1.getOuterLoopNames(), extension2.getOuterLoopNames()) &&
                 extension1.isUseActiveLimits() == extension2.isUseActiveLimits() &&
+                extension1.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() == extension2.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() &&
                 extension1.getLineSearchStateVectorScalingMaxIteration() == extension2.getLineSearchStateVectorScalingMaxIteration() &&
                 extension1.getLineSearchStateVectorScalingStepFold() == extension2.getLineSearchStateVectorScalingStepFold() &&
                 extension1.getMaxVoltageChangeStateVectorScalingMaxDv() == extension2.getMaxVoltageChangeStateVectorScalingMaxDv() &&
@@ -1801,6 +1822,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setReactivePowerDispatchMode(extension.getReactivePowerDispatchMode())
                     .setOuterLoopNames(extension.getOuterLoopNames())
                     .setUseActiveLimits(extension.isUseActiveLimits())
+                    .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(extension.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                     .setLineSearchStateVectorScalingMaxIteration(extension.getLineSearchStateVectorScalingMaxIteration())
                     .setLineSearchStateVectorScalingStepFold(extension.getLineSearchStateVectorScalingStepFold())
                     .setMaxVoltageChangeStateVectorScalingMaxDv(extension.getMaxVoltageChangeStateVectorScalingMaxDv())
