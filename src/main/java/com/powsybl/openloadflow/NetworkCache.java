@@ -264,23 +264,16 @@ public enum NetworkCache {
                             done = true;
                         }
                     } else if (identifiable.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER) {
-                        if (attribute.equals("ratioTapChanger.regulationValue")) {
-                            if (onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue)) {
-                                done = true;
-                            }
+                        if (attribute.equals("ratioTapChanger.regulationValue")
+                                && onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue)) {
+                            done = true;
                         }
                     } else if (identifiable.getType() == IdentifiableType.THREE_WINDINGS_TRANSFORMER) {
-                        if (attribute.equals("ratioTapChanger1.regulationValue")) {
-                            if (onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), ThreeSides.ONE.getNum()), (double) newValue)) {
+                        for (ThreeSides side : ThreeSides.values()) {
+                            if (attribute.equals("ratioTapChanger" + side.getNum() + ".regulationValue")
+                                    && onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (double) newValue)) {
                                 done = true;
-                            }
-                        } else if (attribute.equals("ratioTapChanger2.regulationValue")) {
-                            if (onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), ThreeSides.TWO.getNum()), (double) newValue)) {
-                                done = true;
-                            }
-                        } else if (attribute.equals("ratioTapChanger3.regulationValue")) {
-                            if (onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), ThreeSides.THREE.getNum()), (double) newValue)) {
-                                done = true;
+                                break;
                             }
                         }
                     }
