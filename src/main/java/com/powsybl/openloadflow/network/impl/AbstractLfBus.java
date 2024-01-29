@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.openloadflow.util.LfHvdcUtils;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -286,7 +285,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
-        if (!LfHvdcUtils.isHvdcDanglingInIidm(lccCs, parameters)) {
+        if (!HvdcConverterStations.isHvdcDanglingInIidm(lccCs, parameters)) {
             // Note: Load is determined statically - contingencies or actions that change an LCC Station connectivity
             // will continue to give incorrect result
             getOrCreateLfLoad(null, parameters).add(lccCs, parameters);
