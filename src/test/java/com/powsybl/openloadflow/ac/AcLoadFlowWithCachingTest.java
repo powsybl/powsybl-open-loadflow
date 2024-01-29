@@ -525,4 +525,57 @@ class AcLoadFlowWithCachingTest {
         assertReactivePowerEquals(-17.826, network.getGenerator("B6-G").getTerminal());
         assertReactivePowerEquals(-17.826, network.getGenerator("B8-G").getTerminal());
     }
+
+    @Test
+    void testTransfo2VoltageTargetChange() {
+        var network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        var twt = network.getTwoWindingsTransformer("T2wT");
+
+        parameters.setTransformerVoltageControlOn(true);
+        twt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(twt.getTerminal2())
+                .setTargetV(30.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, twt.getRatioTapChanger().getTapPosition());
+
+        twt.getRatioTapChanger().setTargetV(32);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, twt.getRatioTapChanger().getTapPosition());
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+    }
+
+    @Test
+    void testTransfo3VoltageTargetChange() {
+        var network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        var twt = network.getThreeWindingsTransformer("T3wT");
+
+        twt.getLeg2().getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(twt.getLeg2().getTerminal())
+                .setTargetV(30);
+
+        parameters.setTransformerVoltageControlOn(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, twt.getLeg2().getRatioTapChanger().getTapPosition());
+
+        twt.getLeg2().getRatioTapChanger().setTargetV(26);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, twt.getLeg2().getRatioTapChanger().getTapPosition());
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+    }
 }
