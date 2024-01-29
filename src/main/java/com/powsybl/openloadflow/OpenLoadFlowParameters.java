@@ -1589,7 +1589,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         AcSolverFactory solverFactory = switch (parametersExt.getAcSolverType()) {
             case NEWTON_RAPHSON -> new NewtonRaphsonFactory();
-            case NEWTOW_KRYLOV -> new NewtonKrylovFactory();
+            case NEWTON_KRYLOV -> new NewtonKrylovFactory();
         };
 
         return new AcLoadFlowParameters()
