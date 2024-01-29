@@ -231,6 +231,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME = "simulateAutomationSystems";
 
+    public static final String AC_SOLVER_TYPE_PARAM_NAME = "acSolverType";
+
     public static final String MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME = "maxNewtonKrylovIterations";
 
     public static final String NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME = "newtonKrylovLineSearch";
@@ -302,6 +304,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(USE_LOAD_MODEL_PARAM_NAME, ParameterType.BOOLEAN, "Use load model (with voltage dependency) for simulation", LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE),
         new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class)),
         new Parameter(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, ParameterType.BOOLEAN, "Automation systems simulation", LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE),
+        new Parameter(AC_SOLVER_TYPE_PARAM_NAME, ParameterType.STRING, "AC solver type", AcSolverType.NEWTON_RAPHSON.name(), getEnumPossibleValues(AcSolverType.class)),
         new Parameter(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Newton Krylov max number of iterations", NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS),
         new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE),
         new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Reference bus selection mode", ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class)),
@@ -1183,6 +1186,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setUseLoadModel(config.getBooleanProperty(USE_LOAD_MODEL_PARAM_NAME, LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE))
                 .setDcApproximationType(config.getEnumProperty(DC_APPROXIMATION_TYPE_PARAM_NAME, DcApproximationType.class, DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE))
                 .setSimulateAutomationSystems(config.getBooleanProperty(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE))
+                .setAcSolverType(config.getEnumProperty(AC_SOLVER_TYPE_PARAM_NAME, AcSolverType.class, AcSolverType.NEWTON_RAPHSON))
                 .setMaxNewtonKrylovIterations(config.getIntProperty(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS))
                 .setNewtonKrylovLineSearch(config.getBooleanProperty(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE))
                 .setReferenceBusSelectionMode(config.getEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class, ReferenceBusSelector.DEFAULT_MODE))
@@ -1318,6 +1322,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setDcApproximationType(DcApproximationType.valueOf(prop)));
         Optional.ofNullable(properties.get(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME))
                 .ifPresent(prop -> this.setSimulateAutomationSystems(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(AC_SOLVER_TYPE_PARAM_NAME))
+                .ifPresent(prop -> this.setAcSolverType(AcSolverType.valueOf(prop)));
         Optional.ofNullable(properties.get(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxNewtonKrylovIterations(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME))
@@ -1389,6 +1395,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(USE_LOAD_MODEL_PARAM_NAME, useLoadModel);
         map.put(DC_APPROXIMATION_TYPE_PARAM_NAME, dcApproximationType);
         map.put(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, simulateAutomationSystems);
+        map.put(AC_SOLVER_TYPE_PARAM_NAME, acSolverType);
         map.put(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, maxNewtonKrylovIterations);
         map.put(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, newtonKrylovLineSearch);
         map.put(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, referenceBusSelectionMode);
@@ -1753,6 +1760,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isUseLoadModel() == extension2.isUseLoadModel() &&
                 extension1.getDcApproximationType() == extension2.getDcApproximationType() &&
                 extension1.isSimulateAutomationSystems() == extension2.isSimulateAutomationSystems() &&
+                extension1.getAcSolverType() == extension2.getAcSolverType() &&
                 extension1.getMaxNewtonKrylovIterations() == extension2.getMaxNewtonKrylovIterations() &&
                 extension1.isNewtonKrylovLineSearch() == extension2.isNewtonKrylovLineSearch() &&
                 extension1.getReferenceBusSelectionMode() == extension2.getReferenceBusSelectionMode() &&
@@ -1839,6 +1847,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setLinePerUnitMode(extension.getLinePerUnitMode())
                     .setUseLoadModel(extension.isUseLoadModel())
                     .setDcApproximationType(extension.getDcApproximationType())
+                    .setAcSolverType(extension.getAcSolverType())
                     .setMaxNewtonKrylovIterations(extension.getMaxNewtonKrylovIterations())
                     .setNewtonKrylovLineSearch(extension.isNewtonKrylovLineSearch())
                     .setSimulateAutomationSystems(extension.isSimulateAutomationSystems())
