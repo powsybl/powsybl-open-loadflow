@@ -125,12 +125,20 @@ public final class Networks {
                 .forEach(sw -> sw.setRetained(true));
 
         topoConfig.getSwitchesToClose().forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
+        topoConfig.getBranchIdsToClose().stream().map(network::getBranch).forEach(branch -> {
+            branch.getTerminal1().connect();
+            branch.getTerminal2().connect();
+        }); // in order to be present in the network.
     }
 
-    private static void restoreInitialTopology(LfNetwork network, Set<Switch> allSwitchesToClose) {
+    private static void restoreInitialTopology(LfNetwork network, Set<Switch> allSwitchesToClose, Set<String> branchIdsToClose) {
         var connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
         allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
+            LfBranch branch = network.getBranchById(id);
+            connectivity.removeEdge(branch);
+        });
+        branchIdsToClose.stream().forEach(id -> {
             LfBranch branch = network.getBranchById(id);
             connectivity.removeEdge(branch);
         });
@@ -190,10 +198,10 @@ public final class Networks {
         } else {
             modifiedTopoConfig = topoConfig;
         }
-        if (!modifiedTopoConfig.isBreaker()) {
+        if (!modifiedTopoConfig.isBreaker() && modifiedTopoConfig.getBranchIdsToClose().isEmpty()) {
             return new LfNetworkList(load(network, topoConfig, networkParameters, reporter));
         } else {
-            if (!networkParameters.isBreakers()) {
+            if (!networkParameters.isBreakers() && modifiedTopoConfig.isBreaker()) {
                 throw new PowsyblException("LF networks have to be built from bus/breaker view");
             }
 
@@ -209,10 +217,10 @@ public final class Networks {
 
             List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reporter);
 
-            if (!modifiedTopoConfig.getSwitchesToClose().isEmpty()) {
+            if (!(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
                 for (LfNetwork lfNetwork : lfNetworks) {
                     // disable all buses and branches not connected to main component (because of switch to close)
-                    restoreInitialTopology(lfNetwork, modifiedTopoConfig.getSwitchesToClose());
+                    restoreInitialTopology(lfNetwork, modifiedTopoConfig.getSwitchesToClose(), modifiedTopoConfig.getBranchIdsToClose());
                 }
             }
 
