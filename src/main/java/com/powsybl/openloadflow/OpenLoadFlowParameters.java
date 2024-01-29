@@ -286,7 +286,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
         new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE),
         new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class)),
-        new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slack bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE)),
+        new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slack bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE), getEnumPossibleValues(Country.class)),
         new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE)),
         new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN, "Asymmetrical calculation", LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE),
         new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage for target voltage check", LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE),
@@ -1754,7 +1754,16 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getDcApproximationType() == extension2.getDcApproximationType() &&
                 extension1.isSimulateAutomationSystems() == extension2.isSimulateAutomationSystems() &&
                 extension1.getMaxNewtonKrylovIterations() == extension2.getMaxNewtonKrylovIterations() &&
-                extension1.isNewtonKrylovLineSearch() == extension2.isNewtonKrylovLineSearch();
+                extension1.isNewtonKrylovLineSearch() == extension2.isNewtonKrylovLineSearch() &&
+                extension1.getReferenceBusSelectionMode() == extension2.getReferenceBusSelectionMode() &&
+                extension1.isWriteReferenceTerminals() == extension2.isWriteReferenceTerminals() &&
+                extension1.getMaxActivePowerMismatch() == extension2.getMaxActivePowerMismatch() &&
+                extension1.getMaxReactivePowerMismatch() == extension2.getMaxReactivePowerMismatch() &&
+                extension1.getMaxVoltageMismatch() == extension2.getMaxVoltageMismatch() &&
+                extension1.getMaxAngleMismatch() == extension2.getMaxAngleMismatch() &&
+                extension1.getMaxRatioMismatch() == extension2.getMaxRatioMismatch() &&
+                extension1.getMaxSusceptanceMismatch() == extension2.getMaxSusceptanceMismatch() &&
+                extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1830,8 +1839,18 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setLinePerUnitMode(extension.getLinePerUnitMode())
                     .setUseLoadModel(extension.isUseLoadModel())
                     .setDcApproximationType(extension.getDcApproximationType())
-                    .setMaxNewtonKrylovIterations(extension.maxNewtonKrylovIterations)
-                    .setNewtonKrylovLineSearch(extension.isNewtonKrylovLineSearch());
+                    .setMaxNewtonKrylovIterations(extension.getMaxNewtonKrylovIterations())
+                    .setNewtonKrylovLineSearch(extension.isNewtonKrylovLineSearch())
+                    .setSimulateAutomationSystems(extension.isSimulateAutomationSystems())
+                    .setWriteReferenceTerminals(extension.isWriteReferenceTerminals())
+                    .setMaxActivePowerMismatch(extension.getMaxActivePowerMismatch())
+                    .setMaxReactivePowerMismatch(extension.getMaxReactivePowerMismatch())
+                    .setMaxVoltageMismatch(extension.getMaxVoltageMismatch())
+                    .setMaxAngleMismatch(extension.getMaxAngleMismatch())
+                    .setMaxRatioMismatch(extension.getMaxRatioMismatch())
+                    .setMaxSusceptanceMismatch(extension.getMaxSusceptanceMismatch())
+                    .setNewtonRaphsonStoppingCriteriaType(extension.getNewtonRaphsonStoppingCriteriaType())
+                    .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

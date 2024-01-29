@@ -13,6 +13,7 @@ import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.config.YamlModuleConfigRepository;
+import com.powsybl.commons.parameters.ParameterType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -304,6 +305,57 @@ class OpenLoadFlowParametersTest {
         assertFalse(OpenLoadFlowParameters.equals(new LoadFlowParameters(), p2));
         pe1.setMinRealisticVoltage(0.3);
         assertFalse(OpenLoadFlowParameters.equals(p1, p2));
+    }
+
+    @Test
+    void testEqualsAndClone() {
+        OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
+        provider.getSpecificParameters().forEach(sp -> {
+            var p1 = new LoadFlowParameters();
+            var p2 = new LoadFlowParameters();
+            var pe1 = OpenLoadFlowParameters.create(p1);
+            var pe2 = OpenLoadFlowParameters.create(p2);
+            final String newVal1;
+            final String newVal2;
+            assertTrue(OpenLoadFlowParameters.equals(p1, p2));
+            if (sp.getType() == ParameterType.BOOLEAN) {
+                newVal1 = "true";
+                newVal2 = "false";
+            } else if (sp.getType() == ParameterType.INTEGER || sp.getType() == ParameterType.DOUBLE) {
+                newVal1 = "3";
+                newVal2 = "4";
+            } else if (sp.getType() == ParameterType.STRING) {
+                if (sp.getPossibleValues().isEmpty()) {
+                    // e.g. debugDir
+                    newVal1 = "Foo";
+                    newVal2 = "Bar";
+                } else {
+                    newVal1 = sp.getPossibleValues().get(0).toString();
+                    newVal2 = sp.getPossibleValues().get(1).toString();
+                }
+            } else if (sp.getType() == ParameterType.STRING_LIST) {
+                if (sp.getPossibleValues() == null || sp.getPossibleValues().isEmpty()) {
+                    // e.g. slackBusesIds
+                    newVal1 = "Foo,Bar";
+                    newVal2 = "Foo,Bar,Baz";
+                } else {
+                    // e.g. slackBusCountryFilter
+                    newVal1 = sp.getPossibleValues().get(0).toString();
+                    newVal2 = sp.getPossibleValues().get(0).toString() + "," + sp.getPossibleValues().get(1).toString();
+                }
+            } else {
+                throw new IllegalStateException("Unexpected ParameterType");
+            }
+            pe1.update(Map.of(sp.getName(), newVal1));
+            pe2.update(Map.of(sp.getName(), newVal2));
+            // should not equal
+            assertFalse(OpenLoadFlowParameters.equals(p1, p2), "Parameter is not handled in equals: " + sp.getName());
+            // at least one of the two won't have a default value by accident, so below should catch everything
+            var p1c = OpenLoadFlowParameters.clone(p1);
+            assertTrue(OpenLoadFlowParameters.equals(p1, p1c), "Parameter is not handled in clone: " + sp.getName());
+            var p2c = OpenLoadFlowParameters.clone(p2);
+            assertTrue(OpenLoadFlowParameters.equals(p2, p2c), "Parameter is not handled in clone: " + sp.getName());
+        });
     }
 
     @Test
