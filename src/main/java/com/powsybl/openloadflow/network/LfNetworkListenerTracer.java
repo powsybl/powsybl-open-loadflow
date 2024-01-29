@@ -63,6 +63,13 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
+    public void onTransformerVoltageControlTargetChange(TransformerVoltageControl transformerVoltageControl, double newTargetVoltage) {
+        LOGGER.trace("onTransformerVoltageControlTargetChange(controlledBusId='{}', newTargetVoltage={})",
+                transformerVoltageControl.getControlledBus().getId(), newTargetVoltage);
+        delegate.onTransformerVoltageControlTargetChange(transformerVoltageControl, newTargetVoltage);
+    }
+
+    @Override
     public void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled) {
         LOGGER.trace("onTransformerVoltageControlChange(controllerBranchId='{}', newVoltageControllerEnabled={})",
                 controllerBranch.getId(), newVoltageControllerEnabled);
