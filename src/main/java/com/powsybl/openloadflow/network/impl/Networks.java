@@ -124,7 +124,7 @@ public final class Networks {
                 .forEach(sw -> sw.setRetained(true));
 
         topoConfig.getSwitchesToClose().forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
-        topoConfig.getBranchIdsToClose().stream().map(id -> network.getBranch(id)).forEach(branch -> {
+        topoConfig.getBranchIdsToClose().stream().map(network::getBranch).forEach(branch -> {
             branch.getTerminal1().connect();
             branch.getTerminal2().connect();
         }); // in order to be present in the network.

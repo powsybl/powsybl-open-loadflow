@@ -23,6 +23,7 @@
         "slackBusSelectionMode" : "NAME",
         "slackBusesIds" : [ "b1_vl_0" ],
         "slackDistributionFailureBehavior" : "LEAVE_ON_SLACK_BUS",
+        "voltageRemoteControl" : true,
         "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
         "loadPowerFactorConstant" : false,
         "plausibleActivePowerLimit" : 5000.0,
@@ -35,6 +36,7 @@
         "maxSusceptanceMismatch" : 1.0E-4,
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
+        "generatorReactivePowerRemoteControl" : false,
         "transformerReactivePowerControl" : false,
         "maxNewtonRaphsonIterations" : 15,
         "maxOuterLoopIterations" : 20,
@@ -67,6 +69,7 @@
         "reactivePowerDispatchMode" : "Q_EQUAL_PROPORTION",
         "outerLoopNames" : null,
         "useActiveLimits" : true,
+        "disableVoltageControlOfGeneratorsOutsideActivePowerLimits" : false,
         "lineSearchStateVectorScalingMaxIteration" : 10,
         "lineSearchStateVectorScalingStepFold" : 1.3333333333333333,
         "maxVoltageChangeStateVectorScalingMaxDv" : 0.1,
@@ -77,7 +80,9 @@
         "simulateAutomationSystems" : false,
         "acSolverType" : "NEWTON_RAPHSON",
         "maxNewtonKrylovIterations" : 100,
-        "newtonKrylovLineSearch" : false
+        "newtonKrylovLineSearch" : false,
+        "referenceBusSelectionMode" : "FIRST_SLACK",
+        "writeReferenceTerminals" : false
       }
     }
   },

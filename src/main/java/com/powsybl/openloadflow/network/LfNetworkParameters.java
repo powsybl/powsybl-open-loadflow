@@ -27,6 +27,8 @@ public class LfNetworkParameters {
 
     public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
 
+    public static final boolean DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE = false;
+
     /**
      * Minimal and maximal plausible target V in p.u
      */
@@ -73,6 +75,8 @@ public class LfNetworkParameters {
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
 
     private boolean useActiveLimits = USE_ACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits = DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE;
 
     private boolean computeMainConnectedComponentOnly = true;
 
@@ -130,6 +134,8 @@ public class LfNetworkParameters {
 
     private boolean simulateAutomationSystems = SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE;
 
+    private ReferenceBusSelector referenceBusSelector = ReferenceBusSelector.DEFAULT_SELECTOR;
+
     public LfNetworkParameters() {
     }
 
@@ -142,6 +148,8 @@ public class LfNetworkParameters {
         this.twtSplitShuntAdmittance = other.twtSplitShuntAdmittance;
         this.breakers = other.breakers;
         this.plausibleActivePowerLimit = other.plausibleActivePowerLimit;
+        this.useActiveLimits = other.useActiveLimits;
+        this.disableVoltageControlOfGeneratorsOutsideActivePowerLimits = other.disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
         this.computeMainConnectedComponentOnly = other.computeMainConnectedComponentOnly;
         this.countriesToBalance = new HashSet<>(other.countriesToBalance);
         this.distributedOnConformLoad = other.distributedOnConformLoad;
@@ -169,6 +177,7 @@ public class LfNetworkParameters {
         this.linePerUnitMode = other.linePerUnitMode;
         this.useLoadModel = other.useLoadModel;
         this.simulateAutomationSystems = other.simulateAutomationSystems;
+        this.referenceBusSelector = other.referenceBusSelector;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -240,6 +249,15 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setUseActiveLimits(boolean useActiveLimits) {
         this.useActiveLimits = useActiveLimits;
+        return this;
+    }
+
+    public boolean isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() {
+        return disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
+    }
+
+    public LfNetworkParameters setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits) {
+        this.disableVoltageControlOfGeneratorsOutsideActivePowerLimits = disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
         return this;
     }
 
@@ -496,6 +514,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public ReferenceBusSelector getReferenceBusSelector() {
+        return referenceBusSelector;
+    }
+
+    public LfNetworkParameters setReferenceBusSelector(ReferenceBusSelector referenceBusSelector) {
+        this.referenceBusSelector = referenceBusSelector;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -532,6 +559,7 @@ public class LfNetworkParameters {
                 ", linePerUnitMode=" + linePerUnitMode +
                 ", useLoadModel=" + useLoadModel +
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
+                ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
                 ')';
     }
 }

@@ -19,6 +19,14 @@ public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> 
     }
 
     @Override
+    public void setTargetValue(double targetValue) {
+        if (targetValue != this.targetValue) {
+            this.targetValue = targetValue;
+            controlledBus.getNetwork().getListeners().forEach(l -> l.onTransformerVoltageControlTargetChange(this, targetValue));
+        }
+    }
+
+    @Override
     public boolean isControllerEnabled(LfBranch controllerElement) {
         return controllerElement.isVoltageControlEnabled();
     }

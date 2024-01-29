@@ -1215,6 +1215,50 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
+    void testVSCLossAcEmulation() {
+        // contingency leads to the lost of one converter station.
+        // contingency leads to zero active power transmission in the hvdc line.
+        // but other converter station keeps its voltage control capability.
+        // remedial action re-enables the ac emulation of the hvdc line.
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        List<Contingency> contingencies = List.of(new Contingency("contingency", new LineContingency("l12")));
+        List<Action> actions = List.of(new SwitchAction("action", "s2", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy",
+                ContingencyContext.specificContingency("contingency"),
+                new TrueCondition(),
+                List.of("action")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
+                operatorStrategies, actions, Reporter.NO_OP);
+        assertEquals(193.822, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(193.822, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testVSCLossSetpoint() {
+        // contingency leads to the lost of one converter station.
+        // contingency leads to zero active power transmission in the hvdc line.
+        // but other converter station keeps its voltage control capability.
+        // remedial action re-enables the power transmission of the hvdc line.
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        List<Contingency> contingencies = List.of(new Contingency("contingency", new LineContingency("l12")));
+        List<Action> actions = List.of(new SwitchAction("action", "s2", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy",
+                ContingencyContext.specificContingency("contingency"),
+                new TrueCondition(),
+                List.of("action")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setHvdcAcEmulation(false);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+        assertEquals(-200.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-200.0, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testTerminalsConnectionAction() {
         Network network = FourBusNetworkFactory.create();
         network.getLine("l23").getTerminal1().disconnect();

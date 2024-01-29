@@ -482,23 +482,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
-        if (parameters.isHvdcAcEmulation()) {
-            for (HvdcLine hvdcLine : loadingContext.hvdcLineSet) {
-                HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
-                if (control != null && control.isEnabled()) {
-                    LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
-                    LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
-                    if (cs1 != null && cs2 != null) {
-                        LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, control);
-                        lfHvdc.setConverterStation1((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId()));
-                        lfHvdc.setConverterStation2((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId()));
-                        lfNetwork.addHvdc(lfHvdc);
-                    } else {
-                        LOGGER.warn("Hvdc line '{}' in AC emulation but converter stations are not in the same synchronous component: operated using active set point.", hvdcLine.getId());
-                    }
-                }
+        for (HvdcLine hvdcLine : loadingContext.hvdcLineSet) {
+            LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
+            LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
+            LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
+            LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
+            HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
+            if (cs1 != null && cs2 != null) {
+                LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, control, parameters.isHvdcAcEmulation());
+                lfHvdc.setConverterStation1(cs1);
+                lfHvdc.setConverterStation2(cs2);
+                lfNetwork.addHvdc(lfHvdc);
+            } else {
+                LOGGER.warn("The converter stations of hvdc line {} are not in the same synchronous component: no hvdc link created to model active power flow.", hvdcLine.getId());
             }
         }
     }
@@ -761,7 +757,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
-                parameters.getConnectivityFactory(), reporter);
+                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reporter);
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -816,6 +812,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reporter, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small reactive range",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
+        }
+        if (report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits > 0) {
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reporter, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
+            LOGGER.warn("Network {}: {} generators have been discarded from voltage control because targetP is outside active power limits",
+                    lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP equals 0",
@@ -892,7 +893,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static Set<GeneratorVoltageControl> findControlZoneGeneratorVoltageControl(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork, ControlZone controlZone) {
         return controlZone.getControlUnits().stream()
-                .filter(ControlUnit::isParticipate)
                 .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                 .flatMap(regulatingTerminal -> {
                     Connectable<?> connectable = regulatingTerminal.getConnectable();
@@ -928,7 +928,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                             controlZone.getControlUnits().size(), controlZone.getName(), generatorVoltageControls.size(),
                             generatorVoltageControls.stream().map(VoltageControl::getControlledBus).map(LfElement::getId).toList());
                     if (!generatorVoltageControls.isEmpty()) {
-                        var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, generatorVoltageControls);
+                        Set<String> participatingControlUnitIds = controlZone.getControlUnits().stream()
+                                .filter(ControlUnit::isParticipate)
+                                .map(ControlUnit::getId).collect(Collectors.toSet());
+                        var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV,
+                                participatingControlUnitIds, generatorVoltageControls);
                         lfNetwork.addSecondaryVoltageControl(lfSvc);
                     }
                 }
