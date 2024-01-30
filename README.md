@@ -90,17 +90,17 @@ dependencies to respectively have access to network model, IEEE test networks an
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>6.1.1</version>
+    <version>6.2.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>6.1.1</version>
+    <version>6.2.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
     <artifactId>slf4j-simple</artifactId>
-    <version>2.0.9</version>
+    <version>2.0.11</version>
 </dependency>
 ```
 
