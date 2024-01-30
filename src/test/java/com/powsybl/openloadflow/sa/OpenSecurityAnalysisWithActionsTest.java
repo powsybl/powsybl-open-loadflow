@@ -41,6 +41,7 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1233,6 +1234,74 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(193.822, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(193.822, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testHvdcDisconnectedThenConnectedByStrategy() {
+        // Hvdc initially disconnected in iidm network
+        // contingency leads to an action that reconnects the hvdc link
+        // VSC only
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+
+        // hvdc flow power from generator to load
+        network.getHvdcLine("hvdc23").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
+        network.getLine("l12").getTerminals().forEach(Terminal::disconnect);
+        network.getLine("l14").newCurrentLimits1()
+                .setPermanentLimit(290)
+                .add();
+        network.newLine()
+                .setId("l14Bis")
+                .setBus1("b1")
+                .setConnectableBus1("b1")
+                .setBus2("b4")
+                .setConnectableBus2("b4")
+                .setR(0d)
+                .setX(0.1d)
+                .add();
+
+        List<Contingency> contingencies = List.of(new Contingency("l14Bis", new BranchContingency("l14Bis")));
+        List<Action> actions = List.of(new SwitchAction("action1", "s2", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1",
+                ContingencyContext.specificContingency("l14Bis"),
+                new AnyViolationCondition(),
+                List.of("action1")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+
+        // with AC emulation first
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        // No power expected since switch is open and L12 is open
+        assertEquals(0.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), DELTA_POWER);
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty());
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "l14Bis");
+        assertEquals(300.0, postContingencyResult.getNetworkResult().getBranchResult("l14").getP1(), DELTA_POWER);
+        assertFalse(postContingencyResult.getLimitViolationsResult().getLimitViolations().isEmpty()); // "One violation expected for l34"
+
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategyL1");
+        assertEquals(198.158, operatorStrategyResult.getNetworkResult().getBranchResult("l12Bis").getP1(), DELTA_POWER);
+        assertEquals(193.822, operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), DELTA_POWER);
+        assertEquals(106.177, operatorStrategyResult.getNetworkResult().getBranchResult("l14").getP1(), DELTA_POWER);
+
+        // without AC emulation
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        parameters.getLoadFlowParameters().setHvdcAcEmulation(false);
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, parameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        // No power expected since switch is open and L12 is open
+        assertEquals(0.0, result2.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), DELTA_POWER);
+        assertTrue(result2.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().isEmpty());
+
+        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result2, "l14Bis");
+        assertEquals(300.0, postContingencyResult2.getNetworkResult().getBranchResult("l14").getP1(), DELTA_POWER);
+        assertFalse(postContingencyResult2.getLimitViolationsResult().getLimitViolations().isEmpty()); // "One violation expected for l34"
+
+        OperatorStrategyResult operatorStrategyResult2 = getOperatorStrategyResult(result2, "strategyL1");
+        assertEquals(200.0, operatorStrategyResult2.getNetworkResult().getBranchResult("l12Bis").getP1(), DELTA_POWER);
+        assertEquals(195.60, operatorStrategyResult2.getNetworkResult().getBranchResult("l34").getP1(), DELTA_POWER);
+        assertEquals(104.40, operatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), DELTA_POWER);
     }
 
     @Test

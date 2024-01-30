@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -334,5 +335,67 @@ class AcLoadFlowVscTest {
         assertTrue(pcs2 > 0, "Power enters at cs2");
         assertTrue(pcs1 < 0, "Power delivered by cs1");
         assertTrue(Math.abs(pcs2) > Math.abs(pcs1), "Loss at HVDC output");
+    }
+
+    @Test
+    void testLccOpenAtOneSide() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.LCC);
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network);
+        assertTrue(result.isFullyConverged());
+
+        // generator g1 expected to deliver enough power for the load
+        assertActivePowerEquals(-304.400, network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(300.00, network.getLoad("l4").getTerminal());
+        assertActivePowerEquals(-195.600, network.getHvdcConverterStation("cs2").getTerminal());
+        assertActivePowerEquals(200.00, network.getHvdcConverterStation("cs3").getTerminal());
+
+        Line l34 = network.getLine("l34");
+        l34.getTerminals().stream().forEach(Terminal::disconnect);
+        result = loadFlowRunner.run(network);
+        assertTrue(result.isPartiallyConverged()); // for LCC test, no PV bus in the small component -> FAILED
+
+        assertActivePowerEquals(-300.00, network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(300.00, network.getLoad("l4").getTerminal());
+        assertTrue(Double.isNaN(network.getHvdcConverterStation("cs2").getTerminal().getP())); // FIXME
+        assertTrue(Double.isNaN(network.getHvdcConverterStation("cs3").getTerminal().getP()));
+    }
+
+    @Test
+    void testVscOpenAtOneSide() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setHvdcAcEmulation(false);
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // generator g1 expected to deliver enough power for the load
+        assertActivePowerEquals(-304.400, network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(300.00, network.getLoad("l4").getTerminal());
+        assertActivePowerEquals(-195.600, network.getHvdcConverterStation("cs2").getTerminal());
+        assertActivePowerEquals(200.00, network.getHvdcConverterStation("cs3").getTerminal());
+
+        Line l34 = network.getLine("l34");
+        l34.getTerminals().stream().forEach(Terminal::disconnect);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertActivePowerEquals(-300.00, network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(300.00, network.getLoad("l4").getTerminal());
+        assertActivePowerEquals(0.0, network.getHvdcConverterStation("cs2").getTerminal());
+        assertActivePowerEquals(0.0, network.getHvdcConverterStation("cs3").getTerminal());
+    }
+
+    @Test
+    void testHvdcAndGenerator() {
+        Network network = HvdcNetworkFactory.createWithHvdcAndGenerator();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-1.956, network.getVscConverterStation("cs3").getTerminal());
+        assertActivePowerEquals(2.0, network.getVscConverterStation("cs4").getTerminal());
+        assertActivePowerEquals(-2.0, network.getGenerator("g4").getTerminal());
+        assertActivePowerEquals(-2.047, network.getGenerator("g1").getTerminal());
     }
 }
