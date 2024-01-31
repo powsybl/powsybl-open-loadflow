@@ -1791,7 +1791,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxRatioMismatch() == extension2.getMaxRatioMismatch() &&
                 extension1.getMaxSusceptanceMismatch() == extension2.getMaxSusceptanceMismatch() &&
                 extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
-                Objects.equals(extension1.getVoltageTargetPriority(), extension2.getVoltageTargetPriority());;
+                Objects.equals(extension1.getVoltageTargetPriority(), extension2.getVoltageTargetPriority());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
