@@ -752,6 +752,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return secondaryVoltageControls;
     }
 
+    public Optional<LfSecondaryVoltageControl> getSecondaryVoltageControl(String controlZoneName) {
+        Objects.requireNonNull(controlZoneName);
+        return secondaryVoltageControls.stream()
+                .filter(lfSvc -> lfSvc.getZoneName().equals(controlZoneName))
+                .findFirst();
+    }
+
     private static boolean filterSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
         return !secondaryVoltageControl.getPilotBus().isDisabled();
     }

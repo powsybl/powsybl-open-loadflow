@@ -285,7 +285,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
-        getOrCreateLfLoad(null, parameters).add(lccCs, parameters);
+        if (!HvdcConverterStations.isHvdcDanglingInIidm(lccCs, parameters)) {
+            // Note: Load is determined statically - contingencies or actions that change an LCC Station connectivity
+            // will continue to give incorrect result
+            getOrCreateLfLoad(null, parameters).add(lccCs, parameters);
+        }
     }
 
     protected void add(LfGenerator generator) {
@@ -480,6 +484,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void addBranch(LfBranch branch) {
         branches.add(Objects.requireNonNull(branch));
+    }
+
+    @Override
+    public List<LfHvdc> getHvdcs() {
+        return hvdcs;
     }
 
     @Override
@@ -710,6 +719,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
         if (controllerShunt != null) {
             controllerShunt.setDisabled(disabled);
+        }
+        for (LfHvdc hvdc : hvdcs) {
+            if (disabled) {
+                hvdc.setDisabled(true);
+            } else if (!hvdc.getOtherBus(this).isDisabled()) {
+                // if both buses enabled only
+                hvdc.setDisabled(false);
+            }
         }
     }
 

@@ -149,6 +149,8 @@ public interface LfBus extends LfElement {
 
     void addBranch(LfBranch branch);
 
+    List<LfHvdc> getHvdcs();
+
     void addHvdc(LfHvdc hvdc);
 
     void updateState(LfNetworkStateUpdateParameters parameters);

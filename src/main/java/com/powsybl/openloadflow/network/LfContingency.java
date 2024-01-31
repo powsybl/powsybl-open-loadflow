@@ -41,8 +41,10 @@ public class LfContingency {
 
     private final Set<String> disconnectedElementIds;
 
+    private final Set<LfHvdc> hvdcsWithoutPower;
+
     public LfContingency(String id, int index, int createdSynchronousComponentsCount, DisabledNetwork disabledNetwork, Map<LfShunt, AdmittanceShift> shuntsShift,
-                         Map<LfLoad, LfLostLoad> lostLoads, Set<LfGenerator> lostGenerators) {
+                         Map<LfLoad, LfLostLoad> lostLoads, Set<LfGenerator> lostGenerators, Set<LfHvdc> hvdcsWithoutPower) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.createdSynchronousComponentsCount = createdSynchronousComponentsCount;
@@ -50,6 +52,7 @@ public class LfContingency {
         this.shuntsShift = Objects.requireNonNull(shuntsShift);
         this.lostLoads = Objects.requireNonNull(lostLoads);
         this.lostGenerators = Objects.requireNonNull(lostGenerators);
+        this.hvdcsWithoutPower = Objects.requireNonNull(hvdcsWithoutPower);
         this.disconnectedLoadActivePower = 0.0;
         this.disconnectedGenerationActivePower = 0.0;
         this.disconnectedElementIds = new HashSet<>();
@@ -178,6 +181,10 @@ public class LfContingency {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
                 bus.setGeneratorReactivePowerControlEnabled(false);
             }
+        }
+        for (LfHvdc hvdc : hvdcsWithoutPower) {
+            hvdc.getConverterStation1().setTargetP(0.0);
+            hvdc.getConverterStation2().setTargetP(0.0);
         }
     }
 

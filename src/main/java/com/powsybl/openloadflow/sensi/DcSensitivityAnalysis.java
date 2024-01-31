@@ -794,6 +794,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
 
+        // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
+        // if one bus of the line is lost.
+        for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
+            if (Networks.isIsolatedBusForHvdc(hvdc.getBus1(), disabledBuses) ^ Networks.isIsolatedBusForHvdc(hvdc.getBus2(), disabledBuses)) {
+                connectivityAnalysisResult.getContingencies().forEach(contingency -> {
+                    contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation1().getId());
+                    contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation2().getId());
+                });
+            }
+        }
+
         // null and unused if slack bus is not distributed
         List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
         boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK

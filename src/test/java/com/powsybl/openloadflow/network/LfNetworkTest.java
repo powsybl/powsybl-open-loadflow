@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -259,6 +260,14 @@ class LfNetworkTest extends AbstractSerDeTest {
         assertEquals("b1_vl_0", mainNetwork.getElement(ElementType.BUS, 0).getId());
         assertEquals("hvdc34", mainNetwork.getElement(ElementType.HVDC, 0).getId());
         assertEquals("hvdc34", mainNetwork.getHvdc(0).getId());
+    }
+
+    @Test
+    void testIsolatedForHvdc() {
+        Network network = HvdcNetworkFactory.createWithHvdcAndGenerator();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork smallNetwork = lfNetworks.get(1);
+        assertFalse(Networks.isIsolatedBusForHvdc(smallNetwork.getBusById("b4_vl_0"), Set.of(smallNetwork.getBusById("b4_vl_0"))));
     }
 
     @Test

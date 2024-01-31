@@ -212,10 +212,14 @@ public final class LfAction {
     private static Optional<LfAction> create(TerminalsConnectionAction action, LfNetwork lfNetwork) {
         LfBranch branch = lfNetwork.getBranchById(action.getElementId());
         if (branch != null) {
-            if (action.getSide().isEmpty() && action.isOpen()) {
-                return Optional.of(new LfAction(action.getId(), branch, null, null, null, null, null));
+            if (action.getSide().isEmpty()) {
+                if (action.isOpen()) {
+                    return Optional.of(new LfAction(action.getId(), branch, null, null, null, null, null));
+                } else {
+                    return Optional.of(new LfAction(action.getId(), null, branch, null, null, null, null));
+                }
             } else {
-                throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
+                throw new UnsupportedOperationException("Terminals connection action: only open or close branch at both sides is supported yet.");
             }
         }
         return Optional.empty(); // could be in another component
@@ -365,9 +369,10 @@ public final class LfAction {
         }
 
         if (hvdc != null) {
-            hvdc.setDisabled(true);
-            hvdc.getConverterStation1().setTargetP(-hvdc.getP1().eval());
-            hvdc.getConverterStation2().setTargetP(-hvdc.getP2().eval());
+            hvdc.setAcEmulation(false);
+            hvdc.setDisabled(true); // for equations only, but should be hidden
+            hvdc.getConverterStation1().setTargetP(-hvdc.getP1().eval()); // override
+            hvdc.getConverterStation2().setTargetP(-hvdc.getP2().eval()); // override
         }
     }
 }

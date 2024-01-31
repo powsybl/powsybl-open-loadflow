@@ -55,7 +55,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum SlackDistributionFailureBehavior {
         THROW,
         FAIL,
-        LEAVE_ON_SLACK_BUS
+        LEAVE_ON_SLACK_BUS,
+        DISTRIBUTE_ON_REFERENCE_GENERATOR
     }
 
     public static final SlackDistributionFailureBehavior SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE = SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
@@ -212,6 +213,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String USE_ACTIVE_LIMITS_PARAM_NAME = "useActiveLimits";
 
+    public static final String DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME = "disableVoltageControlOfGeneratorsOutsideActivePowerLimits";
+
     private static final String LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME = "lineSearchStateVectorScalingMaxIteration";
 
     private static final String LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME = "lineSearchStateVectorScalingStepFold";
@@ -227,6 +230,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private static final String DC_APPROXIMATION_TYPE_PARAM_NAME = "dcApproximationType";
 
     public static final String SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME = "simulateAutomationSystems";
+
+    public static final String AC_SOLVER_TYPE_PARAM_NAME = "acSolverType";
 
     public static final String MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME = "maxNewtonKrylovIterations";
 
@@ -285,13 +290,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
         new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE),
         new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class)),
-        new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slack bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE)),
+        new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slack bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE), getEnumPossibleValues(Country.class)),
         new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE)),
         new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN, "Asymmetrical calculation", LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE),
         new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage for target voltage check", LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE),
         new Parameter(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ParameterType.STRING, "Generators reactive power from bus dispatch mode", REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactivePowerDispatchMode.class)),
         new Parameter(OUTER_LOOP_NAMES_PARAM_NAME, ParameterType.STRING_LIST, "Ordered explicit list of outer loop names, supported outer loops are " + String.join(", ", ExplicitAcOuterLoopConfig.NAMES), OUTER_LOOP_NAMES_DEFAULT_VALUE),
         new Parameter(USE_ACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Use active power limits in slack distribution", LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE),
+        new Parameter(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Disable voltage control of generators outside active power limits", LfNetworkParameters.DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE),
         new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME, ParameterType.INTEGER, "Max iteration for the line search state vector scaling", LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION),
         new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, ParameterType.DOUBLE, "Step fold for the line search state vector scaling", LineSearchStateVectorScaling.DEFAULT_STEP_FOLD),
         new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, ParameterType.DOUBLE, "Max voltage magnitude change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV),
@@ -300,6 +306,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(USE_LOAD_MODEL_PARAM_NAME, ParameterType.BOOLEAN, "Use load model (with voltage dependency) for simulation", LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE),
         new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class)),
         new Parameter(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, ParameterType.BOOLEAN, "Automation systems simulation", LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE),
+        new Parameter(AC_SOLVER_TYPE_PARAM_NAME, ParameterType.STRING, "AC solver type", AcSolverType.NEWTON_RAPHSON.name(), getEnumPossibleValues(AcSolverType.class)),
         new Parameter(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Newton Krylov max number of iterations", NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS),
         new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE),
         new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Reference bus selection mode", ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class)),
@@ -443,6 +450,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private List<String> outerLoopNames = OUTER_LOOP_NAMES_DEFAULT_VALUE;
 
     private boolean useActiveLimits = LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits = LfNetworkParameters.DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE;
 
     private int lineSearchStateVectorScalingMaxIteration = LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION;
 
@@ -864,6 +873,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() {
+        return disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
+    }
+
+    public OpenLoadFlowParameters setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits) {
+        this.disableVoltageControlOfGeneratorsOutsideActivePowerLimits = disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
+        return this;
+    }
+
     public String getDebugDir() {
         return debugDir;
     }
@@ -1173,6 +1191,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactivePowerDispatchMode(config.getEnumProperty(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ReactivePowerDispatchMode.class, REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE))
                 .setOuterLoopNames(config.getStringListProperty(OUTER_LOOP_NAMES_PARAM_NAME, OUTER_LOOP_NAMES_DEFAULT_VALUE))
                 .setUseActiveLimits(config.getBooleanProperty(USE_ACTIVE_LIMITS_PARAM_NAME, LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE))
+                .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(config.getBooleanProperty(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME, LfNetworkParameters.DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE))
                 .setLineSearchStateVectorScalingMaxIteration(config.getIntProperty(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME, LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION))
                 .setLineSearchStateVectorScalingStepFold(config.getDoubleProperty(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, LineSearchStateVectorScaling.DEFAULT_STEP_FOLD))
                 .setMaxVoltageChangeStateVectorScalingMaxDv(config.getDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV))
@@ -1181,6 +1200,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setUseLoadModel(config.getBooleanProperty(USE_LOAD_MODEL_PARAM_NAME, LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE))
                 .setDcApproximationType(config.getEnumProperty(DC_APPROXIMATION_TYPE_PARAM_NAME, DcApproximationType.class, DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE))
                 .setSimulateAutomationSystems(config.getBooleanProperty(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE))
+                .setAcSolverType(config.getEnumProperty(AC_SOLVER_TYPE_PARAM_NAME, AcSolverType.class, AcSolverType.NEWTON_RAPHSON))
                 .setMaxNewtonKrylovIterations(config.getIntProperty(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS))
                 .setNewtonKrylovLineSearch(config.getBooleanProperty(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE))
                 .setReferenceBusSelectionMode(config.getEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class, ReferenceBusSelector.DEFAULT_MODE))
@@ -1299,6 +1319,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setOuterLoopNames(parseStringListProp(prop)));
         Optional.ofNullable(properties.get(USE_ACTIVE_LIMITS_PARAM_NAME))
                 .ifPresent(prop -> this.setUseActiveLimits(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME))
+                .ifPresent(prop -> this.setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME))
                 .ifPresent(prop -> this.setLineSearchStateVectorScalingMaxIteration(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME))
@@ -1315,6 +1337,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setDcApproximationType(DcApproximationType.valueOf(prop)));
         Optional.ofNullable(properties.get(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME))
                 .ifPresent(prop -> this.setSimulateAutomationSystems(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(AC_SOLVER_TYPE_PARAM_NAME))
+                .ifPresent(prop -> this.setAcSolverType(AcSolverType.valueOf(prop)));
         Optional.ofNullable(properties.get(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxNewtonKrylovIterations(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME))
@@ -1379,6 +1403,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, reactivePowerDispatchMode);
         map.put(OUTER_LOOP_NAMES_PARAM_NAME, outerLoopNames);
         map.put(USE_ACTIVE_LIMITS_PARAM_NAME, useActiveLimits);
+        map.put(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME, disableVoltageControlOfGeneratorsOutsideActivePowerLimits);
         map.put(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME, lineSearchStateVectorScalingMaxIteration);
         map.put(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, lineSearchStateVectorScalingStepFold);
         map.put(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, maxVoltageChangeStateVectorScalingMaxDv);
@@ -1387,6 +1412,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(USE_LOAD_MODEL_PARAM_NAME, useLoadModel);
         map.put(DC_APPROXIMATION_TYPE_PARAM_NAME, dcApproximationType);
         map.put(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, simulateAutomationSystems);
+        map.put(AC_SOLVER_TYPE_PARAM_NAME, acSolverType);
         map.put(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, maxNewtonKrylovIterations);
         map.put(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, newtonKrylovLineSearch);
         map.put(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, referenceBusSelectionMode);
@@ -1491,6 +1517,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setBreakers(breakers)
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
                 .setUseActiveLimits(parametersExt.isUseActiveLimits())
+                .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
@@ -1588,7 +1615,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         AcSolverFactory solverFactory = switch (parametersExt.getAcSolverType()) {
             case NEWTON_RAPHSON -> new NewtonRaphsonFactory();
-            case NEWTOW_KRYLOV -> new NewtonKrylovFactory();
+            case NEWTON_KRYLOV -> new NewtonKrylovFactory();
         };
 
         return new AcLoadFlowParameters()
@@ -1631,6 +1658,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setBreakers(false)
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
                 .setUseActiveLimits(parametersExt.isUseActiveLimits())
+                .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
@@ -1742,6 +1770,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getReactivePowerDispatchMode() == extension2.getReactivePowerDispatchMode() &&
                 Objects.equals(extension1.getOuterLoopNames(), extension2.getOuterLoopNames()) &&
                 extension1.isUseActiveLimits() == extension2.isUseActiveLimits() &&
+                extension1.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() == extension2.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() &&
                 extension1.getLineSearchStateVectorScalingMaxIteration() == extension2.getLineSearchStateVectorScalingMaxIteration() &&
                 extension1.getLineSearchStateVectorScalingStepFold() == extension2.getLineSearchStateVectorScalingStepFold() &&
                 extension1.getMaxVoltageChangeStateVectorScalingMaxDv() == extension2.getMaxVoltageChangeStateVectorScalingMaxDv() &&
@@ -1750,9 +1779,19 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isUseLoadModel() == extension2.isUseLoadModel() &&
                 extension1.getDcApproximationType() == extension2.getDcApproximationType() &&
                 extension1.isSimulateAutomationSystems() == extension2.isSimulateAutomationSystems() &&
+                extension1.getAcSolverType() == extension2.getAcSolverType() &&
                 extension1.getMaxNewtonKrylovIterations() == extension2.getMaxNewtonKrylovIterations() &&
                 extension1.isNewtonKrylovLineSearch() == extension2.isNewtonKrylovLineSearch() &&
-                Objects.equals(extension1.getVoltageTargetPriority(), extension2.getVoltageTargetPriority());
+                extension1.getReferenceBusSelectionMode() == extension2.getReferenceBusSelectionMode() &&
+                extension1.isWriteReferenceTerminals() == extension2.isWriteReferenceTerminals() &&
+                extension1.getMaxActivePowerMismatch() == extension2.getMaxActivePowerMismatch() &&
+                extension1.getMaxReactivePowerMismatch() == extension2.getMaxReactivePowerMismatch() &&
+                extension1.getMaxVoltageMismatch() == extension2.getMaxVoltageMismatch() &&
+                extension1.getMaxAngleMismatch() == extension2.getMaxAngleMismatch() &&
+                extension1.getMaxRatioMismatch() == extension2.getMaxRatioMismatch() &&
+                extension1.getMaxSusceptanceMismatch() == extension2.getMaxSusceptanceMismatch() &&
+                extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
+                Objects.equals(extension1.getVoltageTargetPriority(), extension2.getVoltageTargetPriority());;
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1820,6 +1859,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setReactivePowerDispatchMode(extension.getReactivePowerDispatchMode())
                     .setOuterLoopNames(extension.getOuterLoopNames())
                     .setUseActiveLimits(extension.isUseActiveLimits())
+                    .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(extension.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                     .setLineSearchStateVectorScalingMaxIteration(extension.getLineSearchStateVectorScalingMaxIteration())
                     .setLineSearchStateVectorScalingStepFold(extension.getLineSearchStateVectorScalingStepFold())
                     .setMaxVoltageChangeStateVectorScalingMaxDv(extension.getMaxVoltageChangeStateVectorScalingMaxDv())
@@ -1827,9 +1867,21 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setLinePerUnitMode(extension.getLinePerUnitMode())
                     .setUseLoadModel(extension.isUseLoadModel())
                     .setDcApproximationType(extension.getDcApproximationType())
-                    .setMaxNewtonKrylovIterations(extension.maxNewtonKrylovIterations)
+                    .setAcSolverType(extension.getAcSolverType())
+                    .setMaxNewtonKrylovIterations(extension.getMaxNewtonKrylovIterations())
                     .setNewtonKrylovLineSearch(extension.isNewtonKrylovLineSearch())
+                    .setSimulateAutomationSystems(extension.isSimulateAutomationSystems())
+                    .setWriteReferenceTerminals(extension.isWriteReferenceTerminals())
+                    .setMaxActivePowerMismatch(extension.getMaxActivePowerMismatch())
+                    .setMaxReactivePowerMismatch(extension.getMaxReactivePowerMismatch())
+                    .setMaxVoltageMismatch(extension.getMaxVoltageMismatch())
+                    .setMaxAngleMismatch(extension.getMaxAngleMismatch())
+                    .setMaxRatioMismatch(extension.getMaxRatioMismatch())
+                    .setMaxSusceptanceMismatch(extension.getMaxSusceptanceMismatch())
+                    .setNewtonRaphsonStoppingCriteriaType(extension.getNewtonRaphsonStoppingCriteriaType())
+                    .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
                     .setVoltageTargetPriority(extension.getVoltageTargetPriority());
+
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }
