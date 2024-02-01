@@ -159,9 +159,40 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return getVoltageControls().stream().filter(vc -> vc.getType() == type).findAny();
     }
 
+    private int firstPositionInList(String str, List<String> lStr) {
+        int position = -1;
+        for (String eltStr : lStr) {
+            position += 1;
+            if (Objects.equals(str, eltStr)) {
+                return position;
+            }
+        }
+        position += 1;
+        return position;
+    }
+
     @Override
-    public Optional<VoltageControl<?>> getHighestPriorityMainVoltageControl(List<Integer> priorities) {
-        return VoltageControl.findMainVoltageControlsSortedByPriority(this, priorities).stream().findFirst();
+    public Optional<Double> getHighestPriorityTargetV(List<String> voltageTargetPriorities) {
+        int currentPriority;
+        int highestPriority = 3;
+        Optional<Double> targetV = Optional.empty();
+
+        LfZeroImpedanceNetwork zn = getZeroImpedanceNetwork(LoadFlowModel.AC);
+        for (LfBus bus : zn == null ? List.of(this) : zn.getGraph().vertexSet()) {
+            if (bus.isVoltageControlled()) {
+                for (VoltageControl<?> vc : bus.getVoltageControls()) {
+                    if (!vc.isDisabled() && vc.getMergeStatus() != VoltageControl.MergeStatus.DEPENDENT) {
+                        currentPriority = firstPositionInList(vc.getType().name(), voltageTargetPriorities);
+                        if (currentPriority < highestPriority) {
+                            highestPriority = currentPriority;
+                            targetV = Optional.of(vc.getTargetValue());
+                        }
+                    }
+                }
+            }
+        }
+
+        return targetV;
     }
 
     @Override

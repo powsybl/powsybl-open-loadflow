@@ -21,12 +21,10 @@ import java.util.*;
  */
 public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType> {
 
-    private static double getBusTargetV(LfBus bus) {
+    private static double getBusTargetV(LfBus bus, List<String> voltageTargetPriorities) {
         Objects.requireNonNull(bus);
-        double targetV = bus.getHighestPriorityMainVoltageControl(VoltageControl.getVoltageTargetPriority())
-                .map(Control::getTargetValue)
-                .orElseThrow(() -> new IllegalStateException("No active voltage control has been found for bus '" + bus.getId() + "'"));
-        if (Objects.equals(VoltageControl.getVoltageTargetPriority().get(0), ControlTargetPriority.GENERATOR.getPriority()) && bus.hasGeneratorsWithSlope()) {
+        double targetV = bus.getHighestPriorityTargetV(voltageTargetPriorities).orElseThrow(() -> new IllegalStateException("No active voltage control has been found for bus '" + bus.getId() + "'"));
+        if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
             targetV -= slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
@@ -75,7 +73,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             case BUS_TARGET_V:
-                targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getElementNum()));
+                targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getElementNum()), network.getVoltageTargetPriorities());
                 break;
 
             case BUS_TARGET_PHI:

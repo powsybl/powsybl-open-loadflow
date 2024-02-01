@@ -757,7 +757,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
-                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reporter);
+                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reporter, parameters.getVoltageTargetPriorities());
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -787,10 +787,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     createShuntVoltageControl(lfNetwork, shunt, parameters);
                 }
             }
-            VoltageControl.setVoltageTargetPriority(parameters.getVoltageTargetPriority().stream()
-                                                                                        .map(ControlTargetPriority::valueOf)
-                                                                                        .map(ControlTargetPriority::getPriority)
-                                                                                        .collect(Collectors.toList()));
         }
 
         if (parameters.isBreakers()) {

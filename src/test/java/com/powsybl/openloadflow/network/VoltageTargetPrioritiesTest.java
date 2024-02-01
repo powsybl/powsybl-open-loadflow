@@ -27,27 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
-class VoltageTargetPriorityTest {
+class VoltageTargetPrioritiesTest {
 
     @Test
-    void testControlTargetPriority() {
-        assertEquals(3, ControlTargetPriority.values().length);
-        assertEquals(0, ControlTargetPriority.GENERATOR.getPriority());
-        assertEquals(1, ControlTargetPriority.TRANSFORMER.getPriority());
-        assertEquals(2, ControlTargetPriority.SHUNT.getPriority());
-    }
-
-    @Test
-    void testVoltageTargetPriority() {
-        List<Integer> voltageTargetPriority = List.of();
-        assertThrows(IllegalStateException.class, () -> VoltageControl.setVoltageTargetPriority(voltageTargetPriority));
-
-        List<Integer> voltageTargetPriority2 = List.of(0, 1, 4);
-        assertThrows(IllegalStateException.class, () -> VoltageControl.setVoltageTargetPriority(voltageTargetPriority2));
-    }
-
-    @Test
-    void voltageTargetPriority() {
+    void voltageTargetPriorities() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Bus genBus = network.getBusBreakerView().getBus("NGEN");
         Bus loadBus = network.getBusBreakerView().getBus("NLOAD");
@@ -87,13 +70,13 @@ class VoltageTargetPriorityTest {
         assertVoltageEquals(24.5, genBus);
 
         // Transformer has target priority
-        parametersExt.setVoltageTargetPriority(List.of(ControlTargetPriority.TRANSFORMER.name(), ControlTargetPriority.GENERATOR.name(), ControlTargetPriority.SHUNT.name()));
+        parametersExt.setVoltageTargetPriorities(List.of(VoltageControl.Type.TRANSFORMER.name(), VoltageControl.Type.GENERATOR.name(), VoltageControl.Type.SHUNT.name()));
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(25.115, genBus);
 
         // Shunt has target priority
-        parametersExt.setVoltageTargetPriority(List.of(ControlTargetPriority.SHUNT.name(), ControlTargetPriority.GENERATOR.name(), ControlTargetPriority.TRANSFORMER.name()));
+        parametersExt.setVoltageTargetPriorities(List.of(VoltageControl.Type.SHUNT.name(), VoltageControl.Type.GENERATOR.name(), VoltageControl.Type.TRANSFORMER.name()));
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(23.75, genBus);

@@ -130,8 +130,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     protected final List<LfOverloadManagementSystem> overloadManagementSystems = new ArrayList<>();
 
+    private final List<String> voltageTargetPriorities;
+
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
-                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector, Reporter reporter) {
+                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector,
+                     Reporter reporter, List<String> voltageTargetPriorities) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -139,11 +142,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
         this.referenceBusSelector = referenceBusSelector;
         this.reporter = Objects.requireNonNull(reporter);
+        this.voltageTargetPriorities = Objects.requireNonNull(voltageTargetPriorities);
     }
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector) {
-        this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, Reporter.NO_OP);
+        this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, Reporter.NO_OP, List.of("GENERATOR", "TRANSFORMER", "SHUNT"));
     }
 
     public int getNumCC() {
@@ -803,6 +807,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfOverloadManagementSystem> getOverloadManagementSystems() {
         return overloadManagementSystems;
+    }
+
+    public List<String> getVoltageTargetPriorities() {
+        return voltageTargetPriorities;
     }
 
     @Override

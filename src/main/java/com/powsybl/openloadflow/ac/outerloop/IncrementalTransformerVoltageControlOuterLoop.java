@@ -52,9 +52,9 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return NAME;
     }
 
-    public static List<LfBus> getControlledBusesOutOfDeadband(IncrementalContextData contextData) {
+    public static List<LfBus> getControlledBusesOutOfDeadband(IncrementalContextData contextData, List<String> voltageTargetPriorities) {
         return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER).stream()
-                .filter(bus -> isOutOfDeadband(bus.getTransformerVoltageControl().orElseThrow()))
+                .filter(bus -> isOutOfDeadband(bus.getTransformerVoltageControl().orElseThrow(), voltageTargetPriorities))
                 .collect(Collectors.toList());
     }
 
@@ -199,14 +199,14 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return adjusted.booleanValue();
     }
 
-    private static double getDiffV(TransformerVoltageControl voltageControl) {
-        double targetV = voltageControl.getControlledBus().getHighestPriorityMainVoltageControl(VoltageControl.getVoltageTargetPriority()).orElseThrow().getTargetValue();
+    private static double getDiffV(TransformerVoltageControl voltageControl, List<String> voltageTargetPriorities) {
+        double targetV = voltageControl.getControlledBus().getHighestPriorityTargetV(voltageTargetPriorities).orElseThrow();
         double v = voltageControl.getControlledBus().getV();
         return targetV - v;
     }
 
-    private static boolean isOutOfDeadband(TransformerVoltageControl voltageControl) {
-        double diffV = getDiffV(voltageControl);
+    private static boolean isOutOfDeadband(TransformerVoltageControl voltageControl, List<String> voltageTargetPriorities) {
+        double diffV = getDiffV(voltageControl, voltageTargetPriorities);
         double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
         boolean outOfDeadband = Math.abs(diffV) > halfTargetDeadband;
         if (outOfDeadband) {
@@ -229,7 +229,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         var contextData = (IncrementalContextData) context.getData();
 
         // filter out buses/branches which are outside their deadbands
-        List<LfBus> controlledBusesOutOfDeadband = getControlledBusesOutOfDeadband(contextData);
+        List<String> voltageTargetPriorities = network.getVoltageTargetPriorities();
+        List<LfBus> controlledBusesOutOfDeadband = getControlledBusesOutOfDeadband(contextData, voltageTargetPriorities);
         List<LfBranch> controllerBranchesOutOfDeadband = getControllerElementsOutOfDeadband(controlledBusesOutOfDeadband);
 
         // all branches are within their deadbands
@@ -246,7 +247,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         controlledBusesOutOfDeadband.forEach(controlledBus -> {
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
-            double diffV = getDiffV(voltageControl);
+            double diffV = getDiffV(voltageControl, voltageTargetPriorities);
             double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
             List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
                     .filter(b -> !b.isDisabled())
@@ -265,7 +266,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         if (!controlledBusesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
             Map<String, Double> largestMismatches = controlledBusesOutOfDeadband.stream()
-                    .map(controlledBus -> Pair.of(controlledBus.getId(), Math.abs(getDiffV(controlledBus.getTransformerVoltageControl().orElseThrow()) * controlledBus.getNominalV())))
+                    .map(controlledBus -> Pair.of(controlledBus.getId(), Math.abs(getDiffV(controlledBus.getTransformerVoltageControl().orElseThrow(), voltageTargetPriorities) * controlledBus.getNominalV())))
                     .sorted((p1, p2) -> Double.compare(p2.getRight(), p1.getRight()))
                     .limit(3) // 3 largest
                     .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));

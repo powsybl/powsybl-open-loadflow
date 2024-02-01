@@ -62,9 +62,7 @@ public class LfNetworkParameters {
 
     public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
 
-    public static final List<String> VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE = Arrays.stream(ControlTargetPriority.values())
-                                                                                    .map(ControlTargetPriority::name)
-                                                                                    .collect(Collectors.toList());
+    public static final List<String> VOLTAGE_TARGET_PRIORITIES_DEFAULT_VALUE = List.of("GENERATOR", "TRANSFORMER", "SHUNT");
 
     private boolean generatorVoltageRemoteControl = true;
 
@@ -138,7 +136,7 @@ public class LfNetworkParameters {
 
     private ReferenceBusSelector referenceBusSelector = ReferenceBusSelector.DEFAULT_SELECTOR;
 
-    private List<String> voltageTargetPriority = VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE;
+    private List<String> voltageTargetPriorities = VOLTAGE_TARGET_PRIORITIES_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -182,7 +180,7 @@ public class LfNetworkParameters {
         this.useLoadModel = other.useLoadModel;
         this.simulateAutomationSystems = other.simulateAutomationSystems;
         this.referenceBusSelector = other.referenceBusSelector;
-        this.voltageTargetPriority = new ArrayList<>(other.voltageTargetPriority);
+        this.voltageTargetPriorities = new ArrayList<>(other.voltageTargetPriorities);
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -528,22 +526,23 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public List<String> getVoltageTargetPriority() {
-        return voltageTargetPriority;
+    public List<String> getVoltageTargetPriorities() {
+        return voltageTargetPriorities;
     }
 
-    public static List<String> checkVoltageTargetPriority(List<String> voltageTargetPriority) {
-        Objects.requireNonNull(voltageTargetPriority);
-        boolean valid = voltageTargetPriority.size() == VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE.size()
-                && new HashSet<>(voltageTargetPriority).containsAll(VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE);
-        if (!valid) {
-            throw new PowsyblException("voltageTargetPriority should contain exactly the following values once: " + VOLTAGE_TARGET_PRIORITY_DEFAULT_VALUE);
-        }
-        return voltageTargetPriority;
+    public static List<String> checkVoltageTargetPriorities(List<String> voltageTargetPriorities) {
+        Objects.requireNonNull(voltageTargetPriorities);
+
+        List<String> checkedVoltageTargetPriorities = new ArrayList<>(voltageTargetPriorities);
+        checkedVoltageTargetPriorities.add("GENERATOR");
+        checkedVoltageTargetPriorities.add("TRANSFORMER");
+        checkedVoltageTargetPriorities.add("SHUNT");
+
+        return checkedVoltageTargetPriorities.stream().distinct().collect(Collectors.toList());
     }
 
-    public LfNetworkParameters setVoltageTargetPriority(List<String> voltageTargetPriority) {
-        this.voltageTargetPriority = checkVoltageTargetPriority(voltageTargetPriority);
+    public LfNetworkParameters setVoltageTargetPriorities(List<String> voltageTargetPriorities) {
+        this.voltageTargetPriorities = checkVoltageTargetPriorities(voltageTargetPriorities);
         return this;
     }
 
@@ -584,7 +583,7 @@ public class LfNetworkParameters {
                 ", useLoadModel=" + useLoadModel +
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
                 ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
-                ", voltageTargetPriority=" + voltageTargetPriority +
+                ", voltageTargetPriorities=" + voltageTargetPriorities +
                 ')';
     }
 }
