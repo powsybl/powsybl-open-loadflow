@@ -21,9 +21,9 @@ import java.util.*;
  */
 public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType> {
 
-    private static double getBusTargetV(LfBus bus, List<String> voltageTargetPriorities) {
+    private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        double targetV = bus.getHighestPriorityTargetV(voltageTargetPriorities).orElseThrow(() -> new IllegalStateException("No active voltage control has been found for bus '" + bus.getId() + "'"));
+        double targetV = bus.getHighestPriorityTargetV().orElseThrow(() -> new IllegalStateException("No active voltage control has been found for bus '" + bus.getId() + "'"));
         if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
@@ -73,7 +73,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             case BUS_TARGET_V:
-                targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getElementNum()), network.getVoltageTargetPriorities());
+                targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getElementNum()));
                 break;
 
             case BUS_TARGET_PHI:

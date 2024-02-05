@@ -47,9 +47,9 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         return NAME;
     }
 
-    public static List<LfBus> getControlledBusesOutOfDeadband(IncrementalContextData contextData, List<String> voltageTargetPriorities) {
+    public static List<LfBus> getControlledBusesOutOfDeadband(IncrementalContextData contextData) {
         return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.SHUNT).stream()
-                .filter(bus -> isOutOfDeadband(bus.getShuntVoltageControl().orElseThrow(), voltageTargetPriorities))
+                .filter(bus -> isOutOfDeadband(bus.getShuntVoltageControl().orElseThrow()))
                 .collect(Collectors.toList());
     }
 
@@ -160,14 +160,14 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         }
     }
 
-    private static double getDiffV(ShuntVoltageControl voltageControl, List<String> voltageTargetPriorities) {
-        double targetV = voltageControl.getControlledBus().getHighestPriorityTargetV(voltageTargetPriorities).orElseThrow();
+    private static double getDiffV(ShuntVoltageControl voltageControl) {
+        double targetV = voltageControl.getControlledBus().getHighestPriorityTargetV().orElseThrow();
         double v = voltageControl.getControlledBus().getV();
         return targetV - v;
     }
 
-    private static boolean isOutOfDeadband(ShuntVoltageControl voltageControl, List<String> voltageTargetPriorities) {
-        double diffV = getDiffV(voltageControl, voltageTargetPriorities);
+    private static boolean isOutOfDeadband(ShuntVoltageControl voltageControl) {
+        double diffV = getDiffV(voltageControl);
         double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
         boolean outOfDeadband = Math.abs(diffV) > halfTargetDeadband;
         if (outOfDeadband) {
@@ -190,8 +190,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         var contextData = (IncrementalContextData) context.getData();
 
         // check which shunts are not within their deadbands
-        List<String> voltageTargetPriorities = network.getVoltageTargetPriorities();
-        List<LfBus> controlledBusesOutOfDeadband = getControlledBusesOutOfDeadband(contextData, voltageTargetPriorities);
+        List<LfBus> controlledBusesOutOfDeadband = getControlledBusesOutOfDeadband(contextData);
         List<LfShunt> controllerShuntsOutOfDeadband = getControllerElementsOutOfDeadband(controlledBusesOutOfDeadband);
 
         // all shunts are within their deadbands
@@ -204,7 +203,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         controlledBusesOutOfDeadband.forEach(controlledBus -> {
             ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
-            double diffV = getDiffV(voltageControl, voltageTargetPriorities);
+            double diffV = getDiffV(voltageControl);
             List<LfShunt> sortedControllers = voltageControl.getMergedControllerElements().stream()
                     .filter(shunt -> !shunt.isDisabled())
                     .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())

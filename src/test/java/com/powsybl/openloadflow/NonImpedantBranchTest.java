@@ -24,11 +24,16 @@ import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisParameters;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
 import com.powsybl.security.*;
+import com.powsybl.security.action.Action;
+import com.powsybl.security.action.SwitchAction;
+import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.swing.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -379,7 +384,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
      *                   ld5
      */
     @Test
-    void securityAnalysisNotSameNumberOfVariablesAndEquationsIssueTest() {
+    void targetVoltagePrioritiesWithContingency() {
         Network network = Network.create("test", "code");
         Bus b0 = createBus(network, "s", "b0");
         Bus b1 = createBus(network, "s", "b1");
@@ -392,7 +397,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLoad(b5, "ld5", 4);
         Line l01 = createLine(network, b0, b1, "l01", 0.1);
         createLine(network, b1, b2, "l12", 0.0);
-        createLine(network, b2, b3, "l23", 0.0);
+        Line l23 = createLine(network, b2, b3, "l23", 0.0);
         createLine(network, b1, b5, "l15", 0.1);
         createLine(network, b5, b3, "l53", 0.1);
         g0.setRegulatingTerminal(l01.getTerminal2()); // remote
@@ -418,7 +423,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                 .setTargetDeadband(0.01)
                 .add();
 
-        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l01"))));
+        List<Contingency> contingencies = List.of(new Contingency("contingency1", List.of(new BranchContingency("l01"))), new Contingency("contingency2", List.of(new BranchContingency("l23"))));
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
                 .setDistributedSlack(false)
@@ -450,8 +455,50 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                 .getResult();
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
         assertEquals(1d, result.getPreContingencyResult().getNetworkResult().getBusResult("b1").getV(), 1e-6); // g0 is controlling voltage of b1
+        // l01 contingency do not break the non impedant network, target voltage of g0 still applies on tr34
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
-        assertEquals(1.131391d, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b3").getV(), 1e-6); // tr34 is controlling voltage of b1 at tap 0 (ratio 0.9)
-        assertEquals(0.918304d, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), 1e-6);
+        assertEquals(0.971842d, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b3").getV(), 1e-6); // tr34 is controlling voltage of b1 at tap 1 (ratio 1.0)
+        assertEquals(0.981397d, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), 1e-6);
+        // l23 contingency breaks the non impedant network, target voltage of tr34 is applied
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertEquals(1.086608d, result.getPostContingencyResults().get(1).getNetworkResult().getBusResult("b3").getV(), 1e-6); // tr34 is controlling voltage of b3 at tap 0 (ratio 0.9)
+        assertEquals(0.875106d, result.getPostContingencyResults().get(1).getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), 1e-6);
+
+        // Verify same results are obtained with l23 disconnected and a remedial action connects buses 2 and 3
+        l23.disconnect();
+        Bus b3Bis = b3.getVoltageLevel().getBusBreakerView().newBus().setId("b3Bis").add();
+        Switch s33 = createSwitch(network, b3, b3Bis, "s33");
+        s33.setOpen(true);
+        createLine(network, b2, b3Bis, "l23Bis", 0.0);
+        List<Action> actions = List.of(new SwitchAction("closeSwitch", "s33", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("contingency1"), new TrueCondition(), List.of("closeSwitch")));
+        result = provider.run(network,
+                        network.getVariantManager().getWorkingVariantId(),
+                        new DefaultLimitViolationDetector(),
+                        new LimitViolationFilter(),
+                        LocalComputationManager.getDefault(),
+                        securityAnalysisParameters,
+                        n -> contingencies,
+                        Collections.emptyList(),
+                        operatorStrategies,
+                        actions,
+                        monitors,
+                        Reporter.NO_OP)
+                .join()
+                .getResult();
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(1d, result.getPreContingencyResult().getNetworkResult().getBusResult("b1").getV(), 1e-6); // g0 is controlling voltage of b1
+        assertEquals(1.111081d, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b3").getV(), 1e-6); // tr34 is controlling voltage of b3 at tap 0 (ratio 0.9)
+        assertEquals(0.906675d, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), 1e-6);
+        // l01 contingency prevents g0 to hold voltage at b1, tr34 holds voltage at b3
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertEquals(1.042823d, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b1").getV(), 1e-6); // voltage is not hold at b1
+        assertEquals(1.111081d, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b3").getV(), 1e-6); // tr34 is controlling voltage of b3 at tap 0 (ratio 0.9)
+        assertEquals(0.906675d, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), 1e-6);
+        // Applied action merges the non impedant networks, target voltage of g0 is applied
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertEquals(0.971842d, result.getOperatorStrategyResults().get(0).getNetworkResult().getBusResult("b3").getV(), 1e-6); // tr34 is controlling voltage of b1 at tap 1 (ratio 1.0)
+        assertEquals(0.980986d, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), 1e-6);
     }
 }
