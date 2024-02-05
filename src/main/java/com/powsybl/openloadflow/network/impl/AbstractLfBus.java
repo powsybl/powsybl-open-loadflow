@@ -159,23 +159,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return getVoltageControls().stream().filter(vc -> vc.getType() == type).findAny();
     }
 
-    private int firstPositionInList(String str, List<String> lStr) {
-        int position = -1;
-        for (String eltStr : lStr) {
-            position += 1;
-            if (Objects.equals(str, eltStr)) {
-                return position;
-            }
-        }
-        position += 1;
-        return position;
-    }
-
     @Override
     public Optional<Double> getHighestPriorityTargetV() {
-        int currentPriority;
-        int highestPriority = 3;
-        Optional<Double> targetV = Optional.empty();
         List<String> voltageTargetPriorities = network.getVoltageTargetPriorities();
 
         LfZeroImpedanceNetwork zn = getZeroImpedanceNetwork(LoadFlowModel.AC);
@@ -184,18 +169,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 .filter(LfBus::isVoltageControlled)
                 .flatMap(bus -> bus.getVoltageControls().stream())
                 .filter(vc -> vc.getMergeStatus() != VoltageControl.MergeStatus.DEPENDENT)
-                        .collect(Collectors.toList());
+                .collect(Collectors.toList());
 
-        for (VoltageControl<?> vc : zeroImpNetVoltageControls) {
-            // TODO: improve here
-            currentPriority = firstPositionInList(vc.getType().name(), voltageTargetPriorities);
-            if (currentPriority < highestPriority) {
-                highestPriority = currentPriority;
-                targetV = Optional.of(vc.getTargetValue());
-            }
-        }
+        zeroImpNetVoltageControls.sort(Comparator.comparingInt(vc -> voltageTargetPriorities.indexOf(vc.getType().name())));
 
-        return targetV;
+        return Optional.of(zeroImpNetVoltageControls.get(0).getTargetValue());
     }
 
     @Override
