@@ -757,7 +757,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
-                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reporter, parameters.getVoltageTargetPriorities());
+                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reporter);
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -802,6 +802,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (parameters.isSimulateAutomationSystems()) {
             createAutomationSystems(network, lfNetwork);
         }
+
+        lfNetwork.setVoltageTargetPriorities(parameters.getVoltageTargetPriorities());
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);

@@ -179,16 +179,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         List<String> voltageTargetPriorities = network.getVoltageTargetPriorities();
 
         LfZeroImpedanceNetwork zn = getZeroImpedanceNetwork(LoadFlowModel.AC);
-        for (LfBus bus : zn == null ? List.of(this) : zn.getGraph().vertexSet()) {
-            if (bus.isVoltageControlled()) {
-                for (VoltageControl<?> vc : bus.getVoltageControls()) {
-                    if (vc.getMergeStatus() != VoltageControl.MergeStatus.DEPENDENT) {
-                        currentPriority = firstPositionInList(vc.getType().name(), voltageTargetPriorities);
-                        if (currentPriority < highestPriority) {
-                            highestPriority = currentPriority;
-                            targetV = Optional.of(vc.getTargetValue());
-                        }
-                    }
+        List<LfBus> zeroImpNetBuses = zn == null ? List.of(this) : zn.getGraph().vertexSet().stream().toList();
+        List <VoltageControl> zeroImpNetVoltageControls = new ArrayList<>();
+        zeroImpNetBuses.stream().filter(LfBus::isVoltageControlled).forEach(b -> zeroImpNetVoltageControls.addAll(b.getVoltageControls()));
+
+        for (VoltageControl<?> vc : zeroImpNetVoltageControls) {
+            if (vc.getMergeStatus() != VoltageControl.MergeStatus.DEPENDENT) {
+                currentPriority = firstPositionInList(vc.getType().name(), voltageTargetPriorities);
+                if (currentPriority < highestPriority) {
+                    highestPriority = currentPriority;
+                    targetV = Optional.of(vc.getTargetValue());
                 }
             }
         }
