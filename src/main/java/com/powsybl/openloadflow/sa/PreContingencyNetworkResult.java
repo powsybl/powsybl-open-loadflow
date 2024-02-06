@@ -33,15 +33,14 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     private void addResults(StateMonitor monitor) {
         addResults(monitor, branch -> {
-            if (branch instanceof LfTieLineBranch) {
+            List<BranchResult> branchResult = branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension);
+            if (branchResult.size() == 1) {
+                branchResults.put(branch.getId(), branchResult.get(0));
+            } else if (branch instanceof LfTieLineBranch) {
                 LfTieLineBranch lfTieLineBranch = (LfTieLineBranch) branch;
-                List<BranchResult> tieLineResults = lfTieLineBranch.createAllBranchResults(Double.NaN, Double.NaN, createResultExtension);
-                branchResults.put(lfTieLineBranch.getId(), tieLineResults.get(0));
-                branchResults.put(lfTieLineBranch.getHalf1().getId(), tieLineResults.get(1));
-                branchResults.put(lfTieLineBranch.getHalf2().getId(), tieLineResults.get(2));
-            } else {
-                var branchResult = branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension);
-                branchResults.put(branch.getId(), branchResult);
+                branchResults.put(lfTieLineBranch.getId(), branchResult.get(0));
+                branchResults.put(lfTieLineBranch.getHalf1().getId(), branchResult.get(1));
+                branchResults.put(lfTieLineBranch.getHalf2().getId(), branchResult.get(2));
             }
         });
     }

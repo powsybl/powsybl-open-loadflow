@@ -208,7 +208,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         var branch = getBranch();
         double flowTransfer = Double.NaN;
         if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
@@ -225,7 +225,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                     Math.toDegrees(getAngle1()),
                     Math.toDegrees(getAngle2())));
         }
-        return branchResult;
+        return List.of(branchResult);
     }
 
     @Override

@@ -2266,8 +2266,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(35.0, dl1Result.getP1(), DELTA_POWER);
         assertEquals(Double.NaN, dl1Result.getP2());
         BranchResult dl2Result = result2.getPreContingencyResult().getNetworkResult().getBranchResult("h2");
-        assertEquals(Double.NaN, dl2Result.getP1());
-        assertEquals(-35.0, dl2Result.getP2(), DELTA_POWER);
+        assertEquals(-35.0, dl2Result.getP1(), DELTA_POWER);
+        assertEquals(Double.NaN, dl2Result.getP2());
     }
 
     @Test

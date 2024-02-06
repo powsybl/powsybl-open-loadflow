@@ -10,7 +10,6 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.impl.LfTieLineBranch;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -60,13 +59,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                     }
                 }
             }
-            if (branch instanceof LfTieLineBranch) {
-                LfTieLineBranch lfTieLineBranch = (LfTieLineBranch) branch;
-                List<BranchResult> tieLineResults = lfTieLineBranch.createAllBranchResults(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension);
-                branchResults.addAll(tieLineResults);
-            } else {
-                branchResults.add(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension));
-            }
+            branchResults.addAll(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension));
         });
     }
 
