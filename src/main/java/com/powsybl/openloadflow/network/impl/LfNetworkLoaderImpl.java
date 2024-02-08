@@ -974,19 +974,37 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void createOverloadManagementSystem(LfNetwork lfNetwork, OverloadManagementSystem system) {
         if (system.isEnabled()) {
             LfBranch lfMonitoredElement = lfNetwork.getBranchById(system.getMonitoredElementId());
-            if (system.getTrippings().size() != 1 || system.getTrippings().get(0).getType() != OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
-                LOGGER.warn("Unsupported overload management system {}: only single switch tripping supported", system.getId());
+            if (system.getTrippings().stream().map(OverloadManagementSystem.Tripping::getType)
+                    .anyMatch(type -> type.equals(OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING))) {
+                LOGGER.warn("Unsupported overload management system {}: three windings transformer tripping supported", system.getId());
                 return;
             }
-            OverloadManagementSystem.SwitchTripping switchTripping = (OverloadManagementSystem.SwitchTripping) system.getTrippings().get(0);
-            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(switchTripping.getSwitchToOperateId());
-            if (lfMonitoredElement != null && lfSwitchToOperate != null) {
-                LfBus bus = lfMonitoredElement.getBus1() != null ? lfMonitoredElement.getBus1() : lfMonitoredElement.getBus2();
-                double threshold = switchTripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
-                lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfMonitoredElement, threshold, lfSwitchToOperate, switchTripping.isOpenAction()));
+            if (lfMonitoredElement != null) {
+                LfOverloadManagementSystem lfOverloadManagementSystem = new LfOverloadManagementSystem(lfMonitoredElement, system.getMonitoredSide().toTwoSides());
+                system.getTrippings().stream().forEach(tripping -> {
+                    String branchToOperateId = null;
+                    if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+                        OverloadManagementSystem.SwitchTripping switchTripping = (OverloadManagementSystem.SwitchTripping) tripping;
+                        branchToOperateId = switchTripping.getSwitchToOperateId();
+                    } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
+                        OverloadManagementSystem.BranchTripping branchTripping = (OverloadManagementSystem.BranchTripping) tripping;
+                        branchToOperateId = branchTripping.getBranchToOperateId();
+                    }
+                    LfBranch lfBranchToOperate = lfNetwork.getBranchById(branchToOperateId);
+                    if (lfBranchToOperate != null) {
+                        LfBus bus = lfOverloadManagementSystem.getMonitoredSide().equals(TwoSides.ONE) ?
+                                lfOverloadManagementSystem.getMonitoredBranch().getBus1() : lfOverloadManagementSystem.getMonitoredBranch().getBus2();
+                        double threshold = tripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
+                        lfOverloadManagementSystem.addLfBranchTripping(lfBranchToOperate, tripping.isOpenAction(), threshold);
+                    } else {
+                        LOGGER.warn("Invalid overload management system: branch to monitor is '{}'", branchToOperateId);
+                    }
+                });
+                if (lfOverloadManagementSystem.getBranchTrippingList().size() > 0) {
+                    lfNetwork.addOverloadManagementSystem(lfOverloadManagementSystem);
+                }
             } else {
-                LOGGER.warn("Invalid overload management system: element to monitor is '{}', switch to operate is '{}'",
-                        system.getMonitoredElementId(), switchTripping.getSwitchToOperateId());
+                LOGGER.warn("Invalid overload management system: element to monitor is '{}'", system.getMonitoredElementId());
             }
         }
     }

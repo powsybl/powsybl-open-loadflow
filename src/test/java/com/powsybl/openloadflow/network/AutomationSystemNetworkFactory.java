@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Substation;
-import com.powsybl.iidm.network.ThreeSides;
+import com.powsybl.iidm.network.*;
 
 import java.time.ZonedDateTime;
 
@@ -38,6 +35,78 @@ public final class AutomationSystemNetworkFactory extends AbstractLoadFlowNetwor
      * ld3      ld4
      */
     public static Network create() {
+        Network network = createCommonNetwork();
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        b3.getVoltageLevel().getBusBreakerView().newSwitch()
+                .setId("br1")
+                .setBus1("b3")
+                .setBus2("b3p")
+                .setOpen(false)
+                .add();
+        Substation s1 = network.getSubstation("s1");
+        s1.newOverloadManagementSystem()
+                .setId("l34_opens_br1")
+                .setEnabled(true)
+                .setMonitoredElementId("l34")
+                .setMonitoredElementSide(ThreeSides.ONE)
+                .newSwitchTripping()
+                .setKey("br1 key")
+                .setSwitchToOperateId("br1")
+                .setCurrentLimit(300.)
+                .add()
+                .add();
+        return network;
+    }
+
+    /**
+     * From previous test case, the switch b3p is replaced by line l33p.
+     */
+    public static Network createWithBranchTripping() {
+        Network network = AutomationSystemNetworkFactory.createCommonNetwork();
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Bus b3p = network.getBusBreakerView().getBus("b3p");
+        createLine(network, b3, b3p, "l33p", 0.1, 3);
+        Substation s1 = network.getSubstation("s1");
+        s1.newOverloadManagementSystem()
+                .setId("l34_opens_l12")
+                .setEnabled(true)
+                .setMonitoredElementId("l34")
+                .setMonitoredElementSide(ThreeSides.ONE)
+                .newBranchTripping()
+                .setKey("l33p key")
+                .setBranchToOperateId("l33p")
+                .setSideToOperate(TwoSides.TWO)
+                .setCurrentLimit(200.)
+                .add()
+                .add();
+        return network;
+    }
+
+    public static Network createWithBranchTripping2() {
+        Network network = AutomationSystemNetworkFactory.createCommonNetwork();
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Bus b3p = network.getBusBreakerView().getBus("b3p");
+        createLine(network, b3, b3p, "l33p", 0.1, 3);
+        Substation s1 = network.getSubstation("s1");
+        s1.newOverloadManagementSystem()
+                .setId("l34_opens_l12")
+                .setEnabled(true)
+                .setMonitoredElementId("l12")
+                .setMonitoredElementSide(ThreeSides.ONE)
+                .newBranchTripping()
+                .setKey("l33p key")
+                .setBranchToOperateId("l33p")
+                .setSideToOperate(TwoSides.TWO)
+                .setOpenAction(false)
+                .setCurrentLimit(200.)
+                .add()
+                .add();
+        network.getLine("l33p").getTerminal1().disconnect();
+        network.getLine("l33p").getTerminal2().disconnect();
+        return network;
+    }
+
+    private static Network createCommonNetwork() {
         Network network = Network.create("OverloadManagementSystemTestCase", "code");
         network.setCaseDate(ZonedDateTime.parse("2020-04-05T14:11:00.000+01:00"));
         Bus b1 = createBus(network, "s1", "b1", 225);
@@ -52,26 +121,8 @@ public final class AutomationSystemNetworkFactory extends AbstractLoadFlowNetwor
         createLoad(b4, "ld4", 90, 60);
         createLine(network, b1, b2, "l12", 0.1, 3);
         createLine(network, b3p, b4, "l34", 0.05, 3.2);
-        b3.getVoltageLevel().getBusBreakerView().newSwitch()
-                .setId("br1")
-                .setBus1("b3")
-                .setBus2("b3p")
-                .setOpen(false)
-                .add();
         createTransformer(network, "s1", b1, b3, "tr1", 0.2, 2, 1);
         createTransformer(network, "s2", b2, b4, "tr2", 0.3, 3, 1);
-        Substation s1 = network.getSubstation("s1");
-        s1.newOverloadManagementSystem()
-                .setId("l34_opens_br1")
-                .setEnabled(true)
-                .setMonitoredElementId("l34")
-                .setMonitoredElementSide(ThreeSides.ONE)
-                .newSwitchTripping()
-                .setKey("br1 key")
-                .setSwitchToOperateId("br1")
-                .setCurrentLimit(300.)
-                .add()
-                .add();
         return network;
     }
 }

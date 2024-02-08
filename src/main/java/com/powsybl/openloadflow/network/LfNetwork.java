@@ -358,12 +358,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
             bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
         }
-        for (LfBranch branch : branches) {
-            branch.updateState(parameters);
-        }
-        for (LfHvdc hvdc : hvdcs) {
-            hvdc.updateState();
-        }
+        branches.stream().forEach(branch -> branch.updateState(parameters));
+        hvdcs.stream().forEach(hvdc -> hvdc.updateState());
 
         stopwatch.stop();
         LOGGER.debug(PERFORMANCE_MARKER, "Network {}, IIDM network updated in {} ms", this, stopwatch.elapsed(TimeUnit.MILLISECONDS));

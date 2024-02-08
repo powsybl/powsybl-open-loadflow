@@ -174,10 +174,25 @@ public final class Networks {
                 });
     }
 
+    private static void addBranchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig,
+                                                              OverloadManagementSystem system) {
+        system.getTrippings().stream()
+                .filter(t -> t.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING)
+                .forEach(tripping -> {
+                    Branch branch =
+                            network.getBranch(((OverloadManagementSystem.BranchTripping) tripping).getBranchToOperateId());
+                    if (branch != null && !tripping.isOpenAction()
+                            && !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) {
+                        topoConfig.getBranchIdsToClose().add(branch.getId());
+                    }
+                });
+    }
+
     private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig) {
         for (Substation substation : network.getSubstations()) {
             for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
                 addSwitchesOperatedByAutomationSystem(network, topoConfig, system);
+                addBranchesOperatedByAutomationSystem(network, topoConfig, system);
             }
         }
     }
