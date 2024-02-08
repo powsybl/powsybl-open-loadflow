@@ -11,7 +11,9 @@ import com.powsybl.commons.reporter.ReportBuilder;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphson;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -242,26 +244,49 @@ public final class Reports {
         }
     }
 
-    public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, String busId, double busV, double busPhi, int iteration) {
+    public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, int iteration, NewtonRaphson.NRmismatchBusInfo nRmismatchBusInfo) {
+        Map<String, TypedValue> subReporterMap = new HashMap<>();
+        subReporterMap.put("equationType", new TypedValue(acEquationType, "String"));
+        subReporterMap.put("mismatch", new TypedValue(mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
 
-        ReportBuilder reportBuilder = Report.builder();
-        String mismatchDetails = " on ${equationType}: ${mismatch}, Bus Id: '${busId}', Bus V: ${busV}, Bus Phi: ${busPhi}";
-        if (iteration == -1) {
-            reportBuilder.withKey("NRInitialMismatch")
-                    .withDefaultMessage("Initial mismatch" + mismatchDetails);
-        } else {
-            reportBuilder.withKey("NRIterationMismatch")
-                    .withDefaultMessage("Iteration ${iteration} mismatch" + mismatchDetails)
-                    .withValue(ITERATION, iteration);
-        }
+        Reporter subReporter = reporter.createSubReporter(iteration == -1 ? "NRInitialMismatch" : "NRIterationMismatch", "Mismatch on ${equationType}: ${mismatch}", subReporterMap);
 
-        reporter.report(reportBuilder.withValue("equationType", acEquationType)
-                .withTypedValue("mismatch", mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                .withValue("busId", busId)
-                .withTypedValue("busV", busV, TypedValue.VOLTAGE)
-                .withTypedValue("busPhi", busPhi, TypedValue.ANGLE)
-                .withSeverity(TypedValue.TRACE_SEVERITY)
-                .build());
+        ReportBuilder busIdReportBuilder = Report.builder();
+        busIdReportBuilder.withKey("NRMismatchBusId")
+                .withDefaultMessage("Bus       Id       : ${busId}")
+                .withValue("busId", nRmismatchBusInfo.busId());
+
+        ReportBuilder busNominalVReportBuilder = Report.builder();
+        busNominalVReportBuilder.withKey("NRMismatchBusNominalV")
+                .withDefaultMessage("Bus nominalV [  kV]: ${busNominalV}")
+                .withValue("busNominalV", nRmismatchBusInfo.busNominalV());
+
+        ReportBuilder busVReportBuilder = Report.builder();
+        busVReportBuilder.withKey("NRMismatchBusV")
+                .withDefaultMessage("Bus        V [p.u.]: ${busV}")
+                .withValue("busV", nRmismatchBusInfo.busV());
+
+        ReportBuilder busPhiReportBuilder = Report.builder();
+        busPhiReportBuilder.withKey("NRMismatchBusPhi")
+                .withDefaultMessage("Bus      Phi [ rad]: ${busPhi}")
+                .withValue("busPhi", nRmismatchBusInfo.busPhi());
+
+        ReportBuilder busPReportBuilder = Report.builder();
+        busPReportBuilder.withKey("NRMismatchBusSumP")
+                .withDefaultMessage("Bus     sumP [  MW]: ${busSumP}")
+                .withValue("busSumP", nRmismatchBusInfo.busSumP());
+
+        ReportBuilder busQReportBuilder = Report.builder();
+        busQReportBuilder.withKey("NRMismatchBusSumQ")
+                .withDefaultMessage("Bus     sumQ [MVar]: ${busSumQ}")
+                .withValue("busSumQ", nRmismatchBusInfo.busSumQ());
+
+        subReporter.report(busIdReportBuilder.build());
+        subReporter.report(busNominalVReportBuilder.build());
+        subReporter.report(busVReportBuilder.build());
+        subReporter.report(busPhiReportBuilder.build());
+        subReporter.report(busPReportBuilder.build());
+        subReporter.report(busQReportBuilder.build());
     }
 
     public static void reportNewtonRaphsonNorm(Reporter reporter, double norm, int iteration) {

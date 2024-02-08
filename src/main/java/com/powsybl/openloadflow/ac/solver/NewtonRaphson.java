@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
@@ -84,9 +85,19 @@ public class NewtonRaphson extends AbstractAcSolver {
                         int busPhiRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_PHI).getRow();
                         double busV = equationSystem.getStateVector().get(busVRow);
                         double busPhi = equationSystem.getStateVector().get(busPhiRow);
-                        LOGGER.trace("Mismatch `{}` for {}: {} (element={}) || Bus V /_ PHI = {} /_ {}", acEquationType, equation, equationMismatch, elementId, busV, busPhi);
+                        LfBus bus = network.getBus(elementNum);
+                        double busNominalV = bus.getNominalV();
+                        double busSumP = bus.getP().eval() * PerUnit.SB;
+                        double busSumQ = bus.getQ().eval() * PerUnit.SB;
+                        LOGGER.trace("Mismatch {} on {}: {}", acEquationType, equation, equationMismatch);
+                        LOGGER.trace("    Bus       Id       : {}", elementId);
+                        LOGGER.trace("    Bus nominalV [  kV]: {}", busNominalV);
+                        LOGGER.trace("    Bus        V [p.u.]: {}", busV);
+                        LOGGER.trace("    Bus      Phi [ rad]: {}", busPhi);
+                        LOGGER.trace("    Bus     sumP [  MW]: {}", busSumP);
+                        LOGGER.trace("    Bus     sumQ [MVar]: {}", busSumQ);
                         if (iterationMismatchReporter != null) {
-                            Reports.reportNewtonRaphsonMismatch(iterationMismatchReporter, getEquationTypeDescription(acEquationType), equationMismatch, elementId, busV, busPhi, iteration);
+                            Reports.reportNewtonRaphsonMismatch(iterationMismatchReporter, getEquationTypeDescription(acEquationType), equationMismatch, iteration, new NRmismatchBusInfo(elementId, busNominalV, busV, busPhi, busSumP, busSumQ));
                         }
                     });
         }
@@ -123,7 +134,7 @@ public class NewtonRaphson extends AbstractAcSolver {
             // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minus(equationVector.getArray());
 
-            // substract targets from f(x)
+            // subtract targets from f(x)
             equationVector.minus(targetVector);
             // f(x) now contains equation mismatches
 
@@ -225,4 +236,6 @@ public class NewtonRaphson extends AbstractAcSolver {
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
         return new AcSolverResult(status, iterations.getValue(), slackBusActivePowerMismatch);
     }
+
+    public record NRmismatchBusInfo(String busId, double busNominalV, double busV, double busPhi, double busSumP, double busSumQ) { }
 }
