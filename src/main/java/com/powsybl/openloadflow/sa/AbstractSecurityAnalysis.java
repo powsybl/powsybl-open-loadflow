@@ -13,8 +13,7 @@ import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -124,6 +123,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // try to find all ptc and rtc to retain because involved in ptc and rtc actions
         findAllPtcToOperate(actions, topoConfig);
         findAllRtcToOperate(actions, topoConfig);
+
+        // try to find branches (lines and two windings transformers).
+        // tie lines and three windings transformers missing.
+        findAllBranchesToClose(network, actions, topoConfig);
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
@@ -336,6 +339,21 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         side -> topoConfig.addBranchIdsWithRtcToRetain(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
                         () -> topoConfig.addBranchIdsWithRtcToRetain(rtcAction.getTransformerId()) // T2WT
                 );
+            }
+        }
+    }
+
+    protected static void findAllBranchesToClose(Network network, List<Action> actions, LfTopoConfig topoConfig) {
+        // only branches open at both side or open at one side are visible in the LfNetwork.
+        for (Action action : actions) {
+            if (TerminalsConnectionAction.NAME.equals(action.getType())) {
+                TerminalsConnectionAction terminalsConnectionAction = (TerminalsConnectionAction) action;
+                if (terminalsConnectionAction.getSide().isEmpty() && !terminalsConnectionAction.isOpen()) {
+                    Branch branch = network.getBranch(terminalsConnectionAction.getElementId());
+                    if (branch != null && !(branch instanceof TieLine)) {
+                        topoConfig.getBranchIdsToClose().add(terminalsConnectionAction.getElementId());
+                    }
+                }
             }
         }
     }

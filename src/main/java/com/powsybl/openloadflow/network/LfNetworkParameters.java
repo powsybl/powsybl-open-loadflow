@@ -27,6 +27,8 @@ public class LfNetworkParameters {
 
     public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
 
+    public static final boolean DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE = false;
+
     /**
      * Minimal and maximal plausible target V in p.u
      */
@@ -74,6 +76,8 @@ public class LfNetworkParameters {
 
     private boolean useActiveLimits = USE_ACTIVE_LIMITS_DEFAULT_VALUE;
 
+    private boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits = DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE;
+
     private boolean computeMainConnectedComponentOnly = true;
 
     private Set<Country> countriesToBalance = Collections.emptySet();
@@ -88,7 +92,9 @@ public class LfNetworkParameters {
 
     private boolean voltagePerReactivePowerControl = false;
 
-    private boolean reactivePowerRemoteControl = false;
+    private boolean generatorReactivePowerRemoteControl = false;
+
+    private boolean transformerReactivePowerControl = false;
 
     private LoadFlowModel loadFlowModel = LoadFlowModel.AC;
 
@@ -128,6 +134,8 @@ public class LfNetworkParameters {
 
     private boolean simulateAutomationSystems = SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE;
 
+    private ReferenceBusSelector referenceBusSelector = ReferenceBusSelector.DEFAULT_SELECTOR;
+
     public LfNetworkParameters() {
     }
 
@@ -140,13 +148,16 @@ public class LfNetworkParameters {
         this.twtSplitShuntAdmittance = other.twtSplitShuntAdmittance;
         this.breakers = other.breakers;
         this.plausibleActivePowerLimit = other.plausibleActivePowerLimit;
+        this.useActiveLimits = other.useActiveLimits;
+        this.disableVoltageControlOfGeneratorsOutsideActivePowerLimits = other.disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
         this.computeMainConnectedComponentOnly = other.computeMainConnectedComponentOnly;
         this.countriesToBalance = new HashSet<>(other.countriesToBalance);
         this.distributedOnConformLoad = other.distributedOnConformLoad;
         this.phaseControl = other.phaseControl;
         this.transformerVoltageControl = other.transformerVoltageControl;
         this.voltagePerReactivePowerControl = other.voltagePerReactivePowerControl;
-        this.reactivePowerRemoteControl = other.reactivePowerRemoteControl;
+        this.generatorReactivePowerRemoteControl = other.generatorReactivePowerRemoteControl;
+        this.transformerReactivePowerControl = other.transformerReactivePowerControl;
         this.loadFlowModel = other.loadFlowModel;
         this.shuntVoltageControl = other.shuntVoltageControl;
         this.reactiveLimits = other.reactiveLimits;
@@ -166,6 +177,7 @@ public class LfNetworkParameters {
         this.linePerUnitMode = other.linePerUnitMode;
         this.useLoadModel = other.useLoadModel;
         this.simulateAutomationSystems = other.simulateAutomationSystems;
+        this.referenceBusSelector = other.referenceBusSelector;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -240,6 +252,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() {
+        return disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
+    }
+
+    public LfNetworkParameters setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits) {
+        this.disableVoltageControlOfGeneratorsOutsideActivePowerLimits = disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
+        return this;
+    }
+
     public boolean isComputeMainConnectedComponentOnly() {
         return computeMainConnectedComponentOnly;
     }
@@ -294,12 +315,21 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isReactivePowerRemoteControl() {
-        return reactivePowerRemoteControl;
+    public boolean isGeneratorReactivePowerRemoteControl() {
+        return generatorReactivePowerRemoteControl;
     }
 
-    public LfNetworkParameters setReactivePowerRemoteControl(boolean reactivePowerRemoteControl) {
-        this.reactivePowerRemoteControl = reactivePowerRemoteControl;
+    public LfNetworkParameters setGeneratorReactivePowerRemoteControl(boolean generatorReactivePowerRemoteControl) {
+        this.generatorReactivePowerRemoteControl = generatorReactivePowerRemoteControl;
+        return this;
+    }
+
+    public boolean isTransformerReactivePowerControl() {
+        return transformerReactivePowerControl;
+    }
+
+    public LfNetworkParameters setTransformerReactivePowerControl(boolean transformerReactivePowerControl) {
+        this.transformerReactivePowerControl = transformerReactivePowerControl;
         return this;
     }
 
@@ -484,6 +514,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public ReferenceBusSelector getReferenceBusSelector() {
+        return referenceBusSelector;
+    }
+
+    public LfNetworkParameters setReferenceBusSelector(ReferenceBusSelector referenceBusSelector) {
+        this.referenceBusSelector = referenceBusSelector;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -500,7 +539,8 @@ public class LfNetworkParameters {
                 ", phaseControl=" + phaseControl +
                 ", transformerVoltageControl=" + transformerVoltageControl +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
-                ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
+                ", generatorReactivePowerRemoteControl=" + generatorReactivePowerRemoteControl +
+                ", transformerReactivePowerControl=" + transformerReactivePowerControl +
                 ", loadFlowModel=" + loadFlowModel +
                 ", reactiveLimits=" + reactiveLimits +
                 ", hvdcAcEmulation=" + hvdcAcEmulation +
@@ -519,6 +559,7 @@ public class LfNetworkParameters {
                 ", linePerUnitMode=" + linePerUnitMode +
                 ", useLoadModel=" + useLoadModel +
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
+                ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
                 ')';
     }
 }
