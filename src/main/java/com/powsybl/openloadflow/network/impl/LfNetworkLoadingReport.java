@@ -15,6 +15,8 @@ public class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall = 0;
 
+    int generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits = 0;
+
     int generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP = 0;
@@ -36,4 +38,6 @@ public class LfNetworkLoadingReport {
     int generatorsWithZeroRemoteVoltageControlReactivePowerKey = 0;
 
     int transformerVoltageControlDiscardedBecauseControllerBranchIsOpen = 0;
+
+    int transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen = 0;
 }

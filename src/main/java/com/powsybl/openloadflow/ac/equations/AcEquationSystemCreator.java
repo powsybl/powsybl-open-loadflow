@@ -528,6 +528,16 @@ public class AcEquationSystemCreator {
         }
     }
 
+    protected static void createTransformerReactivePowerControlEquations(LfBranch branch, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        if (branch.isTransformerReactivePowerController()) {
+            // constant R1 equation for sensitivities only
+            EquationTerm<AcVariableType, AcEquationType> r1 = equationSystem.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1)
+                    .createTerm();
+            equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_RHO1)
+                    .addTerm(r1);
+        }
+    }
+
     public static void updateTransformerPhaseControlEquations(TransformerPhaseControl phaseControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBranch controllerBranch = phaseControl.getControllerBranch();
         LfBranch controlledBranch = phaseControl.getControlledBranch();
@@ -665,7 +675,7 @@ public class AcEquationSystemCreator {
     }
 
     protected static boolean isDeriveR1(LfBranch branch) {
-        return branch.isVoltageController();
+        return branch.isVoltageController() || branch.isTransformerReactivePowerController();
     }
 
     protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
@@ -754,6 +764,8 @@ public class AcEquationSystemCreator {
         createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
 
         updateBranchEquations(branch);
+
+        createTransformerReactivePowerControlEquations(branch, equationSystem);
     }
 
     protected static void createImpedantBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
@@ -918,7 +930,7 @@ public class AcEquationSystemCreator {
     private static void createHvdcAcEmulationEquations(LfHvdc hvdc, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
-        if (hvdc.getBus1() != null && hvdc.getBus2() != null) {
+        if (hvdc.getBus1() != null && hvdc.getBus2() != null && hvdc.isAcEmulation()) {
             p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
             p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
         } else {

@@ -15,6 +15,7 @@ import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.ReferenceTerminals;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
@@ -107,10 +108,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
+                                                                          parametersExt.isTransformerReactivePowerControl(),
                                                                           parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
                                                                           parameters.isDc(),
                                                                           acParameters.getNetworkParameters().isBreakers(),
-                                                                          parametersExt.getReactivePowerDispatchMode());
+                                                                          parametersExt.getReactivePowerDispatchMode(),
+                                                                          parametersExt.isWriteReferenceTerminals());
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
@@ -150,6 +153,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             // reset slack buses if at least one component has converged
             if (parameters.isWriteSlackBus()) {
                 SlackTerminal.reset(network);
+            }
+            // reset reference terminals if at least one component has converged
+            if (parametersExt.isWriteReferenceTerminals()) {
+                ReferenceTerminals.reset(network);
             }
         }
 
@@ -207,12 +214,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         Networks.resetState(network);
 
-        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, dcParameters.getNetworkParameters().isBreakers())).toList();
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, parametersExt, dcParameters.getNetworkParameters().isBreakers())).toList();
         boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSuccess);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }
 
-    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters, boolean breakers) {
+    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, boolean breakers) {
         if (result.isSuccess() && parameters.isWriteSlackBus()) {
             SlackTerminal.reset(network);
         }
@@ -223,9 +230,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       parameters.isPhaseShifterRegulationOn(),
                                                                       parameters.isTransformerVoltageControlOn(),
                                                                       false,
+                                                                      false,
                                                                       true,
                                                                       breakers,
-                                                                      ReactivePowerDispatchMode.Q_EQUAL_PROPORTION);
+                                                                      ReactivePowerDispatchMode.Q_EQUAL_PROPORTION,
+                                                                      parametersExt.isWriteReferenceTerminals());
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
