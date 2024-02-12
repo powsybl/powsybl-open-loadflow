@@ -58,32 +58,29 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportMismatchDistributionFailure(Reporter reporter, int iteration, double remainingMismatch) {
+    public static void reportMismatchDistributionFailure(Reporter reporter, double remainingMismatch) {
         reporter.report(Report.builder()
                 .withKey("mismatchDistributionFailure")
-                .withDefaultMessage("Iteration ${iteration}: failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
-                .withValue(ITERATION, iteration)
+                .withDefaultMessage("Failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
                 .withTypedValue("mismatch", remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .build());
     }
 
-    public static void reportMismatchDistributionSuccess(Reporter reporter, int iteration, double slackBusActivePowerMismatch, int iterationCount) {
+    public static void reportMismatchDistributionSuccess(Reporter reporter, double slackBusActivePowerMismatch, int iterationCount) {
         reporter.report(Report.builder()
                 .withKey("mismatchDistributionSuccess")
-                .withDefaultMessage("Iteration ${iteration}: slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} iterations")
-                .withValue(ITERATION, iteration)
+                .withDefaultMessage("Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} iteration(s)")
                 .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withValue("iterationCount", iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
-    public static void reportNoMismatchDistribution(Reporter reporter, int iteration) {
+    public static void reportNoMismatchDistribution(Reporter reporter) {
         reporter.report(Report.builder()
                 .withKey("NoMismatchDistribution")
-                .withDefaultMessage("Iteration ${iteration}: already balanced")
-                .withValue(ITERATION, iteration)
+                .withDefaultMessage("No slack bus active power to distribute, already balanced")
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }

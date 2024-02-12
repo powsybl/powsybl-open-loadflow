@@ -67,6 +67,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext) {
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getName());
+        outerLoopContext.setCurrentRunIteration(0);
 
         // for each outer loop re-run solver until stabilization
         OuterLoopStatus outerLoopStatus;
@@ -99,6 +100,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 runningContext.outerLoopTotalIterations++;
 
                 outerLoopIteration.increment();
+                outerLoopContext.setCurrentRunIteration(outerLoopContext.getCurrentRunIteration() + 1);
             }
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
                 && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED

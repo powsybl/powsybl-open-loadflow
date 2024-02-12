@@ -53,7 +53,9 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         double slackBusActivePowerMismatch = context.getLastSolverResult().getSlackBusActivePowerMismatch();
-        if (Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB) {
+        boolean shouldDistributeSlack = Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB;
+
+        if (shouldDistributeSlack) {
             ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
             double remainingMismatch = result.remainingMismatch();
             double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;
@@ -66,10 +68,10 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                     if (referenceGenerator == null) {
                         // no reference generator, fall back internally to FAIL mode
                         slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
-                        Reports.reportMismatchDistributionFailure(reporter, context.getIteration(), remainingMismatch * PerUnit.SB);
+                        Reports.reportMismatchDistributionFailure(reporter, remainingMismatch * PerUnit.SB);
                     }
                 } else {
-                    Reports.reportMismatchDistributionFailure(reporter, context.getIteration(), remainingMismatch * PerUnit.SB);
+                    Reports.reportMismatchDistributionFailure(reporter, remainingMismatch * PerUnit.SB);
                 }
 
                 switch (slackDistributionFailureBehavior) {
@@ -85,7 +87,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                         Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
                         // remaining goes to reference generator, without any limit consideration
                         referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
-                        reportAndLogSuccess(context, reporter, slackBusActivePowerMismatch, result);
+                        reportAndLogSuccess(reporter, slackBusActivePowerMismatch, result);
                         return OuterLoopStatus.UNSTABLE;
                     }
                     case FAIL -> {
@@ -99,22 +101,27 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                     }
                 }
             } else {
-                reportAndLogSuccess(context, reporter, slackBusActivePowerMismatch, result);
+                reportAndLogSuccess(reporter, slackBusActivePowerMismatch, result);
                 return OuterLoopStatus.UNSTABLE;
             }
+        } else {
+            reportAndLogAlreadyBalanced(reporter, context.getCurrentRunIteration());
         }
-
-        Reports.reportNoMismatchDistribution(reporter, context.getIteration());
-
-        LOGGER.debug("Already balanced");
 
         return OuterLoopStatus.STABLE;
     }
 
-    private static void reportAndLogSuccess(AcOuterLoopContext context, Reporter reporter, double slackBusActivePowerMismatch, ActivePowerDistribution.Result result) {
-        Reports.reportMismatchDistributionSuccess(reporter, context.getIteration(), slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
+    private static void reportAndLogSuccess(Reporter reporter, double slackBusActivePowerMismatch, ActivePowerDistribution.Result result) {
+        Reports.reportMismatchDistributionSuccess(reporter, slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
 
         LOGGER.info("Slack bus active power ({} MW) distributed in {} iterations",
                 slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
+    }
+
+    private static void reportAndLogAlreadyBalanced(Reporter reporter, int currentRunIterations) {
+        if (currentRunIterations == 0) {
+            Reports.reportNoMismatchDistribution(reporter);
+            LOGGER.debug("Already balanced");
+        }
     }
 }
