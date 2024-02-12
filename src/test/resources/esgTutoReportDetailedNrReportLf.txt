@@ -99,9 +99,7 @@
              Bus     sumP [  MW]: 607.0001563589107
              Bus     sumQ [MVar]: 225.40357009583855
       + Outer loop DistributedSlack
-         Iteration 0: slack bus active power (-1.4404045651219555 MW) distributed in 1 iterations
-         Iteration 1: already balanced
-         Termination status: STABLE
+         Slack bus active power (-1.4404045651219555 MW) distributed in 1 iteration(s)
       + Newton Raphson on Network CC0 SC0 || Outer loop iteration 1 (type=DistributedSlack)
         + Initial mismatch
            Norm |f(x0)|=0.014405623086540364
@@ -150,13 +148,14 @@
              Bus     sumP [  MW]: 605.5595848046545
              Bus     sumQ [MVar]: 225.28262889354625
       + Outer loop VoltageMonitoring
-         Termination status: STABLE
+         No bus switched PQ -> PV
       + Outer loop ReactiveLimits
-         Termination status: STABLE
+         No bus switched PV -> PQ
+         No bus switched PQ -> PV
       + Outer loop DistributedSlack
-         Iteration 1: already balanced
-         Termination status: STABLE
+         No slack bus active power to distribute, already balanced
       + Outer loop VoltageMonitoring
-         Termination status: STABLE
+         No bus switched PQ -> PV
       + Outer loop ReactiveLimits
-         Termination status: STABLE
+         No bus switched PV -> PQ
+         No bus switched PQ -> PV
