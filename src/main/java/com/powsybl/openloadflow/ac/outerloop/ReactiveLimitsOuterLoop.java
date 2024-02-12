@@ -122,6 +122,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             pvToPqBuses.remove(strongestPvToPqBus);
             modifiedRemainingPvBusCount++;
             LOGGER.warn("All PV buses should switch PQ, strongest one '{}' will stay PV", strongestPvToPqBus.controllerBus.getId());
+            Reports.reportBusForcedToBePv(reporter, strongestPvToPqBus.controllerBus.getId());
         }
 
         if (!pvToPqBuses.isEmpty()) {
@@ -330,12 +331,16 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!busesWithUpdatedQLimits.isEmpty()) {
-            LOGGER.info("{} buses blocked to a reactive limit have been adjusted because reactive limit has changed",
-                    busesWithUpdatedQLimits.size());
+            LOGGER.info("{} buses blocked to a reactive limit have been adjusted because reactive limit has changed", busesWithUpdatedQLimits.size());
+            Reports.reportBusesWithUpdatedQLimits(reporter, busesWithUpdatedQLimits.size());
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, reporter)) {
             status = OuterLoopStatus.UNSTABLE;
+        }
+        if (status == OuterLoopStatus.STABLE) {
+            Reports.reportNoPvToPqBuses(reporter);
+            Reports.reportNoPqToPvBuses(reporter);
         }
 
         return status;

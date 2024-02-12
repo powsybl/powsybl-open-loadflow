@@ -88,8 +88,8 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("switchPvPq")
                 .withDefaultMessage("${pvToPqBusCount} bus(es) switched PV -> PQ (${remainingPvBusCount} bus(es) remain(s) PV)")
-                .withValue("pvToPqBusCount", pvToPqBusCount)
-                .withValue("remainingPvBusCount", remainingPvBusCount)
+                .withValue("pvToPqBusCount", String.format("%6s", pvToPqBusCount))
+                .withValue("remainingPvBusCount", String.format("%6s", remainingPvBusCount))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -97,26 +97,52 @@ public final class Reports {
     public static void reportPqToPvBuses(Reporter reporter, int pqToPvBusCount, int blockedPqBusCount) {
         reporter.report(Report.builder()
                 .withKey("switchPqPv")
-                .withDefaultMessage("${pqToPvBusCount} buses switched PQ -> PV (${blockedPqBusCount} buses blocked PQ because have reach max number of switch)")
-                .withValue("pqToPvBusCount", pqToPvBusCount)
-                .withValue("blockedPqBusCount", blockedPqBusCount)
+                .withDefaultMessage("${pqToPvBusCount} bus(es) switched PQ -> PV (${blockedPqBusCount} bus(es) blocked PQ due to the max number of switches)")
+                .withValue("pqToPvBusCount", String.format("%6s", pqToPvBusCount))
+                .withValue("blockedPqBusCount", String.format("%6s", blockedPqBusCount))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
-    public static void reportReactiveControllerBusesToPqBuses(Reporter reporter, int switchCount) {
+    public static void reportBusForcedToBePv(Reporter reporter, String busId) {
+        reporter.report(Report.builder()
+                .withKey("busForcedToBePv")
+                .withDefaultMessage("All PV buses should switch PQ, strongest one will stay PV: ${busId}")
+                .withValue("busId", busId)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .build());
+    }
+
+    public static void reportBusesWithUpdatedQLimits(Reporter reporter, double numBusesWithUpdatedQLimits) {
+        reporter.report(Report.builder()
+                .withKey("busForcedToBePv")
+                .withDefaultMessage("${numBusesWithUpdatedQLimits} bus(es) PQ buses blocked at their min/max reactive power limit, have had their min/max limit updated")
+                .withValue("numBusesWithUpdatedQLimits", String.format("%6s", numBusesWithUpdatedQLimits))
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportReactiveControllerBusesToPqBuses(Reporter reporter, int remoteReactivePowerControllerBusToPqCount) {
         reporter.report(Report.builder()
                 .withKey("remoteReactiveControllerBusToPq")
-                .withDefaultMessage("${count} remote reactive power controller buses have switched PQ")
-                .withValue("count", switchCount)
+                .withDefaultMessage("${remoteReactivePowerControllerBusToPqCount} bus(es) with remote reactive power controller have switched PQ")
+                .withValue("remoteReactivePowerControllerBusToPqCount", remoteReactivePowerControllerBusToPqCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportNoPvToPqBuses(Reporter reporter) {
+        reporter.report(Report.builder()
+                .withKey("noPvToPqBuses")
+                .withDefaultMessage("No bus switched PV -> PQ")
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
     public static void reportNoPqToPvBuses(Reporter reporter) {
         reporter.report(Report.builder()
-                .withKey("noPqPvBusesMonitoringVoltage")
-                .withDefaultMessage("No buses switched PQ -> PV")
+                .withKey("noPvToPvBuses")
+                .withDefaultMessage("No bus switched PQ -> PV")
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
