@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac;
 
 import com.google.common.collect.Lists;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.solver.*;
@@ -104,6 +103,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
                 && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
+
+        Reports.reportOuterLoopFinalStatus(olReporter, outerLoopStatus);
     }
 
     @Override
@@ -206,8 +207,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
-        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getSolverStatus().name(),
-                result.getSolverStatus() == AcSolverStatus.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY);
+        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.toComponentResultStatus());
 
         context.setResult(result);
 

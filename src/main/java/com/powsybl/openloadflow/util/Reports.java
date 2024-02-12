@@ -10,8 +10,10 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.ReportBuilder;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphson;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -170,11 +172,12 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportAcLfComplete(Reporter reporter, String nrStatus, TypedValue severity) {
+    public static void reportAcLfComplete(Reporter reporter, LoadFlowResult.ComponentResult.Status lfStatus) {
+        TypedValue severity = lfStatus == LoadFlowResult.ComponentResult.Status.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
         reporter.report(Report.builder()
                 .withKey("acLfComplete")
-                .withDefaultMessage("AC load flow complete with NR status '${nrStatus}'")
-                .withValue("nrStatus", nrStatus)
+                .withDefaultMessage("AC load flow termination status: ${lfStatus}")
+                .withValue("lfStatus", lfStatus.name())
                 .withSeverity(severity)
                 .build());
     }
@@ -223,13 +226,13 @@ public final class Reports {
     }
 
     public static Reporter createDetailedSolverReporter(Reporter reporter, String solverName, int networkNumCc, int networkNumSc) {
-        return reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc} || No outer loops calculations",
+        return reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc} || No outer loops have been launched",
                 Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
                         NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
     }
 
     public static Reporter createDetailedSolverReporterOuterLoop(Reporter reporter, String solverName, int networkNumCc, int networkNumSc, int outerLoopIteration, String outerLoopType) {
-        return reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc} || Outer loop iteration ${outerLoopIteration} and type `${outerLoopType}`",
+        return reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc} || Outer loop iteration ${outerLoopIteration} (type=${outerLoopType})",
                 Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
                         NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED),
                         "outerLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED),
@@ -244,12 +247,22 @@ public final class Reports {
         }
     }
 
+    public static void reportOuterLoopFinalStatus(Reporter reporter, OuterLoopStatus outerLoopStatus) {
+        TypedValue severity = outerLoopStatus == OuterLoopStatus.STABLE ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
+        reporter.report(Report.builder()
+                .withKey("newtonRaphsonBusesOutOfNormalVoltageRange")
+                .withDefaultMessage("Termination status: ${outerLoopStatus}")
+                .withValue("outerLoopStatus", outerLoopStatus.name())
+                .withSeverity(severity)
+                .build());
+    }
+
     public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, int iteration, NewtonRaphson.NRmismatchBusInfo nRmismatchBusInfo) {
         Map<String, TypedValue> subReporterMap = new HashMap<>();
         subReporterMap.put("equationType", new TypedValue(acEquationType, "String"));
         subReporterMap.put("mismatch", new TypedValue(mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
 
-        Reporter subReporter = reporter.createSubReporter(iteration == -1 ? "NRInitialMismatch" : "NRIterationMismatch", "Mismatch on ${equationType}: ${mismatch}", subReporterMap);
+        Reporter subReporter = reporter.createSubReporter(iteration == -1 ? "NRInitialMismatch" : "NRIterationMismatch", "Mismatch on ${equationType} : ${mismatch}", subReporterMap);
 
         ReportBuilder busIdReportBuilder = Report.builder();
         busIdReportBuilder.withKey("NRMismatchBusId")
