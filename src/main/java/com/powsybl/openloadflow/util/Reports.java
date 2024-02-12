@@ -13,7 +13,6 @@ import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphson;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -79,7 +78,7 @@ public final class Reports {
 
     public static void reportNoMismatchDistribution(Reporter reporter) {
         reporter.report(Report.builder()
-                .withKey("NoMismatchDistribution")
+                .withKey("noMismatchDistribution")
                 .withDefaultMessage("No slack bus active power to distribute, already balanced")
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
@@ -88,7 +87,7 @@ public final class Reports {
     public static void reportPvToPqBuses(Reporter reporter, int pvToPqBusCount, int remainingPvBusCount) {
         reporter.report(Report.builder()
                 .withKey("switchPvPq")
-                .withDefaultMessage("${pvToPqBusCount} buses switched PV -> PQ (${remainingPvBusCount} bus remains PV}")
+                .withDefaultMessage("${pvToPqBusCount} bus(es) switched PV -> PQ (${remainingPvBusCount} bus(es) remain(s) PV)")
                 .withValue("pvToPqBusCount", pvToPqBusCount)
                 .withValue("remainingPvBusCount", remainingPvBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -114,10 +113,18 @@ public final class Reports {
                 .build());
     }
 
+    public static void reportNoPqToPvBuses(Reporter reporter) {
+        reporter.report(Report.builder()
+                .withKey("noPqPvBusesMonitoringVoltage")
+                .withDefaultMessage("No buses switched PQ -> PV")
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
     public static void reportStandByAutomatonActivation(Reporter reporter, String busId, double newTargetV) {
         reporter.report(Report.builder()
                 .withKey("standByAutomatonActivation")
-                .withDefaultMessage("Activation of voltage control of static var compensator with stand by automaton: bus ${busId} switched PQ -> PV with targetV ${newTargetV}")
+                .withDefaultMessage("Activation of voltage control of SVC with stand by automaton: bus ${busId} switched PQ -> PV with targetV ${newTargetV}")
                 .withValue("busId", busId)
                 .withValue("newTargetV", newTargetV)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -242,16 +249,6 @@ public final class Reports {
         } else {
             return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} mismatch", ITERATION, iteration);
         }
-    }
-
-    public static void reportOuterLoopFinalStatus(Reporter reporter, OuterLoopStatus outerLoopStatus) {
-        TypedValue severity = outerLoopStatus == OuterLoopStatus.STABLE ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
-        reporter.report(Report.builder()
-                .withKey("newtonRaphsonBusesOutOfNormalVoltageRange")
-                .withDefaultMessage("Termination status: ${outerLoopStatus}")
-                .withValue("outerLoopStatus", outerLoopStatus.name())
-                .withSeverity(severity)
-                .build());
     }
 
     public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, int iteration, NewtonRaphson.NRmismatchBusInfo nRmismatchBusInfo) {
