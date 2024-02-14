@@ -113,10 +113,10 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportBusesWithUpdatedQLimits(Reporter reporter, double numBusesWithUpdatedQLimits) {
+    public static void reportBusesWithUpdatedQLimits(Reporter reporter, int numBusesWithUpdatedQLimits) {
         reporter.report(Report.builder()
                 .withKey("busForcedToBePv")
-                .withDefaultMessage("${numBusesWithUpdatedQLimits} bus(es) PQ buses blocked at their min/max reactive power limit, have had their min/max limit updated")
+                .withDefaultMessage("${numBusesWithUpdatedQLimits} bus(es) PQ buses blocked at their min/max reactive power limit have had their min/max limit updated")
                 .withValue("numBusesWithUpdatedQLimits", String.format("%6s", numBusesWithUpdatedQLimits))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
@@ -153,6 +153,32 @@ public final class Reports {
                 .withDefaultMessage("Activation of voltage control of SVC with stand by automaton: bus ${busId} switched PQ -> PV with targetV ${newTargetV}")
                 .withValue("busId", busId)
                 .withValue("newTargetV", newTargetV)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportNoPstChangedTaps(Reporter reporter) {
+        reporter.report(Report.builder()
+                .withKey("noPstChangedTaps")
+                .withDefaultMessage("No PST changed taps")
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportCurrentLimitersChangedTaps(Reporter reporter, int numOfCurrentLimitersThatChangedTap) {
+        reporter.report(Report.builder()
+                .withKey("currentLimitersChangedTaps")
+                .withDefaultMessage("${numOfCurrentLimitersThatChangedTap} current limiters PSTs changed taps")
+                .withValue("numOfCurrentLimitersThatChangedTap", String.format("%6s", numOfCurrentLimitersThatChangedTap))
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportActivePowerControlPstsChangedTaps(Reporter reporter, int numOfActivePowerControlPstsThatChangedTap) {
+        reporter.report(Report.builder()
+                .withKey("activePowerControlPstsChangedTaps")
+                .withDefaultMessage("${numOfActivePowerControlPstsThatChangedTap} active power control PSTs changed taps")
+                .withValue("numOfActivePowerControlPstsThatChangedTap", String.format("%6s", numOfActivePowerControlPstsThatChangedTap))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }

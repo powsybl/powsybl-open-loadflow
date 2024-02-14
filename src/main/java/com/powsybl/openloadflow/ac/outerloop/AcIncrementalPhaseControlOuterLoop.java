@@ -22,8 +22,9 @@ import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOute
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
-import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -93,8 +94,8 @@ public class AcIncrementalPhaseControlOuterLoop
     }
 
     private boolean checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
-                                                            List<TransformerPhaseControl> currentLimiterPhaseControls) {
-        MutableBoolean updated = new MutableBoolean(false);
+                                                            List<TransformerPhaseControl> currentLimiterPhaseControls, Reporter reporter) {
+        MutableInt numOfCurrentLimitersThatChangedTap = new MutableInt(0);
 
         for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -116,11 +117,11 @@ public class AcIncrementalPhaseControlOuterLoop
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
                     piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
                         controllerContext.updateAllowedDirection(direction);
-                        updated.setValue(true);
+                        numOfCurrentLimitersThatChangedTap.add(1);
                     });
 
                     if (piModel.getTapPosition() != oldTapPosition) {
-                        logger.debug("Controller branch '{}' change tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
+                        logger.debug("Controller branch '{}' changed tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
 
                         double discreteDa = piModel.getA1() - oldA1;
@@ -130,7 +131,11 @@ public class AcIncrementalPhaseControlOuterLoop
             }
         }
 
-        return updated.booleanValue();
+        if (numOfCurrentLimitersThatChangedTap.getValue() != 0) {
+            Reports.reportCurrentLimitersChangedTaps(reporter, numOfCurrentLimitersThatChangedTap.getValue());
+        }
+
+        return numOfCurrentLimitersThatChangedTap.getValue() != 0;
     }
 
     private void checkImpactOnOtherPhaseShifters(AcSensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
@@ -204,16 +209,22 @@ public class AcIncrementalPhaseControlOuterLoop
             if (!currentLimiterPhaseControls.isEmpty()
                     && checkCurrentLimiterPhaseControls(sensitivityContext,
                                                         contextData,
-                                                        currentLimiterPhaseControls)) {
+                                                        currentLimiterPhaseControls,
+                                                        reporter)) {
                 status = OuterLoopStatus.UNSTABLE;
             }
 
             if (!activePowerControlPhaseControls.isEmpty()
                     && checkActivePowerControlPhaseControls(sensitivityContext,
                                                             contextData,
-                                                            activePowerControlPhaseControls)) {
+                                                            activePowerControlPhaseControls,
+                                                            reporter)) {
                 status = OuterLoopStatus.UNSTABLE;
             }
+        }
+
+        if (OuterLoopStatus.STABLE == status && context.getCurrentRunIteration() == 0) {
+            Reports.reportNoPstChangedTaps(reporter);
         }
 
         return status;
