@@ -1,24 +1,40 @@
 + Test ESG tutorial report
   + Load flow on network 'sim1'
     + Network CC0 SC0
-       AC load flow complete with NR status 'CONVERGED'
+       AC load flow termination status: CONVERGED
       + Post loading processing
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Outer loop DistributedSlack
-         Iteration 0: slack bus active power (-1.4404045651219555 MW) distributed in 1 iterations
-         Iteration 1: already balanced
+         Slack bus active power (-1.4404045651219555 MW) distributed in 1 inner iteration(s)
+         Termination status after 1 iteration(s): STABLE
       + Outer loop VoltageMonitoring
+         No bus switched PQ -> PV
+         Termination status after 0 iteration(s): STABLE
       + Outer loop ReactiveLimits
+         No bus switched PV -> PQ
+         No bus switched PQ -> PV
+         Termination status after 0 iteration(s): STABLE
       + Outer loop DistributedSlack
-         Iteration 1: already balanced
+         No slack bus active power to distribute, already balanced
+         Termination status after 0 iteration(s): STABLE
       + Outer loop VoltageMonitoring
+         No bus switched PQ -> PV
+         Termination status after 0 iteration(s): STABLE
       + Outer loop ReactiveLimits
+         No bus switched PV -> PQ
+         No bus switched PQ -> PV
+         Termination status after 0 iteration(s): STABLE
   + Sensitivity analysis on network 'sim1'
     + Network CC0 SC0
-       AC load flow complete with NR status 'CONVERGED'
+       AC load flow termination status: CONVERGED
       + Post loading processing
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Outer loop VoltageMonitoring
+         No bus switched PQ -> PV
+         Termination status after 0 iteration(s): STABLE
       + Outer loop ReactiveLimits
+         No bus switched PV -> PQ
+         No bus switched PQ -> PV
+         Termination status after 0 iteration(s): STABLE

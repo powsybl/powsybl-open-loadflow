@@ -260,7 +260,7 @@ public final class Reports {
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(Reporter reporter, int impactedGeneratorCount) {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseNotStarted")
-                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because not started")
+                .withDefaultMessage("${impactedGeneratorCount} generators were discarded from voltage control because they didn't start")
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
@@ -269,7 +269,7 @@ public final class Reports {
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(Reporter reporter, int impactedGeneratorCount) {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
-                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because of a too small reactive range")
+                .withDefaultMessage("${impactedGeneratorCount} generators were discarded from voltage control due their reactive range was too small")
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
@@ -278,7 +278,7 @@ public final class Reports {
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(Reporter reporter, int impactedGeneratorCount) {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
-                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because targetP is outside active power limits")
+                .withDefaultMessage("${impactedGeneratorCount} generators were discarded from voltage control because their targetP is outside their active power limits")
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
@@ -421,7 +421,7 @@ public final class Reports {
     public static void reportNewtonRaphsonBusesOutOfNormalVoltageRange(Reporter reporter, Map<String, Double> busesOutOfNormalVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
         reporter.report(Report.builder()
                 .withKey("newtonRaphsonBusesOutOfNormalVoltageRange")
-                .withDefaultMessage("${busCountOutOfNormalVoltageRange} buses have a voltage magnitude out of range [${minRealisticVoltage}, ${maxRealisticVoltage}]: ${busesOutOfNormalVoltageRange}")
+                .withDefaultMessage("${busCountOutOfNormalVoltageRange} bus(es) have its (their) voltage magnitude out of the range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.: ${busesOutOfNormalVoltageRange}")
                 .withValue("busCountOutOfNormalVoltageRange", busesOutOfNormalVoltageRange.size())
                 .withValue("minRealisticVoltage", minRealisticVoltage)
                 .withValue("maxRealisticVoltage", maxRealisticVoltage)
