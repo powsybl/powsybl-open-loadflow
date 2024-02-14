@@ -277,12 +277,12 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         if (!controlledBusesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled bus voltages have been adjusted by changing at least one tap",
                     controlledBusesAdjusted.size());
-            Reports.reportTransformerVoltageControlChangedTaps(reporter, controlledBusesAdjusted.size());
+            Reports.reportTransformerControlChangedTaps(reporter, controlledBusesAdjusted.size());
         }
         if (!controlledBusesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled buses have all its controllers to a tap limit: {}",
                     controlledBusesWithAllItsControllersToLimit.size(), controlledBusesWithAllItsControllersToLimit);
-            Reports.reportTransformerVoltageControlTapLimit(reporter, controlledBusesWithAllItsControllersToLimit.size());
+            Reports.reportTransformerControlTapLimit(reporter, controlledBusesWithAllItsControllersToLimit.size());
         }
 
         return status.getValue();

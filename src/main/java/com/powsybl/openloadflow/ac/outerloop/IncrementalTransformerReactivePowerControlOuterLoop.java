@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
@@ -172,6 +173,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         List<LfBranch> controllerBranchesOutOfDeadband = getControllerBranchesOutOfDeadband(controlledBranchesOutOfDeadband);
 
         if (controllerBranchesOutOfDeadband.isEmpty()) {
+            Reports.reportAllTransformersAreInsideTheirDeadband(reporter);
             return status.getValue();
         }
 
@@ -209,10 +211,12 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         if (!controlledBranchesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled branch reactive power have been adjusted by changing at least one tap",
                     controlledBranchesAdjusted.size());
+            Reports.reportTransformerControlChangedTaps(reporter, controlledBranchesAdjusted.size());
         }
         if (!controlledBranchesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled branches have all its controllers to a tap limit: {}",
                     controlledBranchesWithAllItsControllersToLimit.size(), controlledBranchesWithAllItsControllersToLimit);
+            Reports.reportTransformerControlTapLimit(reporter, controlledBranchesWithAllItsControllersToLimit.size());
         }
 
         return status.getValue();

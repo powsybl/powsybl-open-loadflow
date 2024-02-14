@@ -192,20 +192,20 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportTransformerVoltageControlChangedTaps(Reporter reporter, int numTransformerVoltageControlAdjusted) {
+    public static void reportTransformerControlChangedTaps(Reporter reporter, int numTransformerControlAdjusted) {
         reporter.report(Report.builder()
-                .withKey("transformerVoltageControlChangedTaps")
-                .withDefaultMessage("${numTransformerVoltageControlAdjusted} transformer(s) have changed at least one tap")
-                .withValue("numTransformerVoltageControlAdjusted", String.format("%6s", numTransformerVoltageControlAdjusted))
+                .withKey("transformerControlChangedTaps")
+                .withDefaultMessage("${numTransformerControlAdjusted} transformer(s) have changed at least one tap")
+                .withValue("numTransformerControlAdjusted", String.format("%6s", numTransformerControlAdjusted))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
-    public static void reportTransformerVoltageControlTapLimit(Reporter reporter, int numTransformerVoltageControlTapLimit) {
+    public static void reportTransformerControlTapLimit(Reporter reporter, int numTransformerControlTapLimit) {
         reporter.report(Report.builder()
-                .withKey("transformerVoltageControlTapLimit")
-                .withDefaultMessage("${numTransformerVoltageControlTapLimit} transformer(s) have reached its (their) tap limit")
-                .withValue("numTransformerVoltageControlTapLimit", String.format("%6s", numTransformerVoltageControlTapLimit))
+                .withKey("transformerControlTapLimit")
+                .withDefaultMessage("${numTransformerControlTapLimit} transformer(s) have reached its (their) tap limit")
+                .withValue("numTransformerControlTapLimit", String.format("%6s", numTransformerControlTapLimit))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
