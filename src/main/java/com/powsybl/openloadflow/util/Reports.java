@@ -187,7 +187,7 @@ public final class Reports {
     public static void reportAllTransformersAreInsideTheirDeadband(Reporter reporter) {
         reporter.report(Report.builder()
                 .withKey("allTransformersAreInsideTheirDeadband")
-                .withDefaultMessage("All transformers are within their deadbands")
+                .withDefaultMessage("All transformers are inside their deadbands")
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -206,6 +206,23 @@ public final class Reports {
                 .withKey("transformerControlTapLimit")
                 .withDefaultMessage("${numTransformerControlTapLimit} transformer(s) have reached its (their) tap limit")
                 .withValue("numTransformerControlTapLimit", String.format("%6s", numTransformerControlTapLimit))
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportAllShuntsAreInsideTheirDeadband(Reporter reporter) {
+        reporter.report(Report.builder()
+                .withKey("allShuntsAreInsideTheirDeadband")
+                .withDefaultMessage("All shunts are inside their deadbands")
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportShuntVoltageControlChangedSusceptance(Reporter reporter, int numShuntVoltageControlAdjusted) {
+        reporter.report(Report.builder()
+                .withKey("shuntVoltageControlChangedSusceptance")
+                .withDefaultMessage("${numShuntVoltageControlAdjusted} shunt(s) have changed their susceptance")
+                .withValue("numShuntVoltageControlAdjusted", String.format("%6s", numShuntVoltageControlAdjusted))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
