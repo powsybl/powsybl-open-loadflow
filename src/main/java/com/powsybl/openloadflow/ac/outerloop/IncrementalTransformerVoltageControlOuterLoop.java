@@ -235,7 +235,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         // all branches are within their deadbands
         if (controllerBranchesOutOfDeadband.isEmpty()) {
-            Reports.reportAllTransformersAreInsideTheirDeadband(reporter);
             return status.getValue();
         }
 

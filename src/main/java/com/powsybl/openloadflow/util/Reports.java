@@ -77,14 +77,6 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportNoMismatchDistribution(Reporter reporter) {
-        reporter.report(Report.builder()
-                .withKey("noMismatchDistribution")
-                .withDefaultMessage("No slack bus active power to distribute, already balanced")
-                .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
-    }
-
     public static void reportPvToPqBuses(Reporter reporter, int pvToPqBusCount, int remainingPvBusCount) {
         reporter.report(Report.builder()
                 .withKey("switchPvPq")
@@ -117,7 +109,7 @@ public final class Reports {
     public static void reportBusesWithUpdatedQLimits(Reporter reporter, int numBusesWithUpdatedQLimits) {
         reporter.report(Report.builder()
                 .withKey("busForcedToBePv")
-                .withDefaultMessage("${numBusesWithUpdatedQLimits} bus(es) PQ buses blocked at their min/max reactive power limit have had their min/max limit updated")
+                .withDefaultMessage("${numBusesWithUpdatedQLimits} bus(es) PQ blocked at their min/max reactive power limit have had their min/max limit updated")
                 .withValue("numBusesWithUpdatedQLimits", String.format("%6s", numBusesWithUpdatedQLimits))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
@@ -132,36 +124,12 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportNoPvToPqBuses(Reporter reporter) {
-        reporter.report(Report.builder()
-                .withKey("noPvToPqBuses")
-                .withDefaultMessage("No bus switched PV -> PQ")
-                .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
-    }
-
-    public static void reportNoPqToPvBuses(Reporter reporter) {
-        reporter.report(Report.builder()
-                .withKey("noPvToPvBuses")
-                .withDefaultMessage("No bus switched PQ -> PV")
-                .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
-    }
-
     public static void reportStandByAutomatonActivation(Reporter reporter, String busId, double newTargetV) {
         reporter.report(Report.builder()
                 .withKey("standByAutomatonActivation")
                 .withDefaultMessage("Activation of voltage control of SVC with stand by automaton: bus ${busId} switched PQ -> PV with targetV ${newTargetV}")
                 .withValue("busId", busId)
                 .withValue("newTargetV", newTargetV)
-                .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
-    }
-
-    public static void reportNoPstChangedTaps(Reporter reporter) {
-        reporter.report(Report.builder()
-                .withKey("noPstChangedTaps")
-                .withDefaultMessage("No PST changed taps")
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -184,14 +152,6 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportAllTransformersAreInsideTheirDeadband(Reporter reporter) {
-        reporter.report(Report.builder()
-                .withKey("allTransformersAreInsideTheirDeadband")
-                .withDefaultMessage("All transformers are inside their deadbands")
-                .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
-    }
-
     public static void reportTransformerControlChangedTaps(Reporter reporter, int numTransformerControlAdjusted) {
         reporter.report(Report.builder()
                 .withKey("transformerControlChangedTaps")
@@ -210,14 +170,6 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportAllShuntsAreInsideTheirDeadband(Reporter reporter) {
-        reporter.report(Report.builder()
-                .withKey("allShuntsAreInsideTheirDeadband")
-                .withDefaultMessage("All shunts are inside their deadbands")
-                .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
-    }
-
     public static void reportShuntVoltageControlChangedSusceptance(Reporter reporter, int numShuntVoltageControlAdjusted) {
         reporter.report(Report.builder()
                 .withKey("shuntVoltageControlChangedSusceptance")
@@ -229,14 +181,17 @@ public final class Reports {
 
     public static void reportOuterLoopTerminationStatus(Reporter reporter, OuterLoopStatus outerLoopStatus, int currentRunIterations) {
         TypedValue severity = outerLoopStatus == OuterLoopStatus.STABLE ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
-
-        reporter.report(Report.builder()
-                .withKey("outerLoopTerminationStatus")
-                .withDefaultMessage("Termination status after ${currentRunIterations} iteration(s): ${outerLoopStatus}")
-                .withValue("currentRunIterations", currentRunIterations)
-                .withValue("outerLoopStatus", outerLoopStatus.name())
-                .withSeverity(severity)
-                .build());
+        ReportBuilder reportBuilder = Report.builder();
+        if (currentRunIterations == 0) {
+            reportBuilder.withDefaultMessage("Status: ${outerLoopStatus}");
+        } else {
+            reportBuilder.withDefaultMessage("Status: ${outerLoopStatus} (after ${currentRunIterations} iteration(s))")
+                         .withValue("currentRunIterations", currentRunIterations);
+        }
+        reportBuilder.withKey("outerLoopTerminationStatus")
+                     .withValue("outerLoopStatus", outerLoopStatus.name())
+                     .withSeverity(severity);
+        reporter.report(reportBuilder.build());
     }
 
     public static void reportDcLfSolverFailure(Reporter reporter, String errorMessage) {
@@ -287,8 +242,8 @@ public final class Reports {
     public static void reportAcLfComplete(Reporter reporter, LoadFlowResult.ComponentResult.Status lfStatus) {
         TypedValue severity = lfStatus == LoadFlowResult.ComponentResult.Status.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
         reporter.report(Report.builder()
-                .withKey("acLfComplete")
-                .withDefaultMessage("AC load flow termination status: ${lfStatus}")
+                .withKey("acLfCompletionStatus")
+                .withDefaultMessage("AC load flow completion status: ${lfStatus}")
                 .withValue("lfStatus", lfStatus.name())
                 .withSeverity(severity)
                 .build());

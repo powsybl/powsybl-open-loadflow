@@ -105,7 +105,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                 return OuterLoopStatus.UNSTABLE;
             }
         } else {
-            reportAndLogAlreadyBalanced(reporter, context.getCurrentRunIteration());
+            LOGGER.debug("Already balanced");
         }
 
         return OuterLoopStatus.STABLE;
@@ -116,12 +116,5 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
 
         LOGGER.info("Slack bus active power ({} MW) distributed in {} iterations",
                 slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
-    }
-
-    private static void reportAndLogAlreadyBalanced(Reporter reporter, int currentRunIterations) {
-        if (currentRunIterations == 0) {
-            Reports.reportNoMismatchDistribution(reporter);
-            LOGGER.debug("Already balanced");
-        }
     }
 }

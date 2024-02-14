@@ -196,7 +196,6 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         // all shunts are within their deadbands
         if (controllerShuntsOutOfDeadband.isEmpty()) {
-            Reports.reportAllShuntsAreInsideTheirDeadband(reporter);
             return status.getValue();
         }
 

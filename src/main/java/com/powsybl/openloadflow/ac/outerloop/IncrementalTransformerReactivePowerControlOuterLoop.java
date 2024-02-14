@@ -173,7 +173,6 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         List<LfBranch> controllerBranchesOutOfDeadband = getControllerBranchesOutOfDeadband(controlledBranchesOutOfDeadband);
 
         if (controllerBranchesOutOfDeadband.isEmpty()) {
-            Reports.reportAllTransformersAreInsideTheirDeadband(reporter);
             return status.getValue();
         }
 

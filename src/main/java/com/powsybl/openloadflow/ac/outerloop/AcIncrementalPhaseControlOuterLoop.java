@@ -223,10 +223,6 @@ public class AcIncrementalPhaseControlOuterLoop
             }
         }
 
-        if (OuterLoopStatus.STABLE == status && context.getCurrentRunIteration() == 0) {
-            Reports.reportNoPstChangedTaps(reporter);
-        }
-
         return status;
     }
 }

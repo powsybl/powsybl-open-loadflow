@@ -133,7 +133,6 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
             switchPqPv(pqToPvBuses, reporter);
             return OuterLoopStatus.UNSTABLE;
         } else {
-            Reports.reportNoPqToPvBuses(reporter);
             return OuterLoopStatus.STABLE;
         }
     }
