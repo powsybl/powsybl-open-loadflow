@@ -13,6 +13,7 @@ import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphson;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -69,7 +70,7 @@ public final class Reports {
     public static void reportMismatchDistributionSuccess(Reporter reporter, double slackBusActivePowerMismatch, int iterationCount) {
         reporter.report(Report.builder()
                 .withKey("mismatchDistributionSuccess")
-                .withDefaultMessage("Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} iteration(s)")
+                .withDefaultMessage("Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} inner iteration(s)")
                 .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withValue("iterationCount", iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -165,11 +166,11 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportCurrentLimitersChangedTaps(Reporter reporter, int numOfCurrentLimitersThatChangedTap) {
+    public static void reportCurrentLimitersPstsChangedTaps(Reporter reporter, int numOfCurrentLimiterPstsThatChangedTap) {
         reporter.report(Report.builder()
-                .withKey("currentLimitersChangedTaps")
-                .withDefaultMessage("${numOfCurrentLimitersThatChangedTap} current limiters PSTs changed taps")
-                .withValue("numOfCurrentLimitersThatChangedTap", String.format("%6s", numOfCurrentLimitersThatChangedTap))
+                .withKey("currentLimiterPstsChangedTaps")
+                .withDefaultMessage("${numOfCurrentLimiterPstsThatChangedTap} current limiters PSTs changed taps")
+                .withValue("numOfCurrentLimiterPstsThatChangedTap", String.format("%6s", numOfCurrentLimiterPstsThatChangedTap))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -180,6 +181,44 @@ public final class Reports {
                 .withDefaultMessage("${numOfActivePowerControlPstsThatChangedTap} active power control PSTs changed taps")
                 .withValue("numOfActivePowerControlPstsThatChangedTap", String.format("%6s", numOfActivePowerControlPstsThatChangedTap))
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportAllTransformersAreInsideTheirDeadband(Reporter reporter) {
+        reporter.report(Report.builder()
+                .withKey("allTransformersAreInsideTheirDeadband")
+                .withDefaultMessage("All transformers are within their deadbands")
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportTransformerVoltageControlChangedTaps(Reporter reporter, int numTransformerVoltageControlAdjusted) {
+        reporter.report(Report.builder()
+                .withKey("transformerVoltageControlChangedTaps")
+                .withDefaultMessage("${numTransformerVoltageControlAdjusted} transformer(s) have changed at least one tap")
+                .withValue("numTransformerVoltageControlAdjusted", String.format("%6s", numTransformerVoltageControlAdjusted))
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportTransformerVoltageControlTapLimit(Reporter reporter, int numTransformerVoltageControlTapLimit) {
+        reporter.report(Report.builder()
+                .withKey("transformerVoltageControlTapLimit")
+                .withDefaultMessage("${numTransformerVoltageControlTapLimit} transformer(s) have reached its (their) tap limit")
+                .withValue("numTransformerVoltageControlTapLimit", String.format("%6s", numTransformerVoltageControlTapLimit))
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportOuterLoopTerminationStatus(Reporter reporter, OuterLoopStatus outerLoopStatus, int currentRunIterations) {
+        TypedValue severity = outerLoopStatus == OuterLoopStatus.STABLE ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
+
+        reporter.report(Report.builder()
+                .withKey("outerLoopTerminationStatus")
+                .withDefaultMessage("Termination status after ${currentRunIterations} iteration(s): ${outerLoopStatus}")
+                .withValue("currentRunIterations", currentRunIterations)
+                .withValue("outerLoopStatus", outerLoopStatus.name())
+                .withSeverity(severity)
                 .build());
     }
 

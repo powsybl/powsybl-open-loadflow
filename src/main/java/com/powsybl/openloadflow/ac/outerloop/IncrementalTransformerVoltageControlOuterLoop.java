@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -212,7 +213,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         if (outOfDeadband) {
             List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
                     .filter(b -> !b.isDisabled())
-                    .collect(Collectors.toList());
+                    .toList();
             LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
                     voltageControl.getControlledBus().getId(), controllers.size(), halfTargetDeadband * voltageControl.getControlledBus().getNominalV(),
                     diffV * voltageControl.getControlledBus().getNominalV());
@@ -234,6 +235,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         // all branches are within their deadbands
         if (controllerBranchesOutOfDeadband.isEmpty()) {
+            Reports.reportAllTransformersAreInsideTheirDeadband(reporter);
             return status.getValue();
         }
 
@@ -275,10 +277,12 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         if (!controlledBusesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled bus voltages have been adjusted by changing at least one tap",
                     controlledBusesAdjusted.size());
+            Reports.reportTransformerVoltageControlChangedTaps(reporter, controlledBusesAdjusted.size());
         }
         if (!controlledBusesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled buses have all its controllers to a tap limit: {}",
                     controlledBusesWithAllItsControllersToLimit.size(), controlledBusesWithAllItsControllersToLimit);
+            Reports.reportTransformerVoltageControlTapLimit(reporter, controlledBusesWithAllItsControllersToLimit.size());
         }
 
         return status.getValue();

@@ -105,6 +105,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
                 && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
+
+        Reports.reportOuterLoopTerminationStatus(olReporter, outerLoopStatus, outerLoopContext.getCurrentRunIteration());
     }
 
     @Override

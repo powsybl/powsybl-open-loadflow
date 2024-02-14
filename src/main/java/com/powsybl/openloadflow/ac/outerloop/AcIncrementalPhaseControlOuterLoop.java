@@ -95,7 +95,7 @@ public class AcIncrementalPhaseControlOuterLoop
 
     private boolean checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
                                                             List<TransformerPhaseControl> currentLimiterPhaseControls, Reporter reporter) {
-        MutableInt numOfCurrentLimitersThatChangedTap = new MutableInt(0);
+        MutableInt numOfCurrentLimiterPstsThatChangedTap = new MutableInt(0);
 
         for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -117,7 +117,7 @@ public class AcIncrementalPhaseControlOuterLoop
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
                     piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
                         controllerContext.updateAllowedDirection(direction);
-                        numOfCurrentLimitersThatChangedTap.add(1);
+                        numOfCurrentLimiterPstsThatChangedTap.add(1);
                     });
 
                     if (piModel.getTapPosition() != oldTapPosition) {
@@ -131,11 +131,11 @@ public class AcIncrementalPhaseControlOuterLoop
             }
         }
 
-        if (numOfCurrentLimitersThatChangedTap.getValue() != 0) {
-            Reports.reportCurrentLimitersChangedTaps(reporter, numOfCurrentLimitersThatChangedTap.getValue());
+        if (numOfCurrentLimiterPstsThatChangedTap.getValue() != 0) {
+            Reports.reportCurrentLimitersPstsChangedTaps(reporter, numOfCurrentLimiterPstsThatChangedTap.getValue());
         }
 
-        return numOfCurrentLimitersThatChangedTap.getValue() != 0;
+        return numOfCurrentLimiterPstsThatChangedTap.getValue() != 0;
     }
 
     private void checkImpactOnOtherPhaseShifters(AcSensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
