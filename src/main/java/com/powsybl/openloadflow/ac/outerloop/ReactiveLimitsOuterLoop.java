@@ -324,18 +324,23 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         var contextData = (ContextData) context.getData();
 
-        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), contextData, reporter)) {
+        Reporter iterationReporter = reporter;
+        if (!pvToPqBuses.isEmpty() || !pqToPvBuses.isEmpty() || !busesWithUpdatedQLimits.isEmpty() || !reactiveControllerBusesToPqBuses.isEmpty()) {
+            iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1);
+        }
+
+        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), contextData, iterationReporter)) {
             status = OuterLoopStatus.UNSTABLE;
         }
-        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, contextData, reporter, maxPqPvSwitch)) {
+        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, contextData, iterationReporter, maxPqPvSwitch)) {
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!busesWithUpdatedQLimits.isEmpty()) {
             LOGGER.info("{} buses blocked to a reactive limit have been adjusted because reactive limit has changed", busesWithUpdatedQLimits.size());
-            Reports.reportBusesWithUpdatedQLimits(reporter, busesWithUpdatedQLimits.size());
+            Reports.reportBusesWithUpdatedQLimits(iterationReporter, busesWithUpdatedQLimits.size());
             status = OuterLoopStatus.UNSTABLE;
         }
-        if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, reporter)) {
+        if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, iterationReporter)) {
             status = OuterLoopStatus.UNSTABLE;
         }
         return status;

@@ -179,19 +179,14 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportOuterLoopTerminationStatus(Reporter reporter, OuterLoopStatus outerLoopStatus, int currentRunIterations) {
+    public static void reportOuterLoopStatus(Reporter reporter, OuterLoopStatus outerLoopStatus) {
         TypedValue severity = outerLoopStatus == OuterLoopStatus.STABLE ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
-        ReportBuilder reportBuilder = Report.builder();
-        if (currentRunIterations == 0) {
-            reportBuilder.withDefaultMessage("Status: ${outerLoopStatus}");
-        } else {
-            reportBuilder.withDefaultMessage("Status: ${outerLoopStatus} (after ${currentRunIterations} iteration(s))")
-                         .withValue("currentRunIterations", currentRunIterations);
-        }
-        reportBuilder.withKey("outerLoopTerminationStatus")
-                     .withValue("outerLoopStatus", outerLoopStatus.name())
-                     .withSeverity(severity);
-        reporter.report(reportBuilder.build());
+        reporter.report(Report.builder()
+                .withKey("outerLoopStatus")
+                .withDefaultMessage("Status: ${outerLoopStatus}")
+                .withValue("outerLoopStatus", outerLoopStatus.name())
+                .withSeverity(severity)
+                .build());
     }
 
     public static void reportDcLfSolverFailure(Reporter reporter, String errorMessage) {
@@ -268,6 +263,10 @@ public final class Reports {
         return reporter.createSubReporter("OuterLoop", "Outer loop ${outerLoopType}", "outerLoopType", outerLoopType);
     }
 
+    public static Reporter createOuterLoopIterationReporter(Reporter reporter, int currentRunIteration) {
+        return reporter.createSubReporter("OuterLoopIteration", "Iteration ${currentRunIteration}", "currentRunIteration", currentRunIteration);
+    }
+
     public static Reporter createSensitivityAnalysis(Reporter reporter, String networkId) {
         return reporter.createSubReporter("sensitivityAnalysis",
                 "Sensitivity analysis on network '${networkId}'", NETWORK_ID, networkId);
@@ -293,24 +292,48 @@ public final class Reports {
     }
 
     public static Reporter createDetailedSolverReporter(Reporter reporter, String solverName, int networkNumCc, int networkNumSc) {
-        return reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc} || No outer loops have been launched",
+        Reporter subReporter = reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc}",
                 Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
                         NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+        subReporter.report(Report.builder()
+                .withKey("solverNoOuterLoops")
+                .withDefaultMessage("No outer loops have been launched")
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+        return subReporter;
     }
 
-    public static Reporter createDetailedSolverReporterOuterLoop(Reporter reporter, String solverName, int networkNumCc, int networkNumSc, int outerLoopIteration, String outerLoopType) {
-        return reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc} || Outer loop iteration ${outerLoopIteration} (type=${outerLoopType})",
+    public static Reporter createDetailedSolverReporterOuterLoop(Reporter reporter, String solverName, int networkNumCc, int networkNumSc,
+                                                                 int outerLoopTotalIterations, String outerLoopType, int currentRunIterations) {
+        Reporter subReporter = reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc}",
                 Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
-                        NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED),
-                        "outerLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED),
-                        "outerLoopType", new TypedValue(outerLoopType, TypedValue.UNTYPED)));
+                        NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+        subReporter.report(Report.builder()
+                .withKey("solverOuterLoopCurrentType")
+                .withDefaultMessage("Outer loop type: ${outerLoopType}")
+                .withValue("outerLoopType", outerLoopType)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+        subReporter.report(Report.builder()
+                        .withKey("solverOuterLoopCumulatedIterations")
+                        .withDefaultMessage("Cumulated   outer loop iterations of this type: ${outerLoopTotalIterations}")
+                        .withValue("outerLoopTotalIterations", outerLoopTotalIterations)
+                        .withSeverity(TypedValue.INFO_SEVERITY)
+                        .build());
+        subReporter.report(Report.builder()
+                .withKey("solverOuterLoopCurrentIteration")
+                .withDefaultMessage("Current run outer loop iteration  of this type: ${currentRunIterations}")
+                .withValue("currentRunIterations", currentRunIterations)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+        return subReporter;
     }
 
     public static Reporter createNewtonRaphsonMismatchReporter(Reporter reporter, int iteration) {
         if (iteration == -1) {
             return reporter.createSubReporter("mismatchInitial", "Initial mismatch");
         } else {
-            return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} mismatch", ITERATION, iteration);
+            return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} ", ITERATION, iteration);
         }
     }
 

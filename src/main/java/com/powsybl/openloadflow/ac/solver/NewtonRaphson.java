@@ -72,7 +72,8 @@ public class NewtonRaphson extends AbstractAcSolver {
         Map<AcEquationType, Pair<Equation<AcVariableType, AcEquationType>, Double>> mismatchEquations = getLargestMismatchByAcEquationType(equationSystem, mismatch);
 
         // report largest mismatches in (P, Q, V) equations
-        Reporter iterationMismatchReporter = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reporter, iteration) : null;
+        // add 1 to iteration so that it starts at 1 instead of 0
+        Reporter iterationMismatchReporter = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reporter, iteration + 1) : null;
 
         for (AcEquationType acEquationType : REPORTED_AC_EQUATION_TYPES) {
             Optional.ofNullable(mismatchEquations.get(acEquationType))

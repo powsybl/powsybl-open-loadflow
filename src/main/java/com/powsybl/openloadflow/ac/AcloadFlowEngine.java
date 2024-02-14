@@ -90,7 +90,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                             solver.getName(),
                             context.getNetwork().getNumCC(),
                             context.getNetwork().getNumSC(),
-                            outerLoopIteration.toInteger() + 1, outerLoop.getName());
+                            outerLoopIteration.toInteger() + 1,
+                            outerLoop.getName(),
+                            outerLoopContext.getCurrentRunIteration() + 1);
                 }
 
                 // if not yet stable, restart solver
@@ -106,7 +108,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
 
-        Reports.reportOuterLoopTerminationStatus(olReporter, outerLoopStatus, outerLoopContext.getCurrentRunIteration());
+        Reports.reportOuterLoopStatus(olReporter, outerLoopStatus);
     }
 
     @Override
