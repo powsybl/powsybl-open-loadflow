@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class LoadFlowAssert {
 
@@ -67,14 +67,14 @@ public final class LoadFlowAssert {
     }
 
     public static void assertLoadFlowResultsEquals(LoadFlowResult loadFlowResultExpected, LoadFlowResult loadFlowResult) {
-        assertEquals(loadFlowResultExpected.isOk(), loadFlowResult.isOk(),
-                "Wrong load flow result summary");
+        assertEquals(loadFlowResultExpected.getStatus(), loadFlowResult.getStatus(),
+                "Wrong load flow status");
         assertEquals(loadFlowResultExpected.getComponentResults().size(),
                 loadFlowResult.getComponentResults().size(),
                 "Wrong sub network count");
         Iterator<LoadFlowResult.ComponentResult> componentResultIteratorExpected = loadFlowResultExpected.getComponentResults().iterator();
         Iterator<LoadFlowResult.ComponentResult> componentResultIterator = loadFlowResult.getComponentResults().iterator();
-        // loop over sub networks
+        // loop over components
         while (componentResultIteratorExpected.hasNext()) {
             LoadFlowResult.ComponentResult componentResultExpected = componentResultIteratorExpected.next();
             LoadFlowResult.ComponentResult componentResult = componentResultIterator.next();
@@ -84,9 +84,14 @@ public final class LoadFlowAssert {
             assertEquals(componentResultExpected.getIterationCount(),
                     componentResult.getIterationCount(),
                     "Wrong iteration count");
-            assertEquals(componentResultExpected.getSlackBusActivePowerMismatch(),
-                    componentResult.getSlackBusActivePowerMismatch(), DELTA_MISMATCH,
-                    "Wrong active power mismatch");
+            assertEquals(componentResultExpected.getSlackBusResults().size(),
+                    componentResult.getSlackBusResults().size(),
+                    "Wrong slack bus results size");
+            if (!componentResult.getSlackBusResults().isEmpty()) {
+                assertEquals(componentResultExpected.getSlackBusResults().get(0).getActivePowerMismatch(),
+                        componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), DELTA_MISMATCH,
+                        "Wrong active power mismatch");
+            }
         }
     }
 

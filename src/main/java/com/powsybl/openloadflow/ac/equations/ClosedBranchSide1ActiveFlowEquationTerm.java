@@ -18,7 +18,7 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 @SuppressWarnings("squid:S00107")
 public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
@@ -33,11 +33,10 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
     }
 
-    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
-        double v1 = v1();
-        double r1 = r1();
-        double v2 = v2();
-        double theta = theta1(ksi, ph1(), a1(), ph2());
+    public static double calculateSensi(double g1, double y, double ksi,
+                                        double v1, double ph1, double a1, double r1, double v2, double ph2,
+                                        double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        double theta = theta1(ksi, ph1, a1, ph2);
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
         double sinKsi = FastMath.sin(ksi);
@@ -47,6 +46,10 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
                 + dp1dv2(y, v1, r1, sinTheta) * dv2
                 + dp1da1(y, v1, r1, v2, cosTheta) * da1
                 + dp1dr1(y, sinKsi, g1, v1, r1, v2, sinTheta) * dr1;
+    }
+
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        return calculateSensi(g1, y, ksi, v1(), ph1(), a1(), r1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
     }
 
     public static double p1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {

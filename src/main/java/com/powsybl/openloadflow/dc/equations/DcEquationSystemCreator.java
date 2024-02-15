@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -15,13 +16,17 @@ import com.powsybl.openloadflow.util.EvaluableConstants;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DcEquationSystemCreator {
 
     private final LfNetwork network;
 
     private final DcEquationSystemCreationParameters creationParameters;
+
+    public DcEquationSystemCreator(LfNetwork network) {
+        this(network, new DcEquationSystemCreationParameters());
+    }
 
     public DcEquationSystemCreator(LfNetwork network, DcEquationSystemCreationParameters creationParameters) {
         this.network = Objects.requireNonNull(network);
@@ -81,8 +86,8 @@ public class DcEquationSystemCreator {
                                              LfBus bus1, LfBus bus2) {
         if (bus1 != null && bus2 != null) {
             boolean deriveA1 = isDeriveA1(branch, creationParameters);
-            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
-            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
+            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType());
+            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType());
             equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
                     .orElseThrow()
                     .addTerm(p1);
@@ -98,7 +103,13 @@ public class DcEquationSystemCreator {
             }
             if (creationParameters.isUpdateFlows()) {
                 branch.setP1(p1);
+                branch.setClosedP1(p1);
                 branch.setP2(p2);
+                branch.setClosedP2(p2);
+                ClosedBranchDcCurrent i1 = new ClosedBranchDcCurrent(branch, TwoSides.ONE, creationParameters.getDcPowerFactor());
+                ClosedBranchDcCurrent i2 = new ClosedBranchDcCurrent(branch, TwoSides.TWO, creationParameters.getDcPowerFactor());
+                branch.setI1(i1);
+                branch.setI2(i2);
             }
         } else if (bus1 != null && creationParameters.isUpdateFlows()) {
             branch.setP1(EvaluableConstants.ZERO);

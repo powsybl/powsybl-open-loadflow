@@ -6,10 +6,12 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.List;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
@@ -24,7 +26,17 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
+    public void onGeneratorReactivePowerControlChange(LfBus controllerBus, boolean newReactiveControllerEnabled) {
+        // empty
+    }
+
+    @Override
     public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
+        // empty
+    }
+
+    @Override
+    public void onTransformerVoltageControlTargetChange(TransformerVoltageControl transformerVoltageControl, double newTargetVoltage) {
         // empty
     }
 
@@ -85,6 +97,11 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
     public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel) {
+        // empty
+    }
+
+    @Override
+    public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
         // empty
     }
 }

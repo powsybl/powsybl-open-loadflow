@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
 
@@ -31,8 +31,12 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         createPhaseControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // transformer voltage control
         createTransformerVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
+        // transformer reactive power control
+        createTransformerReactivePowerControlOuterLoop(parametersExt).ifPresent(outerLoops::add);
         // shunt compensator voltage control
         createShuntVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
+        // automation system
+        createAutomationSystemOuterLoop(parametersExt).ifPresent(outerLoops::add);
         return outerLoops;
     }
 }

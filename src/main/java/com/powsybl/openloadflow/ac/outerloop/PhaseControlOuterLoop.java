@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
@@ -24,7 +25,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class PhaseControlOuterLoop
         extends AbstractPhaseControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
@@ -108,18 +109,18 @@ public class PhaseControlOuterLoop
         double currentLimit = phaseControl.getTargetValue();
         LfBranch controllerBranch = phaseControl.getControllerBranch();
         PiModel piModel = controllerBranch.getPiModel();
-        if (phaseControl.getControlledSide() == ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
-            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, ControlledSide.ONE);
+        if (phaseControl.getControlledSide() == TwoSides.ONE && currentLimit < controllerBranch.getI1().eval()) {
+            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, TwoSides.ONE);
             return isSensibilityPositive ? piModel.shiftOneTapPositionToChangeA1(Direction.DECREASE) : piModel.shiftOneTapPositionToChangeA1(Direction.INCREASE);
-        } else if (phaseControl.getControlledSide() == ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
-            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, ControlledSide.TWO);
+        } else if (phaseControl.getControlledSide() == TwoSides.TWO && currentLimit < controllerBranch.getI2().eval()) {
+            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, TwoSides.TWO);
             return isSensibilityPositive ? piModel.shiftOneTapPositionToChangeA1(Direction.DECREASE) : piModel.shiftOneTapPositionToChangeA1(Direction.INCREASE);
         }
         return false;
     }
 
-    private boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, ControlledSide controlledSide) {
-        if (controlledSide == ControlledSide.ONE) {
+    private boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, TwoSides controlledSide) {
+        if (controlledSide == TwoSides.ONE) {
             ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = (ClosedBranchSide1CurrentMagnitudeEquationTerm) controllerBranch.getI1();
             return i1.der(i1.getA1Var()) > 0;
         } else {

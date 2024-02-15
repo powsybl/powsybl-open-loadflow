@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class PostContingencyNetworkResult extends AbstractNetworkResult {
 
@@ -66,10 +66,11 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     @Override
     public void update() {
         clear();
-        addResults(monitorIndex.getAllStateMonitor());
         StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(contingency.getId());
         if (stateMonitor != null) {
             addResults(stateMonitor);
+        } else {
+            addResults(monitorIndex.getAllStateMonitor());
         }
     }
 

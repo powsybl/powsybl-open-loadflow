@@ -28,8 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Luma Zamarreño <zamarrenolm at aia.es>
- * @author José Antonio Marqués <marquesja at aia.es>
+ * @author Luma Zamarreño {@literal <zamarrenolm at aia.es>}
+ * @author José Antonio Marqués {@literal <marquesja at aia.es>}
  */
 class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
 
@@ -62,7 +62,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(1.99, 1, l23.getTerminal1(), -1.99, -1, l23.getTerminal2());
     }
@@ -84,7 +84,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
     }
@@ -107,7 +107,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
     }
@@ -138,7 +138,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
     }
@@ -159,7 +159,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(1.99, 1, l23.getTerminal1(), -1.99, -1, l23.getTerminal2());
         checkFlows(0.0, 0.0, l23p.getTerminal1(), 0.0, 0.0, l23p.getTerminal2());
@@ -194,7 +194,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(1.4, 0.4, l34.getTerminal1(), -1.4, -0.4, l34.getTerminal2());
         checkFlows(1.5, 0.5, l35.getTerminal1(), -1.5, -0.5, l35.getTerminal2());
@@ -216,7 +216,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(1.99, 1, t23.getTerminal1(), -1.99, -1, t23.getTerminal2());
     }
@@ -229,7 +229,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         Bus b3 = createBus(network, "s", "b3");
         Bus b4 = createBus(network, "s", "b4");
         Bus b5 = createBus(network, "s", "b5");
-        createGenerator(b1, "g1", 2, 1);
+        createGenerator(b1, "g1", 4.5, 1);
         createLoad(b3, "l1", 1.5, 1);
         createLoad(b4, "l2", 1.4, 0.4);
         createLoad(b5, "l3", 1.5, 0.5);
@@ -243,7 +243,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(1.4, 0.4, t34.getTerminal1(), -1.4, -0.4, t34.getTerminal2());
         checkFlows(1.5, 0.5, t35.getTerminal1(), -1.5, -0.5, t35.getTerminal2());
@@ -267,7 +267,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(2.9, 1.5, t234.getLeg1().getTerminal(), -1.9, -1, t234.getLeg2().getTerminal(), -1.0, -0.5, t234.getLeg3().getTerminal());
     }
@@ -289,7 +289,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(2.9, 1.639, t234.getLeg1().getTerminal(), -1.9, -1, t234.getLeg2().getTerminal(), -1.0, -0.5, t234.getLeg3().getTerminal());
     }
@@ -311,7 +311,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(2.9, 1.7732, t234.getLeg1().getTerminal(), -1.9, -1, t234.getLeg2().getTerminal(), -1.0, -0.5, t234.getLeg3().getTerminal());
     }
@@ -332,7 +332,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertActivePowerEquals(1.5, dl3.getTerminal());
         assertReactivePowerEquals(0.5, dl3.getTerminal());
@@ -372,7 +372,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(3.0, 1.4, l34.getTerminal1(), -3.0, -1.4, l34.getTerminal2());
         checkFlows(0.0, 0.0, l35.getTerminal1(), 0.0, 0.0, l35.getTerminal2());
@@ -403,7 +403,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(1.99, l23.getTerminal1(), -1.99, l23.getTerminal2());
     }
@@ -424,7 +424,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(1.99, t23.getTerminal1(), -1.99, t23.getTerminal2());
     }
@@ -447,7 +447,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(2.9, t234.getLeg1().getTerminal(), -1.9, t234.getLeg2().getTerminal(), -1.0, t234.getLeg3().getTerminal());
     }
@@ -469,7 +469,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         assertActivePowerEquals(1.5, dl3.getTerminal());
         assertTrue(Double.isNaN(dl3.getTerminal().getQ()));
@@ -493,7 +493,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
             .setNewtonRaphsonConvEpsPerEq(0.000001);
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
     }

@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DcValueVoltageInitializer implements VoltageInitializer {
 
@@ -29,16 +30,19 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     private final boolean useTransformerRatio;
 
+    private final DcApproximationType dcApproximationType;
+
     private final MatrixFactory matrixFactory;
 
     private final int maxOuterLoopIterations;
 
     public DcValueVoltageInitializer(LfNetworkParameters networkParameters, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
-                                     boolean useTransformerRatio, MatrixFactory matrixFactory, int maxOuterLoopIterations) {
+                                     boolean useTransformerRatio, DcApproximationType dcApproximationType, MatrixFactory matrixFactory, int maxOuterLoopIterations) {
         this.networkParameters = Objects.requireNonNull(networkParameters);
         this.distributedSlack = distributedSlack;
         this.balanceType = Objects.requireNonNull(balanceType);
         this.useTransformerRatio = useTransformerRatio;
+        this.dcApproximationType = Objects.requireNonNull(dcApproximationType);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.maxOuterLoopIterations = maxOuterLoopIterations;
     }
@@ -52,17 +56,23 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         LfNetworkParameters networkParametersDcInit = new LfNetworkParameters(networkParameters)
                 .setPhaseControl(false); // not supported yet.
 
-        DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParametersDcInit,
-                                                                   new DcEquationSystemCreationParameters(false, false, useTransformerRatio),
-                                                                   matrixFactory,
-                                                                   distributedSlack,
-                                                                   balanceType,
-                                                                   false,
-                                                                   maxOuterLoopIterations);
+        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters()
+                .setUpdateFlows(false)
+                .setForcePhaseControlOffAndAddAngle1Var(false)
+                .setUseTransformerRatio(useTransformerRatio)
+                .setDcApproximationType(dcApproximationType);
+        DcLoadFlowParameters parameters = new DcLoadFlowParameters()
+                .setNetworkParameters(networkParametersDcInit)
+                .setEquationSystemCreationParameters(creationParameters)
+                .setMatrixFactory(matrixFactory)
+                .setDistributedSlack(distributedSlack)
+                .setBalanceType(balanceType)
+                .setSetVToNan(false)
+                .setMaxOuterLoopIterations(maxOuterLoopIterations);
 
         try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
             DcLoadFlowEngine engine = new DcLoadFlowEngine(context);
-            if (!engine.run().isSucceeded()) {
+            if (!engine.run().isSuccess()) {
                 throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
             }
         }

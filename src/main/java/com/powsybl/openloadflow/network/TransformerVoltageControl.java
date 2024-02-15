@@ -7,8 +7,8 @@
 package com.powsybl.openloadflow.network;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> {
 
@@ -16,6 +16,14 @@ public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> 
 
     public TransformerVoltageControl(LfBus controlledBus, double targetValue, Double targetDeadband) {
         super(controlledBus, Type.TRANSFORMER, PRIORITY, targetValue, targetDeadband);
+    }
+
+    @Override
+    public void setTargetValue(double targetValue) {
+        if (targetValue != this.targetValue) {
+            this.targetValue = targetValue;
+            controlledBus.getNetwork().getListeners().forEach(l -> l.onTransformerVoltageControlTargetChange(this, targetValue));
+        }
     }
 
     @Override

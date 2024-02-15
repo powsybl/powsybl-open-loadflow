@@ -13,6 +13,7 @@ import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.config.YamlModuleConfigRepository;
+import com.powsybl.commons.parameters.ParameterType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -40,7 +41,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Jérémy Labous <jlabous at silicom.fr>
+ * @author Jérémy Labous {@literal <jlabous at silicom.fr>}
  */
 class OpenLoadFlowParametersTest {
 
@@ -82,8 +83,8 @@ class OpenLoadFlowParametersTest {
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
-        assertFalse(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
-        assertTrue(olfParameters.hasVoltageRemoteControl());
+        assertEquals(OpenLoadFlowParameters.SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE, olfParameters.getSlackDistributionFailureBehavior());
+        assertTrue(olfParameters.isVoltageRemoteControl());
         assertEquals(OpenLoadFlowParameters.LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
         assertEquals(LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, olfParameters.getMinPlausibleTargetVoltage());
         assertEquals(LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, olfParameters.getMaxPlausibleTargetVoltage());
@@ -102,11 +103,11 @@ class OpenLoadFlowParametersTest {
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(OpenLoadFlowParameters.SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE, olfParameters.getSlackBusSelectionMode());
-        assertEquals(OpenLoadFlowParameters.VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
+        assertEquals(OpenLoadFlowParameters.VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.isVoltageRemoteControl());
         assertEquals(OpenLoadFlowParameters.LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
-        assertEquals(OpenLoadFlowParameters.THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
+        assertEquals(OpenLoadFlowParameters.SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE, olfParameters.getSlackDistributionFailureBehavior());
         assertEquals(OpenLoadFlowParameters.SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE, olfParameters.getSlackBusPMaxMismatch(), 0.0);
-        assertEquals(OpenLoadFlowParameters.REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasReactivePowerRemoteControl());
+        assertEquals(OpenLoadFlowParameters.GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.isGeneratorReactivePowerRemoteControl());
     }
 
     @Test
@@ -124,14 +125,14 @@ class OpenLoadFlowParametersTest {
         olfModuleConfig.setStringProperty("newtonRaphsonStoppingCriteriaType", "Invalid");
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> LoadFlowParameters.load(platformConfig));
-        assertEquals("No enum constant com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteriaType.Invalid", exception.getMessage());
+        assertEquals("No enum constant com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType.Invalid", exception.getMessage());
 
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(new LoadFlowParameters());
-        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxAngleMismatch(-1));
-        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxVoltageMismatch(-1));
-        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxRatioMismatch(-1));
-        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxActivePowerMismatch(-1));
-        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxReactivePowerMismatch(-1));
+        assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxAngleMismatch(-1));
+        assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxVoltageMismatch(-1));
+        assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxRatioMismatch(-1));
+        assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxActivePowerMismatch(-1));
+        assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxReactivePowerMismatch(-1));
     }
 
     @Test
@@ -173,7 +174,7 @@ class OpenLoadFlowParametersTest {
         assertEquals(SlackBusSelectionMode.NAME, olfParameters.getSlackBusSelectionMode());
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(olfParameters.getSlackBusSelectionMode(), olfParameters.getSlackBusesIds(), olfParameters.getPlausibleActivePowerLimit(),
                 olfParameters.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), Collections.emptySet());
-        List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), slackBusSelector);
+        List<LfNetwork> lfNetworks = Networks.load(EurostagFactory.fix(EurostagTutorialExample1Factory.create()), slackBusSelector);
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals("VLHV1_0", lfNetwork.getSlackBus().getId()); // fallback to automatic method.
     }
@@ -182,7 +183,7 @@ class OpenLoadFlowParametersTest {
     void testMaxIterationReached() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
 
         // Change the nominal voltage to have a target V distant enough but still plausible (in [0.8 1.2] in Pu), so that the NR diverges
@@ -197,11 +198,11 @@ class OpenLoadFlowParametersTest {
     void testIsWriteSlackBus() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(network.getVoltageLevel("VLHV1").getExtension(SlackTerminal.class).getTerminal().getBusView().getBus().getId(),
-                result.getComponentResults().get(0).getSlackBusId());
+                result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
     }
 
     @Test
@@ -210,18 +211,18 @@ class OpenLoadFlowParametersTest {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertEquals(-0.004, result.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
+        assertEquals(-0.004, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), DELTA_MISMATCH);
 
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
         LoadFlow.Runner loadFlowRunner2 = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result2 = loadFlowRunner2.run(network, parameters);
-        assertEquals(-1.8703e-5, result2.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
+        assertEquals(-1.8703e-5, result2.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), DELTA_MISMATCH);
     }
 
     @Test
     void testPlausibleTargetVoltage() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setTargetV(30.0);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         loadFlowRunner.run(network, parameters);
@@ -256,7 +257,7 @@ class OpenLoadFlowParametersTest {
         assertFalse(olfParameters.isAlwaysUpdateNetwork()); // Default value of alwaysUpdateNetwork
 
         // Check the network is not updated if alwaysUpdateNetwork = false and final status = MAX_ITERATION_REACHED
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var nload = network.getBusBreakerView().getBus("NLOAD");
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         loadFlowRunner.run(network, parameters);
@@ -278,17 +279,17 @@ class OpenLoadFlowParametersTest {
         parametersMap.put("reactivePowerRemoteControl", "false");
         OpenLoadFlowParameters parameters = OpenLoadFlowParameters.load(parametersMap);
         assertEquals(SlackBusSelectionMode.FIRST, parameters.getSlackBusSelectionMode());
-        assertTrue(parameters.hasVoltageRemoteControl());
-        assertFalse(parameters.hasReactivePowerRemoteControl());
+        assertTrue(parameters.isVoltageRemoteControl());
+        assertFalse(parameters.isGeneratorReactivePowerRemoteControl());
         Map<String, String> updateParametersMap = new HashMap<>();
         updateParametersMap.put("slackBusSelectionMode", "MOST_MESHED");
         updateParametersMap.put("voltageRemoteControl", "false");
         updateParametersMap.put("maxNewtonRaphsonIterations", "10");
         parameters.update(updateParametersMap);
         assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getSlackBusSelectionMode());
-        assertFalse(parameters.hasVoltageRemoteControl());
+        assertFalse(parameters.isVoltageRemoteControl());
         assertEquals(10, parameters.getMaxNewtonRaphsonIterations());
-        assertFalse(parameters.hasReactivePowerRemoteControl());
+        assertFalse(parameters.isGeneratorReactivePowerRemoteControl());
     }
 
     @Test
@@ -307,6 +308,57 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
+    void testEqualsAndClone() {
+        OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
+        provider.getSpecificParameters().forEach(sp -> {
+            var p1 = new LoadFlowParameters();
+            var p2 = new LoadFlowParameters();
+            var pe1 = OpenLoadFlowParameters.create(p1);
+            var pe2 = OpenLoadFlowParameters.create(p2);
+            final String newVal1;
+            final String newVal2;
+            assertTrue(OpenLoadFlowParameters.equals(p1, p2));
+            if (sp.getType() == ParameterType.BOOLEAN) {
+                newVal1 = "true";
+                newVal2 = "false";
+            } else if (sp.getType() == ParameterType.INTEGER || sp.getType() == ParameterType.DOUBLE) {
+                newVal1 = "3";
+                newVal2 = "4";
+            } else if (sp.getType() == ParameterType.STRING) {
+                if (sp.getPossibleValues().isEmpty()) {
+                    // e.g. debugDir
+                    newVal1 = "Foo";
+                    newVal2 = "Bar";
+                } else {
+                    newVal1 = sp.getPossibleValues().get(0).toString();
+                    newVal2 = sp.getPossibleValues().get(1).toString();
+                }
+            } else if (sp.getType() == ParameterType.STRING_LIST) {
+                if (sp.getPossibleValues() == null || sp.getPossibleValues().isEmpty()) {
+                    // e.g. slackBusesIds
+                    newVal1 = "Foo,Bar";
+                    newVal2 = "Foo,Bar,Baz";
+                } else {
+                    // e.g. slackBusCountryFilter
+                    newVal1 = sp.getPossibleValues().get(0).toString();
+                    newVal2 = sp.getPossibleValues().get(0).toString() + "," + sp.getPossibleValues().get(1).toString();
+                }
+            } else {
+                throw new IllegalStateException("Unexpected ParameterType");
+            }
+            pe1.update(Map.of(sp.getName(), newVal1));
+            pe2.update(Map.of(sp.getName(), newVal2));
+            // should not equal
+            assertFalse(OpenLoadFlowParameters.equals(p1, p2), "Parameter is not handled in equals: " + sp.getName());
+            // at least one of the two won't have a default value by accident, so below should catch everything
+            var p1c = OpenLoadFlowParameters.clone(p1);
+            assertTrue(OpenLoadFlowParameters.equals(p1, p1c), "Parameter is not handled in clone: " + sp.getName());
+            var p2c = OpenLoadFlowParameters.clone(p2);
+            assertTrue(OpenLoadFlowParameters.equals(p2, p2c), "Parameter is not handled in clone: " + sp.getName());
+        });
+    }
+
+    @Test
     void testCloneParameters() {
         var p = new LoadFlowParameters();
         assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
@@ -320,7 +372,7 @@ class OpenLoadFlowParametersTest {
     @Test
     void testToString() {
         OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
-        assertEquals("OpenLoadFlowParameters(slackBusSelectionMode=MOST_MESHED, slackBusesIds=[], throwsExceptionInCaseOfSlackDistributionFailure=false, voltageRemoteControl=true, lowImpedanceBranchMode=REPLACE_BY_ZERO_IMPEDANCE_LINE, loadPowerFactorConstant=false, plausibleActivePowerLimit=5000.0, newtonRaphsonStoppingCriteriaType=UNIFORM_CRITERIA, slackBusPMaxMismatch=1.0, maxActivePowerMismatch=0.01, maxReactivePowerMismatch=0.01, maxVoltageMismatch=1.0E-4, maxAngleMismatch=1.0E-5, maxRatioMismatch=1.0E-5, maxSusceptanceMismatch=1.0E-4, voltagePerReactivePowerControl=false, reactivePowerRemoteControl=false, maxNewtonRaphsonIterations=15, maxOuterLoopIterations=20, newtonRaphsonConvEpsPerEq=1.0E-4, voltageInitModeOverride=NONE, transformerVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, shuntVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, networkCacheEnabled=false, svcVoltageMonitoring=true, stateVectorScalingMode=NONE, maxSlackBusCount=1, debugDir=null, incrementalTransformerVoltageControlOuterLoopMaxTapShift=3, secondaryVoltageControl=false, reactiveLimitsMaxPqPvSwitch=3, phaseShifterControlMode=CONTINUOUS_WITH_DISCRETISATION, alwaysUpdateNetwork=false, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile=95.0, reportedFeatures=[], slackBusCountryFilter=[], actionableSwitchesIds=[], asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, reactivePowerDispatchMode=Q_EQUAL_PROPORTION, outerLoopNames=null, useActiveLimits=true, lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295, linePerUnitMode=IMPEDANCE, useLoadModel=false)",
+        assertEquals("OpenLoadFlowParameters(slackBusSelectionMode=MOST_MESHED, slackBusesIds=[], slackDistributionFailureBehavior=LEAVE_ON_SLACK_BUS, voltageRemoteControl=true, lowImpedanceBranchMode=REPLACE_BY_ZERO_IMPEDANCE_LINE, loadPowerFactorConstant=false, plausibleActivePowerLimit=5000.0, newtonRaphsonStoppingCriteriaType=UNIFORM_CRITERIA, slackBusPMaxMismatch=1.0, maxActivePowerMismatch=0.01, maxReactivePowerMismatch=0.01, maxVoltageMismatch=1.0E-4, maxAngleMismatch=1.0E-5, maxRatioMismatch=1.0E-5, maxSusceptanceMismatch=1.0E-4, voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, transformerReactivePowerControl=false, maxNewtonRaphsonIterations=15, maxOuterLoopIterations=20, newtonRaphsonConvEpsPerEq=1.0E-4, voltageInitModeOverride=NONE, transformerVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, shuntVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, networkCacheEnabled=false, svcVoltageMonitoring=true, stateVectorScalingMode=NONE, maxSlackBusCount=1, debugDir=null, incrementalTransformerRatioTapControlOuterLoopMaxTapShift=3, secondaryVoltageControl=false, reactiveLimitsMaxPqPvSwitch=3, phaseShifterControlMode=CONTINUOUS_WITH_DISCRETISATION, alwaysUpdateNetwork=false, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile=95.0, reportedFeatures=[], slackBusCountryFilter=[], actionableSwitchesIds=[], asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, reactivePowerDispatchMode=Q_EQUAL_PROPORTION, outerLoopNames=null, useActiveLimits=true, disableVoltageControlOfGeneratorsOutsideActivePowerLimits=false, lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295, linePerUnitMode=IMPEDANCE, useLoadModel=false, dcApproximationType=IGNORE_R, simulateAutomationSystems=false, acSolverType=NEWTON_RAPHSON, maxNewtonKrylovIterations=100, newtonKrylovLineSearch=false, referenceBusSelectionMode=FIRST_SLACK, writeReferenceTerminals=false)",
                      parameters.toString());
     }
 
@@ -344,7 +396,96 @@ class OpenLoadFlowParametersTest {
         e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt));
         assertEquals("Unknown outer loop 'Foo'", e.getMessage());
 
-        assertEquals("Ordered explicit list of outer loop names, supported outer loops are IncrementalPhaseControl, DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl",
-                OpenLoadFlowParameters.SPECIFIC_PARAMETERS.stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.OUTER_LOOP_NAMES_PARAM_NAME)).findFirst().orElseThrow().getDescription());
+        assertEquals("Ordered explicit list of outer loop names, supported outer loops are IncrementalPhaseControl, DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl, AutomationSystem, IncrementalTransformerReactivePowerControl",
+                     OpenLoadFlowParameters.SPECIFIC_PARAMETERS.stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.OUTER_LOOP_NAMES_PARAM_NAME)).findFirst().orElseThrow().getDescription());
+    }
+
+    @Test
+    void testOlfIntegerParametersChecker() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
+
+        // for integer parameters
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxNewtonRaphsonIterations(0));
+        assertEquals("Invalid value for parameter maxNewtonRaphsonIterations: 0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxOuterLoopIterations(0));
+        assertEquals("Invalid value for parameter maxOuterLoopIterations: 0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(0));
+        assertEquals("Invalid value for parameter incrementalTransformerRatioTapControlOuterLoopMaxTapShift: 0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setReactiveLimitsMaxPqPvSwitch(-1));
+        assertEquals("Invalid value for parameter reactiveLimitsMaxPqPvSwitch: -1", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setLineSearchStateVectorScalingMaxIteration(0));
+        assertEquals("Invalid value for parameter lineSearchStateVectorScalingMaxIteration: 0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxNewtonKrylovIterations(0));
+        assertEquals("Invalid value for parameter maxNewtonKrylovIterations: 0", e.getMessage());
+    }
+
+    @Test
+    void testOlfDoubleParametersChecker() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
+
+        // for double parameters
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setSlackBusPMaxMismatch(-1.0));
+        assertEquals("Invalid value for parameter slackBusPMaxMismatch: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setNewtonRaphsonConvEpsPerEq(0));
+        assertEquals("Invalid value for parameter newtonRaphsonConvEpsPerEq: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxActivePowerMismatch(0));
+        assertEquals("Invalid value for parameter maxActivePowerMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxReactivePowerMismatch(0));
+        assertEquals("Invalid value for parameter maxReactivePowerMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxVoltageMismatch(0));
+        assertEquals("Invalid value for parameter maxVoltageMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxAngleMismatch(0));
+        assertEquals("Invalid value for parameter maxAngleMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxRatioMismatch(0));
+        assertEquals("Invalid value for parameter maxRatioMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxSusceptanceMismatch(0));
+        assertEquals("Invalid value for parameter maxSusceptanceMismatch: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMinPlausibleTargetVoltage(-1.0));
+        assertEquals("Invalid value for parameter minPlausibleTargetVoltage: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxPlausibleTargetVoltage(-1.0));
+        assertEquals("Invalid value for parameter maxPlausibleTargetVoltage: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMinNominalVoltageTargetVoltageCheck(-1.0));
+        assertEquals("Invalid value for parameter minNominalVoltageTargetVoltageCheck: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMinRealisticVoltage(-1.0));
+        assertEquals("Invalid value for parameter minRealisticVoltage: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxRealisticVoltage(-1.0));
+        assertEquals("Invalid value for parameter maxRealisticVoltage: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setLowImpedanceThreshold(0.0));
+        assertEquals("Invalid value for parameter lowImpedanceThreshold: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(-1.0));
+        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: -1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(101.0));
+        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 101.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setLineSearchStateVectorScalingStepFold(1.0));
+        assertEquals("Invalid value for parameter lineSearchStateVectorScalingStepFold: 1.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxVoltageChangeStateVectorScalingMaxDv(0.0));
+        assertEquals("Invalid value for parameter maxVoltageChangeStateVectorScalingMaxDv: 0.0", e.getMessage());
+
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxVoltageChangeStateVectorScalingMaxDphi(0.0));
+        assertEquals("Invalid value for parameter maxVoltageChangeStateVectorScalingMaxDphi: 0.0", e.getMessage());
     }
 }

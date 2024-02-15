@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<LfBus, AcVariableType, AcEquationType> {
 

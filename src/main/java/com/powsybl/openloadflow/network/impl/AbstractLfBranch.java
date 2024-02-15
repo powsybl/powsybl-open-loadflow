@@ -20,15 +20,15 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractLfBranch extends AbstractElement implements LfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
-    private final LfBus bus1;
+    protected final LfBus bus1;
 
-    private final LfBus bus2;
+    protected final LfBus bus2;
 
     private final Map<LimitType, List<LfLimit>> limits1 = new EnumMap<>(LimitType.class);
 
@@ -44,6 +44,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean voltageControlEnabled = false;
 
+    protected TransformerReactivePowerControl transformerReactivePowerControl;
+
     static class ZeroImpedanceContext {
 
         boolean spanningTreeEdge = false;
@@ -55,7 +57,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected Evaluable a1;
 
-    private ReactivePowerControl reactivePowerControl;
+    private GeneratorReactivePowerControl generatorReactivePowerControl;
 
     protected LfAsymLine asymLine;
 
@@ -216,6 +218,26 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
+    @Override
+    public Optional<TransformerReactivePowerControl> getTransformerReactivePowerControl() {
+        return Optional.ofNullable(transformerReactivePowerControl);
+    }
+
+    @Override
+    public void setTransformerReactivePowerControl(TransformerReactivePowerControl transformerReactivePowerControl) {
+        this.transformerReactivePowerControl = transformerReactivePowerControl;
+    }
+
+    @Override
+    public boolean isTransformerReactivePowerController() {
+        return transformerReactivePowerControl != null && transformerReactivePowerControl.getControllerBranch() == this;
+    }
+
+    @Override
+    public boolean isTransformerReactivePowerControlled() {
+        return transformerReactivePowerControl != null && transformerReactivePowerControl.getControlledBranch() == this;
+    }
+
     public double computeApparentPower1() {
         double p = getP1().eval();
         double q = getQ1().eval();
@@ -261,18 +283,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.a1 = a1;
     }
 
-    public Optional<ReactivePowerControl> getReactivePowerControl() {
-        return Optional.ofNullable(reactivePowerControl);
+    public Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl() {
+        return Optional.ofNullable(generatorReactivePowerControl);
     }
 
     @Override
-    public void setReactivePowerControl(ReactivePowerControl pReactivePowerControl) {
-        this.reactivePowerControl = Objects.requireNonNull(pReactivePowerControl);
+    public void setGeneratorReactivePowerControl(GeneratorReactivePowerControl pGeneratorReactivePowerControl) {
+        this.generatorReactivePowerControl = Objects.requireNonNull(pGeneratorReactivePowerControl);
     }
 
     @Override
     public boolean isConnectedAtBothSides() {
-        return bus1 != null && bus2 != null;
+        return isConnectedSide1() && isConnectedSide2();
     }
 
     @Override

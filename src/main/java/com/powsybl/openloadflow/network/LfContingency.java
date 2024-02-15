@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfContingency {
 
@@ -41,8 +41,10 @@ public class LfContingency {
 
     private final Set<String> disconnectedElementIds;
 
+    private final Set<LfHvdc> hvdcsWithoutPower;
+
     public LfContingency(String id, int index, int createdSynchronousComponentsCount, DisabledNetwork disabledNetwork, Map<LfShunt, AdmittanceShift> shuntsShift,
-                         Map<LfLoad, LfLostLoad> lostLoads, Set<LfGenerator> lostGenerators) {
+                         Map<LfLoad, LfLostLoad> lostLoads, Set<LfGenerator> lostGenerators, Set<LfHvdc> hvdcsWithoutPower) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.createdSynchronousComponentsCount = createdSynchronousComponentsCount;
@@ -50,6 +52,7 @@ public class LfContingency {
         this.shuntsShift = Objects.requireNonNull(shuntsShift);
         this.lostLoads = Objects.requireNonNull(lostLoads);
         this.lostGenerators = Objects.requireNonNull(lostGenerators);
+        this.hvdcsWithoutPower = Objects.requireNonNull(hvdcsWithoutPower);
         this.disconnectedLoadActivePower = 0.0;
         this.disconnectedGenerationActivePower = 0.0;
         this.disconnectedElementIds = new HashSet<>();
@@ -120,8 +123,14 @@ public class LfContingency {
     }
 
     public void apply(LoadFlowParameters.BalanceType balanceType) {
-        for (LfBranch branch : disabledNetwork.getBranches()) {
-            branch.setDisabled(true);
+        for (Map.Entry<LfBranch, DisabledBranchStatus> e : disabledNetwork.getBranchesStatus().entrySet()) {
+            LfBranch branch = e.getKey();
+            DisabledBranchStatus status = e.getValue();
+            switch (status) {
+                case BOTH_SIDES -> branch.setDisabled(true);
+                case SIDE_1 -> branch.setConnectedSide1(false);
+                case SIDE_2 -> branch.setConnectedSide2(false);
+            }
         }
         for (LfHvdc hvdc : disabledNetwork.getHvdcs()) {
             hvdc.setDisabled(true);
@@ -152,6 +161,8 @@ public class LfContingency {
             generator.setDisabled(true);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                bus.getGeneratorVoltageControl().ifPresent(vc -> vc.updateReactiveKeys());
+                bus.getGeneratorReactivePowerControl().ifPresent(rc -> rc.updateReactiveKeys());
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
@@ -167,6 +178,13 @@ public class LfContingency {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
                 bus.setGeneratorVoltageControlEnabled(false);
             }
+            if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
+                bus.setGeneratorReactivePowerControlEnabled(false);
+            }
+        }
+        for (LfHvdc hvdc : hvdcsWithoutPower) {
+            hvdc.getConverterStation1().setTargetP(0.0);
+            hvdc.getConverterStation2().setTargetP(0.0);
         }
     }
 

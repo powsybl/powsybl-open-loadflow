@@ -19,6 +19,8 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AcLoadFlowVscTest {
@@ -33,7 +35,7 @@ class AcLoadFlowVscTest {
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         Bus bus1 = network.getBusView().getBus("vl1_0");
         assertVoltageEquals(390, bus1);
@@ -80,7 +82,7 @@ class AcLoadFlowVscTest {
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         Bus bus1 = network.getBusView().getBus("vl1_0");
         assertVoltageEquals(390.0, bus1);
@@ -101,7 +103,7 @@ class AcLoadFlowVscTest {
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         Bus bus1 = network.getBusView().getBus("vl1_0");
         assertVoltageEquals(390.0, bus1);
@@ -129,7 +131,7 @@ class AcLoadFlowVscTest {
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         VscConverterStation cs2 = network.getVscConverterStation("cs2");
         assertActivePowerEquals(-4.9634, cs2.getTerminal());
@@ -156,7 +158,7 @@ class AcLoadFlowVscTest {
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         VscConverterStation cs3 = network.getVscConverterStation("cs3");
         assertActivePowerEquals(-0.114, cs3.getTerminal());
@@ -169,7 +171,7 @@ class AcLoadFlowVscTest {
         network.getVscConverterStation("cs3").setVoltageRegulatorOn(false);
         network.getVscConverterStation("cs4").setVoltageRegulatorOn(false);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isOk());
+        assertTrue(result2.isFullyConverged());
 
         assertActivePowerEquals(-0.089, cs3.getTerminal());
         assertReactivePowerEquals(0.0, cs3.getTerminal());
@@ -192,7 +194,7 @@ class AcLoadFlowVscTest {
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         VscConverterStation cs2 = network.getVscConverterStation("cs2");
         assertActivePowerEquals(50.0, cs2.getTerminal());
@@ -220,7 +222,7 @@ class AcLoadFlowVscTest {
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         VscConverterStation cs3 = network.getVscConverterStation("cs3");
         assertActivePowerEquals(-1.956, cs3.getTerminal());
@@ -240,7 +242,7 @@ class AcLoadFlowVscTest {
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         Bus bus1 = network.getBusView().getBus("vl1_0");
         assertVoltageEquals(390, bus1);
@@ -271,5 +273,129 @@ class AcLoadFlowVscTest {
         assertReactivePowerEquals(632.700, l12.getTerminal1());
         assertActivePowerEquals(-50.00, l12.getTerminal2());
         assertReactivePowerEquals(-624.750, l12.getTerminal2());
+    }
+
+    @Test
+    void testVscConverterWithoutHvdcLineNpe() {
+        Network network = HvdcNetworkFactory.createVsc();
+        network.getHvdcLine("hvdc23").remove();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testHvdcPowerAcEmulation() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(198.158, network.getHvdcConverterStation("cs2").getTerminal());
+        assertActivePowerEquals(-193.822, network.getHvdcConverterStation("cs3").getTerminal());
+        assertActivePowerEquals(-304.335, network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(300.0, network.getLoad("l4").getTerminal());
+    }
+
+    @Test
+    void testHvdcDirectionChangeAcEmulation() {
+        Network network = HvdcNetworkFactory.createHvdcInAcEmulationInSymetricNetwork();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
+
+        double pg2 = network.getGenerator("g2").getTerminal().getP();
+        double pg1 = network.getGenerator("g1").getTerminal().getP();
+        double pcs1 = network.getVscConverterStation("cs1").getTerminal().getP();
+        double pcs2 = network.getVscConverterStation("cs2").getTerminal().getP();
+
+        // Test basic energy conservation terms
+        assertEquals(0.0, pg2, DELTA_POWER, "g2 should be off");
+        assertTrue(-pg1 >= 5.99999, "g1 generates power for all loads");
+        assertTrue(-pg1 <= 6.06, "reasonable loss");
+        assertTrue(pcs1 > 0, "Power enters at cs1");
+        assertTrue(pcs2 < 0, "Power delivered by cs2");
+        assertTrue(Math.abs(pcs1) > Math.abs(pcs2), "Loss at HVDC output");
+
+        // Reverse power flow direction
+        network.getGenerator("g2").setTargetP(5);
+        network.getGenerator("g1").setTargetP(0);
+        result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
+
+        pg2 = network.getGenerator("g2").getTerminal().getP();
+        pg1 = network.getGenerator("g1").getTerminal().getP();
+        pcs1 = network.getVscConverterStation("cs1").getTerminal().getP();
+        pcs2 = network.getVscConverterStation("cs2").getTerminal().getP();
+
+        // Test basic energy conservation terms in symetric network
+        // (active power is not a close enough symetric as in first run for some reason - so we can't compare b1 and b2 values for all termnals)
+        assertEquals(0.0, pg1, DELTA_POWER, "g1 should be off");
+        assertTrue(-pg2 >= 5.99999, "g2 generates power for all loads");
+        assertTrue(-pg2 <= 6.06, "reasonable loss");
+        assertTrue(pcs2 > 0, "Power enters at cs2");
+        assertTrue(pcs1 < 0, "Power delivered by cs1");
+        assertTrue(Math.abs(pcs2) > Math.abs(pcs1), "Loss at HVDC output");
+    }
+
+    @Test
+    void testLccOpenAtOneSide() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.LCC);
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network);
+        assertTrue(result.isFullyConverged());
+
+        // generator g1 expected to deliver enough power for the load
+        assertActivePowerEquals(-304.400, network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(300.00, network.getLoad("l4").getTerminal());
+        assertActivePowerEquals(-195.600, network.getHvdcConverterStation("cs2").getTerminal());
+        assertActivePowerEquals(200.00, network.getHvdcConverterStation("cs3").getTerminal());
+
+        Line l34 = network.getLine("l34");
+        l34.getTerminals().stream().forEach(Terminal::disconnect);
+        result = loadFlowRunner.run(network);
+        assertTrue(result.isPartiallyConverged()); // for LCC test, no PV bus in the small component -> FAILED
+
+        assertActivePowerEquals(-300.00, network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(300.00, network.getLoad("l4").getTerminal());
+        assertTrue(Double.isNaN(network.getHvdcConverterStation("cs2").getTerminal().getP())); // FIXME
+        assertTrue(Double.isNaN(network.getHvdcConverterStation("cs3").getTerminal().getP()));
+    }
+
+    @Test
+    void testVscOpenAtOneSide() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setHvdcAcEmulation(false);
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // generator g1 expected to deliver enough power for the load
+        assertActivePowerEquals(-304.400, network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(300.00, network.getLoad("l4").getTerminal());
+        assertActivePowerEquals(-195.600, network.getHvdcConverterStation("cs2").getTerminal());
+        assertActivePowerEquals(200.00, network.getHvdcConverterStation("cs3").getTerminal());
+
+        Line l34 = network.getLine("l34");
+        l34.getTerminals().stream().forEach(Terminal::disconnect);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertActivePowerEquals(-300.00, network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(300.00, network.getLoad("l4").getTerminal());
+        assertActivePowerEquals(0.0, network.getHvdcConverterStation("cs2").getTerminal());
+        assertActivePowerEquals(0.0, network.getHvdcConverterStation("cs3").getTerminal());
+    }
+
+    @Test
+    void testHvdcAndGenerator() {
+        Network network = HvdcNetworkFactory.createWithHvdcAndGenerator();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-1.956, network.getVscConverterStation("cs3").getTerminal());
+        assertActivePowerEquals(2.0, network.getVscConverterStation("cs4").getTerminal());
+        assertActivePowerEquals(-2.0, network.getGenerator("g4").getTerminal());
+        assertActivePowerEquals(-2.047, network.getGenerator("g1").getTerminal());
     }
 }

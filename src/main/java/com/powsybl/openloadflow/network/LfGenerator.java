@@ -6,12 +6,14 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.OptionalDouble;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface LfGenerator extends PropertyBag {
+public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     enum GeneratorControlType {
         OFF, REMOTE_REACTIVE_POWER, VOLTAGE, MONITORING_VOLTAGE
@@ -35,6 +37,10 @@ public interface LfGenerator extends PropertyBag {
         double minQ = generator.getMinQ();
         double maxQ = generator.getMaxQ();
         return (2 * q - maxQ - minQ) / (maxQ - minQ);
+    }
+
+    static boolean isTargetVoltageNotPlausible(double targetV, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+        return targetV < minPlausibleTargetVoltage || targetV > maxPlausibleTargetVoltage;
     }
 
     String getId();
@@ -93,7 +99,7 @@ public interface LfGenerator extends PropertyBag {
 
     void setCalculatedQ(double calculatedQ);
 
-    void updateState();
+    void updateState(LfNetworkStateUpdateParameters parameters);
 
     LfBus getControlledBus();
 
@@ -107,7 +113,7 @@ public interface LfGenerator extends PropertyBag {
 
     LfBranch getControlledBranch();
 
-    ControlledSide getControlledBranchSide();
+    TwoSides getControlledBranchSide();
 
     double getRemoteTargetQ();
 

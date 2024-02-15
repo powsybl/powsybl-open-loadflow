@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class BusState extends BusDcState {
 
@@ -19,6 +19,7 @@ public class BusState extends BusDcState {
     private final double generationTargetQ;
     private final boolean voltageControlEnabled;
     private final Boolean shuntVoltageControlEnabled;
+    private final Boolean reactiveControlEnabled;
     private final double shuntB;
     private final double shuntG;
     private final double controllerShuntB;
@@ -50,6 +51,7 @@ public class BusState extends BusDcState {
         this.voltage = bus.getV();
         this.generationTargetQ = bus.getGenerationTargetQ();
         this.voltageControlEnabled = bus.isGeneratorVoltageControlEnabled();
+        this.reactiveControlEnabled = bus.isGeneratorReactivePowerControlEnabled();
         LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
         shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
         controllerShuntB = controllerShunt != null ? controllerShunt.getB() : Double.NaN;
@@ -74,6 +76,7 @@ public class BusState extends BusDcState {
         element.setV(voltage);
         element.setGenerationTargetQ(generationTargetQ);
         element.setGeneratorVoltageControlEnabled(voltageControlEnabled);
+        element.setGeneratorReactivePowerControlEnabled(reactiveControlEnabled);
         if (shuntVoltageControlEnabled != null) {
             element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
         }

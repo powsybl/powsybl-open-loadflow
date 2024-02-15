@@ -12,10 +12,7 @@ import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.iidm.network.extensions.StandbyAutomaton;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.LfStaticVarCompensator;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implements LfStaticVarCompensator {
 
@@ -152,7 +149,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     }
 
     @Override
-    public void updateState() {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         double vSquare = bus.getV() * bus.getV() * nominalV * nominalV;
         double newTargetQ = Double.isNaN(targetQ) ? 0 : -targetQ;
         double q = (Double.isNaN(calculatedQ) ? newTargetQ : -calculatedQ) * PerUnit.SB;

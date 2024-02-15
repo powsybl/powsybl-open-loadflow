@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
-import com.powsybl.commons.test.AbstractConverterTest;
+import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -24,9 +24,9 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-class OpenSecurityAnalysisProviderTest extends AbstractConverterTest {
+class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
 
     private OpenSecurityAnalysisProvider provider;
 

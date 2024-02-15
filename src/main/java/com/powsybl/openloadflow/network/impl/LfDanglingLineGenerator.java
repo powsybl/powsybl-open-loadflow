@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -17,7 +18,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class LfDanglingLineGenerator extends AbstractLfGenerator {
 
@@ -89,7 +90,7 @@ public final class LfDanglingLineGenerator extends AbstractLfGenerator {
     }
 
     @Override
-    public void updateState() {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         // nothing to update
     }
 }

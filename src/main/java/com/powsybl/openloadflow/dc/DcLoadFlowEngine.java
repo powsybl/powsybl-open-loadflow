@@ -33,7 +33,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowResult> {
 
@@ -113,7 +113,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getName());
         OuterLoopStatus outerLoopStatus;
         int outerLoopIteration = 0;
-        boolean succeeded = true;
+        boolean success = true;
 
         // re-run linear system solving until stabilization
         do {
@@ -127,9 +127,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
                 // if not yet stable, restart linear system solving
                 double[] targetVectorArray = context.getTargetVector().getArray().clone();
-                succeeded = solve(targetVectorArray, context.getJacobianMatrix(), olReporter);
+                success = solve(targetVectorArray, context.getJacobianMatrix(), olReporter);
 
-                if (succeeded) {
+                if (success) {
                     context.getEquationSystem().getStateVector().set(targetVectorArray);
                     updateNetwork(outerLoopContext.getNetwork(), context.getEquationSystem(), targetVectorArray);
                 }
@@ -137,10 +137,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 outerLoopIteration++;
             }
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
-                && succeeded
+                && success
                 && outerLoopIteration < context.getParameters().getMaxOuterLoopIterations());
 
-        return succeeded;
+        return success;
     }
 
     public static boolean solve(double[] targetVectorArray,
@@ -182,14 +182,14 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         var targetVectorArray = targetVector.getArray().clone();
 
         // First linear system solution
-        boolean succeeded = solve(targetVectorArray, context.getJacobianMatrix(), reporter);
+        boolean success = solve(targetVectorArray, context.getJacobianMatrix(), reporter);
 
         equationSystem.getStateVector().set(targetVectorArray);
         updateNetwork(network, equationSystem, targetVectorArray);
 
         // continue with PST active power control outer loop only if first linear system solution has succeeded
-        if (succeeded && parameters.getNetworkParameters().isPhaseControl()) {
-            succeeded = runPhaseControlOuterLoop(phaseShifterControlOuterLoop, outerLoopContext);
+        if (success && parameters.getNetworkParameters().isPhaseControl()) {
+            success = runPhaseControlOuterLoop(phaseShifterControlOuterLoop, outerLoopContext);
         }
 
         // set all calculated voltages to NaN
@@ -199,10 +199,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             }
         }
 
-        Reports.reportDcLfComplete(reporter, succeeded);
-        LOGGER.info("DC load flow completed (succeed={})", succeeded);
+        Reports.reportDcLfComplete(reporter, success);
+        LOGGER.info("DC load flow completed (success={})", success);
 
-        return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
+        return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), success);
     }
 
     public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {

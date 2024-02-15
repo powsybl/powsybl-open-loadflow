@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
@@ -24,7 +24,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         if (parameters.isDistributedSlack()) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
-            return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch()));
+            return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));
         }
         return Optional.empty();
     }
@@ -42,7 +42,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     protected static Optional<AcOuterLoop> createSecondaryVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
         if (parametersExt.isSecondaryVoltageControl()) {
-            return Optional.of(new SecondaryVoltageControlOuterLoop());
+            return Optional.of(new SecondaryVoltageControlOuterLoop(parametersExt.getMinPlausibleTargetVoltage(), parametersExt.getMaxPlausibleTargetVoltage()));
         }
         return Optional.empty();
     }
@@ -70,7 +70,14 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return createTransformerVoltageControlOuterLoop(parameters,
                                                         parametersExt.getTransformerVoltageControlMode(),
-                                                        parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+                                                        parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
+    }
+
+    protected static Optional<AcOuterLoop> createTransformerReactivePowerControlOuterLoop(OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isTransformerReactivePowerControl()) {
+            return Optional.of(new IncrementalTransformerReactivePowerControlOuterLoop(parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift()));
+        }
+        return Optional.empty();
     }
 
     protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode) {
@@ -101,5 +108,12 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     protected static Optional<AcOuterLoop> createPhaseControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return createPhaseControlOuterLoop(parameters, parametersExt.getPhaseShifterControlMode());
+    }
+
+    protected static Optional<AcOuterLoop> createAutomationSystemOuterLoop(OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isSimulateAutomationSystems()) {
+            return Optional.of(new AutomationSystemOuterLoop());
+        }
+        return Optional.empty();
     }
 }

@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public final class OpenLoadFlowReportConstants {
 

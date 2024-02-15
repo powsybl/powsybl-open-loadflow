@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.test.AbstractConverterTest;
+import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,15 +35,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-class LfContingencyTest extends AbstractConverterTest {
+class LfContingencyTest extends AbstractSerDeTest {
 
     @Override
     @BeforeEach
@@ -72,9 +74,11 @@ class LfContingencyTest extends AbstractConverterTest {
 
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setContingencyPropagation(false)
+                .setHvdcAcEmulation(false);
         List<PropagatedContingency> propagatedContingencies =
-            PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), false);
-        PropagatedContingency.completeList(propagatedContingencies, false, false, false, false);
+            PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters);
 
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
                 .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(mainNetwork).stream())
@@ -102,8 +106,10 @@ class LfContingencyTest extends AbstractConverterTest {
 
         String generatorId = "GEN";
         Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setHvdcAcEmulation(false);
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), true),
+                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters),
                 "Generator 'GEN' not found in the network");
     }
 
@@ -118,8 +124,23 @@ class LfContingencyTest extends AbstractConverterTest {
 
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setHvdcAcEmulation(false);
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), true),
+                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters),
                 "Load 'LOAD' not found in the network");
+    }
+
+    @Test
+    void testOpenBranchOutOfMainComponentIssue() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters().setBreakers(true)).get(0);
+        Contingency contingency = Contingency.threeWindingsTransformer("T3wT");
+        PropagatedContingency propagatedContingency = PropagatedContingency.createList(network, List.of(contingency), new LfTopoConfig(), new PropagatedContingencyCreationParameters()).get(0);
+        LfContingency lfContingency = propagatedContingency.toLfContingency(lfNetwork).orElseThrow();
+        assertEquals(Map.of(lfNetwork.getBranchById("T3wT_leg_1"), DisabledBranchStatus.BOTH_SIDES,
+                            lfNetwork.getBranchById("T3wT_leg_2"), DisabledBranchStatus.BOTH_SIDES,
+                            lfNetwork.getBranchById("T3wT_leg_3"), DisabledBranchStatus.BOTH_SIDES),
+                lfContingency.getDisabledNetwork().getBranchesStatus());
     }
 }

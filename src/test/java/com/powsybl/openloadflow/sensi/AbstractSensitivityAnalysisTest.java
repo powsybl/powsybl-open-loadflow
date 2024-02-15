@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.test.AbstractConverterTest;
+import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
@@ -21,6 +21,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -35,9 +36,9 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterTest {
+public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest {
 
     protected static final double SENSI_CHANGE = 10e-4;
 
@@ -80,120 +81,120 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return sensiParameters;
     }
 
-    protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches, String contingencyId, Branch.Side side) {
+    protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches, String contingencyId, TwoSides side) {
         Objects.requireNonNull(injections);
         Objects.requireNonNull(branches);
         return injections.stream().flatMap(injection -> branches.stream().map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), injection.getId(), contingencyId, side))).collect(Collectors.toList());
     }
 
-    protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches, Branch.Side side) {
+    protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches, TwoSides side) {
         return createFactorMatrix(injections, branches, null, side);
     }
 
     protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches) {
-        return createFactorMatrix(injections, branches, null, Branch.Side.ONE);
+        return createFactorMatrix(injections, branches, null, TwoSides.ONE);
     }
 
     protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches, String contingencyId) {
-        return createFactorMatrix(injections, branches, contingencyId, Branch.Side.ONE);
+        return createFactorMatrix(injections, branches, contingencyId, TwoSides.ONE);
     }
 
     protected static SensitivityFactor createBranchFlowPerInjectionIncrease(String functionId, String variableId, String contingencyId) {
-        return createBranchFlowPerInjectionIncrease(functionId, variableId, contingencyId, Branch.Side.ONE);
+        return createBranchFlowPerInjectionIncrease(functionId, variableId, contingencyId, TwoSides.ONE);
     }
 
-    protected static SensitivityFactor createBranchFlowPerInjectionIncrease(String functionId, String variableId, String contingencyId, Branch.Side side) {
-        SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
+    protected static SensitivityFactor createBranchFlowPerInjectionIncrease(String functionId, String variableId, String contingencyId, TwoSides side) {
+        SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
     }
 
-    protected static SensitivityFactor createBranchFlowPerInjectionIncrease(String functionId, String variableId, Branch.Side side) {
+    protected static SensitivityFactor createBranchFlowPerInjectionIncrease(String functionId, String variableId, TwoSides side) {
         return createBranchFlowPerInjectionIncrease(functionId, variableId, null, side);
     }
 
     protected static SensitivityFactor createBranchFlowPerInjectionIncrease(String functionId, String variableId) {
-        return createBranchFlowPerInjectionIncrease(functionId, variableId, null, Branch.Side.ONE);
+        return createBranchFlowPerInjectionIncrease(functionId, variableId, null, TwoSides.ONE);
     }
 
-    protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, String contingencyId, Branch.Side side) {
+    protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, String contingencyId, TwoSides side) {
         return createBranchFlowPerLinearGlsk(functionId, variableId, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId), side);
     }
 
     protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, ContingencyContext contingencyContext) {
-        return createBranchFlowPerLinearGlsk(functionId, variableId, contingencyContext, Branch.Side.ONE);
+        return createBranchFlowPerLinearGlsk(functionId, variableId, contingencyContext, TwoSides.ONE);
     }
 
     protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, String contingencyId) {
-        return createBranchFlowPerLinearGlsk(functionId, variableId, contingencyId, Branch.Side.ONE);
+        return createBranchFlowPerLinearGlsk(functionId, variableId, contingencyId, TwoSides.ONE);
     }
 
-    protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, ContingencyContext contingencyContext, Branch.Side side) {
-        SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
+    protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, ContingencyContext contingencyContext, TwoSides side) {
+        SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, true, contingencyContext);
     }
 
-    protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, Branch.Side side) {
+    protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, TwoSides side) {
         return createBranchFlowPerLinearGlsk(functionId, variableId, (String) null, side);
     }
 
     protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId) {
-        return createBranchFlowPerLinearGlsk(functionId, variableId, (String) null, Branch.Side.ONE);
+        return createBranchFlowPerLinearGlsk(functionId, variableId, (String) null, TwoSides.ONE);
     }
 
     protected static SensitivityFactor createBranchFlowPerPSTAngle(String functionId, String variableId, String contingencyId) {
-        return createBranchFlowPerPSTAngle(functionId, variableId, contingencyId, Branch.Side.ONE);
+        return createBranchFlowPerPSTAngle(functionId, variableId, contingencyId, TwoSides.ONE);
     }
 
-    protected static SensitivityFactor createBranchFlowPerPSTAngle(String functionId, String variableId, String contingencyId, Branch.Side side) {
-        SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
+    protected static SensitivityFactor createBranchFlowPerPSTAngle(String functionId, String variableId, String contingencyId, TwoSides side) {
+        SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.TRANSFORMER_PHASE, variableId, false, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
     }
 
-    protected static SensitivityFactor createBranchFlowPerPSTAngle(String functionId, String variableId, Branch.Side side) {
+    protected static SensitivityFactor createBranchFlowPerPSTAngle(String functionId, String variableId, TwoSides side) {
         return createBranchFlowPerPSTAngle(functionId, variableId, null, side);
     }
 
-    protected static SensitivityFactor createBranchFlowPerTransformerLegPSTAngle(String functionId, String variableId, ThreeWindingsTransformer.Side side) {
-        SensitivityVariableType fVariable = side.equals(ThreeWindingsTransformer.Side.ONE) ? SensitivityVariableType.TRANSFORMER_PHASE_1
-                : side.equals(ThreeWindingsTransformer.Side.TWO) ? SensitivityVariableType.TRANSFORMER_PHASE_2
+    protected static SensitivityFactor createBranchFlowPerTransformerLegPSTAngle(String functionId, String variableId, ThreeSides side) {
+        SensitivityVariableType fVariable = side.equals(ThreeSides.ONE) ? SensitivityVariableType.TRANSFORMER_PHASE_1
+                : side.equals(ThreeSides.TWO) ? SensitivityVariableType.TRANSFORMER_PHASE_2
                 : SensitivityVariableType.TRANSFORMER_PHASE_3;
         return new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, functionId, fVariable, variableId, false, ContingencyContext.all());
     }
 
-    protected static SensitivityFactor createTransformerLegFlowPerInjectionIncrease(String functionId, String variableId, ThreeWindingsTransformer.Side side) {
-        SensitivityFunctionType ftype = side.equals(ThreeWindingsTransformer.Side.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
-                : side.equals(ThreeWindingsTransformer.Side.TWO) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
+    protected static SensitivityFactor createTransformerLegFlowPerInjectionIncrease(String functionId, String variableId, ThreeSides side) {
+        SensitivityFunctionType ftype = side.equals(ThreeSides.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                : side.equals(ThreeSides.TWO) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
                 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_3;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
     protected static SensitivityFactor createBranchFlowPerPSTAngle(String functionId, String variableId) {
-        return createBranchFlowPerPSTAngle(functionId, variableId, null, Branch.Side.ONE);
+        return createBranchFlowPerPSTAngle(functionId, variableId, null, TwoSides.ONE);
     }
 
-    protected static SensitivityFactor createBranchIntensityPerInjectionIncrease(String functionId, String variableId, Branch.Side side) {
-        SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
+    protected static SensitivityFactor createBranchIntensityPerInjectionIncrease(String functionId, String variableId, TwoSides side) {
+        SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
-    protected static SensitivityFactor createTransformerLegIntensityPerInjectionIncrease(String functionId, String variableId, ThreeWindingsTransformer.Side side) {
-        SensitivityFunctionType ftype = side.equals(ThreeWindingsTransformer.Side.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1
-                : side.equals(ThreeWindingsTransformer.Side.TWO) ? SensitivityFunctionType.BRANCH_CURRENT_2
+    protected static SensitivityFactor createTransformerLegIntensityPerInjectionIncrease(String functionId, String variableId, ThreeSides side) {
+        SensitivityFunctionType ftype = side.equals(ThreeSides.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1
+                : side.equals(ThreeSides.TWO) ? SensitivityFunctionType.BRANCH_CURRENT_2
                 : SensitivityFunctionType.BRANCH_CURRENT_3;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
     protected static SensitivityFactor createBranchIntensityPerInjectionIncrease(String functionId, String variableId) {
-        return createBranchIntensityPerInjectionIncrease(functionId, variableId, Branch.Side.ONE);
+        return createBranchIntensityPerInjectionIncrease(functionId, variableId, TwoSides.ONE);
     }
 
-    protected static SensitivityFactor createBranchIntensityPerPSTAngle(String functionId, String variableId, Branch.Side side) {
-        SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
+    protected static SensitivityFactor createBranchIntensityPerPSTAngle(String functionId, String variableId, TwoSides side) {
+        SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.TRANSFORMER_PHASE, variableId, false, ContingencyContext.all());
     }
 
     protected static SensitivityFactor createBranchIntensityPerPSTAngle(String functionId, String variableId) {
-        return createBranchIntensityPerPSTAngle(functionId, variableId, Branch.Side.ONE);
+        return createBranchIntensityPerPSTAngle(functionId, variableId, TwoSides.ONE);
     }
 
     protected static SensitivityFactor createBusVoltagePerTargetV(String functionId, String variableId, String contingencyId) {
@@ -204,8 +205,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return createBusVoltagePerTargetV(functionId, variableId, null);
     }
 
-    protected static SensitivityFactor createHvdcInjection(String functionId, String variableId, Branch.Side side) {
-        SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
+    protected static SensitivityFactor createHvdcInjection(String functionId, String variableId, TwoSides side) {
+        SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
@@ -217,7 +218,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters(), reporter)
                 .join();
-        if (!result.isOk()) {
+        if (!result.isFullyConverged()) {
             throw new PowsyblException("AC LF diverged");
         }
     }
@@ -231,7 +232,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters, reporter)
                 .join();
-        if (!result.isOk()) {
+        if (!result.isFullyConverged()) {
             throw new PowsyblException("DC LF failed");
         }
     }
@@ -244,13 +245,13 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, loadFlowParameters, reporter)
                 .join();
-        if (!result.isOk()) {
+        if (!result.isFullyConverged()) {
             throw new PowsyblException("LF failed");
         }
     }
 
     protected void testInjectionNotFound(boolean dc) {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
@@ -266,7 +267,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     }
 
     protected void testInjectionNotFoundAdditionalFactor(boolean dc) {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
 
@@ -281,7 +282,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     }
 
     protected void testInjectionNotFoundAdditionalFactorContingency(boolean dc) {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
 
@@ -297,7 +298,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     }
 
     protected void testGlskInjectionNotFound(boolean dc) {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
@@ -318,7 +319,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
 
-        List<SensitivityFactor> factors = List.of(createHvdcInjection("l12", "nop", Branch.Side.ONE));
+        List<SensitivityFactor> factors = List.of(createHvdcInjection("l12", "nop", TwoSides.ONE));
 
         List<Contingency> contingencies = Collections.emptyList();
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
@@ -329,7 +330,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     }
 
     protected void testBranchNotFound(boolean dc) {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
@@ -345,7 +346,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     }
 
     protected void testEmptyFactors(boolean dc) {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");

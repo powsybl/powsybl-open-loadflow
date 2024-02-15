@@ -19,24 +19,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class MostMeshedSlackBusSelectorTest {
 
     @Test
     void test() {
-        var network = EurostagTutorialExample1Factory.create();
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var provider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         var runner = new LoadFlow.Runner(provider);
         var parameters = new LoadFlowParameters();
         LoadFlowResult result = runner.run(network, parameters);
-        assertEquals("VLHV1_0", result.getComponentResults().get(0).getSlackBusId());
+        assertEquals("VLHV1_0", result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(50);
         result = runner.run(network, parameters);
-        assertEquals("VLLOAD_0", result.getComponentResults().get(0).getSlackBusId());
+        assertEquals("VLLOAD_0", result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> parametersExt.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(120));
-        assertEquals("Invalid percent value: 120.0", exception.getMessage());
+        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 120.0", exception.getMessage());
     }
 }

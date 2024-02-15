@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkStateUpdateParameters {
 
@@ -21,6 +21,8 @@ public class LfNetworkStateUpdateParameters {
 
     private final boolean transformerVoltageControlOn;
 
+    private final boolean transformerReactivePowerControlOn;
+
     private final boolean loadPowerFactorConstant;
 
     private final boolean dc;
@@ -29,17 +31,22 @@ public class LfNetworkStateUpdateParameters {
 
     private final ReactivePowerDispatchMode reactivePowerDispatchMode;
 
+    private final boolean writeReferenceTerminals;
+
     public LfNetworkStateUpdateParameters(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
-                                          boolean transformerVoltageControlOn, boolean loadPowerFactorConstant, boolean dc,
-                                          boolean breakers, ReactivePowerDispatchMode reactivePowerDispatchMode) {
+                                          boolean transformerVoltageControlOn, boolean transformerReactivePowerControlOn, boolean loadPowerFactorConstant, boolean dc,
+                                          boolean breakers, ReactivePowerDispatchMode reactivePowerDispatchMode,
+                                          boolean writeReferenceTerminals) {
         this.reactiveLimits = reactiveLimits;
         this.writeSlackBus = writeSlackBus;
         this.phaseShifterRegulationOn = phaseShifterRegulationOn;
         this.transformerVoltageControlOn = transformerVoltageControlOn;
+        this.transformerReactivePowerControlOn = transformerReactivePowerControlOn;
         this.loadPowerFactorConstant = loadPowerFactorConstant;
         this.dc = dc;
         this.breakers = breakers;
         this.reactivePowerDispatchMode = Objects.requireNonNull(reactivePowerDispatchMode);
+        this.writeReferenceTerminals = writeReferenceTerminals;
     }
 
     public boolean isReactiveLimits() {
@@ -58,6 +65,10 @@ public class LfNetworkStateUpdateParameters {
         return transformerVoltageControlOn;
     }
 
+    public boolean isTransformerReactivePowerControlOn() {
+        return transformerReactivePowerControlOn;
+    }
+
     public boolean isLoadPowerFactorConstant() {
         return loadPowerFactorConstant;
     }
@@ -68,6 +79,10 @@ public class LfNetworkStateUpdateParameters {
 
     public boolean isBreakers() {
         return breakers;
+    }
+
+    public boolean isWriteReferenceTerminals() {
+        return writeReferenceTerminals;
     }
 
     public ReactivePowerDispatchMode getReactivePowerDispatchMode() {

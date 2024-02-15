@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<iidm:network xmlns:iidm="http://www.powsybl.org/schema/iidm/1_11" id="test" caseDate="2021-04-25T13:47:34.697+02:00" forecastDistance="0" sourceFormat="code" minimumValidationLevel="STEADY_STATE_HYPOTHESIS">
+<iidm:network xmlns:iidm="http://www.powsybl.org/schema/iidm/1_12" id="test" caseDate="2021-04-25T13:47:34.697+02:00" forecastDistance="0" sourceFormat="code" minimumValidationLevel="STEADY_STATE_HYPOTHESIS">
     <iidm:substation id="b1_s" country="FR">
         <iidm:voltageLevel id="b1_vl" nominalV="1.0" topologyKind="BUS_BREAKER">
             <iidm:busBreakerTopology>
@@ -13,7 +13,7 @@
             <iidm:busBreakerTopology>
                 <iidm:bus id="b2" angle="9.549296727809327"/>
             </iidm:busBreakerTopology>
-            <iidm:generator id="g2" energySource="OTHER" minP="0.0" maxP="3.0" voltageRegulatorOn="true" targetP="3.0" targetV="1.0" bus="b2" connectableBus="b2" p="-3.0" q="-0.0">
+            <iidm:generator id="g2" energySource="OTHER" minP="0.0" maxP="6.0" voltageRegulatorOn="true" targetP="3.0" targetV="1.0" bus="b2" connectableBus="b2" p="-3.0" q="-0.0">
                 <iidm:minMaxReactiveLimits minQ="-1.7976931348623157E308" maxQ="1.7976931348623157E308"/>
             </iidm:generator>
         </iidm:voltageLevel>
@@ -47,7 +47,7 @@
             <iidm:busBreakerTopology>
                 <iidm:bus id="b6" angle="-1.909859345561864"/>
             </iidm:busBreakerTopology>
-            <iidm:generator id="g6" energySource="OTHER" minP="0.0" maxP="2.0" voltageRegulatorOn="true" targetP="2.0" targetV="1.0" bus="b6" connectableBus="b6" p="-2.0" q="-0.0">
+            <iidm:generator id="g6" energySource="OTHER" minP="0.0" maxP="4.0" voltageRegulatorOn="true" targetP="2.0" targetV="1.0" bus="b6" connectableBus="b6" p="-2.0" q="-0.0">
                 <iidm:minMaxReactiveLimits minQ="-1.7976931348623157E308" maxQ="1.7976931348623157E308"/>
             </iidm:generator>
         </iidm:voltageLevel>

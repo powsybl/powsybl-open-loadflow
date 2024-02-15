@@ -6,9 +6,11 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlow;
@@ -18,22 +20,19 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
-import com.powsybl.openloadflow.network.ShuntNetworkFactory;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AcLoadFlowWithCachingTest {
 
@@ -449,7 +448,134 @@ class AcLoadFlowWithCachingTest {
         parameters.setTransformerVoltageControlOn(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+    }
+
+    @Test
+    void testSecondaryVoltageControl() {
+        parametersExt.setSecondaryVoltageControl(true);
+        var network = IeeeCdfNetworkFactory.create14();
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                    .withName("z1")
+                    .newPilotPoint()
+                        .withTargetV(12.7)
+                        .withBusbarSectionsOrBusesIds(List.of("B10"))
+                    .add()
+                    .newControlUnit()
+                        .withId("B6-G")
+                        .add()
+                    .newControlUnit()
+                        .withId("B8-G")
+                        .add()
+                    .add()
+                .add();
+        SecondaryVoltageControl control = network.getExtension(SecondaryVoltageControl.class);
+        ControlZone z1 = control.getControlZone("z1").orElseThrow();
+        PilotPoint pilotPoint = z1.getPilotPoint();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        var b10 = network.getBusBreakerView().getBus("B10");
+        assertVoltageEquals(12.7, b10);
+        assertReactivePowerEquals(-17.826, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-17.827, network.getGenerator("B8-G").getTerminal());
+
+        // update pilot point target voltage
+        pilotPoint.setTargetV(12.5);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(12.5, b10);
+        assertReactivePowerEquals(-11.832, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-11.832, network.getGenerator("B8-G").getTerminal());
+
+        ControlUnit b6g = z1.getControlUnit("B6-G").orElseThrow();
+        b6g.setParticipate(false);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+        // there is no re-run of secondary voltage control outer loop, this is expected as pilot point has already reached
+        // its target voltage and remaining control unit is necessarily aligned.
+        assertVoltageEquals(12.5, b10);
+        assertReactivePowerEquals(-11.832, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-11.832, network.getGenerator("B8-G").getTerminal());
+
+        pilotPoint.setTargetV(12.7);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(12.613, b10); // we cannot reach back to 12.7 Kv with only one control unit
+        assertReactivePowerEquals(-6.771, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-24.0, network.getGenerator("B8-G").getTerminal());
+
+        // get b6 generator back
+        b6g.setParticipate(true);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(12.7, b10); // we can reach now 12.7 Kv with the 2 control units
+        assertReactivePowerEquals(-17.826, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-17.826, network.getGenerator("B8-G").getTerminal());
+    }
+
+    @Test
+    void testTransfo2VoltageTargetChange() {
+        var network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        var twt = network.getTwoWindingsTransformer("T2wT");
+
+        parameters.setTransformerVoltageControlOn(true);
+        twt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(twt.getTerminal2())
+                .setTargetV(30.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, twt.getRatioTapChanger().getTapPosition());
+
+        twt.getRatioTapChanger().setTargetV(32);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, twt.getRatioTapChanger().getTapPosition());
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+    }
+
+    @Test
+    void testTransfo3VoltageTargetChange() {
+        var network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        var twt = network.getThreeWindingsTransformer("T3wT");
+
+        twt.getLeg2().getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(twt.getLeg2().getTerminal())
+                .setTargetV(30);
+
+        parameters.setTransformerVoltageControlOn(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, twt.getLeg2().getRatioTapChanger().getTapPosition());
+
+        twt.getLeg2().getRatioTapChanger().setTargetV(26);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, twt.getLeg2().getRatioTapChanger().getTapPosition());
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
     }
 }

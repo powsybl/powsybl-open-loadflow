@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.extensions.ReferencePriority;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -17,6 +18,8 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.network.EurostagFactory;
+import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,13 +28,12 @@ import org.junit.jupiter.api.Test;
 import java.util.EnumSet;
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Caio Luke <caio.luke at artelys.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * @author Caio Luke {@literal <caio.luke at artelys.com>}
  */
 class DistributedSlackOnGenerationTest {
 
@@ -56,13 +58,13 @@ class DistributedSlackOnGenerationTest {
                 .setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
-                .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
     }
 
     @Test
     void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(120, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
         assertActivePowerEquals(-115, g1.getTerminal());
@@ -88,7 +90,7 @@ class DistributedSlackOnGenerationTest {
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-105, g1.getTerminal());
         assertActivePowerEquals(-260.526, g2.getTerminal());
         assertActivePowerEquals(-117.236, g3.getTerminal());
@@ -111,7 +113,7 @@ class DistributedSlackOnGenerationTest {
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-100, g1.getTerminal());
         assertActivePowerEquals(-290, g2.getTerminal());
         assertActivePowerEquals(-120, g3.getTerminal());
@@ -126,7 +128,7 @@ class DistributedSlackOnGenerationTest {
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-102.667, g1.getTerminal());
         assertActivePowerEquals(-253.333, g2.getTerminal());
         assertActivePowerEquals(-122.0, g3.getTerminal());
@@ -141,7 +143,7 @@ class DistributedSlackOnGenerationTest {
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-100.0, g1.getTerminal());
         assertActivePowerEquals(-254.545, g2.getTerminal());
         assertActivePowerEquals(-122.727, g3.getTerminal());
@@ -153,7 +155,7 @@ class DistributedSlackOnGenerationTest {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(105);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-105, g1.getTerminal());
         assertActivePowerEquals(-249.285, g2.getTerminal());
         assertActivePowerEquals(-106.428, g3.getTerminal());
@@ -166,7 +168,7 @@ class DistributedSlackOnGenerationTest {
         g1.setMinP(95);
         network.getLoad("l1").setP0(400);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-95, g1.getTerminal());
         assertActivePowerEquals(-167.857, g2.getTerminal());
         assertActivePowerEquals(-79.285, g3.getTerminal());
@@ -180,7 +182,7 @@ class DistributedSlackOnGenerationTest {
         // Because we disabled active power limits, g1 will exceed max
         g1.setMaxP(105);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-108.372, g1.getTerminal());
         assertActivePowerEquals(-247.840, g2.getTerminal());
         assertActivePowerEquals(-105.946, g3.getTerminal());
@@ -196,7 +198,7 @@ class DistributedSlackOnGenerationTest {
         g1.setMinP(95);
         network.getLoad("l1").setP0(400);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-90, g1.getTerminal());
         assertActivePowerEquals(-170, g2.getTerminal());
         assertActivePowerEquals(-80, g3.getTerminal());
@@ -209,7 +211,7 @@ class DistributedSlackOnGenerationTest {
         g1.setMinP(100); // was 0
         g1.setTargetP(80);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-97.5, g1.getTerminal()); // allowed to participate even though targetP < minP
         assertActivePowerEquals(-252.5, g2.getTerminal());
         assertActivePowerEquals(-107.5, g3.getTerminal());
@@ -222,7 +224,7 @@ class DistributedSlackOnGenerationTest {
         parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
         g1.setTargetP(240); // max is 200
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-237.5, g1.getTerminal()); // allowed to participate even though targetP > maxP
         assertActivePowerEquals(-192.5, g2.getTerminal());
         assertActivePowerEquals(-87.5, g3.getTerminal());
@@ -236,7 +238,7 @@ class DistributedSlackOnGenerationTest {
         g1.setMinP(100);
         g1.setTargetP(80);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-80.0, g1.getTerminal()); // stays at targetP
         assertActivePowerEquals(-260.0, g2.getTerminal());
         assertActivePowerEquals(-110.0, g3.getTerminal());
@@ -251,7 +253,7 @@ class DistributedSlackOnGenerationTest {
         g1.setTargetP(-20);
         network.getLoad("l1").setP0(500);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(20.0, g1.getTerminal()); // stays at targetP
         assertActivePowerEquals(-260.0, g2.getTerminal());
         assertActivePowerEquals(-110.0, g3.getTerminal());
@@ -266,7 +268,7 @@ class DistributedSlackOnGenerationTest {
         g1.setTargetP(-120);
         network.getLoad("l1").setP0(400);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(120.0, g1.getTerminal()); // stays at targetP
         assertActivePowerEquals(-260.0, g2.getTerminal());
         assertActivePowerEquals(-110.0, g3.getTerminal());
@@ -276,37 +278,96 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void zeroParticipatingGeneratorsTest() {
+    void zeroParticipatingGeneratorsThrowTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
         g2.getExtension(ActivePowerControl.class).setDroop(-3);
         g3.getExtension(ActivePowerControl.class).setDroop(0);
         g4.getExtension(ActivePowerControl.class).setDroop(0);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
-                "No more generator participating to slack distribution");
+        CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertTrue(thrown.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
     }
 
     @Test
-    void notEnoughActivePowerFailureTest() {
+    void notEnoughActivePowerThrowTest() {
         network.getLoad("l1").setP0(1000);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
-                "Failed to distribute slack bus active power mismatch");
+        CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertTrue(thrown.getCause().getMessage().startsWith("Failed to distribute slack bus active power mismatch, "));
+    }
+
+    @Test
+    void notEnoughActivePowerFailTest() {
+        network.getLoad("l1").setP0(1000);
+        parameters.getExtension(OpenLoadFlowParameters.class).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertFalse(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
+        assertEquals(0, componentResult.getDistributedActivePower(), 1e-4);
+        assertEquals(520, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-4);
+    }
+
+    @Test
+    void notEnoughActivePowerLeaveOnSlackBusTest() {
+        network.getLoad("l1").setP0(1000);
+        parameters.getExtension(OpenLoadFlowParameters.class).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertTrue(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        assertEquals(320, componentResult.getDistributedActivePower(), 1e-4);
+        assertEquals(200, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-4);
+    }
+
+    @Test
+    void notEnoughActivePowerDistributeReferenceGeneratorTest() {
+        network.getLoad("l1").setP0(1000);
+        ReferencePriority.set(g1, 1);
+        g1.setMaxP(200.);
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertTrue(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        assertEquals(0., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+        assertAngleEquals(0., g1.getTerminal().getBusView().getBus());
+        // can exceed maxP (200MW)
+        assertActivePowerEquals(-400., g1.getTerminal());
+    }
+
+    @Test
+    void notEnoughActivePowerDistributeNoReferenceGeneratorTest() {
+        network.getLoad("l1").setP0(1000);
+        ReferencePriority.set(g1, 1);
+        g1.setMaxP(200.);
+        // We request to distribute on reference generator, but ReferenceBusSelectionMode is FIRST_SLACK.
+        // FIRST_SLACK mode does not select a reference generator, therefore internally we switch to FAIL mode.
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.FIRST_SLACK)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertTrue(result.isFailed());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
+        assertEquals(520., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
 
     @Test
     void generatorWithNegativeTargetP() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setTargetP(-607);
         network.getLoad("LOAD").setP0(-600);
         network.getLoad("LOAD").setQ0(-200);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(595.328, network.getGenerator("GEN").getTerminal());
     }
 
     @Test
     void generatorWithMaxPEqualsToMinP() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setMinP(1000);
         network.getGenerator("GEN").setTargetP(1000);
@@ -326,7 +387,7 @@ class DistributedSlackOnGenerationTest {
         parameters.setCountriesToBalance(EnumSet.of(Country.FR));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-100, g1.getTerminal());
         assertActivePowerEquals(-200, g2.getTerminal());
         assertActivePowerEquals(-150, g3.getTerminal());
@@ -335,7 +396,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void generatorWithTargetPLowerThanMinP() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setMinP(200);
         network.getGenerator("GEN").setTargetP(100);
@@ -359,7 +420,7 @@ class DistributedSlackOnGenerationTest {
     void notParticipatingTest() {
         g1.getExtension(ActivePowerControl.class).setParticipate(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-100, g1.getTerminal());
         assertActivePowerEquals(-251.428, g2.getTerminal());
         assertActivePowerEquals(-107.142, g3.getTerminal());
@@ -376,7 +437,7 @@ class DistributedSlackOnGenerationTest {
         Battery bat1 = network.getBattery("bat1");
         Battery bat2 = network.getBattery("bat2");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(123, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
         assertActivePowerEquals(-115.122, g1.getTerminal());
@@ -403,7 +464,7 @@ class DistributedSlackOnGenerationTest {
         g4.getExtension(ActivePowerControl.class).setParticipationFactor(-4.0); // Should be discarded
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(123, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
         assertActivePowerEquals(-100, g1.getTerminal());
@@ -423,7 +484,7 @@ class DistributedSlackOnGenerationTest {
         Generator g3 = network.getGenerator("g3");
         Generator g4 = network.getGenerator("g4");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         // we were getting 132.47279 when computing distributedActivePower as initial NR slack - final NR slack, while difference targetP - P was only 120.1961
         var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
         assertEquals(120.1961, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
@@ -439,7 +500,7 @@ class DistributedSlackOnGenerationTest {
         parameters.setUseReactiveLimits(true).setDistributedSlack(false);
         Network network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         // we were getting 12.307 when computing distributedActivePower as initial NR slack - final NR slack, expecting zero here
         assertEquals(0.0, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
     }

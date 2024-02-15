@@ -21,7 +21,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
@@ -132,7 +132,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void defaultMethodsTest() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
@@ -207,7 +207,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testMinImpedance() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getLine("NHV1_NHV2_1").setR(0.0).setX(0.0).setB1(0.0).setB2(0.0).setG1(0.0).setG2(0.0);
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfBranch line = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
@@ -216,5 +216,35 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         line.setMinZ(10); // for both AC and DC load flow model
         assertFalse(line.isZeroImpedance(LoadFlowModel.AC));
         assertFalse(line.isZeroImpedance(LoadFlowModel.DC));
+    }
+
+    @Test
+    void testDiscardGeneratorsWithTargetPOutsideActiveLimitsFromVoltageControl() {
+        LfNetworkParameters networkParameters = new LfNetworkParameters()
+                .setUseActiveLimits(true)
+                .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(true);
+
+        Network network = Network.create("test", "code");
+        Bus b = createBus(network, "b", 380);
+
+        // discarded from voltage control because targetP < minP (50 < 100)
+        Generator g1 = createGenerator(b, "g1", 50, 400);
+        g1.setMinP(100).setMaxP(200);
+
+        // discarded from voltage control because targetP > maxP (250 > 200)
+        Generator g2 = createGenerator(b, "g2", 250, 400);
+        g2.setMinP(100).setMaxP(200);
+
+        // kept
+        Generator g3 = createGenerator(b, "g3", 150, 400);
+        g3.setMinP(100).setMaxP(200);
+
+        List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        List<LfGenerator> generators = lfNetwork.getBus(0).getGenerators();
+
+        assertEquals(LfGenerator.GeneratorControlType.OFF, generators.get(0).getGeneratorControlType());
+        assertEquals(LfGenerator.GeneratorControlType.OFF, generators.get(1).getGeneratorControlType());
+        assertEquals(LfGenerator.GeneratorControlType.VOLTAGE, generators.get(2).getGeneratorControlType());
     }
 }

@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
@@ -44,13 +44,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final SlackBusSelector slackBusSelector;
 
+    private final ReferenceBusSelector referenceBusSelector;
+
     private final int maxSlackBusCount;
 
     private final Map<String, LfBus> busesById = new LinkedHashMap<>();
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
 
+    private LfBus referenceBus;
+
     private List<LfBus> slackBuses;
+
+    private LfGenerator referenceGenerator;
 
     private final List<LfBranch> branches = new ArrayList<>();
 
@@ -122,19 +128,22 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
+    protected final List<LfOverloadManagementSystem> overloadManagementSystems = new ArrayList<>();
+
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
-                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
+                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector, Reporter reporter) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.maxSlackBusCount = maxSlackBusCount;
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
+        this.referenceBusSelector = referenceBusSelector;
         this.reporter = Objects.requireNonNull(reporter);
     }
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
-                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
-        this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, Reporter.NO_OP);
+                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector) {
+        this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, Reporter.NO_OP);
     }
 
     public int getNumCC() {
@@ -153,25 +162,50 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         this.reporter = Objects.requireNonNull(reporter);
     }
 
-    private void invalidateSlack() {
+    public LfElement getElement(ElementType elementType, int num) {
+        return switch (elementType) {
+            case BUS -> getBus(num);
+            case BRANCH -> getBranch(num);
+            case SHUNT_COMPENSATOR -> getShunt(num);
+            case HVDC -> getHvdc(num);
+        };
+    }
+
+    private void invalidateSlackAndReference() {
         if (slackBuses != null) {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(false);
             }
-            slackBuses.get(0).setReference(false);
         }
         slackBuses = null;
+        if (referenceBus != null) {
+            referenceBus.setReference(false);
+        }
+        referenceBus = null;
+        if (referenceGenerator != null) {
+            referenceGenerator.setReference(false);
+        }
+        referenceGenerator = null;
     }
 
-    public void updateSlackBuses() {
-        if (slackBuses == null) {
+    public void updateSlackBusesAndReferenceBus() {
+        if (slackBuses == null && referenceBus == null) {
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses();
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(true);
             }
-            slackBuses.get(0).setReference(true);
+            // reference bus must be selected after slack bus, because of ReferenceBusFirstSlackSelector implementation requiring slackBuses
+            SelectedReferenceBus selectedReferenceBus = referenceBusSelector.select(this);
+            referenceBus = selectedReferenceBus.getLfBus();
+            LOGGER.info("Network {}, reference bus is {} (method='{}')", this, referenceBus, selectedReferenceBus.getSelectionMethod());
+            referenceBus.setReference(true);
+            if (selectedReferenceBus instanceof SelectedGeneratorReferenceBus generatorReferenceBus) {
+                referenceGenerator = generatorReferenceBus.getLfGenerator();
+                LOGGER.info("Network {}, reference generator is {}", this, referenceGenerator.getId());
+                referenceGenerator.setReference(true);
+            }
         }
     }
 
@@ -184,7 +218,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         branch.setNum(branches.size());
         branches.add(branch);
         branchesById.put(branch.getId(), branch);
-        invalidateSlack();
+        invalidateSlackAndReference();
         connectivity = null;
         invalidateZeroImpedanceNetworks();
 
@@ -221,7 +255,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         bus.setNum(busesByIndex.size());
         busesByIndex.add(bus);
         busesById.put(bus.getId(), bus);
-        invalidateSlack();
+        invalidateSlackAndReference();
         connectivity = null;
 
         bus.getShunt().ifPresent(this::addShunt);
@@ -244,13 +278,22 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return busesByIndex.get(num);
     }
 
+    public LfBus getReferenceBus() {
+        return referenceBus;
+    }
+
     public LfBus getSlackBus() {
         return getSlackBuses().get(0);
     }
 
     public List<LfBus> getSlackBuses() {
-        updateSlackBuses();
+        updateSlackBusesAndReferenceBus();
         return slackBuses;
+    }
+
+    public LfGenerator getReferenceGenerator() {
+        updateSlackBusesAndReferenceBus();
+        return referenceGenerator;
     }
 
     public List<LfShunt> getShunts() {
@@ -295,6 +338,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return hvdcs;
     }
 
+    public LfHvdc getHvdc(int num) {
+        return hvdcs.get(num);
+    }
+
     public LfHvdc getHvdcById(String id) {
         Objects.requireNonNull(id);
         return hvdcsById.get(id);
@@ -306,7 +353,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         for (LfBus bus : busesById.values()) {
             bus.updateState(parameters);
             for (LfGenerator generator : bus.getGenerators()) {
-                generator.updateState();
+                generator.updateState(parameters);
             }
             bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
             bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
@@ -430,7 +477,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void writeJson(Writer writer) {
         Objects.requireNonNull(writer);
-        updateSlackBuses();
+        updateSlackBusesAndReferenceBus();
         try (JsonGenerator jsonGenerator = new JsonFactory()
                 .createGenerator(writer)
                 .useDefaultPrettyPrinter()) {
@@ -524,7 +571,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         } else {
             // zero impedance phase shifter controller or controlled branch is not supported
             branches.stream()
-                    .filter(b -> b.isPhaseController() || b.isPhaseControlled())
+                    .filter(b -> b.isPhaseController() || b.isPhaseControlled()
+                            || b.isTransformerReactivePowerController() || b.isTransformerReactivePowerControlled()
+                            || b.getGeneratorReactivePowerControl().isPresent())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
@@ -601,6 +650,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
             connectivity.setMainComponentVertex(getSlackBus());
+            // this is necessary to create a first temporary changes level in order to allow
+            // some outer loop to change permanently the connectivity (with automation systems for instance)
+            // this one will never be reverted
+            if (connectivity.supportTemporaryChangesNesting()) {
+                connectivity.startTemporaryChanges();
+            }
         }
         return connectivity;
     }
@@ -697,6 +752,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return secondaryVoltageControls;
     }
 
+    public Optional<LfSecondaryVoltageControl> getSecondaryVoltageControl(String controlZoneName) {
+        Objects.requireNonNull(controlZoneName);
+        return secondaryVoltageControls.stream()
+                .filter(lfSvc -> lfSvc.getZoneName().equals(controlZoneName))
+                .findFirst();
+    }
+
     private static boolean filterSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
         return !secondaryVoltageControl.getPilotBus().isDisabled();
     }
@@ -733,6 +795,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
                 .collect(Collectors.toList());
+    }
+
+    public void addOverloadManagementSystem(LfOverloadManagementSystem overloadManagementSystem) {
+        overloadManagementSystems.add(Objects.requireNonNull(overloadManagementSystem));
+    }
+
+    public List<LfOverloadManagementSystem> getOverloadManagementSystems() {
+        return overloadManagementSystems;
     }
 
     @Override

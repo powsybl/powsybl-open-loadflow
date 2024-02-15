@@ -7,13 +7,15 @@
 package com.powsybl.openloadflow.network.impl;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromVoltageControlBecauseNotStarted = 0;
 
     int generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall = 0;
+
+    int generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = 0;
 
@@ -36,4 +38,6 @@ public class LfNetworkLoadingReport {
     int generatorsWithZeroRemoteVoltageControlReactivePowerKey = 0;
 
     int transformerVoltageControlDiscardedBecauseControllerBranchIsOpen = 0;
+
+    int transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen = 0;
 }

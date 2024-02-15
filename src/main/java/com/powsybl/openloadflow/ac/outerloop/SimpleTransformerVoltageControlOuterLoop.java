@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.VoltageControl;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
@@ -27,7 +27,9 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
     @Override
     public void initialize(AcOuterLoopContext context) {
         for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
-            controllerBranch.setVoltageControlEnabled(true);
+            if (controllerBranch.isConnectedAtBothSides()) {
+                controllerBranch.setVoltageControlEnabled(true);
+            }
         }
         context.getNetwork().fixTransformerVoltageControls();
     }

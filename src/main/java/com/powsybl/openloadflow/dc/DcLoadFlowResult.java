@@ -6,22 +6,29 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DcLoadFlowResult extends AbstractLoadFlowResult {
 
-    private final boolean succeeded;
+    private final boolean success;
 
-    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, boolean succeeded) {
+    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, boolean success) {
         super(network, slackBusActivePowerMismatch);
-        this.succeeded = succeeded;
+        this.success = success;
     }
 
-    public boolean isSucceeded() {
-        return succeeded;
+    @Override
+    public boolean isSuccess() {
+        return success;
+    }
+
+    @Override
+    public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
+        return success ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
     }
 }

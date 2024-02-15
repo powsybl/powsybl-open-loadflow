@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.TopologyTraverser {
 
@@ -59,7 +59,7 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
             }
             if (isEquivalentToStopAfterSwitch(sw, nodeAfter)) {
                 // Retaining the switch is equivalent to stop at the node after if the node after the switch is an end node (e.g. load or generator)
-                nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(this::terminalTraversed);
+                nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(traversedTerminals::add);
                 return TraverseResult.TERMINATE_PATH;
             }
             switchesToOpen.add(sw);
@@ -88,9 +88,13 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
             IdentifiableType connectableAfter = terminal2.getConnectable().getType();
             boolean endNodeAfter = connectableAfter == IdentifiableType.GENERATOR
                 || connectableAfter == IdentifiableType.LOAD
-                || connectableAfter == IdentifiableType.DANGLING_LINE
                 || connectableAfter == IdentifiableType.STATIC_VAR_COMPENSATOR
-                || connectableAfter == IdentifiableType.SHUNT_COMPENSATOR;
+                || connectableAfter == IdentifiableType.BATTERY
+                || connectableAfter == IdentifiableType.SHUNT_COMPENSATOR
+                || connectableAfter == IdentifiableType.DANGLING_LINE
+                || connectableAfter == IdentifiableType.LINE
+                || connectableAfter == IdentifiableType.TWO_WINDINGS_TRANSFORMER
+                || connectableAfter == IdentifiableType.THREE_WINDINGS_TRANSFORMER;
 
             if (endNodeAfter) { // check that there isn't another (closed) switch or internal connection at node after
                 return noInternalConnectionAtNode(nodeAfter)

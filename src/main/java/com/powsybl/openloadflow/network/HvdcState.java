@@ -7,15 +7,24 @@
 package com.powsybl.openloadflow.network;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public class HvdcState extends ElementState<LfHvdc> {
 
+    private boolean acEmulation;
+
     public HvdcState(LfHvdc hvdc) {
         super(hvdc);
+        this.acEmulation = hvdc.isAcEmulation();
     }
 
     public static HvdcState save(LfHvdc hvdc) {
         return new HvdcState(hvdc);
+    }
+
+    @Override
+    public void restore() {
+        super.restore();
+        element.setAcEmulation(acEmulation);
     }
 }

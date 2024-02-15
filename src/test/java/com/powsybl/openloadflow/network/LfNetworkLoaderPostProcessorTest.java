@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class LfNetworkLoaderPostProcessorTest {
 
@@ -37,7 +37,7 @@ class LfNetworkLoaderPostProcessorTest {
 
     @BeforeEach
     void setUp() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         parameters = new LfNetworkParameters();
 
         pp1 = new AbstractLfNetworkLoaderPostProcessor() {

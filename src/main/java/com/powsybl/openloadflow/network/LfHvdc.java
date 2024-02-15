@@ -9,13 +9,15 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.openloadflow.util.Evaluable;
 
 /**
- * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public interface LfHvdc extends LfElement {
 
     LfBus getBus1();
 
     LfBus getBus2();
+
+    LfBus getOtherBus(LfBus bus);
 
     void setP1(Evaluable p1);
 
@@ -28,6 +30,10 @@ public interface LfHvdc extends LfElement {
     double getDroop();
 
     double getP0();
+
+    boolean isAcEmulation();
+
+    void setAcEmulation(boolean acEmulation);
 
     LfVscConverterStation getConverterStation1();
 

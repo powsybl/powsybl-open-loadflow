@@ -15,15 +15,14 @@ import net.jafama.FastMath;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2BranchAcFlowEquationTerm {
 
     private final Variable<AcVariableType> v1Var;
 
-    public OpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet,
-                                                 boolean deriveA1, boolean deriveR1) {
-        super(branch, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
+    public OpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet) {
+        super(branch, AcVariableType.BUS_V, bus1, variableSet);
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
     }
 

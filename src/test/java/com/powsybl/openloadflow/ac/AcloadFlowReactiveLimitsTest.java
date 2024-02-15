@@ -13,10 +13,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AcloadFlowReactiveLimitsTest {
 
@@ -45,7 +42,7 @@ class AcloadFlowReactiveLimitsTest {
     private LoadFlowParameters parameters;
 
     private void createNetwork() {
-        network = EurostagTutorialExample1Factory.create();
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         // access to already created equipments
         load = network.getLoad("LOAD");
@@ -124,14 +121,14 @@ class AcloadFlowReactiveLimitsTest {
     void test() {
         parameters.setUseReactiveLimits(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-109.228, gen.getTerminal());
         assertReactivePowerEquals(-152.265, gen2.getTerminal());
         assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
 
         parameters.setUseReactiveLimits(true);
         result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-164.315, gen.getTerminal());
         assertReactivePowerEquals(-100, gen2.getTerminal()); // GEN is correctly limited to 100 MVar
         assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
@@ -155,7 +152,7 @@ class AcloadFlowReactiveLimitsTest {
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-164.315, gen.getTerminal());
         assertReactivePowerEquals(-120, gen2.getTerminal());
         assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
