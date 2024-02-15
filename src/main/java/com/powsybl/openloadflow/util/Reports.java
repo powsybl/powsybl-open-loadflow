@@ -330,61 +330,25 @@ public final class Reports {
     }
 
     public static Reporter createNewtonRaphsonMismatchReporter(Reporter reporter, int iteration) {
-        if (iteration == -1) {
+        if (iteration == 0) {
             return reporter.createSubReporter("mismatchInitial", "Initial mismatch");
         } else {
             return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} ", ITERATION, iteration);
         }
     }
 
-    public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, int iteration, NewtonRaphson.NRmismatchBusInfo nRmismatchBusInfo) {
-        Map<String, TypedValue> subReporterMap = new HashMap<>();
-        subReporterMap.put("equationType", new TypedValue(acEquationType, "String"));
-        subReporterMap.put("mismatch", new TypedValue(mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
-
-        Reporter subReporter = reporter.createSubReporter(iteration == -1 ? "NRInitialMismatch" : "NRIterationMismatch", "Mismatch on ${equationType} : ${mismatch}", subReporterMap);
-
-        ReportBuilder busIdReportBuilder = Report.builder();
-        busIdReportBuilder.withKey("NRMismatchBusId")
-                .withDefaultMessage("Bus       Id       : ${busId}")
-                .withValue("busId", nRmismatchBusInfo.busId());
-
-        ReportBuilder busNominalVReportBuilder = Report.builder();
-        busNominalVReportBuilder.withKey("NRMismatchBusNominalV")
-                .withDefaultMessage("Bus nominalV [  kV]: ${busNominalV}")
-                .withValue("busNominalV", nRmismatchBusInfo.busNominalV());
-
-        ReportBuilder busVReportBuilder = Report.builder();
-        busVReportBuilder.withKey("NRMismatchBusV")
-                .withDefaultMessage("Bus        V [p.u.]: ${busV}")
-                .withValue("busV", nRmismatchBusInfo.busV());
-
-        ReportBuilder busPhiReportBuilder = Report.builder();
-        busPhiReportBuilder.withKey("NRMismatchBusPhi")
-                .withDefaultMessage("Bus      Phi [ rad]: ${busPhi}")
-                .withValue("busPhi", nRmismatchBusInfo.busPhi());
-
-        ReportBuilder busPReportBuilder = Report.builder();
-        busPReportBuilder.withKey("NRMismatchBusSumP")
-                .withDefaultMessage("Bus     sumP [  MW]: ${busSumP}")
-                .withValue("busSumP", nRmismatchBusInfo.busSumP());
-
-        ReportBuilder busQReportBuilder = Report.builder();
-        busQReportBuilder.withKey("NRMismatchBusSumQ")
-                .withDefaultMessage("Bus     sumQ [MVar]: ${busSumQ}")
-                .withValue("busSumQ", nRmismatchBusInfo.busSumQ());
-
-        subReporter.report(busIdReportBuilder.build());
-        subReporter.report(busNominalVReportBuilder.build());
-        subReporter.report(busVReportBuilder.build());
-        subReporter.report(busPhiReportBuilder.build());
-        subReporter.report(busPReportBuilder.build());
-        subReporter.report(busQReportBuilder.build());
+    public static void reportNewtonRaphsonError(Reporter reporter, String error) {
+        reporter.report(Report.builder()
+                .withKey("NRError")
+                .withDefaultMessage("Newton Raphson crashed with error: ${error}")
+                .withValue("error", error)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .build());
     }
 
     public static void reportNewtonRaphsonNorm(Reporter reporter, double norm, int iteration) {
         ReportBuilder reportBuilder = Report.builder();
-        if (iteration == -1) {
+        if (iteration == 0) {
             reportBuilder.withKey("NRInitialNorm")
                     .withDefaultMessage("Norm |f(x0)|=${norm}");
         } else {
@@ -393,6 +357,76 @@ public final class Reports {
         }
         reporter.report(reportBuilder.withValue("norm", norm)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
+    }
+
+    public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, NewtonRaphson.NewtonRaphsonMismatchBusInfo nRmismatchBusInfo) {
+        Map<String, TypedValue> subReporterMap = new HashMap<>();
+        subReporterMap.put("equationType", new TypedValue(acEquationType, "String"));
+        subReporterMap.put("mismatch", new TypedValue(mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
+
+        ReportBuilder busIdReportBuilder = Report.builder();
+        busIdReportBuilder.withKey("NRMismatchBusId")
+                .withDefaultMessage("Bus       Id       : ${busId}")
+                .withValue("busId", nRmismatchBusInfo.busId())
+                .withSeverity(TypedValue.TRACE_SEVERITY);
+
+        ReportBuilder busNominalVReportBuilder = Report.builder();
+        busNominalVReportBuilder.withKey("NRMismatchBusNominalV")
+                .withDefaultMessage("Bus nominalV [  kV]: ${busNominalV}")
+                .withValue("busNominalV", nRmismatchBusInfo.busNominalV())
+                .withSeverity(TypedValue.TRACE_SEVERITY);
+
+        ReportBuilder busVReportBuilder = Report.builder();
+        busVReportBuilder.withKey("NRMismatchBusV")
+                .withDefaultMessage("Bus        V [p.u.]: ${busV}")
+                .withValue("busV", nRmismatchBusInfo.busV())
+                .withSeverity(TypedValue.TRACE_SEVERITY);
+
+        ReportBuilder busPhiReportBuilder = Report.builder();
+        busPhiReportBuilder.withKey("NRMismatchBusPhi")
+                .withDefaultMessage("Bus      Phi [ rad]: ${busPhi}")
+                .withValue("busPhi", nRmismatchBusInfo.busPhi())
+                .withSeverity(TypedValue.TRACE_SEVERITY);
+
+        ReportBuilder busPReportBuilder = Report.builder();
+        busPReportBuilder.withKey("NRMismatchBusSumP")
+                .withDefaultMessage("Bus     sumP [  MW]: ${busSumP}")
+                .withValue("busSumP", nRmismatchBusInfo.busSumP())
+                .withSeverity(TypedValue.TRACE_SEVERITY);
+
+        ReportBuilder busQReportBuilder = Report.builder();
+        busQReportBuilder.withKey("NRMismatchBusSumQ")
+                .withDefaultMessage("Bus     sumQ [MVar]: ${busSumQ}")
+                .withValue("busSumQ", nRmismatchBusInfo.busSumQ())
+                .withSeverity(TypedValue.TRACE_SEVERITY);
+
+        Reporter subReporter = reporter.createSubReporter("NRMismatch", "Mismatch on ${equationType} : ${mismatch}", subReporterMap);
+        subReporter.report(busIdReportBuilder.build());
+        subReporter.report(busNominalVReportBuilder.build());
+        subReporter.report(busVReportBuilder.build());
+        subReporter.report(busPhiReportBuilder.build());
+        subReporter.report(busPReportBuilder.build());
+        subReporter.report(busQReportBuilder.build());
+    }
+
+    public static void reportLineSearchStateVectorScaling(Reporter reporter, double stepSize) {
+        reporter.report(Report.builder()
+                .withKey("lineSearchStateVectorScaling")
+                .withDefaultMessage("Step size (line search): ${stepSize}")
+                .withValue("stepSize", stepSize)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportMaxVoltageChangeStateVectorScaling(Reporter reporter, double stepSize, int vCutCount, int phiCutCount) {
+        reporter.report(Report.builder()
+                .withKey("maxVoltageChangeStateVectorScaling")
+                .withDefaultMessage("Step size (max voltage change): ${stepSize} (${vCutCount} Vmagnitude and ${phiCutCount} Vangle changes outside thresholds)")
+                .withValue("stepSize", stepSize)
+                .withValue("vCutCount", vCutCount)
+                .withValue("phiCutCount", phiCutCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
