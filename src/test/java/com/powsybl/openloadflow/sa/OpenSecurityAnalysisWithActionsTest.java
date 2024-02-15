@@ -1238,10 +1238,10 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         PostContingencyResult postContingencyResult2 = getPostContingencyResult(result, "tr3");
         OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy");
 
-        assertEquals(393.15, result.getPreContingencyResult().getNetworkResult().getBusResult("b4").getV(), DELTA_V);
-        assertEquals(400.20, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
-        assertEquals(392.99, operatorStrategyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
-        assertEquals(400.20, postContingencyResult2.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(392.13, result.getPreContingencyResult().getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(399.62, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(392.41, operatorStrategyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(399.62, postContingencyResult2.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
     }
 
     @Test

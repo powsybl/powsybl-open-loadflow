@@ -123,6 +123,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // try to find all ptc and rtc to retain because involved in ptc and rtc actions
         findAllPtcToOperate(actions, topoConfig);
         findAllRtcToOperate(actions, topoConfig);
+        // try to find all shunts which section can change through actions.
+        findAllShuntsToOperate(actions, topoConfig);
 
         // try to find branches (lines and two windings transformers).
         // tie lines and three windings transformers missing.
