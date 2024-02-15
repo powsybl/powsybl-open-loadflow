@@ -168,10 +168,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         List <VoltageControl<?>> zeroImpNetVoltageControls = zeroImpNetBuses.stream()
                 .filter(LfBus::isVoltageControlled)
                 .flatMap(bus -> bus.getVoltageControls().stream())
-                .filter(vc -> vc.getMergeStatus() != VoltageControl.MergeStatus.DEPENDENT)
+                .filter(vc -> !vc.isDisabled() && vc.getMergeStatus() != VoltageControl.MergeStatus.DEPENDENT)
+                .sorted(Comparator.comparingInt(vc -> voltageTargetPriorities.indexOf(vc.getType().name())))
                 .collect(Collectors.toList());
-
-        zeroImpNetVoltageControls.sort(Comparator.comparingInt(vc -> voltageTargetPriorities.indexOf(vc.getType().name())));
 
         return Optional.of(zeroImpNetVoltageControls.get(0).getTargetValue());
     }
