@@ -33,73 +33,73 @@
              Bus sum Q [MVar]: 720.0141529478491
         + Iteration 1 
            Norm |f(x)|=1.370521997338349
-        + Mismatch on TargetP : 0.5654241868659025
-           Bus Id: VLGEN_0
-           Bus nominal V [kV]: 24.0
-           Bus V [p.u.]: 1.0208333333333333
-           Bus Phi [rad]: 0.044267798791154236
-           Bus sum P [MW]: 663.5424186865903
-           Bus sum Q [MVar]: 43.17685390493645
-        + Mismatch on TargetQ : 0.9076781074655959
-           Bus Id: VLHV1_0
-           Bus nominal V [kV]: 380.0
-           Bus V [p.u.]: 1.0713810414454683
-           Bus Phi [rad]: -3.393522766578452E-17
-           Bus sum P [MW]: 12.229716367035337
-           Bus sum Q [MVar]: 90.76781074655959
-        + Mismatch on TargetV : 0.0
-           Bus Id: VLGEN_0
-           Bus nominal V [kV]: 24.0
-           Bus V [p.u.]: 1.0208333333333333
-           Bus Phi [rad]: 0.044267798791154236
-           Bus sum P [MW]: 663.5424186865903
-           Bus sum Q [MVar]: 43.17685390493645
+          + Mismatch on TargetP : 0.5654241868659025
+             Bus Id: VLGEN_0
+             Bus nominal V [kV]: 24.0
+             Bus V [p.u.]: 1.0208333333333333
+             Bus Phi [rad]: 0.044267798791154236
+             Bus sum P [MW]: 663.5424186865903
+             Bus sum Q [MVar]: 43.17685390493645
+          + Mismatch on TargetQ : 0.9076781074655959
+             Bus Id: VLHV1_0
+             Bus nominal V [kV]: 380.0
+             Bus V [p.u.]: 1.0713810414454683
+             Bus Phi [rad]: -3.393522766578452E-17
+             Bus sum P [MW]: 12.229716367035337
+             Bus sum Q [MVar]: 90.76781074655959
+          + Mismatch on TargetV : 0.0
+             Bus Id: VLGEN_0
+             Bus nominal V [kV]: 24.0
+             Bus V [p.u.]: 1.0208333333333333
+             Bus Phi [rad]: 0.044267798791154236
+             Bus sum P [MW]: 663.5424186865903
+             Bus sum Q [MVar]: 43.17685390493645
         + Iteration 2 
            Norm |f(x)|=0.02735383065047368
-        + Mismatch on TargetP : -0.011906013412646743
-           Bus Id: VLHV2_0
-           Bus nominal V [kV]: 380.0
-           Bus V [p.u.]: 1.0267735150466015
-           Bus Phi [rad]: -0.06136319436584185
-           Bus sum P [MW]: -1.1906013412646743
-           Bus sum Q [MVar]: 1.5807200344973626
-        + Mismatch on TargetQ : 0.015807200344973626
-           Bus Id: VLHV2_0
-           Bus nominal V [kV]: 380.0
-           Bus V [p.u.]: 1.0267735150466015
-           Bus Phi [rad]: -0.06136319436584185
-           Bus sum P [MW]: -1.1906013412646743
-           Bus sum Q [MVar]: 1.5807200344973626
-        + Mismatch on TargetV : 0.0
-           Bus Id: VLGEN_0
-           Bus nominal V [kV]: 24.0
-           Bus V [p.u.]: 1.0208333333333333
-           Bus Phi [rad]: 0.0407316584549734
-           Bus sum P [MW]: 607.6315237028163
-           Bus sum Q [MVar]: 221.29991685388833
+          + Mismatch on TargetP : -0.011906013412646743
+             Bus Id: VLHV2_0
+             Bus nominal V [kV]: 380.0
+             Bus V [p.u.]: 1.0267735150466015
+             Bus Phi [rad]: -0.06136319436584185
+             Bus sum P [MW]: -1.1906013412646743
+             Bus sum Q [MVar]: 1.5807200344973626
+          + Mismatch on TargetQ : 0.015807200344973626
+             Bus Id: VLHV2_0
+             Bus nominal V [kV]: 380.0
+             Bus V [p.u.]: 1.0267735150466015
+             Bus Phi [rad]: -0.06136319436584185
+             Bus sum P [MW]: -1.1906013412646743
+             Bus sum Q [MVar]: 1.5807200344973626
+          + Mismatch on TargetV : 0.0
+             Bus Id: VLGEN_0
+             Bus nominal V [kV]: 24.0
+             Bus V [p.u.]: 1.0208333333333333
+             Bus Phi [rad]: 0.0407316584549734
+             Bus sum P [MW]: 607.6315237028163
+             Bus sum Q [MVar]: 221.29991685388833
         + Iteration 3 
            Norm |f(x)|=2.0034253596371782E-5
-        + Mismatch on TargetP : -1.2624760780788336E-5
-           Bus Id: VLHV2_0
-           Bus nominal V [kV]: 380.0
-           Bus V [p.u.]: 1.0261840057810543
-           Bus Phi [rad]: -0.0611984592137325
-           Bus sum P [MW]: -0.0012624760780788336
-           Bus sum Q [MVar]: 0.0010873067915362356
-        + Mismatch on TargetQ : 1.0873067915362356E-5
-           Bus Id: VLHV2_0
-           Bus nominal V [kV]: 380.0
-           Bus V [p.u.]: 1.0261840057810543
-           Bus Phi [rad]: -0.0611984592137325
-           Bus sum P [MW]: -0.0012624760780788336
-           Bus sum Q [MVar]: 0.0010873067915362356
-        + Mismatch on TargetV : 0.0
-           Bus Id: VLGEN_0
-           Bus nominal V [kV]: 24.0
-           Bus V [p.u.]: 1.0208333333333333
-           Bus Phi [rad]: 0.04069359966489529
-           Bus sum P [MW]: 607.0001563589107
-           Bus sum Q [MVar]: 225.40357009583855
+          + Mismatch on TargetP : -1.2624760780788336E-5
+             Bus Id: VLHV2_0
+             Bus nominal V [kV]: 380.0
+             Bus V [p.u.]: 1.0261840057810543
+             Bus Phi [rad]: -0.0611984592137325
+             Bus sum P [MW]: -0.0012624760780788336
+             Bus sum Q [MVar]: 0.0010873067915362356
+          + Mismatch on TargetQ : 1.0873067915362356E-5
+             Bus Id: VLHV2_0
+             Bus nominal V [kV]: 380.0
+             Bus V [p.u.]: 1.0261840057810543
+             Bus Phi [rad]: -0.0611984592137325
+             Bus sum P [MW]: -0.0012624760780788336
+             Bus sum Q [MVar]: 0.0010873067915362356
+          + Mismatch on TargetV : 0.0
+             Bus Id: VLGEN_0
+             Bus nominal V [kV]: 24.0
+             Bus V [p.u.]: 1.0208333333333333
+             Bus Phi [rad]: 0.04069359966489529
+             Bus sum P [MW]: 607.0001563589107
+             Bus sum Q [MVar]: 225.40357009583855
       + Outer loop VoltageMonitoring
          Status: STABLE
       + Outer loop ReactiveLimits

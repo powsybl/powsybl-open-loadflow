@@ -273,8 +273,11 @@ public final class Reports {
         return reporter.createSubReporter("OuterLoop", "Outer loop ${outerLoopType}", "outerLoopType", outerLoopType);
     }
 
-    public static Reporter createOuterLoopIterationReporter(Reporter reporter, int currentRunIteration) {
-        return reporter.createSubReporter("OuterLoopIteration", "Iteration ${currentRunIteration}", "currentRunIteration", currentRunIteration);
+    public static Reporter createOuterLoopIterationReporter(Reporter reporter, int currentRunIteration, int totalIterations) {
+        Map<String, TypedValue> subReporterMap = new HashMap<>();
+        subReporterMap.put("currentRunIteration", new TypedValue(currentRunIteration, TypedValue.UNTYPED));
+        subReporterMap.put("totalIterations", new TypedValue(totalIterations, TypedValue.UNTYPED));
+        return reporter.createSubReporter("OuterLoopIteration", "Iteration ${currentRunIteration} (total=${totalIterations})", subReporterMap);
     }
 
     public static Reporter createSensitivityAnalysis(Reporter reporter, String networkId) {

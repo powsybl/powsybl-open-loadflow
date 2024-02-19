@@ -56,7 +56,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
         boolean shouldDistributeSlack = Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB;
 
         if (shouldDistributeSlack) {
-            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1);
+            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1, context.getIteration() + 1);
             ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
             double remainingMismatch = result.remainingMismatch();
             double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;

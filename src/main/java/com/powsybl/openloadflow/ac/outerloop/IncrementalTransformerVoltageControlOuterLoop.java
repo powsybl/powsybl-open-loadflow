@@ -224,6 +224,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
+        Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1, context.getIteration() + 1);
 
         LfNetwork network = context.getNetwork();
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
@@ -276,12 +277,12 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         if (!controlledBusesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled bus voltages have been adjusted by changing at least one tap",
                     controlledBusesAdjusted.size());
-            Reports.reportTransformerControlChangedTaps(reporter, controlledBusesAdjusted.size());
+            Reports.reportTransformerControlChangedTaps(iterationReporter, controlledBusesAdjusted.size());
         }
         if (!controlledBusesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled buses have all its controllers to a tap limit: {}",
                     controlledBusesWithAllItsControllersToLimit.size(), controlledBusesWithAllItsControllersToLimit);
-            Reports.reportTransformerControlTapLimit(reporter, controlledBusesWithAllItsControllersToLimit.size());
+            Reports.reportTransformerControlTapLimit(iterationReporter, controlledBusesWithAllItsControllersToLimit.size());
         }
 
         return status.getValue();

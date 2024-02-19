@@ -9,7 +9,7 @@
          Solver status: CONVERGED
         + Outer loop DistributedSlack
            Status: STABLE
-          + Iteration 1
+          + Iteration 1 (total=1)
              Slack bus active power (-1.4404045651219555 MW) distributed in 2 inner iteration(s)
         + Outer loop VoltageMonitoring
            Status: STABLE
@@ -26,7 +26,7 @@
          Solver status: CONVERGED
         + Outer loop DistributedSlack
            Status: STABLE
-          + Iteration 1
+          + Iteration 1 (total=1)
              Slack bus active power (5.803741102800952 MW) distributed in 2 inner iteration(s)
         + Outer loop VoltageMonitoring
            Status: STABLE
@@ -43,7 +43,7 @@
          Solver status: CONVERGED
         + Outer loop DistributedSlack
            Status: STABLE
-          + Iteration 1
+          + Iteration 1 (total=1)
              Slack bus active power (5.803741102800952 MW) distributed in 2 inner iteration(s)
         + Outer loop VoltageMonitoring
            Status: STABLE
@@ -64,7 +64,7 @@
          Solver status: CONVERGED
         + Outer loop DistributedSlack
            Status: STABLE
-          + Iteration 1
+          + Iteration 1 (total=1)
              Slack bus active power (-5.4942194604343655 MW) distributed in 2 inner iteration(s)
         + Outer loop VoltageMonitoring
            Status: STABLE

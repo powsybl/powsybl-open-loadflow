@@ -151,7 +151,7 @@ public class NewtonRaphson extends AbstractAcSolver {
                 Reports.reportNewtonRaphsonNorm(iterationReporter, testResult.getNorm(), iterations.getValue() + 1);
             }
             if (detailedReport || LOGGER.isTraceEnabled()) {
-                reportAndLogLargestMismatchByAcEquationType(reporter, equationSystem, equationVector.getArray());
+                reportAndLogLargestMismatchByAcEquationType(iterationReporter, equationSystem, equationVector.getArray());
             }
             if (testResult.isStop()) {
                 return AcSolverStatus.CONVERGED;
