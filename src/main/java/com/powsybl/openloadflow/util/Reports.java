@@ -37,6 +37,7 @@ public final class Reports {
                 .withDefaultMessage("Network has ${busCount} buses and ${branchCount} branches")
                 .withValue("busCount", busCount)
                 .withValue("branchCount", branchCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
@@ -48,6 +49,7 @@ public final class Reports {
                 .withValue("activeLoad", activeLoad)
                 .withValue("reactiveGeneration", reactiveGeneration)
                 .withValue("reactiveLoad", reactiveLoad)
+                .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
@@ -55,6 +57,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("networkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled")
                 .withDefaultMessage("Network must have at least one bus with generator voltage control enabled")
+                .withSeverity(TypedValue.ERROR_SEVERITY)
                 .build());
     }
 
@@ -367,37 +370,37 @@ public final class Reports {
 
         ReportBuilder busIdReportBuilder = Report.builder();
         busIdReportBuilder.withKey("NRMismatchBusId")
-                .withDefaultMessage("Bus       Id       : ${busId}")
+                .withDefaultMessage("Bus Id: ${busId}")
                 .withValue("busId", nRmismatchBusInfo.busId())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
         ReportBuilder busNominalVReportBuilder = Report.builder();
         busNominalVReportBuilder.withKey("NRMismatchBusNominalV")
-                .withDefaultMessage("Bus nominalV [  kV]: ${busNominalV}")
+                .withDefaultMessage("Bus nominalV [kV]: ${busNominalV}")
                 .withValue("busNominalV", nRmismatchBusInfo.busNominalV())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
         ReportBuilder busVReportBuilder = Report.builder();
         busVReportBuilder.withKey("NRMismatchBusV")
-                .withDefaultMessage("Bus        V [p.u.]: ${busV}")
+                .withDefaultMessage("Bus V [p.u.]: ${busV}")
                 .withValue("busV", nRmismatchBusInfo.busV())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
         ReportBuilder busPhiReportBuilder = Report.builder();
         busPhiReportBuilder.withKey("NRMismatchBusPhi")
-                .withDefaultMessage("Bus      Phi [ rad]: ${busPhi}")
+                .withDefaultMessage("Bus Phi [rad]: ${busPhi}")
                 .withValue("busPhi", nRmismatchBusInfo.busPhi())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
         ReportBuilder busPReportBuilder = Report.builder();
         busPReportBuilder.withKey("NRMismatchBusSumP")
-                .withDefaultMessage("Bus     sumP [  MW]: ${busSumP}")
+                .withDefaultMessage("Bus sumP [MW]: ${busSumP}")
                 .withValue("busSumP", nRmismatchBusInfo.busSumP())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
         ReportBuilder busQReportBuilder = Report.builder();
         busQReportBuilder.withKey("NRMismatchBusSumQ")
-                .withDefaultMessage("Bus     sumQ [MVar]: ${busSumQ}")
+                .withDefaultMessage("Bus sumQ [MVar]: ${busSumQ}")
                 .withValue("busSumQ", nRmismatchBusInfo.busSumQ())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
