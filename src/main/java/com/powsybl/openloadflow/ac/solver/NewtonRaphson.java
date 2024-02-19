@@ -89,12 +89,12 @@ public class NewtonRaphson extends AbstractAcSolver {
                         double busSumQ = bus.getQ().eval() * PerUnit.SB;
 
                         LOGGER.trace("Mismatch {} on {}: {}", acEquationType, equation, equationMismatch);
-                        LOGGER.trace("    Bus       Id       : {}", elementId);
-                        LOGGER.trace("    Bus nominalV [  kV]: {}", busNominalV);
-                        LOGGER.trace("    Bus        V [p.u.]: {}", busV);
-                        LOGGER.trace("    Bus      Phi [ rad]: {}", busPhi);
-                        LOGGER.trace("    Bus     sumP [  MW]: {}", busSumP);
-                        LOGGER.trace("    Bus     sumQ [MVar]: {}", busSumQ);
+                        LOGGER.trace("    Bus        Id       : {}", elementId);
+                        LOGGER.trace("    Bus nominal V [  kV]: {}", busNominalV);
+                        LOGGER.trace("    Bus         V [p.u.]: {}", busV);
+                        LOGGER.trace("    Bus       Phi [ rad]: {}", busPhi);
+                        LOGGER.trace("    Bus     sum P [  MW]: {}", busSumP);
+                        LOGGER.trace("    Bus     sum Q [MVar]: {}", busSumQ);
 
                         if (reporter != null) {
                             Reports.reportNewtonRaphsonMismatch(reporter, getEquationTypeDescription(acEquationType), equationMismatch, new NewtonRaphsonMismatchBusInfo(elementId, busNominalV, busV, busPhi, busSumP, busSumQ));

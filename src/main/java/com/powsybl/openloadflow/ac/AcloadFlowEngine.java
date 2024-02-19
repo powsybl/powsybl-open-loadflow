@@ -211,7 +211,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
-        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.toComponentResultStatus());
+        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.toComponentResultStatus(), result.getSolverStatus());
 
         context.setResult(result);
 

@@ -6,6 +6,7 @@
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Pre-contingency simulation
          AC load flow completion status: CONVERGED
+         Solver status: CONVERGED
         + Outer loop DistributedSlack
            Status: STABLE
           + Iteration 1
@@ -22,6 +23,7 @@
            Status: STABLE
       + Post-contingency simulation 'NHV1_NHV2_1'
          AC load flow completion status: CONVERGED
+         Solver status: CONVERGED
         + Outer loop DistributedSlack
            Status: STABLE
           + Iteration 1
@@ -38,6 +40,7 @@
            Status: STABLE
       + Post-contingency simulation 'NHV1_NHV2_2'
          AC load flow completion status: CONVERGED
+         Solver status: CONVERGED
         + Outer loop DistributedSlack
            Status: STABLE
           + Iteration 1
@@ -55,8 +58,10 @@
       + Post-contingency simulation 'NGEN_NHV1'
          1 bus(es) have its (their) voltage magnitude out of the range [0.5, 1.5] p.u.: {VLHV1_0=1.5105659472379578}
          AC load flow completion status: FAILED
+         Solver status: UNREALISTIC_STATE
       + Post-contingency simulation 'NHV2_NLOAD'
          AC load flow completion status: CONVERGED
+         Solver status: CONVERGED
         + Outer loop DistributedSlack
            Status: STABLE
           + Iteration 1
