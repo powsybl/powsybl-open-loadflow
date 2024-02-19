@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.impl.LfTieLineBranch;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -33,15 +32,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     private void addResults(StateMonitor monitor) {
         addResults(monitor, branch -> {
-            List<BranchResult> branchResult = branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension);
-            if (branchResult.size() == 1) {
-                branchResults.put(branch.getId(), branchResult.get(0));
-            } else if (branch instanceof LfTieLineBranch) {
-                LfTieLineBranch lfTieLineBranch = (LfTieLineBranch) branch;
-                branchResults.put(lfTieLineBranch.getId(), branchResult.get(0));
-                branchResults.put(lfTieLineBranch.getHalf1().getId(), branchResult.get(1));
-                branchResults.put(lfTieLineBranch.getHalf2().getId(), branchResult.get(2));
-            }
+            branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension)
+                    .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
         });
     }
 

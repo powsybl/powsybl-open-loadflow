@@ -10,14 +10,15 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
-import com.powsybl.openloadflow.network.impl.LfTieLineBranch;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -45,16 +46,14 @@ public abstract class AbstractNetworkResult {
         Objects.requireNonNull(monitor);
         if (!monitor.getBranchIds().isEmpty()) {
             network.getBranches().stream()
-                    .filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                     .filter(lfBranch -> !lfBranch.isDisabled())
-                    .forEach(branchConsumer);
-            // user can ask for underlying dangling ids instead of tie line id.
-            network.getBranches().stream()
-                    .filter(lfBranch -> !lfBranch.isDisabled())
-                    .filter(lfBranch -> lfBranch instanceof LfTieLineBranch)
-                    .map(LfTieLineBranch.class::cast)
-                    .filter(tl -> monitor.getBranchIds().contains(tl.getHalf1().getId()) || monitor.getBranchIds().contains(tl.getHalf2().getId()))
-                    .forEach(branchConsumer);
+                    .forEach(lfBranch -> {
+                        for (String originalId : lfBranch.getOriginalIds()) {
+                            if (monitor.getBranchIds().contains(originalId)) {
+                                branchConsumer.accept(lfBranch);
+                            }
+                        }
+                    });
         }
 
         if (!monitor.getVoltageLevelIds().isEmpty()) {

@@ -55,6 +55,11 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
+    public List<String> getOriginalIds() {
+        return List.of(id, danglingLine1Ref.get().getId(), danglingLine2Ref.get().getId());
+    }
+
+    @Override
     public BranchType getBranchType() {
         return BranchType.TIE_LINE;
     }
