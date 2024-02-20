@@ -441,7 +441,17 @@ public class PropagatedContingency {
         return status == null || status == DisabledBranchStatus.SIDE_1;
     }
 
+    public enum ToLfContingencyConversionStatus {
+        OK,
+        ISOLATED_SLACK_BUS,
+        NO_IMPACT;
+    }
+
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
+        return toLfContingencyWithStatus(network).getKey();
+    }
+
+    public Pair<Optional<LfContingency>, ToLfContingencyConversionStatus> toLfContingencyWithStatus(LfNetwork network) {
         // find branch to open because of direct impact of the contingency (including propagation is activated)
         Map<LfBranch, DisabledBranchStatus> branchesToOpen = findBranchToOpenDirectlyImpactedByContingency(network);
 
@@ -449,7 +459,7 @@ public class PropagatedContingency {
         // loss of connectivity once contingency applied on the network
         ContingencyConnectivityLossImpact connectivityLossImpact = findBusesAndBranchesImpactedBecauseOfConnectivityLoss(network, branchesToOpen);
         if (!connectivityLossImpact.ok) {
-            return Optional.empty();
+            return Pair.of(Optional.empty(), ToLfContingencyConversionStatus.ISOLATED_SLACK_BUS);
         }
         Set<LfBus> busesToLost = connectivityLossImpact.busesToLost(); // nothing else
 
@@ -521,11 +531,10 @@ public class PropagatedContingency {
                 && lostHvdcs.isEmpty()
                 && connectivityLossImpact.hvdcsWithoutPower().isEmpty()) {
             LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
-            return Optional.empty();
+            return Pair.of(Optional.empty(), ToLfContingencyConversionStatus.NO_IMPACT);
         }
-
-        return Optional.of(new LfContingency(contingency.getId(), index, connectivityLossImpact.createdSynchronousComponents,
+        return Pair.of(Optional.of(new LfContingency(contingency.getId(), index, connectivityLossImpact.createdSynchronousComponents,
                            new DisabledNetwork(busesToLost, branchesToOpen, lostHvdcs), shunts, loads, generators,
-                           connectivityLossImpact.hvdcsWithoutPower()));
+                           connectivityLossImpact.hvdcsWithoutPower())), ToLfContingencyConversionStatus.OK);
     }
 }

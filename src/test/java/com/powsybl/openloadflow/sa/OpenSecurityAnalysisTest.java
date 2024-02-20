@@ -1053,8 +1053,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
 
-        // load is disconnected, contingency is skipped
-        assertFalse(getOptionalPostContingencyResult(result, "l2").isPresent());
+        // load is disconnected, contingency has no impact
+        assertEquals(PostContingencyComputationStatus.NO_IMPACT, getPostContingencyResult(result, "l2").getStatus());
     }
 
     @Test

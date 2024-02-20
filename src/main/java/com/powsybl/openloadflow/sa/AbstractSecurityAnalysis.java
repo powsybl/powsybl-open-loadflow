@@ -437,53 +437,65 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
                 while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    propagatedContingency.toLfContingency(lfNetwork)
-                            .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
-                                lfNetwork.setReportNode(postContSimReportNode);
 
-                                lfContingency.apply(loadFlowParameters.getBalanceType());
+                    var lfContingencyWithStatus = propagatedContingency.toLfContingencyWithStatus(lfNetwork);
 
-                                distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+                    switch (lfContingencyWithStatus.getRight()) {
+                        case ISOLATED_SLACK_BUS:
+                            break;
+                        case NO_IMPACT:
+                            postContingencyResults.add(new PostContingencyResult(propagatedContingency.getContingency(), PostContingencyComputationStatus.NO_IMPACT, new ArrayList<>()));
+                            break;
+                        case OK:
+                            propagatedContingency.toLfContingency(lfNetwork)
+                                    .ifPresent(lfContingency -> { // only process contingencies that impact the network
+                                        ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
+                                        lfNetwork.setReportNode(postContSimReportNode);
 
-                                var postContingencyResult = runPostContingencySimulation(lfNetwork, context, propagatedContingency.getContingency(),
-                                        lfContingency, preContingencyLimitViolationManager,
-                                        securityAnalysisParameters.getIncreasedViolationsParameters(),
-                                        preContingencyNetworkResult, createResultExtension);
-                                postContingencyResults.add(postContingencyResult);
+                                        lfContingency.apply(loadFlowParameters.getBalanceType());
 
-                                List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(lfContingency.getId());
-                                if (operatorStrategiesForThisContingency != null) {
-                                    // we have at least an operator strategy for this contingency.
-                                    if (operatorStrategiesForThisContingency.size() == 1) {
-                                        runActionSimulation(lfNetwork, context,
-                                                operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
-                                                securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
-                                                createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
-                                                acParameters.getNetworkParameters())
-                                                .ifPresent(operatorStrategyResults::add);
-                                    } else {
-                                        // save post contingency state for later restoration after action
-                                        NetworkState postContingencyNetworkState = NetworkState.save(lfNetwork);
-                                        for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-                                            runActionSimulation(lfNetwork, context,
-                                                    operatorStrategy, preContingencyLimitViolationManager,
-                                                    securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
-                                                    createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
-                                                    acParameters.getNetworkParameters())
-                                                    .ifPresent(result -> {
-                                                        operatorStrategyResults.add(result);
-                                                        postContingencyNetworkState.restore();
-                                                    });
+                                        distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+
+                                        var postContingencyResult = runPostContingencySimulation(lfNetwork, context, propagatedContingency.getContingency(),
+                                                lfContingency, preContingencyLimitViolationManager,
+                                                securityAnalysisParameters.getIncreasedViolationsParameters(),
+                                                preContingencyNetworkResult, createResultExtension);
+                                        postContingencyResults.add(postContingencyResult);
+
+                                        List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(lfContingency.getId());
+                                        if (operatorStrategiesForThisContingency != null) {
+                                            // we have at least an operator strategy for this contingency.
+                                            if (operatorStrategiesForThisContingency.size() == 1) {
+                                                runActionSimulation(lfNetwork, context,
+                                                        operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
+                                                        securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
+                                                        createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
+                                                        acParameters.getNetworkParameters())
+                                                        .ifPresent(operatorStrategyResults::add);
+                                            } else {
+                                                // save post contingency state for later restoration after action
+                                                NetworkState postContingencyNetworkState = NetworkState.save(lfNetwork);
+                                                for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
+                                                    runActionSimulation(lfNetwork, context,
+                                                            operatorStrategy, preContingencyLimitViolationManager,
+                                                            securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
+                                                            createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
+                                                            acParameters.getNetworkParameters())
+                                                            .ifPresent(result -> {
+                                                                operatorStrategyResults.add(result);
+                                                                postContingencyNetworkState.restore();
+                                                            });
+                                                }
+                                            }
                                         }
-                                    }
-                                }
 
-                                if (contingencyIt.hasNext()) {
-                                    // restore base state
-                                    networkState.restore();
-                                }
-                            });
+                                        if (contingencyIt.hasNext()) {
+                                            // restore base state
+                                            networkState.restore();
+                                        }
+                                    });
+                            break;
+                    }
                 }
             }
 
