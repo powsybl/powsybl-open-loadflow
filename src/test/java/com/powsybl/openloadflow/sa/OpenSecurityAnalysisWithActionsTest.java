@@ -1242,6 +1242,11 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(399.62, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
         assertEquals(392.41, operatorStrategyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
         assertEquals(399.62, postContingencyResult2.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+
+        securityAnalysisParameters.getLoadFlowParameters().setShuntCompensatorVoltageControlOn(true);
+        CompletionException exception = assertThrows(CompletionException.class,
+                () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP));
+        assertEquals("Shunt compensator position action: voltage controller shunt not supported", exception.getCause().getMessage());
     }
 
     @Test

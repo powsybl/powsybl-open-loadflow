@@ -103,7 +103,7 @@ public final class LfAction {
     private static Optional<LfAction> create(ShuntCompensatorPositionAction action, LfNetwork lfNetwork) {
         LfShunt shunt = lfNetwork.getShuntById(action.getShuntCompensatorId());
         if (shunt instanceof LfShuntImpl) { // no svc here
-            if (shunt.isVoltageControlEnabled()) {
+            if (shunt.getVoltageControl().isPresent()) {
                 throw new UnsupportedOperationException("Shunt compensator position action: voltage controller shunt not supported");
             } else {
                 var sectionChange = new SectionChange(shunt, action.getShuntCompensatorId(), action.getSectionCount());
