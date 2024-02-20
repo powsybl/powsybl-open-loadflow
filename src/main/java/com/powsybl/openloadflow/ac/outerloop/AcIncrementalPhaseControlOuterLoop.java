@@ -93,8 +93,8 @@ public class AcIncrementalPhaseControlOuterLoop
         }
     }
 
-    private boolean checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
-                                                            List<TransformerPhaseControl> currentLimiterPhaseControls, Reporter reporter) {
+    private int checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
+                                                     List<TransformerPhaseControl> currentLimiterPhaseControls, Reporter reporter) {
         MutableInt numOfCurrentLimiterPstsThatChangedTap = new MutableInt(0);
 
         for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
@@ -130,12 +130,7 @@ public class AcIncrementalPhaseControlOuterLoop
                 }
             }
         }
-
-        if (numOfCurrentLimiterPstsThatChangedTap.getValue() != 0) {
-            Reports.reportCurrentLimitersPstsChangedTaps(reporter, numOfCurrentLimiterPstsThatChangedTap.getValue());
-        }
-
-        return numOfCurrentLimiterPstsThatChangedTap.getValue() != 0;
+        return numOfCurrentLimiterPstsThatChangedTap.getValue();
     }
 
     private void checkImpactOnOtherPhaseShifters(AcSensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
@@ -177,6 +172,8 @@ public class AcIncrementalPhaseControlOuterLoop
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         var contextData = (IncrementalContextData) context.getData();
+        int currentRunIteration = context.getCurrentRunIteration();
+        int totalIterations = context.getIteration();
 
         LfNetwork network = context.getNetwork();
 
@@ -206,20 +203,30 @@ public class AcIncrementalPhaseControlOuterLoop
                                                             context.getLoadFlowContext().getEquationSystem(),
                                                             context.getLoadFlowContext().getJacobianMatrix());
 
-            if (!currentLimiterPhaseControls.isEmpty()
-                    && checkCurrentLimiterPhaseControls(sensitivityContext,
-                                                        contextData,
-                                                        currentLimiterPhaseControls,
-                                                        reporter)) {
-                status = OuterLoopStatus.UNSTABLE;
+            Reporter iterationReporter = null;
+            if (!currentLimiterPhaseControls.isEmpty()) {
+                int numOfCurrentLimiterPstsThatChangedTap = checkCurrentLimiterPhaseControls(sensitivityContext,
+                                                                                             contextData,
+                                                                                             currentLimiterPhaseControls,
+                                                                                             reporter);
+                if (numOfCurrentLimiterPstsThatChangedTap != 0) {
+                    iterationReporter = Reports.createOuterLoopIterationReporter(reporter, currentRunIteration + 1, totalIterations + 1);
+                    Reports.reportCurrentLimiterPstsChangedTaps(iterationReporter, numOfCurrentLimiterPstsThatChangedTap);
+                    status = OuterLoopStatus.UNSTABLE;
+                }
             }
 
-            if (!activePowerControlPhaseControls.isEmpty()
-                    && checkActivePowerControlPhaseControls(sensitivityContext,
-                                                            contextData,
-                                                            activePowerControlPhaseControls,
-                                                            reporter)) {
-                status = OuterLoopStatus.UNSTABLE;
+            if (!activePowerControlPhaseControls.isEmpty()) {
+                int numOfActivePowerControlPstsThatChangedTap = checkActivePowerControlPhaseControls(sensitivityContext,
+                                                                                                     contextData,
+                                                                                                     activePowerControlPhaseControls);
+                if (numOfActivePowerControlPstsThatChangedTap != 0) {
+                    if (iterationReporter == null) {
+                        iterationReporter = Reports.createOuterLoopIterationReporter(reporter, currentRunIteration + 1, totalIterations + 1);
+                    }
+                    Reports.reportActivePowerControlPstsChangedTaps(iterationReporter, numOfActivePowerControlPstsThatChangedTap);
+                    status = OuterLoopStatus.UNSTABLE;
+                }
             }
         }
 

@@ -138,7 +138,7 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportCurrentLimitersPstsChangedTaps(Reporter reporter, int numOfCurrentLimiterPstsThatChangedTap) {
+    public static void reportCurrentLimiterPstsChangedTaps(Reporter reporter, int numOfCurrentLimiterPstsThatChangedTap) {
         reporter.report(Report.builder()
                 .withKey("currentLimiterPstsChangedTaps")
                 .withDefaultMessage("${numOfCurrentLimiterPstsThatChangedTap} current limiter PST(s) changed taps")
@@ -152,6 +152,24 @@ public final class Reports {
                 .withKey("activePowerControlPstsChangedTaps")
                 .withDefaultMessage("${numOfActivePowerControlPstsThatChangedTap} active power control PST(s) changed taps")
                 .withValue("numOfActivePowerControlPstsThatChangedTap", String.format("%6s", numOfActivePowerControlPstsThatChangedTap))
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportTransformerControlBusesOutsideDeadband(Reporter reporter, int numTransformerControlBusesOutsideDeadband) {
+        reporter.report(Report.builder()
+                .withKey("transformerControlBusesOutsideDeadband")
+                .withDefaultMessage("${numTransformerControlBusesOutsideDeadband} voltage-controlled bus(es) is (are) outside of its (their) target deadband(s)")
+                .withValue("numTransformerControlBusesOutsideDeadband", String.format("%6s", numTransformerControlBusesOutsideDeadband))
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
+    public static void reportTransformerControlBranchesOutsideDeadband(Reporter reporter, int numTransformerControlBranchesOutsideDeadband) {
+        reporter.report(Report.builder()
+                .withKey("transformerControlBranchesOutsideDeadband")
+                .withDefaultMessage("${numTransformerControlBranchesOutsideDeadband} reactive power-controlled branch(es) is (are) outside of its (their) target deadband(s)")
+                .withValue("numTransformerControlBranchesOutsideDeadband", String.format("%6s", numTransformerControlBranchesOutsideDeadband))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }

@@ -28,10 +28,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -197,7 +194,9 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
             }
         });
 
-        // Print some info
+        Reporter iterationReporter = !controlledBranchesOutOfDeadband.isEmpty() || !controlledBranchesAdjusted.isEmpty() || !controlledBranchesWithAllItsControllersToLimit.isEmpty() ?
+                Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1, context.getIteration() + 1) : null;
+
         if (!controlledBranchesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
             Map<String, Double> largestMismatches = controllerBranchesOutOfDeadband.stream()
                     .map(controlledBranch -> Pair.of(controlledBranch.getId(), Math.abs(getDiffQ(controlledBranch.getTransformerReactivePowerControl().get()))))
@@ -206,16 +205,17 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                     .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
             LOGGER.info("{} controlled branch reactive power are outside of their target deadband, largest ones are: {}",
                     controllerBranchesOutOfDeadband.size(), largestMismatches);
+            Reports.reportTransformerControlBranchesOutsideDeadband(Objects.requireNonNull(iterationReporter), controlledBranchesOutOfDeadband.size());
         }
         if (!controlledBranchesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled branch reactive power have been adjusted by changing at least one tap",
                     controlledBranchesAdjusted.size());
-            Reports.reportTransformerControlChangedTaps(reporter, controlledBranchesAdjusted.size());
+            Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReporter), controlledBranchesAdjusted.size());
         }
         if (!controlledBranchesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled branches have all its controllers to a tap limit: {}",
                     controlledBranchesWithAllItsControllersToLimit.size(), controlledBranchesWithAllItsControllersToLimit);
-            Reports.reportTransformerControlTapLimit(reporter, controlledBranchesWithAllItsControllersToLimit.size());
+            Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReporter), controlledBranchesWithAllItsControllersToLimit.size());
         }
 
         return status.getValue();

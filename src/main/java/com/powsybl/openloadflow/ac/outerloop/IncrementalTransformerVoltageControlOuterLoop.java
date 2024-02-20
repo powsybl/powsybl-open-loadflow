@@ -224,7 +224,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
-        Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1, context.getIteration() + 1);
 
         LfNetwork network = context.getNetwork();
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
@@ -265,6 +264,9 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             }
         });
 
+        Reporter iterationReporter = !controlledBusesOutOfDeadband.isEmpty() || !controlledBusesAdjusted.isEmpty() || !controlledBusesWithAllItsControllersToLimit.isEmpty() ?
+                Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1, context.getIteration() + 1) : null;
+
         if (!controlledBusesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
             Map<String, Double> largestMismatches = controlledBusesOutOfDeadband.stream()
                     .map(controlledBus -> Pair.of(controlledBus.getId(), Math.abs(getDiffV(controlledBus.getTransformerVoltageControl().orElseThrow()) * controlledBus.getNominalV())))
@@ -273,16 +275,17 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
             LOGGER.info("{} controlled bus voltages are outside of their target deadband, largest ones are: {}",
                     controlledBusesOutOfDeadband.size(), largestMismatches);
+            Reports.reportTransformerControlBusesOutsideDeadband(Objects.requireNonNull(iterationReporter), controlledBusesOutOfDeadband.size());
         }
         if (!controlledBusesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled bus voltages have been adjusted by changing at least one tap",
                     controlledBusesAdjusted.size());
-            Reports.reportTransformerControlChangedTaps(iterationReporter, controlledBusesAdjusted.size());
+            Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReporter), controlledBusesAdjusted.size());
         }
         if (!controlledBusesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled buses have all its controllers to a tap limit: {}",
                     controlledBusesWithAllItsControllersToLimit.size(), controlledBusesWithAllItsControllersToLimit);
-            Reports.reportTransformerControlTapLimit(iterationReporter, controlledBusesWithAllItsControllersToLimit.size());
+            Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReporter), controlledBusesWithAllItsControllersToLimit.size());
         }
 
         return status.getValue();
