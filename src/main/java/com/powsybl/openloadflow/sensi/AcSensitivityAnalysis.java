@@ -340,7 +340,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                 }
                                 networkState.restore();
                             }, () -> {
-                                    // it means that the contingency has no impact.
+                                    // it means that the contingency has no impact or leads to an isolated slack bus
                                     // we need to force the state vector to be re-initialized from base case network state
                                     AcSolverUtil.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
 

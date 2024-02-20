@@ -400,8 +400,17 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
                 while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    propagatedContingency.toLfContingency(lfNetwork)
-                            .ifPresent(lfContingency -> { // only process contingencies that impact the network
+
+                    var lfContingencyWithStatus = propagatedContingency.toLfContingencyWithStatus(lfNetwork);
+
+                    switch (lfContingencyWithStatus.getRight()) {
+                        case ISOLATED_SLACK_BUS:
+                            break;
+                        case NO_IMPACT:
+                            postContingencyResults.add(new PostContingencyResult(propagatedContingency.getContingency(), PostContingencyComputationStatus.NO_IMPACT, new ArrayList<>()));
+                            break;
+                        case OK:
+                            lfContingencyWithStatus.getLeft().ifPresent(lfContingency -> { // only process contingencies that impact the network
                                 Reporter postContSimReporter = Reports.createPostContingencySimulation(networkReporter, lfContingency.getId());
                                 lfNetwork.setReporter(postContSimReporter);
 
@@ -447,6 +456,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                     networkState.restore();
                                 }
                             });
+                            break;
+                    }
                 }
             }
 
