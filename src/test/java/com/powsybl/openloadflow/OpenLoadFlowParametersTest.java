@@ -293,6 +293,16 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
+    void updateEmptyStringListParametersIssue() {
+        Map<String, String> updateParametersMap = new HashMap<>();
+        updateParametersMap.put("reportedFeatures", "");
+        OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
+        assertTrue(parameters.getReportedFeatures().isEmpty());
+        parameters.update(updateParametersMap);
+        assertTrue(parameters.getReportedFeatures().isEmpty());
+    }
+
+    @Test
     void testCompareParameters() {
         assertTrue(OpenLoadFlowParameters.equals(new LoadFlowParameters(), new LoadFlowParameters()));
         assertFalse(OpenLoadFlowParameters.equals(new LoadFlowParameters(), new LoadFlowParameters().setDc(true)));
