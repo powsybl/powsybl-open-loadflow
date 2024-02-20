@@ -72,9 +72,10 @@ public final class Reports {
     }
 
     public static void reportMismatchDistributionSuccess(Reporter reporter, double slackBusActivePowerMismatch, int iterationCount) {
+        String plural = (iterationCount > 1) ? "s" : "";
         reporter.report(Report.builder()
                 .withKey("mismatchDistributionSuccess")
-                .withDefaultMessage("Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} inner iteration(s)")
+                .withDefaultMessage("Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} inner iteration" + plural)
                 .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withValue("iterationCount", iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -82,9 +83,15 @@ public final class Reports {
     }
 
     public static void reportPvToPqBuses(Reporter reporter, int pvToPqBusCount, int remainingPvBusCount) {
+        String defaultMessageBeginning = pvToPqBusCount == 1 ?
+                "${pvToPqBusCount} bus switched PV -> PQ " :
+                "${pvToPqBusCount} buses switched PV -> PQ ";
+        String defaultMessageEnd = remainingPvBusCount == 1 ?
+                "(${remainingPvBusCount} bus remains PV)" :
+                "(${remainingPvBusCount} buses remain PV)";
         reporter.report(Report.builder()
                 .withKey("switchPvPq")
-                .withDefaultMessage("${pvToPqBusCount} bus(es) switched PV -> PQ (${remainingPvBusCount} bus(es) remain(s) PV)")
+                .withDefaultMessage(defaultMessageBeginning + defaultMessageEnd)
                 .withValue("pvToPqBusCount", String.format("%6s", pvToPqBusCount))
                 .withValue("remainingPvBusCount", String.format("%6s", remainingPvBusCount))
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -92,9 +99,15 @@ public final class Reports {
     }
 
     public static void reportPqToPvBuses(Reporter reporter, int pqToPvBusCount, int blockedPqBusCount) {
+        String defaultMessageBeginning = pqToPvBusCount == 1 ?
+                "${pqToPvBusCount} bus switched PQ -> PV " :
+                "${pqToPvBusCount} buses switched PQ -> PV ";
+        String defaultMessageEnd = blockedPqBusCount == 1 ?
+                "(${blockedPqBusCount} bus blocked PQ due to the max number of switches)" :
+                "(${blockedPqBusCount} buses blocked PQ due to the max number of switches)";
         reporter.report(Report.builder()
                 .withKey("switchPqPv")
-                .withDefaultMessage("${pqToPvBusCount} bus(es) switched PQ -> PV (${blockedPqBusCount} bus(es) blocked PQ due to the max number of switches)")
+                .withDefaultMessage(defaultMessageBeginning + defaultMessageEnd)
                 .withValue("pqToPvBusCount", String.format("%6s", pqToPvBusCount))
                 .withValue("blockedPqBusCount", String.format("%6s", blockedPqBusCount))
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -111,18 +124,24 @@ public final class Reports {
     }
 
     public static void reportBusesWithUpdatedQLimits(Reporter reporter, int numBusesWithUpdatedQLimits) {
+        String defaultMessage = numBusesWithUpdatedQLimits == 1 ?
+                "${numBusesWithUpdatedQLimits} bus blocked PQ at its min/max reactive power limit had its min/max limit updated" :
+                "${numBusesWithUpdatedQLimits} buses blocked PQ at their min/max reactive power limit had their min/max limits updated";
         reporter.report(Report.builder()
                 .withKey("busWithUpdatedQLimits")
-                .withDefaultMessage("${numBusesWithUpdatedQLimits} bus(es) PQ blocked at its (their) min/max reactive power limit had its (their) min/max limit(s) updated")
+                .withDefaultMessage(defaultMessage)
                 .withValue("numBusesWithUpdatedQLimits", String.format("%6s", numBusesWithUpdatedQLimits))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
     public static void reportReactiveControllerBusesToPqBuses(Reporter reporter, int remoteReactivePowerControllerBusToPqCount) {
+        String defaultMessage = remoteReactivePowerControllerBusToPqCount == 1 ?
+                "${remoteReactivePowerControllerBusToPqCount} bus with remote reactive power controller switched PQ" :
+                "${remoteReactivePowerControllerBusToPqCount} buses with remote reactive power controller switched PQ";
         reporter.report(Report.builder()
                 .withKey("remoteReactiveControllerBusToPq")
-                .withDefaultMessage("${remoteReactivePowerControllerBusToPqCount} bus(es) with remote reactive power controller have switched PQ")
+                .withDefaultMessage(defaultMessage)
                 .withValue("remoteReactivePowerControllerBusToPqCount", remoteReactivePowerControllerBusToPqCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
@@ -139,63 +158,84 @@ public final class Reports {
     }
 
     public static void reportCurrentLimiterPstsChangedTaps(Reporter reporter, int numOfCurrentLimiterPstsThatChangedTap) {
+        String defaultMessage = numOfCurrentLimiterPstsThatChangedTap == 1 ?
+                "${numOfCurrentLimiterPstsThatChangedTap} current limiter PST changed taps" :
+                "${numOfCurrentLimiterPstsThatChangedTap} current limiter PSTs changed taps";
         reporter.report(Report.builder()
                 .withKey("currentLimiterPstsChangedTaps")
-                .withDefaultMessage("${numOfCurrentLimiterPstsThatChangedTap} current limiter PST(s) changed taps")
+                .withDefaultMessage(defaultMessage)
                 .withValue("numOfCurrentLimiterPstsThatChangedTap", String.format("%6s", numOfCurrentLimiterPstsThatChangedTap))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
     public static void reportActivePowerControlPstsChangedTaps(Reporter reporter, int numOfActivePowerControlPstsThatChangedTap) {
+        String defaultMessage = numOfActivePowerControlPstsThatChangedTap == 1 ?
+                "${numOfActivePowerControlPstsThatChangedTap} active power control PST changed taps" :
+                "${numOfActivePowerControlPstsThatChangedTap} active power control PSTs changed taps";
         reporter.report(Report.builder()
                 .withKey("activePowerControlPstsChangedTaps")
-                .withDefaultMessage("${numOfActivePowerControlPstsThatChangedTap} active power control PST(s) changed taps")
+                .withDefaultMessage(defaultMessage)
                 .withValue("numOfActivePowerControlPstsThatChangedTap", String.format("%6s", numOfActivePowerControlPstsThatChangedTap))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
     public static void reportTransformerControlBusesOutsideDeadband(Reporter reporter, int numTransformerControlBusesOutsideDeadband) {
+        String defaultMessage = numTransformerControlBusesOutsideDeadband == 1 ?
+                "${numTransformerControlBusesOutsideDeadband} voltage-controlled bus is outside of its target deadband" :
+                "${numTransformerControlBusesOutsideDeadband} voltage-controlled buses are outside of their target deadbands";
         reporter.report(Report.builder()
                 .withKey("transformerControlBusesOutsideDeadband")
-                .withDefaultMessage("${numTransformerControlBusesOutsideDeadband} voltage-controlled bus(es) is (are) outside of its (their) target deadband(s)")
+                .withDefaultMessage(defaultMessage)
                 .withValue("numTransformerControlBusesOutsideDeadband", String.format("%6s", numTransformerControlBusesOutsideDeadband))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
     public static void reportTransformerControlBranchesOutsideDeadband(Reporter reporter, int numTransformerControlBranchesOutsideDeadband) {
+        String defaultMessage = numTransformerControlBranchesOutsideDeadband == 1 ?
+                "${numTransformerControlBranchesOutsideDeadband} reactive power-controlled branch is outside of its target deadband" :
+                "${numTransformerControlBranchesOutsideDeadband} reactive power-controlled branches are outside of their target deadbands";
         reporter.report(Report.builder()
                 .withKey("transformerControlBranchesOutsideDeadband")
-                .withDefaultMessage("${numTransformerControlBranchesOutsideDeadband} reactive power-controlled branch(es) is (are) outside of its (their) target deadband(s)")
+                .withDefaultMessage(defaultMessage)
                 .withValue("numTransformerControlBranchesOutsideDeadband", String.format("%6s", numTransformerControlBranchesOutsideDeadband))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
     public static void reportTransformerControlChangedTaps(Reporter reporter, int numTransformerControlAdjusted) {
+        String defaultMessage = numTransformerControlAdjusted == 1 ?
+                "${numTransformerControlAdjusted} transformer changed at least one tap" :
+                "${numTransformerControlAdjusted} transformers changed at least one tap";
         reporter.report(Report.builder()
                 .withKey("transformerControlChangedTaps")
-                .withDefaultMessage("${numTransformerControlAdjusted} transformer(s) changed at least one tap")
+                .withDefaultMessage(defaultMessage)
                 .withValue("numTransformerControlAdjusted", String.format("%6s", numTransformerControlAdjusted))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
     public static void reportTransformerControlTapLimit(Reporter reporter, int numTransformerControlTapLimit) {
+        String defaultMessage = numTransformerControlTapLimit == 1 ?
+                "${numTransformerControlTapLimit} transformer reached its tap limit" :
+                "${numTransformerControlTapLimit} transformers reached their tap limits";
         reporter.report(Report.builder()
                 .withKey("transformerControlTapLimit")
-                .withDefaultMessage("${numTransformerControlTapLimit} transformer(s) reached its (their) tap limit(s)")
+                .withDefaultMessage(defaultMessage)
                 .withValue("numTransformerControlTapLimit", String.format("%6s", numTransformerControlTapLimit))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
     public static void reportShuntVoltageControlChangedSusceptance(Reporter reporter, int numShuntVoltageControlAdjusted) {
+        String defaultMessage = numShuntVoltageControlAdjusted == 1 ?
+                "${numShuntVoltageControlAdjusted} shunt changed its susceptance" :
+                "${numShuntVoltageControlAdjusted} shunts changed their susceptances";
         reporter.report(Report.builder()
                 .withKey("shuntVoltageControlChangedSusceptance")
-                .withDefaultMessage("${numShuntVoltageControlAdjusted} shunt(s) changed its (their) susceptance(s)")
+                .withDefaultMessage(defaultMessage)
                 .withValue("numShuntVoltageControlAdjusted", String.format("%6s", numShuntVoltageControlAdjusted))
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
@@ -230,27 +270,36 @@ public final class Reports {
     }
 
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(Reporter reporter, int impactedGeneratorCount) {
+        String defaultMessage = impactedGeneratorCount == 1 ?
+                "${impactedGeneratorCount} generator was discarded from voltage control because it didn't start" :
+                "${impactedGeneratorCount} generators were discarded from voltage control because they didn't start";
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseNotStarted")
-                .withDefaultMessage("${impactedGeneratorCount} generator(s) was (were) discarded from voltage control because it (they) didn't start")
+                .withDefaultMessage(defaultMessage)
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
 
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(Reporter reporter, int impactedGeneratorCount) {
+        String defaultMessage = impactedGeneratorCount == 1 ?
+                "${impactedGeneratorCount} generator was discarded from voltage control because its reactive range is too small" :
+                "${impactedGeneratorCount} generators were discarded from voltage control because their reactive ranges are too small";
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
-                .withDefaultMessage("${impactedGeneratorCount} generator(s) was (were) discarded from voltage control because its (their) reactive range(s) is (are) too small")
+                .withDefaultMessage(defaultMessage)
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
 
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(Reporter reporter, int impactedGeneratorCount) {
+        String defaultMessage = impactedGeneratorCount == 1 ?
+                "${impactedGeneratorCount} generator was discarded from voltage control because its targetP is outside its active power limits" :
+                "${impactedGeneratorCount} generators were discarded from voltage control because their targetPs are outside their active power limits";
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
-                .withDefaultMessage("${impactedGeneratorCount} generator(s) was (were) discarded from voltage control because its (their) targetP(s) is (are) outside its (their) active power limits")
+                .withDefaultMessage(defaultMessage)
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());

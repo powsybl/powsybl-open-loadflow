@@ -103,7 +103,7 @@
       + Outer loop DistributedSlack
          Status: STABLE
         + Iteration 1 (total=1)
-           Slack bus active power (-1.4404045651219555 MW) distributed in 2 inner iteration(s)
+           Slack bus active power (-1.4404045651219555 MW) distributed in 2 inner iterations
       + Newton Raphson on Network CC0 SC0
          Launched after iteration 1 (total=1) of outer loop type DistributedSlack
         + Initial mismatch
