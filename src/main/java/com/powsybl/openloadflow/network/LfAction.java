@@ -27,93 +27,16 @@ public final class LfAction {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfAction.class);
 
-    private static final class TapPositionChange {
-
-        private final LfBranch branch;
-
-        private final int value;
-
-        private final boolean relative;
-
-        private TapPositionChange(LfBranch branch, int value, boolean relative) {
-            this.branch = Objects.requireNonNull(branch);
-            this.value = value;
-            this.relative = relative;
-        }
-
-        public LfBranch getBranch() {
-            return branch;
-        }
-
-        public int getValue() {
-            return value;
-        }
-
-        public boolean isRelative() {
-            return relative;
-        }
+    private record TapPositionChange(LfBranch branch, int value, boolean isRelative) {
     }
 
-    private static final class LoadShift {
-
-        private final String loadId;
-
-        private final LfLoad load;
-
-        private final PowerShift powerShift;
-
-        private LoadShift(String loadId, LfLoad load, PowerShift powerShift) {
-            this.loadId = loadId;
-            this.load = load;
-            this.powerShift = powerShift;
-        }
+    private record LoadShift(String loadId, LfLoad load, PowerShift powerShift) {
     }
 
-    public static final class GeneratorChange {
-
-        private final LfGenerator generator;
-
-        private final double deltaTargetP;
-
-        private GeneratorChange(LfGenerator generator, double deltaTargetP) {
-            this.generator = generator;
-            this.deltaTargetP = deltaTargetP;
-        }
-
-        public LfGenerator getGenerator() {
-            return generator;
-        }
-
-        public double getDeltaTargetP() {
-            return deltaTargetP;
-        }
+    private record GeneratorChange(LfGenerator generator, double deltaTargetP) {
     }
 
-    private static final class SectionChange {
-
-        private final LfShunt shunt;
-
-        private final String controllerId;
-
-        private final int value;
-
-        private SectionChange(LfShunt shunt, String controllerId, int value) {
-            this.shunt = Objects.requireNonNull(shunt);
-            this.controllerId = controllerId;
-            this.value = value;
-        }
-
-        public LfShunt getShunt() {
-            return shunt;
-        }
-
-        public String getControllerId() {
-            return controllerId;
-        }
-
-        public int getValue() {
-            return value;
-        }
+    private record SectionChange(LfShunt shunt, String controllerId, int value) {
     }
 
     private final String id;
@@ -386,17 +309,17 @@ public final class LfAction {
 
     public void apply(LfNetworkParameters networkParameters) {
         if (tapPositionChange != null) {
-            LfBranch branch = tapPositionChange.getBranch();
+            LfBranch branch = tapPositionChange.branch();
             int tapPosition = branch.getPiModel().getTapPosition();
-            int value = tapPositionChange.getValue();
+            int value = tapPositionChange.value();
             int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
             branch.getPiModel().setTapPosition(newTapPosition);
         }
 
         if (loadShift != null) {
-            LfLoad load = loadShift.load;
-            if (!load.isOriginalLoadDisabled(loadShift.loadId)) {
-                PowerShift shift = loadShift.powerShift;
+            LfLoad load = loadShift.load();
+            if (!load.isOriginalLoadDisabled(loadShift.loadId())) {
+                PowerShift shift = loadShift.powerShift();
                 load.setTargetP(load.getTargetP() + shift.getActive());
                 load.setTargetQ(load.getTargetQ() + shift.getReactive());
                 load.setAbsVariableTargetP(load.getAbsVariableTargetP()
@@ -405,9 +328,9 @@ public final class LfAction {
         }
 
         if (generatorChange != null) {
-            LfGenerator generator = generatorChange.getGenerator();
+            LfGenerator generator = generatorChange.generator();
             if (!generator.isDisabled()) {
-                generator.setTargetP(generator.getTargetP() + generatorChange.getDeltaTargetP());
+                generator.setTargetP(generator.getTargetP() + generatorChange.deltaTargetP());
                 if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
                         networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
                     generator.setParticipating(false);
@@ -423,10 +346,10 @@ public final class LfAction {
         }
 
         if (sectionChange != null) {
-            LfShunt shunt = sectionChange.getShunt();
-            shunt.getControllers().stream().filter(controller -> controller.getId().equals(sectionChange.getControllerId())).findAny()
-                    .ifPresentOrElse(controller -> controller.updateSectionB(sectionChange.getValue()),
-                            () -> System.out.println("Section change impossible"));
+            LfShunt shunt = sectionChange.shunt();
+            shunt.getControllers().stream().filter(controller -> controller.getId().equals(sectionChange.controllerId())).findAny()
+                    .ifPresentOrElse(controller -> controller.updateSectionB(sectionChange.value()),
+                            () -> LOGGER.warn("No section change: shunt {} not present", sectionChange.controllerId));
         }
     }
 }

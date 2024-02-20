@@ -91,11 +91,7 @@ public class LfShuntImpl extends AbstractLfShunt {
         b = computeB(shuntCompensators, zb);
         g = computeG(shuntCompensators, zb);
 
-        boolean keepSections = shuntCompensators.stream().map(ShuntCompensator::getId)
-                .distinct()
-                .filter(id -> topoConfig.isOperatedShunt(id))
-                .findAny()
-                .isPresent();
+        boolean keepSections = shuntCompensators.stream().map(ShuntCompensator::getId).anyMatch(id -> topoConfig.isOperatedShunt(id));
 
         if (voltageControlCapability || keepSections) {
             shuntCompensatorsRefs.forEach(shuntCompensatorRef -> {
