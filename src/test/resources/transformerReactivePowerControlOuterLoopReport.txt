@@ -1,0 +1,404 @@
++ Test Report
+  + Load flow on network 'two-windings-transformer-control'
+    + Network CC0 SC0
+       AC load flow completion status: CONVERGED
+       Solver status: CONVERGED
+      + Post loading processing
+         Network has 3 buses and 2 branches
+         Network balance: active generation=25.0 MW, active load=16.2 MW, reactive generation=0.0 MVar, reactive load=7.5 MVar
+      + Newton Raphson on Network CC0 SC0
+         No outer loops have been launched
+        + Initial mismatch
+           Norm |f(x0)|=0.274368129345534
+          + Mismatch on TargetP : -0.2499128799999999
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0
+             Bus Phi [rad]: 0.0
+             Bus sum P [MW]: 0.008712000000010711
+             Bus sum Q [MVar]: 0.0
+          + Mismatch on TargetQ : 0.04477733526950797
+             Bus Id: VL_2_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0
+             Bus Phi [rad]: 0.0
+             Bus sum P [MW]: 0.8236311414567833
+             Bus sum Q [MVar]: -3.0222664730492026
+          + Mismatch on TargetV : -0.022727272727272707
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0
+             Bus Phi [rad]: 0.0
+             Bus sum P [MW]: 0.008712000000010711
+             Bus sum Q [MVar]: 0.0
+        + Iteration 1 
+           Norm |f(x)|=0.01825890321835207
+          + Mismatch on TargetP : 0.013656382823924361
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 0.8524411166058133
+             Bus Phi [rad]: -0.0510207580859096
+             Bus sum P [MW]: -3.634361717607564
+             Bus sum Q [MVar]: 0.4118899094730089
+          + Mismatch on TargetQ : 0.0051248542031886585
+             Bus Id: VL_2_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.017581653486485
+             Bus Phi [rad]: 0.0
+             Bus sum P [MW]: -16.760054876292756
+             Bus sum Q [MVar]: -6.987514579681134
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.013960637771441327
+             Bus sum P [MW]: 26.01814190831663
+             Bus sum Q [MVar]: 6.615251049390647
+        + Iteration 2 
+           Norm |f(x)|=6.376469620059593E-4
+          + Mismatch on TargetP : 5.980419180861424E-4
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 0.8196384440403927
+             Bus Phi [rad]: -0.06084240479789107
+             Bus sum P [MW]: -4.940195808191386
+             Bus sum Q [MVar]: 0.015968272423659637
+          + Mismatch on TargetQ : 1.5968272423659636E-4
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 0.8196384440403927
+             Bus Phi [rad]: -0.06084240479789107
+             Bus sum P [MW]: -4.940195808191386
+             Bus sum Q [MVar]: 0.015968272423659637
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.0133463068531993
+             Bus sum P [MW]: 25.000606658184555
+             Bus sum Q [MVar]: 7.653111009820276
+        + Iteration 3 
+           Norm |f(x)|=1.4405413153401732E-6
+          + Mismatch on TargetP : 1.35496114233441E-6
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 0.8180925692153216
+             Bus Phi [rad]: -0.061358852814659574
+             Bus sum P [MW]: -4.9998645038857665
+             Bus sum Q [MVar]: 3.2126868827626126E-5
+          + Mismatch on TargetQ : 3.688157438758166E-7
+             Bus Id: VL_2_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0170276371201856
+             Bus Phi [rad]: 0.0
+             Bus sum P [MW]: -14.088261054547575
+             Bus sum Q [MVar]: -7.499963118425612
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.01334390118010533
+             Bus sum P [MW]: 25.000000098028995
+             Bus sum Q [MVar]: 7.694057706313736
+      + Outer loop DistributedSlack
+         Status: STABLE
+        + Iteration 1 (total=1)
+           Slack bus active power (-2.8882610545475753 MW) distributed in 2 inner iterations
+      + Newton Raphson on Network CC0 SC0
+         Launched after iteration 1 (total=1) of outer loop type DistributedSlack
+        + Initial mismatch
+           Norm |f(x0)|=0.028882611561689718
+          + Mismatch on TargetP : 0.02888261152576571
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.01334390118010533
+             Bus sum P [MW]: 25.000000098028995
+             Bus sum Q [MVar]: 7.694057706313736
+          + Mismatch on TargetQ : 3.688157438758166E-7
+             Bus Id: VL_2_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0170276371201856
+             Bus Phi [rad]: 0.0
+             Bus sum P [MW]: -14.088261054547575
+             Bus sum Q [MVar]: -7.499963118425612
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.01334390118010533
+             Bus sum P [MW]: 25.000000098028995
+             Bus sum Q [MVar]: 7.694057706313736
+        + Iteration 1 
+           Norm |f(x)|=2.2929475337021148E-5
+          + Mismatch on TargetP : -3.3445655875374847E-6
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.011752202697884006
+             Bus sum P [MW]: 22.111404488893672
+             Bus sum Q [MVar]: 7.616219016989096
+          + Mismatch on TargetQ : 2.268423912067663E-5
+             Bus Id: VL_2_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0172212221867718
+             Bus Phi [rad]: 0.0
+             Bus sum P [MW]: -11.205673029087924
+             Bus sum Q [MVar]: -7.497731576087932
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.011752202697884006
+             Bus sum P [MW]: 22.111404488893672
+             Bus sum Q [MVar]: 7.616219016989096
+      + Outer loop VoltageMonitoring
+         Status: STABLE
+      + Outer loop ReactiveLimits
+         Status: STABLE
+      + Outer loop IncrementalTransformerReactivePowerControl
+         Status: STABLE
+        + Iteration 1 (total=1)
+                1 reactive power-controlled branch is outside of its target deadband
+                1 transformer changed at least one tap
+        + Iteration 2 (total=2)
+                1 reactive power-controlled branch is outside of its target deadband
+                1 transformer changed at least one tap
+                1 transformer reached its tap limit
+        + Iteration 3 (total=3)
+                1 reactive power-controlled branch is outside of its target deadband
+      + Newton Raphson on Network CC0 SC0
+         Launched after iteration 1 (total=1) of outer loop type IncrementalTransformerReactivePowerControl
+        + Initial mismatch
+           Norm |f(x0)|=0.08187188436879228
+          + Mismatch on TargetP : -0.06141369269554524
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 0.8182877261072491
+             Bus Phi [rad]: -0.06133349638099293
+             Bus sum P [MW]: -11.141369269554524
+             Bus sum Q [MVar]: -3.1193176225920283
+          + Mismatch on TargetQ : 0.04425324333138297
+             Bus Id: VL_2_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0172212221867718
+             Bus Phi [rad]: 0.0
+             Bus sum P [MW]: -0.6163517581885852
+             Bus sum Q [MVar]: -3.074675666861703
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.011752202697884006
+             Bus sum P [MW]: 22.111404488893672
+             Bus sum Q [MVar]: 7.616219016989096
+        + Iteration 1 
+           Norm |f(x)|=0.027502379804910274
+          + Mismatch on TargetP : 0.02510689257581311
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 1.0406926342585474
+             Bus Phi [rad]: -0.035806780817622334
+             Bus sum P [MW]: -2.4893107424186893
+             Bus sum Q [MVar]: 1.0860173409808227
+          + Mismatch on TargetQ : 0.010860173409808226
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 1.0406926342585474
+             Bus Phi [rad]: -0.035806780817622334
+             Bus sum P [MW]: -2.4893107424186893
+             Bus sum Q [MVar]: 1.0860173409808227
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.011847687799124616
+             Bus sum P [MW]: 22.111915091797787
+             Bus sum Q [MVar]: 5.763482878578944
+        + Iteration 2 
+           Norm |f(x)|=0.001379602762057389
+          + Mismatch on TargetP : 0.0012723755729501796
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 0.9909334799649825
+             Bus Phi [rad]: -0.04302148688205
+             Bus sum P [MW]: -4.872762442704983
+             Bus sum Q [MVar]: 0.04986153100814065
+          + Mismatch on TargetQ : 4.986153100814065E-4
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 0.9909334799649825
+             Bus Phi [rad]: -0.04302148688205
+             Bus sum P [MW]: -4.872762442704983
+             Bus sum Q [MVar]: 0.04986153100814065
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.011771990982962145
+             Bus sum P [MW]: 22.1118499480431
+             Bus sum Q [MVar]: 7.236218692853886
+        + Iteration 3 
+           Norm |f(x)|=4.276723728035947E-6
+          + Mismatch on TargetP : 3.976869564797925E-6
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 0.9881816647210594
+             Bus Phi [rad]: -0.04351106729306108
+             Bus sum P [MW]: -4.99960231304352
+             Bus sum Q [MVar]: 1.4020988619288768E-4
+          + Mismatch on TargetQ : 1.4020988619288768E-6
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 0.9881816647210594
+             Bus Phi [rad]: -0.04351106729306108
+             Bus sum P [MW]: -4.99960231304352
+             Bus sum Q [MVar]: 1.4020988619288768E-4
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.01176769980319172
+             Bus sum P [MW]: 22.111739296938367
+             Bus sum Q [MVar]: 7.318486307745907
+      + Newton Raphson on Network CC0 SC0
+         Launched after iteration 2 (total=2) of outer loop type IncrementalTransformerReactivePowerControl
+        + Initial mismatch
+           Norm |f(x0)|=0.031683064703665546
+          + Mismatch on TargetP : -0.02449384393198288
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 0.9881816647210594
+             Bus Phi [rad]: -0.04351106729306108
+             Bus sum P [MW]: -7.449384393198288
+             Bus sum Q [MVar]: -1.2995827868341472
+          + Mismatch on TargetQ : 0.0153289483158092
+             Bus Id: VL_2_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0173884772580253
+             Bus Phi [rad]: 0.0
+             Bus sum P [MW]: -5.814404392596581
+             Bus sum Q [MVar]: -5.96710516841908
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.01176769980319172
+             Bus sum P [MW]: 22.111739296938367
+             Bus sum Q [MVar]: 7.318486307745907
+        + Iteration 1 
+           Norm |f(x)|=0.0019222385007616972
+          + Mismatch on TargetP : 0.001730988786404028
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 1.0470891975001073
+             Bus Phi [rad]: -0.03893295108024319
+             Bus sum P [MW]: -4.826901121359597
+             Bus sum Q [MVar]: 0.0823774720306429
+          + Mismatch on TargetQ : 8.23774720306429E-4
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 1.0470891975001073
+             Bus Phi [rad]: -0.03893295108024319
+             Bus sum P [MW]: -4.826901121359597
+             Bus sum Q [MVar]: 0.0823774720306429
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.01177837581093594
+             Bus sum P [MW]: 22.11174115252133
+             Bus sum Q [MVar]: 7.1108622347425845
+        + Iteration 2 
+           Norm |f(x)|=7.287270108625772E-6
+          + Mismatch on TargetP : 6.654485932837406E-6
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 1.0434483402584207
+             Bus Phi [rad]: -0.03932898287388065
+             Bus sum P [MW]: -4.999334551406717
+             Bus sum Q [MVar]: 2.8642824902061026E-4
+          + Mismatch on TargetQ : 2.8642824902061027E-6
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 1.0434483402584207
+             Bus Phi [rad]: -0.03932898287388065
+             Bus sum P [MW]: -4.999334551406717
+             Bus sum Q [MVar]: 2.8642824902061026E-4
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.011772577480572114
+             Bus sum P [MW]: 22.111739596487254
+             Bus sum Q [MVar]: 7.223626593973918
+      + Outer loop DistributedSlack
+         Status: STABLE
+        + Iteration 1 (total=2)
+           Slack bus active power (2.379902997164196 MW) distributed in 2 inner iterations
+      + Newton Raphson on Network CC0 SC0
+         Launched after iteration 1 (total=2) of outer loop type DistributedSlack
+        + Initial mismatch
+           Norm |f(x0)|=0.02379902457697521
+          + Mismatch on TargetP : -0.023799023461293672
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.011772577480572114
+             Bus sum P [MW]: 22.111739596487254
+             Bus sum Q [MVar]: 7.223626593973918
+          + Mismatch on TargetQ : 2.8642824902061027E-6
+             Bus Id: VL_3_0
+             Bus nominal V [kV]: 33.0
+             Bus V [p.u.]: 1.0434483402584207
+             Bus Phi [rad]: -0.03932898287388065
+             Bus sum P [MW]: -4.999334551406717
+             Bus sum Q [MVar]: 2.8642824902061026E-4
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.011772577480572114
+             Bus sum P [MW]: 22.111739596487254
+             Bus sum Q [MVar]: 7.223626593973918
+        + Iteration 1 
+           Norm |f(x)|=1.5553057037029686E-5
+          + Mismatch on TargetP : -2.2166171705084725E-6
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.013083707387261096
+             Bus sum P [MW]: 24.491420280899572
+             Bus sum Q [MVar]: 7.284141028025306
+          + Mismatch on TargetQ : 1.5394290360654095E-5
+             Bus Id: VL_2_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0172841611147796
+             Bus Phi [rad]: 0.0
+             Bus sum P [MW]: -11.194886907913132
+             Bus sum Q [MVar]: -7.4984605709639345
+          + Mismatch on TargetV : 0.0
+             Bus Id: VL_1_0
+             Bus nominal V [kV]: 132.0
+             Bus V [p.u.]: 1.0227272727272727
+             Bus Phi [rad]: 0.013083707387261096
+             Bus sum P [MW]: 24.491420280899572
+             Bus sum Q [MVar]: 7.284141028025306
+      + Outer loop VoltageMonitoring
+         Status: STABLE
+      + Outer loop ReactiveLimits
+         Status: STABLE
+      + Outer loop IncrementalTransformerReactivePowerControl
+         Status: STABLE
+        + Iteration 1 (total=3)
+                1 reactive power-controlled branch is outside of its target deadband
+      + Outer loop DistributedSlack
+         Status: STABLE
+      + Outer loop VoltageMonitoring
+         Status: STABLE
+      + Outer loop ReactiveLimits
+         Status: STABLE
+      + Outer loop IncrementalTransformerReactivePowerControl
+         Status: STABLE
+        + Iteration 1 (total=3)
+                1 reactive power-controlled branch is outside of its target deadband
