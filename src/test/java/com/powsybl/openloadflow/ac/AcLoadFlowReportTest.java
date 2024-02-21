@@ -19,6 +19,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.solver.MaxVoltageChangeStateVectorScaling;
 import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -43,8 +44,10 @@ class AcLoadFlowReportTest {
                 .setTransformerVoltageControlOn(true);
         var olfParameters = OpenLoadFlowParameters.create(lfParameters);
         olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW))
-                     .setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH)
-                     .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+                     .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                     .setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE)
+                     .setMaxVoltageChangeStateVectorScalingMaxDv(MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV / 10)
+                     .setMaxVoltageChangeStateVectorScalingMaxDphi(MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI / 10);
 
         LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
@@ -62,7 +65,7 @@ class AcLoadFlowReportTest {
                 .setShuntCompensatorVoltageControlOn(true);
         var olfParameters = OpenLoadFlowParameters.create(lfParameters);
         olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW))
-                .setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE)
+                .setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH)
                 .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
 
         LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));

@@ -32,6 +32,7 @@
              Bus sum P [MW]: 0.0
              Bus sum Q [MVar]: 0.0
         + Iteration 1 
+           Step size (line search): 1.0
            Norm |f(x)|=0.05461496865497818
           + Mismatch on TargetP : -0.03809314566908595
              Bus Id: vl1_0
@@ -55,6 +56,7 @@
              Bus sum P [MW]: 97.5570854330914
              Bus sum Q [MVar]: 146.69848307367957
         + Iteration 2 
+           Step size (line search): 1.0
            Norm |f(x)|=5.084752243706919E-6
           + Mismatch on TargetP : -2.137764138820941E-6
              Bus Id: vl1_0
@@ -113,6 +115,7 @@
              Bus sum P [MW]: 101.36618622358333
              Bus sum Q [MVar]: 150.64984395641432
         + Iteration 1 
+           Step size (line search): 1.0
            Norm |f(x)|=0.010146616530480424
           + Mismatch on TargetP : 0.0014778992351438536
              Bus Id: vl1_0
@@ -136,6 +139,7 @@
              Bus sum P [MW]: 101.51418992351438
              Bus sum Q [MVar]: -3.118511494296854
         + Iteration 2 
+           Step size (line search): 1.0
            Norm |f(x)|=4.319654056057837E-7
           + Mismatch on TargetP : -1.1677716833209109E-7
              Bus Id: vl3_0
