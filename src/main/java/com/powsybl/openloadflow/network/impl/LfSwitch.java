@@ -351,7 +351,7 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getSwitch().getId());
     }
 
