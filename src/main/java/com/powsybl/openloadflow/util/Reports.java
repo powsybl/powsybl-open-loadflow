@@ -28,6 +28,8 @@ public final class Reports {
     private static final String NETWORK_NUM_SC = "networkNumSc";
     private static final String ITERATION = "iteration";
     private static final String NETWORK_ID = "networkId";
+    private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
+    private static final String BUS_ID = "busId";
 
     private Reports() {
     }
@@ -118,7 +120,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("busForcedToBePv")
                 .withDefaultMessage("All PV buses should switch PQ, strongest one will stay PV: ${busId}")
-                .withValue("busId", busId)
+                .withValue(BUS_ID, busId)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
@@ -151,7 +153,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("standByAutomatonActivation")
                 .withDefaultMessage("Activation of voltage control of SVC with stand by automaton: bus ${busId} switched PQ -> PV with targetV ${newTargetV}")
-                .withValue("busId", busId)
+                .withValue(BUS_ID, busId)
                 .withValue("newTargetV", newTargetV)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
@@ -276,7 +278,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseNotStarted")
                 .withDefaultMessage(defaultMessage)
-                .withValue("impactedGeneratorCount", impactedGeneratorCount)
+                .withValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
@@ -288,7 +290,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
                 .withDefaultMessage(defaultMessage)
-                .withValue("impactedGeneratorCount", impactedGeneratorCount)
+                .withValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
@@ -300,7 +302,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
                 .withDefaultMessage(defaultMessage)
-                .withValue("impactedGeneratorCount", impactedGeneratorCount)
+                .withValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
@@ -438,7 +440,7 @@ public final class Reports {
         ReportBuilder busIdReportBuilder = Report.builder();
         busIdReportBuilder.withKey("NRMismatchBusId")
                 .withDefaultMessage("Bus Id: ${busId}")
-                .withValue("busId", nRmismatchBusInfo.busId())
+                .withValue(BUS_ID, nRmismatchBusInfo.busId())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
         ReportBuilder busNominalVReportBuilder = Report.builder();

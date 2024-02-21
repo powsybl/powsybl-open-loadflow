@@ -94,7 +94,7 @@ public class AcIncrementalPhaseControlOuterLoop
     }
 
     private int checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
-                                                     List<TransformerPhaseControl> currentLimiterPhaseControls, Reporter reporter) {
+                                                     List<TransformerPhaseControl> currentLimiterPhaseControls) {
         MutableInt numOfCurrentLimiterPstsThatChangedTap = new MutableInt(0);
 
         for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
@@ -207,8 +207,7 @@ public class AcIncrementalPhaseControlOuterLoop
             if (!currentLimiterPhaseControls.isEmpty()) {
                 int numOfCurrentLimiterPstsThatChangedTap = checkCurrentLimiterPhaseControls(sensitivityContext,
                                                                                              contextData,
-                                                                                             currentLimiterPhaseControls,
-                                                                                             reporter);
+                                                                                             currentLimiterPhaseControls);
                 if (numOfCurrentLimiterPstsThatChangedTap != 0) {
                     iterationReporter = Reports.createOuterLoopIterationReporter(reporter, currentRunIteration + 1, totalIterations + 1);
                     Reports.reportCurrentLimiterPstsChangedTaps(iterationReporter, numOfCurrentLimiterPstsThatChangedTap);
