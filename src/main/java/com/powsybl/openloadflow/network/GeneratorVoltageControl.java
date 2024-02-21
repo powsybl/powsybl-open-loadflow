@@ -17,8 +17,8 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
     private static final int PRIORITY = 0;
 
-    public GeneratorVoltageControl(LfBus controlledBus, double targetValue) {
-        super(targetValue, Type.GENERATOR, PRIORITY, controlledBus);
+    public GeneratorVoltageControl(LfBus controlledBus, int targetPriority, double targetValue) {
+        super(targetValue, Type.GENERATOR, PRIORITY, targetPriority, controlledBus);
     }
 
     @Override

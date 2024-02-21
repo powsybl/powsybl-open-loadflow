@@ -14,7 +14,6 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -534,16 +533,24 @@ public class LfNetworkParameters {
         Objects.requireNonNull(voltageTargetPriorities);
 
         List<String> checkedVoltageTargetPriorities = new ArrayList<>(voltageTargetPriorities);
-        checkedVoltageTargetPriorities.add("GENERATOR");
-        checkedVoltageTargetPriorities.add("TRANSFORMER");
-        checkedVoltageTargetPriorities.add("SHUNT");
+        checkedVoltageTargetPriorities.add(VoltageControl.Type.GENERATOR.name());
+        checkedVoltageTargetPriorities.add(VoltageControl.Type.TRANSFORMER.name());
+        checkedVoltageTargetPriorities.add(VoltageControl.Type.SHUNT.name());
 
-        return checkedVoltageTargetPriorities.stream().distinct().collect(Collectors.toList());
+        return checkedVoltageTargetPriorities.stream().distinct().toList();
     }
 
     public LfNetworkParameters setVoltageTargetPriorities(List<String> voltageTargetPriorities) {
         this.voltageTargetPriorities = checkVoltageTargetPriorities(voltageTargetPriorities);
         return this;
+    }
+
+    public int getVoltageTargetPriority(VoltageControl.Type voltageControlType) {
+        int priority = voltageTargetPriorities.indexOf(voltageControlType.name());
+        if (priority == -1) {
+            throw new IllegalStateException("Missing LfNetworkParameters.voltageTargetPriorities for " + voltageControlType.name());
+        }
+        return priority;
     }
 
     @Override

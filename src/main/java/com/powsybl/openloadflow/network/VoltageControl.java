@@ -28,6 +28,8 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     protected int priority;
 
+    protected int targetPriority;
+
     protected final LfBus controlledBus;
 
     protected final List<T> controllerElements = new ArrayList<>();
@@ -40,10 +42,11 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     protected boolean disabled = false;
 
-    protected VoltageControl(double targetValue, Type type, int priority, LfBus controlledBus) {
+    protected VoltageControl(double targetValue, Type type, int priority, int targetPriority, LfBus controlledBus) {
         super(targetValue);
         this.type = Objects.requireNonNull(type);
         this.priority = priority;
+        this.targetPriority = targetPriority;
         this.controlledBus = Objects.requireNonNull(controlledBus);
     }
 
@@ -69,6 +72,10 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     protected int getPriority() {
         return priority;
+    }
+
+    public int getTargetPriority() {
+        return targetPriority;
     }
 
     public Type getType() {
@@ -103,14 +110,10 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     @SuppressWarnings("unchecked")
     public <E extends VoltageControl<T>> E getMainVoltageControl() {
-        switch (mergeStatus) {
-            case MAIN:
-                return (E) this;
-            case DEPENDENT:
-                return (E) mainMergedVoltageControl;
-            default:
-                throw new IllegalStateException("Unknown merge status: " + mergeStatus);
-        }
+        return switch (mergeStatus) {
+            case MAIN -> (E) this;
+            case DEPENDENT -> (E) mainMergedVoltageControl;
+        };
     }
 
     public List<LfBus> getMergedControlledBuses() {
@@ -151,9 +154,29 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     /**
      * Find the list of voltage control with merge status as main, connected to a given bus (so including by traversing
-     * non impedant branches).
+     * non impedant branches) - sorted by control priority.
      */
     public static List<VoltageControl<?>> findMainVoltageControlsSortedByPriority(LfBus bus) {
+        List<VoltageControl<?>> voltageControls = findMainVoltageControls(bus);
+        voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
+        return voltageControls;
+    }
+
+    /**
+     * Find the list of voltage control with merge status as main, connected to a given bus (so including by traversing
+     * non impedant branches) - sorted by target voltage priority.
+     */
+    public static List<VoltageControl<?>> findMainVoltageControlsSortedByTargetPriority(LfBus bus) {
+        List<VoltageControl<?>> voltageControls = findMainVoltageControls(bus);
+        voltageControls.sort(Comparator.comparingInt(VoltageControl::getTargetPriority));
+        return voltageControls;
+    }
+
+    /**
+     * Find the list of voltage control with merge status as main, connected to a given bus (so including by traversing
+     * non impedant branches).
+     */
+    private static List<VoltageControl<?>> findMainVoltageControls(LfBus bus) {
         List<VoltageControl<?>> voltageControls = new ArrayList<>();
         LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(LoadFlowModel.AC);
         if (zn != null) { // bus is part of a zero impedance graph
@@ -163,7 +186,6 @@ public class VoltageControl<T extends LfElement> extends Control {
         } else {
             addMainVoltageControls(voltageControls, bus);
         }
-        voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
         return voltageControls;
     }
 
