@@ -59,7 +59,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                     }
                 }
             }
-            branchResults.add(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension));
+            branchResults.addAll(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension));
         });
     }
 

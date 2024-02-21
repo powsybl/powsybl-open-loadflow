@@ -80,16 +80,26 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
             setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), parameters, report);
-            if (parameters.isVoltagePerReactivePowerControl() && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
-                if (parameters.isSvcVoltageMonitoring() && svc.getExtension(StandbyAutomaton.class) == null) {
-                    this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
-                } else {
-                    LOGGER.warn("Static var compensator {} has VoltagePerReactivePowerControl" +
-                            " and StandbyAutomaton extensions: VoltagePerReactivePowerControl extension ignored", svc.getId());
-                }
-            }
+
+            // slope model: check if to be applied based on 1/ option and 2/ this SVC extension
+            VoltagePerReactivePowerControl voltagePerReactivePowerControl = svc.getExtension(VoltagePerReactivePowerControl.class);
+            boolean svcWithVoltagePerReactivePowerControl = parameters.isVoltagePerReactivePowerControl() && voltagePerReactivePowerControl != null;
+
+            // standby automaton: same, check if to be applied based on 1/ option and 2/ this SVC extension
             StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
-            if (parameters.isSvcVoltageMonitoring() && standbyAutomaton != null) {
+            boolean svcWithStandbyAutomaton = parameters.isSvcVoltageMonitoring() && standbyAutomaton != null;
+
+            // we can't do both slope model & standby automaton. Keep only standby automaton if both present.
+            if (svcWithStandbyAutomaton && svcWithVoltagePerReactivePowerControl) {
+                LOGGER.warn("Static var compensator {} has VoltagePerReactivePowerControl" +
+                        " and StandbyAutomaton extensions: VoltagePerReactivePowerControl extension ignored", svc.getId());
+                svcWithVoltagePerReactivePowerControl = false;
+            }
+
+            if (svcWithVoltagePerReactivePowerControl) {
+                this.slope = voltagePerReactivePowerControl.getSlope() * PerUnit.SB / nominalV;
+            }
+            if (svcWithStandbyAutomaton) {
                 if (standbyAutomaton.getB0() != 0.0) {
                     // a static var compensator with an extension stand by automaton includes an offset of B0,
                     // whatever it is in stand by or not.

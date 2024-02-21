@@ -1214,6 +1214,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     private static List<String> parseStringListProp(String prop) {
+        if (prop.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
         return Arrays.asList(prop.split("[:,]"));
     }
 
