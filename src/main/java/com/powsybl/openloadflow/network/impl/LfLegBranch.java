@@ -149,7 +149,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 

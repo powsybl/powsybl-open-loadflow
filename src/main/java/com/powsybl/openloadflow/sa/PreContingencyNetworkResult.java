@@ -32,8 +32,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     private void addResults(StateMonitor monitor) {
         addResults(monitor, branch -> {
-            var branchResult = branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension);
-            branchResults.put(branch.getId(), branchResult);
+            branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension)
+                    .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
         });
     }
 
