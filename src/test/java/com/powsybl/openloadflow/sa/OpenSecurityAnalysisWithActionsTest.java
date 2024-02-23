@@ -1245,6 +1245,21 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
+    void testWrongShuntAction() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        List<Contingency> contingencies = List.of(new Contingency("tr2", new TwoWindingsTransformerContingency("tr2")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        List<Action> actions = List.of(new ShuntCompensatorPositionActionBuilder().withId("action").withShuntCompensatorId("DUMMY").withSectionCount(50).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("tr2"), new TrueCondition(), List.of("action")));
+
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP));
+        assertEquals("Shunt compensator 'DUMMY' not found", exception.getCause().getMessage());
+
+    }
+
+    @Test
     void testVSCLossAcEmulation() {
         // contingency leads to the lost of one converter station.
         // contingency leads to zero active power transmission in the hvdc line.
