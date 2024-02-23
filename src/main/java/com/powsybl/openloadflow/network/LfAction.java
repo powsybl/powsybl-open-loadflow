@@ -104,11 +104,10 @@ public final class LfAction {
         LfShunt shunt = lfNetwork.getShuntById(action.getShuntCompensatorId());
         if (shunt instanceof LfShuntImpl) { // no svc here
             if (shunt.getVoltageControl().isPresent()) {
-                throw new UnsupportedOperationException("Shunt compensator position action: voltage controller shunt not supported");
-            } else {
-                var sectionChange = new SectionChange(shunt, action.getShuntCompensatorId(), action.getSectionCount());
-                return Optional.of(new LfAction(action.getId(), null, null, null, null, null, null, sectionChange));
+                LOGGER.warn("Shunt compensator position action: voltage control is present on the shunt, section could be overridden.");
             }
+            var sectionChange = new SectionChange(shunt, action.getShuntCompensatorId(), action.getSectionCount());
+            return Optional.of(new LfAction(action.getId(), null, null, null, null, null, null, sectionChange));
         }
         return Optional.empty(); // could be in another component
     }
@@ -158,12 +157,18 @@ public final class LfAction {
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
         String branchId = action.getSide().map(side -> LfLegBranch.getId(side, action.getTransformerId())).orElseGet(action::getTransformerId);
         LfBranch branch = lfNetwork.getBranchById(branchId);
+        if (branch != null && branch.getPhaseControl().isPresent()) {
+            LOGGER.warn("Phase tap changer tap position action: phase control is present on the tap changer, tap position could be overriden.");
+        }
         return create(branch, action.getId(), action.isRelativeValue(), action.getTapPosition(), lfNetwork);
     }
 
     private static Optional<LfAction> create(RatioTapChangerTapPositionAction action, LfNetwork lfNetwork) {
         String branchId = action.getSide().map(side -> LfLegBranch.getId(side, action.getTransformerId())).orElseGet(action::getTransformerId);
         LfBranch branch = lfNetwork.getBranchById(branchId);
+        if (branch != null && branch.getVoltageControl().isPresent()) {
+            LOGGER.warn("Ratio tap changer tap position action: voltage control is present on the tap changer, tap position could be overriden.");
+        }
         return create(branch, action.getId(), action.isRelativeValue(), action.getTapPosition(), lfNetwork);
     }
 
