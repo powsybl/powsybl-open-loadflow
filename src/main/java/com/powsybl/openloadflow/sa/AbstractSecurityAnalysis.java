@@ -123,6 +123,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // try to find all ptc and rtc to retain because involved in ptc and rtc actions
         findAllPtcToOperate(actions, topoConfig);
         findAllRtcToOperate(actions, topoConfig);
+        // try to find all shunts which section can change through actions.
+        findAllShuntsToOperate(actions, topoConfig);
 
         // try to find branches (lines and two windings transformers).
         // tie lines and three windings transformers missing.
@@ -208,6 +210,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     HvdcAction hvdcAction = (HvdcAction) action;
                     if (network.getHvdcLine(hvdcAction.getHvdcId()) == null) {
                         throw new PowsyblException("Hvdc line '" + hvdcAction.getHvdcId() + NOT_FOUND);
+                    }
+                    break;
+                }
+
+                case ShuntCompensatorPositionAction.NAME: {
+                    ShuntCompensatorPositionAction shuntCompensatorPositionAction = (ShuntCompensatorPositionAction) action;
+                    if (network.getShuntCompensator(shuntCompensatorPositionAction.getShuntCompensatorId()) == null) {
+                        throw new PowsyblException("Shunt compensator '" + shuntCompensatorPositionAction.getShuntCompensatorId() + "' not found");
                     }
                     break;
                 }
@@ -324,8 +334,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (PhaseTapChangerTapPositionAction.NAME.equals(action.getType())) {
                 PhaseTapChangerTapPositionAction ptcAction = (PhaseTapChangerTapPositionAction) action;
                 ptcAction.getSide().ifPresentOrElse(
-                        side -> topoConfig.addBranchIdsWithPtcToRetain(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
-                        () -> topoConfig.addBranchIdsWithPtcToRetain(ptcAction.getTransformerId()) // T2WT
+                        side -> topoConfig.addBranchIdWithPtcToRetain(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
+                        () -> topoConfig.addBranchIdWithPtcToRetain(ptcAction.getTransformerId()) // T2WT
                 );
             }
         }
@@ -336,11 +346,16 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (RatioTapChangerTapPositionAction.NAME.equals(action.getType())) {
                 RatioTapChangerTapPositionAction rtcAction = (RatioTapChangerTapPositionAction) action;
                 rtcAction.getSide().ifPresentOrElse(
-                        side -> topoConfig.addBranchIdsWithRtcToRetain(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
-                        () -> topoConfig.addBranchIdsWithRtcToRetain(rtcAction.getTransformerId()) // T2WT
+                        side -> topoConfig.addBranchIdWithRtcToRetain(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
+                        () -> topoConfig.addBranchIdWithRtcToRetain(rtcAction.getTransformerId()) // T2WT
                 );
             }
         }
+    }
+
+    protected static void findAllShuntsToOperate(List<Action> actions, LfTopoConfig topoConfig) {
+        actions.stream().filter(action -> action.getType().equals(ShuntCompensatorPositionAction.NAME))
+                .forEach(action -> topoConfig.addShuntIdToOperate(((ShuntCompensatorPositionAction) action).getShuntCompensatorId()));
     }
 
     protected static void findAllBranchesToClose(Network network, List<Action> actions, LfTopoConfig topoConfig) {
