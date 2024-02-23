@@ -18,10 +18,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.security.LimitViolation;
-import com.powsybl.security.LimitViolationType;
-import com.powsybl.security.SecurityAnalysisParameters;
-import com.powsybl.security.SecurityAnalysisResult;
+import com.powsybl.security.*;
 import com.powsybl.security.action.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
@@ -1242,6 +1239,10 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(399.62, postContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
         assertEquals(392.41, operatorStrategyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
         assertEquals(399.62, postContingencyResult2.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+
+        securityAnalysisParameters.getLoadFlowParameters().setShuntCompensatorVoltageControlOn(true);
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
+        assertEquals(PostContingencyComputationStatus.CONVERGED, getPostContingencyResult(result2, "tr2").getStatus());
     }
 
     @Test
