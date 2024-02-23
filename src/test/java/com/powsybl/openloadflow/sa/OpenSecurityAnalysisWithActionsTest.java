@@ -1162,6 +1162,14 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(network.getLine("L1").getTerminal2().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("L2").getTerminal1().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("L2").getTerminal2().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+
+        // Test enabling regulation on the pst
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL);
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTargetDeadband(0.0);
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setRegulating(true);
+        saParameters.getLoadFlowParameters().setPhaseShifterRegulationOn(true);
+        runSecurityAnalysis(network, contingencies, monitors, saParameters, operatorStrategies, actions, Reporter.NO_OP);
     }
 
     @Test
@@ -1240,9 +1248,10 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(392.41, operatorStrategyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
         assertEquals(399.62, postContingencyResult2.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
 
+        // Test enabling regulation on the shunts
         securityAnalysisParameters.getLoadFlowParameters().setShuntCompensatorVoltageControlOn(true);
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
-        assertEquals(PostContingencyComputationStatus.CONVERGED, getPostContingencyResult(result2, "tr2").getStatus());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, getOperatorStrategyResult(result2, "strategy").getStatus());
     }
 
     @Test
