@@ -88,7 +88,7 @@
       + Outer loop IncrementalShuntVoltageControl
          Status: STABLE
         + Iteration 1 (total=1)
-                1 shunt changed its susceptance
+                1 shunt(s) changed its (their) susceptance(s)
       + Newton Raphson on Network CC0 SC0
          Launched after iteration 1 (total=1) of outer loop type IncrementalShuntVoltageControl
         + Initial mismatch

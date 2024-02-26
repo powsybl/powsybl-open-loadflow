@@ -296,7 +296,7 @@
       + Outer loop DistributedSlack
          Status: STABLE
         + Iteration 1 (total=1)
-           Slack bus active power (-1.4414990648546677 MW) distributed in 2 inner iterations
+           Slack bus active power (-1.4414990648546677 MW) distributed in 2 inner iteration(s)
       + Newton Raphson on Network CC0 SC0
          Launched after iteration 1 (total=1) of outer loop type DistributedSlack
         + Initial mismatch
@@ -352,7 +352,7 @@
       + Outer loop IncrementalTransformerVoltageControl
          Status: STABLE
         + Iteration 1 (total=1)
-                1 voltage-controlled bus is outside of its target deadband
+                1 voltage-controlled bus(es) is (are) outside of its (their) target deadband(s)
       + Outer loop DistributedSlack
          Status: STABLE
       + Outer loop VoltageMonitoring
@@ -362,4 +362,4 @@
       + Outer loop IncrementalTransformerVoltageControl
          Status: STABLE
         + Iteration 1 (total=1)
-                1 voltage-controlled bus is outside of its target deadband
+                1 voltage-controlled bus(es) is (are) outside of its (their) target deadband(s)

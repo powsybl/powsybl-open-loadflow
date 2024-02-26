@@ -103,7 +103,7 @@
       + Outer loop DistributedSlack
          Status: STABLE
         + Iteration 1 (total=1)
-           Slack bus active power (-2.8882610545475753 MW) distributed in 2 inner iterations
+           Slack bus active power (-2.8882610545475753 MW) distributed in 2 inner iteration(s)
       + Newton Raphson on Network CC0 SC0
          Launched after iteration 1 (total=1) of outer loop type DistributedSlack
         + Initial mismatch
@@ -159,14 +159,14 @@
       + Outer loop IncrementalTransformerReactivePowerControl
          Status: STABLE
         + Iteration 1 (total=1)
-                1 reactive power-controlled branch is outside of its target deadband
-                1 transformer changed at least one tap
+                1 reactive power-controlled branch(es) is (are) outside of its (their) target deadband(s)
+                1 transformer(s) changed at least one tap
         + Iteration 2 (total=2)
-                1 reactive power-controlled branch is outside of its target deadband
-                1 transformer changed at least one tap
-                1 transformer reached its tap limit
+                1 reactive power-controlled branch(es) is (are) outside of its (their) target deadband(s)
+                1 transformer(s) changed at least one tap
+                1 transformer(s) reached its (their) tap limit(s)
         + Iteration 3 (total=3)
-                1 reactive power-controlled branch is outside of its target deadband
+                1 reactive power-controlled branch(es) is (are) outside of its (their) target deadband(s)
       + Newton Raphson on Network CC0 SC0
          Launched after iteration 1 (total=1) of outer loop type IncrementalTransformerReactivePowerControl
         + Initial mismatch
@@ -335,7 +335,7 @@
       + Outer loop DistributedSlack
          Status: STABLE
         + Iteration 1 (total=2)
-           Slack bus active power (2.379902997164196 MW) distributed in 2 inner iterations
+           Slack bus active power (2.379902997164196 MW) distributed in 2 inner iteration(s)
       + Newton Raphson on Network CC0 SC0
          Launched after iteration 1 (total=2) of outer loop type DistributedSlack
         + Initial mismatch
@@ -391,7 +391,7 @@
       + Outer loop IncrementalTransformerReactivePowerControl
          Status: STABLE
         + Iteration 1 (total=3)
-                1 reactive power-controlled branch is outside of its target deadband
+                1 reactive power-controlled branch(es) is (are) outside of its (their) target deadband(s)
       + Outer loop DistributedSlack
          Status: STABLE
       + Outer loop VoltageMonitoring
@@ -401,4 +401,4 @@
       + Outer loop IncrementalTransformerReactivePowerControl
          Status: STABLE
         + Iteration 1 (total=3)
-                1 reactive power-controlled branch is outside of its target deadband
+                1 reactive power-controlled branch(es) is (are) outside of its (their) target deadband(s)

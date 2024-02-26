@@ -97,7 +97,7 @@ public class NewtonRaphson extends AbstractAcSolver {
                         LOGGER.trace("    Bus     sum Q [MVar]: {}", busSumQ);
 
                         if (reporter != null) {
-                            Reports.reportNewtonRaphsonMismatch(reporter, getEquationTypeDescription(acEquationType), equationMismatch, new NewtonRaphsonMismatchBusInfo(elementId, busNominalV, busV, busPhi, busSumP, busSumQ));
+                            Reports.reportNewtonRaphsonMismatch(reporter, getEquationTypeDescription(acEquationType), equationMismatch, elementId, busNominalV, busV, busPhi, busSumP, busSumQ);
                         }
                     });
         }
@@ -234,6 +234,4 @@ public class NewtonRaphson extends AbstractAcSolver {
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
         return new AcSolverResult(status, iterations.getValue(), slackBusActivePowerMismatch);
     }
-
-    public record NewtonRaphsonMismatchBusInfo(String busId, double busNominalV, double busV, double busPhi, double busSumP, double busSumQ) { }
 }

@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.google.common.collect.Lists;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.solver.*;
@@ -108,7 +109,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
 
-        Reports.reportOuterLoopStatus(olReporter, outerLoopStatus);
+        Reports.reportOuterLoopStatus(olReporter, outerLoopStatus.name(), outerLoopStatus == OuterLoopStatus.STABLE ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY);
     }
 
     @Override
@@ -211,7 +212,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
-        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.toComponentResultStatus(), result.getSolverStatus());
+        AcSolverStatus lfStatus = result.getSolverStatus();
+        TypedValue severity = lfStatus == AcSolverStatus.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
+        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.toComponentResultStatus().name(), lfStatus.name(), severity);
 
         context.setResult(result);
 
