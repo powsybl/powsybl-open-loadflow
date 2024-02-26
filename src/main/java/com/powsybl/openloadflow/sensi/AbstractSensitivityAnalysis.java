@@ -1200,18 +1200,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return Pair.of(hasBusTargetVoltage.get(), hasTransformerBusTargetVoltage.get());
     }
 
-    protected static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
-        return lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
-                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
-    }
-
-    protected static boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
-        return lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
-                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-    }
-
     /**
      * Base value for per-uniting, depending on the function type
      */
