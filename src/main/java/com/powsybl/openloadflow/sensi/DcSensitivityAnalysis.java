@@ -1036,7 +1036,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // TODO : beginning
                 DenseMatrix factorsStates = getInjectionVectors(loadFlowContext, factorGroups, participatingElements); // for now is only rhs
                 WoodburyEngine engine = new WoodburyEngine(loadFlowContext, factorsStates, contingencies);
-                engine.run(participatingElements, reporter, validFactorHolder, resultWriter);
+                engine.run(participatingElements, reporter, validFactorHolder, resultWriter, lfParametersExt);
 
                 // TODO : ending
 
