@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac;
 
 import com.google.common.collect.Lists;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.solver.*;
@@ -68,7 +67,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext) {
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getName());
-        outerLoopContext.setCurrentRunIteration(0);
 
         // for each outer loop re-run solver until stabilization
         OuterLoopStatus outerLoopStatus;
@@ -92,8 +90,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                             context.getNetwork().getNumCC(),
                             context.getNetwork().getNumSC(),
                             outerLoopIteration.toInteger() + 1,
-                            outerLoop.getName(),
-                            outerLoopContext.getCurrentRunIteration() + 1);
+                            outerLoop.getName());
                 }
 
                 // if not yet stable, restart solver
@@ -103,13 +100,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 runningContext.outerLoopTotalIterations++;
 
                 outerLoopIteration.increment();
-                outerLoopContext.setCurrentRunIteration(outerLoopContext.getCurrentRunIteration() + 1);
             }
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
                 && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
 
-        Reports.reportOuterLoopStatus(olReporter, outerLoopStatus.name(), outerLoopStatus == OuterLoopStatus.STABLE ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY);
+        if (outerLoopStatus != OuterLoopStatus.STABLE) {
+            Reports.reportUnsuccessfulOuterLoop(olReporter, outerLoopStatus.name());
+        }
     }
 
     @Override
@@ -212,9 +210,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
-        AcSolverStatus lfStatus = result.getSolverStatus();
-        TypedValue severity = lfStatus == AcSolverStatus.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
-        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.toComponentResultStatus().name(), lfStatus.name(), severity);
+        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.isSuccess(), result.getSolverStatus().name(), result.getOuterLoopStatus().name());
 
         context.setResult(result);
 

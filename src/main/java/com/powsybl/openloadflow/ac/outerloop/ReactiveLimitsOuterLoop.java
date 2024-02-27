@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -291,7 +290,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 .filter(LfBus::hasGeneratorReactivePowerControl)
                 .flatMap(bus -> bus.getGeneratorReactivePowerControl().orElseThrow().getControllerBuses().stream())
                 .filter(Predicate.not(LfBus::isDisabled))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -326,7 +325,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         Reporter iterationReporter = reporter;
         if (!pvToPqBuses.isEmpty() || !pqToPvBuses.isEmpty() || !busesWithUpdatedQLimits.isEmpty() || !reactiveControllerBusesToPqBuses.isEmpty()) {
-            iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1, context.getIteration() + 1);
+            iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getIteration() + 1);
         }
 
         if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), contextData, iterationReporter)) {
@@ -336,7 +335,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!busesWithUpdatedQLimits.isEmpty()) {
-            LOGGER.info("{} buses blocked to a reactive limit have been adjusted because reactive limit has changed", busesWithUpdatedQLimits.size());
+            LOGGER.info("{} buses blocked at a reactive limit have been adjusted because the reactive limit changed", busesWithUpdatedQLimits.size());
             Reports.reportBusesWithUpdatedQLimits(iterationReporter, busesWithUpdatedQLimits.size());
             status = OuterLoopStatus.UNSTABLE;
         }

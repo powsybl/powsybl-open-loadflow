@@ -78,6 +78,7 @@ public class AcIncrementalPhaseControlOuterLoop
             return rhs;
         }
 
+        @SuppressWarnings("unchecked")
         private EquationTerm<AcVariableType, AcEquationType> getI1(LfBranch controlledBranch) {
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getI1();
         }
@@ -169,11 +170,8 @@ public class AcIncrementalPhaseControlOuterLoop
 
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         var contextData = (IncrementalContextData) context.getData();
-        int currentRunIteration = context.getCurrentRunIteration();
-        int totalIterations = context.getIteration();
 
         LfNetwork network = context.getNetwork();
 
@@ -197,35 +195,43 @@ public class AcIncrementalPhaseControlOuterLoop
             });
         }
 
-        if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
-            var sensitivityContext = new AcSensitivityContext(network,
-                                                            controllerBranches,
-                                                            context.getLoadFlowContext().getEquationSystem(),
-                                                            context.getLoadFlowContext().getJacobianMatrix());
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-            Reporter iterationReporter = null;
-            if (!currentLimiterPhaseControls.isEmpty()) {
-                int numOfCurrentLimiterPstsThatChangedTap = checkCurrentLimiterPhaseControls(sensitivityContext,
-                                                                                             contextData,
-                                                                                             currentLimiterPhaseControls);
-                if (numOfCurrentLimiterPstsThatChangedTap != 0) {
-                    iterationReporter = Reports.createOuterLoopIterationReporter(reporter, currentRunIteration + 1, totalIterations + 1);
-                    Reports.reportCurrentLimiterPstsChangedTaps(iterationReporter, numOfCurrentLimiterPstsThatChangedTap);
-                    status = OuterLoopStatus.UNSTABLE;
-                }
+        if (currentLimiterPhaseControls.isEmpty() && activePowerControlPhaseControls.isEmpty()) {
+            return status;
+        }
+
+        var sensitivityContext = new AcSensitivityContext(network,
+                                                        controllerBranches,
+                                                        context.getLoadFlowContext().getEquationSystem(),
+                                                        context.getLoadFlowContext().getJacobianMatrix());
+
+        final int numOfCurrentLimiterPstsThatChangedTap;
+        final int numOfActivePowerControlPstsThatChangedTap;
+        if (!currentLimiterPhaseControls.isEmpty()) {
+            numOfCurrentLimiterPstsThatChangedTap = checkCurrentLimiterPhaseControls(sensitivityContext,
+                                                                                         contextData,
+                                                                                         currentLimiterPhaseControls);
+        } else {
+            numOfCurrentLimiterPstsThatChangedTap = 0;
+        }
+
+        if (!activePowerControlPhaseControls.isEmpty()) {
+            numOfActivePowerControlPstsThatChangedTap = checkActivePowerControlPhaseControls(sensitivityContext,
+                                                                                                 contextData,
+                                                                                                 activePowerControlPhaseControls);
+        } else {
+            numOfActivePowerControlPstsThatChangedTap = 0;
+        }
+
+        if (numOfCurrentLimiterPstsThatChangedTap + numOfActivePowerControlPstsThatChangedTap != 0) {
+            status = OuterLoopStatus.UNSTABLE;
+            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getIteration() + 1);
+            if (numOfCurrentLimiterPstsThatChangedTap != 0) {
+                Reports.reportCurrentLimiterPstsChangedTaps(iterationReporter, numOfCurrentLimiterPstsThatChangedTap);
             }
-
-            if (!activePowerControlPhaseControls.isEmpty()) {
-                int numOfActivePowerControlPstsThatChangedTap = checkActivePowerControlPhaseControls(sensitivityContext,
-                                                                                                     contextData,
-                                                                                                     activePowerControlPhaseControls);
-                if (numOfActivePowerControlPstsThatChangedTap != 0) {
-                    if (iterationReporter == null) {
-                        iterationReporter = Reports.createOuterLoopIterationReporter(reporter, currentRunIteration + 1, totalIterations + 1);
-                    }
-                    Reports.reportActivePowerControlPstsChangedTaps(iterationReporter, numOfActivePowerControlPstsThatChangedTap);
-                    status = OuterLoopStatus.UNSTABLE;
-                }
+            if (numOfActivePowerControlPstsThatChangedTap != 0) {
+                Reports.reportActivePowerControlPstsChangedTaps(iterationReporter, numOfActivePowerControlPstsThatChangedTap);
             }
         }
 

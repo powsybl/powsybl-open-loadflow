@@ -59,7 +59,7 @@ public class NewtonRaphson extends AbstractAcSolver {
                 .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
                 .sorted(Comparator.comparingDouble((Map.Entry<Equation<AcVariableType, AcEquationType>, Double> e) -> Math.abs(e.getValue())).reversed())
                 .limit(count)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static Map<AcEquationType, Pair<Equation<AcVariableType, AcEquationType>, Double>> getLargestMismatchByAcEquationType(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
@@ -97,7 +97,7 @@ public class NewtonRaphson extends AbstractAcSolver {
                         LOGGER.trace("    Bus     sum Q [MVar]: {}", busSumQ);
 
                         if (reporter != null) {
-                            Reports.reportNewtonRaphsonMismatch(reporter, getEquationTypeDescription(acEquationType), equationMismatch, elementId, busNominalV, busV, busPhi, busSumP, busSumQ);
+                            Reports.reportNewtonRaphsonLargestMismatches(reporter, getEquationTypeDescription(acEquationType), equationMismatch, elementId, busNominalV, busV, busPhi, busSumP, busSumQ);
                         }
                     });
         }
@@ -105,9 +105,9 @@ public class NewtonRaphson extends AbstractAcSolver {
 
     private String getEquationTypeDescription(AcEquationType acEquationType) {
         return switch (acEquationType) {
-            case BUS_TARGET_P -> "TargetP";
-            case BUS_TARGET_Q -> "TargetQ";
-            case BUS_TARGET_V -> "TargetV";
+            case BUS_TARGET_P -> "P";
+            case BUS_TARGET_Q -> "Q";
+            case BUS_TARGET_V -> "V";
             default -> null; // not implemented for other ac equation types
         };
     }
@@ -148,7 +148,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
             if (detailedReport) {
-                Reports.reportNewtonRaphsonNorm(iterationReporter, testResult.getNorm(), iterations.getValue() + 1);
+                Reports.reportNewtonRaphsonNorm(iterationReporter, testResult.getNorm());
             }
             if (detailedReport || LOGGER.isTraceEnabled()) {
                 reportAndLogLargestMismatchByAcEquationType(iterationReporter, equationSystem, equationVector.getArray());
@@ -182,7 +182,7 @@ public class NewtonRaphson extends AbstractAcSolver {
             LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
                     busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
 
-            Reports.reportNewtonRaphsonBusesOutOfNormalVoltageRange(reporter, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
+            Reports.reportNewtonRaphsonBusesOutOfRealisticVoltageRange(reporter, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
         }
         return !busesOutOfNormalVoltageRange.isEmpty();
     }
@@ -201,7 +201,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         Reporter initialReporter = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reporter, 0) : null;
         if (detailedReport) {
-            Reports.reportNewtonRaphsonNorm(initialReporter, initialTestResult.getNorm(), 0);
+            Reports.reportNewtonRaphsonNorm(initialReporter, initialTestResult.getNorm());
         }
         if (detailedReport || LOGGER.isTraceEnabled()) {
             reportAndLogLargestMismatchByAcEquationType(initialReporter, equationSystem, equationVector.getArray());

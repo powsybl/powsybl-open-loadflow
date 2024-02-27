@@ -72,7 +72,7 @@ public final class Reports {
     public static void reportMismatchDistributionSuccess(Reporter reporter, double slackBusActivePowerMismatch, int iterationCount) {
         reporter.report(Report.builder()
                 .withKey("mismatchDistributionSuccess")
-                .withDefaultMessage("Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} inner iteration(s)")
+                .withDefaultMessage("Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} iteration(s)")
                 .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withValue("iterationCount", iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -82,9 +82,9 @@ public final class Reports {
     public static void reportPvToPqBuses(Reporter reporter, int pvToPqBusCount, int remainingPvBusCount) {
         reporter.report(Report.builder()
                 .withKey("switchPvPq")
-                .withDefaultMessage("${pvToPqBusCount} bus(es) switched PV -> PQ (${remainingPvBusCount} bus(es) remain(s) PV)")
-                .withValue("pvToPqBusCount", String.format("%6s", pvToPqBusCount))
-                .withValue("remainingPvBusCount", String.format("%6s", remainingPvBusCount))
+                .withDefaultMessage("${pvToPqBusCount} buses switched PV -> PQ (${remainingPvBusCount} buses remain PV)")
+                .withValue("pvToPqBusCount", pvToPqBusCount)
+                .withValue("remainingPvBusCount", remainingPvBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -92,9 +92,9 @@ public final class Reports {
     public static void reportPqToPvBuses(Reporter reporter, int pqToPvBusCount, int blockedPqBusCount) {
         reporter.report(Report.builder()
                 .withKey("switchPqPv")
-                .withDefaultMessage("${pqToPvBusCount} bus(es) switched PQ -> PV (${blockedPqBusCount} bus(es) blocked PQ due to the max number of switches)")
-                .withValue("pqToPvBusCount", String.format("%6s", pqToPvBusCount))
-                .withValue("blockedPqBusCount", String.format("%6s", blockedPqBusCount))
+                .withDefaultMessage("${pqToPvBusCount} buses switched PQ -> PV (${blockedPqBusCount} buses blocked PQ due to the max number of switches)")
+                .withValue("pqToPvBusCount", pqToPvBusCount)
+                .withValue("blockedPqBusCount", blockedPqBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -111,8 +111,8 @@ public final class Reports {
     public static void reportBusesWithUpdatedQLimits(Reporter reporter, int numBusesWithUpdatedQLimits) {
         reporter.report(Report.builder()
                 .withKey("busWithUpdatedQLimits")
-                .withDefaultMessage("${numBusesWithUpdatedQLimits} bus(es) blocked PQ at its (their) min/max reactive power limit had its (their) min/max limit(s) updated")
-                .withValue("numBusesWithUpdatedQLimits", String.format("%6s", numBusesWithUpdatedQLimits))
+                .withDefaultMessage("${numBusesWithUpdatedQLimits} buses blocked at a reactive limit have been adjusted because the reactive limit changed")
+                .withValue("numBusesWithUpdatedQLimits", numBusesWithUpdatedQLimits)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -140,7 +140,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("currentLimiterPstsChangedTaps")
                 .withDefaultMessage("${numOfCurrentLimiterPstsThatChangedTap} current limiter PST(s) changed taps")
-                .withValue("numOfCurrentLimiterPstsThatChangedTap", String.format("%6s", numOfCurrentLimiterPstsThatChangedTap))
+                .withValue("numOfCurrentLimiterPstsThatChangedTap", numOfCurrentLimiterPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -149,7 +149,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("activePowerControlPstsChangedTaps")
                 .withDefaultMessage("${numOfActivePowerControlPstsThatChangedTap} active power control PST(s) changed taps")
-                .withValue("numOfActivePowerControlPstsThatChangedTap", String.format("%6s", numOfActivePowerControlPstsThatChangedTap))
+                .withValue("numOfActivePowerControlPstsThatChangedTap", numOfActivePowerControlPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -157,8 +157,8 @@ public final class Reports {
     public static void reportTransformerControlBusesOutsideDeadband(Reporter reporter, int numTransformerControlBusesOutsideDeadband) {
         reporter.report(Report.builder()
                 .withKey("transformerControlBusesOutsideDeadband")
-                .withDefaultMessage("${numTransformerControlBusesOutsideDeadband} voltage-controlled bus(es) is (are) outside of its (their) target deadband(s)")
-                .withValue("numTransformerControlBusesOutsideDeadband", String.format("%6s", numTransformerControlBusesOutsideDeadband))
+                .withDefaultMessage("${numTransformerControlBusesOutsideDeadband} voltage-controlled buses are outside of their target deadbands")
+                .withValue("numTransformerControlBusesOutsideDeadband", numTransformerControlBusesOutsideDeadband)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -166,8 +166,8 @@ public final class Reports {
     public static void reportTransformerControlBranchesOutsideDeadband(Reporter reporter, int numTransformerControlBranchesOutsideDeadband) {
         reporter.report(Report.builder()
                 .withKey("transformerControlBranchesOutsideDeadband")
-                .withDefaultMessage("${numTransformerControlBranchesOutsideDeadband} reactive power-controlled branch(es) is (are) outside of its (their) target deadband(s)")
-                .withValue("numTransformerControlBranchesOutsideDeadband", String.format("%6s", numTransformerControlBranchesOutsideDeadband))
+                .withDefaultMessage("${numTransformerControlBranchesOutsideDeadband} reactive power-controlled branches are outside of their target deadbands")
+                .withValue("numTransformerControlBranchesOutsideDeadband", numTransformerControlBranchesOutsideDeadband)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -175,8 +175,8 @@ public final class Reports {
     public static void reportTransformerControlChangedTaps(Reporter reporter, int numTransformerControlAdjusted) {
         reporter.report(Report.builder()
                 .withKey("transformerControlChangedTaps")
-                .withDefaultMessage("${numTransformerControlAdjusted} transformer(s) changed at least one tap")
-                .withValue("numTransformerControlAdjusted", String.format("%6s", numTransformerControlAdjusted))
+                .withDefaultMessage("${numTransformerControlAdjusted} transformers changed tap position")
+                .withValue("numTransformerControlAdjusted", numTransformerControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -184,27 +184,27 @@ public final class Reports {
     public static void reportTransformerControlTapLimit(Reporter reporter, int numTransformerControlTapLimit) {
         reporter.report(Report.builder()
                 .withKey("transformerControlTapLimit")
-                .withDefaultMessage("${numTransformerControlTapLimit} transformer(s) reached its (their) tap limit(s)")
-                .withValue("numTransformerControlTapLimit", String.format("%6s", numTransformerControlTapLimit))
+                .withDefaultMessage("${numTransformerControlTapLimit} transformers reached their tap maximum position")
+                .withValue("numTransformerControlTapLimit", numTransformerControlTapLimit)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
-    public static void reportShuntVoltageControlChangedSusceptance(Reporter reporter, int numShuntVoltageControlAdjusted) {
+    public static void reportShuntVoltageControlChangedSection(Reporter reporter, int numShuntVoltageControlAdjusted) {
         reporter.report(Report.builder()
-                .withKey("shuntVoltageControlChangedSusceptance")
-                .withDefaultMessage("${numShuntVoltageControlAdjusted} shunt(s) changed its (their) susceptance(s)")
-                .withValue("numShuntVoltageControlAdjusted", String.format("%6s", numShuntVoltageControlAdjusted))
+                .withKey("shuntVoltageControlChangedSection")
+                .withDefaultMessage("${numShuntVoltageControlAdjusted} shunts changed section")
+                .withValue("numShuntVoltageControlAdjusted", numShuntVoltageControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
 
-    public static void reportOuterLoopStatus(Reporter reporter, String outerLoopStatus, TypedValue severity) {
+    public static void reportUnsuccessfulOuterLoop(Reporter reporter, String outerLoopStatus) {
         reporter.report(Report.builder()
                 .withKey("outerLoopStatus")
-                .withDefaultMessage("Status: ${outerLoopStatus}")
+                .withDefaultMessage("Outer loop unsuccessful with status: ${outerLoopStatus}")
                 .withValue("outerLoopStatus", outerLoopStatus)
-                .withSeverity(severity)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
                 .build());
     }
 
@@ -229,7 +229,7 @@ public final class Reports {
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(Reporter reporter, int impactedGeneratorCount) {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseNotStarted")
-                .withDefaultMessage("${impactedGeneratorCount} generator(s) was (were) discarded from voltage control because it (they) didn't start")
+                .withDefaultMessage("${impactedGeneratorCount} generators were discarded from voltage control because not started")
                 .withValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
@@ -238,7 +238,7 @@ public final class Reports {
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(Reporter reporter, int impactedGeneratorCount) {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
-                .withDefaultMessage("${impactedGeneratorCount} generator(s) was (were) discarded from voltage control because its (their) reactive range(s) is (are) too small")
+                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because of a too small reactive range")
                 .withValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
@@ -247,23 +247,21 @@ public final class Reports {
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(Reporter reporter, int impactedGeneratorCount) {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
-                .withDefaultMessage("${impactedGeneratorCount} generator(s) was (were) discarded from voltage control because its (their) targetP(s) is (are) outside its (their) active power limits")
+                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because targetP is outside active power limits")
                 .withValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
 
-    public static void reportAcLfComplete(Reporter reporter, String lfStatus, String solverStatus, TypedValue severity) {
+    public static void reportAcLfComplete(Reporter reporter, boolean success, String solverStatus, String outerloopStatus) {
+        TypedValue severity = success ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
+        String successText = success ? "successfully" : "with error";
         reporter.report(Report.builder()
-                .withKey("acLfCompletionStatus")
-                .withDefaultMessage("AC load flow completion status: ${lfStatus}")
-                .withValue("lfStatus", lfStatus)
-                .withSeverity(severity)
-                .build());
-        reporter.report(Report.builder()
-                .withKey("solverStatus")
-                .withDefaultMessage("Solver status: ${solverStatus}")
+                .withKey("acLfComplete")
+                .withDefaultMessage("AC load flow completed ${successText} (solverStatus=${solverStatus}, outerloopStatus=${outerloopStatus})")
+                .withValue("successText", successText)
                 .withValue("solverStatus", solverStatus)
+                .withValue("outerloopStatus", outerloopStatus)
                 .withSeverity(severity)
                 .build());
     }
@@ -287,11 +285,10 @@ public final class Reports {
         return reporter.createSubReporter("OuterLoop", "Outer loop ${outerLoopType}", "outerLoopType", outerLoopType);
     }
 
-    public static Reporter createOuterLoopIterationReporter(Reporter reporter, int currentRunIteration, int totalIterations) {
+    public static Reporter createOuterLoopIterationReporter(Reporter reporter, int outerLoopIteration) {
         Map<String, TypedValue> subReporterMap = new HashMap<>();
-        subReporterMap.put("currentRunIteration", new TypedValue(currentRunIteration, TypedValue.UNTYPED));
-        subReporterMap.put("totalIterations", new TypedValue(totalIterations, TypedValue.UNTYPED));
-        return reporter.createSubReporter("OuterLoopIteration", "Iteration ${currentRunIteration} (total=${totalIterations})", subReporterMap);
+        subReporterMap.put("outerLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED));
+        return reporter.createSubReporter("OuterLoopIteration", "Outer loop iteration ${outerLoopIteration}", subReporterMap);
     }
 
     public static Reporter createSensitivityAnalysis(Reporter reporter, String networkId) {
@@ -331,15 +328,14 @@ public final class Reports {
     }
 
     public static Reporter createDetailedSolverReporterOuterLoop(Reporter reporter, String solverName, int networkNumCc, int networkNumSc,
-                                                                 int outerLoopTotalIterations, String outerLoopType, int currentRunIterations) {
+                                                                 int outerLoopIteration, String outerLoopType) {
         Reporter subReporter = reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc}",
                 Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
                         NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
         subReporter.report(Report.builder()
                 .withKey("solverOuterLoopCurrentType")
-                .withDefaultMessage("Launched after iteration ${currentRunIterations} (total=${outerLoopTotalIterations}) of outer loop type ${outerLoopType}")
-                .withValue("currentRunIterations", currentRunIterations)
-                .withValue("outerLoopTotalIterations", outerLoopTotalIterations)
+                .withDefaultMessage("Newton-Raphson of outer loop iteration ${outerLoopIteration} of type ${outerLoopType}")
+                .withValue("outerLoopIteration", outerLoopIteration)
                 .withValue("outerLoopType", outerLoopType)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
@@ -350,7 +346,7 @@ public final class Reports {
         if (iteration == 0) {
             return reporter.createSubReporter("mismatchInitial", "Initial mismatch");
         } else {
-            return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} ", ITERATION, iteration);
+            return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} mismatch", ITERATION, iteration);
         }
     }
 
@@ -363,75 +359,52 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportNewtonRaphsonNorm(Reporter reporter, double norm, int iteration) {
-        ReportBuilder reportBuilder = Report.builder();
-        if (iteration == 0) {
-            reportBuilder.withKey("NRInitialNorm")
-                    .withDefaultMessage("Norm |f(x0)|=${norm}");
-        } else {
-            reportBuilder.withKey("NRIterationNorm")
-                    .withDefaultMessage("Norm |f(x)|=${norm}");
-        }
-        reporter.report(reportBuilder.withValue("norm", norm)
+    public static void reportNewtonRaphsonNorm(Reporter reporter, double norm) {
+        reporter.report(Report.builder()
+                .withKey("NRNorm")
+                .withDefaultMessage("Newton-Raphson norm |f(x)|=${norm}")
+                .withValue("norm", norm)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());
     }
 
-    public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, String busId,
-                                                   double busNominalV, double busV, double busPhi, double busSumP, double busSumQ) {
+    public static void reportNewtonRaphsonLargestMismatches(Reporter reporter, String acEquationType, double mismatch, String busId,
+                                                            double busNominalV, double busV, double busPhi, double busSumP, double busSumQ) {
         Map<String, TypedValue> subReporterMap = new HashMap<>();
         subReporterMap.put("equationType", new TypedValue(acEquationType, TypedValue.UNTYPED));
         subReporterMap.put("mismatch", new TypedValue(mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
 
         ReportBuilder busIdReportBuilder = Report.builder();
-        busIdReportBuilder.withKey("NRMismatchBusId")
-                .withDefaultMessage("Bus Id: ${busId}")
+        busIdReportBuilder.withKey("NRMismatchBusInfo")
+                .withDefaultMessage("Bus Id: ${busId} (nominalVoltage=${busNominalV}kV)")
                 .withValue(BUS_ID, busId)
-                .withSeverity(TypedValue.TRACE_SEVERITY);
-
-        ReportBuilder busNominalVReportBuilder = Report.builder();
-        busNominalVReportBuilder.withKey("NRMismatchBusNominalV")
-                .withDefaultMessage("Bus nominal V [kV]: ${busNominalV}")
                 .withValue("busNominalV", busNominalV)
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
         ReportBuilder busVReportBuilder = Report.builder();
         busVReportBuilder.withKey("NRMismatchBusV")
-                .withDefaultMessage("Bus V [p.u.]: ${busV}")
+                .withDefaultMessage("Bus V: ${busV} pu, ${busPhi} rad")
                 .withValue("busV", busV)
-                .withSeverity(TypedValue.TRACE_SEVERITY);
-
-        ReportBuilder busPhiReportBuilder = Report.builder();
-        busPhiReportBuilder.withKey("NRMismatchBusPhi")
-                .withDefaultMessage("Bus Phi [rad]: ${busPhi}")
                 .withValue("busPhi", busPhi)
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
-        ReportBuilder busPReportBuilder = Report.builder();
-        busPReportBuilder.withKey("NRMismatchBusSumP")
-                .withDefaultMessage("Bus sum P [MW]: ${busSumP}")
+        ReportBuilder busInjectionReportBuilder = Report.builder();
+        busInjectionReportBuilder.withKey("NRMismatchBusInjection")
+                .withDefaultMessage("Bus injection: ${busSumP} MW, ${busSumQ} MVar")
                 .withValue("busSumP", busSumP)
-                .withSeverity(TypedValue.TRACE_SEVERITY);
-
-        ReportBuilder busQReportBuilder = Report.builder();
-        busQReportBuilder.withKey("NRMismatchBusSumQ")
-                .withDefaultMessage("Bus sum Q [MVar]: ${busSumQ}")
                 .withValue("busSumQ", busSumQ)
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
-        Reporter subReporter = reporter.createSubReporter("NRMismatch", "Mismatch on ${equationType} : ${mismatch}", subReporterMap);
+        Reporter subReporter = reporter.createSubReporter("NRMismatch", "Largest ${equationType} mismatch: ${mismatch}", subReporterMap);
         subReporter.report(busIdReportBuilder.build());
-        subReporter.report(busNominalVReportBuilder.build());
         subReporter.report(busVReportBuilder.build());
-        subReporter.report(busPhiReportBuilder.build());
-        subReporter.report(busPReportBuilder.build());
-        subReporter.report(busQReportBuilder.build());
+        subReporter.report(busInjectionReportBuilder.build());
     }
 
     public static void reportLineSearchStateVectorScaling(Reporter reporter, double stepSize) {
         reporter.report(Report.builder()
                 .withKey("lineSearchStateVectorScaling")
-                .withDefaultMessage("Step size (line search): ${stepSize}")
+                .withDefaultMessage("Step size: ${stepSize} (line search)")
                 .withValue("stepSize", stepSize)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
@@ -440,7 +413,7 @@ public final class Reports {
     public static void reportMaxVoltageChangeStateVectorScaling(Reporter reporter, double stepSize, int vCutCount, int phiCutCount) {
         reporter.report(Report.builder()
                 .withKey("maxVoltageChangeStateVectorScaling")
-                .withDefaultMessage("Step size (max voltage change): ${stepSize} (${vCutCount} Vmagnitude and ${phiCutCount} Vangle changes outside thresholds)")
+                .withDefaultMessage("Step size: ${stepSize} (max voltage change: ${vCutCount} Vmagnitude and ${phiCutCount} Vangle changes outside configured thresholds)")
                 .withValue("stepSize", stepSize)
                 .withValue("vCutCount", vCutCount)
                 .withValue("phiCutCount", phiCutCount)
@@ -448,14 +421,14 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportNewtonRaphsonBusesOutOfNormalVoltageRange(Reporter reporter, Map<String, Double> busesOutOfNormalVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
+    public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(Reporter reporter, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
         reporter.report(Report.builder()
-                .withKey("newtonRaphsonBusesOutOfNormalVoltageRange")
-                .withDefaultMessage("${busCountOutOfNormalVoltageRange} bus(es) have its (their) voltage magnitude out of the range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.: ${busesOutOfNormalVoltageRange}")
-                .withValue("busCountOutOfNormalVoltageRange", busesOutOfNormalVoltageRange.size())
+                .withKey("newtonRaphsonBusesOutOfRealisticVoltageRange")
+                .withDefaultMessage("${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.: ${busesOutOfRealisticVoltageRange}")
+                .withValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
                 .withValue("minRealisticVoltage", minRealisticVoltage)
                 .withValue("maxRealisticVoltage", maxRealisticVoltage)
-                .withValue("busesOutOfNormalVoltageRange", busesOutOfNormalVoltageRange.toString())
+                .withValue("busesOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.toString())
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .build());
     }

@@ -56,7 +56,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     public static List<LfBus> getControlledBusesOutOfDeadband(IncrementalContextData contextData) {
         return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER).stream()
                 .filter(bus -> isOutOfDeadband(bus.getTransformerVoltageControl().orElseThrow()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static List<LfBranch> getControllerElementsOutOfDeadband(List<LfBus> controlledBusesOutOfDeadband) {
@@ -64,7 +64,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 .flatMap(bus -> bus.getTransformerVoltageControl().orElseThrow().getMergedControllerElements().stream())
                 .filter(Predicate.not(LfBranch::isDisabled))
                 .filter(LfBranch::isConnectedAtBothSides)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static List<LfBranch> getControllerElements(IncrementalContextData contextData) {
@@ -151,7 +151,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         List<Integer> previousTapPositions = controllerBranches.stream()
                 .map(controllerBranch -> controllerBranch.getPiModel().getTapPosition())
-                .collect(Collectors.toList());
+                .toList();
 
         // several transformers control the same bus, to give to chance to all controllers to adjust controlled bus
         // voltage and to help distributing tap changes among all controllers, we try to adjust voltage by allowing
@@ -251,7 +251,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
             List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
                     .filter(b -> !b.isDisabled())
-                    .collect(Collectors.toList());
+                    .toList();
             boolean adjusted;
             if (controllers.size() == 1) {
                 adjusted = adjustWithOneController(controllers.get(0), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit);
@@ -265,7 +265,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         });
 
         Reporter iterationReporter = !controlledBusesOutOfDeadband.isEmpty() || !controlledBusesAdjusted.isEmpty() || !controlledBusesWithAllItsControllersToLimit.isEmpty() ?
-                Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1, context.getIteration() + 1) : null;
+                Reports.createOuterLoopIterationReporter(reporter, context.getIteration() + 1) : null;
 
         if (!controlledBusesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
             Map<String, Double> largestMismatches = controlledBusesOutOfDeadband.stream()

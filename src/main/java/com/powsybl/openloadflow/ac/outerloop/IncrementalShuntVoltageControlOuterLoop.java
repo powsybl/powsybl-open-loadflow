@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
@@ -51,14 +50,14 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     public static List<LfBus> getControlledBusesOutOfDeadband(IncrementalContextData contextData) {
         return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.SHUNT).stream()
                 .filter(bus -> isOutOfDeadband(bus.getShuntVoltageControl().orElseThrow()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static List<LfShunt> getControllerElementsOutOfDeadband(List<LfBus> controlledBusesOutOfDeadband) {
         return controlledBusesOutOfDeadband.stream()
                 .flatMap(bus -> bus.getShuntVoltageControl().orElseThrow().getMergedControllerElements().stream())
                 .filter(Predicate.not(LfShunt::isDisabled))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static List<LfShunt> getControllerElements(IncrementalContextData contextData) {
@@ -174,7 +173,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         if (outOfDeadband) {
             List<LfShunt> controllers = voltageControl.getMergedControllerElements().stream()
                     .filter(shunt -> !shunt.isDisabled())
-                    .collect(Collectors.toList());
+                    .toList();
             LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
                     voltageControl.getControlledBus().getId(), controllers.size(), halfTargetDeadband * voltageControl.getControlledBus().getNominalV(),
                     diffV * voltageControl.getControlledBus().getNominalV());
@@ -210,14 +209,14 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
             List<LfShunt> sortedControllers = voltageControl.getMergedControllerElements().stream()
                     .filter(shunt -> !shunt.isDisabled())
                     .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
-                    .collect(Collectors.toList());
+                    .toList();
             adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, numAdjustedShunts);
         });
 
         if (numAdjustedShunts.getValue() != 0) {
             status.setValue(OuterLoopStatus.UNSTABLE);
-            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1, context.getIteration() + 1);
-            Reports.reportShuntVoltageControlChangedSusceptance(iterationReporter, numAdjustedShunts.getValue());
+            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getIteration() + 1);
+            Reports.reportShuntVoltageControlChangedSection(iterationReporter, numAdjustedShunts.getValue());
         }
 
         return status.getValue();

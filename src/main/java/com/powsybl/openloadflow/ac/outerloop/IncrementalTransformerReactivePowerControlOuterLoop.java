@@ -70,7 +70,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
     public static List<LfBranch> getControllerBranches(LfNetwork network) {
         return network.getBranches().stream()
                 .filter(branch -> !branch.isDisabled() && branch.isTransformerReactivePowerController())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static List<LfBranch> getControlledBranchesOutOfDeadband(LfNetwork network) {
@@ -78,14 +78,14 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                 .filter(LfBranch::isTransformerReactivePowerControlled)
                 .filter(branch -> isOutOfDeadband(branch.getTransformerReactivePowerControl().orElseThrow()))
                 .filter(Predicate.not(LfBranch::isDisabled))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static List<LfBranch> getControllerBranchesOutOfDeadband(List<LfBranch> controlledBranchesOutOfDeadband) {
         return controlledBranchesOutOfDeadband.stream()
                 .map(controlledBranch -> controlledBranch.getTransformerReactivePowerControl().orElseThrow().getControllerBranch())
                 .filter(Predicate.not(LfBranch::isDisabled))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -195,7 +195,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         });
 
         Reporter iterationReporter = !controlledBranchesOutOfDeadband.isEmpty() || !controlledBranchesAdjusted.isEmpty() || !controlledBranchesWithAllItsControllersToLimit.isEmpty() ?
-                Reports.createOuterLoopIterationReporter(reporter, context.getCurrentRunIteration() + 1, context.getIteration() + 1) : null;
+                Reports.createOuterLoopIterationReporter(reporter, context.getIteration() + 1) : null;
 
         if (!controlledBranchesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
             Map<String, Double> largestMismatches = controllerBranchesOutOfDeadband.stream()

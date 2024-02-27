@@ -19,8 +19,6 @@ public class AcOuterLoopContext extends AbstractOuterLoopContext<AcVariableType,
 
     private int iteration;
 
-    private int currentRunIteration;
-
     private AcSolverResult lastSolverResult;
 
     AcOuterLoopContext(LfNetwork network) {
@@ -34,14 +32,6 @@ public class AcOuterLoopContext extends AbstractOuterLoopContext<AcVariableType,
 
     public void setIteration(int iteration) {
         this.iteration = iteration;
-    }
-
-    public int getCurrentRunIteration() {
-        return currentRunIteration;
-    }
-
-    public void setCurrentRunIteration(int currentRunIteration) {
-        this.currentRunIteration = currentRunIteration;
     }
 
     public AcSolverResult getLastSolverResult() {

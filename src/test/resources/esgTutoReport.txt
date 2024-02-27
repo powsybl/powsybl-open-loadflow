@@ -1,33 +1,23 @@
 + Test ESG tutorial report
   + Load flow on network 'sim1'
     + Network CC0 SC0
-       AC load flow completion status: CONVERGED
-       Solver status: CONVERGED
+       AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
       + Post loading processing
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Outer loop DistributedSlack
-         Status: STABLE
-        + Iteration 1 (total=1)
-           Slack bus active power (-1.4404045651219555 MW) distributed in 2 inner iteration(s)
+        + Outer loop iteration 1
+           Slack bus active power (-1.4404045651219555 MW) distributed in 2 iteration(s)
       + Outer loop VoltageMonitoring
-         Status: STABLE
       + Outer loop ReactiveLimits
-         Status: STABLE
       + Outer loop DistributedSlack
-         Status: STABLE
       + Outer loop VoltageMonitoring
-         Status: STABLE
       + Outer loop ReactiveLimits
-         Status: STABLE
   + Sensitivity analysis on network 'sim1'
     + Network CC0 SC0
-       AC load flow completion status: CONVERGED
-       Solver status: CONVERGED
+       AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
       + Post loading processing
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Outer loop VoltageMonitoring
-         Status: STABLE
       + Outer loop ReactiveLimits
-         Status: STABLE
