@@ -226,7 +226,7 @@ public class AcIncrementalPhaseControlOuterLoop
 
         if (numOfCurrentLimiterPstsThatChangedTap + numOfActivePowerControlPstsThatChangedTap != 0) {
             status = OuterLoopStatus.UNSTABLE;
-            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getIteration() + 1);
+            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1);
             if (numOfCurrentLimiterPstsThatChangedTap != 0) {
                 Reports.reportCurrentLimiterPstsChangedTaps(iterationReporter, numOfCurrentLimiterPstsThatChangedTap);
             }

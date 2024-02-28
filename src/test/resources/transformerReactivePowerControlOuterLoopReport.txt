@@ -99,17 +99,17 @@
       + Outer loop VoltageMonitoring
       + Outer loop ReactiveLimits
       + Outer loop IncrementalTransformerReactivePowerControl
-        + Outer loop iteration 1
-           1 reactive power-controlled branches are outside of their target deadbands
-           1 transformers changed tap position
         + Outer loop iteration 2
            1 reactive power-controlled branches are outside of their target deadbands
            1 transformers changed tap position
-           1 transformers reached their tap maximum position
         + Outer loop iteration 3
            1 reactive power-controlled branches are outside of their target deadbands
+           1 transformers changed tap position
+           1 transformers reached their tap maximum position
+        + Outer loop iteration 4
+           1 reactive power-controlled branches are outside of their target deadbands
       + Newton Raphson on Network CC0 SC0
-         Newton-Raphson of outer loop iteration 1 of type IncrementalTransformerReactivePowerControl
+         Newton-Raphson of outer loop iteration 2 of type IncrementalTransformerReactivePowerControl
         + Initial mismatch
            Newton-Raphson norm |f(x)|=0.08187188436879228
           + Largest P mismatch: -0.06141369269554524
@@ -167,7 +167,7 @@
              Bus V: 1.0227272727272727 pu, 0.01176769980319172 rad
              Bus injection: 22.111739296938367 MW, 7.318486307745907 MVar
       + Newton Raphson on Network CC0 SC0
-         Newton-Raphson of outer loop iteration 2 of type IncrementalTransformerReactivePowerControl
+         Newton-Raphson of outer loop iteration 3 of type IncrementalTransformerReactivePowerControl
         + Initial mismatch
            Newton-Raphson norm |f(x)|=0.031683064703665546
           + Largest P mismatch: -0.02449384393198288
@@ -211,10 +211,10 @@
              Bus V: 1.0227272727272727 pu, 0.011772577480572114 rad
              Bus injection: 22.111739596487254 MW, 7.223626593973918 MVar
       + Outer loop DistributedSlack
-        + Outer loop iteration 2
+        + Outer loop iteration 4
            Slack bus active power (2.379902997164196 MW) distributed in 2 iteration(s)
       + Newton Raphson on Network CC0 SC0
-         Newton-Raphson of outer loop iteration 2 of type DistributedSlack
+         Newton-Raphson of outer loop iteration 4 of type DistributedSlack
         + Initial mismatch
            Newton-Raphson norm |f(x)|=0.02379902457697521
           + Largest P mismatch: -0.023799023461293672
@@ -246,11 +246,11 @@
       + Outer loop VoltageMonitoring
       + Outer loop ReactiveLimits
       + Outer loop IncrementalTransformerReactivePowerControl
-        + Outer loop iteration 3
+        + Outer loop iteration 5
            1 reactive power-controlled branches are outside of their target deadbands
       + Outer loop DistributedSlack
       + Outer loop VoltageMonitoring
       + Outer loop ReactiveLimits
       + Outer loop IncrementalTransformerReactivePowerControl
-        + Outer loop iteration 3
+        + Outer loop iteration 5
            1 reactive power-controlled branches are outside of their target deadbands

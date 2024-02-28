@@ -325,7 +325,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         Reporter iterationReporter = reporter;
         if (!pvToPqBuses.isEmpty() || !pqToPvBuses.isEmpty() || !busesWithUpdatedQLimits.isEmpty() || !reactiveControllerBusesToPqBuses.isEmpty()) {
-            iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getIteration() + 1);
+            iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1);
         }
 
         if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), contextData, iterationReporter)) {

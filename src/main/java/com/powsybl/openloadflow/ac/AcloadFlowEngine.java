@@ -75,6 +75,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration.getValue());
+            outerLoopContext.setOuterLoopTotalIterations(runningContext.outerLoopTotalIterations);
             outerLoopContext.setLastSolverResult(runningContext.lastSolverResult);
             outerLoopContext.setLoadFlowContext(context);
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
@@ -89,7 +90,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                             solver.getName(),
                             context.getNetwork().getNumCC(),
                             context.getNetwork().getNumSC(),
-                            outerLoopIteration.toInteger() + 1,
+                            runningContext.outerLoopTotalIterations + 1,
                             outerLoop.getName());
                 }
 

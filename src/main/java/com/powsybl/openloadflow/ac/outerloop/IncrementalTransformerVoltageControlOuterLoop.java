@@ -265,7 +265,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         });
 
         Reporter iterationReporter = !controlledBusesOutOfDeadband.isEmpty() || !controlledBusesAdjusted.isEmpty() || !controlledBusesWithAllItsControllersToLimit.isEmpty() ?
-                Reports.createOuterLoopIterationReporter(reporter, context.getIteration() + 1) : null;
+                Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1) : null;
 
         if (!controlledBusesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
             Map<String, Double> largestMismatches = controlledBusesOutOfDeadband.stream()

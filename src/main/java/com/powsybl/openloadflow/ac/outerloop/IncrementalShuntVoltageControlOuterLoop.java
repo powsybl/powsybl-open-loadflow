@@ -215,7 +215,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         if (numAdjustedShunts.getValue() != 0) {
             status.setValue(OuterLoopStatus.UNSTABLE);
-            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getIteration() + 1);
+            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1);
             Reports.reportShuntVoltageControlChangedSection(iterationReporter, numAdjustedShunts.getValue());
         }
 

@@ -60,7 +60,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
             return OuterLoopStatus.STABLE;
         }
 
-        Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getIteration() + 1);
+        Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1);
         ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
         double remainingMismatch = result.remainingMismatch();
         double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;
