@@ -104,13 +104,12 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                     contextData.addDistributedActivePower(-distributedActivePower);
                     return OuterLoopStatus.FAILED;
                 }
+                default -> throw new IllegalArgumentException("Unknown slackDistributionFailureBehavior");
             }
         } else {
             reportAndLogSuccess(iterationReporter, slackBusActivePowerMismatch, result);
             return OuterLoopStatus.UNSTABLE;
         }
-
-        return OuterLoopStatus.STABLE;
     }
 
     private static void reportAndLogSuccess(Reporter reporter, double slackBusActivePowerMismatch, ActivePowerDistribution.Result result) {
