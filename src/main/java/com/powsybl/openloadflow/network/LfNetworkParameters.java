@@ -61,7 +61,11 @@ public class LfNetworkParameters {
 
     public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
 
-    public static final List<String> VOLTAGE_TARGET_PRIORITIES_DEFAULT_VALUE = List.of("GENERATOR", "TRANSFORMER", "SHUNT");
+    public static final List<String> VOLTAGE_TARGET_PRIORITIES_DEFAULT_VALUE = List.of(
+            VoltageControl.Type.GENERATOR.name(),
+            VoltageControl.Type.TRANSFORMER.name(),
+            VoltageControl.Type.SHUNT.name()
+    );
 
     private boolean generatorVoltageRemoteControl = true;
 
@@ -525,17 +529,20 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public List<String> getVoltageTargetPriorities() {
-        return voltageTargetPriorities;
-    }
-
     public static List<String> checkVoltageTargetPriorities(List<String> voltageTargetPriorities) {
         Objects.requireNonNull(voltageTargetPriorities);
+        for (String type : voltageTargetPriorities) {
+            try {
+                VoltageControl.Type.valueOf(type);
+            } catch (IllegalArgumentException e) {
+                throw new PowsyblException("Unknown Voltage Control Type: " + type);
+            }
+
+        }
 
         List<String> checkedVoltageTargetPriorities = new ArrayList<>(voltageTargetPriorities);
-        checkedVoltageTargetPriorities.add(VoltageControl.Type.GENERATOR.name());
-        checkedVoltageTargetPriorities.add(VoltageControl.Type.TRANSFORMER.name());
-        checkedVoltageTargetPriorities.add(VoltageControl.Type.SHUNT.name());
+        // append default order, in case user didn't provide all types in the parameters
+        checkedVoltageTargetPriorities.addAll(VOLTAGE_TARGET_PRIORITIES_DEFAULT_VALUE);
 
         return checkedVoltageTargetPriorities.stream().distinct().toList();
     }
@@ -546,6 +553,7 @@ public class LfNetworkParameters {
     }
 
     public int getVoltageTargetPriority(VoltageControl.Type voltageControlType) {
+        Objects.requireNonNull(voltageControlType);
         int priority = voltageTargetPriorities.indexOf(voltageControlType.name());
         if (priority == -1) {
             throw new IllegalStateException("Missing LfNetworkParameters.voltageTargetPriorities for " + voltageControlType.name());

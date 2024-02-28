@@ -1129,6 +1129,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setVoltageTargetPriorities(List<String> voltageTargetPriorities) {
+        // just check, but do not use return value in this.voltageTargetPriorities:
+        // doing this would modify the user's input
+        LfNetworkParameters.checkVoltageTargetPriorities(voltageTargetPriorities);
         this.voltageTargetPriorities = voltageTargetPriorities;
         return this;
     }
