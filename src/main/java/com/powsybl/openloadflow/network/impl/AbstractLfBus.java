@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
-import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -160,8 +159,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<VoltageControl<?>> getHighestTargetVPriorityMainVoltageControl() {
-        return VoltageControl.findMainVoltageControlsSortedByTargetPriority(this).stream().findFirst();
+    public OptionalDouble getHighestPriorityTargetV() {
+        return VoltageControl.getHighestPriorityTargetV(this);
     }
 
     @Override
@@ -220,7 +219,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public List<LfGenerator> getGeneratorsControllingVoltageWithSlope() {
-        return generators.stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE && gen.getSlope() != 0).collect(Collectors.toList());
+        return generators.stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE && gen.getSlope() != 0).toList();
     }
 
     @Override
@@ -333,13 +332,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         } else {
             List<ShuntCompensator> controllerShuntCompensators = shuntCompensators.stream()
                     .filter(ShuntCompensator::isVoltageRegulatorOn)
-                    .collect(Collectors.toList());
+                    .toList();
             if (!controllerShuntCompensators.isEmpty()) {
                 controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true, parameters, topoConfig);
             }
             List<ShuntCompensator> fixedShuntCompensators = shuntCompensators.stream()
                     .filter(sc -> !sc.isVoltageRegulatorOn())
-                    .collect(Collectors.toList());
+                    .toList();
             if (!fixedShuntCompensators.isEmpty()) {
                 shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false, parameters, topoConfig);
             }

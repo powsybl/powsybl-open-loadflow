@@ -153,23 +153,15 @@ public class VoltageControl<T extends LfElement> extends Control {
     }
 
     /**
-     * Find the list of voltage control with merge status as main, connected to a given bus (so including by traversing
-     * non impedant branches) - sorted by control priority.
+     * Find the target voltage of the main voltage control having the highest target voltage priority
      */
-    public static List<VoltageControl<?>> findMainVoltageControlsSortedByPriority(LfBus bus) {
+    public static OptionalDouble getHighestPriorityTargetV(LfBus bus) {
         List<VoltageControl<?>> voltageControls = findMainVoltageControls(bus);
-        voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
-        return voltageControls;
-    }
-
-    /**
-     * Find the list of voltage control with merge status as main, connected to a given bus (so including by traversing
-     * non impedant branches) - sorted by target voltage priority.
-     */
-    public static List<VoltageControl<?>> findMainVoltageControlsSortedByTargetPriority(LfBus bus) {
-        List<VoltageControl<?>> voltageControls = findMainVoltageControls(bus);
+        if (voltageControls.isEmpty()) {
+            return OptionalDouble.empty();
+        }
         voltageControls.sort(Comparator.comparingInt(VoltageControl::getTargetPriority));
-        return voltageControls;
+        return OptionalDouble.of(voltageControls.get(0).getTargetValue());
     }
 
     /**
@@ -186,6 +178,16 @@ public class VoltageControl<T extends LfElement> extends Control {
         } else {
             addMainVoltageControls(voltageControls, bus);
         }
+        return voltageControls;
+    }
+
+    /**
+     * Find the list of voltage control with merge status as main, connected to a given bus (so including by traversing
+     * non impedant branches) - sorted by control priority.
+     */
+    private static List<VoltageControl<?>> findMainVoltageControlsSortedByPriority(LfBus bus) {
+        List<VoltageControl<?>> voltageControls = findMainVoltageControls(bus);
+        voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
         return voltageControls;
     }
 
