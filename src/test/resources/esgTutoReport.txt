@@ -7,7 +7,7 @@
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Outer loop DistributedSlack
         + Outer loop iteration 1
-           Slack bus active power (-1.4404045651219555 MW) distributed in 2 iteration(s)
+           Slack bus active power (-1.4404045651219555 MW) distributed in 1 iteration(s)
       + Outer loop VoltageMonitoring
       + Outer loop ReactiveLimits
       + Outer loop DistributedSlack

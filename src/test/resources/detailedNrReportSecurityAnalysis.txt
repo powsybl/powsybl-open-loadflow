@@ -129,7 +129,7 @@
                Bus injection: 608.3346721675024 MW, 234.0235900120997 MVar
         + Outer loop DistributedSlack
           + Outer loop iteration 1
-             Slack bus active power (4.564672167502337 MW) distributed in 2 iteration(s)
+             Slack bus active power (4.564672167502337 MW) distributed in 1 iteration(s)
         + Newton Raphson on Network CC0 SC0
            Newton-Raphson of outer loop iteration 1 of type DistributedSlack
           + Initial mismatch

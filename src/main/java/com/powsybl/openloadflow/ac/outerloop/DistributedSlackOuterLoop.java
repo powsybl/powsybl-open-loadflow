@@ -114,8 +114,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
     }
 
     private static void reportAndLogSuccess(Reporter reporter, double slackBusActivePowerMismatch, ActivePowerDistribution.Result result) {
-        // added 1 to iteration so that it starts at 1 instead of 0
-        Reports.reportMismatchDistributionSuccess(reporter, slackBusActivePowerMismatch * PerUnit.SB, result.iteration() + 1);
+        Reports.reportMismatchDistributionSuccess(reporter, slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
 
         LOGGER.info("Slack bus active power ({} MW) distributed in {} iterations",
                 slackBusActivePowerMismatch * PerUnit.SB, result.iteration());

@@ -124,6 +124,8 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
 
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).stream()
                 .filter(bus -> !bus.isGeneratorVoltageControlEnabled())
@@ -131,9 +133,9 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
 
         if (!pqToPvBuses.isEmpty()) {
             switchPqPv(pqToPvBuses, reporter);
-            return OuterLoopStatus.UNSTABLE;
-        } else {
-            return OuterLoopStatus.STABLE;
+            status = OuterLoopStatus.UNSTABLE;
         }
+
+        return status;
     }
 }
