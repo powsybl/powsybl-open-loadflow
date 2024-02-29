@@ -27,6 +27,38 @@ public final class Reports {
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
     private static final String BUS_ID = "busId";
 
+    public record BusReport(String id, double mismatch, double nominalV, double v, double phi, double p,
+                            double q) {
+
+        public String getId() {
+            return id;
+        }
+
+        public double getMismatch() {
+            return mismatch;
+        }
+
+        public double getNominalV() {
+            return nominalV;
+        }
+
+        public double getV() {
+            return v;
+        }
+
+        public double getPhi() {
+            return phi;
+        }
+
+        public double getP() {
+            return p;
+        }
+
+        public double getQ() {
+            return q;
+        }
+    }
+
     private Reports() {
     }
 
@@ -277,8 +309,8 @@ public final class Reports {
                         NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
     }
 
-    public static Reporter createPostLoadingProcessingReporter(Reporter reporter) {
-        return reporter.createSubReporter("postLoadingProcessing", "Post loading processing");
+    public static Reporter createNetworkInfoReporter(Reporter reporter) {
+        return reporter.createSubReporter("networkInfo", "Network info");
     }
 
     public static Reporter createOuterLoopReporter(Reporter reporter, String outerLoopType) {
@@ -368,31 +400,30 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportNewtonRaphsonLargestMismatches(Reporter reporter, String acEquationType, double mismatch, String busId,
-                                                            double busNominalV, double busV, double busPhi, double busSumP, double busSumQ) {
+    public static void reportNewtonRaphsonLargestMismatches(Reporter reporter, String acEquationType, BusReport busReport) {
         Map<String, TypedValue> subReporterMap = new HashMap<>();
         subReporterMap.put("equationType", new TypedValue(acEquationType, TypedValue.UNTYPED));
-        subReporterMap.put("mismatch", new TypedValue(mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
+        subReporterMap.put("mismatch", new TypedValue(busReport.getMismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
 
         ReportBuilder busIdReportBuilder = Report.builder();
         busIdReportBuilder.withKey("NRMismatchBusInfo")
                 .withDefaultMessage("Bus Id: ${busId} (nominalVoltage=${busNominalV}kV)")
-                .withValue(BUS_ID, busId)
-                .withValue("busNominalV", busNominalV)
+                .withValue(BUS_ID, busReport.getId())
+                .withValue("busNominalV", busReport.getNominalV())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
         ReportBuilder busVReportBuilder = Report.builder();
         busVReportBuilder.withKey("NRMismatchBusV")
                 .withDefaultMessage("Bus V: ${busV} pu, ${busPhi} rad")
-                .withValue("busV", busV)
-                .withValue("busPhi", busPhi)
+                .withValue("busV", busReport.getV())
+                .withValue("busPhi", busReport.getPhi())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
         ReportBuilder busInjectionReportBuilder = Report.builder();
         busInjectionReportBuilder.withKey("NRMismatchBusInjection")
                 .withDefaultMessage("Bus injection: ${busSumP} MW, ${busSumQ} MVar")
-                .withValue("busSumP", busSumP)
-                .withValue("busSumQ", busSumQ)
+                .withValue("busSumP", busReport.getP())
+                .withValue("busSumQ", busReport.getQ())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
         Reporter subReporter = reporter.createSubReporter("NRMismatch", "Largest ${equationType} mismatch: ${mismatch}", subReporterMap);

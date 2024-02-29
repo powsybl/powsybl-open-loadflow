@@ -97,7 +97,8 @@ public class NewtonRaphson extends AbstractAcSolver {
                         LOGGER.trace("    Bus     sum Q [MVar]: {}", busSumQ);
 
                         if (reporter != null) {
-                            Reports.reportNewtonRaphsonLargestMismatches(reporter, getEquationTypeDescription(acEquationType), equationMismatch, elementId, busNominalV, busV, busPhi, busSumP, busSumQ);
+                            Reports.BusReport busReport = new Reports.BusReport(elementId, equationMismatch, busNominalV, busV, busPhi, busSumP, busSumQ);
+                            Reports.reportNewtonRaphsonLargestMismatches(reporter, getEquationTypeDescription(acEquationType), busReport);
                         }
                     });
         }

@@ -620,7 +620,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         Objects.requireNonNull(parameters);
         List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reporter);
         for (LfNetwork lfNetwork : lfNetworks) {
-            Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
+            Reporter reporterNetwork = Reports.createNetworkInfoReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
             lfNetwork.validate(parameters.getLoadFlowModel(), reporterNetwork);
             if (lfNetwork.isValid()) {

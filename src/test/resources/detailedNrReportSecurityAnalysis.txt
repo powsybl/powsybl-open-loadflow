@@ -1,7 +1,7 @@
 + Test report of security analysis
   + AC security analysis on network 'test'
     + Network CC0 SC0
-      + Post loading processing
+      + Network info
          Network has 2 buses and 2 branches
          Network balance: active generation=603.77 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Pre-contingency simulation

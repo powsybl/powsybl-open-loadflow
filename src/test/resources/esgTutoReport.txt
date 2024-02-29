@@ -2,7 +2,7 @@
   + Load flow on network 'sim1'
     + Network CC0 SC0
        AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
-      + Post loading processing
+      + Network info
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Outer loop DistributedSlack
@@ -16,7 +16,7 @@
   + Sensitivity analysis on network 'sim1'
     + Network CC0 SC0
        AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
-      + Post loading processing
+      + Network info
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Outer loop VoltageMonitoring

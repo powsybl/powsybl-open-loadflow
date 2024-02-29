@@ -2,7 +2,7 @@
   + Load flow on network 'svc'
     + Network CC0 SC0
        AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
-      + Post loading processing
+      + Network info
          Network has 3 buses and 2 branches
          Network balance: active generation=101.36639999999998 MW, active load=101.0 MW, reactive generation=0.0 MVar, reactive load=150.0 MVar
       + Newton Raphson on Network CC0 SC0
