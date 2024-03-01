@@ -369,9 +369,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
 
-        if (contingency != null) {
-            sensitivityValue = p1.calculateSensi(postContingencyState, factorGroup.getIndex());
-            functionValue = p1.calculateSensi(postContingencyState, factorGroup.getIndex());
+        if (!(functionPredefinedResults.isPresent() && sensitivityValuePredefinedResult.isPresent())) {
+            double contingencySensitivity = p1.calculateSensi(postContingencyState, factorGroup.getIndex());
+            sensitivityValue = contingencySensitivity;
+            functionValue = contingencySensitivity;
         }
 
 //        if (!(functionPredefinedResults.isPresent() && sensitivityValuePredefinedResult.isPresent())) {
@@ -530,29 +531,33 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 //    }
 
     /**
-     * Calculate sensitivity values for pre-contingency state or a post-contingency state using the pre-contingency sensitivity
-     * value and some flow transfer factors (alphas).
+     * Calculate sensitivity values for post-contingency state.
      */
-    private void calculateSensitivityValues(DenseMatrix postContingencyStates, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors,
-                                            PropagatedContingency contingency, SensitivityResultWriter resultWriter) {
+    private void calculateSensitivityValues(List<DenseMatrix> postContingenciesStates, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors,
+                                            List<PropagatedContingency> contingencies, SensitivityResultWriter resultWriter) {
         if (lfFactors.isEmpty()) {
             return;
         }
 
-        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
-                .forEach(factor -> createBranchSensitivityValue(factor, null, contingency, resultWriter, postContingencyStates));
+        for (var contingency : contingencies) {
+            DenseMatrix postContingencyStates = postContingenciesStates.get(contingency.getIndex());
 
+            // TODO : first thing to do is to return the lfContingencyStates in the woodbury engine
+//            lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
+//                    .forEach(factor -> createBranchSensitivityValue(factor, null, contingency, resultWriter, postContingencyStates));
 
-        Map<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> factorsByGroup = lfFactors.stream()
-//                .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
-                .collect(Collectors.groupingBy(LfSensitivityFactor::getGroup, LinkedHashMap::new, Collectors.toList()));
-        for (Map.Entry<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> e : factorsByGroup.entrySet()) {
-            SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup = e.getKey();
-            List<LfSensitivityFactor<DcVariableType, DcEquationType>> factorsForThisGroup = e.getValue();
-            for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factorsForThisGroup) {
-                createBranchSensitivityValue(factor, factorGroup, contingency, resultWriter, postContingencyStates);
+            Map<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> factorsByGroup = lfFactors.stream()
+                .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
+                    .collect(Collectors.groupingBy(LfSensitivityFactor::getGroup, LinkedHashMap::new, Collectors.toList()));
+            for (Map.Entry<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> e : factorsByGroup.entrySet()) {
+                SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup = e.getKey();
+                List<LfSensitivityFactor<DcVariableType, DcEquationType>> factorsForThisGroup = e.getValue();
+                for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factorsForThisGroup) {
+                    createBranchSensitivityValue(factor, factorGroup, contingency, resultWriter, postContingencyStates);
+                }
             }
         }
+
 
 
 
@@ -1131,7 +1136,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 setBaseCaseSensitivityValues(factorGroups, output.getPreContingencyStates()); // use this state to compute the base sensitivity (without +1-1)
 
 
-                calculateSensitivityValues(null, factorGroups, validFactorHolder.getAllFactors(), null, resultWriter);
+                calculateSensitivityValues(output.getPostContingenciesStates(), factorGroups,
+                        validFactorHolder.getAllFactors(), contingencies, resultWriter);
 //                for (var contingency : contingencies) {
 //                    DenseMatrix postContingencyStates = output.getPostContingenciesStates().get(contingency.getIndex());
 //                }
