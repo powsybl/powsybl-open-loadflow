@@ -415,7 +415,8 @@ class OpenLoadFlowParametersTest {
     void testVoltageTargetPrioritiesParameter() {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
-        Throwable e = assertThrows(PowsyblException.class, () -> parametersExt.setVoltageTargetPriorities(List.of("GENERATOR", "Foo")));
+        List<String> voltageTargetPrioritiesList = List.of("GENERATOR", "Foo");
+        Throwable e = assertThrows(PowsyblException.class, () -> parametersExt.setVoltageTargetPriorities(voltageTargetPrioritiesList));
         assertEquals("Unknown Voltage Control Type: Foo", e.getMessage());
 
         parametersExt.setVoltageTargetPriorities(List.of("SHUNT"));
