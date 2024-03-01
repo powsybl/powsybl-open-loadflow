@@ -61,7 +61,7 @@ public class LfNetworkParameters {
 
     public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
 
-    public static final List<String> VOLTAGE_TARGET_PRIORITIES_DEFAULT_VALUE = List.of(
+    public static final List<String> VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE = List.of(
             VoltageControl.Type.GENERATOR.name(),
             VoltageControl.Type.TRANSFORMER.name(),
             VoltageControl.Type.SHUNT.name()
@@ -139,7 +139,7 @@ public class LfNetworkParameters {
 
     private ReferenceBusSelector referenceBusSelector = ReferenceBusSelector.DEFAULT_SELECTOR;
 
-    private List<String> voltageTargetPriorities = VOLTAGE_TARGET_PRIORITIES_DEFAULT_VALUE;
+    private List<String> voltageTargetPriorities = VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -542,7 +542,7 @@ public class LfNetworkParameters {
 
         List<String> checkedVoltageTargetPriorities = new ArrayList<>(voltageTargetPriorities);
         // append default order, in case user didn't provide all types in the parameters
-        checkedVoltageTargetPriorities.addAll(VOLTAGE_TARGET_PRIORITIES_DEFAULT_VALUE);
+        checkedVoltageTargetPriorities.addAll(VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE);
 
         return checkedVoltageTargetPriorities.stream().distinct().toList();
     }

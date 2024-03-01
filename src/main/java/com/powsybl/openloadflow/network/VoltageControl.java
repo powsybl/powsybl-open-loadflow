@@ -45,7 +45,7 @@ public class VoltageControl<T extends LfElement> extends Control {
     protected VoltageControl(double targetValue, Type type, int targetPriority, LfBus controlledBus) {
         super(targetValue);
         this.type = Objects.requireNonNull(type);
-        this.priority = LfNetworkParameters.VOLTAGE_TARGET_PRIORITIES_DEFAULT_VALUE.indexOf(type.name()); // Align default activation priorities with default target priorities
+        this.priority = LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE.indexOf(type.name()); // Align default activation priorities with default target priorities
         this.targetPriority = targetPriority;
         this.controlledBus = Objects.requireNonNull(controlledBus);
     }
