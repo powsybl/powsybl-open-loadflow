@@ -15,10 +15,8 @@ import java.util.List;
  */
 public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
-    private static final int PRIORITY = 0;
-
     public GeneratorVoltageControl(LfBus controlledBus, int targetPriority, double targetValue) {
-        super(targetValue, Type.GENERATOR, PRIORITY, targetPriority, controlledBus);
+        super(targetValue, Type.GENERATOR, targetPriority, controlledBus);
     }
 
     @Override
