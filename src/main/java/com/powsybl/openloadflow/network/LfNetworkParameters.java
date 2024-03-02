@@ -61,11 +61,7 @@ public class LfNetworkParameters {
 
     public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
 
-    public static final List<String> VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE = List.of(
-            VoltageControl.Type.GENERATOR.name(),
-            VoltageControl.Type.TRANSFORMER.name(),
-            VoltageControl.Type.SHUNT.name()
-    );
+    public static final List<String> VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE = VoltageControl.VOLTAGE_CONTROL_PRIORITIES;
 
     private boolean generatorVoltageRemoteControl = true;
 
@@ -537,7 +533,6 @@ public class LfNetworkParameters {
             } catch (IllegalArgumentException e) {
                 throw new PowsyblException("Unknown Voltage Control Type: " + type);
             }
-
         }
 
         List<String> checkedVoltageTargetPriorities = new ArrayList<>(voltageTargetPriorities);

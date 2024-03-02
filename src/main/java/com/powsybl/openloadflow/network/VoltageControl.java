@@ -19,6 +19,8 @@ public class VoltageControl<T extends LfElement> extends Control {
         SHUNT
     }
 
+    public static final List<String> VOLTAGE_CONTROL_PRIORITIES = List.of(Type.GENERATOR.name(), Type.TRANSFORMER.name(), Type.SHUNT.name());
+
     public enum MergeStatus {
         MAIN,
         DEPENDENT
@@ -45,7 +47,7 @@ public class VoltageControl<T extends LfElement> extends Control {
     protected VoltageControl(double targetValue, Type type, int targetPriority, LfBus controlledBus) {
         super(targetValue);
         this.type = Objects.requireNonNull(type);
-        this.priority = LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE.indexOf(type.name()); // Align default activation priorities with default target priorities
+        this.priority = VOLTAGE_CONTROL_PRIORITIES.indexOf(type.name());
         this.targetPriority = targetPriority;
         this.controlledBus = Objects.requireNonNull(controlledBus);
     }
