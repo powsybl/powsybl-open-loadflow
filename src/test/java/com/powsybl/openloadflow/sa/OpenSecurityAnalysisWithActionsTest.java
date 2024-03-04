@@ -1419,4 +1419,30 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(1.332, acStrategyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1.0, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testTerminalsConnectionAction2() {
+        Network network = NonImpedantNetworkFactory.createWithVoltageRegulation();
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDistributedSlack(false)
+                .setTransformerVoltageControlOn(true);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(loadFlowParameters);
+
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+
+        List<Contingency> contingencies = List.of(new Contingency("contingency1", new BranchContingency("l01")));
+
+        // l23 is connected indeed
+        List<Action> actions = List.of(new TerminalsConnectionAction("close_l23", "l23", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1",
+                ContingencyContext.specificContingency("contingency1"), new TrueCondition(), List.of("close_l23")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        // pre-contingency verification
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(1.000, preContingencyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // g0 is controlling voltage of b1
+        assertEquals(1.000, preContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+    }
 }
