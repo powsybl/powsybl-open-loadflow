@@ -11,7 +11,7 @@ import com.powsybl.iidm.network.*;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public class NonImpedantNetworkFactory extends AbstractLoadFlowNetworkFactory {
+public class ZeroImpedanceNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
      *
