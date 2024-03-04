@@ -31,13 +31,11 @@ import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
-import static com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysis.initFactorsRhs;
 
 public class WoodburyEngine {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(WoodburyEngine.class);
     private static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
-
 
     // TODO : remove the output of the engine
     // output of the engine
@@ -277,12 +275,13 @@ public class WoodburyEngine {
 
         return new DenseMatrix(dx.length, 1, dx);
     }
+
     /**
      * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling and that do not
      * update the state vector and the network at the end (because we don't need it to just evaluate a few equations)
      */
-    public double[] runDcLoadFlow(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork,
-                                  Reporter reporter) {
+    public double[] runDcLoadFlow(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, Reporter reporter) {
+
         Collection<LfBus> remainingBuses;
         if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
