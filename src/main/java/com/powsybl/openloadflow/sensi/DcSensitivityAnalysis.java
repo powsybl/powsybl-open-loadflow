@@ -87,13 +87,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         for (var contingency : contingencies) {
 
             Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, output.getPostContingenciesDisabledNetworks().get(contingency.getIndex()), contingency);
-            // TODO : add a valid DisabledNetwork. My impression is that we use it to have "default values" in the case where the sensitivity is not the best
             Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
             Optional<Double> functionPredefinedResults = predefinedResults.getRight();
 
 
             double sensitivityValue = sensitivityValuePredefinedResult.orElseGet(factor::getBaseSensitivityValue);
             double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
+
             if (sensitivityValuePredefinedResult.isEmpty()) {
                 sensitivityValue = p1.calculateSensi(output.getPostContingenciesStates().get(contingency.getIndex()), factorGroup.getIndex());
             }
