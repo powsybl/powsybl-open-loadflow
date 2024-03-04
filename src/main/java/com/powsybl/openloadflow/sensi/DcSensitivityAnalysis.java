@@ -108,52 +108,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-//    // TODO : add step by step the content of the old function
-//    private void createBranchSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup,
-//                                              List<PropagatedContingency> contingencies, SensitivityResultWriter resultWriter, List<DenseMatrix> postContingenciesStates) {
-//
-//        Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, new DisabledNetwork(), null); // TODO : add a valid DisabledNetwork
-//        Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
-//        Optional<Double> functionPredefinedResults = predefinedResults.getRight();
-//        double sensitivityValue = sensitivityValuePredefinedResult.orElseGet(factor::getBaseSensitivityValue);
-//        double functionValue = fixZeroFunctionReference(null, functionPredefinedResults.orElseGet(factor::getFunctionReference));
-//        double unscaledSensi = unscaleSensitivity(factor, sensitivityValue);
-//        if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
-//            resultWriter.writeSensitivityValue(factor.getIndex(), -1, unscaledSensi, unscaleFunction(factor, functionValue));
-//        }
-//
-//        EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
-//        for (var contingency : contingencies) {
-//            double contingencySensitivity = p1.calculateSensi(postContingenciesStates.get(contingency.getIndex()), factorGroup.getIndex());
-//            sensitivityValue = contingencySensitivity;
-//            functionValue = contingencySensitivity;
-//
-//            functionValue = fixZeroFunctionReference(contingency, functionValue);
-//            unscaledSensi = unscaleSensitivity(factor, sensitivityValue);
-//            if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
-//                resultWriter.writeSensitivityValue(factor.getIndex(), contingency.getIndex(), unscaledSensi, unscaleFunction(factor, functionValue));
-//            }
-//        }
-
-//        if (!(functionPredefinedResults.isPresent() && sensitivityValuePredefinedResult.isPresent())) {
-//            for (ComputedContingencyElement contingencyElement : contingencyElements) {
-//                double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
-//                if (functionPredefinedResults.isEmpty()) {
-//                    functionValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
-//                }
-//                if (sensitivityValuePredefinedResult.isEmpty()) {
-//                    sensitivityValue += contingencyElement.getAlphaForSensitivityValue() * contingencySensitivity;
-//                }
-//            }
-//        }
-
-//        functionValue = fixZeroFunctionReference(contingency, functionValue);
-//        double unscaledSensi = unscaleSensitivity(factor, sensitivityValue);
-//        if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
-//            resultWriter.writeSensitivityValue(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, unscaledSensi, unscaleFunction(factor, functionValue));
-//        }
-//    }
-
     /**
      * Post contingency reference flow, that should be strictly zero, for numeric reason and because it is computed
      * from shifting pre-contingency non-zero flow, cannot end up to a strict zero: very small values are converted to zero.
@@ -338,7 +292,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 DenseMatrix injectionVectors = getInjectionVectors(loadFlowContext, factorGroups, participatingElements); // for now is only rhs
 
                 WoodburyEngine engine = new WoodburyEngine();
-                WoodburyEngine.WoodburyEngineOutput output = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors, contingencies, participatingElements, reporter, validFactorHolder, resultWriter);
+                WoodburyEngine.WoodburyEngineOutput output = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors, contingencies, participatingElements, reporter, resultWriter);
 
                 // Set base case/reference values of the sensitivities
                 setFunctionReference(validLfFactors, output.getPreContingenciesFlowStates());
@@ -347,27 +301,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // Compute sensibilities for given factors
                 calculateSensitivityValues(output, factorGroups,
                         validFactorHolder.getAllFactors(), contingencies, resultWriter);
-
-                // compute the pre-contingency sensitivity values
-//                DenseMatrix factorsStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
-                // calculate sensitivity values for pre-contingency network
-//                calculateSensitivityValues(loadFlowContext, validFactorHolder.getFactorsForBaseNetwork(), injectionVectors, null, flowStates,
-//                        Collections.emptySet(), null, resultWriter, new DisabledNetwork());
-                // compute states with +1 -1 to model the contingencies
-//
-//                // process contingencies with no connectivity break
-//                calculateSensitivityValuesForContingencyList(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
-//                        factorsStates, contingenciesStates, flowStates, nonBreakingConnectivityContingencies, contingencyElementByBranch,
-//                        Collections.emptySet(), participatingElements, Collections.emptySet(), resultWriter, reporter, Collections.emptySet());
-//
-//                LOGGER.info("Processing contingencies with connectivity break");
-//
-//                // process contingencies with connectivity break
-//                for (ConnectivityAnalysisResult connectivityAnalysisResult : connectivityAnalysisResults) {
-//                    processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
-//                            validFactorHolder, factorGroups, participatingElements,
-//                            contingencyElementByBranch, flowStates, factorsStates, contingenciesStates, resultWriter, reporter);
-//                }
             }
 
             stopwatch.stop();
