@@ -34,6 +34,7 @@ public class WoodburyEngine {
     private static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
 
 
+    // TODO : remove the output of the engine
     // output of the engine
     private double[] preContingencyFlowStates;
     private DenseMatrix preContingencyStates;
@@ -649,7 +650,7 @@ public class WoodburyEngine {
 //            List<AbstractSensitivityAnalysis.LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = validFactorHolder.getFactorsForContingencies(contingenciesIds);
 //            if (!lfFactors.isEmpty()) {
             modifiedFlowStates = calculateActivePowerFlows(loadFlowContext, //lfFactors,
-                    participatingElements, new DisabledNetwork(disabledBuses, disabledPhaseTapChangers), reporter, false); // TODO : verify if i should add a security before computing this            }
+                    participatingElements, new DisabledNetwork(disabledBuses, disabledPhaseTapChangers), reporter, false); // TODO : verify if i should add a security before computing this
             for (PropagatedContingency contingency : propagatedContingencies) {
                 Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                         .filter(element -> !elementsToReconnect.contains(element))
@@ -677,14 +678,15 @@ public class WoodburyEngine {
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
 //            calculateStateValues(loadFlowContext, factors, factorStates, contingenciesStates, flowStates, contingencyElements,
 //                    contingency, resultWriter, disabledNetwork);
-            calculateStateValues(loadFlowContext, flowStates, contingenciesStates, contingency, contingencyElements, disabledNetwork);
+            calculateStateValues(loadFlowContext, flowStates, contingenciesStates, contingency, contingencyElements);
             // write contingency status
             if (contingency.hasNoImpact()) {
                 resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
             } else {
                 resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
             }
-        } //else {
+        }
+        //else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
 //            LfNetwork lfNetwork = loadFlowContext.getNetwork();
@@ -744,7 +746,7 @@ public class WoodburyEngine {
      * Calculate values for post-contingency state using the pre-contingency state value and some flow transfer factors (alphas).
      */
     private void calculateStateValues(DcLoadFlowContext loadFlowContext, DenseMatrix flowStates, DenseMatrix contingenciesStates,
-                                      PropagatedContingency contingency, Collection<ComputedContingencyElement> contingencyElements, DisabledNetwork disabledNetwork) {
+                                      PropagatedContingency contingency, Collection<ComputedContingencyElement> contingencyElements) {
 
         setAlphas(loadFlowContext, contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
         for (int rowIndex = 0; rowIndex < flowStates.getRowCount(); rowIndex++) {

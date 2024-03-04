@@ -85,7 +85,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         for (var contingency : contingencies) {
 
-            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, new DisabledNetwork(), null); // TODO : add a valid DisabledNetwork
+            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, new DisabledNetwork(), null);
+            // TODO : add a valid DisabledNetwork. My impression is that we use it to have "default values" in the case where the sensitivity is not the best
             Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
             Optional<Double> functionPredefinedResults = predefinedResults.getRight();
 
@@ -225,7 +226,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
                 .forEach(factor -> {
                     createBranchPreContingencySensitivityValue(factor, resultWriter);
-//                    createBranchPostContingenciesSensitivityValue(factor, null, contingencies, resultWriter, null);
+                    createBranchPostContingenciesSensitivityValue(factor, null, contingencies, resultWriter, output);
                 });
 
         Map<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> factorsByGroup = lfFactors.stream()
