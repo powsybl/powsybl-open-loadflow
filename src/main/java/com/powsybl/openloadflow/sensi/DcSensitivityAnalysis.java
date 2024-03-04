@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -85,10 +86,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         for (var contingency : contingencies) {
 
-            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, new DisabledNetwork(), null);
+            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, output.getPostContingenciesDisabledNetworks().get(contingency.getIndex()), contingency);
             // TODO : add a valid DisabledNetwork. My impression is that we use it to have "default values" in the case where the sensitivity is not the best
             Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
             Optional<Double> functionPredefinedResults = predefinedResults.getRight();
+
 
             double sensitivityValue = sensitivityValuePredefinedResult.orElseGet(factor::getBaseSensitivityValue);
             double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
