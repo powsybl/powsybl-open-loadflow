@@ -19,8 +19,8 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
-import com.powsybl.openloadflow.network.NonImpedantNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisParameters;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
@@ -381,10 +381,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
      */
     @Test
     void securityAnalysisNotSameNumberOfVariablesAndEquationsIssueTest() {
-        Network network = NonImpedantNetworkFactory.createWithVoltageRegulation();
-
+        Network network = ZeroImpedanceNetworkFactory.createWithVoltageControl();
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l01"))));
-
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
                 .setDistributedSlack(false)
                 .setTransformerVoltageControlOn(true);

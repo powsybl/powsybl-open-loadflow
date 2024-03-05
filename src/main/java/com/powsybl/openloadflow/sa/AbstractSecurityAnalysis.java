@@ -366,7 +366,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 if (terminalsConnectionAction.getSide().isEmpty() && !terminalsConnectionAction.isOpen()) {
                     Branch branch = network.getBranch(terminalsConnectionAction.getElementId());
                     if (branch != null && !(branch instanceof TieLine) &&
-                            !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) { // both must be disconnected
+                            !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) {
+                        // both terminals must be disconnected. If only one is connected, the branch is present
+                        // in the Lf network.
                         topoConfig.getBranchIdsToClose().add(terminalsConnectionAction.getElementId());
                     }
                 }
