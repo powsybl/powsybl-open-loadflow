@@ -1443,6 +1443,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // pre-contingency verification
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
         assertEquals(1.000, preContingencyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // g0 is controlling voltage of b1
-        assertEquals(1.000, preContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+        assertEquals(1.000, preContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // g0 is controlling voltage of b3
     }
 }
