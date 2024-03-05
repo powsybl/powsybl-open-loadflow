@@ -197,7 +197,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         Reporter iterationReporter = !controlledBranchesOutOfDeadband.isEmpty() || !controlledBranchesAdjusted.isEmpty() || !controlledBranchesWithAllItsControllersToLimit.isEmpty() ?
                 Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1) : null;
 
-        if (!controlledBranchesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
+        if (!controlledBranchesOutOfDeadband.isEmpty()) {
             Map<String, Double> largestMismatches = controllerBranchesOutOfDeadband.stream()
                     .map(controlledBranch -> Pair.of(controlledBranch.getId(), Math.abs(getDiffQ(controlledBranch.getTransformerReactivePowerControl().get()))))
                     .sorted((p1, p2) -> Double.compare(p2.getRight() * PerUnit.SB, p1.getRight() * PerUnit.SB))
