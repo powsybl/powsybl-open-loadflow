@@ -241,6 +241,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String WRITE_REFERENCE_TERMINALS_PARAM_NAME = "writeReferenceTerminals";
 
+    public static final String VOLTAGE_TARGET_PRIORITIES_PARAM_NAME = "voltageTargetPriorities";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -308,7 +310,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Newton Krylov max number of iterations", NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS),
         new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE),
         new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Reference bus selection mode", ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class)),
-        new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE)
+        new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE),
+        new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class))
     );
 
     public enum VoltageInitModeOverride {
@@ -475,6 +478,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private ReferenceBusSelectionMode referenceBusSelectionMode = ReferenceBusSelector.DEFAULT_MODE;
 
     private boolean writeReferenceTerminals = WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE;
+
+    private List<String> voltageTargetPriorities = LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1119,6 +1124,18 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public List<String> getVoltageTargetPriorities() {
+        return voltageTargetPriorities;
+    }
+
+    public OpenLoadFlowParameters setVoltageTargetPriorities(List<String> voltageTargetPriorities) {
+        // just check, but do not use return value in this.voltageTargetPriorities:
+        // doing this would modify the user's input
+        LfNetworkParameters.checkVoltageTargetPriorities(voltageTargetPriorities);
+        this.voltageTargetPriorities = voltageTargetPriorities;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1190,7 +1207,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxNewtonKrylovIterations(config.getIntProperty(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS))
                 .setNewtonKrylovLineSearch(config.getBooleanProperty(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE))
                 .setReferenceBusSelectionMode(config.getEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class, ReferenceBusSelector.DEFAULT_MODE))
-                .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE)));
+                .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE))
+                .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1335,11 +1353,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setReferenceBusSelectionMode(ReferenceBusSelectionMode.valueOf(prop)));
         Optional.ofNullable(properties.get(WRITE_REFERENCE_TERMINALS_PARAM_NAME))
                 .ifPresent(prop -> this.setWriteReferenceTerminals(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME))
+                .ifPresent(prop -> this.setVoltageTargetPriorities(parseStringListProp(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(59);
+        Map<String, Object> map = new LinkedHashMap<>(64);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
@@ -1403,6 +1423,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, newtonKrylovLineSearch);
         map.put(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, referenceBusSelectionMode);
         map.put(WRITE_REFERENCE_TERMINALS_PARAM_NAME, writeReferenceTerminals);
+        map.put(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, voltageTargetPriorities);
         return map;
     }
 
@@ -1529,7 +1550,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLinePerUnitMode(parametersExt.getLinePerUnitMode())
                 .setUseLoadModel(parametersExt.isUseLoadModel())
                 .setSimulateAutomationSystems(parametersExt.isSimulateAutomationSystems())
-                .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()));
+                .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
+                .setVoltageTargetPriorities(parametersExt.getVoltageTargetPriorities());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1774,7 +1796,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxAngleMismatch() == extension2.getMaxAngleMismatch() &&
                 extension1.getMaxRatioMismatch() == extension2.getMaxRatioMismatch() &&
                 extension1.getMaxSusceptanceMismatch() == extension2.getMaxSusceptanceMismatch() &&
-                extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType();
+                extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
+                Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1862,7 +1885,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxRatioMismatch(extension.getMaxRatioMismatch())
                     .setMaxSusceptanceMismatch(extension.getMaxSusceptanceMismatch())
                     .setNewtonRaphsonStoppingCriteriaType(extension.getNewtonRaphsonStoppingCriteriaType())
-                    .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode());
+                    .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
+                    .setVoltageTargetPriorities(extension.getVoltageTargetPriorities());
+
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

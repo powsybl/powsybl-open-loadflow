@@ -13,10 +13,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -63,6 +60,8 @@ public class LfNetworkParameters {
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
     public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
+
+    public static final List<String> VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE = VoltageControl.VOLTAGE_CONTROL_PRIORITIES;
 
     private boolean generatorVoltageRemoteControl = true;
 
@@ -136,6 +135,8 @@ public class LfNetworkParameters {
 
     private ReferenceBusSelector referenceBusSelector = ReferenceBusSelector.DEFAULT_SELECTOR;
 
+    private List<String> voltageTargetPriorities = VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -178,6 +179,7 @@ public class LfNetworkParameters {
         this.useLoadModel = other.useLoadModel;
         this.simulateAutomationSystems = other.simulateAutomationSystems;
         this.referenceBusSelector = other.referenceBusSelector;
+        this.voltageTargetPriorities = new ArrayList<>(other.voltageTargetPriorities);
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -523,6 +525,37 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public static List<String> checkVoltageTargetPriorities(List<String> voltageTargetPriorities) {
+        Objects.requireNonNull(voltageTargetPriorities);
+        for (String type : voltageTargetPriorities) {
+            try {
+                VoltageControl.Type.valueOf(type);
+            } catch (IllegalArgumentException e) {
+                throw new PowsyblException("Unknown Voltage Control Type: " + type);
+            }
+        }
+
+        List<String> checkedVoltageTargetPriorities = new ArrayList<>(voltageTargetPriorities);
+        // append default order, in case user didn't provide all types in the parameters
+        checkedVoltageTargetPriorities.addAll(VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE);
+
+        return checkedVoltageTargetPriorities.stream().distinct().toList();
+    }
+
+    public LfNetworkParameters setVoltageTargetPriorities(List<String> voltageTargetPriorities) {
+        this.voltageTargetPriorities = checkVoltageTargetPriorities(voltageTargetPriorities);
+        return this;
+    }
+
+    public int getVoltageTargetPriority(VoltageControl.Type voltageControlType) {
+        Objects.requireNonNull(voltageControlType);
+        int priority = voltageTargetPriorities.indexOf(voltageControlType.name());
+        if (priority == -1) {
+            throw new IllegalStateException("Missing LfNetworkParameters.voltageTargetPriorities for " + voltageControlType.name());
+        }
+        return priority;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -560,6 +593,7 @@ public class LfNetworkParameters {
                 ", useLoadModel=" + useLoadModel +
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
                 ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
+                ", voltageTargetPriorities=" + voltageTargetPriorities +
                 ')';
     }
 }

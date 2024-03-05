@@ -144,7 +144,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createGeneratorVoltageControl(LfBus controlledBus, LfBus controllerBus, double controllerTargetV, List<GeneratorVoltageControl> voltageControls,
                                                       LfNetworkParameters parameters) {
-        GeneratorVoltageControl voltageControl = new GeneratorVoltageControl(controlledBus, controllerTargetV);
+        GeneratorVoltageControl voltageControl = new GeneratorVoltageControl(controlledBus, parameters.getVoltageTargetPriority(VoltageControl.Type.GENERATOR), controllerTargetV);
         voltageControl.addControllerElement(controllerBus);
         controlledBus.setGeneratorVoltageControl(voltageControl);
         if (parameters.isVoltagePerReactivePowerControl()) {
@@ -641,7 +641,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
             }
         }, () -> {
-                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue, targetDeadband);
+                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, parameters.getVoltageTargetPriority(VoltageControl.Type.TRANSFORMER), targetValue, targetDeadband);
                 voltageControl.addControllerElement(controllerBranch);
                 controllerBranch.setVoltageControl(voltageControl);
                 controlledBus.setTransformerVoltageControl(voltageControl);
@@ -743,7 +743,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }, () -> {
                 // we create a new shunt voltage control.
-                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, targetValue, targetDeadband);
+                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, parameters.getVoltageTargetPriority(VoltageControl.Type.SHUNT), targetValue, targetDeadband);
                 voltageControl.addControllerElement(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);
