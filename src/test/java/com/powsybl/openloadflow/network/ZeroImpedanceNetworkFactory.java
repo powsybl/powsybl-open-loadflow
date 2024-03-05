@@ -23,7 +23,7 @@ public class ZeroImpedanceNetworkFactory extends AbstractLoadFlowNetworkFactory 
      *                   |
      *                   ld5
      */
-    public static Network createWithVoltageRegulation() {
+    public static Network createWithVoltageControl() {
         Network network = Network.create("test", "code");
         Bus b0 = createBus(network, "s", "b0");
         Bus b1 = createBus(network, "s", "b1");

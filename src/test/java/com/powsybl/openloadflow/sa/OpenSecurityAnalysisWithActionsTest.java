@@ -1422,7 +1422,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     @Test
     void testTerminalsConnectionAction2() {
-        Network network = ZeroImpedanceNetworkFactory.createWithVoltageRegulation();
+        Network network = ZeroImpedanceNetworkFactory.createWithVoltageControl();
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
                 .setDistributedSlack(false)
                 .setTransformerVoltageControlOn(true);
