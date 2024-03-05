@@ -2913,7 +2913,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
      */
     @Test
     void testTransformerTargetVoltagePrioritiesWithContingency() {
-        Network network = NonImpedantNetworkFactory.createWithVoltageRegulation();
+        Network network = ZeroImpedanceNetworkFactory.createWithVoltageControl();
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
                 .setDistributedSlack(false)
@@ -2994,7 +2994,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
      */
     @Test
     void testDefaultTargetVoltagePrioritiesWithContingency() {
-        Network network = NonImpedantNetworkFactory.createWithVoltageRegulation();
+        Network network = ZeroImpedanceNetworkFactory.createWithVoltageControl();
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
                 .setDistributedSlack(false)
