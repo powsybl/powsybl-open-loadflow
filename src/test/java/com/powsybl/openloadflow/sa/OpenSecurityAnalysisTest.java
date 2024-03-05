@@ -2977,7 +2977,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // post-operator strategy verification: applied action merges the zero impedance networks, target voltage of tr34 is applied.
         OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
         assertEquals(PostContingencyComputationStatus.CONVERGED, operatorStrategyResult.getStatus());
-        assertEquals(1.1, operatorStrategyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); //  g0 is controlling voltage of b3
+        assertEquals(1.1, operatorStrategyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // g0 is controlling voltage of b3
         assertEquals(1.1, operatorStrategyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // with tr34 targetV
         assertEquals(0.9066748, operatorStrategyResult.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
     }
@@ -3054,10 +3054,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1.111, postContingencyResult0.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
         assertEquals(0.9066748, postContingencyResult0.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
 
-        // post-operator strategy verification: applied action merges the zero impedance networks, target voltage of tr34 is applied.
+        // post-operator strategy verification: applied action merges the zero impedance networks, target voltage of g0 is applied.
         OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
         assertEquals(PostContingencyComputationStatus.CONVERGED, operatorStrategyResult.getStatus());
-        assertEquals(1.0, operatorStrategyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+        assertEquals(1.0, operatorStrategyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // g0 is controlling voltage of b3
         assertEquals(1.0, operatorStrategyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // ... also b1 through zero impedance network
         assertEquals(0.9066748, operatorStrategyResult.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
     }
