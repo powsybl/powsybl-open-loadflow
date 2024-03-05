@@ -75,7 +75,7 @@ public final class Reports {
     public static void reportMismatchDistributionSuccess(Reporter reporter, double slackBusActivePowerMismatch, int iterationCount) {
         reporter.report(Report.builder()
                 .withKey("mismatchDistributionSuccess")
-                .withDefaultMessage("Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} iteration(s)")
+                .withDefaultMessage("Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
                 .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withValue("iterationCount", iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)

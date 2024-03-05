@@ -92,6 +92,8 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                     Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
                     // remaining goes to reference generator, without any limit consideration
                     referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
+                    // create a new result with iteration++, 0.0 mismatch and movedBuses to true
+                    result = new ActivePowerDistribution.Result(result.iteration() + 1, 0.0, true);
                     reportAndLogSuccess(iterationReporter, slackBusActivePowerMismatch, result);
                     return OuterLoopStatus.UNSTABLE;
                 }
@@ -115,7 +117,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
     private static void reportAndLogSuccess(Reporter reporter, double slackBusActivePowerMismatch, ActivePowerDistribution.Result result) {
         Reports.reportMismatchDistributionSuccess(reporter, slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
 
-        LOGGER.info("Slack bus active power ({} MW) distributed in {} iterations",
+        LOGGER.info("Slack bus active power ({} MW) distributed in {} distribution iteration(s)",
                 slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
     }
 }
