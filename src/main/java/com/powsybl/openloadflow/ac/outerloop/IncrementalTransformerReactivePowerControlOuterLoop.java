@@ -198,13 +198,15 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                 Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1) : null;
 
         if (!controlledBranchesOutOfDeadband.isEmpty()) {
-            Map<String, Double> largestMismatches = controllerBranchesOutOfDeadband.stream()
-                    .map(controlledBranch -> Pair.of(controlledBranch.getId(), Math.abs(getDiffQ(controlledBranch.getTransformerReactivePowerControl().get()))))
-                    .sorted((p1, p2) -> Double.compare(p2.getRight() * PerUnit.SB, p1.getRight() * PerUnit.SB))
-                    .limit(3) // 3 largest
-                    .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
-            LOGGER.info("{} controlled branch reactive power are outside of their target deadband, largest ones are: {}",
-                    controllerBranchesOutOfDeadband.size(), largestMismatches);
+            if (LOGGER.isInfoEnabled()) {
+                Map<String, Double> largestMismatches = controllerBranchesOutOfDeadband.stream()
+                        .map(controlledBranch -> Pair.of(controlledBranch.getId(), Math.abs(getDiffQ(controlledBranch.getTransformerReactivePowerControl().get()))))
+                        .sorted((p1, p2) -> Double.compare(p2.getRight() * PerUnit.SB, p1.getRight() * PerUnit.SB))
+                        .limit(3) // 3 largest
+                        .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
+                LOGGER.info("{} controlled branch reactive power are outside of their target deadband, largest ones are: {}",
+                        controllerBranchesOutOfDeadband.size(), largestMismatches);
+            }
             Reports.reportTransformerControlBranchesOutsideDeadband(Objects.requireNonNull(iterationReporter), controlledBranchesOutOfDeadband.size());
         }
         if (!controlledBranchesAdjusted.isEmpty()) {

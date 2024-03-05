@@ -268,13 +268,15 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1) : null;
 
         if (!controlledBusesOutOfDeadband.isEmpty()) {
-            Map<String, Double> largestMismatches = controlledBusesOutOfDeadband.stream()
-                    .map(controlledBus -> Pair.of(controlledBus.getId(), Math.abs(getDiffV(controlledBus.getTransformerVoltageControl().orElseThrow()) * controlledBus.getNominalV())))
-                    .sorted((p1, p2) -> Double.compare(p2.getRight(), p1.getRight()))
-                    .limit(3) // 3 largest
-                    .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
-            LOGGER.info("{} controlled bus voltages are outside of their target deadband, largest ones are: {}",
-                    controlledBusesOutOfDeadband.size(), largestMismatches);
+            if (LOGGER.isInfoEnabled()) {
+                Map<String, Double> largestMismatches = controlledBusesOutOfDeadband.stream()
+                        .map(controlledBus -> Pair.of(controlledBus.getId(), Math.abs(getDiffV(controlledBus.getTransformerVoltageControl().orElseThrow()) * controlledBus.getNominalV())))
+                        .sorted((p1, p2) -> Double.compare(p2.getRight(), p1.getRight()))
+                        .limit(3) // 3 largest
+                        .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
+                LOGGER.info("{} controlled bus voltages are outside of their target deadband, largest ones are: {}",
+                        controlledBusesOutOfDeadband.size(), largestMismatches);
+            }
             Reports.reportTransformerControlBusesOutsideDeadband(Objects.requireNonNull(iterationReporter), controlledBusesOutOfDeadband.size());
         }
         if (!controlledBusesAdjusted.isEmpty()) {
