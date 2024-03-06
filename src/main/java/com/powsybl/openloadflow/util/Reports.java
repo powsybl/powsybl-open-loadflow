@@ -356,7 +356,7 @@ public final class Reports {
     public static void reportNewtonRaphsonError(Reporter reporter, String error) {
         reporter.report(Report.builder()
                 .withKey("NRError")
-                .withDefaultMessage("Newton Raphson crashed with error: ${error}")
+                .withDefaultMessage("Newton Raphson error: ${error}")
                 .withValue("error", error)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .build());

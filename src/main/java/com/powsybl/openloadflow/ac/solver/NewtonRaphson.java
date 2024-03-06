@@ -88,13 +88,11 @@ public class NewtonRaphson extends AbstractAcSolver {
                         double busSumP = bus.getP().eval() * PerUnit.SB;
                         double busSumQ = bus.getQ().eval() * PerUnit.SB;
 
-                        LOGGER.trace("Mismatch {} on {}: {}", acEquationType, equation, equationMismatch);
-                        LOGGER.trace("    Bus        Id       : {}", elementId);
-                        LOGGER.trace("    Bus nominal V [  kV]: {}", busNominalV);
-                        LOGGER.trace("    Bus         V [p.u.]: {}", busV);
-                        LOGGER.trace("    Bus       Phi [ rad]: {}", busPhi);
-                        LOGGER.trace("    Bus     sum P [  MW]: {}", busSumP);
-                        LOGGER.trace("    Bus     sum Q [MVar]: {}", busSumQ);
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("Largest mismatch on {}: {}", getEquationTypeDescription(acEquationType), equationMismatch);
+                            LOGGER.trace("    Bus Id: {} (nominalVoltage={}", elementId, busNominalV);
+                            LOGGER.trace("    Bus  V: {} pu, {} rad", busV, busPhi);
+                        }
 
                         if (reporter != null) {
                             Reports.BusReport busReport = new Reports.BusReport(elementId, equationMismatch, busNominalV, busV, busPhi, busSumP, busSumQ);
@@ -130,6 +128,15 @@ public class NewtonRaphson extends AbstractAcSolver {
                 return AcSolverStatus.SOLVER_FAILED;
             }
             // f(x) now contains dx
+
+            if (LOGGER.isTraceEnabled()) {
+                findLargestMismatches(equationSystem, equationVector.getArray(), 5)
+                        .forEach(e -> {
+                            Equation<AcVariableType, AcEquationType> equation = e.getKey();
+                            String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
+                            LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
+                        });
+            }
 
             svScaling.apply(equationVector.getArray(), equationSystem, iterationReporter);
 
