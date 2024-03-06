@@ -129,15 +129,6 @@ public class NewtonRaphson extends AbstractAcSolver {
             }
             // f(x) now contains dx
 
-            if (LOGGER.isTraceEnabled()) {
-                findLargestMismatches(equationSystem, equationVector.getArray(), 5)
-                        .forEach(e -> {
-                            Equation<AcVariableType, AcEquationType> equation = e.getKey();
-                            String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
-                            LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
-                        });
-            }
-
             svScaling.apply(equationVector.getArray(), equationSystem, iterationReporter);
 
             // update x and f(x) will be automatically updated
@@ -146,6 +137,15 @@ public class NewtonRaphson extends AbstractAcSolver {
             // subtract targets from f(x)
             equationVector.minus(targetVector);
             // f(x) now contains equation mismatches
+
+            if (LOGGER.isTraceEnabled()) {
+                findLargestMismatches(equationSystem, equationVector.getArray(), 5)
+                        .forEach(e -> {
+                            Equation<AcVariableType, AcEquationType> equation = e.getKey();
+                            String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
+                            LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
+                        });
+            }
 
             // test stopping criteria
             NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
