@@ -84,7 +84,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     @Override
     public double getTargetQ() {
-        return getStation().getReactivePowerSetpoint() / PerUnit.SB;
+        return Networks.fixValue(getStation().getReactivePowerSetpoint()) / PerUnit.SB;
     }
 
     @Override
@@ -108,7 +108,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         var station = getStation();
         station.getTerminal()
-                .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ * PerUnit.SB);
+                .setQ(Double.isNaN(calculatedQ) ? -getTargetQ() * PerUnit.SB : -calculatedQ * PerUnit.SB);
         if (hvdc == null || !hvdc.isAcEmulation()) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
             station.getTerminal().setP(-getTargetP() * PerUnit.SB);
         }

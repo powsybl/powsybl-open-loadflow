@@ -64,8 +64,8 @@ class AcLoadFlowGeneratorTest {
         assertAngleEquals(0, b1);
         assertVoltageEquals(1.0, b4);
         assertAngleEquals(-1.452245, b4);
-        assertReactivePowerEquals(Double.NaN, g1Bis.getTerminal()); // FIXME
-        assertReactivePowerEquals(0.0, g1.getTerminal()); // FIXME
+        assertReactivePowerEquals(0.0, g1Bis.getTerminal());
+        assertReactivePowerEquals(-0.570, g1.getTerminal());
     }
 }
 

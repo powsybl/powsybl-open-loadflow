@@ -71,7 +71,7 @@ public final class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return getDanglingLine().getGeneration().getTargetQ() / PerUnit.SB;
+        return Networks.fixValue(getDanglingLine().getGeneration().getTargetQ()) / PerUnit.SB;
     }
 
     @Override
