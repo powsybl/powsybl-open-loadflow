@@ -151,7 +151,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return Networks.fixValue(getGenerator().getTargetQ()) / PerUnit.SB;
+        return Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
     }
 
     @Override

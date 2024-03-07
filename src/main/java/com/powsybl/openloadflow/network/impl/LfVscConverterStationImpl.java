@@ -84,7 +84,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     @Override
     public double getTargetQ() {
-        return Networks.fixValue(getStation().getReactivePowerSetpoint()) / PerUnit.SB;
+        return Networks.zeroIfNan(getStation().getReactivePowerSetpoint()) / PerUnit.SB;
     }
 
     @Override

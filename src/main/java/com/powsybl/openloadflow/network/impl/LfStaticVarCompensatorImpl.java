@@ -115,7 +115,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
             }
         }
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.REACTIVE_POWER) {
-            targetQ = -Networks.fixValue(svc.getReactivePowerSetpoint()) / PerUnit.SB;
+            targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
         }
     }
 
