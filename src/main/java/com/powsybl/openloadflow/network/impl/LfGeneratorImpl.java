@@ -151,7 +151,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return getGenerator().getTargetQ() / PerUnit.SB;
+        return Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
     }
 
     @Override
@@ -194,7 +194,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         var generator = getGenerator();
         generator.getTerminal()
                 .setP(-targetP * PerUnit.SB)
-                .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ * PerUnit.SB);
+                .setQ(Double.isNaN(calculatedQ) ? -getTargetQ() * PerUnit.SB : -calculatedQ * PerUnit.SB);
         if (parameters.isWriteReferenceTerminals() && isReference()) {
             ReferenceTerminals.addTerminal(generator.getTerminal());
         }
