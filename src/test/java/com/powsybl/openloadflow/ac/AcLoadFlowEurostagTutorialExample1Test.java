@@ -283,15 +283,15 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
         // also check there is a report added for this error
         assertEquals(1, reportNode.getChildren().size());
-        ReportNode lfReportNode = reportNode.getChildren().iterator().next();
+        ReportNode lfReportNode = reportNode.getChildren().get(0);
         assertEquals(1, lfReportNode.getChildren().size());
-        ReportNode networkReportNode = lfReportNode.getChildren().iterator().next();
-        assertEquals("lfNetwork", networkReportNode.getKey());
-        ReportNode networkInfoReportNode = networkReportNode.getChildren().iterator().next();
-        assertEquals("networkInfo", networkInfoReportNode.getKey());
+        ReportNode networkReportNode = lfReportNode.getChildren().get(0);
+        assertEquals("lfNetwork", networkReportNode.getMessageKey());
+        ReportNode networkInfoReportNode = networkReportNode.getChildren().get(0);
+        assertEquals("networkInfo", networkInfoReportNode.getMessageKey());
         assertEquals(1, networkInfoReportNode.getChildren().size());
         assertEquals("Network must have at least one bus with generator voltage control enabled",
-                networkInfoReportNode.getChildren().iterator().next().getMessage());
+                networkInfoReportNode.getChildren().get(0).getMessage());
     }
 
     @Test
