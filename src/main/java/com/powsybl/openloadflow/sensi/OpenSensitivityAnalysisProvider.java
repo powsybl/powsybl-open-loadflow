@@ -13,7 +13,7 @@ import com.google.auto.service.AutoService;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
@@ -141,7 +141,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                                        List<SensitivityVariableSet> variableSets,
                                        SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                        ComputationManager computationManager,
-                                       Reporter reporter) {
+                                       ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);
@@ -149,11 +149,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(factorReader);
         Objects.requireNonNull(resultWriter);
         Objects.requireNonNull(computationManager);
-        Objects.requireNonNull(reporter);
+        Objects.requireNonNull(reportNode);
 
         return CompletableFuture.runAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingVariantId);
-            Reporter sensiReporter = Reports.createSensitivityAnalysis(reporter, network.getId());
+            ReportNode sensiReportNode = Reports.createSensitivityAnalysis(reportNode, network.getId());
 
             OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
@@ -206,18 +206,18 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             } else {
                 analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             }
-            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReporter, topoConfig);
+            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, topoConfig);
         }, computationManager.getExecutor());
     }
 
     public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, ReportNode reportNode) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
         Objects.requireNonNull(resultWriterProvider);
-        Objects.requireNonNull(reporter);
+        Objects.requireNonNull(reportNode);
 
         String dateStr = date.format(DATE_TIME_FORMAT);
 
@@ -258,14 +258,14 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         var resultWriter = Objects.requireNonNull(resultWriterProvider.apply(contingencies));
 
         run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), resultWriter,
-                contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reporter)
+                contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reportNode)
                 .join();
 
         return new ReplayResult<>(resultWriter, factors, contingencies);
     }
 
     public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
-        return replay(date, debugDir, resultWriterProvider, Reporter.NO_OP);
+        return replay(date, debugDir, resultWriterProvider, ReportNode.NO_OP);
     }
 
     public ReplayResult<SensitivityResultModelWriter> replay(ZonedDateTime date, Path debugDir) {

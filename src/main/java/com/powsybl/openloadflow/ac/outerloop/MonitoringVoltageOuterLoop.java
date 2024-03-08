@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
@@ -53,7 +53,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
         }
     }
 
-    private static void switchPqPv(List<PqToPvBus> pqToPvBuses, Reporter reporter) {
+    private static void switchPqPv(List<PqToPvBus> pqToPvBuses, ReportNode reportNode) {
         for (PqToPvBus pqToPvBus : pqToPvBuses) {
             LfBus controllerBus = pqToPvBus.controllerBus;
 
@@ -64,7 +64,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
                     || pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MIN) {
                 newTargetV = getSvcTargetV(controllerBus, pqToPvBus.voltageLimitDirection);
                 controllerBus.getGeneratorVoltageControl().ifPresent(vc -> vc.setTargetValue(newTargetV));
-                Reports.reportStandByAutomatonActivation(reporter, controllerBus.getId(), newTargetV);
+                Reports.reportStandByAutomatonActivation(reportNode, controllerBus.getId(), newTargetV);
                 if (LOGGER.isTraceEnabled()) {
                     if (pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MAX) {
                         LOGGER.trace("Switch bus '{}' PQ -> PV with high targetV={}", controllerBus.getId(), newTargetV);
@@ -123,7 +123,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
@@ -132,7 +132,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
                 .forEach(bus -> getControlledBusVoltageLimits(bus).ifPresent(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits)));
 
         if (!pqToPvBuses.isEmpty()) {
-            switchPqPv(pqToPvBuses, reporter);
+            switchPqPv(pqToPvBuses, reportNode);
             status = OuterLoopStatus.UNSTABLE;
         }
 

@@ -7,12 +7,12 @@
 package com.powsybl.openloadflow.ac;
 
 import com.google.common.collect.Lists;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
+import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -25,7 +25,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -66,7 +69,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     }
 
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext) {
-        Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getName());
+        ReportNode olReportNode = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReportNode(), outerLoop.getName());
 
         // for each outer loop re-run solver until stabilization
         OuterLoopStatus outerLoopStatus;
@@ -78,15 +81,15 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoopContext.setOuterLoopTotalIterations(runningContext.outerLoopTotalIterations);
             outerLoopContext.setLastSolverResult(runningContext.lastSolverResult);
             outerLoopContext.setLoadFlowContext(context);
-            outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
+            outerLoopStatus = outerLoop.check(outerLoopContext, olReportNode);
             runningContext.lastOuterLoopStatus = outerLoopStatus;
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getName(), runningContext.outerLoopTotalIterations);
 
-                Reporter nrReporter = context.getNetwork().getReporter();
+                ReportNode nrReportNode = context.getNetwork().getReportNode();
                 if (context.getParameters().isDetailedReport()) {
-                    nrReporter = Reports.createDetailedSolverReporterOuterLoop(nrReporter,
+                    nrReportNode = Reports.createDetailedSolverReporterOuterLoop(nrReportNode,
                             solver.getName(),
                             context.getNetwork().getNumCC(),
                             context.getNetwork().getNumSC(),
@@ -95,7 +98,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 }
 
                 // if not yet stable, restart solver
-                runningContext.lastSolverResult = solver.run(new PreviousValueVoltageInitializer(), nrReporter);
+                runningContext.lastSolverResult = solver.run(new PreviousValueVoltageInitializer(), nrReportNode);
 
                 runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
                 runningContext.outerLoopTotalIterations++;
@@ -107,7 +110,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
 
         if (outerLoopStatus != OuterLoopStatus.STABLE) {
-            Reports.reportUnsuccessfulOuterLoop(olReporter, outerLoopStatus.name());
+            Reports.reportUnsuccessfulOuterLoop(olReportNode, outerLoopStatus.name());
         }
     }
 
@@ -141,15 +144,15 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoop.initialize(outerLoopContext);
         }
 
-        Reporter nrReporter = context.getNetwork().getReporter();
+        ReportNode nrReportNode = context.getNetwork().getReportNode();
         if (context.getParameters().isDetailedReport()) {
-            nrReporter = Reports.createDetailedSolverReporter(nrReporter,
+            nrReportNode = Reports.createDetailedSolverReporter(nrReportNode,
                     solver.getName(),
                     context.getNetwork().getNumCC(),
                     context.getNetwork().getNumSC());
         }
         // initial solver run
-        runningContext.lastSolverResult = solver.run(voltageInitializer, nrReporter);
+        runningContext.lastSolverResult = solver.run(voltageInitializer, nrReportNode);
 
         runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
 
@@ -211,7 +214,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
-        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.isSuccess(), result.getSolverStatus().name(), result.getOuterLoopStatus().name());
+        Reports.reportAcLfComplete(context.getNetwork().getReportNode(), result.isSuccess(), result.getSolverStatus().name(), result.getOuterLoopStatus().name());
 
         context.setResult(result);
 
