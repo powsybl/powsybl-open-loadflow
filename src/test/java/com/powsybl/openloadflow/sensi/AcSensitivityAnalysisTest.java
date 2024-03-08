@@ -626,9 +626,19 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001).setNewtonRaphsonConvEpsPerEq(0.0001);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b1", SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-5);
-        double sensi = result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER);
         assertEquals(0.00963d, result.getBusVoltageSensitivityValue("g2", "b3", SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-5);
         assertEquals(0.01926d, result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-5);
+
+        // sensitivty of V to Q of PVBus should be exactly 0
+        factors = Arrays.asList(new SensitivityFactor[] {
+                createBusVoltagePerTargetQ("b3", "g1", null),
+                createBusVoltagePerTargetQ("b2", "g1", null),
+                createBusVoltagePerTargetQ("b1", "g1", null)});
+        result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b1", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
+        assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b3", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
+        assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
+
     }
 
     @Test
