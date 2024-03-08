@@ -82,7 +82,7 @@
         "maxNewtonKrylovIterations" : 100,
         "newtonKrylovLineSearch" : false,
         "referenceBusSelectionMode" : "FIRST_SLACK",
-        "writeReferenceTerminals" : false,
+        "writeReferenceTerminals" : true,
         "voltageTargetPriorities" : [ "GENERATOR", "TRANSFORMER", "SHUNT" ]
       }
     }
