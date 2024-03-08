@@ -37,7 +37,7 @@ public class WoodburyEngine {
     protected static final Logger LOGGER = LoggerFactory.getLogger(WoodburyEngine.class);
     private static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
 
-    // TODO : remove the output of the engine
+    // TODO : use temporary variables instead of storing them
     // output of the engine
     private double[] preContingencyFlowStates;
 
@@ -261,12 +261,6 @@ public class WoodburyEngine {
         if (updateFlowStates) {
             preContingencyFlowStates = dx;
         }
-
-        // TODO : remove the following. Just to keep it in mind
-//        StateVector sv = new StateVector(dx);
-//        for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
-//            factor.setFunctionReference(factor.getFunctionEquationTerm().eval(sv)); // pass explicitly the previously calculated state vector
-//        }
 
         if (parameters.isDistributedSlack()) {
             ElementState.restore(busStates);
@@ -561,10 +555,6 @@ public class WoodburyEngine {
                                                           SensitivityResultWriter resultWriter,
                                                           Reporter reporter) {
         DenseMatrix modifiedFlowStates = flowStates;
-
-//        List<String> contingenciesIds = connectivityAnalysisResult.getContingencies().stream().map(c -> c.getContingency().getId()).collect(Collectors.toList());
-//        List<AbstractSensitivityAnalysis.LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies = validFactorHolder.getFactorsForContingencies(contingenciesIds);
-
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
 
@@ -598,25 +588,7 @@ public class WoodburyEngine {
 //            participatingElementsForThisConnectivity = lfParameters.isDistributedSlack()
 //                    ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
 //                    : Collections.emptyList();
-//
-//            // TODO : copy/paste of previous function. Should be refactored
-//            Map<LfBus, Double> slackParticipationByBus;
-//            if (participatingElementsForThisConnectivity.isEmpty()) {
-//                slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSlackBus(), -1d);
-//            } else {
-//                slackParticipationByBus = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
-//                        ParticipatingElement::getLfBus,
-//                        element -> -element.getFactor(),
-//                        Double::sum));
-//            }
-//
-//            factorStateForThisConnectivity = initFactorsRhs(loadFlowContext.getEquationSystem(), factorGroups, slackParticipationByBus);
-//            loadFlowContext.getJacobianMatrix().solveTransposed(factorStateForThisConnectivity); // states for the sensitivity factors
-////            setBaseCaseSensitivityValues(factorGroups, factorStates); // use this state to compute the base sensitivity (without +1-1)
-////            return factorStates;
-//
-//            // FIXME : original code
-////            factorStateForThisConnectivity = calculateFactorStates(loadFlowContext, factorGroups, participatingElementsForThisConnectivity);
+//            factorStateForThisConnectivity = calculateFactorStates(loadFlowContext, factorGroups, participatingElementsForThisConnectivity);
 //        }
 
 //        if (!lfFactorsForContingencies.isEmpty()) {
@@ -628,11 +600,6 @@ public class WoodburyEngine {
         calculateStateValuesForContingencyList(loadFlowContext, lfParametersExt, contingenciesStates, modifiedFlowStates, preContingencyStates, connectivityAnalysisResult.getContingencies(),
                 contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity, connectivityAnalysisResult.getElementsToReconnect(), resultWriter,
                 reporter, partialDisabledBranches);
-
-//        // TODO : remove me, just for reminder.
-//        if (rhsChanged) {
-//            setBaseCaseSensitivityValues(factorGroups, factorsStates); // we modified the rhs, we need to restore previous state
-//        }
     }
 
     private void calculateStateValuesForContingencyList(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, DenseMatrix contingenciesStates, DenseMatrix flowStates,
@@ -664,14 +631,10 @@ public class WoodburyEngine {
         for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> e : phaseTapChangerContingenciesIndexing.getContingenciesIndexedByPhaseTapChangers().entrySet()) {
             Set<LfBranch> disabledPhaseTapChangers = e.getKey();
             Collection<PropagatedContingency> propagatedContingencies = e.getValue();
-//            List<String> contingenciesIds = propagatedContingencies.stream()
-//                    .map(c -> c.getContingency().getId())
-//                    .collect(Collectors.toList());
-//             TODO : remove the use of lfFactors there
-//            List<AbstractSensitivityAnalysis.LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = validFactorHolder.getFactorsForContingencies(contingenciesIds);
-//            if (!lfFactors.isEmpty()) {
-            modifiedFlowStates = calculateActivePowerFlows(loadFlowContext, //lfFactors,
-                    participatingElements, new DisabledNetwork(disabledBuses, disabledPhaseTapChangers), reporter, false); // TODO : verify if i should add a security before computing this
+            // TODO : it was verified that lfFactors was not null. Verify it is not necessary
+            modifiedFlowStates = calculateActivePowerFlows(loadFlowContext, participatingElements,
+                    new DisabledNetwork(disabledBuses, disabledPhaseTapChangers), reporter, false);
+
             for (PropagatedContingency contingency : propagatedContingencies) {
                 Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                         .filter(element -> !elementsToReconnect.contains(element))
@@ -719,7 +682,7 @@ public class WoodburyEngine {
             DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
             NetworkState networkState = NetworkState.save(lfNetwork);
             LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
-            DenseMatrix newFactorStates = preContingencyStates; // TODO : here i should modify the preContingencyStates temporary
+            DenseMatrix newFactorStates = preContingencyStates;
             List<ParticipatingElement> newParticipatingElements = participatingElements;
             boolean participatingElementsChanged = false;
             boolean rhsChanged = false;
@@ -747,20 +710,6 @@ public class WoodburyEngine {
                 }
                 // TODO : deal with this case
 //                if (participatingElementsChanged || rhsChanged) {
-//                    // TODO : copy/paste of previous function. Should be refactored
-//                    Map<LfBus, Double> slackParticipationByBus;
-//                    if (participatingElements.isEmpty()) {
-//                        slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSlackBus(), -1d);
-//                    } else {
-//                        slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
-//                                ParticipatingElement::getLfBus,
-//                                element -> -element.getFactor(),
-//                                Double::sum));
-//                    }
-//
-//                    newFactorStates = initFactorsRhs(loadFlowContext.getEquationSystem(), null, slackParticipationByBus);
-//                    loadFlowContext.getJacobianMatrix().solveTransposed(newFactorStates);  // states for the sensitivity factors
-//
 ////                    newFactorStates = calculateFactorStates(loadFlowContext, factorGroups, newParticipatingElements);
 //                }
                 // write contingency status
@@ -776,10 +725,6 @@ public class WoodburyEngine {
                     disabledNetwork);
 
             networkState.restore();
-            // TODO : is now useless as we don't modify the the baseCaseSensitivityValues in the engine
-//            if (participatingElementsChanged || rhsChanged) {
-//                setBaseCaseSensitivityValues(factorGroups, factorStates);
-//            }
         }
     }
 
@@ -856,9 +801,9 @@ public class WoodburyEngine {
         DenseMatrix flowStates = calculateActivePowerFlows(loadFlowContext, participatingElements, new DisabledNetwork(), reporter, true);
         loadFlowContext.getJacobianMatrix().solveTransposed(injectionVectors);
 
-        // TODO : refactor to only store interesting results, not all of them
-        postContingenciesStates = new ArrayList<>();
+        // TODO : refactor to store interesting results, not whole matrices
         postContingenciesFlowStates = new ArrayList<>();
+        postContingenciesStates = new ArrayList<>();
         postContingenciesDisabledNetworks = new ArrayList<>();
 
         // index contingency elements by branch id
