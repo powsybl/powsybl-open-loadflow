@@ -100,18 +100,6 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         return lfBranch;
     }
 
-    private int getLegNum() {
-        var twt = getTwt();
-        var leg = getLeg();
-        if (leg == twt.getLeg1()) {
-            return 1;
-        } else if (leg == twt.getLeg2()) {
-            return 2;
-        } else {
-            return 3;
-        }
-    }
-
     public static String getId(String twtId, int legNum) {
         return twtId + "_leg_" + legNum;
     }
@@ -122,20 +110,17 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
 
     @Override
     public String getId() {
-        return getId(getTwt().getId(), getLegNum());
+        return getId(getTwt().getId(), getLeg().getSide().getNum());
     }
 
     @Override
     public BranchType getBranchType() {
-        var twt = getTwt();
         var leg = getLeg();
-        if (leg == twt.getLeg1()) {
-            return BranchType.TRANSFO_3_LEG_1;
-        } else if (leg == twt.getLeg2()) {
-            return BranchType.TRANSFO_3_LEG_2;
-        } else {
-            return BranchType.TRANSFO_3_LEG_3;
-        }
+        return switch (leg.getSide()) {
+            case ONE -> BranchType.TRANSFO_3_LEG_1;
+            case TWO -> BranchType.TRANSFO_3_LEG_2;
+            case THREE -> BranchType.TRANSFO_3_LEG_3;
+        };
     }
 
     @Override
