@@ -839,7 +839,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         testLoadAction(false);
     }
 
-    private void testGeneratorAction(boolean dc, LoadFlowParameters.BalanceType balanceType, double deltaG1, double deltaG2,
+    private void testGeneratorAction(boolean dc, LoadFlowParameters.BalanceType balanceType, boolean useActiveLimits, double deltaG1, double deltaG2,
                                      double targetPG4) {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
@@ -870,9 +870,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         parameters.setDistributedSlack(true).setBalanceType(balanceType);
         parameters.setDc(dc);
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
-        openLoadFlowParameters.setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
-        openLoadFlowParameters.setMaxActivePowerMismatch(1e-3);
-        openLoadFlowParameters.setSlackBusPMaxMismatch(1e-3);
+        openLoadFlowParameters.setSlackBusPMaxMismatch(slackBusPMaxMismatch);
         parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(parameters);
@@ -895,7 +893,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         double g2PostContingencyTargetP = network.getGenerator(g2).getTargetP();
 
         // apply remedial action
-        setTargetPWithinLimits(network.getGenerator(g1), g1PostContingencyTargetP + deltaG1);
+        setTargetPWithinLimits(network.getGenerator(g1), g1PostContingencyTargetP + deltaG1, openLoadFlowParameters);
         loadFlowRunner.run(network, parameters);
         assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -903,8 +901,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // reverse action and apply second remedial action
-        setTargetPWithinLimits(network.getGenerator(g1), g1PostContingencyTargetP);
-        setTargetPWithinLimits(network.getGenerator(g2), g2PostContingencyTargetP + deltaG2);
+        setTargetPWithinLimits(network.getGenerator(g1), g1PostContingencyTargetP, openLoadFlowParameters);
+        setTargetPWithinLimits(network.getGenerator(g2), g2PostContingencyTargetP + deltaG2, openLoadFlowParameters);
         loadFlowRunner.run(network, parameters);
         assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -912,8 +910,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // reverse action and apply third remedial action
-        network.getGenerator(g2).setTargetP(g2PostContingencyTargetP);
-        network.getGenerator(g4).setTargetP(targetPG4);
+        setTargetPWithinLimits(network.getGenerator(g2), g2PostContingencyTargetP);
+        setTargetPWithinLimits(network.getGenerator(g4), targetPG4 + g4PostContingencyTargetP - g4InitialTargetP);
         loadFlowRunner.run(network, parameters);
         assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -921,8 +919,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // reverse action and apply fourth remedial action
-        setTargetPWithinLimits(network.getGenerator(g2), g2PostContingencyTargetP + deltaG2);
-        setTargetPWithinLimits(network.getGenerator(g1), g1PostContingencyTargetP + deltaG1);
+        setTargetPWithinLimits(network.getGenerator(g2), g2PostContingencyTargetP + deltaG2, openLoadFlowParameters);
+        setTargetPWithinLimits(network.getGenerator(g1), g1PostContingencyTargetP + deltaG1, openLoadFlowParameters);
         loadFlowRunner.run(network, parameters);
         assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -931,18 +929,23 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     }
 
-    void setTargetPWithinLimits(Generator g, double askedTargetP) {
-        g.setTargetP(Math.max(Math.min(askedTargetP, g.getMaxP()), g.getMinP()));
+    void setTargetPWithinLimits(Generator g, final double askedTargetP, final OpenLoadFlowParameters parameters) {
+        double oldTargetP = g.getTargetP();
+        double newTargetP = askedTargetP;
+        if (parameters.isUseActiveLimits() && oldTargetP >= g.getMinP() && oldTargetP <= g.getMaxP()) {
+            newTargetP = Math.max(Math.min(newTargetP, g.getMaxP()), g.getMinP());
+        }
+        g.setTargetP(newTargetP);
     }
 
     @Test
     void testGeneratorAction() {
-        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, 2.0, -1.5, 2);
-        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, 1.0, -1.0, 4);
-        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, 1.77, -1.0, 0.0);
-        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, 1.0, -1.0, 2.0);
-        testGeneratorAction(true, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, 2.0, -1.5, 0);
-        testGeneratorAction(true, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, 1.0, -1.0, 2);
+        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, 2.0, -1.5, 2, 0.0001);
+        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, 1.0, -1.0, 4, 0.0001);
+        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, 1.77, -0.3, 0.0, 0.0005);
+        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, 0.5, -1.0, 2, 0.0005);
+        testGeneratorAction(true, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, 2.0, -1.5, 0, 0.0001);
+        testGeneratorAction(true, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, 1.0, -1.0, 2, 0.0001);
     }
 
     @Test
