@@ -270,8 +270,9 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void noGeneratorTest() {
-        network.getGenerator("GEN").getTerminal().disconnect();
+    void noGeneratorPvTest() {
+        // GEN is only generator with voltage control, disable it
+        network.getGenerator("GEN").setVoltageRegulatorOn(false);
 
         ReporterModel reporter = new ReporterModel("unitTest", "");
         LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reporter);
