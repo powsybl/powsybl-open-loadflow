@@ -90,7 +90,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
                         if (LOGGER.isTraceEnabled()) {
                             LOGGER.trace("Largest mismatch on {}: {}", getEquationTypeDescription(acEquationType), equationMismatch);
-                            LOGGER.trace("    Bus Id: {} (nominalVoltage={}", elementId, busNominalV);
+                            LOGGER.trace("    Bus Id: {} (nominalVoltage={})", elementId, busNominalV);
                             LOGGER.trace("    Bus  V: {} pu, {} rad", busV, busPhi);
                         }
 
