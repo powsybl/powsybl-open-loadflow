@@ -7,9 +7,11 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +46,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
     }
 
     @Override
-    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, Reporter reporter) {
         // just save dx vector
         if (lastDx == null || lastDx.length != dx.length) {
             lastDx = dx.clone();
@@ -58,7 +60,8 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
                                                                EquationVector<AcVariableType, AcEquationType> equationVector,
                                                                TargetVector<AcVariableType, AcEquationType> targetVector,
                                                                NewtonRaphsonStoppingCriteria stoppingCriteria,
-                                                               NewtonRaphsonStoppingCriteria.TestResult testResult) {
+                                                               NewtonRaphsonStoppingCriteria.TestResult testResult,
+                                                               Reporter reporter) {
         StateVector stateVector = equationSystem.getStateVector();
         if (lastTestResult != null) {
             double stepSize = 1;
@@ -90,6 +93,9 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
             }
             lastTestResult = currentTestResult;
             LOGGER.debug("Step size: {}", stepSize);
+            if (reporter != null) {
+                Reports.reportLineSearchStateVectorScaling(reporter, stepSize);
+            }
         }
         return lastTestResult;
     }

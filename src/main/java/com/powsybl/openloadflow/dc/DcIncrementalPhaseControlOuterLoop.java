@@ -82,7 +82,7 @@ public class DcIncrementalPhaseControlOuterLoop
 
             if (checkActivePowerControlPhaseControls(sensitivityContext,
                     contextData,
-                    activePowerControlPhaseControls)) {
+                    activePowerControlPhaseControls) != 0) {
                 status = OuterLoopStatus.UNSTABLE;
             }
         }

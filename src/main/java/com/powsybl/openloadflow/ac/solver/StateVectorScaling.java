@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -37,7 +38,7 @@ public interface StateVectorScaling {
     /**
      * Apply scaling to state vector variation before equation mismatches calculation.
      */
-    void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem);
+    void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, Reporter reporter);
 
     /**
      * Apply scaling to state vector after equation mismatches and norm have been calculated.
@@ -46,5 +47,6 @@ public interface StateVectorScaling {
                                                         EquationVector<AcVariableType, AcEquationType> equationVector,
                                                         TargetVector<AcVariableType, AcEquationType> targetVector,
                                                         NewtonRaphsonStoppingCriteria stoppingCriteria,
-                                                        NewtonRaphsonStoppingCriteria.TestResult testResult);
+                                                        NewtonRaphsonStoppingCriteria.TestResult testResult,
+                                                        Reporter reporter);
 }

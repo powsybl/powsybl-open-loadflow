@@ -21,16 +21,14 @@ import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -72,7 +70,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
     public static List<LfBranch> getControllerBranches(LfNetwork network) {
         return network.getBranches().stream()
                 .filter(branch -> !branch.isDisabled() && branch.isTransformerReactivePowerController())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static List<LfBranch> getControlledBranchesOutOfDeadband(LfNetwork network) {
@@ -80,14 +78,14 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                 .filter(LfBranch::isTransformerReactivePowerControlled)
                 .filter(branch -> isOutOfDeadband(branch.getTransformerReactivePowerControl().orElseThrow()))
                 .filter(Predicate.not(LfBranch::isDisabled))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static List<LfBranch> getControllerBranchesOutOfDeadband(List<LfBranch> controlledBranchesOutOfDeadband) {
         return controlledBranchesOutOfDeadband.stream()
                 .map(controlledBranch -> controlledBranch.getTransformerReactivePowerControl().orElseThrow().getControllerBranch())
                 .filter(Predicate.not(LfBranch::isDisabled))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -196,23 +194,30 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
             }
         });
 
-        // Print some info
-        if (!controlledBranchesOutOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
-            Map<String, Double> largestMismatches = controllerBranchesOutOfDeadband.stream()
-                    .map(controlledBranch -> Pair.of(controlledBranch.getId(), Math.abs(getDiffQ(controlledBranch.getTransformerReactivePowerControl().get()))))
-                    .sorted((p1, p2) -> Double.compare(p2.getRight() * PerUnit.SB, p1.getRight() * PerUnit.SB))
-                    .limit(3) // 3 largest
-                    .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
-            LOGGER.info("{} controlled branch reactive power are outside of their target deadband, largest ones are: {}",
-                    controllerBranchesOutOfDeadband.size(), largestMismatches);
+        Reporter iterationReporter = !controlledBranchesOutOfDeadband.isEmpty() || !controlledBranchesAdjusted.isEmpty() || !controlledBranchesWithAllItsControllersToLimit.isEmpty() ?
+                Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1) : null;
+
+        if (!controlledBranchesOutOfDeadband.isEmpty()) {
+            if (LOGGER.isInfoEnabled()) {
+                Map<String, Double> largestMismatches = controllerBranchesOutOfDeadband.stream()
+                        .map(controlledBranch -> Pair.of(controlledBranch.getId(), Math.abs(getDiffQ(controlledBranch.getTransformerReactivePowerControl().get()))))
+                        .sorted((p1, p2) -> Double.compare(p2.getRight() * PerUnit.SB, p1.getRight() * PerUnit.SB))
+                        .limit(3) // 3 largest
+                        .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
+                LOGGER.info("{} controlled branch reactive power are outside of their target deadband, largest ones are: {}",
+                        controllerBranchesOutOfDeadband.size(), largestMismatches);
+            }
+            Reports.reportTransformerControlBranchesOutsideDeadband(Objects.requireNonNull(iterationReporter), controlledBranchesOutOfDeadband.size());
         }
         if (!controlledBranchesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled branch reactive power have been adjusted by changing at least one tap",
                     controlledBranchesAdjusted.size());
+            Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReporter), controlledBranchesAdjusted.size());
         }
         if (!controlledBranchesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled branches have all its controllers to a tap limit: {}",
                     controlledBranchesWithAllItsControllersToLimit.size(), controlledBranchesWithAllItsControllersToLimit);
+            Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReporter), controlledBranchesWithAllItsControllersToLimit.size());
         }
 
         return status.getValue();

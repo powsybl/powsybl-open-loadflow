@@ -8,12 +8,14 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.equations.Vectors;
+import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +46,7 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
     }
 
     @Override
-    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, Reporter reporter) {
         int vCutCount = 0;
         int phiCutCount = 0;
         double stepSize = 1.0;
@@ -70,6 +72,9 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
         }
         if (vCutCount > 0 || phiCutCount > 0) {
             LOGGER.debug("Step size: {} ({} dv and {} dphi changes outside thresholds)", stepSize, vCutCount, phiCutCount);
+            if (reporter != null) {
+                Reports.reportMaxVoltageChangeStateVectorScaling(reporter, stepSize, vCutCount, phiCutCount);
+            }
             Vectors.mult(dx, stepSize);
         }
     }
@@ -79,7 +84,8 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
                                                                EquationVector<AcVariableType, AcEquationType> equationVector,
                                                                TargetVector<AcVariableType, AcEquationType> targetVector,
                                                                NewtonRaphsonStoppingCriteria stoppingCriteria,
-                                                               NewtonRaphsonStoppingCriteria.TestResult testResult) {
+                                                               NewtonRaphsonStoppingCriteria.TestResult testResult,
+                                                               Reporter reporter) {
         // nothing to do
         return testResult;
     }
