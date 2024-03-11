@@ -336,7 +336,15 @@ public final class LfAction {
             LfGenerator generator = generatorChange.generator();
             if (!generator.isDisabled()) {
                 double deltaTargetP = generatorChange.deltaTargetP();
-                double newTargetP = Math.max(Math.min(generator.getTargetP() + deltaTargetP, generator.getMaxP()), generator.getMinP());
+                double oldTargetP = generator.getTargetP();
+                double newTargetP = oldTargetP + deltaTargetP;
+                // if useActiveLimits is false or if the generator target is already outside its [Pmin;Pmax], the limits are ignored
+                if (networkParameters.isUseActiveLimits() && oldTargetP >= generator.getMinP() && oldTargetP <= generator.getMaxP()) {
+                    newTargetP = Math.max(Math.min(newTargetP, generator.getMaxP()), generator.getMinP());
+                    if (newTargetP == generator.getMaxP() || newTargetP == generator.getMinP()) {
+                        LOGGER.warn("Action on generator {} restricted to its active power limits [{}MW;{}MW], new target P set to {}MW", generator.getId(), generator.getMinP() * PerUnit.SB, generator.getMaxP() * PerUnit.SB, newTargetP * PerUnit.SB);
+                    }
+                }
                 generator.setTargetP(newTargetP);
                 if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
                         networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
