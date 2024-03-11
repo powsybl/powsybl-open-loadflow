@@ -6,8 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -17,8 +16,9 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AutomationSystemNetworkFactory;
 import org.junit.jupiter.api.Test;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertCurrentEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 class AutomationSystemTest {
 
     @Test
-    void test() {
+    void testSwitchTripping() {
         Network network = AutomationSystemNetworkFactory.create();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -38,5 +38,42 @@ class AutomationSystemTest {
         Line l34 = network.getLine("l34");
         assertCurrentEquals(298.953, l12.getTerminal1());
         assertCurrentEquals(34.333, l34.getTerminal1()); // no more loop in LV network
+        assertTrue(network.getSwitch("br1").isOpen());
+    }
+
+    @Test
+    void testBranchTripping() {
+        Network network = AutomationSystemNetworkFactory.createWithBranchTripping();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSimulateAutomationSystems(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        Line l12 = network.getLine("l12");
+        Line l34 = network.getLine("l34");
+        Line l33p = network.getLine("l33p");
+        assertCurrentEquals(298.973, l12.getTerminal1());
+        assertCurrentEquals(298.973, l12.getTerminal2());
+        assertCurrentEquals(34.448, l34.getTerminal1());
+        assertTrue(Double.isNaN(l33p.getTerminal1().getI()));
+        assertTrue(Double.isNaN(l33p.getTerminal2().getI()));
+    }
+
+    @Test
+    void testBranchTripping2() {
+        Network network = AutomationSystemNetworkFactory.createWithBranchTripping2();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSimulateAutomationSystems(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        Line l12 = network.getLine("l12");
+        Line l34 = network.getLine("l34");
+        Line l33p = network.getLine("l33p");
+        assertCurrentEquals(207.012, l12.getTerminal1());
+        assertCurrentEquals(272.484, l34.getTerminal1());
+        assertCurrentEquals(305.65, l33p.getTerminal1());
     }
 }

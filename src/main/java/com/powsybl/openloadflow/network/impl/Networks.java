@@ -11,8 +11,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
-import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 
 import java.util.*;
 
@@ -163,24 +161,42 @@ public final class Networks {
         }
     }
 
-    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem system) {
-        Switch aSwitch = network.getSwitch(system.getSwitchIdToOperate());
-        if (aSwitch != null) {
-            if (system.isSwitchOpen()) {
-                topoConfig.getSwitchesToOpen().add(aSwitch);
-            } else {
-                topoConfig.getSwitchesToClose().add(aSwitch);
-            }
-        }
+    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig,
+                                                              OverloadManagementSystem system) {
+        system.getTrippings().stream()
+                .filter(t -> t.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING)
+                .forEach(tripping -> {
+                    Switch aSwitch =
+                            network.getSwitch(((OverloadManagementSystem.SwitchTripping) tripping).getSwitchToOperateId());
+                    if (aSwitch != null) {
+                        if (tripping.isOpenAction()) {
+                            topoConfig.getSwitchesToOpen().add(aSwitch);
+                        } else {
+                            topoConfig.getSwitchesToClose().add(aSwitch);
+                        }
+                    }
+                });
+    }
+
+    private static void addBranchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig,
+                                                              OverloadManagementSystem system) {
+        system.getTrippings().stream()
+                .filter(t -> t.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING)
+                .forEach(tripping -> {
+                    Branch branch =
+                            network.getBranch(((OverloadManagementSystem.BranchTripping) tripping).getBranchToOperateId());
+                    if (branch != null && !tripping.isOpenAction()
+                            && !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) {
+                        topoConfig.getBranchIdsToClose().add(branch.getId());
+                    }
+                });
     }
 
     private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
-            if (systems != null) {
-                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
-                    addSwitchesOperatedByAutomationSystem(network, topoConfig, system);
-                }
+            for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
+                addSwitchesOperatedByAutomationSystem(network, topoConfig, system);
+                addBranchesOperatedByAutomationSystem(network, topoConfig, system);
             }
         }
     }

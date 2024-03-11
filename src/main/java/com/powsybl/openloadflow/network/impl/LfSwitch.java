@@ -366,7 +366,9 @@ public class LfSwitch extends AbstractLfBranch {
 
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
-        // nothing to do
+        if (isDisabled()) {
+            switchRef.get().setOpen(true);
+        }
     }
 
     @Override

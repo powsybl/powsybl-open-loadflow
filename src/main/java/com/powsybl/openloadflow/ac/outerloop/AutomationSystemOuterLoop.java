@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfSwitch;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,29 +41,41 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
         for (LfOverloadManagementSystem system : network.getOverloadManagementSystems()) {
             LfBranch branchToMonitor = system.getMonitoredBranch();
             if (branchToMonitor.isConnectedAtBothSides()) {
-                double i1 = branchToMonitor.getI1().eval();
-                double threshold = system.getThreshold();
-                if (i1 > threshold) {
-                    double ib = PerUnit.ib(branchToMonitor.getBus1().getNominalV());
-                    LfSwitch switchToOperate = system.getSwitchToOperate();
-                    if (system.isSwitchOpen() && switchToOperate.isConnectedAtBothSides()) {
-                        LOGGER.debug("Line '{}' is overloaded ({} A > {} A), open switch '{}'",
-                                branchToMonitor.getId(), i1 * ib, threshold * ib, switchToOperate.getId());
-                        branchesToOpen.add(switchToOperate);
-                    } else if (!system.isSwitchOpen() && !switchToOperate.isConnectedAtBothSides()) {
-                        LOGGER.debug("Line '{}' is overloaded ({} A > {} A), close switch '{}'",
-                                branchToMonitor.getId(), i1 * ib, threshold * ib, switchToOperate.getId());
-                        branchesToClose.add(switchToOperate);
+                double i1 = branchToMonitor.getI1().eval(); // FIXME Side
+                for (LfOverloadManagementSystem.LfBranchTripping branchTripping : system.getBranchTrippingList()) {
+                    double threshold = branchTripping.threshold();
+                    LfBranch branchToOperate = branchTripping.branchToOperate();
+                    if (i1 > threshold && branchTripping.branchOpen() != branchToOperate.isDisabled()) {
+                        double ib = PerUnit.ib(branchToMonitor.getBus1().getNominalV());
+                        if (branchTripping.branchOpen() && branchToOperate.isConnectedAtBothSides()) {
+                            LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), open branch '{}'",
+                                    branchToMonitor.getId(), i1 * ib, threshold * ib, branchToOperate.getId());
+                            branchesToOpen.add(branchToOperate);
+                            break;
+                        } else if (!branchTripping.branchOpen() && branchToOperate.isConnectedAtBothSides()) {
+                            LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), close branch '{}'",
+                                    branchToMonitor.getId(), i1 * ib, threshold * ib, branchToOperate.getId());
+                            branchesToClose.add(branchToOperate);
+                            break;
+                        }
                     }
                 }
             }
         }
 
         if (branchesToOpen.size() + branchesToClose.size() > 0) {
+            // we have an issue with connectivity here: we have to start temporary changes and undo them just after to
+            // be able to retrieve the enabled and disabled elements compared to state just after restoring the initial topology
+            // (restoreInitialTopology method).
+            network.getConnectivity().startTemporaryChanges();
             GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
             branchesToOpen.forEach(connectivity::removeEdge);
             branchesToClose.forEach(branch -> connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch));
             LfAction.updateBusesAndBranchStatus(connectivity);
+            network.getConnectivity().undoTemporaryChanges();
+            // we have now to really change the network connectivity.
+            branchesToOpen.forEach(connectivity::removeEdge);
+            branchesToClose.forEach(branch -> connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch));
             status = OuterLoopStatus.UNSTABLE;
         }
 

@@ -264,21 +264,38 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         var branch = getBranch();
 
-        updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
+        if (isDisabled()) {
+            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
+            branch.getTerminal1().disconnect();
+            branch.getTerminal2().disconnect();
+        } else {
+            updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
 
-        if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
-            // it means there is a regulating phase tap changer located on that branch
-            updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
-        }
+            if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
+                // it means there is a regulating phase tap changer located on that branch
+                updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
+            }
 
-        if (parameters.isTransformerVoltageControlOn() && isVoltageController()
-                || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
-            TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            RatioTapChanger rtc = twt.getRatioTapChanger();
-            double baseRatio = Transformers.getRatioPerUnitBase(twt);
-            double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
-            double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
-            updateTapPosition(rtc, ptcRho, rho);
+            if (parameters.isTransformerVoltageControlOn() && isVoltageController()
+                    || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
+                TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
+                RatioTapChanger rtc = twt.getRatioTapChanger();
+                double baseRatio = Transformers.getRatioPerUnitBase(twt);
+                double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
+                double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
+                updateTapPosition(rtc, ptcRho, rho);
+            }
+
+            if (connectedSide1) {
+                branch.getTerminal1().connect();
+            } else {
+                branch.getTerminal1().disconnect();
+            }
+            if (connectedSide2) {
+                branch.getTerminal2().connect();
+            } else {
+                branch.getTerminal2().disconnect();
+            }
         }
     }
 
