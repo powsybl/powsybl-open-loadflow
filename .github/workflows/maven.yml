@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: powsybl/powsybl-core
-          ref: refs/heads/reporter_v2
+          ref: refs/heads/main
           path: powsybl-core
 
       - name: Checkout sources
