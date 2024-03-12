@@ -22,7 +22,7 @@ jobs:
         with:
           repository: powsybl/powsybl-core
           ref: refs/heads/main
-          path: powsybl-core
+          path: c
 
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
           java-version: '17'
 
       - name: Build and install powsybl-core with Maven
-        run: ./main/mvnw --batch-mode -DskipTests=true --file ./powsybl-core/pom.xml install
+        run: ./main/mvnw --batch-mode -DskipTests=true --file ./c/pom.xml install
 
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
