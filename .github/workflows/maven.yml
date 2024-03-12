@@ -40,6 +40,7 @@ jobs:
       - name: Build and install powsybl-core with Maven (Windows)
         if: matrix.os == 'windows-latest'
         run: mvnw.cmd --batch-mode -DskipTests=true --file ./c/pom.xml install
+        shell: cmd
 
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
