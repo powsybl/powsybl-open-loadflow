@@ -38,25 +38,25 @@ jobs:
       - name: Build and install powsybl-core with Maven
         run: |
           cd ./main
-          ./mvnw --batch-mode -DskipTests=true --file ./c/pom.xml install
+          ./mvnw --batch-mode -DskipTests=true --file ../c/pom.xml install
 
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
         run: |
           cd ./main
-          ./mvnw --batch-mode -Pjacoco --file ./main/pom.xml install
+          ./mvnw --batch-mode -Pjacoco install
 
       - name: Build with Maven (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           cd ./main
-          ./mvnw.cmd --batch-mode --file ./main/pom.xml install
+          ./mvnw.cmd --batch-mode install
         shell: cmd
 
       - name: Run SonarCloud analysis
         if: matrix.os == 'ubuntu-latest'
         run: >
-          cd ./main && ./mvnw --batch-mode -DskipTests --file ./main/pom.xml sonar:sonar
+          cd ./main && ./mvnw --batch-mode -DskipTests sonar:sonar
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.organization=powsybl-ci-github
           -Dsonar.projectKey=com.powsybl:powsybl-open-loadflow
