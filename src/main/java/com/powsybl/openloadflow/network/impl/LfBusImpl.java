@@ -137,7 +137,7 @@ public class LfBusImpl extends AbstractLfBus {
             SlackTerminal.attach(bus);
         }
         if (reference && parameters.isWriteReferenceTerminals() && parameters.getReferenceBusSelectionMode() == ReferenceBusSelectionMode.FIRST_SLACK) {
-            bus.getConnectedTerminalStream().findFirst().ifPresent(terminal -> ReferenceTerminals.addTerminal(terminal));
+            bus.getConnectedTerminalStream().findFirst().ifPresent(ReferenceTerminals::addTerminal);
         }
 
         super.updateState(parameters);
