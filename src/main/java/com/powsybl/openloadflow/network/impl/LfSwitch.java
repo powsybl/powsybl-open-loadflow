@@ -8,8 +8,11 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.Switch;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
@@ -362,6 +365,11 @@ public class LfSwitch extends AbstractLfBranch {
     @Override
     public List<LfLimit> getLimits2(final LimitType type) {
         return Collections.emptyList();
+    }
+
+    @Override
+    public List<Double> getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+        return null;
     }
 
     @Override

@@ -10,10 +10,12 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -258,6 +260,35 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
+    }
+
+    @Override
+    public List<Double> getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+        if (limits == null) {
+            return Collections.emptyList();
+        }
+        if (limits.getLimitType() != LimitType.CURRENT) {
+            return Collections.emptyList();
+        }
+        List<Double> limitReductions = new ArrayList<>();
+        double nominalV = branchRef.get().getTerminal(side).getVoltageLevel().getNominalV();
+        for (LimitReductionManager.TerminalLimitReduction terminalLimitReduction : limitReductionManager.getTerminalLimitReductions()) {
+                if (nominalV >= terminalLimitReduction.getMinNominalV() && nominalV <= terminalLimitReduction.getMaxNominalV()) {
+                    if (terminalLimitReduction.isPermanent()) {
+                       limitReductions.add(terminalLimitReduction.getReduction());
+                    }
+                    if (terminalLimitReduction.getMaxAcceptableDuration() != null) {
+                        for (LoadingLimits.TemporaryLimit temporaryLimit : limits.getTemporaryLimits()) {
+                            if (temporaryLimit.getAcceptableDuration() <= terminalLimitReduction.getMaxAcceptableDuration()) {
+                                limitReductions.add(terminalLimitReduction.getReduction());
+                            } else {
+                                limitReductions.add(1.0);
+                            }
+                        }
+                    }
+                }
+        }
+        return limitReductions;
     }
 
     @Override
