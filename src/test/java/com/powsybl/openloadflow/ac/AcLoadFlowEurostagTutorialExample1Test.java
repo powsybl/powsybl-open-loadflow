@@ -465,4 +465,12 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
     }
+
+    @Test
+    void testWriteReadSlackBus() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), "newVariant");
+        LoadFlow.run(network, new LoadFlowParameters().setWriteSlackBus(true));
+        LoadFlow.run(network, "newVariant", LocalComputationManager.getDefault(), new LoadFlowParameters());
+    }
 }
