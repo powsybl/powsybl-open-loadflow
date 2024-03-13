@@ -113,7 +113,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                           parameters.isDc(),
                                                                           acParameters.getNetworkParameters().isBreakers(),
                                                                           parametersExt.getReactivePowerDispatchMode(),
-                                                                          parametersExt.isWriteReferenceTerminals());
+                                                                          parametersExt.isWriteReferenceTerminals(),
+                                                                          parametersExt.getReferenceBusSelectionMode());
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
@@ -234,7 +235,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       true,
                                                                       breakers,
                                                                       ReactivePowerDispatchMode.Q_EQUAL_PROPORTION,
-                                                                      parametersExt.isWriteReferenceTerminals());
+                                                                      parametersExt.isWriteReferenceTerminals(),
+                                                                      parametersExt.getReferenceBusSelectionMode());
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation

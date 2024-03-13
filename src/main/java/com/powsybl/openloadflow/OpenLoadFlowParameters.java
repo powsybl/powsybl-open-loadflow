@@ -113,7 +113,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     protected static final int INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_DEFAULT_VALUE = 3;
 
-    public static final boolean WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE = false;
+    public static final boolean WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE = true;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
