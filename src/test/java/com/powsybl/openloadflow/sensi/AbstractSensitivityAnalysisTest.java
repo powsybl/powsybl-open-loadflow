@@ -202,7 +202,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
     }
 
     protected static SensitivityFactor createTargetQPerTargetV(String functionId, String variableId, String contingencyId) {
-        return new SensitivityFactor(SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, functionId, SensitivityVariableType.BUS_TARGET_VOLTAGE, variableId, false, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
+        return new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, functionId, SensitivityVariableType.BUS_TARGET_VOLTAGE, variableId, false, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
     }
 
     protected static SensitivityFactor createBusVoltagePerTargetV(String functionId, String variableId, String contingencyId) {

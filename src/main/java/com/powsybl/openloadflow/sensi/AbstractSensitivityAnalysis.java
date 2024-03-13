@@ -223,7 +223,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     yield branch instanceof LfLegBranch ? ((LfBranch) functionElement).getI1()
                                                         : ((LfBranch) functionElement).getI2();
                 }
-                case INJECTION_REACTIVE_POWER_AT_BUS -> {
+                case BUS_REACTIVE_POWER -> {
                     Evaluable q = ((LfBus) functionElement).getQ();
                     yield q instanceof Equation ? new InjectionDerivable<V>((Equation<V, ?>) q) : q;
                 }
@@ -1153,7 +1153,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
-                    } else if (functionType == SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS) {
+                    } else if (functionType == SensitivityFunctionType.BUS_REACTIVE_POWER) {
                         String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, functionId, breakers);
                         functionElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                         if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
@@ -1233,7 +1233,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
         return switch (factor.getFunctionType()) {
             case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3,
-                    BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_2, BRANCH_REACTIVE_POWER_3, INJECTION_REACTIVE_POWER_AT_BUS
+                    BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_2, BRANCH_REACTIVE_POWER_3, BUS_REACTIVE_POWER
                     -> PerUnit.SB;
             case BRANCH_CURRENT_1, BRANCH_CURRENT_3 -> {
                 LfBranch branch = (LfBranch) factor.getFunctionElement();

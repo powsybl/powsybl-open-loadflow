@@ -644,22 +644,20 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void testInjectionQPerTargetV() {
         Network network = ReactiveInjectionNetworkFactory.createTwoGensOneLoad();
 
-        List<SensitivityFactor> factors = Arrays.asList(new SensitivityFactor[] {
-                createTargetQPerTargetV("b1", "g1", null),
+        List<SensitivityFactor> factors = Arrays.asList(createTargetQPerTargetV("b1", "g1", null),
                 createTargetQPerTargetV("b2", "g1", null),
-                createTargetQPerTargetV("b3", "g1", null),
-        });
+                createTargetQPerTargetV("b3", "g1", null));
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.00001).setNewtonRaphsonConvEpsPerEq(0.000001);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
-        assertEquals(0.0741, result.getSensitivityValue("g1", "b1", SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
+        assertEquals(0.0741, result.getSensitivityValue("g1", "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
         // Other sensi should be null
-        assertEquals(0, result.getSensitivityValue("g1", "b2", SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
-        assertEquals(0, result.getSensitivityValue("g1", "b3", SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
+        assertEquals(0, result.getSensitivityValue("g1", "b2", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
+        assertEquals(0, result.getSensitivityValue("g1", "b3", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
 
         // TODO: Remove for final commit - check consistency with LF run
-        double sensi = result.getSensitivityValue("g1", "b1", SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, SensitivityVariableType.BUS_TARGET_VOLTAGE);
+        double sensi = result.getSensitivityValue("g1", "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE);
         System.out.println(sensi);
         runLf(network, sensiParameters.getLoadFlowParameters());
         double q = network.getGenerator("g1").getTerminal().getQ();
@@ -679,33 +677,31 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = ShuntNetworkFactory.create();
         network.getShuntCompensator("SHUNT").setSectionCount(1); // non null b
 
-        List<SensitivityFactor> factors = Arrays.asList(new SensitivityFactor[] {
-                createTargetQPerTargetV("b1", "g1", null),
+        List<SensitivityFactor> factors = Arrays.asList(createTargetQPerTargetV("b1", "g1", null),
                 createTargetQPerTargetV("b2", "g1", null),
-                createTargetQPerTargetV("b3", "g1", null),
-        });
+                createTargetQPerTargetV("b3", "g1", null));
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.00001).setNewtonRaphsonConvEpsPerEq(0.000001);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
-        assertEquals(0.788, result.getSensitivityValue("g1", "b1", SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
-        assertEquals(-0.789, result.getSensitivityValue("g1", "b3", SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
+        assertEquals(0.788, result.getSensitivityValue("g1", "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
+        assertEquals(-0.789, result.getSensitivityValue("g1", "b3", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
         // Other sensi should be null
-        assertEquals(0, result.getSensitivityValue("g1", "b2", SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
+        assertEquals(0, result.getSensitivityValue("g1", "b2", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
 
         // TODO: Remove for final commit - check consistency with LF run
-        double sensi = result.getSensitivityValue("g1", "b1", SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, SensitivityVariableType.BUS_TARGET_VOLTAGE);
+        double sensi = result.getSensitivityValue("g1", "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE);
         System.out.println("sensi b1" + sensi);
 
         double step = 1;
 
         runLf(network, sensiParameters.getLoadFlowParameters());
         double qG1 = network.getGenerator("g1").getTerminal().getQ();
-        double sensiG1 = result.getSensitivityValue("g1", "b1", SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, SensitivityVariableType.BUS_TARGET_VOLTAGE);
+        double sensiG1 = result.getSensitivityValue("g1", "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE);
         double predG1 = qG1 + sensiG1 * step;
         double qShunt = network.getShuntCompensator("SHUNT").getTerminal().getQ();
-        double sensiShunt = result.getSensitivityValue("g1", "b3", SensitivityFunctionType.INJECTION_REACTIVE_POWER_AT_BUS, SensitivityVariableType.BUS_TARGET_VOLTAGE);
+        double sensiShunt = result.getSensitivityValue("g1", "b3", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE);
         double predShunt = qShunt + sensiShunt * step;
 
         double targetV = network.getGenerator("g1").getTargetV();
