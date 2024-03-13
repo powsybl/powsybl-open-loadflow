@@ -215,8 +215,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
     }
 
     protected void runAcLf(Network network, ReportNode reportNode) {
+        LoadFlowParameters parameters = new LoadFlowParameters().setWriteSlackBus(false);
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
-                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters(), reportNode)
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters, reportNode)
                 .join();
         if (!result.isFullyConverged()) {
             throw new PowsyblException("AC LF diverged");
@@ -228,7 +229,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
     }
 
     protected void runDcLf(Network network, ReportNode reportNode) {
-        LoadFlowParameters parameters = new LoadFlowParameters().setDc(true);
+        LoadFlowParameters parameters = new LoadFlowParameters().setWriteSlackBus(false).setDc(true);
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters, reportNode)
                 .join();
