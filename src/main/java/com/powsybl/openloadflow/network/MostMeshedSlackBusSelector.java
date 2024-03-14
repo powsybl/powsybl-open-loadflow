@@ -9,11 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.Country;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -48,13 +44,16 @@ public class MostMeshedSlackBusSelector extends AbstractSlackBusSelector {
                 .evaluate(nominalVoltages, maxNominalVoltagePercentile);
 
         // select non-fictitious and most meshed bus among buses with the highest nominal voltage
+        // also making sure that there will not be a branch connected to two slack buses
+        Set<LfBranch> visitedNonImpedantBranches = new HashSet<>();
         List<LfBus> slackBuses = buses.stream()
                 .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
                 .filter(this::filterByCountry)
                 .sorted(Comparator.comparingInt(MostMeshedSlackBusSelector::getBranchCountConnectedAtBothSides)
-                    .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
+                        .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
+                .filter(distinctByNonImpedantBranch())
             .limit(limit)
-            .collect(Collectors.toList());
+            .toList();
 
         return new SelectedSlackBus(slackBuses, "Most meshed bus");
     }
