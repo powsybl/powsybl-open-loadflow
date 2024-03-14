@@ -847,6 +847,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         Network network = FourBusNetworkFactory.create();
         network.getLoad("d2").setP0(2.3); // to unbalance the network.
         network.getGenerator("g1").setMinP(1.95).setTargetP(initialG1); // set a high minP value to test cases when g1 is outside its P limits
+        network.getGenerator("g4").setMinP(0.5);
 
         final String lineInContingencyId = "l13";
         List<Contingency> contingencies = Stream.of(lineInContingencyId)
