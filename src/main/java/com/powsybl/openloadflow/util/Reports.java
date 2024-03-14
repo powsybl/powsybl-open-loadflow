@@ -27,7 +27,7 @@ public final class Reports {
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
     private static final String BUS_ID = "busId";
 
-    public record BusReport(String busId, double mismatch, double nominalV, double v, double phi, double p, double q) {
+    public record BusReport(String busId, double mismatch, double nominalV, double v, double phi, double injectionP, double injectionQ) {
     }
 
     private Reports() {
@@ -372,10 +372,6 @@ public final class Reports {
     }
 
     public static void reportNewtonRaphsonLargestMismatches(Reporter reporter, String acEquationType, BusReport busReport) {
-        Map<String, TypedValue> subReporterMap = new HashMap<>();
-        subReporterMap.put("equationType", new TypedValue(acEquationType, TypedValue.UNTYPED));
-        subReporterMap.put("mismatch", new TypedValue(busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
-
         ReportBuilder busIdReportBuilder = Report.builder();
         busIdReportBuilder.withKey("NRMismatchBusInfo")
                 .withDefaultMessage("Bus Id: ${busId} (nominalVoltage=${busNominalV}kV)")
@@ -392,12 +388,37 @@ public final class Reports {
 
         ReportBuilder busInjectionReportBuilder = Report.builder();
         busInjectionReportBuilder.withKey("NRMismatchBusInjection")
-                .withDefaultMessage("Bus injection: ${busSumP} MW, ${busSumQ} MVar")
-                .withValue("busSumP", busReport.p())
-                .withValue("busSumQ", busReport.q())
+                .withDefaultMessage("Bus injection: ${busP} MW, ${busQ} MVar")
+                .withValue("busP", busReport.injectionP())
+                .withValue("busQ", busReport.injectionQ())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
-        Reporter subReporter = reporter.createSubReporter("NRMismatch", "Largest ${equationType} mismatch: ${mismatch}", subReporterMap);
+        String mismatchUnit;
+        double mismatchUnitConverter;
+        switch (acEquationType) {
+            case "P" -> {
+                mismatchUnit = "MW";
+                mismatchUnitConverter = PerUnit.SB;
+            }
+            case "Q" -> {
+                mismatchUnit = "MVar";
+                mismatchUnitConverter = PerUnit.SB;
+            }
+            case "V" -> {
+                mismatchUnit = "kV";
+                mismatchUnitConverter = busReport.nominalV();
+            }
+            default -> {
+                mismatchUnit = "";
+                mismatchUnitConverter = 1.0;
+            }
+        }
+
+        Map<String, TypedValue> subReporterMap = new HashMap<>();
+        subReporterMap.put("equationType", new TypedValue(acEquationType, TypedValue.UNTYPED));
+        subReporterMap.put("mismatch", new TypedValue(mismatchUnitConverter * busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
+        subReporterMap.put("mismatchUnit", new TypedValue(mismatchUnit, TypedValue.UNTYPED));
+        Reporter subReporter = reporter.createSubReporter("NRMismatch" + acEquationType, "Largest ${equationType} mismatch: ${mismatch} ${mismatchUnit}", subReporterMap);
         subReporter.report(busIdReportBuilder.build());
         subReporter.report(busVReportBuilder.build());
         subReporter.report(busInjectionReportBuilder.build());
