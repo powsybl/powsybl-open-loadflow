@@ -393,8 +393,8 @@ public final class Reports {
                 .withValue("busQ", busReport.injectionQ())
                 .withSeverity(TypedValue.TRACE_SEVERITY);
 
-        String mismatchUnit;
-        double mismatchUnitConverter;
+        String mismatchUnit = "";
+        double mismatchUnitConverter = 1.0;
         switch (acEquationType) {
             case "P" -> {
                 mismatchUnit = "MW";
@@ -407,10 +407,6 @@ public final class Reports {
             case "V" -> {
                 mismatchUnit = "kV";
                 mismatchUnitConverter = busReport.nominalV();
-            }
-            default -> {
-                mismatchUnit = "";
-                mismatchUnitConverter = 1.0;
             }
         }
 
