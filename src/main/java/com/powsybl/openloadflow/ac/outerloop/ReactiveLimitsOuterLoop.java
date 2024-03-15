@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -122,6 +121,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             pvToPqBuses.remove(strongestPvToPqBus);
             modifiedRemainingPvBusCount++;
             LOGGER.warn("All PV buses should switch PQ, strongest one '{}' will stay PV", strongestPvToPqBus.controllerBus.getId());
+            Reports.reportBusForcedToBePv(reporter, strongestPvToPqBus.controllerBus.getId());
         }
 
         if (!pvToPqBuses.isEmpty()) {
@@ -290,7 +290,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 .filter(LfBus::hasGeneratorReactivePowerControl)
                 .flatMap(bus -> bus.getGeneratorReactivePowerControl().orElseThrow().getControllerBuses().stream())
                 .filter(Predicate.not(LfBus::isDisabled))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -323,21 +323,25 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         var contextData = (ContextData) context.getData();
 
-        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), contextData, reporter)) {
+        Reporter iterationReporter = reporter;
+        if (!pvToPqBuses.isEmpty() || !pqToPvBuses.isEmpty() || !busesWithUpdatedQLimits.isEmpty() || !reactiveControllerBusesToPqBuses.isEmpty()) {
+            iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1);
+        }
+
+        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), contextData, iterationReporter)) {
             status = OuterLoopStatus.UNSTABLE;
         }
-        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, contextData, reporter, maxPqPvSwitch)) {
+        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, contextData, iterationReporter, maxPqPvSwitch)) {
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!busesWithUpdatedQLimits.isEmpty()) {
-            LOGGER.info("{} buses blocked to a reactive limit have been adjusted because reactive limit has changed",
-                    busesWithUpdatedQLimits.size());
+            LOGGER.info("{} buses blocked at a reactive limit have been adjusted because the reactive limit changed", busesWithUpdatedQLimits.size());
+            Reports.reportBusesWithUpdatedQLimits(iterationReporter, busesWithUpdatedQLimits.size());
             status = OuterLoopStatus.UNSTABLE;
         }
-        if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, reporter)) {
+        if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, iterationReporter)) {
             status = OuterLoopStatus.UNSTABLE;
         }
-
         return status;
     }
 }

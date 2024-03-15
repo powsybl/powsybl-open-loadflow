@@ -53,68 +53,71 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         double slackBusActivePowerMismatch = context.getLastSolverResult().getSlackBusActivePowerMismatch();
-        if (Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB) {
-            ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
-            double remainingMismatch = result.remainingMismatch();
-            double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;
-            DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
-            contextData.addDistributedActivePower(distributedActivePower);
-            if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
-                OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior();
-                LfGenerator referenceGenerator = context.getNetwork().getReferenceGenerator();
-                if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == slackDistributionFailureBehavior) {
-                    if (referenceGenerator == null) {
-                        // no reference generator, fall back internally to FAIL mode
-                        slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
-                        Reports.reportMismatchDistributionFailure(reporter, context.getIteration(), remainingMismatch * PerUnit.SB);
-                    }
-                } else {
-                    Reports.reportMismatchDistributionFailure(reporter, context.getIteration(), remainingMismatch * PerUnit.SB);
-                }
+        boolean shouldDistributeSlack = Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB;
 
-                switch (slackDistributionFailureBehavior) {
-                    case THROW ->
-                        throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
-                                + remainingMismatch * PerUnit.SB + " MW remains");
-                    case LEAVE_ON_SLACK_BUS -> {
-                        LOGGER.warn("Failed to distribute slack bus active power mismatch, {} MW remains",
-                                remainingMismatch * PerUnit.SB);
-                        return result.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
-                    }
-                    case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
-                        Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
-                        // remaining goes to reference generator, without any limit consideration
-                        referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
-                        reportAndLogSuccess(context, reporter, slackBusActivePowerMismatch, result);
-                        return OuterLoopStatus.UNSTABLE;
-                    }
-                    case FAIL -> {
-                        LOGGER.error("Failed to distribute slack bus active power mismatch, {} MW remains",
-                                remainingMismatch * PerUnit.SB);
-                        // Mismatches reported in LoadFlowResult on slack bus(es) are the mismatches of the last NR run.
-                        // Since we will not be re-running an NR, revert distributedActivePower reporting which would otherwise be misleading.
-                        // Said differently, we report that we didn't distribute anything, and this is indeed consistent with the network state.
-                        contextData.addDistributedActivePower(-distributedActivePower);
-                        return OuterLoopStatus.FAILED;
-                    }
-                }
-            } else {
-                reportAndLogSuccess(context, reporter, slackBusActivePowerMismatch, result);
-                return OuterLoopStatus.UNSTABLE;
-            }
+        if (!shouldDistributeSlack) {
+            LOGGER.debug("Already balanced");
+            return OuterLoopStatus.STABLE;
         }
 
-        Reports.reportNoMismatchDistribution(reporter, context.getIteration());
+        Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1);
+        ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
+        double remainingMismatch = result.remainingMismatch();
+        double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;
+        DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
+        contextData.addDistributedActivePower(distributedActivePower);
+        if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
+            OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior();
+            LfGenerator referenceGenerator = context.getNetwork().getReferenceGenerator();
+            if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == slackDistributionFailureBehavior) {
+                if (referenceGenerator == null) {
+                    // no reference generator, fall back internally to FAIL mode
+                    slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
+                    Reports.reportMismatchDistributionFailure(iterationReporter, remainingMismatch * PerUnit.SB);
+                }
+            } else {
+                Reports.reportMismatchDistributionFailure(iterationReporter, remainingMismatch * PerUnit.SB);
+            }
 
-        LOGGER.debug("Already balanced");
-
-        return OuterLoopStatus.STABLE;
+            switch (slackDistributionFailureBehavior) {
+                case THROW ->
+                    throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
+                            + remainingMismatch * PerUnit.SB + " MW remains");
+                case LEAVE_ON_SLACK_BUS -> {
+                    LOGGER.warn("Failed to distribute slack bus active power mismatch, {} MW remains",
+                            remainingMismatch * PerUnit.SB);
+                    return result.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
+                }
+                case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
+                    Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
+                    // remaining goes to reference generator, without any limit consideration
+                    referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
+                    // create a new result with iteration++, 0.0 mismatch and movedBuses to true
+                    result = new ActivePowerDistribution.Result(result.iteration() + 1, 0.0, true);
+                    reportAndLogSuccess(iterationReporter, slackBusActivePowerMismatch, result);
+                    return OuterLoopStatus.UNSTABLE;
+                }
+                case FAIL -> {
+                    LOGGER.error("Failed to distribute slack bus active power mismatch, {} MW remains",
+                            remainingMismatch * PerUnit.SB);
+                    // Mismatches reported in LoadFlowResult on slack bus(es) are the mismatches of the last NR run.
+                    // Since we will not be re-running an NR, revert distributedActivePower reporting which would otherwise be misleading.
+                    // Said differently, we report that we didn't distribute anything, and this is indeed consistent with the network state.
+                    contextData.addDistributedActivePower(-distributedActivePower);
+                    return OuterLoopStatus.FAILED;
+                }
+                default -> throw new IllegalArgumentException("Unknown slackDistributionFailureBehavior");
+            }
+        } else {
+            reportAndLogSuccess(iterationReporter, slackBusActivePowerMismatch, result);
+            return OuterLoopStatus.UNSTABLE;
+        }
     }
 
-    private static void reportAndLogSuccess(AcOuterLoopContext context, Reporter reporter, double slackBusActivePowerMismatch, ActivePowerDistribution.Result result) {
-        Reports.reportMismatchDistributionSuccess(reporter, context.getIteration(), slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
+    private static void reportAndLogSuccess(Reporter reporter, double slackBusActivePowerMismatch, ActivePowerDistribution.Result result) {
+        Reports.reportMismatchDistributionSuccess(reporter, slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
 
-        LOGGER.info("Slack bus active power ({} MW) distributed in {} iterations",
+        LOGGER.info("Slack bus active power ({} MW) distributed in {} distribution iteration(s)",
                 slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
     }
 }

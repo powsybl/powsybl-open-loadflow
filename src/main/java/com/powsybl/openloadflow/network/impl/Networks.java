@@ -97,6 +97,10 @@ public final class Networks {
         setDoubleProperty(identifiable, PROPERTY_ANGLE, angle);
     }
 
+    public static double zeroIfNan(double value) {
+        return Double.isNaN(value) ? 0.0 : value;
+    }
+
     public static List<LfNetwork> load(Network network, SlackBusSelector slackBusSelector) {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), slackBusSelector);
     }

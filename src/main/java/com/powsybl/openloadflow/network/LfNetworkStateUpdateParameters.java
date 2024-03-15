@@ -33,10 +33,12 @@ public class LfNetworkStateUpdateParameters {
 
     private final boolean writeReferenceTerminals;
 
+    private final ReferenceBusSelectionMode referenceBusSelectionMode;
+
     public LfNetworkStateUpdateParameters(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
                                           boolean transformerVoltageControlOn, boolean transformerReactivePowerControlOn, boolean loadPowerFactorConstant, boolean dc,
                                           boolean breakers, ReactivePowerDispatchMode reactivePowerDispatchMode,
-                                          boolean writeReferenceTerminals) {
+                                          boolean writeReferenceTerminals, ReferenceBusSelectionMode referenceBusSelectionMode) {
         this.reactiveLimits = reactiveLimits;
         this.writeSlackBus = writeSlackBus;
         this.phaseShifterRegulationOn = phaseShifterRegulationOn;
@@ -47,6 +49,7 @@ public class LfNetworkStateUpdateParameters {
         this.breakers = breakers;
         this.reactivePowerDispatchMode = Objects.requireNonNull(reactivePowerDispatchMode);
         this.writeReferenceTerminals = writeReferenceTerminals;
+        this.referenceBusSelectionMode = referenceBusSelectionMode;
     }
 
     public boolean isReactiveLimits() {
@@ -83,6 +86,10 @@ public class LfNetworkStateUpdateParameters {
 
     public boolean isWriteReferenceTerminals() {
         return writeReferenceTerminals;
+    }
+
+    public ReferenceBusSelectionMode getReferenceBusSelectionMode() {
+        return referenceBusSelectionMode;
     }
 
     public ReactivePowerDispatchMode getReactivePowerDispatchMode() {
