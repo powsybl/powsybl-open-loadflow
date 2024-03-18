@@ -171,9 +171,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     /**
      * Compute all the injection vectors of the Woodbury engine.
      */
-    private DenseMatrix getInjectionVectors(DcLoadFlowContext loadFlowContext,
-                                            SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
-                                            List<ParticipatingElement> participatingElements) {
+    public static DenseMatrix getInjectionVectors(DcLoadFlowContext loadFlowContext,
+                                                   SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
+                                                   List<ParticipatingElement> participatingElements) {
         Map<LfBus, Double> slackParticipationByBus;
         if (participatingElements.isEmpty()) {
             slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSlackBus(), -1d);
@@ -292,7 +292,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 DenseMatrix injectionVectors = getInjectionVectors(loadFlowContext, factorGroups, participatingElements); // for now is only rhs
 
                 WoodburyEngine engine = new WoodburyEngine();
-                WoodburyEngine.WoodburyEngineOutput output = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors, contingencies, participatingElements, reporter, resultWriter);
+                WoodburyEngine.WoodburyEngineOutput output = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors,
+                        contingencies, participatingElements, reporter, resultWriter, factorGroups);
 
                 // Set base case/reference values of the sensitivities
                 setFunctionReference(validLfFactors, output.getPreContingenciesFlowStates());
