@@ -17,7 +17,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.0 pu, 0.0 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: -0.4999999999999982 kV
+          + Largest V mismatch: -0.02083333333333326 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0 pu, 0.0 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -32,7 +32,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.007137714309708 pu, -3.3933374353793497E-18 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: -0.4500027306609038 kV
+          + Largest V mismatch: -0.018750113777537658 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0020832195557956 pu, 0.004426538118420244 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -47,7 +47,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.0140966850631288 pu, -9.09535092570814E-18 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: -0.3991110442209891 kV
+          + Largest V mismatch: -0.016629626842541212 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.004203706490792 pu, 0.008839266427912103 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -62,7 +62,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.0208544578794392 pu, -7.533671555116414E-18 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: -0.3474608394272618 kV
+          + Largest V mismatch: -0.014477534976135908 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0063557983571974 pu, 0.01322778525159191 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -77,7 +77,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.0273874172757993 pu, -3.806729596884454E-18 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: -0.29520262393650754 kV
+          + Largest V mismatch: -0.012300109330687814 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0085332240026454 pu, 0.01758121728174107 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -92,7 +92,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.0336704433833774 pu, -4.6172827709991395E-18 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: -0.2425024568338383 kV
+          + Largest V mismatch: -0.010104269034743263 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.01072906429859 pu, 0.021888112773674064 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -107,7 +107,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.0396762073780579 pu, -4.519103360866447E-18 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: -0.18954364624073605 kV
+          + Largest V mismatch: -0.007897651926697336 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.012935681406636 pu, 0.026136244995432708 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -122,7 +122,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.0453735923878082 pu, -2.9407832157867265E-18 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: -0.1365304030108252 kV
+          + Largest V mismatch: -0.0056887667921177165 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0151445665412155 pu, 0.030312141092074293 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -137,7 +137,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.0507235509169282 pu, -1.4303757627634975E-18 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: -0.08369736127119332 kV
+          + Largest V mismatch: -0.003487390052966388 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0173459432803669 pu, 0.034399841024383176 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -152,7 +152,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.0556644460297175 pu, 8.105363974705174E-19 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: -0.03134309805017921 kV
+          + Largest V mismatch: -0.001305962418757467 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0195273709145758 pu, 0.038376503969124384 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -166,7 +166,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.058316112111486 pu, -6.654037647817311E-19 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: 0.0 kV
+          + Largest V mismatch: 0.0 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0208333333333333 pu, 0.040701599763530286 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -180,7 +180,7 @@
              Bus Id: VLLOAD_0 (nominalVoltage=150.0kV)
              Bus V: 0.9838493767815336 pu, -0.16780694423655637 rad
              Bus injection: -600.0 MW, -200.0 MVar
-          + Largest V mismatch: 0.0 kV
+          + Largest V mismatch: 0.0 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0208333333333333 pu, 0.040693592599170804 rad
              Bus injection: 607.0 MW, 0.0 MVar
@@ -199,7 +199,7 @@
              Bus Id: VLLOAD_0 (nominalVoltage=150.0kV)
              Bus V: 0.9838493767815335 pu, -0.16780694423655637 rad
              Bus injection: -600.0 MW, -200.0 MVar
-          + Largest V mismatch: 0.0 kV
+          + Largest V mismatch: 0.0 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0208333333333333 pu, 0.040693592599170804 rad
              Bus injection: 605.5585009351454 MW, 0.0 MVar
@@ -213,7 +213,7 @@
              Bus Id: VLHV1_0 (nominalVoltage=380.0kV)
              Bus V: 1.0582706031274327 pu, 9.603312518203627E-24 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: 0.0 kV
+          + Largest V mismatch: 0.0 p.u.
              Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
              Bus V: 1.0208333333333333 pu, 0.04059595665621846 rad
              Bus injection: 605.5585009351454 MW, 0.0 MVar

@@ -17,7 +17,7 @@
              Bus Id: vl2_0 (nominalVoltage=400.0kV)
              Bus V: 1.0 pu, 0.0 rad
              Bus injection: -101.0 MW, -150.0 MVar
-          + Largest V mismatch: 10.000000000000009 kV
+          + Largest V mismatch: 0.025000000000000022 p.u.
              Bus Id: vl1_0 (nominalVoltage=400.0kV)
              Bus V: 1.0 pu, 0.0 rad
              Bus injection: 101.36639999999998 MW, 0.0 MVar
@@ -32,7 +32,7 @@
              Bus Id: vl2_0 (nominalVoltage=400.0kV)
              Bus V: 0.9715539599999999 pu, 0.0 rad
              Bus injection: -101.0 MW, -150.0 MVar
-          + Largest V mismatch: 0.0 kV
+          + Largest V mismatch: 0.0 p.u.
              Bus Id: vl1_0 (nominalVoltage=400.0kV)
              Bus V: 0.975 pu, 9.63119999999999E-4 rad
              Bus injection: 101.36639999999998 MW, 0.0 MVar
@@ -47,7 +47,7 @@
              Bus Id: vl2_0 (nominalVoltage=400.0kV)
              Bus V: 0.9714536023666397 pu, 0.0 rad
              Bus injection: -101.0 MW, -150.0 MVar
-          + Largest V mismatch: 0.0 kV
+          + Largest V mismatch: 0.0 p.u.
              Bus Id: vl1_0 (nominalVoltage=400.0kV)
              Bus V: 0.975 pu, 0.0010125504427887688 rad
              Bus injection: 101.36639999999998 MW, 0.0 MVar
@@ -69,7 +69,7 @@
              Bus Id: vl3_0 (nominalVoltage=400.0kV)
              Bus V: 0.9714536023666398 pu, 0.0 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: 0.0 kV
+          + Largest V mismatch: 0.0 p.u.
              Bus Id: vl1_0 (nominalVoltage=400.0kV)
              Bus V: 0.975 pu, 0.0010125504427887688 rad
              Bus injection: 101.36639999999998 MW, 0.0 MVar
@@ -84,7 +84,7 @@
              Bus Id: vl3_0 (nominalVoltage=400.0kV)
              Bus V: 0.9773610406575612 pu, -0.00101216205957038 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: 0.0 kV
+          + Largest V mismatch: 0.0 p.u.
              Bus Id: vl1_0 (nominalVoltage=400.0kV)
              Bus V: 0.975 pu, 0.002023978884465056 rad
              Bus injection: 101.36639999999998 MW, 0.0 MVar
@@ -99,7 +99,7 @@
              Bus Id: vl3_0 (nominalVoltage=400.0kV)
              Bus V: 0.9773253174437125 pu, -0.0010030091887831792 rad
              Bus injection: 0.0 MW, 0.0 MVar
-          + Largest V mismatch: 0.0 kV
+          + Largest V mismatch: 0.0 p.u.
              Bus Id: vl1_0 (nominalVoltage=400.0kV)
              Bus V: 0.975 pu, 0.002014826586019094 rad
              Bus injection: 101.36639999999998 MW, 0.0 MVar
