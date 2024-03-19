@@ -10,7 +10,7 @@ import com.google.auto.service.AutoService;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
@@ -33,7 +33,10 @@ import com.powsybl.security.strategy.OperatorStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -62,7 +65,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
                                                          LimitViolationFilter limitViolationFilter, ComputationManager computationManager,
                                                          SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
                                                          List<SecurityAnalysisInterceptor> interceptors, List<OperatorStrategy> operatorStrategies, List<Action> actions,
-                                                         List<StateMonitor> stateMonitors, Reporter reporter) {
+                                                         List<StateMonitor> stateMonitors, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(limitViolationDetector);
@@ -73,7 +76,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
         Objects.requireNonNull(operatorStrategies);
         Objects.requireNonNull(actions);
         Objects.requireNonNull(stateMonitors);
-        Objects.requireNonNull(reporter);
+        Objects.requireNonNull(reportNode);
 
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters loadFlowParametersExt = OpenLoadFlowParameters.get(loadFlowParameters);
@@ -89,9 +92,9 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
         AbstractSecurityAnalysis<?, ?, ?, ?, ?> securityAnalysis;
         if (loadFlowParameters.isDc()) {
-            securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reporter);
+            securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reportNode);
         } else {
-            securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reporter);
+            securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reportNode);
         }
 
         return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager, operatorStrategies, actions);

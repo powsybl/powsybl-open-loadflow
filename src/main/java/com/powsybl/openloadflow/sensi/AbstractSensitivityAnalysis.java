@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.*;
@@ -1254,7 +1254,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, Reporter reporter, LfTopoConfig topoConfig);
+                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig);
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {

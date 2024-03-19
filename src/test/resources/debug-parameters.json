@@ -9,7 +9,7 @@
     "twtSplitShuntAdmittance" : false,
     "shuntCompensatorVoltageControlOn" : false,
     "readSlackBus" : true,
-    "writeSlackBus" : false,
+    "writeSlackBus" : true,
     "dc" : true,
     "distributedSlack" : false,
     "balanceType" : "PROPORTIONAL_TO_GENERATION_P_MAX",

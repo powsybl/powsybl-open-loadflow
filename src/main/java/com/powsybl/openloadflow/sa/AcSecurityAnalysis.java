@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -19,7 +19,10 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.ReferenceBusSelector;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
@@ -33,13 +36,13 @@ import java.util.List;
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcLoadFlowResult> {
 
     protected AcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                 List<StateMonitor> stateMonitors, Reporter reporter) {
-        super(network, matrixFactory, connectivityFactory, stateMonitors, reporter);
+                                 List<StateMonitor> stateMonitors, ReportNode reportNode) {
+        super(network, matrixFactory, connectivityFactory, stateMonitors, reportNode);
     }
 
     @Override
-    protected Reporter createSaRootReporter() {
-        return Reports.createAcSecurityAnalysis(reporter, network.getId());
+    protected ReportNode createSaRootReportNode() {
+        return Reports.createAcSecurityAnalysis(reportNode, network.getId());
     }
 
     @Override

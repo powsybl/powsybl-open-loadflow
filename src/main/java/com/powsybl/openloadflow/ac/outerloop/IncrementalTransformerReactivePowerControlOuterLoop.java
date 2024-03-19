@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
@@ -158,7 +158,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         LfNetwork network = context.getNetwork();
@@ -194,8 +194,8 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
             }
         });
 
-        Reporter iterationReporter = !controlledBranchesOutOfDeadband.isEmpty() || !controlledBranchesAdjusted.isEmpty() || !controlledBranchesWithAllItsControllersToLimit.isEmpty() ?
-                Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1) : null;
+        ReportNode iterationReportNode = !controlledBranchesOutOfDeadband.isEmpty() || !controlledBranchesAdjusted.isEmpty() || !controlledBranchesWithAllItsControllersToLimit.isEmpty() ?
+                Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1) : null;
 
         if (!controlledBranchesOutOfDeadband.isEmpty()) {
             if (LOGGER.isInfoEnabled()) {
@@ -207,17 +207,17 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                 LOGGER.info("{} controlled branch reactive power are outside of their target deadband, largest ones are: {}",
                         controllerBranchesOutOfDeadband.size(), largestMismatches);
             }
-            Reports.reportTransformerControlBranchesOutsideDeadband(Objects.requireNonNull(iterationReporter), controlledBranchesOutOfDeadband.size());
+            Reports.reportTransformerControlBranchesOutsideDeadband(Objects.requireNonNull(iterationReportNode), controlledBranchesOutOfDeadband.size());
         }
         if (!controlledBranchesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled branch reactive power have been adjusted by changing at least one tap",
                     controlledBranchesAdjusted.size());
-            Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReporter), controlledBranchesAdjusted.size());
+            Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), controlledBranchesAdjusted.size());
         }
         if (!controlledBranchesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled branches have all its controllers to a tap limit: {}",
                     controlledBranchesWithAllItsControllersToLimit.size(), controlledBranchesWithAllItsControllersToLimit);
-            Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReporter), controlledBranchesWithAllItsControllersToLimit.size());
+            Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReportNode), controlledBranchesWithAllItsControllersToLimit.size());
         }
 
         return status.getValue();

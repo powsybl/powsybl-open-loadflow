@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -16,8 +16,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.LfTopoConfig;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,15 +41,15 @@ public class AcLoadFlowFromCache {
 
     private final AcLoadFlowParameters acParameters;
 
-    private final Reporter reporter;
+    private final ReportNode reportNode;
 
     public AcLoadFlowFromCache(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                               AcLoadFlowParameters acParameters, Reporter reporter) {
+                               AcLoadFlowParameters acParameters, ReportNode reportNode) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);
         this.parametersExt = Objects.requireNonNull(parametersExt);
         this.acParameters = Objects.requireNonNull(acParameters);
-        this.reporter = Objects.requireNonNull(reporter);
+        this.reportNode = Objects.requireNonNull(reportNode);
     }
 
     private void configureSwitches(LfTopoConfig topoConfig) {
@@ -78,7 +78,7 @@ public class AcLoadFlowFromCache {
         // Because of caching, we only need to switch back to working variant but not to remove the variant, thus
         // WorkingVariantReverter is used instead of DefaultVariantCleaner
         try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), topoConfig,
-                LfNetworkList.WorkingVariantReverter::new, reporter)) {
+                LfNetworkList.WorkingVariantReverter::new, reportNode)) {
             contexts = lfNetworkList.getList()
                     .stream()
                     .map(n -> new AcLoadFlowContext(n, acParameters))

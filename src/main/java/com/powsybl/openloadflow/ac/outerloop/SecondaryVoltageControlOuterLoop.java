@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
@@ -392,7 +392,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
         LfNetwork network = context.getNetwork();
 
         // try to re-enable controller buses that have reached a reactive power limit (so bus switched to PQ) if they
