@@ -414,7 +414,7 @@ public final class Reports {
         subReporterMap.put("equationType", new TypedValue(acEquationType, TypedValue.UNTYPED));
         subReporterMap.put("mismatch", new TypedValue(mismatchUnitConverter * busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
         subReporterMap.put("mismatchUnit", new TypedValue(mismatchUnit, TypedValue.UNTYPED));
-        Reporter subReporter = reporter.createSubReporter("NRMismatch" + acEquationType, "Largest ${equationType} mismatch: ${mismatch} ${mismatchUnit}", subReporterMap);
+        Reporter subReporter = reporter.createSubReporter("NRMismatch", "Largest ${equationType} mismatch: ${mismatch} ${mismatchUnit}", subReporterMap);
         subReporter.report(busIdReportBuilder.build());
         subReporter.report(busVReportBuilder.build());
         subReporter.report(busInjectionReportBuilder.build());
