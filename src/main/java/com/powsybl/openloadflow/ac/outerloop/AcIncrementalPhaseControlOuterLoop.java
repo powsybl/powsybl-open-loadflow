@@ -6,10 +6,9 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
@@ -19,6 +18,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -169,7 +169,7 @@ public class AcIncrementalPhaseControlOuterLoop
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
 
         var contextData = (IncrementalContextData) context.getData();
 
@@ -226,12 +226,12 @@ public class AcIncrementalPhaseControlOuterLoop
 
         if (numOfCurrentLimiterPstsThatChangedTap + numOfActivePowerControlPstsThatChangedTap != 0) {
             status = OuterLoopStatus.UNSTABLE;
-            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1);
+            ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
             if (numOfCurrentLimiterPstsThatChangedTap != 0) {
-                Reports.reportCurrentLimiterPstsChangedTaps(iterationReporter, numOfCurrentLimiterPstsThatChangedTap);
+                Reports.reportCurrentLimiterPstsChangedTaps(iterationReportNode, numOfCurrentLimiterPstsThatChangedTap);
             }
             if (numOfActivePowerControlPstsThatChangedTap != 0) {
-                Reports.reportActivePowerControlPstsChangedTaps(iterationReporter, numOfActivePowerControlPstsThatChangedTap);
+                Reports.reportActivePowerControlPstsChangedTaps(iterationReportNode, numOfActivePowerControlPstsThatChangedTap);
             }
         }
 

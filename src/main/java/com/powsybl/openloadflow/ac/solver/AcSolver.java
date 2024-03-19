@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 /**
@@ -16,5 +16,5 @@ public interface AcSolver {
 
     String getName();
 
-    AcSolverResult run(VoltageInitializer voltageInitializer, Reporter reporter);
+    AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode);
 }
