@@ -20,27 +20,11 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Checkout powsybl-core with changes to report API
-        uses: actions/checkout@v4
-        with:
-          repository: powsybl/powsybl-core
-          ref: refs/heads/main
-          path: c
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Build and install powsybl-core with Maven (Ubuntu / MacOS)
-        if: matrix.os != 'windows-latest'
-        run: ./mvnw --batch-mode -DskipTests=true --file ./c/pom.xml install
-
-      - name: Build and install powsybl-core with Maven (Windows)
-        if: matrix.os == 'windows-latest'
-        run: mvnw.cmd --batch-mode -DskipTests=true --file ./c/pom.xml install
-        shell: cmd
 
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
