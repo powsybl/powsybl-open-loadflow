@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.action.Action;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.BranchContingency;
@@ -31,7 +32,6 @@ import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisReport;
 import com.powsybl.security.SecurityAnalysisResult;
-import com.powsybl.security.action.Action;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
@@ -147,14 +147,15 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                 Collections.emptyList(),
                 Collections.emptyList(),
                 monitors,
+                Collections.emptyList(),
                 reportNode)
                 .join();
         return report.getResult();
     }
 
     protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
-                                                       SecurityAnalysisParameters saParameters, List<OperatorStrategy> operatorStrategies,
-                                                       List<Action> actions, ReportNode reportNode) {
+                                                         SecurityAnalysisParameters saParameters, List<OperatorStrategy> operatorStrategies,
+                                                         List<Action> actions, ReportNode reportNode) {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                 network.getVariantManager().getWorkingVariantId(),
@@ -167,6 +168,7 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                 operatorStrategies,
                 actions,
                 monitors,
+                Collections.emptyList(),
                 reportNode)
                 .join();
         return report.getResult();

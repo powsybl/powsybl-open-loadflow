@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.action.*;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.contingency.Contingency;
@@ -25,7 +26,6 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.security.action.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.action.*;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
@@ -18,7 +19,6 @@ import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
-import com.powsybl.security.action.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;

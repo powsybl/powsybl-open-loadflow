@@ -7,6 +7,8 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.collect.ImmutableList;
+import com.powsybl.action.Action;
+import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.*;
@@ -32,8 +34,6 @@ import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.network.impl.OlfThreeWindingsTransformerResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
-import com.powsybl.security.action.Action;
-import com.powsybl.security.action.TerminalsConnectionAction;
 import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;

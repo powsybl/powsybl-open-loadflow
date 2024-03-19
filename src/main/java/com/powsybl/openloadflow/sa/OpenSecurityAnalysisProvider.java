@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.action.Action;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
@@ -26,8 +27,8 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.security.*;
-import com.powsybl.security.action.Action;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
+import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.strategy.OperatorStrategy;
 import org.slf4j.Logger;
@@ -65,7 +66,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
                                                          LimitViolationFilter limitViolationFilter, ComputationManager computationManager,
                                                          SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
                                                          List<SecurityAnalysisInterceptor> interceptors, List<OperatorStrategy> operatorStrategies, List<Action> actions,
-                                                         List<StateMonitor> stateMonitors, ReportNode reportNode) {
+                                                         List<StateMonitor> stateMonitors, List<LimitReduction> limitReductions, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(limitViolationDetector);

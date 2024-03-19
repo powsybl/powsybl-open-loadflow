@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.action.*;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.CompletableFutureTask;
@@ -32,7 +33,6 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.*;
-import com.powsybl.security.action.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;

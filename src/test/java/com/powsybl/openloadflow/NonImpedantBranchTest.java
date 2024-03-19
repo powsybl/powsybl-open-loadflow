@@ -367,7 +367,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         SecurityAnalysisReport report = securityAnalysisProvider.run(network, network.getVariantManager().getWorkingVariantId(), new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(), LocalComputationManager.getDefault(), new SecurityAnalysisParameters(), provider, Collections.emptyList(),
                 Collections.emptyList(), Collections.emptyList(),
-                Collections.emptyList(), ReportNode.NO_OP).join();
+                Collections.emptyList(), Collections.emptyList(),
+                ReportNode.NO_OP).join();
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(0).getStatus());
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(1).getStatus());
     }
@@ -411,6 +412,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                         Collections.emptyList(),
                         Collections.emptyList(),
                         monitors,
+                        Collections.emptyList(),
                         ReportNode.NO_OP)
                 .join()
                 .getResult();
