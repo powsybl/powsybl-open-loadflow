@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
@@ -29,7 +29,7 @@ public interface OuterLoop<V extends Enum<V> & Quantity,
     default void initialize(O context) {
     }
 
-    OuterLoopStatus check(O context, Reporter reporter);
+    OuterLoopStatus check(O context, ReportNode reportNode);
 
     default void cleanup(O context) {
     }

@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.*;
@@ -755,9 +755,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
-                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reporter);
+                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reportNode);
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -804,17 +804,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reportNode, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reporter, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reportNode, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small reactive range",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reporter, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reportNode, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because targetP is outside active power limits",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
         }
@@ -1000,7 +1000,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     @Override
-    public List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+    public List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
@@ -1047,7 +1047,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
                     return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                            parameters, Reports.createLfNetworkReporter(reporter, numCc, numSc));
+                            parameters, Reports.createLfNetworkReporter(reportNode, numCc, numSc));
                 })
                 .collect(Collectors.toList());
 
