@@ -197,6 +197,10 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         return createBranchIntensityPerPSTAngle(functionId, variableId, TwoSides.ONE);
     }
 
+    protected static SensitivityFactor createBusVoltagePerTargetQ(String functionId, String variableId, String contingencyId) {
+        return new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, functionId, SensitivityVariableType.INJECTION_REACTIVE_POWER, variableId, false, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
+    }
+
     protected static SensitivityFactor createBusVoltagePerTargetV(String functionId, String variableId, String contingencyId) {
         return new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, functionId, SensitivityVariableType.BUS_TARGET_VOLTAGE, variableId, false, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
     }
