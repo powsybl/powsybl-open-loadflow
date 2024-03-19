@@ -91,6 +91,9 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                 case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
                     Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
                     // remaining goes to reference generator, without any limit consideration
+                    LOGGER.debug("{} MW distributed to reference generator '{}'",
+                            remainingMismatch * PerUnit.SB, referenceGenerator.getId());
+                    contextData.addDistributedActivePower(remainingMismatch);
                     referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
                     // create a new result with iteration++, 0.0 mismatch and movedBuses to true
                     result = new ActivePowerDistribution.Result(result.iteration() + 1, 0.0, true);
