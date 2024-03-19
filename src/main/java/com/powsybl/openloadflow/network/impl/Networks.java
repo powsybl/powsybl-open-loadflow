@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
@@ -109,12 +109,12 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters);
     }
 
-    public static List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reporter);
+    public static List<LfNetwork> load(Network network, LfNetworkParameters parameters, ReportNode reportNode) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reportNode);
     }
 
-    public static List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, parameters, reporter);
+    public static List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, parameters, reportNode);
     }
 
     private static void retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig) {
@@ -186,12 +186,12 @@ public final class Networks {
     }
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
-                                     LfTopoConfig topoConfig, Reporter reporter) {
-        return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reporter);
+                                     LfTopoConfig topoConfig, ReportNode reportNode) {
+        return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reportNode);
     }
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
-                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
+                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
@@ -203,7 +203,7 @@ public final class Networks {
             modifiedTopoConfig = topoConfig;
         }
         if (!modifiedTopoConfig.isBreaker() && modifiedTopoConfig.getBranchIdsToClose().isEmpty()) {
-            return new LfNetworkList(load(network, topoConfig, networkParameters, reporter));
+            return new LfNetworkList(load(network, topoConfig, networkParameters, reportNode));
         } else {
             if (!networkParameters.isBreakers() && modifiedTopoConfig.isBreaker()) {
                 throw new PowsyblException("LF networks have to be built from bus/breaker view");
@@ -219,7 +219,7 @@ public final class Networks {
             // and close switches that could be closed during the simulation
             retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
-            List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reporter);
+            List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reportNode);
 
             if (!(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
                 for (LfNetwork lfNetwork : lfNetworks) {

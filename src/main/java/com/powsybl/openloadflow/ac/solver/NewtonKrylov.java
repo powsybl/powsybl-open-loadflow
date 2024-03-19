@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.SparseMatrix;
 import com.powsybl.math.solver.Kinsol;
 import com.powsybl.math.solver.KinsolParameters;
@@ -52,7 +52,7 @@ public class NewtonKrylov extends AbstractAcSolver {
     }
 
     @Override
-    public AcSolverResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
+    public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         // initialize state vector
         AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 

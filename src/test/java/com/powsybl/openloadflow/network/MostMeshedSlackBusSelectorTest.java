@@ -28,7 +28,7 @@ class MostMeshedSlackBusSelectorTest {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var provider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         var runner = new LoadFlow.Runner(provider);
-        var parameters = new LoadFlowParameters();
+        var parameters = new LoadFlowParameters().setWriteSlackBus(false);
         LoadFlowResult result = runner.run(network, parameters);
         assertEquals("VLHV1_0", result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
