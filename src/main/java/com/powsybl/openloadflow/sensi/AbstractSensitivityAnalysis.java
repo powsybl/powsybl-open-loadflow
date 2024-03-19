@@ -221,7 +221,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                                         : ((LfBranch) functionElement).getI2();
                 }
                 case BUS_VOLTAGE -> ((LfBus) functionElement).getCalculatedV();
-                default -> throw new UnsupportedOperationException("Functipn type not supported: " + functionType);
+                default -> throw new UnsupportedOperationException("Function type not supported: " + functionType);
             };
         }
 
