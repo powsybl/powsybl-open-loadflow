@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -14,6 +16,8 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -38,5 +42,22 @@ class MostMeshedSlackBusSelectorTest {
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> parametersExt.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(120));
         assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 120.0", exception.getMessage());
+    }
+
+    @Test
+    void testMultipleSlackBuses() {
+        Network network = MetrixTutorialSixBusesFactory.create();
+        network.getLine("NO_N_1")
+                .setR(0.0)
+                .setX(0.0);
+        var provider = new OpenLoadFlowProvider(new DenseMatrixFactory());
+        var runner = new LoadFlow.Runner(provider);
+        var parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
+                .setMaxSlackBusCount(3);
+        LoadFlowResult result = runner.run(network, parameters);
+
+        assertEquals(List.of("NE_poste_0", "NO_poste_0", "SE_poste_0"), result.getComponentResults().get(0).getSlackBusResults().stream().map(r -> r.getId()).toList());
     }
 }

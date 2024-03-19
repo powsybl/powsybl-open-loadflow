@@ -51,7 +51,6 @@ public class MostMeshedSlackBusSelector extends AbstractSlackBusSelector {
                 .filter(this::filterByCountry)
                 .sorted(Comparator.comparingInt(MostMeshedSlackBusSelector::getBranchCountConnectedAtBothSides)
                         .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
-                .filter(distinctByNonImpedantBranch())
             .limit(limit)
             .toList();
 
