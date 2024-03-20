@@ -641,6 +641,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
     }
 
+    @Test
     void testInjectionQPerTargetV() {
         Network network = ReactiveInjectionNetworkFactory.createTwoGensOneLoad();
 

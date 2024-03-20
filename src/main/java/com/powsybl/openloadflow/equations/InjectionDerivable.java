@@ -18,7 +18,7 @@ public class InjectionDerivable<V extends Enum<V> & Quantity> implements Derivab
 
     private Stream<? extends EquationTerm<V, ?>> getBranchTermStream() {
         return equation.getTerms().stream().filter(EquationTerm::isActive)
-                .filter(t -> t.getElementType() == ElementType.BRANCH || t.getElementType() == ElementType.HVDC);
+                .filter(t -> t.getElementType() == ElementType.BRANCH);
     }
 
     @Override
