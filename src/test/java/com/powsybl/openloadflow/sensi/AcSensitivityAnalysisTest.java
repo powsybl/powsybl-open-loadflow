@@ -714,6 +714,33 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testInjectionQPerTargetVCornerCases() {
+        // Tests mainly created to satisfy code coverage criteria
+        Network network = ShuntNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
+
+        // Test a combination that is not supported yet
+        SensitivityFactor notSupportedYetAndSonarWantsToSeeItInAction =
+                new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, "b1",
+                        SensitivityVariableType.INJECTION_ACTIVE_POWER, "b2", false,
+                        ContingencyContext.all());
+        Throwable thrown = assertThrows(CompletionException.class,
+                () -> sensiRunner.run(network, Arrays.asList(notSupportedYetAndSonarWantsToSeeItInAction), Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        assertTrue(thrown.getMessage().contains("Variable type INJECTION_ACTIVE_POWER not supported with function type BUS_REACTIVE_POWER"));
+
+        // Test sensitivity for a bus that does not exist in the LfNetwork
+        network.getVoltageLevel("vl1").getBusBreakerView().newBus().setId("NotConnected").add();
+        SensitivityFactor injectionBusDoesNotExist =
+                new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, "NotConnected",
+                        SensitivityVariableType.BUS_TARGET_VOLTAGE, "g1", false,
+                        ContingencyContext.all());
+        SensitivityAnalysisResult result = sensiRunner.run(network, Arrays.asList(injectionBusDoesNotExist), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0,
+                result.getSensitivityValue("g1", "NotConnected", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE),
+                0);
+    }
+
+    @Test
     void testAdditionnalFactors() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
