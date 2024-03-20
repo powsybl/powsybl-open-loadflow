@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -25,7 +25,7 @@ public class NoneStateVectorScaling implements StateVectorScaling {
     }
 
     @Override
-    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, Reporter reporter) {
+    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, ReportNode reportNode) {
         // nothing to do
     }
 
@@ -35,7 +35,7 @@ public class NoneStateVectorScaling implements StateVectorScaling {
                                                                TargetVector<AcVariableType, AcEquationType> targetVector,
                                                                NewtonRaphsonStoppingCriteria stoppingCriteria,
                                                                NewtonRaphsonStoppingCriteria.TestResult testResult,
-                                                               Reporter reporter) {
+                                                               ReportNode reportNode) {
         return testResult;
     }
 }

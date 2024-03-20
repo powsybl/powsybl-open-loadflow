@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.*;
@@ -221,6 +221,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                                         : ((LfBranch) functionElement).getI2();
                 }
                 case BUS_VOLTAGE -> ((LfBus) functionElement).getCalculatedV();
+                default -> throw new UnsupportedOperationException("Function type not supported: " + functionType);
             };
         }
 
@@ -469,6 +470,15 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             int column = p.getColumn();
             rhs.add(column, getIndex(), injection);
         }
+
+        protected void addBusReactiveInjection(Matrix rhs, LfBus lfBus, double injection) {
+            Equation<V, E> q = (Equation<V, E>) lfBus.getQ();
+            if (!q.isActive()) {
+                return;
+            }
+            int column = q.getColumn();
+            rhs.add(column, getIndex(), injection);
+        }
     }
 
     private static NotImplementedException createVariableTypeNotImplementedException(SensitivityVariableType variableType) {
@@ -502,6 +512,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         addBusInjection(rhs, lfBus, injection);
                     }
                     addBusInjection(rhs, (LfBus) variableElement, 1d);
+                    break;
+                case INJECTION_REACTIVE_POWER:
+                    addBusReactiveInjection(rhs, (LfBus) variableElement, 1d);
                     break;
                 case BUS_TARGET_VOLTAGE:
                     if (variableEquation.isActive()) {
@@ -1114,10 +1127,16 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     } else if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
                         checkBus(network, functionId, busCache, breakers);
                         functionElement = lfNetwork.getBusById(functionId);
-                        if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                        } else {
-                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                        switch (variableType) {
+                            case BUS_TARGET_VOLTAGE :
+                                variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                                break;
+                            case INJECTION_REACTIVE_POWER:
+                                String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
+                                variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                                break;
+                            default:
+                                throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (isReactivePowerFunctionType(functionType)) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
@@ -1211,6 +1230,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                                        PerUnit.ib(branch2.getBus2().getNominalV());
             }
             case BUS_VOLTAGE -> ((LfBus) factor.getFunctionElement()).getNominalV();
+            default -> throw new UnsupportedOperationException("Function type not supported: " + factor.getFunctionType());
         };
     }
 
@@ -1219,7 +1239,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
      */
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getVariableBaseValue(LfSensitivityFactor<V, E> factor) {
         switch (factor.getVariableType()) {
-            case HVDC_LINE_ACTIVE_POWER, INJECTION_ACTIVE_POWER:
+            case HVDC_LINE_ACTIVE_POWER, INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER:
                 return PerUnit.SB;
             case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                 return 1; //TODO: radians ?
@@ -1254,7 +1274,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, Reporter reporter, LfTopoConfig topoConfig);
+                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig);
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {

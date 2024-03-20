@@ -8,7 +8,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -46,7 +46,7 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
     }
 
     @Override
-    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, Reporter reporter) {
+    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, ReportNode reportNode) {
         int vCutCount = 0;
         int phiCutCount = 0;
         double stepSize = 1.0;
@@ -72,8 +72,8 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
         }
         if (vCutCount > 0 || phiCutCount > 0) {
             LOGGER.debug("Step size: {} ({} dv and {} dphi changes outside thresholds)", stepSize, vCutCount, phiCutCount);
-            if (reporter != null) {
-                Reports.reportMaxVoltageChangeStateVectorScaling(reporter, stepSize, vCutCount, phiCutCount);
+            if (reportNode != null) {
+                Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, vCutCount, phiCutCount);
             }
             Vectors.mult(dx, stepSize);
         }
@@ -85,7 +85,7 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
                                                                TargetVector<AcVariableType, AcEquationType> targetVector,
                                                                NewtonRaphsonStoppingCriteria stoppingCriteria,
                                                                NewtonRaphsonStoppingCriteria.TestResult testResult,
-                                                               Reporter reporter) {
+                                                               ReportNode reportNode) {
         // nothing to do
         return testResult;
     }
