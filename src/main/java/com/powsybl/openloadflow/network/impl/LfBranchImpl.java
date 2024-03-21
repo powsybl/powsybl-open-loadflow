@@ -270,23 +270,24 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         if (limits.getLimitType() != LimitType.CURRENT) {
             return Collections.emptyList();
         }
-        List<Double> limitReductions = new ArrayList<>();
+        List<Double> limitReductions = new ArrayList<>(limits.getTemporaryLimits().size() + 1);
         double nominalV = branchRef.get().getTerminal(side).getVoltageLevel().getNominalV();
-        for (LimitReductionManager.TerminalLimitReduction terminalLimitReduction : limitReductionManager.getTerminalLimitReductions()) {
-                if (nominalV >= terminalLimitReduction.getMinNominalV() && nominalV <= terminalLimitReduction.getMaxNominalV()) {
+        int i = 0;
+        for (LoadingLimits.TemporaryLimit temporaryLimit : limits.getTemporaryLimits()) {
+            i++;
+            for (LimitReductionManager.TerminalLimitReduction terminalLimitReduction : limitReductionManager.getTerminalLimitReductions()) {
+                if (terminalLimitReduction.getNominalV().contains(nominalV)) {
                     if (terminalLimitReduction.isPermanent()) {
-                       limitReductions.add(terminalLimitReduction.getReduction());
+                        limitReductions.add(0, terminalLimitReduction.getReduction());
                     }
-                    if (terminalLimitReduction.getMaxAcceptableDuration() != null) {
-                        for (LoadingLimits.TemporaryLimit temporaryLimit : limits.getTemporaryLimits()) {
-                            if (temporaryLimit.getAcceptableDuration() <= terminalLimitReduction.getMaxAcceptableDuration()) {
-                                limitReductions.add(terminalLimitReduction.getReduction());
-                            } else {
-                                limitReductions.add(1.0);
-                            }
+                    if (terminalLimitReduction.getAcceptableDuration() != null) {
+                        if (terminalLimitReduction.getAcceptableDuration().contains(temporaryLimit.getAcceptableDuration())) {
+                            limitReductions.add(i, terminalLimitReduction.getReduction());
+                            break;
                         }
                     }
                 }
+            }
         }
         return limitReductions;
     }

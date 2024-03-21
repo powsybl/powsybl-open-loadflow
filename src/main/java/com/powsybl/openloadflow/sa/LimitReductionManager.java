@@ -6,10 +6,19 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.contingency.ContingencyContextType;
+import com.powsybl.iidm.criteria.IdentifiableCriterion;
+import com.powsybl.iidm.criteria.NetworkElementCriterion;
+import com.powsybl.iidm.criteria.duration.*;
+import com.powsybl.iidm.network.LimitType;
+import com.powsybl.security.limitreduction.LimitReduction;
+import org.apache.commons.lang3.Range;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  *
@@ -17,18 +26,19 @@ import java.util.List;
  */
 public class LimitReductionManager {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LimitReductionManager.class);
+
     public static class TerminalLimitReduction {
-        double minNominalV;
-        double maxNominalV;
+
+        Range<Double> nominalV;
+        Range<Integer> acceptableDuration; // can be null
         boolean isPermanent;
-        Integer maxAcceptableDuration; // could be null
         double reduction;
 
-        public TerminalLimitReduction(double minNominalV, double maxNominalV, boolean isPermanent, Integer maxAcceptableDuration, double reduction) {
-            this.minNominalV = minNominalV;
-            this.maxNominalV = maxNominalV;
+        public TerminalLimitReduction(Range<Double> nominalV, boolean isPermanent, Range<Integer> acceptableDuration, double reduction) {
+            this.nominalV = nominalV;
             this.isPermanent = isPermanent;
-            this.maxAcceptableDuration = maxAcceptableDuration;
+            this.acceptableDuration = acceptableDuration;
             this.reduction = reduction;
         }
 
@@ -36,29 +46,22 @@ public class LimitReductionManager {
             return isPermanent;
         }
 
-        public double getMinNominalV() {
-            return minNominalV;
-        }
-
-        public double getMaxNominalV() {
-            return maxNominalV;
-        }
-
-        public Integer getMaxAcceptableDuration() {
-            return maxAcceptableDuration;
-        }
-
         public double getReduction() {
             return reduction;
+        }
+
+        public Range<Double> getNominalV() {
+            return nominalV;
+        }
+
+        public Range<Integer> getAcceptableDuration() {
+            return acceptableDuration;
         }
     }
 
     List<TerminalLimitReduction> terminalLimitReductions = new ArrayList<>();
 
-    LfNetwork network;
-
-    public LimitReductionManager(LfNetwork network) {
-        this.network = network;
+    public LimitReductionManager() {
     }
 
     public List<TerminalLimitReduction> getTerminalLimitReductions() {
@@ -69,5 +72,95 @@ public class LimitReductionManager {
 
     public void addTerminalLimitReduction(TerminalLimitReduction terminalLimitReduction) {
         this.terminalLimitReductions.add(terminalLimitReduction);
+    }
+
+    public static LimitReductionManager create(List<LimitReduction> limitReductions) {
+        LimitReductionManager limitReductionManager = new LimitReductionManager();
+        Range<Double> nominalVoltageRange = Range.of(0.0, 1000.0);
+        Range<Integer> acceptableDurationRange = null; // nothing asked
+        boolean permanent = false;
+        for (LimitReduction limitReduction : limitReductions) {
+            if (isSupported(limitReduction)) {
+                if (limitReduction.getNetworkElementCriteria().isEmpty()) {
+                    // nothing todo
+                } else {
+                    for (NetworkElementCriterion networkElementCriterion : limitReduction.getNetworkElementCriteria()) {
+                        IdentifiableCriterion identifiableCriterion = (IdentifiableCriterion) networkElementCriterion;
+                        nominalVoltageRange = Range.of(identifiableCriterion.getNominalVoltageCriterion().getVoltageInterval().getNominalVoltageLowBound(),
+                                identifiableCriterion.getNominalVoltageCriterion().getVoltageInterval().getNominalVoltageHighBound());
+                        if (limitReduction.getDurationCriteria().isEmpty()) {
+                            permanent = true;
+                        } else { // size 1 or 2 only.
+                            for (LimitDurationCriterion limitDurationCriterion : limitReduction.getDurationCriteria()) {
+                                switch (limitDurationCriterion.getType()) {
+                                    case PERMANENT -> permanent = true;
+                                    case TEMPORARY -> {
+                                        acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
+                                        if (limitDurationCriterion instanceof AllTemporaryDurationCriterion) {
+                                            acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
+                                        } else if (limitDurationCriterion instanceof EqualityTemporaryDurationCriterion) {
+                                            EqualityTemporaryDurationCriterion equalityTemporaryDurationCriterion = (EqualityTemporaryDurationCriterion) limitDurationCriterion;
+                                            acceptableDurationRange = Range.of(equalityTemporaryDurationCriterion.getDurationEqualityValue(),
+                                                    equalityTemporaryDurationCriterion.getDurationEqualityValue());
+                                        } else { // intervalTemporaryDurationCriterion
+                                            IntervalTemporaryDurationCriterion intervalTemporaryDurationCriterion = (IntervalTemporaryDurationCriterion) limitDurationCriterion;
+                                            acceptableDurationRange = getRange(intervalTemporaryDurationCriterion);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        limitReductionManager.addTerminalLimitReduction(new TerminalLimitReduction(nominalVoltageRange, permanent, acceptableDurationRange, limitReduction.getValue()));
+                    }
+                }
+            }
+        }
+        return limitReductionManager;
+    }
+
+    private static boolean isSupported(LimitReduction limitReduction) {
+        if (!limitReduction.getContingencyContext().getContextType().equals(ContingencyContextType.ALL)) {
+            // Contingency context NONE with empty contingency lists could be supported too.
+            LOGGER.warn("Only contingency context ALL is yet supported.");
+            return false;
+        }
+        if (limitReduction.isMonitoringOnly()) {
+            // This means that post-contingency limit violations with reductions must not be used for the conditions of
+            // operator strategy.
+            LOGGER.warn("Limit reductions for monitoring only is not yet supported.");
+            return false;
+        }
+        if (limitReduction.getLimitType() != LimitType.CURRENT) {
+            // Note: a list of limit types could be a good feature?
+            LOGGER.warn("Only limit reductions for current limits are yet supported.");
+            return false;
+        }
+        if (limitReduction.getNetworkElementCriteria().stream().anyMatch(Predicate.not(IdentifiableCriterion.class::isInstance))) {
+            LOGGER.warn("Only no network element criterion or identifiable criteria is yet supported.");
+            return false;
+        }
+        if (limitReduction.getDurationCriteria().size() > 2) {
+            LOGGER.warn("More than two duration criteria provided.");
+            return false;
+        }
+        return true;
+    }
+
+    private static Range<Integer> getRange(IntervalTemporaryDurationCriterion intervalTemporaryDurationCriterion) {
+        Integer lowBound = 0;
+        Integer highBound = Integer.MAX_VALUE;
+        if (intervalTemporaryDurationCriterion.getLowBound().isPresent()) {
+            lowBound = intervalTemporaryDurationCriterion.getLowBound().get();
+            if (!intervalTemporaryDurationCriterion.isLowClosed()) {
+                lowBound = lowBound + 1;
+            }
+        }
+        if (intervalTemporaryDurationCriterion.getHighBound().isPresent()) {
+            highBound = intervalTemporaryDurationCriterion.getHighBound().get();
+            if (!intervalTemporaryDurationCriterion.isHighClosed()) {
+                highBound = highBound - 1;
+            }
+        }
+        return Range.of(lowBound, highBound);
     }
 }

@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
