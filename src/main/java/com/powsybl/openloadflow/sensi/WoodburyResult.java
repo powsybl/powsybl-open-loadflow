@@ -24,10 +24,12 @@ public class WoodburyResult {
     private final HashMap<Integer, DenseMatrix> postContingenciesFlowStates;
     private final HashMap<Integer, DenseMatrix> postContingenciesStates; // indexed on the contingencies
     private final HashMap<Integer, DisabledNetwork> postContingenciesDisabledNetworks;
+    private final HashMap<Integer, Boolean> isContingencySuccessful;
 
     public WoodburyResult(DenseMatrix preContingenciesFactorStates, List<PropagatedContingency> contingencies) {
         this.preContingenciesFactorStates = preContingenciesFactorStates;
         this.contingencies = contingencies;
+        this.isContingencySuccessful = new HashMap<>();
         this.postContingenciesFlowStates = new HashMap<>();
         this.postContingenciesStates = new HashMap<>();
         this.postContingenciesDisabledNetworks = new HashMap<>();
@@ -59,5 +61,9 @@ public class WoodburyResult {
 
     public HashMap<Integer, DisabledNetwork> getPostContingenciesDisabledNetworks() {
         return postContingenciesDisabledNetworks;
+    }
+
+    public HashMap<Integer, Boolean> getIsContingencySuccessful() {
+        return isContingencySuccessful;
     }
 }

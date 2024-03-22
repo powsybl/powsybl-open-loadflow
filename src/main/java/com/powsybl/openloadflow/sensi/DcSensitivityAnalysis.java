@@ -189,6 +189,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return initFactorsRhs(loadFlowContext.getEquationSystem(), factorGroups, slackParticipationByBus);
     }
 
+    private void setContingencyStatus(SensitivityResultWriter resultWriter, WoodburyResult result) {
+        for (var contingencyImpact : result.getIsContingencySuccessful().entrySet()) {
+            SensitivityAnalysisResult.Status status = contingencyImpact.getValue() ? SensitivityAnalysisResult.Status.SUCCESS : SensitivityAnalysisResult.Status.NO_IMPACT;
+            resultWriter.writeContingencyStatus(contingencyImpact.getKey(), status);
+        }
+    }
+
     @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode reportNode,
@@ -296,7 +303,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 WoodburyEngine engine = new WoodburyEngine();
                 // TODO : remove factor groups from woodbury engine
                 WoodburyResult results = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors,
-                        contingencies, participatingElements, reporter, resultWriter, factorGroups);
+                        contingencies, participatingElements, reporter, factorGroups);
+
+                setContingencyStatus(resultWriter, results);
 
                 // Set base case/reference values of the sensitivities
                 setFunctionReference(validLfFactors, results.getPreContingenciesFlowStates());
