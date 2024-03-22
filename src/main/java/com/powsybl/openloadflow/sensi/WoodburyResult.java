@@ -7,6 +7,7 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import java.util.HashMap;
 import java.util.List;
 
+// TODO : refactor to avoid matrices storage
 public class WoodburyResult {
     private double[] preContingenciesFlowStates;
     private final DenseMatrix preContingenciesFactorStates;
