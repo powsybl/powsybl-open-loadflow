@@ -80,13 +80,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void createBranchPostContingenciesSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup,
-                                                               List<PropagatedContingency> contingencies, SensitivityResultWriter resultWriter, WoodburyResult results) {
+                                                               List<PropagatedContingency> contingencies, SensitivityResultWriter resultWriter, WoodburyEngineResult results) {
 
         // TODO : refactor
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         for (var contingency : contingencies) {
 
-            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, results.getPostContingenciesDisabledNetworks().get(contingency.getIndex()), contingency);
+            WoodburyEngineResult.PostContingencyWoodburyResult result = results.getPostContingencyWoodburyResults().get(contingency);
+
+            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, result.getPostContingencyDisabledNetwork(), contingency);
             Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
             Optional<Double> functionPredefinedResults = predefinedResults.getRight();
 
@@ -94,11 +96,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
 
             if (sensitivityValuePredefinedResult.isEmpty()) {
-                sensitivityValue = p1.calculateSensi(results.getPostContingenciesStates().get(contingency.getIndex()), factorGroup.getIndex());
+                sensitivityValue = p1.calculateSensi(result.getPostContingencyStates(), factorGroup.getIndex());
             }
 
             if (functionPredefinedResults.isEmpty()) {
-                functionValue = p1.calculateSensi(results.getPostContingenciesFlowStates().get(contingency.getIndex()), 0);
+                functionValue = p1.calculateSensi(result.getPostContingencyFlowStates(), 0);
             }
 
             functionValue = fixZeroFunctionReference(contingency, functionValue);
@@ -144,7 +146,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     /**
      * Calculate sensitivity values for post-contingency state.
      */
-    private void calculateSensitivityValues(WoodburyResult woodburyResult, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors,
+    private void calculateSensitivityValues(WoodburyEngineResult woodburyEngineResult, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors,
                                             List<PropagatedContingency> contingencies, SensitivityResultWriter resultWriter) {
         if (lfFactors.isEmpty()) {
             return;
@@ -154,7 +156,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
                 .forEach(factor -> {
                     createBranchPreContingencySensitivityValue(factor, resultWriter);
-                    createBranchPostContingenciesSensitivityValue(factor, null, contingencies, resultWriter, woodburyResult);
+                    createBranchPostContingenciesSensitivityValue(factor, null, contingencies, resultWriter, woodburyEngineResult);
                 });
 
         Map<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> factorsByGroup = lfFactors.stream()
@@ -165,7 +167,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             List<LfSensitivityFactor<DcVariableType, DcEquationType>> factorsForThisGroup = e.getValue();
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factorsForThisGroup) {
                 createBranchPreContingencySensitivityValue(factor, resultWriter);
-                createBranchPostContingenciesSensitivityValue(factor, factorGroup, contingencies, resultWriter, woodburyResult);
+                createBranchPostContingenciesSensitivityValue(factor, factorGroup, contingencies, resultWriter, woodburyEngineResult);
             }
         }
     }
@@ -189,10 +191,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return initFactorsRhs(loadFlowContext.getEquationSystem(), factorGroups, slackParticipationByBus);
     }
 
-    private void setContingencyStatus(SensitivityResultWriter resultWriter, WoodburyResult result) {
-        for (var contingencyImpact : result.getIsContingencySuccessful().entrySet()) {
-            SensitivityAnalysisResult.Status status = contingencyImpact.getValue() ? SensitivityAnalysisResult.Status.SUCCESS : SensitivityAnalysisResult.Status.NO_IMPACT;
-            resultWriter.writeContingencyStatus(contingencyImpact.getKey(), status);
+    /**
+     * Write contingency statuses after woodbury engine calculation.
+     */
+    private void setContingencyStatus(SensitivityResultWriter resultWriter, WoodburyEngineResult woodburyEngineResult) {
+        for (var contingencyStatus : woodburyEngineResult.getContingencyStatuses().entrySet()) {
+            SensitivityAnalysisResult.Status status = contingencyStatus.getValue() ? SensitivityAnalysisResult.Status.SUCCESS : SensitivityAnalysisResult.Status.NO_IMPACT;
+            resultWriter.writeContingencyStatus(contingencyStatus.getKey().getIndex(), status);
         }
     }
 
@@ -302,14 +307,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 WoodburyEngine engine = new WoodburyEngine();
                 // TODO : remove factor groups from woodbury engine
-                WoodburyResult results = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors,
+                WoodburyEngineResult results = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors,
                         contingencies, participatingElements, reporter, factorGroups);
 
                 setContingencyStatus(resultWriter, results);
 
                 // Set base case/reference values of the sensitivities
                 setFunctionReference(validLfFactors, results.getPreContingenciesFlowStates());
-                setBaseCaseSensitivityValues(factorGroups, results.getPreContingenciesFactorStates()); // use this state to compute the base sensitivity (without +1-1)
+                setBaseCaseSensitivityValues(factorGroups, results.getPreContingenciesStates()); // use this state to compute the base sensitivity (without +1-1)
 
                 // Compute sensibilities for given factors
                 calculateSensitivityValues(results, factorGroups,

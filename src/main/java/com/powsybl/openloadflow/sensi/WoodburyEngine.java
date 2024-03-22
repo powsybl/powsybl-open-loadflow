@@ -41,7 +41,7 @@ public class WoodburyEngine {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(WoodburyEngine.class);
     private static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
-    private WoodburyResult woodburyResult;
+    private WoodburyEngineResult woodburyEngineResult;
 
     static final class ComputedContingencyElement {
 
@@ -213,7 +213,7 @@ public class WoodburyEngine {
         double[] dx = runDcLoadFlow(loadFlowContext, disabledNetwork, reporter);
         // TODO : remove following ?
         if (updateFlowStates) {
-            woodburyResult.setPreContingenciesFlowStates(dx);
+            woodburyEngineResult.setPreContingenciesFlowStates(dx);
         }
 
         if (parameters.isDistributedSlack()) {
@@ -448,8 +448,7 @@ public class WoodburyEngine {
                 connectivityAnalysisResult.getContingencies().addAll(contingencyList);
 
                 for (PropagatedContingency propagatedContingency : contingencyList) {
-                    woodburyResult.getIsContingencySuccessful().put(propagatedContingency.getIndex(), true);
-
+                    woodburyEngineResult.getContingencyStatuses().put(propagatedContingency, true);
                 }
             }
             connectivity.undoTemporaryChanges();
@@ -622,8 +621,10 @@ public class WoodburyEngine {
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
             calculateStateValues(loadFlowContext, flowStates, preContingencyStates, contingenciesStates, contingency, contingencyElements, disabledNetwork);
             // write contingency status
-            woodburyResult.getIsContingencySuccessful().put(contingency.getIndex(), !contingency.hasNoImpact());
-//            if (contingency.hasNoImpact()) {
+
+            woodburyEngineResult.getContingencyStatuses().put(contingency, !contingency.hasNoImpact());
+//            woodburyEngineResult.getPostContingencyWoodburyResults().get(contingency).setContingencySuccessful(!contingency.hasNoImpact());
+//            if (contingency.hasNoImpact())
 ////                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
 //            } else {
 ////                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
@@ -667,10 +668,10 @@ public class WoodburyEngine {
                 }
                 // write contingency status
 //                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
-                woodburyResult.getIsContingencySuccessful().put(contingency.getIndex(), true);
+                woodburyEngineResult.getContingencyStatuses().put(contingency, true);
             } else {
                 // write contingency status
-                woodburyResult.getIsContingencySuccessful().put(contingency.getIndex(), false);
+                woodburyEngineResult.getContingencyStatuses().put(contingency, false);
 //                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
             }
             DenseMatrix newFlowStates = calculateActivePowerFlows(loadFlowContext, newParticipatingElements, disabledNetwork, reporter, false);
@@ -699,8 +700,6 @@ public class WoodburyEngine {
                                       PropagatedContingency contingency, Collection<ComputedContingencyElement> contingencyElements, DisabledNetwork disabledNetwork) {
 
         // TODO : refactor with WoodburyResult class
-        int contingencyIndex = contingency.getIndex();
-
         // add the post contingency matrices of flow states
         DenseMatrix postContingencyFlowStates = new DenseMatrix(flowStates.getRowCount(), 1);
         setAlphas(loadFlowContext, contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
@@ -711,7 +710,6 @@ public class WoodburyEngine {
             }
             postContingencyFlowStates.set(rowIndex, 0, postContingencyFlowValue);
         }
-        woodburyResult.getPostContingenciesFlowStates().put(contingencyIndex, postContingencyFlowStates);
 
         // add the post contingency matrices of the states
         DenseMatrix postContingencyStates = new DenseMatrix(preContingencyStates.getRowCount(), preContingencyStates.getColumnCount());
@@ -725,10 +723,10 @@ public class WoodburyEngine {
                 postContingencyStates.set(rowIndex, columnIndex, postContingencyValue);
             }
         }
-        woodburyResult.getPostContingenciesStates().put(contingencyIndex, postContingencyStates);
 
-        // add the disabled networks associated to the contingency
-        woodburyResult.getPostContingenciesDisabledNetworks().put(contingency.getIndex(), disabledNetwork);
+        WoodburyEngineResult.PostContingencyWoodburyResult postContingencyWoodburyResult =
+                new WoodburyEngineResult.PostContingencyWoodburyResult(postContingencyFlowStates, postContingencyStates, disabledNetwork);
+        woodburyEngineResult.getPostContingencyWoodburyResults().put(contingency, postContingencyWoodburyResult);
     }
 
     private static Map<String, ComputedContingencyElement> createContingencyElementsIndexByBranchId(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, List<PropagatedContingency> contingencies) {
@@ -747,13 +745,13 @@ public class WoodburyEngine {
         return contingencyElementByBranch;
     }
 
-    public WoodburyResult run(DcLoadFlowContext loadFlowContext, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
+    public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                     DenseMatrix injectionVectors, List<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements,
                                     Reporter reporter, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups) {
 
         loadFlowContext.getJacobianMatrix().solveTransposed(injectionVectors);
         // TODO : refactor to avoid matrices storage
-        woodburyResult = new WoodburyResult(injectionVectors, contingencies);
+        woodburyEngineResult = new WoodburyEngineResult(injectionVectors);
         DenseMatrix flowStates = calculateActivePowerFlows(loadFlowContext, participatingElements, new DisabledNetwork(), reporter, true);
 
         // index contingency elements by branch id
@@ -798,6 +796,6 @@ public class WoodburyEngine {
                     flowStates, injectionVectors, contingenciesStates, contingencyElementByBranch, participatingElements, reporter, factorGroups);
         }
 
-        return woodburyResult;
+        return woodburyEngineResult;
     }
 }
