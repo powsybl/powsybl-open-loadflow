@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem
 import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -135,16 +136,17 @@ public final class Networks {
         }); // in order to be present in the network.
     }
 
-    private static void restoreInitialTopology(LfNetwork network, Set<Switch> allSwitchesToClose, Set<String> branchIdsToClose) {
+    private static Set<String> restoreInitialTopology(LfNetwork network, Set<String> switchAndBranchIdsToClose) {
+        Set<String> switchAndBranchIdsLeftToClose = new HashSet<>();
         var connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
-        allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
+        switchAndBranchIdsToClose.forEach(id -> {
             LfBranch branch = network.getBranchById(id);
-            connectivity.removeEdge(branch);
-        });
-        branchIdsToClose.stream().forEach(id -> {
-            LfBranch branch = network.getBranchById(id);
-            connectivity.removeEdge(branch);
+            if (branch != null) {
+                connectivity.removeEdge(branch);
+            } else {
+                switchAndBranchIdsLeftToClose.add(id);
+            }
         });
         Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
         removedBuses.forEach(bus -> bus.setDisabled(true));
@@ -161,6 +163,7 @@ public final class Networks {
                 hvdc.getConverterStation2().setTargetP(0.0);
             }
         }
+        return switchAndBranchIdsLeftToClose;
     }
 
     private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem system) {
@@ -222,9 +225,18 @@ public final class Networks {
             List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reportNode);
 
             if (!(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
+                Set<String> switchAndBranchIdsLeftToClose = modifiedTopoConfig.getSwitchesToClose().stream().filter(Objects::nonNull).map(Identifiable::getId).collect(Collectors.toSet());
+                switchAndBranchIdsLeftToClose.addAll(modifiedTopoConfig.getBranchIdsToClose());
                 for (LfNetwork lfNetwork : lfNetworks) {
+                    // all switches and branches were closed
+                    if (switchAndBranchIdsLeftToClose.isEmpty()) {
+                        break;
+                    }
                     // disable all buses and branches not connected to main component (because of switch to close)
-                    restoreInitialTopology(lfNetwork, modifiedTopoConfig.getSwitchesToClose(), modifiedTopoConfig.getBranchIdsToClose());
+                    switchAndBranchIdsLeftToClose = restoreInitialTopology(lfNetwork, switchAndBranchIdsLeftToClose);
+                }
+                if (!switchAndBranchIdsLeftToClose.isEmpty()) {
+                    throw new PowsyblException("Could not restore initial topology: " + switchAndBranchIdsLeftToClose.size() + " switches or branches were not closed");
                 }
             }
 
