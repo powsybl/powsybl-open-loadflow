@@ -34,7 +34,6 @@ import java.util.*;
 import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 import static com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysis.getParticipatingElements;
 
 public class WoodburyEngine {
@@ -151,7 +150,7 @@ public class WoodburyEngine {
         }
     }
 
-    private static final class ConnectivityAnalysisResult {
+   static final class ConnectivityAnalysisResult {
 
         private final Collection<PropagatedContingency> contingencies = new HashSet<>();
 
@@ -172,7 +171,7 @@ public class WoodburyEngine {
             partialDisabledBranches = connectivity.getEdgesRemovedFromMainComponent();
         }
 
-        private Collection<PropagatedContingency> getContingencies() {
+        public Collection<PropagatedContingency> getContingencies() {
             return contingencies;
         }
 
@@ -180,11 +179,11 @@ public class WoodburyEngine {
             return elementsToReconnect;
         }
 
-        private Set<LfBus> getDisabledBuses() {
+        public Set<LfBus> getDisabledBuses() {
             return disabledBuses;
         }
 
-        private Set<LfBus> getSlackConnectedComponent() {
+        public Set<LfBus> getSlackConnectedComponent() {
             return slackConnectedComponent;
         }
 
@@ -502,7 +501,8 @@ public class WoodburyEngine {
                                                           DenseMatrix flowStates, DenseMatrix preContingencyStates,
                                                           DenseMatrix contingenciesStates, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                           List<ParticipatingElement> participatingElements,
-                                                          ReportNode reporter, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups) {
+                                                          ReportNode reporter, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
+                                                          WoodburyEngineInjectionInput input) {
         DenseMatrix modifiedFlowStates = flowStates;
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
@@ -544,14 +544,15 @@ public class WoodburyEngine {
                 reporter, false);
         calculateStateValuesForContingencyList(loadFlowContext, lfParametersExt, contingenciesStates, modifiedFlowStates, factorStateForThisConnectivity, connectivityAnalysisResult.getContingencies(),
                 contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity, connectivityAnalysisResult.getElementsToReconnect(),
-                reporter, partialDisabledBranches, factorGroups);
+                reporter, partialDisabledBranches, factorGroups, input);
     }
 
     private void calculateStateValuesForContingencyList(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, DenseMatrix contingenciesStates, DenseMatrix flowStates,
                                                         DenseMatrix preContingencyStates, Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                         Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements, Set<String> elementsToReconnect,
                                                         ReportNode reporter, Set<LfBranch> partialDisabledBranches,
-                                                        AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups) {
+                                                        AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
+                                                        WoodburyEngineInjectionInput input) {
         DenseMatrix modifiedFlowStates = flowStates;
 
         PhaseTapChangerContingenciesIndexing phaseTapChangerContingenciesIndexing = new PhaseTapChangerContingenciesIndexing(contingencies, contingencyElementByBranch, elementsToReconnect);
@@ -570,14 +571,13 @@ public class WoodburyEngine {
             disabledBranches.addAll(partialDisabledBranches);
 
             calculateContingencyStateValues(loadFlowContext, lfParametersExt, modifiedFlowStates, preContingencyStates, contingency, contingenciesStates, contingencyElements,
-                    new DisabledNetwork(disabledBuses, disabledBranches), participatingElements, reporter, factorGroups);
+                    new DisabledNetwork(disabledBuses, disabledBranches), participatingElements, reporter, factorGroups, input);
         }
 
         // then we compute the ones involving the loss of a phase tap changer (because we need to recompute the load flows)
         for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> e : phaseTapChangerContingenciesIndexing.getContingenciesIndexedByPhaseTapChangers().entrySet()) {
             Set<LfBranch> disabledPhaseTapChangers = e.getKey();
             Collection<PropagatedContingency> propagatedContingencies = e.getValue();
-            // FIXME : what happens if lfFactors is null ?
             modifiedFlowStates = calculateActivePowerFlows(loadFlowContext, participatingElements,
                     new DisabledNetwork(disabledBuses, disabledPhaseTapChangers), reporter, false);
 
@@ -591,7 +591,7 @@ public class WoodburyEngine {
                 disabledBranches.addAll(partialDisabledBranches);
 
                 calculateContingencyStateValues(loadFlowContext, lfParametersExt, modifiedFlowStates, preContingencyStates, contingency, contingenciesStates,
-                        contingencyElements, new DisabledNetwork(disabledBuses, disabledBranches), participatingElements, reporter, factorGroups);
+                        contingencyElements, new DisabledNetwork(disabledBuses, disabledBranches), participatingElements, reporter, factorGroups, input);
             }
         }
     }
@@ -616,81 +616,73 @@ public class WoodburyEngine {
      */
     private void calculateContingencyStateValues(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, DenseMatrix flowStates, DenseMatrix preContingencyStates,
                                                  PropagatedContingency contingency, DenseMatrix contingenciesStates, Collection<ComputedContingencyElement> contingencyElements, DisabledNetwork disabledNetwork,
-                                                        List<ParticipatingElement> participatingElements, ReportNode reporter, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups) {
+                                                 List<ParticipatingElement> participatingElements, ReportNode reporter, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
+                                                 WoodburyEngineInjectionInput input) {
 
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
             calculateStateValues(loadFlowContext, flowStates, preContingencyStates, contingenciesStates, contingency, contingencyElements, disabledNetwork);
-            // write contingency status
 
+            // TODO : put this in DcSensitivityAnalysis after dealing with glsk
+            // write contingency status for later
             woodburyEngineResult.getContingencyStatuses().put(contingency, !contingency.hasNoImpact());
-//            woodburyEngineResult.getPostContingencyWoodburyResults().get(contingency).setContingencySuccessful(!contingency.hasNoImpact());
-//            if (contingency.hasNoImpact())
-////                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
-//            } else {
-////                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
-//            }
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
             LfNetwork lfNetwork = loadFlowContext.getNetwork();
-            DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
+//            DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
             NetworkState networkState = NetworkState.save(lfNetwork);
             LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
             DenseMatrix newPreContingencyStates = preContingencyStates;
             List<ParticipatingElement> newParticipatingElements = participatingElements;
-            boolean participatingElementsChanged = false;
-            boolean rhsChanged = false;
+//            boolean participatingElementsChanged = false;
+//            boolean rhsChanged = false;
             if (lfContingency != null) {
-                lfContingency.apply(lfParameters.getBalanceType());
-                participatingElementsChanged = isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()
-                        || isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty();
-                // TODO : remove use of factorGroups for the following lines
-                if (factorGroups.hasMultiVariables()) {
-                    Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
-                    rhsChanged = rescaleGlsk(factorGroups, impactedBuses);
+                newParticipatingElements = input.getNewParticipatingElementsByPropagatedContingency().getOrDefault(contingency, participatingElements);
+                newPreContingencyStates = input.getNewInjectionVectorsByPropagatedContingency().getOrDefault(contingency, preContingencyStates);
+
+                // TODO : refactor
+                if (input.getNewInjectionVectorsByPropagatedContingency().containsKey(contingency)) {
+                    loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStates);
                 }
-                if (participatingElementsChanged) {
-                    if (isDistributedSlackOnGenerators(lfParameters)) {
-                        // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
-                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
-                        newParticipatingElements = participatingElements.stream()
-                                .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
-                                .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
-                                .collect(Collectors.toList());
-                        normalizeParticipationFactors(newParticipatingElements);
-                    } else { // slack distribution on loads
-                        newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
-                    }
-                }
-                if (participatingElementsChanged || rhsChanged) {
-                    newPreContingencyStates = DcSensitivityAnalysis.getInjectionVectors(loadFlowContext, factorGroups, newParticipatingElements);
-                    loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStates); // states for the sensitivity factors
-                }
+
+//                lfContingency.apply(lfParameters.getBalanceType());
+//                participatingElementsChanged = isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()
+//                        || isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty();
+//                if (factorGroups.hasMultiVariables()) {
+//                    Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
+//                    rhsChanged = rescaleGlsk(factorGroups, impactedBuses);
+//                }
+//                if (participatingElementsChanged) {
+//                    if (isDistributedSlackOnGenerators(lfParameters)) {
+//                        // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
+//                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
+//                        newParticipatingElements = participatingElements.stream()
+//                                .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
+//                                .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
+//                                .collect(Collectors.toList());
+//                        normalizeParticipationFactors(newParticipatingElements);
+//                    } else { // slack distribution on loads
+//                        newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+//                    }
+//                }
+//                if (participatingElementsChanged || rhsChanged) {
+//                    newPreContingencyStates = DcSensitivityAnalysis.getInjectionVectors(loadFlowContext, factorGroups, newParticipatingElements);
+//                    loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStates); // states for the sensitivity factors
+//                }
+
                 // write contingency status
-//                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+                // TODO : put this in DcSensitivityAnalysis after dealing with glsk
                 woodburyEngineResult.getContingencyStatuses().put(contingency, true);
             } else {
                 // write contingency status
+                // TODO : put this in DcSensitivityAnalysis after dealing with glsk
                 woodburyEngineResult.getContingencyStatuses().put(contingency, false);
-//                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
             }
             DenseMatrix newFlowStates = calculateActivePowerFlows(loadFlowContext, newParticipatingElements, disabledNetwork, reporter, false);
             calculateStateValues(loadFlowContext, newFlowStates, newPreContingencyStates, contingenciesStates, contingency, contingencyElements,
                     disabledNetwork);
             networkState.restore();
         }
-    }
-
-    protected static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
-        return lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
-                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
-    }
-
-    protected static boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
-        return lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
-                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 
     /**
@@ -745,14 +737,42 @@ public class WoodburyEngine {
         return contingencyElementByBranch;
     }
 
-    public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
-                                    DenseMatrix injectionVectors, List<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements,
-                                    ReportNode reporter, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups) {
+    public static class ConnectivityDataResult {
 
-        loadFlowContext.getJacobianMatrix().solveTransposed(injectionVectors);
-        // TODO : refactor to avoid matrices storage
-        woodburyEngineResult = new WoodburyEngineResult(injectionVectors);
-        DenseMatrix flowStates = calculateActivePowerFlows(loadFlowContext, participatingElements, new DisabledNetwork(), reporter, true);
+        private final List<PropagatedContingency> nonBreakingConnectivityContingencies;
+
+        private final List<ConnectivityAnalysisResult> connectivityAnalysisResults;
+
+        private final DenseMatrix contingenciesStates;
+
+        private final Map<String, ComputedContingencyElement> contingencyElementByBranch;
+
+        public ConnectivityDataResult(List<PropagatedContingency> nonBreakingConnectivityContingencies, List<ConnectivityAnalysisResult> connectivityAnalysisResults, DenseMatrix contingenciesStates, Map<String, ComputedContingencyElement> contingencyElementByBranch) {
+            this.nonBreakingConnectivityContingencies = nonBreakingConnectivityContingencies;
+            this.connectivityAnalysisResults = connectivityAnalysisResults;
+            this.contingenciesStates = contingenciesStates;
+            this.contingencyElementByBranch = contingencyElementByBranch;
+        }
+
+        public List<PropagatedContingency> getNonBreakingConnectivityContingencies() {
+            return nonBreakingConnectivityContingencies;
+        }
+
+        public List<ConnectivityAnalysisResult> getConnectivityAnalysisResults() {
+            return connectivityAnalysisResults;
+        }
+
+        public DenseMatrix getContingenciesStates() {
+            return contingenciesStates;
+        }
+
+        public Map<String, ComputedContingencyElement> getContingencyElementByBranch() {
+            return contingencyElementByBranch;
+        }
+    }
+
+    public ConnectivityDataResult runConnectivityData(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies) {
+        woodburyEngineResult = new WoodburyEngineResult();
 
         // index contingency elements by branch id
         Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), contingencies);
@@ -782,18 +802,36 @@ public class WoodburyEngine {
         LOGGER.info("After graph based connectivity analysis, {} contingencies do not break connectivity, {} contingencies break connectivity",
                 nonBreakingConnectivityContingencies.size(), connectivityAnalysisResults.stream().mapToInt(results -> results.getContingencies().size()).count());
 
+        return new ConnectivityDataResult(nonBreakingConnectivityContingencies, connectivityAnalysisResults, contingenciesStates, contingencyElementByBranch);
+    }
+
+    public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
+                                    DenseMatrix injectionVectors, List<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements,
+                                    ReportNode reporter, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
+                                    ConnectivityDataResult connectivityDataResult, WoodburyEngineInjectionInput input) {
+
+        loadFlowContext.getJacobianMatrix().solveTransposed(injectionVectors);
+        woodburyEngineResult.setPreContingenciesStates(injectionVectors);
+        // TODO : refactor to avoid matrices storage
+        DenseMatrix flowStates = calculateActivePowerFlows(loadFlowContext, participatingElements, new DisabledNetwork(), reporter, true);
+
+        // index contingency elements by branch id
+        Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityDataResult.getContingencyElementByBranch();
+        // Compute post-element-contingency states
+        DenseMatrix contingenciesStates = connectivityDataResult.getContingenciesStates();
+
         LOGGER.info("Processing contingencies with no connectivity break");
 
         // calculate state values for contingencies with no connectivity break
-        calculateStateValuesForContingencyList(loadFlowContext, lfParametersExt, contingenciesStates, flowStates, injectionVectors, nonBreakingConnectivityContingencies, contingencyElementByBranch,
-                Collections.emptySet(), participatingElements, Collections.emptySet(), reporter, Collections.emptySet(), factorGroups);
+        calculateStateValuesForContingencyList(loadFlowContext, lfParametersExt, contingenciesStates, flowStates, injectionVectors, connectivityDataResult.getNonBreakingConnectivityContingencies(), contingencyElementByBranch,
+                Collections.emptySet(), participatingElements, Collections.emptySet(), reporter, Collections.emptySet(), factorGroups, input);
 
         LOGGER.info("Processing contingencies with connectivity break");
 
         // process contingencies with connectivity break
-        for (ConnectivityAnalysisResult connectivityAnalysisResult : connectivityAnalysisResults) {
+        for (ConnectivityAnalysisResult connectivityAnalysisResult : connectivityDataResult.getConnectivityAnalysisResults()) {
             processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
-                    flowStates, injectionVectors, contingenciesStates, contingencyElementByBranch, participatingElements, reporter, factorGroups);
+                    flowStates, injectionVectors, contingenciesStates, contingencyElementByBranch, participatingElements, reporter, factorGroups, input);
         }
 
         return woodburyEngineResult;

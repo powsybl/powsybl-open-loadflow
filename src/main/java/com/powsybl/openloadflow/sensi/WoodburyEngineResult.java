@@ -41,9 +41,14 @@ public class WoodburyEngineResult {
     }
 
     private double[] preContingenciesFlowStates;
-    private final DenseMatrix preContingenciesStates;
+    private DenseMatrix preContingenciesStates;
     private final HashMap<PropagatedContingency, PostContingencyWoodburyResult> postContingencyWoodburyResults;
     private final HashMap<PropagatedContingency, Boolean> contingencyStatuses; // TODO : rename
+
+    public WoodburyEngineResult() {
+        postContingencyWoodburyResults = new HashMap<>();
+        contingencyStatuses = new HashMap<>();
+    }
 
     public WoodburyEngineResult(DenseMatrix preContingenciesFactorStates) {
         this.preContingenciesStates = preContingenciesFactorStates;
@@ -57,6 +62,10 @@ public class WoodburyEngineResult {
 
     public double[] getPreContingenciesFlowStates() {
         return preContingenciesFlowStates;
+    }
+
+    public void setPreContingenciesStates(DenseMatrix preContingenciesStates) {
+        this.preContingenciesStates = preContingenciesStates;
     }
 
     public DenseMatrix getPreContingenciesStates() {
