@@ -231,15 +231,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type) {
+    public List<LfLimit> getLimits1(final LimitType type, List<Double> limitReductions) {
         var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, branch.getActivePowerLimits1().orElse(null));
+                return getLimits1(type, branch.getActivePowerLimits1().orElse(null), limitReductions);
             case APPARENT_POWER:
-                return getLimits1(type, branch.getApparentPowerLimits1().orElse(null));
+                return getLimits1(type, branch.getApparentPowerLimits1().orElse(null), Collections.emptyList());
             case CURRENT:
-                return getLimits1(type, branch.getCurrentLimits1().orElse(null));
+                return getLimits1(type, branch.getCurrentLimits1().orElse(null), Collections.emptyList());
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -247,15 +247,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type) {
+    public List<LfLimit> getLimits2(final LimitType type, List<Double> limitReductions) {
         var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, branch.getActivePowerLimits2().orElse(null));
+                return getLimits2(type, branch.getActivePowerLimits2().orElse(null), limitReductions);
             case APPARENT_POWER:
-                return getLimits2(type, branch.getApparentPowerLimits2().orElse(null));
+                return getLimits2(type, branch.getApparentPowerLimits2().orElse(null), Collections.emptyList());
             case CURRENT:
-                return getLimits2(type, branch.getCurrentLimits2().orElse(null));
+                return getLimits2(type, branch.getCurrentLimits2().orElse(null), Collections.emptyList());
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));

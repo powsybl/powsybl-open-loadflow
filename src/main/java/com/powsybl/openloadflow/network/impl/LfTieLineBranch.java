@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -101,14 +102,14 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type) {
+    public List<LfLimit> getLimits1(final LimitType type, List<Double> limitReductions) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, getHalf1().getActivePowerLimits().orElse(null));
+                return getLimits1(type, getHalf1().getActivePowerLimits().orElse(null), limitReductions);
             case APPARENT_POWER:
-                return getLimits1(type, getHalf1().getApparentPowerLimits().orElse(null));
+                return getLimits1(type, getHalf1().getApparentPowerLimits().orElse(null), Collections.emptyList());
             case CURRENT:
-                return getLimits1(type, getHalf1().getCurrentLimits().orElse(null));
+                return getLimits1(type, getHalf1().getCurrentLimits().orElse(null), Collections.emptyList());
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -116,14 +117,14 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type) {
+    public List<LfLimit> getLimits2(final LimitType type, List<Double> limitReductions) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, getHalf2().getActivePowerLimits().orElse(null));
+                return getLimits2(type, getHalf2().getActivePowerLimits().orElse(null), limitReductions);
             case APPARENT_POWER:
-                return getLimits2(type, getHalf2().getApparentPowerLimits().orElse(null));
+                return getLimits2(type, getHalf2().getApparentPowerLimits().orElse(null), Collections.emptyList());
             case CURRENT:
-                return getLimits2(type, getHalf2().getCurrentLimits().orElse(null));
+                return getLimits2(type, getHalf2().getCurrentLimits().orElse(null), Collections.emptyList());
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));

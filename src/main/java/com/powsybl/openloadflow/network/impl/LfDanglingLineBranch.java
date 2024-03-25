@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -77,15 +78,15 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type) {
+    public List<LfLimit> getLimits1(final LimitType type, List<Double> limitReductions) {
         var danglingLine = getDanglingLine();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, danglingLine.getActivePowerLimits().orElse(null));
+                return getLimits1(type, danglingLine.getActivePowerLimits().orElse(null), limitReductions);
             case APPARENT_POWER:
-                return getLimits1(type, danglingLine.getApparentPowerLimits().orElse(null));
+                return getLimits1(type, danglingLine.getApparentPowerLimits().orElse(null), Collections.emptyList());
             case CURRENT:
-                return getLimits1(type, danglingLine.getCurrentLimits().orElse(null));
+                return getLimits1(type, danglingLine.getCurrentLimits().orElse(null), Collections.emptyList());
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));

@@ -196,9 +196,9 @@ public interface LfBranch extends LfElement {
 
     List<Evaluable> getAdditionalClosedQ2();
 
-    List<LfLimit> getLimits1(LimitType type);
+    List<LfLimit> getLimits1(LimitType type, List<Double> limitReductions);
 
-    default List<LfLimit> getLimits2(LimitType type) {
+    List<LfLimit> getLimits2(LimitType type, List<Double> limitReductions) {
         return Collections.emptyList();
     }
 

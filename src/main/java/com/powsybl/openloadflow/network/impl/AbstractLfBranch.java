@@ -74,21 +74,25 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {
+    protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus, List<Double> limitReductions) {
         LinkedList<LfLimit> sortedLimits = new LinkedList<>();
         if (loadingLimits != null) {
             double toPerUnit = getScaleForLimitType(loadingLimits.getLimitType(), bus);
 
+            int i = 0;
             for (LoadingLimits.TemporaryLimit temporaryLimit : loadingLimits.getTemporaryLimits()) {
+                i++;
                 if (temporaryLimit.getAcceptableDuration() != 0) {
                     // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
                     // for this limit is infinity.
                     // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
-                    double valuePerUnit = temporaryLimit.getValue() * toPerUnit;
+                    double value = limitReductions.isEmpty() ? temporaryLimit.getValue() : temporaryLimit.getValue() * limitReductions.get(i);
+                    double valuePerUnit = value * toPerUnit;
                     sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(), valuePerUnit));
                 }
             }
-            sortedLimits.addLast(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit));
+            double permanentLimit = limitReductions.isEmpty() ? loadingLimits.getPermanentLimit() : loadingLimits.getPermanentLimit() * limitReductions.get(0);
+            sortedLimits.addLast(LfLimit.createPermanentLimit(permanentLimit * toPerUnit));
         }
         if (sortedLimits.size() > 1) {
             // we only make that fix if there is more than a permanent limit attached to the branch.
@@ -116,12 +120,12 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return bus2;
     }
 
-    public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits) {
-        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1));
+    public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits, List<Double> limitReductions) {
+        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1, limitReductions));
     }
 
-    public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits) {
-        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2));
+    public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits, List<Double> limitReductions) {
+        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2, limitReductions));
     }
 
     @Override

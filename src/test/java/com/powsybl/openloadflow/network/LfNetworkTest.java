@@ -347,9 +347,8 @@ class LfNetworkTest extends AbstractSerDeTest {
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction1);
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction2);
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction3);
-        List<Double> reductions1, reductions2;
-        reductions1 = lfBranch1.getLimitReductions(TwoSides.ONE, limitReductionManager, network.getBranch("NHV1_NHV2_1").getNullableCurrentLimits1());
-        reductions2 = lfBranch1.getLimitReductions(TwoSides.TWO, limitReductionManager, network.getBranch("NHV1_NHV2_1").getNullableCurrentLimits2());
+        List<Double> reductions1 = lfBranch1.getLimitReductions(TwoSides.ONE, limitReductionManager, network.getBranch("NHV1_NHV2_1").getNullableCurrentLimits1());
+        List<Double> reductions2 = lfBranch1.getLimitReductions(TwoSides.TWO, limitReductionManager, network.getBranch("NHV1_NHV2_1").getNullableCurrentLimits2());
         System.out.println(reductions1);
         System.out.println(reductions2);
     }

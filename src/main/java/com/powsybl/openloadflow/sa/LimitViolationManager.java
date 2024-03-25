@@ -147,7 +147,7 @@ public class LimitViolationManager {
         // detect violation limits on a branch
         // Only detect the most serious one (findFirst) : limit violations are ordered by severity
         if (branch.getBus1() != null) {
-            detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, TwoSides.ONE);
+            detectBranchSideViolations(branch, branch.getBus1(), () -> LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, TwoSides.ONE);
         }
 
         if (branch.getBus2() != null) {
