@@ -7,9 +7,12 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.*;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Line;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.StaticVarCompensator;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -645,7 +648,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         LoadFlowParameters parameters = sensiParameters.getLoadFlowParameters();
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
-        runLf(network, parameters, Reporter.NO_OP);
+        runLf(network, parameters, ReportNode.NO_OP);
 
         Line l1 = network.getLine("l1");
         double initialP = l1.getTerminal1().getP();
@@ -653,7 +656,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         network.getGenerator("g1").setTargetP(network.getGenerator("g1").getTargetP() + 1);
 
-        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        runLf(network, sensiParameters.getLoadFlowParameters(), ReportNode.NO_OP);
 
         double finalP = l1.getTerminal1().getP();
         assertEquals(37.164, finalP, LoadFlowAssert.DELTA_POWER);
@@ -683,14 +686,14 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         LoadFlowParameters parameters = sensiParameters.getLoadFlowParameters();
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
-        runLf(network, parameters, Reporter.NO_OP);
+        runLf(network, parameters, ReportNode.NO_OP);
 
         Line l1 = network.getLine("l1");
         double initialP = l1.getTerminal1().getP();
         assertEquals(3.0071, initialP, LoadFlowAssert.DELTA_POWER);
 
         network.getLoad("load3").setP0(network.getLoad("load3").getP0() + 1);
-        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        runLf(network, sensiParameters.getLoadFlowParameters(), ReportNode.NO_OP);
 
         double finalP = l1.getTerminal1().getP();
         assertEquals(3.3775, finalP, LoadFlowAssert.DELTA_POWER);

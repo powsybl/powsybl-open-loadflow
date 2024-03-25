@@ -7,7 +7,7 @@
 
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -273,23 +273,25 @@ class AcLoadFlowEurostagTutorialExample1Test {
     void noGeneratorTest() {
         network.getGenerator("GEN").getTerminal().disconnect();
 
-        ReporterModel reporter = new ReporterModel("unitTest", "");
-        LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reporter);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("unitTest", "")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertFalse(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
 
         // also check there is a report added for this error
-        assertEquals(1, reporter.getSubReporters().size());
-        ReporterModel lfReporter = reporter.getSubReporters().get(0);
-        assertEquals(1, lfReporter.getSubReporters().size());
-        ReporterModel createNetworkReporter = lfReporter.getSubReporters().get(0);
-        assertEquals("lfNetwork", createNetworkReporter.getTaskKey());
-        ReporterModel postLoadingReporter = createNetworkReporter.getSubReporters().get(0);
-        assertEquals("networkInfo", postLoadingReporter.getTaskKey());
-        assertEquals(1, postLoadingReporter.getReports().size());
+        assertEquals(1, reportNode.getChildren().size());
+        ReportNode lfReportNode = reportNode.getChildren().get(0);
+        assertEquals(1, lfReportNode.getChildren().size());
+        ReportNode networkReportNode = lfReportNode.getChildren().get(0);
+        assertEquals("lfNetwork", networkReportNode.getMessageKey());
+        ReportNode networkInfoReportNode = networkReportNode.getChildren().get(0);
+        assertEquals("networkInfo", networkInfoReportNode.getMessageKey());
+        assertEquals(1, networkInfoReportNode.getChildren().size());
         assertEquals("Network must have at least one bus with generator voltage control enabled",
-                postLoadingReporter.getReports().iterator().next().getDefaultMessage());
+                networkInfoReportNode.getChildren().get(0).getMessage());
     }
 
     @Test

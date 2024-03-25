@@ -8,11 +8,9 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadAsymmetrical;
+import com.powsybl.iidm.network.extensions.ReferenceTerminals;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
-import com.powsybl.openloadflow.network.LfAsymBus;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 
@@ -137,6 +135,9 @@ public class LfBusImpl extends AbstractLfBus {
         // update slack bus
         if (slack && parameters.isWriteSlackBus()) {
             SlackTerminal.attach(bus);
+        }
+        if (reference && parameters.isWriteReferenceTerminals() && parameters.getReferenceBusSelectionMode() == ReferenceBusSelectionMode.FIRST_SLACK) {
+            bus.getConnectedTerminalStream().findFirst().ifPresent(ReferenceTerminals::addTerminal);
         }
 
         super.updateState(parameters);

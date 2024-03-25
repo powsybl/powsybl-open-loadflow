@@ -28,8 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
@@ -62,8 +61,7 @@ class ReferenceBusPrioritiesTest {
                 .setDistributedSlack(true)
                 .setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
         parametersExt = OpenLoadFlowParameters.create(parameters)
-                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
-                .setWriteReferenceTerminals(true);
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
     }
 
     @Test
@@ -129,5 +127,24 @@ class ReferenceBusPrioritiesTest {
         result.getComponentResults().forEach(cr -> assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, cr.getStatus()));
         Set<Terminal> referenceTerminals = ReferenceTerminals.getTerminals(network);
         assertTrue(referenceTerminals.isEmpty());
+    }
+
+    @Test
+    void testNotWritingReferenceTerminals2() {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithTransformer();
+        // open everything at bus b4 to create 3 components
+        network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(t -> t.disconnect());
+        ReferencePriorities.delete(network);
+        ReferenceTerminals.reset(network);
+        SlackTerminal.reset(network);
+        parametersExt.setReferenceBusSelectionMode(ReferenceBusSelectionMode.FIRST_SLACK);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(3, result.getComponentResults().size());
+        result.getComponentResults().forEach(cr -> assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, cr.getStatus()));
+        Set<Terminal> referenceTerminals = ReferenceTerminals.getTerminals(network);
+        assertFalse(referenceTerminals.contains(network.getGenerator("g10").getTerminal()));
+        assertTrue(referenceTerminals.contains(network.getLine("l810").getTerminal2()));
+        assertFalse(referenceTerminals.contains(network.getLine("l910").getTerminal2()));
     }
 }
