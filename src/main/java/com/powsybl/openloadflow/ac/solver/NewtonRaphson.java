@@ -85,8 +85,8 @@ public class NewtonRaphson extends AbstractAcSolver {
                         double busPhi = equationSystem.getStateVector().get(busPhiRow);
                         LfBus bus = network.getBus(elementNum);
                         double busNominalV = bus.getNominalV();
-                        double busInjectionP = bus.getTargetP() * PerUnit.SB;
-                        double busInjectionQ = bus.getTargetQ() * PerUnit.SB;
+                        double busSumP = bus.getP().eval() * PerUnit.SB;
+                        double busSumQ = bus.getQ().eval() * PerUnit.SB;
 
                         if (LOGGER.isTraceEnabled()) {
                             LOGGER.trace("Largest mismatch on {}: {}", getEquationTypeDescription(acEquationType), equationMismatch);
@@ -95,7 +95,7 @@ public class NewtonRaphson extends AbstractAcSolver {
                         }
 
                         if (reportNode != null) {
-                            Reports.BusReport busReport = new Reports.BusReport(elementId, equationMismatch, busNominalV, busV, busPhi, busInjectionP, busInjectionQ);
+                            Reports.BusReport busReport = new Reports.BusReport(elementId, equationMismatch, busNominalV, busV, busPhi, busSumP, busSumQ);
                             Reports.reportNewtonRaphsonLargestMismatches(reportNode, getEquationTypeDescription(acEquationType), busReport);
                         }
                     });

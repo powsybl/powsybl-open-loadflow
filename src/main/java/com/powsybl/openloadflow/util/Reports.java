@@ -24,7 +24,7 @@ public final class Reports {
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
     private static final String BUS_ID = "busId";
 
-    public record BusReport(String busId, double mismatch, double nominalV, double v, double phi, double injectionP, double injectionQ) {
+    public record BusReport(String busId, double mismatch, double nominalV, double v, double phi, double p, double q) {
     }
 
     private Reports() {
@@ -408,8 +408,8 @@ public final class Reports {
 
         subReportNode.newReportNode()
                 .withMessageTemplate("NRMismatchBusInjection", "Bus injection: ${busP} MW, ${busQ} MVar")
-                .withUntypedValue("busP", busReport.injectionP())
-                .withUntypedValue("busQ", busReport.injectionQ())
+                .withUntypedValue("busP", busReport.p())
+                .withUntypedValue("busQ", busReport.q())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
