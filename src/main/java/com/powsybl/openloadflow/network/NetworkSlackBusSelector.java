@@ -35,7 +35,7 @@ public class NetworkSlackBusSelector extends AbstractSlackBusSelector {
         this.fallbackSelector = Objects.requireNonNull(fallbackSelector);
         for (VoltageLevel vl : network.getVoltageLevels()) {
             SlackTerminal slackTerminal = vl.getExtension(SlackTerminal.class);
-            if (slackTerminal != null) {
+            if (slackTerminal != null && slackTerminal.getTerminal() != null) {
                 Bus bus = slackTerminal.getTerminal().getBusView().getBus();
                 if (bus != null) {
                     slackBusIds.add(bus.getId());
