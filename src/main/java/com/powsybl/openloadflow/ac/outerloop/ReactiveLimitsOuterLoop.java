@@ -6,10 +6,13 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.GeneratorVoltageControl;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -106,7 +109,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     }
 
     private boolean switchPvPq(List<ControllerBusToPqBus> pvToPqBuses, int remainingPvBusCount, ContextData contextData,
-                               Reporter reporter) {
+                               ReportNode reportNode) {
         boolean done = false;
 
         int modifiedRemainingPvBusCount = remainingPvBusCount;
@@ -121,7 +124,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             pvToPqBuses.remove(strongestPvToPqBus);
             modifiedRemainingPvBusCount++;
             LOGGER.warn("All PV buses should switch PQ, strongest one '{}' will stay PV", strongestPvToPqBus.controllerBus.getId());
-            Reports.reportBusForcedToBePv(reporter, strongestPvToPqBus.controllerBus.getId());
+            Reports.reportBusForcedToBePv(reportNode, strongestPvToPqBus.controllerBus.getId());
         }
 
         if (!pvToPqBuses.isEmpty()) {
@@ -149,7 +152,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             }
         }
 
-        Reports.reportPvToPqBuses(reporter, pvToPqBuses.size(), modifiedRemainingPvBusCount);
+        Reports.reportPvToPqBuses(reportNode, pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
         LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV)", pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
@@ -161,7 +164,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         context.setData(new ContextData());
     }
 
-    private static boolean switchPqPv(List<PqToPvBus> pqToPvBuses, ContextData contextData, Reporter reporter, int maxPqPvSwitch) {
+    private static boolean switchPqPv(List<PqToPvBus> pqToPvBuses, ContextData contextData, ReportNode reportNode, int maxPqPvSwitch) {
         int pqPvSwitchCount = 0;
 
         for (PqToPvBus pqToPvBus : pqToPvBuses) {
@@ -187,7 +190,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             }
         }
 
-        Reports.reportPqToPvBuses(reporter, pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
+        Reports.reportPqToPvBuses(reportNode, pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
 
         LOGGER.info("{} buses switched PQ -> PV ({} buses blocked PQ because have reach max number of switch)",
                 pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
@@ -249,7 +252,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         });
     }
 
-    private static boolean switchReactiveControllerBusPq(List<ControllerBusToPqBus> reactiveControllerBusesToPqBuses, Reporter reporter) {
+    private static boolean switchReactiveControllerBusPq(List<ControllerBusToPqBus> reactiveControllerBusesToPqBuses, ReportNode reportNode) {
         int switchCount = 0;
 
         for (ControllerBusToPqBus bus : reactiveControllerBusesToPqBuses) {
@@ -270,7 +273,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             }
         }
 
-        Reports.reportReactiveControllerBusesToPqBuses(reporter, switchCount);
+        Reports.reportReactiveControllerBusesToPqBuses(reportNode, switchCount);
 
         LOGGER.info("{} remote reactive power controller buses switched PQ", switchCount);
 
@@ -294,7 +297,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<ControllerBusToPqBus> pvToPqBuses = new ArrayList<>();
@@ -323,23 +326,23 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         var contextData = (ContextData) context.getData();
 
-        Reporter iterationReporter = reporter;
+        ReportNode iterationReportNode = reportNode;
         if (!pvToPqBuses.isEmpty() || !pqToPvBuses.isEmpty() || !busesWithUpdatedQLimits.isEmpty() || !reactiveControllerBusesToPqBuses.isEmpty()) {
-            iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1);
+            iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         }
 
-        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), contextData, iterationReporter)) {
+        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), contextData, iterationReportNode)) {
             status = OuterLoopStatus.UNSTABLE;
         }
-        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, contextData, iterationReporter, maxPqPvSwitch)) {
+        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, contextData, iterationReportNode, maxPqPvSwitch)) {
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!busesWithUpdatedQLimits.isEmpty()) {
             LOGGER.info("{} buses blocked at a reactive limit have been adjusted because the reactive limit changed", busesWithUpdatedQLimits.size());
-            Reports.reportBusesWithUpdatedQLimits(iterationReporter, busesWithUpdatedQLimits.size());
+            Reports.reportBusesWithUpdatedQLimits(iterationReportNode, busesWithUpdatedQLimits.size());
             status = OuterLoopStatus.UNSTABLE;
         }
-        if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, iterationReporter)) {
+        if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, iterationReportNode)) {
             status = OuterLoopStatus.UNSTABLE;
         }
         return status;

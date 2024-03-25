@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -46,7 +46,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
     }
 
     @Override
-    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, Reporter reporter) {
+    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, ReportNode reportNode) {
         // just save dx vector
         if (lastDx == null || lastDx.length != dx.length) {
             lastDx = dx.clone();
@@ -61,7 +61,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
                                                                TargetVector<AcVariableType, AcEquationType> targetVector,
                                                                NewtonRaphsonStoppingCriteria stoppingCriteria,
                                                                NewtonRaphsonStoppingCriteria.TestResult testResult,
-                                                               Reporter reporter) {
+                                                               ReportNode reportNode) {
         StateVector stateVector = equationSystem.getStateVector();
         if (lastTestResult != null) {
             double stepSize = 1;
@@ -93,8 +93,8 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
             }
             lastTestResult = currentTestResult;
             LOGGER.debug("Step size: {}", stepSize);
-            if (reporter != null) {
-                Reports.reportLineSearchStateVectorScaling(reporter, stepSize);
+            if (reportNode != null) {
+                Reports.reportLineSearchStateVectorScaling(reportNode, stepSize);
             }
         }
         return lastTestResult;
