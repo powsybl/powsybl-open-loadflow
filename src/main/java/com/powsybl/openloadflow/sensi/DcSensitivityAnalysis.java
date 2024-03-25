@@ -308,7 +308,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 WoodburyEngine engine = new WoodburyEngine();
                 // TODO : remove factor groups from woodbury engine
                 WoodburyEngineResult results = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors,
-                        contingencies, participatingElements, reporter, factorGroups);
+                        contingencies, participatingElements, reportNode, factorGroups);
 
                 setContingencyStatus(resultWriter, results);
 

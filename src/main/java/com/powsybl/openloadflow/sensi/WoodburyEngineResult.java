@@ -45,7 +45,6 @@ public class WoodburyEngineResult {
     private final HashMap<PropagatedContingency, PostContingencyWoodburyResult> postContingencyWoodburyResults;
     private final HashMap<PropagatedContingency, Boolean> contingencyStatuses; // TODO : rename
 
-
     public WoodburyEngineResult(DenseMatrix preContingenciesFactorStates) {
         this.preContingenciesStates = preContingenciesFactorStates;
         postContingencyWoodburyResults = new HashMap<>();
