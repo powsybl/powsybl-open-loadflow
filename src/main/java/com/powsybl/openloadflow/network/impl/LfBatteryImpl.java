@@ -55,10 +55,8 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
         // get voltage control from extension
         VoltageRegulation voltageRegulation = battery.getExtension(VoltageRegulation.class);
-        if (voltageRegulation != null) {
-            if (voltageRegulation.isVoltageRegulatorOn()) {
-                setVoltageControl(voltageRegulation.getTargetV(), battery.getTerminal(), voltageRegulation.getRegulatingTerminal(), parameters, report);
-            }
+        if (voltageRegulation != null && voltageRegulation.isVoltageRegulatorOn()) {
+            setVoltageControl(voltageRegulation.getTargetV(), battery.getTerminal(), voltageRegulation.getRegulatingTerminal(), parameters, report);
         }
     }
 
