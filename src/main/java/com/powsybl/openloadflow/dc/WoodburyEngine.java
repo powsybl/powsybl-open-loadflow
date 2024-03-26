@@ -21,20 +21,15 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysis;
-import com.powsybl.openloadflow.sensi.DcSensitivityAnalysis;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
-
-import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
-import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.*;
 
 public class WoodburyEngine {
 
@@ -444,10 +439,6 @@ public class WoodburyEngine {
                     return new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
                 });
                 connectivityAnalysisResult.getContingencies().addAll(contingencyList);
-
-                for (PropagatedContingency propagatedContingency : contingencyList) {
-                    woodburyEngineResult.getContingencyStatuses().put(propagatedContingency, true);
-                }
             }
             connectivity.undoTemporaryChanges();
         }
@@ -584,10 +575,6 @@ public class WoodburyEngine {
 
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
             calculateStateValues(loadFlowContext, flowStates, preContingencyStates, contingenciesStates, contingency, contingencyElements, disabledNetwork);
-
-            // TODO : put this in DcSensitivityAnalysis after dealing with glsk
-            // write contingency status for later
-            woodburyEngineResult.getContingencyStatuses().put(contingency, !contingency.hasNoImpact());
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
@@ -608,13 +595,6 @@ public class WoodburyEngine {
                 // TODO : refactor to avoid lfContingency application
                 lfContingency.apply(lfParameters.getBalanceType());
 
-                // write contingency status
-                // TODO : put this in DcSensitivityAnalysis after dealing with glsk
-                woodburyEngineResult.getContingencyStatuses().put(contingency, true);
-            } else {
-                // write contingency status
-                // TODO : put this in DcSensitivityAnalysis after dealing with glsk
-                woodburyEngineResult.getContingencyStatuses().put(contingency, false);
             }
             DenseMatrix newFlowStates = calculateActivePowerFlows(loadFlowContext, newParticipatingElements, disabledNetwork, reporter, false);
             calculateStateValues(loadFlowContext, newFlowStates, newPreContingencyStates, contingenciesStates, contingency, contingencyElements,

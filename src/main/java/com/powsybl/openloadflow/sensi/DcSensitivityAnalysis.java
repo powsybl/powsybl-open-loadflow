@@ -19,7 +19,6 @@ import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -214,8 +213,59 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 
+    private void rhsModificationForContingenciesBreakingConnectivity(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, List<WoodburyEngine.ConnectivityAnalysisResult> connectivityAnalysisResults,
+                                                                     SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, List<ParticipatingElement> participatingElements,
+                                                                     WoodburyEngineInjectionInput input, SensitivityResultWriter resultWriter) {
+        DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
+
+        for (WoodburyEngine.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityAnalysisResults) {
+            var disabledBuses = connectivityAnalysisResult.getDisabledBuses();
+
+            // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
+            // if one bus of the line is lost.
+            for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
+                if (Networks.isIsolatedBusForHvdc(hvdc.getBus1(), disabledBuses) ^ Networks.isIsolatedBusForHvdc(hvdc.getBus2(), disabledBuses)) {
+                    connectivityAnalysisResult.getContingencies().forEach(contingency -> {
+                        contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation1().getId());
+                        contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation2().getId());
+                    });
+                }
+            }
+
+            // null and unused if slack bus is not distributed
+            List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
+            boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK
+            if (lfParameters.isDistributedSlack()) {
+                rhsChanged = participatingElements.stream().anyMatch(element -> disabledBuses.contains(element.getLfBus()));
+            }
+            if (factorGroups.hasMultiVariables()) {
+                // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
+                rhsChanged |= rescaleGlsk(factorGroups, disabledBuses);
+            }
+            // we need to recompute the factor states because the connectivity changed
+            if (rhsChanged) {
+                participatingElementsForThisConnectivity = lfParameters.isDistributedSlack()
+                        ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
+                        : Collections.emptyList();
+                // TODO : add saving of new injection vector
+                input.getNewParticipantElementsForAConnectivity().put(connectivityAnalysisResult, participatingElementsForThisConnectivity);
+                input.getNewInjectionVectorsForAConnectivity().put(connectivityAnalysisResult, DcSensitivityAnalysis.getInjectionVectors(loadFlowContext, factorGroups, participatingElementsForThisConnectivity));
+            }
+
+            // TODO : rename following lists
+            List<PropagatedContingency> contingenciesWithGeneratorOrLoadLost = connectivityAnalysisResult.getContingencies().stream()
+                    .filter(propagatedContingency -> !propagatedContingency.getGeneratorIdsToLose().isEmpty() || !propagatedContingency.getLoadIdsToLoose().isEmpty())
+                    .collect(Collectors.toList());
+            connectivityAnalysisResult.getContingencies().stream()
+                    .filter(propagatedContingency -> propagatedContingency.getGeneratorIdsToLose().isEmpty() && propagatedContingency.getLoadIdsToLoose().isEmpty())
+                    .forEach(propagatedContingency -> resultWriter.writeContingencyStatus(propagatedContingency.getIndex(), propagatedContingency.hasNoImpact() ? SensitivityAnalysisResult.Status.NO_IMPACT : SensitivityAnalysisResult.Status.SUCCESS));
+            functionToBeNamed(loadFlowContext, lfParametersExt, factorGroups, contingenciesWithGeneratorOrLoadLost, participatingElementsForThisConnectivity, input, resultWriter);
+        }
+    }
+
     private void functionToBeNamed(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
-                                   List<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements, WoodburyEngineInjectionInput input) {
+                                   List<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements, WoodburyEngineInjectionInput input,
+                                   SensitivityResultWriter resultWriter) {
 
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
         DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
@@ -248,7 +298,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 if (participatingElementsChanged || rhsChanged) {
                     input.getNewInjectionVectorsByPropagatedContingency().put(contingency, DcSensitivityAnalysis.getInjectionVectors(loadFlowContext, factorGroups, newParticipatingElements));
                 }
+
+                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+            } else {
+                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
             }
+
             input.getNewParticipatingElementsByPropagatedContingency().put(contingency, newParticipatingElements);
             networkState.restore();
         }
@@ -359,72 +414,33 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 DenseMatrix injectionVectors = getInjectionVectors(loadFlowContext, factorGroups, participatingElements); // for now is only rhs
 
                 WoodburyEngine engine = new WoodburyEngine();
+
                 // run connectivity analysis and compute post-contingency states in woodbury engine
                 WoodburyEngine.ConnectivityDataResult connectivityData = engine.runConnectivityData(loadFlowContext, contingencies);
 
-                // FIXME : adding of glsk treatment
                 WoodburyEngineInjectionInput input = new WoodburyEngineInjectionInput(injectionVectors, new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>());
-                for (WoodburyEngine.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.getConnectivityAnalysisResults()) {
-                    var disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
-                    // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
-                    // if one bus of the line is lost.
-                    for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
-                        if (Networks.isIsolatedBusForHvdc(hvdc.getBus1(), disabledBuses) ^ Networks.isIsolatedBusForHvdc(hvdc.getBus2(), disabledBuses)) {
-                            connectivityAnalysisResult.getContingencies().forEach(contingency -> {
-                                contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation1().getId());
-                                contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation2().getId());
-                            });
-                        }
-                    }
+                rhsModificationForContingenciesBreakingConnectivity(loadFlowContext, lfParametersExt, connectivityData.getConnectivityAnalysisResults(), factorGroups, participatingElements, input, resultWriter);
 
-                    // null and unused if slack bus is not distributed
-                    List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
-                    boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK
-                    if (lfParameters.isDistributedSlack()) {
-                        rhsChanged = participatingElements.stream().anyMatch(element -> disabledBuses.contains(element.getLfBus()));
-                    }
-                    if (factorGroups.hasMultiVariables()) {
-                        // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-                        rhsChanged |= rescaleGlsk(factorGroups, disabledBuses);
-                    }
-                    // we need to recompute the factor states because the connectivity changed
-                    if (rhsChanged) {
-                        participatingElementsForThisConnectivity = lfParameters.isDistributedSlack()
-                                ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
-                                : Collections.emptyList();
-                        // TODO : add saving of new injection vector
-                        input.getNewParticipantElementsForAConnectivity().put(connectivityAnalysisResult, participatingElementsForThisConnectivity);
-                        input.getNewInjectionVectorsForAConnectivity().put(connectivityAnalysisResult, DcSensitivityAnalysis.getInjectionVectors(loadFlowContext, factorGroups, participatingElementsForThisConnectivity));
-                    }
-
-                    // TODO : rename following list
-                    List<PropagatedContingency> contingenciesWithGeneratorOrLoadLost = connectivityAnalysisResult.getContingencies().stream()
-                            .filter(propagatedContingency -> !propagatedContingency.getGeneratorIdsToLose().isEmpty() || !propagatedContingency.getLoadIdsToLoose().isEmpty())
-                            .collect(Collectors.toList());
-                    functionToBeNamed(loadFlowContext, lfParametersExt, factorGroups, contingenciesWithGeneratorOrLoadLost, participatingElementsForThisConnectivity, input);
-                }
-
-                // TODO : rename following list
+                // TODO : rename following lists
                 List<PropagatedContingency> nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost = connectivityData.getNonBreakingConnectivityContingencies().stream()
                         .filter(propagatedContingency -> !propagatedContingency.getGeneratorIdsToLose().isEmpty() || !propagatedContingency.getLoadIdsToLoose().isEmpty())
                         .collect(Collectors.toList());
-                functionToBeNamed(loadFlowContext, lfParametersExt, factorGroups, nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost, participatingElements, input);
-                // FIXME : adding of glsk treatment
+                connectivityData.getNonBreakingConnectivityContingencies().stream()
+                                .filter(propagatedContingency -> propagatedContingency.getGeneratorIdsToLose().isEmpty() && propagatedContingency.getLoadIdsToLoose().isEmpty())
+                                .forEach(propagatedContingency -> resultWriter.writeContingencyStatus(propagatedContingency.getIndex(), propagatedContingency.hasNoImpact() ? SensitivityAnalysisResult.Status.NO_IMPACT : SensitivityAnalysisResult.Status.SUCCESS));
+                functionToBeNamed(loadFlowContext, lfParametersExt, factorGroups, nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost, participatingElements, input, resultWriter);
 
+                // compute the pre- and post-contingency states using Woodbury equality
                 WoodburyEngineResult results = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors,
                         contingencies, participatingElements, reportNode, factorGroups, connectivityData, input);
 
-                // write contingency statuses
-                setContingencyStatus(resultWriter, results);
-
-                // Set base case/reference values of the sensitivities
+                // set base case/function reference values of the factors
                 setFunctionReference(validLfFactors, results.getPreContingenciesFlowStates());
                 setBaseCaseSensitivityValues(factorGroups, results.getPreContingenciesStates()); // use this state to compute the base sensitivity (without +1-1)
 
-                // Compute sensibilities for given factors
-                calculateSensitivityValues(results, factorGroups,
-                        validFactorHolder.getAllFactors(), contingencies, resultWriter);
+                // compute the sensibilities with Woodbury computed states (pre and post contingency)
+                calculateSensitivityValues(results, factorGroups, validFactorHolder.getAllFactors(), contingencies, resultWriter);
             }
 
             stopwatch.stop();
