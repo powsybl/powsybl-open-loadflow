@@ -492,7 +492,7 @@ public class WoodburyEngine {
                                                           DenseMatrix contingenciesStates, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                           List<ParticipatingElement> participatingElements,
                                                           ReportNode reporter, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
-                                                          WoodburyEngineInjectionInput input) {
+                                                          WoodburyEngineRhsModification input) {
         DenseMatrix modifiedFlowStates = flowStates;
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
@@ -519,7 +519,7 @@ public class WoodburyEngine {
                                                         Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements, Set<String> elementsToReconnect,
                                                         ReportNode reporter, Set<LfBranch> partialDisabledBranches,
                                                         AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
-                                                        WoodburyEngineInjectionInput input) {
+                                                        WoodburyEngineRhsModification input) {
         DenseMatrix modifiedFlowStates = flowStates;
 
         PhaseTapChangerContingenciesIndexing phaseTapChangerContingenciesIndexing = new PhaseTapChangerContingenciesIndexing(contingencies, contingencyElementByBranch, elementsToReconnect);
@@ -571,7 +571,7 @@ public class WoodburyEngine {
     private void calculateContingencyStateValues(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, DenseMatrix flowStates, DenseMatrix preContingencyStates,
                                                  PropagatedContingency contingency, DenseMatrix contingenciesStates, Collection<ComputedContingencyElement> contingencyElements, DisabledNetwork disabledNetwork,
                                                  List<ParticipatingElement> participatingElements, ReportNode reporter, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
-                                                 WoodburyEngineInjectionInput input) {
+                                                 WoodburyEngineRhsModification input) {
 
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
             calculateStateValues(loadFlowContext, flowStates, preContingencyStates, contingenciesStates, contingency, contingencyElements, disabledNetwork);
@@ -694,7 +694,8 @@ public class WoodburyEngine {
 
         // index contingency elements by branch id
         Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), contingencies);
-        // Compute post-element-contingency states
+
+        // compute states with +1 -1 to model the contingencies
         DenseMatrix contingenciesStates = calculateContingenciesStates(loadFlowContext, contingencyElementByBranch);
 
         // connectivity analysis by contingency
@@ -726,16 +727,19 @@ public class WoodburyEngine {
     public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                     DenseMatrix injectionVectors, List<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements,
                                     ReportNode reporter, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
-                                    ConnectivityDataResult connectivityDataResult, WoodburyEngineInjectionInput input) {
+                                    ConnectivityDataResult connectivityDataResult, WoodburyEngineRhsModification input) {
 
+        // compute the pre-contingency states
         loadFlowContext.getJacobianMatrix().solveTransposed(injectionVectors);
         woodburyEngineResult.setPreContingenciesStates(injectionVectors);
-        // TODO : refactor to avoid matrices storage
+
+        // run DC load on pre-contingency network
         DenseMatrix flowStates = calculateActivePowerFlows(loadFlowContext, participatingElements, new DisabledNetwork(), reporter, true);
 
-        // index contingency elements by branch id
+        // get contingency elements indexed by branch id
         Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityDataResult.getContingencyElementByBranch();
-        // Compute post-element-contingency states
+
+        // get states with +1 -1 to model the contingencies
         DenseMatrix contingenciesStates = connectivityDataResult.getContingenciesStates();
 
         LOGGER.info("Processing contingencies with no connectivity break");
