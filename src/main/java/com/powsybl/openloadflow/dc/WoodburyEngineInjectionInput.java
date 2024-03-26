@@ -13,12 +13,18 @@ public class WoodburyEngineInjectionInput {
 
     private final HashMap<PropagatedContingency, DenseMatrix> newInjectionVectorsByPropagatedContingency;
 
+    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> newInjectionVectorsForAConnectivity;
+
     private final HashMap<PropagatedContingency, List<ParticipatingElement>> newParticipatingElementsByPropagatedContingency;
 
-    public WoodburyEngineInjectionInput(DenseMatrix injectionVectors, HashMap<PropagatedContingency, DenseMatrix> newInjectionVectorsByPropagatedContingency, HashMap<PropagatedContingency, List<ParticipatingElement>> newParticipatingElementsByPropagatedContingency) {
+    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, List<ParticipatingElement>> newParticipantElementsForAConnectivity;
+
+    public WoodburyEngineInjectionInput(DenseMatrix injectionVectors, HashMap<PropagatedContingency, DenseMatrix> newInjectionVectorsByPropagatedContingency, HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> newInjectionVectorsForAConnectivity, HashMap<PropagatedContingency, List<ParticipatingElement>> newParticipatingElementsByPropagatedContingency, HashMap<WoodburyEngine.ConnectivityAnalysisResult, List<ParticipatingElement>> newParticipantElementsForAConnectivity) {
         this.injectionVectors = injectionVectors;
         this.newInjectionVectorsByPropagatedContingency = newInjectionVectorsByPropagatedContingency;
+        this.newInjectionVectorsForAConnectivity = newInjectionVectorsForAConnectivity;
         this.newParticipatingElementsByPropagatedContingency = newParticipatingElementsByPropagatedContingency;
+        this.newParticipantElementsForAConnectivity = newParticipantElementsForAConnectivity;
     }
 
     public DenseMatrix getInjectionVectors() {
@@ -31,5 +37,13 @@ public class WoodburyEngineInjectionInput {
 
     public HashMap<PropagatedContingency, List<ParticipatingElement>> getNewParticipatingElementsByPropagatedContingency() {
         return newParticipatingElementsByPropagatedContingency;
+    }
+
+    public HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> getNewInjectionVectorsForAConnectivity() {
+        return newInjectionVectorsForAConnectivity;
+    }
+
+    public HashMap<WoodburyEngine.ConnectivityAnalysisResult, List<ParticipatingElement>> getNewParticipantElementsForAConnectivity() {
+        return newParticipantElementsForAConnectivity;
     }
 }

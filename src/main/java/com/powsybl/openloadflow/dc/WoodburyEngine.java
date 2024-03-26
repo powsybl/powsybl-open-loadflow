@@ -33,7 +33,8 @@ import java.util.*;
 import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.getParticipatingElements;
+import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
+import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.*;
 
 public class WoodburyEngine {
 
@@ -197,8 +198,7 @@ public class WoodburyEngine {
      */
     private DenseMatrix calculateActivePowerFlows(DcLoadFlowContext loadFlowContext,
                                                List<ParticipatingElement> participatingElements,
-                                               DisabledNetwork disabledNetwork,
-                                                  ReportNode reporter,
+                                               DisabledNetwork disabledNetwork, ReportNode reporter,
                                                boolean updateFlowStates) {
         List<BusState> busStates = Collections.emptyList();
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
@@ -506,35 +506,12 @@ public class WoodburyEngine {
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
 
-        // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
-        // if one bus of the line is lost.
-        for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
-            if (Networks.isIsolatedBusForHvdc(hvdc.getBus1(), disabledBuses) ^ Networks.isIsolatedBusForHvdc(hvdc.getBus2(), disabledBuses)) {
-                connectivityAnalysisResult.getContingencies().forEach(contingency -> {
-                    contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation1().getId());
-                    contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation2().getId());
-                });
-            }
-        }
-
         // null and unused if slack bus is not distributed
-        List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
-        boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK
-        DenseMatrix factorStateForThisConnectivity = preContingencyStates;
-        if (lfParameters.isDistributedSlack()) {
-            rhsChanged = participatingElements.stream().anyMatch(element -> disabledBuses.contains(element.getLfBus()));
-        }
-        // TODO : remove use of factorGroups for the following lines
-        if (factorGroups.hasMultiVariables()) {
-            // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-            rhsChanged |= rescaleGlsk(factorGroups, disabledBuses);
-        }
-        // we need to recompute the factor states because the connectivity changed
-        if (rhsChanged) {
-            participatingElementsForThisConnectivity = lfParameters.isDistributedSlack()
-                    ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
-                    : Collections.emptyList();
-            factorStateForThisConnectivity = DcSensitivityAnalysis.getInjectionVectors(loadFlowContext, factorGroups, participatingElementsForThisConnectivity);
+        List<ParticipatingElement> participatingElementsForThisConnectivity = input.getNewParticipantElementsForAConnectivity().getOrDefault(connectivityAnalysisResult, participatingElements);
+        DenseMatrix factorStateForThisConnectivity = input.getNewInjectionVectorsForAConnectivity().getOrDefault(connectivityAnalysisResult, preContingencyStates);
+
+        // TODO : refactor
+        if (input.getNewInjectionVectorsForAConnectivity().containsKey(connectivityAnalysisResult)) {
             loadFlowContext.getJacobianMatrix().solveTransposed(factorStateForThisConnectivity);
         }
 
@@ -595,19 +572,6 @@ public class WoodburyEngine {
         }
     }
 
-    // TODO : remove me ?
-    protected boolean rescaleGlsk(AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, Set<LfBus> nonConnectedBuses) {
-        boolean rescaled = false;
-        // compute the corresponding injection (with participation) for each factor
-        for (AbstractSensitivityAnalysis.SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup : factorGroups.getList()) {
-            if (factorGroup instanceof AbstractSensitivityAnalysis.MultiVariablesFactorGroup) {
-                AbstractSensitivityAnalysis.MultiVariablesFactorGroup<DcVariableType, DcEquationType> multiVariablesFactorGroup = (AbstractSensitivityAnalysis.MultiVariablesFactorGroup<DcVariableType, DcEquationType>) factorGroup;
-                rescaled |= multiVariablesFactorGroup.updateConnectivityWeights(nonConnectedBuses);
-            }
-        }
-        return rescaled;
-    }
-
     /**
      * Calculate values for a post-contingency state.
      * When a contingency involves the loss of a load or a generator, the slack distribution could changed
@@ -628,46 +592,21 @@ public class WoodburyEngine {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
             LfNetwork lfNetwork = loadFlowContext.getNetwork();
-//            DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
+            DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
             NetworkState networkState = NetworkState.save(lfNetwork);
             LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
             DenseMatrix newPreContingencyStates = preContingencyStates;
             List<ParticipatingElement> newParticipatingElements = participatingElements;
-//            boolean participatingElementsChanged = false;
-//            boolean rhsChanged = false;
             if (lfContingency != null) {
                 newParticipatingElements = input.getNewParticipatingElementsByPropagatedContingency().getOrDefault(contingency, participatingElements);
                 newPreContingencyStates = input.getNewInjectionVectorsByPropagatedContingency().getOrDefault(contingency, preContingencyStates);
-
-                // TODO : refactor
+//
+//                // TODO : refactor
                 if (input.getNewInjectionVectorsByPropagatedContingency().containsKey(contingency)) {
                     loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStates);
                 }
-
-//                lfContingency.apply(lfParameters.getBalanceType());
-//                participatingElementsChanged = isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()
-//                        || isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty();
-//                if (factorGroups.hasMultiVariables()) {
-//                    Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
-//                    rhsChanged = rescaleGlsk(factorGroups, impactedBuses);
-//                }
-//                if (participatingElementsChanged) {
-//                    if (isDistributedSlackOnGenerators(lfParameters)) {
-//                        // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
-//                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
-//                        newParticipatingElements = participatingElements.stream()
-//                                .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
-//                                .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
-//                                .collect(Collectors.toList());
-//                        normalizeParticipationFactors(newParticipatingElements);
-//                    } else { // slack distribution on loads
-//                        newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
-//                    }
-//                }
-//                if (participatingElementsChanged || rhsChanged) {
-//                    newPreContingencyStates = DcSensitivityAnalysis.getInjectionVectors(loadFlowContext, factorGroups, newParticipatingElements);
-//                    loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStates); // states for the sensitivity factors
-//                }
+                // TODO : refactor to avoid lfContingency application
+                lfContingency.apply(lfParameters.getBalanceType());
 
                 // write contingency status
                 // TODO : put this in DcSensitivityAnalysis after dealing with glsk
