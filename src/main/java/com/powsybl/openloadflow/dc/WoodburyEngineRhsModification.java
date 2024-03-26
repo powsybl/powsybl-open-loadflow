@@ -6,6 +6,7 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class WoodburyEngineRhsModification {
 
@@ -24,19 +25,19 @@ public class WoodburyEngineRhsModification {
         this.newParticipantElementsForAConnectivity = new HashMap<>();
     }
 
-    public HashMap<PropagatedContingency, DenseMatrix> getNewInjectionVectorsByPropagatedContingency() {
+    public Map<PropagatedContingency, DenseMatrix> getNewInjectionVectorsByPropagatedContingency() {
         return newInjectionVectorsByPropagatedContingency;
     }
 
-    public HashMap<PropagatedContingency, List<ParticipatingElement>> getNewParticipatingElementsByPropagatedContingency() {
+    public Map<PropagatedContingency, List<ParticipatingElement>> getNewParticipatingElementsByPropagatedContingency() {
         return newParticipatingElementsByPropagatedContingency;
     }
 
-    public HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> getNewInjectionVectorsForAConnectivity() {
+    public Map<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> getNewInjectionVectorsForAConnectivity() {
         return newInjectionVectorsForAConnectivity;
     }
 
-    public HashMap<WoodburyEngine.ConnectivityAnalysisResult, List<ParticipatingElement>> getNewParticipantElementsForAConnectivity() {
+    public Map<WoodburyEngine.ConnectivityAnalysisResult, List<ParticipatingElement>> getNewParticipantElementsForAConnectivity() {
         return newParticipantElementsForAConnectivity;
     }
 }

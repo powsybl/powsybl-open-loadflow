@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.network.DisabledNetwork;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 
 import java.util.HashMap;
+import java.util.Map;
 
 // TODO : refactor to avoid matrices storage
 public class WoodburyEngineResult {
@@ -72,11 +73,11 @@ public class WoodburyEngineResult {
         return preContingenciesStates;
     }
 
-    public HashMap<PropagatedContingency, PostContingencyWoodburyResult> getPostContingencyWoodburyResults() {
+    public Map<PropagatedContingency, PostContingencyWoodburyResult> getPostContingencyWoodburyResults() {
         return postContingencyWoodburyResults;
     }
 
-    public HashMap<PropagatedContingency, Boolean> getContingencyStatuses() {
+    public Map<PropagatedContingency, Boolean> getContingencyStatuses() {
         return contingencyStatuses;
     }
 }
