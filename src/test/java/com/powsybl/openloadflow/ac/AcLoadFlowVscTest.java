@@ -501,4 +501,33 @@ class AcLoadFlowVscTest {
         System.out.println(network.getHvdcConverterStation("cs2").getTerminal().getP());
         System.out.println(network.getHvdcConverterStation("cs3").getTerminal().getP());
     }
+
+    @Test
+    void testAcEmuAndPMax() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        // without limit p=195
+        network.getHvdcLine("hvdc23")
+                .setMaxP(180);
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters p = new LoadFlowParameters();
+        p.setHvdcAcEmulation(true);
+        LoadFlowResult result = loadFlowRunner.run(network, p);
+
+        assertTrue(result.isFullyConverged());
+
+        // TODO: replace by comparison with accurate values once coded
+        System.out.println(network.getHvdcConverterStation("cs2").getTerminal().getP());
+        System.out.println(network.getHvdcConverterStation("cs3").getTerminal().getP());
+
+        // now invert power direction
+        HvdcAngleDroopActivePowerControl activePowerControl = network.getHvdcLine("hvdc23").getExtension(HvdcAngleDroopActivePowerControl.class);
+        activePowerControl.setP0(-activePowerControl.getP0());
+        result = loadFlowRunner.run(network, p);
+        assertTrue(result.isFullyConverged());
+
+        // TODO: replace by comparison with accurate values once coded
+        System.out.println(network.getHvdcConverterStation("cs2").getTerminal().getP());
+        System.out.println(network.getHvdcConverterStation("cs3").getTerminal().getP());
+    }
 }
