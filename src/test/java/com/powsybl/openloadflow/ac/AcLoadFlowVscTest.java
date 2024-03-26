@@ -401,7 +401,7 @@ class AcLoadFlowVscTest {
     }
 
     @Test
-    void testVscVoltageRegulationWithoutTransit() {
+    void testVscVoltageControlWithZeroTargetP() {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         // Set specific voltage setPoints to the stations
@@ -410,7 +410,7 @@ class AcLoadFlowVscTest {
         network.getVscConverterStation("cs2").setVoltageSetpoint(vcs2);
         network.getVscConverterStation("cs3").setVoltageSetpoint(vcs3);
 
-        // shut down active transit in HVDC
+        // shut down active power flow in HVDC
         network.getHvdcLine("hvdc23").setActivePowerSetpoint(0);
         network.getHvdcLine("hvdc23").getExtension(HvdcAngleDroopActivePowerControl.class).setDroop(0).setP0(0);
 
@@ -421,25 +421,24 @@ class AcLoadFlowVscTest {
         LoadFlowResult result = loadFlowRunner.run(network, p);
 
         assertTrue(result.isFullyConverged());
-        assertEquals(0, network.getVscConverterStation("cs2").getTerminal().getP(), DELTA_POWER);
-        assertEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus().getV(), DELTA_V);
-        assertEquals(0, network.getVscConverterStation("cs3").getTerminal().getP(), DELTA_POWER);
-        assertEquals(vcs3, network.getVscConverterStation("cs3").getTerminal().getBusView().getBus().getV(), DELTA_V);
+        assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
+        assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
+        assertActivePowerEquals(0, network.getVscConverterStation("cs3").getTerminal());
+        assertVoltageEquals(vcs3, network.getVscConverterStation("cs3").getTerminal().getBusView().getBus());
 
         // with AC emulation
         p.setHvdcAcEmulation(true);
         result = loadFlowRunner.run(network, p);
 
         assertTrue(result.isFullyConverged());
-        assertEquals(0, network.getVscConverterStation("cs2").getTerminal().getP(), DELTA_POWER);
-        assertEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus().getV(), DELTA_V);
-        assertEquals(0, network.getVscConverterStation("cs3").getTerminal().getP(), DELTA_POWER);
-        assertEquals(vcs3, network.getVscConverterStation("cs3").getTerminal().getBusView().getBus().getV(), DELTA_V);
-
+        assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
+        assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
+        assertActivePowerEquals(0, network.getVscConverterStation("cs3").getTerminal());
+        assertVoltageEquals(vcs3, network.getVscConverterStation("cs3").getTerminal().getBusView().getBus());
     }
 
     @Test
-    void testVscVoltageRegulationWhenOneSideDisconnected() {
+    void testVscVoltageControlWithOneSideDisconnected() {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         // Set specific voltage setPoints to the stations
@@ -459,15 +458,14 @@ class AcLoadFlowVscTest {
         LoadFlowResult result = loadFlowRunner.run(network, p);
 
         assertTrue(result.isFullyConverged());
-        assertEquals(0, network.getVscConverterStation("cs2").getTerminal().getP(), DELTA_POWER);
-        assertEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus().getV(), DELTA_V);
+        assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
+        assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
 
         // with AC emulation
         p.setHvdcAcEmulation(true);
         result = loadFlowRunner.run(network, p);
 
-        assertEquals(0, network.getVscConverterStation("cs2").getTerminal().getP(), DELTA_POWER);
-        assertEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus().getV(), DELTA_V);
-
+        assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
+        assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
     }
 }
