@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -397,5 +398,74 @@ class AcLoadFlowVscTest {
         assertActivePowerEquals(2.0, network.getVscConverterStation("cs4").getTerminal());
         assertActivePowerEquals(-2.0, network.getGenerator("g4").getTerminal());
         assertActivePowerEquals(-2.047, network.getGenerator("g1").getTerminal());
+    }
+
+    @Test
+    void testVscVoltageControlWithZeroTargetP() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        // Set specific voltage setPoints to the stations
+        double vcs2 = 397;
+        double vcs3 = 401;
+        network.getVscConverterStation("cs2").setVoltageSetpoint(vcs2);
+        network.getVscConverterStation("cs3").setVoltageSetpoint(vcs3);
+
+        // shut down active power flow in HVDC
+        network.getHvdcLine("hvdc23").setActivePowerSetpoint(0);
+        network.getHvdcLine("hvdc23").getExtension(HvdcAngleDroopActivePowerControl.class).setDroop(0).setP0(0);
+
+        LoadFlowParameters p = new LoadFlowParameters();
+
+        // without AC emulation
+        p.setHvdcAcEmulation(false);
+        LoadFlowResult result = loadFlowRunner.run(network, p);
+
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
+        assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
+        assertActivePowerEquals(0, network.getVscConverterStation("cs3").getTerminal());
+        assertVoltageEquals(vcs3, network.getVscConverterStation("cs3").getTerminal().getBusView().getBus());
+
+        // with AC emulation
+        p.setHvdcAcEmulation(true);
+        result = loadFlowRunner.run(network, p);
+
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
+        assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
+        assertActivePowerEquals(0, network.getVscConverterStation("cs3").getTerminal());
+        assertVoltageEquals(vcs3, network.getVscConverterStation("cs3").getTerminal().getBusView().getBus());
+    }
+
+    @Test
+    void testVscVoltageControlWithOneSideDisconnected() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        // Set specific voltage setPoints to the stations
+        double vcs2 = 397;
+        double vcs3 = 401;
+        network.getVscConverterStation("cs2").setVoltageSetpoint(vcs2);
+        network.getVscConverterStation("cs3").setVoltageSetpoint(vcs3);
+
+        // Disconnect line at HVDCoutput
+        Line l34 = network.getLine("l34");
+        l34.getTerminals().stream().forEach(Terminal::disconnect);
+
+        LoadFlowParameters p = new LoadFlowParameters();
+
+        // without AC emulation
+        p.setHvdcAcEmulation(false);
+        LoadFlowResult result = loadFlowRunner.run(network, p);
+
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
+        assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
+
+        // with AC emulation
+        p.setHvdcAcEmulation(true);
+        result = loadFlowRunner.run(network, p);
+
+        assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
+        assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
     }
 }
