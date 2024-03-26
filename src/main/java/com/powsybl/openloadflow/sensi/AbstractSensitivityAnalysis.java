@@ -225,7 +225,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 }
                 case BUS_REACTIVE_POWER -> {
                     Evaluable q = ((LfBus) functionElement).getQ();
-                    yield q instanceof Equation ? new InjectionDerivable<V>((Equation<V, ?>) q) : q;
+                    yield q instanceof Equation ? new InjectionDerivable<>((Equation<V, ?>) q) : q;
                 }
                 case BUS_VOLTAGE -> ((LfBus) functionElement).getCalculatedV();
                 default -> throw new UnsupportedOperationException("Function type not supported: " + functionType);
