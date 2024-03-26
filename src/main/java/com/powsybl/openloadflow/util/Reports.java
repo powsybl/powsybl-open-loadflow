@@ -368,10 +368,28 @@ public final class Reports {
     }
 
     public static void reportNewtonRaphsonLargestMismatches(ReportNode reportNode, String acEquationType, BusReport busReport) {
+        String mismatchUnit;
+        double mismatchUnitConverter;
+        switch (acEquationType) {
+            case "P" -> {
+                mismatchUnit = "MW";
+                mismatchUnitConverter = PerUnit.SB;
+            }
+            case "Q" -> {
+                mismatchUnit = "MVar";
+                mismatchUnitConverter = PerUnit.SB;
+            }
+            default -> {
+                mismatchUnit = "p.u.";
+                mismatchUnitConverter = 1.0;
+            }
+        }
+
         ReportNode subReportNode = reportNode.newReportNode()
-                .withMessageTemplate("NRMismatch", "Largest ${equationType} mismatch: ${mismatch}")
+                .withMessageTemplate("NRMismatch", "Largest ${equationType} mismatch: ${mismatch} ${mismatchUnit}")
                 .withUntypedValue("equationType", acEquationType)
-                .withTypedValue("mismatch", busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withTypedValue("mismatch", mismatchUnitConverter * busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withUntypedValue("mismatchUnit", mismatchUnit)
                 .add();
 
         subReportNode.newReportNode()
@@ -389,9 +407,9 @@ public final class Reports {
                 .add();
 
         subReportNode.newReportNode()
-                .withMessageTemplate("NRMismatchBusInjection", "Bus injection: ${busSumP} MW, ${busSumQ} MVar")
-                .withUntypedValue("busSumP", busReport.p())
-                .withUntypedValue("busSumQ", busReport.q())
+                .withMessageTemplate("NRMismatchBusInjection", "Bus injection: ${busP} MW, ${busQ} MVar")
+                .withUntypedValue("busP", busReport.p())
+                .withUntypedValue("busQ", busReport.q())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
