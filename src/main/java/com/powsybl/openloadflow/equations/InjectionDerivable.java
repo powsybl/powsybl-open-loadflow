@@ -49,9 +49,11 @@ public class InjectionDerivable<V extends Enum<V> & Quantity> implements Derivab
 
     @Override
     public double eval() {
-        // The variable part of the equation is   injectionPart+branchPart
-        // Thus Variable injectionPart = - branchPart
-        return -getBranchTermStream().mapToDouble(EquationTerm::eval).sum() + equation.rhs();
+        // The equation is
+        // rhs = VariableInjectionPart+ branchPart
+        // with rhs = - (cte injectionPart)  (for ex sum of targetQ)
+        // -branchPart = variableInjectionPart + cteInjectionPart
+        return -getBranchTermStream().mapToDouble(EquationTerm::eval).sum();
     }
 
     @Override
@@ -61,6 +63,10 @@ public class InjectionDerivable<V extends Enum<V> & Quantity> implements Derivab
 
     @Override
     public double eval(StateVector sv) {
-        return -getBranchTermStream().mapToDouble(t -> t.eval(sv)).sum() + equation.rhs();
+        // The equation is
+        // rhs = VariableInjectionPart+ branchPart
+        // with rhs = - (cte injectionPart)  (for ex sum of targetQ)
+        // -branchPart = variableInjectionPart + cteInjectionPart
+        return -getBranchTermStream().mapToDouble(t -> t.eval(sv)).sum();
     }
 }
