@@ -41,7 +41,7 @@ import java.util.stream.Stream;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
-abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractSensitivityAnalysis.class);
 
@@ -416,7 +416,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
-    protected interface SensitivityFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+    public interface SensitivityFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         List<LfSensitivityFactor<V, E>> getFactors();
 
@@ -526,7 +526,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
-    protected static class MultiVariablesFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractSensitivityFactorGroup<V, E> {
+    public static class MultiVariablesFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractSensitivityFactorGroup<V, E> {
 
         private Map<LfElement, Double> variableElements;
         private Map<LfElement, Double> mainComponentWeights;
@@ -577,7 +577,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             }
         }
 
-        protected boolean updateConnectivityWeights(Set<LfBus> nonConnectedBuses) {
+        public boolean updateConnectivityWeights(Set<LfBus> nonConnectedBuses) {
             mainComponentWeights = variableElements.entrySet().stream()
                 .filter(entry -> !nonConnectedBuses.contains((LfBus) entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -585,7 +585,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
-    protected static class SensitivityFactorGroupList<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+    public static class SensitivityFactorGroupList<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         private final List<SensitivityFactorGroup<V, E>> list;
 
@@ -596,11 +596,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             multiVariables = list.stream().anyMatch(MultiVariablesFactorGroup.class::isInstance);
         }
 
-        protected List<SensitivityFactorGroup<V, E>> getList() {
+        public List<SensitivityFactorGroup<V, E>> getList() {
             return list;
         }
 
-        protected boolean hasMultiVariables() {
+        public boolean hasMultiVariables() {
             return multiVariables;
         }
     }

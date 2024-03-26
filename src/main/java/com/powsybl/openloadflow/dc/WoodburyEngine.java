@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.sensi;
+package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
@@ -16,9 +16,6 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.dc.DcLoadFlowContext;
-import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
-import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -27,6 +24,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
+import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysis;
+import com.powsybl.openloadflow.sensi.DcSensitivityAnalysis;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +33,7 @@ import java.util.*;
 import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysis.getParticipatingElements;
+import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.getParticipatingElements;
 
 public class WoodburyEngine {
 
@@ -42,7 +41,7 @@ public class WoodburyEngine {
     private static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
     private WoodburyEngineResult woodburyEngineResult;
 
-    static final class ComputedContingencyElement {
+    public static final class ComputedContingencyElement {
 
         private int contingencyIndex = -1; // index of the element in the rhs for +1-1
         private int localIndex = -1; // local index of the element : index of the element in the matrix used in the setAlphas method
@@ -150,7 +149,7 @@ public class WoodburyEngine {
         }
     }
 
-   static final class ConnectivityAnalysisResult {
+    public static final class ConnectivityAnalysisResult {
 
         private final Collection<PropagatedContingency> contingencies = new HashSet<>();
 
@@ -320,7 +319,7 @@ public class WoodburyEngine {
         }
     }
 
-    static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
+    public static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
         int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);

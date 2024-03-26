@@ -14,9 +14,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.dc.DcLoadFlowContext;
-import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
-import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
+import com.powsybl.openloadflow.dc.*;
 import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.StateVector;
@@ -325,7 +323,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // FIXME : adding of glsk treatment
                 WoodburyEngineInjectionInput input = new WoodburyEngineInjectionInput(injectionVectors, new HashMap<>(), new HashMap<>());
-                for (var connectivityAnalysisResult : connectivityData.getConnectivityAnalysisResults()) {
+                for (WoodburyEngine.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.getConnectivityAnalysisResults()) {
                     var disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
                     // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line

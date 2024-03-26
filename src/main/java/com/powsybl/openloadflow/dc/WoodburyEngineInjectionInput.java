@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.sensi;
+package com.powsybl.openloadflow.dc;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
