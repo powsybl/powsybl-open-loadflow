@@ -46,12 +46,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private final double pMaxFromCS2toCS1;
 
-    public LfHvdcImpl(String id,
-                      LfBus bus1,
-                      LfBus bus2,
-                      LfNetwork network,
-                      HvdcLine hvdcLine,
-                      boolean acEmulation) {
+    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine, boolean acEmulation) {
         super(network);
         this.id = Objects.requireNonNull(id);
         this.bus1 = bus1;
