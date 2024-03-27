@@ -55,6 +55,10 @@ class AcLoadFlowBatteryTest {
 
     @Test
     void test() {
+        battery2.newExtension(VoltageRegulationAdder.class)
+                .withTargetV(401)
+                .withVoltageRegulatorOn(false)
+                .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
