@@ -82,7 +82,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     private void createBranchPostContingenciesSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup,
                                                                List<PropagatedContingency> contingencies, SensitivityResultWriter resultWriter, WoodburyEngineResult results) {
 
-        // TODO : refactor
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         for (var contingency : contingencies) {
 
@@ -152,7 +151,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             return;
         }
 
-        // TODO : refactor
+        // TODO : refactor ?
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
                 .forEach(factor -> {
                     createBranchPreContingencySensitivityValue(factor, resultWriter);
@@ -166,6 +165,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup = e.getKey();
             List<LfSensitivityFactor<DcVariableType, DcEquationType>> factorsForThisGroup = e.getValue();
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factorsForThisGroup) {
+                // FIXME : May be some redundancy there.
                 createBranchPreContingencySensitivityValue(factor, resultWriter);
                 createBranchPostContingenciesSensitivityValue(factor, factorGroup, contingencies, resultWriter, woodburyEngineResult);
             }
@@ -241,7 +241,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 input.getNewInjectionVectorsForAConnectivity().put(connectivityAnalysisResult, DcSensitivityAnalysis.getInjectionVectors(loadFlowContext, factorGroups, participatingElementsForThisConnectivity));
             }
 
-            // TODO : rename following lists
+            // TODO : refactor the following. Not clean
             List<PropagatedContingency> contingenciesWithGeneratorOrLoadLost = connectivityAnalysisResult.getContingencies().stream()
                     .filter(propagatedContingency -> !propagatedContingency.getGeneratorIdsToLose().isEmpty() || !propagatedContingency.getLoadIdsToLoose().isEmpty())
                     .collect(Collectors.toList());
@@ -400,22 +400,21 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // engine to compute pre- and post-contingency states for sensitivities calculations
                 WoodburyEngine engine = new WoodburyEngine();
 
+                // FIXME : Hadrien. If injection vectors is after the treatment for rhs modification, not the same result.
                 // pre-contingency rhs members
                 DenseMatrix injectionVectors = getInjectionVectors(loadFlowContext, factorGroups, participatingElements);
 
-                // FIXME : still problem with the update of the loadFlowContext/rhs members.
-
-//                // compute states with +1 -1 to model the contingencies and run connectivity analysis
+                // compute states with +1 -1 to model the contingencies and run connectivity analysis
                 WoodburyEngine.ConnectivityDataResult connectivityData = engine.runConnectivityData(loadFlowContext, contingencies);
-//
-//                // storage of modifications that must be applied on rhs members, due to GLSK and/or slack bus participation
+
+                // storage of modifications that must be applied on rhs members, due to GLSK and/or slack bus participation
                 WoodburyEngineRhsModification woodburyEngineRhsModification = new WoodburyEngineRhsModification();
 
-//                // compute rhs modifications for contingencies breaking connectivity
+                // compute rhs modifications for contingencies breaking connectivity
                 rhsModificationForContingenciesBreakingConnectivity(loadFlowContext, lfParametersExt, connectivityData.getConnectivityAnalysisResults(), factorGroups, participatingElements, woodburyEngineRhsModification, resultWriter);
-//
-//                // TODO : rename following lists
-//                // compute rhs modifications for contingencies with no connectivity break
+
+                // TODO : refactor the following. Not clean
+                // compute rhs modifications for contingencies with no connectivity break
                 List<PropagatedContingency> nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost = connectivityData.getNonBreakingConnectivityContingencies().stream()
                         .filter(propagatedContingency -> !propagatedContingency.getGeneratorIdsToLose().isEmpty() || !propagatedContingency.getLoadIdsToLoose().isEmpty())
                         .collect(Collectors.toList());
@@ -424,9 +423,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                 .forEach(propagatedContingency -> resultWriter.writeContingencyStatus(propagatedContingency.getIndex(), propagatedContingency.hasNoImpact() ? SensitivityAnalysisResult.Status.NO_IMPACT : SensitivityAnalysisResult.Status.SUCCESS));
                 functionToBeNamed(loadFlowContext, lfParametersExt, factorGroups, nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost, participatingElements, woodburyEngineRhsModification, resultWriter);
 
+                // FIXME : check the treatments of the factors in the engine
                 // compute the pre- and post-contingency states using Woodbury equality
                 WoodburyEngineResult results = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors,
-                        contingencies, participatingElements, reportNode, factorGroups, connectivityData, woodburyEngineRhsModification);
+                        participatingElements, reportNode, factorGroups, connectivityData, woodburyEngineRhsModification);
 
                 // set base case/function reference values of the factors
                 setFunctionReference(validLfFactors, results.getPreContingenciesFlowStates());
