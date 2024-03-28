@@ -82,7 +82,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     private void createBranchPostContingenciesSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup,
                                                                List<PropagatedContingency> contingencies, SensitivityResultWriter resultWriter, WoodburyEngineResult results) {
 
-        EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
+        Derivable<DcVariableType> p1 = factor.getFunctionEquationTerm();
         for (var contingency : contingencies) {
 
             WoodburyEngineResult.PostContingencyWoodburyResult result = results.getPostContingencyWoodburyResults().get(contingency);
