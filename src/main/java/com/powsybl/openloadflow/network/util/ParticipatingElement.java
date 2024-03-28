@@ -30,6 +30,14 @@ public class ParticipatingElement {
         return element;
     }
 
+    public LfGenerator getLfGeneratorElement() {
+        if (element instanceof LfGenerator lfGenerator) {
+            return lfGenerator;
+        } else {
+            return null;
+        }
+    }
+
     public double getFactor() {
         return factor;
     }

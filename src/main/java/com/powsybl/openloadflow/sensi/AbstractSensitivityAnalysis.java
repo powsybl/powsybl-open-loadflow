@@ -16,7 +16,6 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.InjectionDerivable;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -639,7 +638,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return new SensitivityFactorGroupList<>(new ArrayList<>(groupIndexedById.values()));
     }
 
-    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
+    protected static List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
@@ -1215,18 +1214,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return Pair.of(hasBusTargetVoltage.get(), hasTransformerBusTargetVoltage.get());
     }
 
-    protected static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
-        return lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
-                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
-    }
-
-    protected static boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
-        return lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
-                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-    }
-
     /**
      * Base value for per-uniting, depending on the function type
      */
@@ -1292,16 +1279,12 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                  SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig);
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
-        switch (variable) {
-            case INJECTION_ACTIVE_POWER, HVDC_LINE_ACTIVE_POWER:
-                return isFlowFunction(function) && Math.abs(value) < parameters.getFlowFlowSensitivityValueThreshold();
-            case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
-                return isFlowFunction(function) && Math.abs(value) < parameters.getAngleFlowSensitivityValueThreshold();
-            case BUS_TARGET_VOLTAGE:
-                return filterBusTargetVoltageVariable(value, function, parameters);
-            default:
-                return false;
-        }
+        return switch (variable) {
+            case INJECTION_ACTIVE_POWER, HVDC_LINE_ACTIVE_POWER -> isFlowFunction(function) && Math.abs(value) < parameters.getFlowFlowSensitivityValueThreshold();
+            case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3 -> isFlowFunction(function) && Math.abs(value) < parameters.getAngleFlowSensitivityValueThreshold();
+            case BUS_TARGET_VOLTAGE -> filterBusTargetVoltageVariable(value, function, parameters);
+            default -> false;
+        };
     }
 
     protected static boolean filterBusTargetVoltageVariable(double value, SensitivityFunctionType function,
