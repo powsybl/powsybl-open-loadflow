@@ -24,7 +24,6 @@ import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -36,6 +35,7 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -321,7 +321,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         Optional<Double> functionPredefinedResults = predefinedResults.getRight();
         double sensitivityValue = sensitivityValuePredefinedResult.orElseGet(factor::getBaseSensitivityValue);
         double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
-        EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
+        Derivable<DcVariableType> p1 = factor.getFunctionEquationTerm();
 
         if (!(functionPredefinedResults.isPresent() && sensitivityValuePredefinedResult.isPresent())) {
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
