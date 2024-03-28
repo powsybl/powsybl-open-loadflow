@@ -102,14 +102,14 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type, List<Double> limitReductions) {
+    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, getHalf1().getActivePowerLimits().orElse(null), limitReductions);
+                return getLimits1(type, getHalf1().getActivePowerLimits().orElse(null), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, getHalf1().getApparentPowerLimits().orElse(null), Collections.emptyList());
+                return getLimits1(type, getHalf1().getApparentPowerLimits().orElse(null), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, getHalf1().getCurrentLimits().orElse(null), Collections.emptyList());
+                return getLimits1(type, getHalf1().getCurrentLimits().orElse(null), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -117,14 +117,14 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type, List<Double> limitReductions) {
+    public List<LfLimit> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, getHalf2().getActivePowerLimits().orElse(null), limitReductions);
+                return getLimits2(type, getHalf2().getActivePowerLimits().orElse(null), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits2(type, getHalf2().getApparentPowerLimits().orElse(null), Collections.emptyList());
+                return getLimits2(type, getHalf2().getApparentPowerLimits().orElse(null), limitReductionManager);
             case CURRENT:
-                return getLimits2(type, getHalf2().getCurrentLimits().orElse(null), Collections.emptyList());
+                return getLimits2(type, getHalf2().getCurrentLimits().orElse(null), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -133,7 +133,7 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<Double> getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
-        return null;
+        return Collections.emptyList();
     }
 
     @Override

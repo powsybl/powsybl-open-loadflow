@@ -17,10 +17,11 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.SecurityAnalysisParameters;
+import com.powsybl.security.limitreduction.LimitReduction;
+import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
 
@@ -34,19 +35,23 @@ public class LimitViolationManager {
 
     private final LimitViolationManager reference;
 
+    private final LimitReductionManager limitReductionManager;
+
     private SecurityAnalysisParameters.IncreasedViolationsParameters parameters;
 
     private final Map<Object, LimitViolation> violations = new LinkedHashMap<>();
 
-    public LimitViolationManager(LimitViolationManager reference, SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
+    public LimitViolationManager(LimitViolationManager reference, List<LimitReduction> limitReductions,
+                                 SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
         this.reference = reference;
         if (reference != null) {
             this.parameters = Objects.requireNonNull(parameters);
         }
+        this.limitReductionManager = LimitReductionManager.create(limitReductions);
     }
 
-    public LimitViolationManager() {
-        this(null, null);
+    public LimitViolationManager(List<LimitReduction> limitReductions) {
+        this(null, limitReductions, null);
     }
 
     public List<LimitViolation> getLimitViolations() {
@@ -100,12 +105,12 @@ public class LimitViolationManager {
     }
 
     private void detectBranchSideViolations(LfBranch branch, LfBus bus,
-                                            BiFunction<LfBranch, LimitType, List<LfBranch.LfLimit>> limitsGetter,
+                                            TriFunction<LfBranch, LimitType, LimitReductionManager, List<LfBranch.LfLimit>> limitsGetter,
                                             Function<LfBranch, Evaluable> iGetter,
                                             Function<LfBranch, Evaluable> pGetter,
                                             ToDoubleFunction<LfBranch> sGetter,
                                             TwoSides side) {
-        List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT);
+        List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT, limitReductionManager);
         if (!limits.isEmpty()) {
             double i = iGetter.apply(branch).eval();
             limits.stream()
@@ -115,7 +120,7 @@ public class LimitViolationManager {
                     .ifPresent(this::addBranchLimitViolation);
         }
 
-        limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER);
+        limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
         if (!limits.isEmpty()) {
             double p = pGetter.apply(branch).eval();
             limits.stream()
@@ -125,7 +130,7 @@ public class LimitViolationManager {
                     .ifPresent(this::addBranchLimitViolation);
         }
 
-        limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER);
+        limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
         if (!limits.isEmpty()) {
             //Apparent power is not relevant for fictitious branches and may be NaN
             double s = sGetter.applyAsDouble(branch);
@@ -147,7 +152,7 @@ public class LimitViolationManager {
         // detect violation limits on a branch
         // Only detect the most serious one (findFirst) : limit violations are ordered by severity
         if (branch.getBus1() != null) {
-            detectBranchSideViolations(branch, branch.getBus1(), () -> LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, TwoSides.ONE);
+            detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, TwoSides.ONE);
         }
 
         if (branch.getBus2() != null) {

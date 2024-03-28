@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
@@ -120,11 +121,13 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return bus2;
     }
 
-    public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits, List<Double> limitReductions) {
+    public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits, LimitReductionManager limitReductionManager) {
+        List<Double> limitReductions = getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits);
         return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1, limitReductions));
     }
 
-    public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits, List<Double> limitReductions) {
+    public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits, LimitReductionManager limitReductionManager) {
+        List<Double> limitReductions = getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits);
         return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2, limitReductions));
     }
 

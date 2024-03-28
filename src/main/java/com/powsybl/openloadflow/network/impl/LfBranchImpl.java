@@ -231,15 +231,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type, List<Double> limitReductions) {
+    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, branch.getActivePowerLimits1().orElse(null), limitReductions);
+                return getLimits1(type, branch.getActivePowerLimits1().orElse(null), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, branch.getApparentPowerLimits1().orElse(null), Collections.emptyList());
+                return getLimits1(type, branch.getApparentPowerLimits1().orElse(null), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, branch.getCurrentLimits1().orElse(null), Collections.emptyList());
+                return getLimits1(type, branch.getCurrentLimits1().orElse(null), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -247,15 +247,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type, List<Double> limitReductions) {
+    public List<LfLimit> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
         var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, branch.getActivePowerLimits2().orElse(null), limitReductions);
+                return getLimits2(type, branch.getActivePowerLimits2().orElse(null), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits2(type, branch.getApparentPowerLimits2().orElse(null), Collections.emptyList());
+                return getLimits2(type, branch.getApparentPowerLimits2().orElse(null), limitReductionManager);
             case CURRENT:
-                return getLimits2(type, branch.getCurrentLimits2().orElse(null), Collections.emptyList());
+                return getLimits2(type, branch.getCurrentLimits2().orElse(null), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -268,6 +268,9 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             return Collections.emptyList();
         }
         if (limits.getLimitType() != LimitType.CURRENT) {
+            return Collections.emptyList();
+        }
+        if (limitReductionManager == null) {
             return Collections.emptyList();
         }
         List<Double> limitReductions = new ArrayList<>(limits.getTemporaryLimits().size() + 1);

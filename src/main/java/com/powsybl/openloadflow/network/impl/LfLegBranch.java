@@ -140,15 +140,15 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type, List<Double> limitReductions) {
+    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         var leg = getLeg();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, leg.getActivePowerLimits().orElse(null), limitReductions);
+                return getLimits1(type, leg.getActivePowerLimits().orElse(null), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, leg.getApparentPowerLimits().orElse(null), Collections.emptyList());
+                return getLimits1(type, leg.getApparentPowerLimits().orElse(null), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, leg.getCurrentLimits().orElse(null), Collections.emptyList());
+                return getLimits1(type, leg.getCurrentLimits().orElse(null), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -157,7 +157,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<Double> getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
-        return null;
+        return Collections.emptyList();
     }
 
     @Override

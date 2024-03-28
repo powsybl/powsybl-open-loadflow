@@ -86,8 +86,7 @@ public class LimitReductionManager {
                 } else {
                     for (NetworkElementCriterion networkElementCriterion : limitReduction.getNetworkElementCriteria()) {
                         IdentifiableCriterion identifiableCriterion = (IdentifiableCriterion) networkElementCriterion;
-                        nominalVoltageRange = Range.of(identifiableCriterion.getNominalVoltageCriterion().getVoltageInterval().getNominalVoltageLowBound(),
-                                identifiableCriterion.getNominalVoltageCriterion().getVoltageInterval().getNominalVoltageHighBound());
+                        nominalVoltageRange = identifiableCriterion.getNominalVoltageCriterion().getVoltageInterval().asRange();
                         if (limitReduction.getDurationCriteria().isEmpty()) {
                             permanent = true;
                         } else { // size 1 or 2 only.
@@ -104,7 +103,7 @@ public class LimitReductionManager {
                                                     equalityTemporaryDurationCriterion.getDurationEqualityValue());
                                         } else { // intervalTemporaryDurationCriterion
                                             IntervalTemporaryDurationCriterion intervalTemporaryDurationCriterion = (IntervalTemporaryDurationCriterion) limitDurationCriterion;
-                                            acceptableDurationRange = getRange(intervalTemporaryDurationCriterion);
+                                            acceptableDurationRange = intervalTemporaryDurationCriterion.asRange();
                                         }
                                     }
                                 }
@@ -144,23 +143,5 @@ public class LimitReductionManager {
             return false;
         }
         return true;
-    }
-
-    private static Range<Integer> getRange(IntervalTemporaryDurationCriterion intervalTemporaryDurationCriterion) {
-        Integer lowBound = 0;
-        Integer highBound = Integer.MAX_VALUE;
-        if (intervalTemporaryDurationCriterion.getLowBound().isPresent()) {
-            lowBound = intervalTemporaryDurationCriterion.getLowBound().get();
-            if (!intervalTemporaryDurationCriterion.isLowClosed()) {
-                lowBound = lowBound + 1;
-            }
-        }
-        if (intervalTemporaryDurationCriterion.getHighBound().isPresent()) {
-            highBound = intervalTemporaryDurationCriterion.getHighBound().get();
-            if (!intervalTemporaryDurationCriterion.isHighClosed()) {
-                highBound = highBound - 1;
-            }
-        }
-        return Range.of(lowBound, highBound);
     }
 }

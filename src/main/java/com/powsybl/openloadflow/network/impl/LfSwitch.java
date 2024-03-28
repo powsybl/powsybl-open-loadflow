@@ -358,18 +358,14 @@ public class LfSwitch extends AbstractLfBranch {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getSwitch().getId());
     }
 
-    public List<LfLimit> getLimits1(final LimitType type) {
-        return Collections.emptyList();
-    }
-
     @Override
-    public List<LfLimit> getLimits2(final LimitType type) {
+    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         return Collections.emptyList();
     }
 
     @Override
     public List<Double> getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
-        return null;
+        return Collections.emptyList(); // TODO
     }
 
     @Override
