@@ -370,7 +370,7 @@ public class WoodburyEngine {
                                                          Collection<PropagatedContingency> nonLosingConnectivityContingencies,
                                                          Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
         for (PropagatedContingency contingency : contingencies) {
-            List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
+            List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get).toList();
             Set<ComputedContingencyElement> groupOfElementsBreakingConnectivity = getGroupOfElementsBreakingConnectivity(lfNetwork, states, contingencyElements, equationSystem);
             if (groupOfElementsBreakingConnectivity.isEmpty()) { // connectivity not broken
                 nonLosingConnectivityContingencies.add(contingency);
@@ -490,12 +490,11 @@ public class WoodburyEngine {
     }
 
     private void processContingenciesBreakingConnectivity(ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
-                                                          LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
+                                                          OpenLoadFlowParameters lfParametersExt,
                                                           DenseMatrix flowStates, DenseMatrix preContingencyStates,
                                                           DenseMatrix contingenciesStates, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                           List<ParticipatingElement> participatingElements,
                                                           ReportNode reporter, WoodburyEngineRhsModification input) {
-        DenseMatrix modifiedFlowStates = flowStates;
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
 
@@ -508,7 +507,7 @@ public class WoodburyEngine {
             loadFlowContext.getJacobianMatrix().solveTransposed(factorStateForThisConnectivity);
         }
 
-        modifiedFlowStates = calculateActivePowerFlows(loadFlowContext, participatingElementsForThisConnectivity,
+        DenseMatrix modifiedFlowStates = calculateActivePowerFlows(loadFlowContext, participatingElementsForThisConnectivity,
                 new DisabledNetwork(disabledBuses, Collections.emptySet()),
                 reporter, false);
         calculateStateValuesForContingencyList(loadFlowContext, lfParametersExt, contingenciesStates, modifiedFlowStates, factorStateForThisConnectivity, connectivityAnalysisResult.getContingencies(),
@@ -532,12 +531,12 @@ public class WoodburyEngine {
             Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                     .filter(element -> !elementsToReconnect.contains(element))
                     .map(contingencyElementByBranch::get)
-                    .collect(Collectors.toList());
+                    .toList();
 
             Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
             disabledBranches.addAll(partialDisabledBranches);
 
-            calculateContingencyStateValues(loadFlowContext, lfParametersExt, modifiedFlowStates, preContingencyStates, contingency, contingenciesStates, contingencyElements,
+            calculateContingencyStateValues(loadFlowContext, modifiedFlowStates, preContingencyStates, contingency, contingenciesStates, contingencyElements,
                     new DisabledNetwork(disabledBuses, disabledBranches), participatingElements, reporter, input);
         }
 
@@ -557,7 +556,7 @@ public class WoodburyEngine {
                 Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
                 disabledBranches.addAll(partialDisabledBranches);
 
-                calculateContingencyStateValues(loadFlowContext, lfParametersExt, modifiedFlowStates, preContingencyStates, contingency, contingenciesStates,
+                calculateContingencyStateValues(loadFlowContext, modifiedFlowStates, preContingencyStates, contingency, contingenciesStates,
                         contingencyElements, new DisabledNetwork(disabledBuses, disabledBranches), participatingElements, reporter, input);
             }
         }
@@ -568,7 +567,7 @@ public class WoodburyEngine {
      * When a contingency involves the loss of a load or a generator, the slack distribution could changed
      * or the sensitivity factors in case of GLSK.
      */
-    private void calculateContingencyStateValues(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, DenseMatrix flowStates, DenseMatrix preContingencyStates,
+    private void calculateContingencyStateValues(DcLoadFlowContext loadFlowContext, DenseMatrix flowStates, DenseMatrix preContingencyStates,
                                                  PropagatedContingency contingency, DenseMatrix contingenciesStates, Collection<ComputedContingencyElement> contingencyElements, DisabledNetwork disabledNetwork,
                                                  List<ParticipatingElement> participatingElements, ReportNode reporter, WoodburyEngineRhsModification input) {
 
@@ -701,7 +700,7 @@ public class WoodburyEngine {
         // we have to compute sensitivities and reference functions in a different way depending on either or not the contingency breaks connectivity
         // so, we will index contingencies by a list of branch that may break connectivity
         // for example, if in the network, loosing line L1 breaks connectivity, and loosing L2 and L3 together breaks connectivity,
-        // the index would be: {L1, L2, L3}
+        // the index would be: L1, L2, L3
         // a contingency involving a phase tap changer loss has to be processed separately
         List<PropagatedContingency> nonBreakingConnectivityContingencies = new ArrayList<>();
         Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsPotentiallyBreakingConnectivity = new LinkedHashMap<>();
@@ -750,7 +749,7 @@ public class WoodburyEngine {
 
         // process contingencies with connectivity break
         for (ConnectivityAnalysisResult connectivityAnalysisResult : connectivityDataResult.getConnectivityAnalysisResults()) {
-            processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
+            processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParametersExt,
                     flowStates, injectionVectors, contingenciesStates, contingencyElementByBranch, participatingElements, reporter, input);
         }
 
