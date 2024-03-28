@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.equations.Quantity;
  */
 public interface LoadFlowEngine<V extends Enum<V> & Quantity,
                                 E extends Enum<E> & Quantity,
-                                P extends AbstractLoadFlowParameters,
+                                P extends AbstractLoadFlowParameters<P>,
                                 R extends LoadFlowResult> {
 
     LoadFlowContext<V, E, P> getContext();

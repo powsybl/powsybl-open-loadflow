@@ -11,6 +11,8 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -63,6 +65,22 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     protected Evaluable closedQ2 = NAN;
 
     protected Evaluable closedI2 = NAN;
+
+    protected final List<Evaluable> additionalOpenP1 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalClosedP1 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalOpenQ1 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalClosedQ1 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalOpenP2 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalClosedP2 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalOpenQ2 = new ArrayList<>();
+
+    protected final List<Evaluable> additionalClosedQ2 = new ArrayList<>();
 
     protected AbstractImpedantLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
@@ -130,7 +148,7 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
         if (connectedSide2 != this.connectedSide2) {
             this.connectedSide2 = connectedSide2;
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onBranchConnectionStatusChange(this, TwoSides.TWO, connectedSide1);
+                listener.onBranchConnectionStatusChange(this, TwoSides.TWO, connectedSide2);
             }
             if (!isConnectedSide1() && !isConnectedSide2()) {
                 setDisabled(false);
@@ -316,6 +334,152 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     @Override
     public void setClosedI2(Evaluable closedI2) {
         this.closedI2 = Objects.requireNonNull(closedI2);
+    }
+
+    @Override
+    public void addAdditionalOpenP1(Evaluable openP1) {
+        additionalOpenP1.add(openP1);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenP1() {
+        return additionalOpenP1;
+    }
+
+    @Override
+    public void addAdditionalClosedP1(Evaluable closedP1) {
+        additionalClosedP1.add(closedP1);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalClosedP1() {
+        return additionalClosedP1;
+    }
+
+    @Override
+    public void addAdditionalOpenQ1(Evaluable openQ1) {
+        additionalOpenQ1.add(openQ1);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenQ1() {
+        return additionalOpenQ1;
+    }
+
+    @Override
+    public void addAdditionalClosedQ1(Evaluable closedQ1) {
+        additionalClosedQ1.add(closedQ1);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalClosedQ1() {
+        return additionalClosedQ1;
+    }
+
+    @Override
+    public void addAdditionalOpenP2(Evaluable openP2) {
+        additionalOpenP2.add(openP2);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenP2() {
+        return additionalOpenP2;
+    }
+
+    @Override
+    public void addAdditionalClosedP2(Evaluable closedP2) {
+        additionalClosedP2.add(closedP2);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalClosedP2() {
+        return additionalClosedP2;
+    }
+
+    @Override
+    public void addAdditionalOpenQ2(Evaluable openQ2) {
+        additionalOpenQ2.add(openQ2);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenQ2() {
+        return additionalOpenQ2;
+    }
+
+    @Override
+    public void addAdditionalClosedQ2(Evaluable closedQ2) {
+        additionalClosedQ2.add(closedQ2);
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalClosedQ2() {
+        return additionalClosedQ2;
+    }
+
+    @Override
+    public void removeEvaluable(Evaluable evaluable) {
+        if (p1 == evaluable) {
+            p1 = NAN;
+        }
+        if (closedP1 == evaluable) {
+            closedP1 = NAN;
+        }
+        if (openP1 == evaluable) {
+            openP1 = NAN;
+        }
+        if (q1 == evaluable) {
+            q1 = NAN;
+        }
+        if (closedQ1 == evaluable) {
+            closedQ1 = NAN;
+        }
+        if (openQ1 == evaluable) {
+            openQ1 = NAN;
+        }
+        if (i1 == evaluable) {
+            i1 = NAN;
+        }
+        if (closedI1 == evaluable) {
+            closedI1 = NAN;
+        }
+        if (openI1 == evaluable) {
+            openI1 = NAN;
+        }
+        if (p2 == evaluable) {
+            p2 = NAN;
+        }
+        if (closedP2 == evaluable) {
+            closedP2 = NAN;
+        }
+        if (openP2 == evaluable) {
+            openP2 = NAN;
+        }
+        if (q2 == evaluable) {
+            q2 = NAN;
+        }
+        if (closedQ2 == evaluable) {
+            closedQ2 = NAN;
+        }
+        if (openQ2 == evaluable) {
+            openQ2 = NAN;
+        }
+        if (i2 == evaluable) {
+            i2 = NAN;
+        }
+        if (closedI2 == evaluable) {
+            closedI2 = NAN;
+        }
+        if (openI2 == evaluable) {
+            openI2 = NAN;
+        }
+        additionalClosedP1.remove(evaluable);
+        additionalOpenP1.remove(evaluable);
+        additionalClosedQ1.remove(evaluable);
+        additionalOpenQ1.remove(evaluable);
+        additionalClosedP2.remove(evaluable);
+        additionalOpenP2.remove(evaluable);
+        additionalClosedQ2.remove(evaluable);
+        additionalOpenQ2.remove(evaluable);
     }
 
     protected double getV1() {

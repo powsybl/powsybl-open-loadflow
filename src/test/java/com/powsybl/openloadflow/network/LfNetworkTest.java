@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
@@ -21,6 +22,8 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +35,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -239,5 +245,82 @@ class LfNetworkTest extends AbstractSerDeTest {
         assertTrue(b1.getGeneratorVoltageControl().orElseThrow().isDisabled());
         assertTrue(b2.getGeneratorVoltageControl().orElseThrow().isDisabled());
         assertTrue(b3.getGeneratorVoltageControl().orElseThrow().isDisabled());
+    }
+
+    @Test
+    void testElements() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        assertEquals("b1_vl_0", mainNetwork.getElement(ElementType.BUS, 0).getId());
+        assertEquals("hvdc34", mainNetwork.getElement(ElementType.HVDC, 0).getId());
+        assertEquals("hvdc34", mainNetwork.getHvdc(0).getId());
+    }
+
+    @Test
+    void testIsolatedForHvdc() {
+        Network network = HvdcNetworkFactory.createWithHvdcAndGenerator();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork smallNetwork = lfNetworks.get(1);
+        assertFalse(Networks.isIsolatedBusForHvdc(smallNetwork.getBusById("b4_vl_0"), Set.of(smallNetwork.getBusById("b4_vl_0"))));
+    }
+
+    @Test
+    void evaluableGetterAndSetterTest() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        LfBranch branch = lfNetwork.getBranch(0);
+        testEvaluableGetterAndSetter(branch, LfBranch::getP1, LfBranch::setP1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getOpenP1, LfBranch::setOpenP1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getClosedP1, LfBranch::setClosedP1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getP2, LfBranch::setP2);
+        testEvaluableGetterAndSetter(branch, LfBranch::getOpenP2, LfBranch::setOpenP2);
+        testEvaluableGetterAndSetter(branch, LfBranch::getClosedP2, LfBranch::setClosedP2);
+        testEvaluableGetterAndSetter(branch, LfBranch::getI1, LfBranch::setI1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getOpenI1, LfBranch::setOpenI1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getClosedI1, LfBranch::setClosedI1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getQ1, LfBranch::setQ1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getOpenQ1, LfBranch::setOpenQ1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getClosedQ1, LfBranch::setClosedQ1);
+        testEvaluableGetterAndSetter(branch, LfBranch::getQ2, LfBranch::setQ2);
+        testEvaluableGetterAndSetter(branch, LfBranch::getOpenQ2, LfBranch::setOpenQ2);
+        testEvaluableGetterAndSetter(branch, LfBranch::getClosedQ2, LfBranch::setClosedQ2);
+        testEvaluableGetterAndSetter(branch, LfBranch::getI2, LfBranch::setI2);
+        testEvaluableGetterAndSetter(branch, LfBranch::getOpenI2, LfBranch::setOpenI2);
+        testEvaluableGetterAndSetter(branch, LfBranch::getClosedI2, LfBranch::setClosedI2);
+        testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalClosedP1, LfBranch::addAdditionalClosedP1);
+        testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalOpenP1, LfBranch::addAdditionalOpenP1);
+        testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalClosedQ1, LfBranch::addAdditionalClosedQ1);
+        testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalOpenQ1, LfBranch::addAdditionalOpenQ1);
+        testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalClosedP2, LfBranch::addAdditionalClosedP2);
+        testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalOpenP2, LfBranch::addAdditionalOpenP2);
+        testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalClosedQ2, LfBranch::addAdditionalClosedQ2);
+        testAdditionalEvaluableGetterAndSetter(branch, LfBranch::getAdditionalOpenQ2, LfBranch::addAdditionalOpenQ2);
+    }
+
+    private static void testEvaluableGetterAndSetter(LfBranch branch, Function<LfBranch, Evaluable> getter, BiConsumer<LfBranch, Evaluable> setter) {
+        Evaluable evaluable = () -> 0;
+        assertSame(EvaluableConstants.NAN, getter.apply(branch));
+        setter.accept(branch, evaluable);
+        assertSame(evaluable, getter.apply(branch));
+        branch.removeEvaluable(evaluable);
+        assertSame(EvaluableConstants.NAN, getter.apply(branch));
+    }
+
+    private static void testAdditionalEvaluableGetterAndSetter(LfBranch branch, Function<LfBranch, List<Evaluable>> getter, BiConsumer<LfBranch, Evaluable> adder) {
+        Evaluable evaluable = () -> 0;
+        assertTrue(getter.apply(branch).isEmpty());
+        adder.accept(branch, evaluable);
+        assertEquals(1, getter.apply(branch).size());
+        assertEquals(evaluable, getter.apply(branch).get(0));
+        branch.removeEvaluable(evaluable);
+        assertTrue(getter.apply(branch).isEmpty());
     }
 }

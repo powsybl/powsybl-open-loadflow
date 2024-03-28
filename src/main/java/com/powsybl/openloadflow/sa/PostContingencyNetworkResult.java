@@ -59,17 +59,18 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                     }
                 }
             }
-            branchResults.add(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension));
+            branchResults.addAll(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension));
         });
     }
 
     @Override
     public void update() {
         clear();
-        addResults(monitorIndex.getAllStateMonitor());
         StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(contingency.getId());
         if (stateMonitor != null) {
             addResults(stateMonitor);
+        } else {
+            addResults(monitorIndex.getAllStateMonitor());
         }
     }
 

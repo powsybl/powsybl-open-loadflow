@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
@@ -22,7 +23,13 @@ import java.util.function.DoubleSupplier;
  *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Evaluable {
+public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Derivable<V> {
+
+    static void setActive(Evaluable evaluable, boolean active) {
+        if (evaluable instanceof EquationTerm<?, ?> term) {
+            term.setActive(active);
+        }
+    }
 
     class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 

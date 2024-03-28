@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -56,6 +58,11 @@ public abstract class AbstractElement extends AbstractPropertyBag implements LfE
 
     public LfNetwork getNetwork() {
         return network;
+    }
+
+    @Override
+    public void removeEvaluable(Evaluable evaluable) {
+        // nothing by default
     }
 
     @Override

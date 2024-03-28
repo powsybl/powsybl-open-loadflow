@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.contingency.BranchContingency;
@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -69,7 +70,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
-        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), Reporter.NO_OP);
+        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
 
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
@@ -101,7 +102,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         assertEquals(2, lfNetworks.size());
 
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
-        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), Reporter.NO_OP);
+        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
 
         String generatorId = "GEN";
         Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
@@ -119,7 +120,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         assertEquals(2, lfNetworks.size());
 
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
-        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), Reporter.NO_OP);
+        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
 
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));
@@ -128,5 +129,18 @@ class LfContingencyTest extends AbstractSerDeTest {
         assertThrows(PowsyblException.class, () ->
                         PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters),
                 "Load 'LOAD' not found in the network");
+    }
+
+    @Test
+    void testOpenBranchOutOfMainComponentIssue() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters().setBreakers(true)).get(0);
+        Contingency contingency = Contingency.threeWindingsTransformer("T3wT");
+        PropagatedContingency propagatedContingency = PropagatedContingency.createList(network, List.of(contingency), new LfTopoConfig(), new PropagatedContingencyCreationParameters()).get(0);
+        LfContingency lfContingency = propagatedContingency.toLfContingency(lfNetwork).orElseThrow();
+        assertEquals(Map.of(lfNetwork.getBranchById("T3wT_leg_1"), DisabledBranchStatus.BOTH_SIDES,
+                            lfNetwork.getBranchById("T3wT_leg_2"), DisabledBranchStatus.BOTH_SIDES,
+                            lfNetwork.getBranchById("T3wT_leg_3"), DisabledBranchStatus.BOTH_SIDES),
+                lfContingency.getDisabledNetwork().getBranchesStatus());
     }
 }

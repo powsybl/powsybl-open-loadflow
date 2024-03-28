@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
@@ -174,7 +174,7 @@ class OpenSecurityAnalysisGraphTest {
                 .setBreakers(true);
 
         // create networks including all necessary switches
-        LfNetworkList lfNetworks = Networks.load(network, networkParameters, topoConfig, Reporter.NO_OP);
+        LfNetworkList lfNetworks = Networks.load(network, networkParameters, topoConfig, ReportNode.NO_OP);
 
         // run simulation on each network
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();

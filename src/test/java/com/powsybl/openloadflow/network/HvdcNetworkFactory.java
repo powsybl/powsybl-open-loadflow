@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 
 /**
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
@@ -340,6 +341,44 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
      * <pre>
+     *      Gen - b1 -- l12 -- b2 -- HVDC23-- b3 -- l34 -- b4 - Load
+     *            |            |                           |
+     *            |          s2 (open)                     |
+     *            |            |                           |
+     *            |---l12Bis --                            |
+     *            |                                        |
+     *            ---------------------l14------------------
+     * </pre>
+     * @return
+     */
+    public static Network createHvdcLinkedByTwoLinesAndSwitch() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1", 400);
+        Bus b2 = createBus(network, "b2", 400);
+        Bus b2Bis = b2.getVoltageLevel().getBusBreakerView().newBus().setId("b2Bis").add();
+        Bus b3 = createBus(network, "b3", 400);
+        Bus b4 = createBus(network, "b4", 400);
+        createGenerator(b1, "g1", 400, 400);
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b2Bis, "l12Bis", 0.1f);
+        createSwitch(network, b2, b2Bis, "s2").setOpen(true);
+        VscConverterStation cs2 = createVsc(b2, "cs2", 400, 0);
+        VscConverterStation cs3 = createVsc(b3, "cs3", 400, 0);
+        createHvdcLine(network, "hvdc23", cs2, cs3, 400, 0.1, 200)
+                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(200)
+                .withEnabled(true)
+                .add();
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b1, b4, "l14", 0.1f);
+        createLoad(b4, "l4", 300, 0);
+        return network;
+    }
+
+    /**
+     * <pre>
      * b1 ----------+
      * |            |
      * b2 -------- b3 - cs3
@@ -528,6 +567,111 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         network.getGenerator("g1").setMaxP(5);
         network.getGenerator("g5").setMaxP(5);
 
+        createLoad(b2, "d2", 4);
+        return network;
+    }
+
+    /**
+     *       ------------l12--------------
+     *      |                            |
+     * g1--b1-----vsc1--hvdc12--vsc2----b2--g2
+     *     |                             |
+     *     l1                            l2
+     *
+     *     Initially, g1 is on. g2 is off.
+     * @return
+     */
+    public static Network createHvdcInAcEmulationInSymetricNetwork() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        createGenerator(b1, "g1", 5).setMaxP(10);
+        createGenerator(b2, "g2", 0).setMaxP(10);
+        createLoad(b1, "l1", 3);
+        createLoad(b2, "l2", 3);
+        createLine(network, b1, b2, "l12", 0.1f);
+
+        HvdcConverterStation cs1 = createVsc(b1, "cs1", 1.2d, 0d);
+        HvdcConverterStation cs2 = createVsc(b2, "cs2", 1.2d, 0d);
+        createHvdcLine(network, "hvdc12", cs1, cs2, 400, 0.1, 2)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(1)
+                .withP0(0)
+                .withEnabled(true)
+                .add();
+        return network;
+    }
+
+    /**
+     * <pre>
+     *     g1 - b1 -- l12 -- b2 -- hvdc23 -- b3 -- l34 -- b4 - l4
+     *          |            |                            |
+     *          |           s2 (open)                     |
+     *          |            |                            |
+     *          |---l12Bis --                             |
+     *          |                                         |
+     *          ---------------------l14-------------------
+     * </pre>
+     * @return
+     */
+    public static Network createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType type) {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1", 400);
+        Bus b2 = createBus(network, "b2", 400);
+        Bus b2Bis = b2.getVoltageLevel().getBusBreakerView().newBus().setId("b2Bis").add();
+        Bus b3 = createBus(network, "b3", 400);
+        Bus b4 = createBus(network, "b4", 400);
+        createGenerator(b1, "g1", 400, 400);
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b2Bis, "l12Bis", 0.1f);
+        createSwitch(network, b2, b2Bis, "s2").setOpen(true);
+        HvdcConverterStation cs2 = switch (type) {
+            case LCC -> createLcc(b2, "cs2");
+            case VSC -> createVsc(b2, "cs2", 400, 0);
+        };
+        HvdcConverterStation cs3 = switch (type) {
+            case LCC -> createLcc(b3, "cs3");
+            case VSC -> createVsc(b3, "cs3", 400, 0);
+        };
+        createHvdcLine(network, "hvdc23", cs2, cs3, 400, 0.1, 200)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(200)
+                .withEnabled(true)
+                .add();
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b1, b4, "l14", 0.1f);
+        createLoad(b4, "l4", 300, 0);
+        return network;
+    }
+
+    /**
+     * <pre>
+     * b1 ----------+
+     * |            |
+     * b2 -------- b3 - cs3
+     *              hvdc34
+     *             b4 - g4
+     * </pre>
+     *
+     * @return network
+     */
+    public static Network createWithHvdcAndGenerator() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+        HvdcConverterStation cs3 = createVsc(b3, "cs3", 1.2d, 0d);
+        HvdcConverterStation cs4 = createVsc(b4, "cs4", 1.2d, 0d);
+        createHvdcLine(network, "hvdc34", cs3, cs4, 400, 0.1, 2);
+        createGenerator(b1, "g1", 1);
+        createGenerator(b4, "g4", 2);
+        network.getGenerator("g1").setMaxP(5);
+        network.getGenerator("g4").setMaxP(5);
         createLoad(b2, "d2", 4);
         return network;
     }

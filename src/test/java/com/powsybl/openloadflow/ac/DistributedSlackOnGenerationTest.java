@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.extensions.ReferencePriority;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -18,6 +19,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,8 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.util.EnumSet;
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -315,6 +316,45 @@ class DistributedSlackOnGenerationTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
         assertEquals(320, componentResult.getDistributedActivePower(), 1e-4);
         assertEquals(200, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-4);
+    }
+
+    @Test
+    void notEnoughActivePowerDistributeReferenceGeneratorTest() {
+        network.getLoad("l1").setP0(1000);
+        ReferencePriority.set(g1, 1);
+        g1.setMaxP(200.);
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertTrue(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        // DistributedActivePower: 520MW, breakdown:
+        // - 320MW by all 4 generators hitting maxP limit
+        // - 200MW by distributing on reference generator g1
+        assertEquals(520., componentResult.getDistributedActivePower(), 1e-3);
+        assertEquals(0., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+        assertAngleEquals(0., g1.getTerminal().getBusView().getBus());
+        // can exceed maxP (200MW)
+        assertActivePowerEquals(-400., g1.getTerminal());
+    }
+
+    @Test
+    void notEnoughActivePowerDistributeNoReferenceGeneratorTest() {
+        network.getLoad("l1").setP0(1000);
+        ReferencePriority.set(g1, 1);
+        g1.setMaxP(200.);
+        // We request to distribute on reference generator, but ReferenceBusSelectionMode is FIRST_SLACK.
+        // FIRST_SLACK mode does not select a reference generator, therefore internally we switch to FAIL mode.
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.FIRST_SLACK)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertTrue(result.isFailed());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
+        assertEquals(520., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
 
     @Test

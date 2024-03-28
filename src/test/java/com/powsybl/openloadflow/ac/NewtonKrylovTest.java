@@ -45,8 +45,8 @@ class NewtonKrylovTest {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcSolverType(AcSolverType.NEWTOW_KRYLOV)
-                .setMaxNewtowKrylovIterations(20);
+                .setAcSolverType(AcSolverType.NEWTON_KRYLOV)
+                .setMaxNewtonKrylovIterations(20);
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory())); // sparse matrix solver only
     }
 
@@ -86,12 +86,12 @@ class NewtonKrylovTest {
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(7, result.getComponentResults().get(0).getIterationCount());
 
-        parametersExt.setAcSolverType(AcSolverType.NEWTOW_KRYLOV);
+        parametersExt.setAcSolverType(AcSolverType.NEWTON_KRYLOV);
 
         result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
 
-        parametersExt.setNewtowKrylovLineSearch(true);
+        parametersExt.setNewtonKrylovLineSearch(true);
         result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(15, result.getComponentResults().get(0).getIterationCount());

@@ -271,7 +271,87 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+    public void addAdditionalOpenP1(Evaluable openP1) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenP1() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalClosedP1(Evaluable closedP1) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalClosedP1() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalOpenQ1(Evaluable openQ1) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenQ1() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalClosedQ1(Evaluable closedQ1) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalClosedQ1() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalOpenP2(Evaluable openP2) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenP2() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalClosedP2(Evaluable closedP2) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalClosedP2() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalOpenQ2(Evaluable openQ2) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalOpenQ2() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addAdditionalClosedQ2(Evaluable closedQ2) {
+        // nothing to do
+    }
+
+    @Override
+    public List<Evaluable> getAdditionalClosedQ2() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getSwitch().getId());
     }
 

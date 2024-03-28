@@ -15,6 +15,11 @@ import com.powsybl.openloadflow.equations.EquationSystem;
  */
 public interface NewtonRaphsonStoppingCriteria {
 
+    /**
+     * Convergence epsilon per equation: 10^-4 in p.u => 10^-2 in Kv, Mw or MVar
+     */
+    double DEFAULT_CONV_EPS_PER_EQ = Math.pow(10, -4);
+
     class TestResult {
 
         private final boolean stop;

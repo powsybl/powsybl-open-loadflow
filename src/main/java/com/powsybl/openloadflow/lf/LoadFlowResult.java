@@ -14,7 +14,11 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public interface LoadFlowResult {
 
+    boolean isSuccess();
+
     LfNetwork getNetwork();
 
     double getSlackBusActivePowerMismatch();
+
+    com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status toComponentResultStatus();
 }

@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -68,7 +68,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
         final MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         var contextData = (ContextData) context.getData();
@@ -98,7 +98,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                     double v = voltageControl.getControlledBus().getV();
                     double diffV = targetV - v;
                     double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-                    if (Math.abs(diffV) > halfTargetDeadband) {
+                    if (Math.abs(diffV) > halfTargetDeadband && branch.isConnectedAtBothSides()) {
                         branch.setVoltageControlEnabled(true);
                         status.setValue(OuterLoopStatus.UNSTABLE);
                     }
