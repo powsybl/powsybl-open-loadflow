@@ -237,9 +237,6 @@ public final class Networks {
                     // disable all buses and branches not connected to main component (because of switch to close)
                     restoreInitialTopology(lfNetwork, switchAndBranchIdsLeftToClose);
                 }
-                if (!switchAndBranchIdsLeftToClose.isEmpty()) {
-                    throw new PowsyblException("Could not restore initial topology: " + switchAndBranchIdsLeftToClose.size() + " switches or branches were not closed");
-                }
             }
 
             return new LfNetworkList(lfNetworks, variantCleanerFactory.create(network, workingVariantId, tmpVariantId));
