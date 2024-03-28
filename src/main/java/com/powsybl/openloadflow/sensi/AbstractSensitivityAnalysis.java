@@ -44,7 +44,7 @@ import java.util.stream.Stream;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
-public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractSensitivityAnalysis.class);
 
@@ -423,7 +423,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public interface SensitivityFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+    protected interface SensitivityFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         List<LfSensitivityFactor<V, E>> getFactors();
 
@@ -533,7 +533,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public static class MultiVariablesFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractSensitivityFactorGroup<V, E> {
+    protected static class MultiVariablesFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractSensitivityFactorGroup<V, E> {
 
         private Map<LfElement, Double> variableElements;
         private Map<LfElement, Double> mainComponentWeights;
@@ -584,7 +584,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             }
         }
 
-        public boolean updateConnectivityWeights(Set<LfBus> nonConnectedBuses) {
+        protected boolean updateConnectivityWeights(Set<LfBus> nonConnectedBuses) {
             mainComponentWeights = variableElements.entrySet().stream()
                 .filter(entry -> !nonConnectedBuses.contains((LfBus) entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -592,7 +592,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public static class SensitivityFactorGroupList<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+    protected static class SensitivityFactorGroupList<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         private final List<SensitivityFactorGroup<V, E>> list;
 
@@ -603,11 +603,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             multiVariables = list.stream().anyMatch(MultiVariablesFactorGroup.class::isInstance);
         }
 
-        public List<SensitivityFactorGroup<V, E>> getList() {
+        protected List<SensitivityFactorGroup<V, E>> getList() {
             return list;
         }
 
-        public boolean hasMultiVariables() {
+        protected boolean hasMultiVariables() {
             return multiVariables;
         }
     }
@@ -638,7 +638,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return new SensitivityFactorGroupList<>(new ArrayList<>(groupIndexedById.values()));
     }
 
-    public static List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
+    protected static List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
@@ -1279,16 +1279,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                                  SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig);
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
-        switch (variable) {
-            case INJECTION_ACTIVE_POWER, HVDC_LINE_ACTIVE_POWER:
-                return isFlowFunction(function) && Math.abs(value) < parameters.getFlowFlowSensitivityValueThreshold();
-            case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
-                return isFlowFunction(function) && Math.abs(value) < parameters.getAngleFlowSensitivityValueThreshold();
-            case BUS_TARGET_VOLTAGE:
-                return filterBusTargetVoltageVariable(value, function, parameters);
-            default:
-                return false;
-        }
+        return switch (variable) {
+            case INJECTION_ACTIVE_POWER, HVDC_LINE_ACTIVE_POWER -> isFlowFunction(function) && Math.abs(value) < parameters.getFlowFlowSensitivityValueThreshold();
+            case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3 -> isFlowFunction(function) && Math.abs(value) < parameters.getAngleFlowSensitivityValueThreshold();
+            case BUS_TARGET_VOLTAGE -> filterBusTargetVoltageVariable(value, function, parameters);
+            default -> false;
+        };
     }
 
     protected static boolean filterBusTargetVoltageVariable(double value, SensitivityFunctionType function,

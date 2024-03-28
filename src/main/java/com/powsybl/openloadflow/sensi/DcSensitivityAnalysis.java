@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -67,12 +68,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void createBranchPreContingencySensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, SensitivityResultWriter resultWriter) {
-
         Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, new DisabledNetwork(), null);
         Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
         Optional<Double> functionPredefinedResults = predefinedResults.getRight();
         double sensitivityValue = sensitivityValuePredefinedResult.orElseGet(factor::getBaseSensitivityValue);
-        double functionValue = fixZeroFunctionReference(null, functionPredefinedResults.orElseGet(factor::getFunctionReference));
+        double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
         double unscaledSensi = unscaleSensitivity(factor, sensitivityValue);
         if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
             resultWriter.writeSensitivityValue(factor.getIndex(), -1, unscaledSensi, unscaleFunction(factor, functionValue));
@@ -80,14 +80,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void createBranchPostContingenciesSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup,
-                                                               List<PropagatedContingency> contingencies, SensitivityResultWriter resultWriter, WoodburyEngineResult results) {
-
+                                                               List<PropagatedContingency> contingencies, SensitivityResultWriter resultWriter, WoodburyEngineResult woodburyResults) {
         Derivable<DcVariableType> p1 = factor.getFunctionEquationTerm();
-        for (var contingency : contingencies) {
+        for (PropagatedContingency contingency : contingencies) {
 
-            WoodburyEngineResult.PostContingencyWoodburyResult result = results.getPostContingencyWoodburyResults().get(contingency);
+            WoodburyEngineResult.PostContingencyWoodburyResult woodburyResult = woodburyResults.getPostContingencyWoodburyResults().get(contingency);
 
-            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, result.getPostContingencyDisabledNetwork(), contingency);
+            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, woodburyResult.getPostContingencyDisabledNetwork(), contingency);
             Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
             Optional<Double> functionPredefinedResults = predefinedResults.getRight();
 
@@ -95,17 +94,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
 
             if (sensitivityValuePredefinedResult.isEmpty()) {
-                sensitivityValue = p1.calculateSensi(result.getPostContingencyStates(), factorGroup.getIndex());
+                sensitivityValue = p1.calculateSensi(woodburyResult.getPostContingencyStates(), factorGroup.getIndex());
             }
 
             if (functionPredefinedResults.isEmpty()) {
-                functionValue = p1.calculateSensi(result.getPostContingencyFlowStates(), 0);
+                functionValue = p1.calculateSensi(woodburyResult.getPostContingencyFlowStates(), 0);
             }
 
             functionValue = fixZeroFunctionReference(contingency, functionValue);
             double unscaledSensi = unscaleSensitivity(factor, sensitivityValue);
             if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
-                resultWriter.writeSensitivityValue(factor.getIndex(), contingency.getIndex(), unscaledSensi, unscaleFunction(factor, functionValue));
+                int contingencyIndex = contingency == null ? -1 : contingency.getIndex();
+                resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, unscaledSensi, unscaleFunction(factor, functionValue));
             }
         }
     }
@@ -426,7 +426,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // FIXME : check the treatments of the factors in the engine
                 // compute the pre- and post-contingency states using Woodbury equality
                 WoodburyEngineResult results = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors,
-                        participatingElements, reportNode, factorGroups, connectivityData, woodburyEngineRhsModification);
+                        participatingElements, reportNode, connectivityData, woodburyEngineRhsModification);
 
                 // set base case/function reference values of the factors
                 setFunctionReference(validLfFactors, results.getPreContingenciesFlowStates());
