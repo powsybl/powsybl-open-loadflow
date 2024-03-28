@@ -44,4 +44,8 @@ public interface LfHvdc extends LfElement {
     void setConverterStation2(LfVscConverterStation converterStation2);
 
     void updateState();
+
+    double getPMaxFromCS1toCS2();
+
+    double getPMaxFromCS2toCS1();
 }
