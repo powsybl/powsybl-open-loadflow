@@ -580,12 +580,12 @@ public class WoodburyEngine {
             List<ParticipatingElement> newParticipatingElements = participatingElements;
             if (lfContingency != null) {
                 newParticipatingElements = input.getNewParticipatingElementsByPropagatedContingency().getOrDefault(contingency, participatingElements);
-                newPreContingencyStates = input.getNewInjectionVectorsByPropagatedContingency().getOrDefault(contingency, preContingencyStates);
 
-                // TODO : refactor the following. Not clean.
                 if (input.getNewInjectionVectorsByPropagatedContingency().containsKey(contingency)) {
+                    newPreContingencyStates = input.getNewInjectionVectorsByPropagatedContingency().get(contingency);
                     loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStates);
                 }
+
                 lfContingency.apply(lfParameters.getBalanceType());
             }
             DenseMatrix newFlowStates = calculatePreContingencyStates(loadFlowContext, newParticipatingElements, disabledNetwork, reporter, false);
@@ -600,8 +600,6 @@ public class WoodburyEngine {
      */
     private void calculateStateValues(DcLoadFlowContext loadFlowContext, DenseMatrix flowStates, DenseMatrix preContingencyStates, DenseMatrix contingenciesStates,
                                       PropagatedContingency contingency, Collection<ComputedContingencyElement> contingencyElements, DisabledNetwork disabledNetwork) {
-
-        // TODO : refactor with WoodburyEngineResult class to avoid to store all the matrices
         // add the post contingency matrices of flow states
         DenseMatrix postContingencyFlowStates = new DenseMatrix(flowStates.getRowCount(), 1);
         setAlphas(loadFlowContext, contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
