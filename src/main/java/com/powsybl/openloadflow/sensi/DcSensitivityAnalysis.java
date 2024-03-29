@@ -450,7 +450,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 buildRhsModificationsByContingencies(loadFlowContext, lfParametersExt, factorGroups, nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost, participatingElements, woodburyEngineRhsModification, resultWriter);
 
                 // compute the pre- and post-contingency states using Woodbury equality
-                WoodburyEngineResult results = engine.run(loadFlowContext, lfParameters, lfParametersExt, injectionVectors,
+                WoodburyEngineResult results = engine.run(loadFlowContext, lfParametersExt, injectionVectors,
                         participatingElements, reportNode, connectivityData, woodburyEngineRhsModification);
 
                 // set base case/function reference values of the factors

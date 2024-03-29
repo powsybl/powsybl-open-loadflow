@@ -11,7 +11,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingencyElement;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
@@ -207,7 +206,7 @@ public class WoodburyEngine {
         }
 
         double[] dx = runDcLoadFlow(loadFlowContext, disabledNetwork, reporter);
-        // TODO : remove following ?
+
         if (updateFlowStates) {
             woodburyEngineResult.setPreContingenciesFlowStates(dx);
         }
@@ -290,7 +289,6 @@ public class WoodburyEngine {
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState);
             setValue.accept(element, b / a);
         } else {
-            // FIXME: direct resolution if contingencyElements.size() == 2
             ComputedContingencyElement.setLocalIndexes(contingencyElements);
             DenseMatrix rhs = new DenseMatrix(contingencyElements.size(), 1);
             DenseMatrix matrix = new DenseMatrix(contingencyElements.size(), contingencyElements.size());
@@ -489,9 +487,7 @@ public class WoodburyEngine {
         return elementsToReconnect;
     }
 
-    private void processContingenciesBreakingConnectivity(ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
-                                                          OpenLoadFlowParameters lfParametersExt,
-                                                          DenseMatrix flowStates, DenseMatrix preContingencyStates,
+    private void processContingenciesBreakingConnectivity(ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates,
                                                           DenseMatrix contingenciesStates, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                           List<ParticipatingElement> participatingElements,
                                                           ReportNode reporter, WoodburyEngineRhsModification input) {
@@ -510,12 +506,12 @@ public class WoodburyEngine {
         DenseMatrix modifiedFlowStates = calculateActivePowerFlows(loadFlowContext, participatingElementsForThisConnectivity,
                 new DisabledNetwork(disabledBuses, Collections.emptySet()),
                 reporter, false);
-        calculateStateValuesForContingencyList(loadFlowContext, lfParametersExt, contingenciesStates, modifiedFlowStates, factorStateForThisConnectivity, connectivityAnalysisResult.getContingencies(),
+        calculateStateValuesForContingencyList(loadFlowContext, contingenciesStates, modifiedFlowStates, factorStateForThisConnectivity, connectivityAnalysisResult.getContingencies(),
                 contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity, connectivityAnalysisResult.getElementsToReconnect(),
                 reporter, partialDisabledBranches, input);
     }
 
-    private void calculateStateValuesForContingencyList(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, DenseMatrix contingenciesStates, DenseMatrix flowStates,
+    private void calculateStateValuesForContingencyList(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, DenseMatrix flowStates,
                                                         DenseMatrix preContingencyStates, Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                         Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements, Set<String> elementsToReconnect,
                                                         ReportNode reporter, Set<LfBranch> partialDisabledBranches, WoodburyEngineRhsModification input) {
@@ -551,7 +547,7 @@ public class WoodburyEngine {
                 Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                         .filter(element -> !elementsToReconnect.contains(element))
                         .map(contingencyElementByBranch::get)
-                        .collect(Collectors.toList());
+                        .toList();
 
                 Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
                 disabledBranches.addAll(partialDisabledBranches);
@@ -722,7 +718,7 @@ public class WoodburyEngine {
         return new ConnectivityDataResult(nonBreakingConnectivityContingencies, connectivityAnalysisResults, contingenciesStates, contingencyElementByBranch);
     }
 
-    public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
+    public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt,
                                     DenseMatrix injectionVectors, List<ParticipatingElement> participatingElements,
                                     ReportNode reporter, ConnectivityDataResult connectivityDataResult, WoodburyEngineRhsModification input) {
 
@@ -742,15 +738,14 @@ public class WoodburyEngine {
         LOGGER.info("Processing contingencies with no connectivity break");
 
         // calculate state values for contingencies with no connectivity break
-        calculateStateValuesForContingencyList(loadFlowContext, lfParametersExt, contingenciesStates, flowStates, injectionVectors, connectivityDataResult.getNonBreakingConnectivityContingencies(), contingencyElementByBranch,
+        calculateStateValuesForContingencyList(loadFlowContext, contingenciesStates, flowStates, injectionVectors, connectivityDataResult.getNonBreakingConnectivityContingencies(), contingencyElementByBranch,
                 Collections.emptySet(), participatingElements, Collections.emptySet(), reporter, Collections.emptySet(), input);
 
         LOGGER.info("Processing contingencies with connectivity break");
 
         // process contingencies with connectivity break
         for (ConnectivityAnalysisResult connectivityAnalysisResult : connectivityDataResult.getConnectivityAnalysisResults()) {
-            processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParametersExt,
-                    flowStates, injectionVectors, contingenciesStates, contingencyElementByBranch, participatingElements, reporter, input);
+            processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, injectionVectors, contingenciesStates, contingencyElementByBranch, participatingElements, reporter, input);
         }
 
         return woodburyEngineResult;
