@@ -228,6 +228,23 @@ public enum NetworkCache {
             return found;
         }
 
+        private boolean onTransformerTapPositionUpdate(String twtId, int newTapPosition) {
+            boolean found = false;
+            for (AcLoadFlowContext context : contexts) {
+                LfNetwork lfNetwork = context.getNetwork();
+                LfBranch lfBranch = lfNetwork.getBranchById(twtId);
+                if (lfBranch != null) {
+                    lfBranch.getPiModel().setTapPosition(newTapPosition);
+                    context.setNetworkUpdated(true);
+                    found = true;
+                }
+            }
+            if (!found) {
+                LOGGER.warn("Cannot update tap position of transformer '{}'", twtId);
+            }
+            return found;
+        }
+
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
             if (contexts == null || pause) {
@@ -267,11 +284,18 @@ public enum NetworkCache {
                         if (attribute.equals("ratioTapChanger.regulationValue")
                                 && onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue)) {
                             done = true;
+                        } else if (attribute.equals("ratioTapChanger.tapPosition")
+                                && onTransformerTapPositionUpdate(identifiable.getId(), (int) newValue)) {
+                            done = true;
                         }
                     } else if (identifiable.getType() == IdentifiableType.THREE_WINDINGS_TRANSFORMER) {
                         for (ThreeSides side : ThreeSides.values()) {
                             if (attribute.equals("ratioTapChanger" + side.getNum() + ".regulationValue")
                                     && onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (double) newValue)) {
+                                done = true;
+                                break;
+                            } else if (attribute.equals("ratioTapChanger" + side.getNum() + ".tapPosition")
+                                    && onTransformerTapPositionUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (int) newValue)) {
                                 done = true;
                                 break;
                             }
@@ -281,6 +305,7 @@ public enum NetworkCache {
             }
 
             if (!done) {
+                System.out.println("TOTO " + attribute + " " + oldValue + " " + newValue);
                 reset();
             }
         }
