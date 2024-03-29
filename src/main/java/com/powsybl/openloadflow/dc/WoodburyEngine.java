@@ -189,10 +189,10 @@ public class WoodburyEngine {
     }
 
     /**
-     * Calculate the active power flows for pre-contingency or a post-contingency state and set the factor function reference.
+     * Calculate the states for a fictitious pre-contingency situation.
      * The interesting disabled branches are only phase shifters.
      */
-    private DenseMatrix calculateActivePowerFlows(DcLoadFlowContext loadFlowContext,
+    private DenseMatrix calculatePreContingencyStates(DcLoadFlowContext loadFlowContext,
                                                List<ParticipatingElement> participatingElements,
                                                DisabledNetwork disabledNetwork, ReportNode reporter,
                                                boolean updateFlowStates) {
@@ -495,17 +495,18 @@ public class WoodburyEngine {
 
         // null and unused if slack bus is not distributed
         List<ParticipatingElement> participatingElementsForThisConnectivity = rhsModification.getNewParticipantElementsForAConnectivity().getOrDefault(connectivityAnalysisResult, participatingElements);
-        DenseMatrix factorStateForThisConnectivity = rhsModification.getNewInjectionVectorsForAConnectivity().getOrDefault(connectivityAnalysisResult, preContingencyStates);
-
-        // TODO : refactor the following. Not clean.
+        DenseMatrix statesForThisConnectivity;
         if (rhsModification.getNewInjectionVectorsForAConnectivity().containsKey(connectivityAnalysisResult)) {
-            loadFlowContext.getJacobianMatrix().solveTransposed(factorStateForThisConnectivity);
+            statesForThisConnectivity = rhsModification.getNewInjectionVectorsForAConnectivity().get(connectivityAnalysisResult);
+            loadFlowContext.getJacobianMatrix().solveTransposed(statesForThisConnectivity);
+        } else {
+            statesForThisConnectivity = preContingencyStates;
         }
 
-        DenseMatrix modifiedFlowStates = calculateActivePowerFlows(loadFlowContext, participatingElementsForThisConnectivity,
+        DenseMatrix modifiedFlowStates = calculatePreContingencyStates(loadFlowContext, participatingElementsForThisConnectivity,
                 new DisabledNetwork(disabledBuses, Collections.emptySet()),
                 reporter, false);
-        calculateStateValuesForContingencyList(loadFlowContext, contingenciesStates, modifiedFlowStates, factorStateForThisConnectivity, connectivityAnalysisResult.getContingencies(),
+        calculateStateValuesForContingencyList(loadFlowContext, contingenciesStates, modifiedFlowStates, statesForThisConnectivity, connectivityAnalysisResult.getContingencies(),
                 contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity, connectivityAnalysisResult.getElementsToReconnect(),
                 reporter, partialDisabledBranches, rhsModification);
     }
@@ -539,7 +540,7 @@ public class WoodburyEngine {
         for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> e : phaseTapChangerContingenciesIndexing.getContingenciesIndexedByPhaseTapChangers().entrySet()) {
             Set<LfBranch> disabledPhaseTapChangers = e.getKey();
             Collection<PropagatedContingency> propagatedContingencies = e.getValue();
-            modifiedFlowStates = calculateActivePowerFlows(loadFlowContext, participatingElements,
+            modifiedFlowStates = calculatePreContingencyStates(loadFlowContext, participatingElements,
                     new DisabledNetwork(disabledBuses, disabledPhaseTapChangers), reporter, false);
 
             for (PropagatedContingency contingency : propagatedContingencies) {
@@ -560,7 +561,7 @@ public class WoodburyEngine {
     /**
      * Calculate values for a post-contingency state.
      * When a contingency involves the loss of a load or a generator, the slack distribution could changed
-     * or the sensitivity factors in case of GLSK.
+     * or the sensitivity factors in case of a glsk sensitivity calculation.
      */
     private void calculateContingencyStateValues(DcLoadFlowContext loadFlowContext, DenseMatrix flowStates, DenseMatrix preContingencyStates,
                                                  PropagatedContingency contingency, DenseMatrix contingenciesStates, Collection<ComputedContingencyElement> contingencyElements, DisabledNetwork disabledNetwork,
@@ -569,7 +570,7 @@ public class WoodburyEngine {
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
             calculateStateValues(loadFlowContext, flowStates, preContingencyStates, contingenciesStates, contingency, contingencyElements, disabledNetwork);
         } else {
-            // if we have a contingency including the loss of a DC line or a generator or a load
+            // if we have a contingency including the loss of a HVDC line or a generator or a load
             // save base state for later restoration after each contingency
             LfNetwork lfNetwork = loadFlowContext.getNetwork();
             DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
@@ -585,11 +586,9 @@ public class WoodburyEngine {
                 if (input.getNewInjectionVectorsByPropagatedContingency().containsKey(contingency)) {
                     loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStates);
                 }
-                // TODO : refactor to avoid lfContingency application there.
                 lfContingency.apply(lfParameters.getBalanceType());
-
             }
-            DenseMatrix newFlowStates = calculateActivePowerFlows(loadFlowContext, newParticipatingElements, disabledNetwork, reporter, false);
+            DenseMatrix newFlowStates = calculatePreContingencyStates(loadFlowContext, newParticipatingElements, disabledNetwork, reporter, false);
             calculateStateValues(loadFlowContext, newFlowStates, newPreContingencyStates, contingenciesStates, contingency, contingencyElements,
                     disabledNetwork);
             networkState.restore();
@@ -725,7 +724,7 @@ public class WoodburyEngine {
         woodburyEngineResult.setPreContingenciesStates(injectionVectors);
 
         // run DC load on pre-contingency network
-        DenseMatrix flowStates = calculateActivePowerFlows(loadFlowContext, participatingElements, new DisabledNetwork(), reporter, true);
+        DenseMatrix flowStates = calculatePreContingencyStates(loadFlowContext, participatingElements, new DisabledNetwork(), reporter, true);
 
         // get contingency elements indexed by branch id
         Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityDataResult.getContingencyElementByBranch();
