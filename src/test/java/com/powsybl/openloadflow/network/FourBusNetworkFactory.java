@@ -188,5 +188,16 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0.0);
         return network;
     }
+
+    public static Network createWithTwoScs() {
+        Network network = createBaseNetwork();
+        Bus c1 = createBus(network, "c1");
+        Bus c2 = createBus(network, "c2");
+        createGenerator(c1, "gc1", 2);
+        createLoad(c2, "dc2", 1);
+        createLine(network, c1, c2, "lc12", 1f);
+        createLine(network, c1, c2, "lc12Bis", 1f);
+        return network;
+    }
 }
 
