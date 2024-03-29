@@ -22,34 +22,45 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
         super(hvdc, bus1, bus2, variableSet);
     }
 
-    private static double p1(double p0, double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
-        return (isController(p0, k, ph1, ph2) ? 1 : getLossMultiplier(lossFactor1, lossFactor2)) * (p0 + k * (ph1 - ph2));
+    private double p1(double ph1, double ph2) {
+        double rawP = rawP(p0, k, ph1, ph2);
+        double boundedP = boundedP(rawP);
+        return (isController(rawP) ? 1 : getVscLossMultiplier()) * boundedP;
     }
 
-    private static boolean isController(double p0, double k, double ph1, double ph2) {
-        return (p0 + k * (ph1 - ph2)) >= 0;
+    private static boolean isController(double rawP) {
+        return rawP >= 0;
     }
 
-    private static double dp1dph1(double p0, double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
-        return (isController(p0, k, ph1, ph2) ? 1 : getLossMultiplier(lossFactor1, lossFactor2)) * k;
+    private boolean isInOperatingRange(double rawP) {
+        return rawP < pMaxFromCS1toCS2 && rawP > -pMaxFromCS2toCS1;
     }
 
-    private static double dp1dph2(double p0, double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
-        return -dp1dph1(p0, k, lossFactor1, lossFactor2, ph1, ph2);
+    protected double dp1dph1(double ph1, double ph2) {
+        double rawP = rawP(p0, k, ph1, ph2);
+        if (isInOperatingRange(rawP)) {
+            return (isController(rawP) ? 1 : getVscLossMultiplier()) * k;
+        } else {
+            return 0;
+        }
+    }
+
+    protected double dp1dph2(double ph1, double ph2) {
+        return -dp1dph1(ph1, ph2);
     }
 
     @Override
     public double eval() {
-        return p1(p0, k, lossFactor1, lossFactor2, ph1(), ph2());
+        return p1(ph1(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
-            return dp1dph1(p0, k, lossFactor1, lossFactor2, ph1(), ph2());
+            return dp1dph1(ph1(), ph2());
         } else if (variable.equals(ph2Var)) {
-            return dp1dph2(p0, k, lossFactor1, lossFactor2, ph1(), ph2());
+            return dp1dph2(ph1(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
