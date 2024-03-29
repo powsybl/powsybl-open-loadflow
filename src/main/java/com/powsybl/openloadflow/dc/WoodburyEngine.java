@@ -718,8 +718,7 @@ public class WoodburyEngine {
         return new ConnectivityDataResult(nonBreakingConnectivityContingencies, connectivityAnalysisResults, contingenciesStates, contingencyElementByBranch);
     }
 
-    public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt,
-                                    DenseMatrix injectionVectors, List<ParticipatingElement> participatingElements,
+    public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, DenseMatrix injectionVectors, List<ParticipatingElement> participatingElements,
                                     ReportNode reporter, ConnectivityDataResult connectivityDataResult, WoodburyEngineRhsModification input) {
 
         // compute the pre-contingency states
