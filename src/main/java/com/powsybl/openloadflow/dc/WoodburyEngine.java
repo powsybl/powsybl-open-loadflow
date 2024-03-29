@@ -14,7 +14,6 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -490,16 +489,16 @@ public class WoodburyEngine {
     private void processContingenciesBreakingConnectivity(ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates,
                                                           DenseMatrix contingenciesStates, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                           List<ParticipatingElement> participatingElements,
-                                                          ReportNode reporter, WoodburyEngineRhsModification input) {
+                                                          ReportNode reporter, WoodburyEngineRhsModification rhsModification) {
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
 
         // null and unused if slack bus is not distributed
-        List<ParticipatingElement> participatingElementsForThisConnectivity = input.getNewParticipantElementsForAConnectivity().getOrDefault(connectivityAnalysisResult, participatingElements);
-        DenseMatrix factorStateForThisConnectivity = input.getNewInjectionVectorsForAConnectivity().getOrDefault(connectivityAnalysisResult, preContingencyStates);
+        List<ParticipatingElement> participatingElementsForThisConnectivity = rhsModification.getNewParticipantElementsForAConnectivity().getOrDefault(connectivityAnalysisResult, participatingElements);
+        DenseMatrix factorStateForThisConnectivity = rhsModification.getNewInjectionVectorsForAConnectivity().getOrDefault(connectivityAnalysisResult, preContingencyStates);
 
         // TODO : refactor the following. Not clean.
-        if (input.getNewInjectionVectorsForAConnectivity().containsKey(connectivityAnalysisResult)) {
+        if (rhsModification.getNewInjectionVectorsForAConnectivity().containsKey(connectivityAnalysisResult)) {
             loadFlowContext.getJacobianMatrix().solveTransposed(factorStateForThisConnectivity);
         }
 
@@ -508,7 +507,7 @@ public class WoodburyEngine {
                 reporter, false);
         calculateStateValuesForContingencyList(loadFlowContext, contingenciesStates, modifiedFlowStates, factorStateForThisConnectivity, connectivityAnalysisResult.getContingencies(),
                 contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity, connectivityAnalysisResult.getElementsToReconnect(),
-                reporter, partialDisabledBranches, input);
+                reporter, partialDisabledBranches, rhsModification);
     }
 
     private void calculateStateValuesForContingencyList(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, DenseMatrix flowStates,
