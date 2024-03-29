@@ -85,7 +85,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             WoodburyEngineResult.PostContingencyWoodburyResult woodburyResult = woodburyResults.getPostContingencyWoodburyResults().get(contingency);
 
-            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, woodburyResult.getPostContingencyDisabledNetwork(), contingency);
+            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, woodburyResult.postContingencyDisabledNetwork(), contingency);
             Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
             Optional<Double> functionPredefinedResults = predefinedResults.getRight();
 
@@ -93,11 +93,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
 
             if (sensitivityValuePredefinedResult.isEmpty()) {
-                sensitivityValue = p1.calculateSensi(woodburyResult.getPostContingencyStates(), factorGroup.getIndex());
+                sensitivityValue = p1.calculateSensi(woodburyResult.postContingencyStates(), factorGroup.getIndex());
             }
 
             if (functionPredefinedResults.isEmpty()) {
-                functionValue = p1.calculateSensi(woodburyResult.getPostContingencyFlowStates(), 0);
+                functionValue = p1.calculateSensi(woodburyResult.postContingencyFlowStates(), 0);
             }
 
             functionValue = fixZeroFunctionReference(contingency, functionValue);

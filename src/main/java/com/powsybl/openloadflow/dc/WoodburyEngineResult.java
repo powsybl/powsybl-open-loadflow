@@ -14,31 +14,14 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import java.util.HashMap;
 import java.util.Map;
 
-// TODO : refactor to avoid matrices storage
+/**
+ * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
+ */
 public class WoodburyEngineResult {
 
-    public static class PostContingencyWoodburyResult {
-        private DenseMatrix postContingencyFlowStates;
-        private DenseMatrix postContingencyStates;
-        private DisabledNetwork postContingencyDisabledNetwork;
-
-        public PostContingencyWoodburyResult(DenseMatrix postContingencyFlowStates, DenseMatrix postContingencyStates, DisabledNetwork postContingencyDisabledNetwork) {
-            this.postContingencyFlowStates = postContingencyFlowStates;
-            this.postContingencyStates = postContingencyStates;
-            this.postContingencyDisabledNetwork = postContingencyDisabledNetwork;
-        }
-
-        public DenseMatrix getPostContingencyFlowStates() {
-            return postContingencyFlowStates;
-        }
-
-        public DenseMatrix getPostContingencyStates() {
-            return postContingencyStates;
-        }
-
-        public DisabledNetwork getPostContingencyDisabledNetwork() {
-            return postContingencyDisabledNetwork;
-        }
+    public record PostContingencyWoodburyResult(DenseMatrix postContingencyFlowStates,
+                                                DenseMatrix postContingencyStates,
+                                                DisabledNetwork postContingencyDisabledNetwork) {
     }
 
     private double[] preContingenciesFlowStates;
