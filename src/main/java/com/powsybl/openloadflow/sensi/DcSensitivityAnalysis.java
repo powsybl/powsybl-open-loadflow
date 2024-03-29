@@ -272,7 +272,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         for (PropagatedContingency contingency : contingencies) {
             NetworkState networkState = NetworkState.save(lfNetwork);
             LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
-            List<ParticipatingElement> newParticipatingElements = new ArrayList<>(participatingElements);
+            List<ParticipatingElement> newParticipatingElements = participatingElements;
             if (lfContingency != null) {
                 newParticipatingElements = processInjectionVectorModificationsByContingencies(loadFlowContext, lfParametersExt, factorGroups, lfContingency, contingency, newParticipatingElements, rhsModifications);
                 // write contingency status
@@ -301,7 +301,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
 
             // null and unused if slack bus is not distributed
-            List<ParticipatingElement> participatingElementsForThisConnectivity = new ArrayList<>(participatingElements);
+            List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
             boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK
             if (lfParameters.isDistributedSlack()) {
                 rhsChanged = participatingElementsForThisConnectivity.stream().anyMatch(element -> disabledBuses.contains(element.getLfBus()));
@@ -312,9 +312,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
             // we need to recompute the factor states because the connectivity changed
             if (rhsChanged) {
-                participatingElementsForThisConnectivity = lfParameters.isDistributedSlack()
+                participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
                         ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
-                        : Collections.emptyList();
+                        : Collections.emptyList());
                 rhsModifications.getNewParticipantElementsForAConnectivity().put(connectivityAnalysisResult, participatingElementsForThisConnectivity);
                 rhsModifications.getNewInjectionVectorsForAConnectivity().put(connectivityAnalysisResult, DcSensitivityAnalysis.getInjectionVectors(loadFlowContext, factorGroups, participatingElementsForThisConnectivity));
             }
