@@ -18,6 +18,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.InjectionDerivable;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
@@ -26,6 +27,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
+import com.powsybl.openloadflow.util.Derivable;
+import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.NotImplementedException;
@@ -83,7 +86,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         ContingencyContext getContingencyContext();
 
-        EquationTerm<V, E> getFunctionEquationTerm();
+        Derivable<V> getFunctionEquationTerm();
 
         Double getSensitivityValuePredefinedResult();
 
@@ -196,9 +199,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         @Override
         @SuppressWarnings("unchecked")
-        public EquationTerm<V, E> getFunctionEquationTerm() {
+        public Derivable<V> getFunctionEquationTerm() {
             LfBranch branch;
-            return (EquationTerm<V, E>) switch (functionType) {
+            return (Derivable<V>) switch (functionType) {
                 case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_3
                         -> ((LfBranch) functionElement).getP1();
                 case BRANCH_ACTIVE_POWER_2 -> {
@@ -219,6 +222,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     branch = (LfBranch) functionElement;
                     yield branch instanceof LfLegBranch ? ((LfBranch) functionElement).getI1()
                                                         : ((LfBranch) functionElement).getI2();
+                }
+                case BUS_REACTIVE_POWER -> {
+                    Evaluable q = ((LfBus) functionElement).getQ();
+                    yield q instanceof Equation ? new InjectionDerivable<>((Equation<V, ?>) q) : q;
                 }
                 case BUS_VOLTAGE -> ((LfBus) functionElement).getCalculatedV();
                 default -> throw new UnsupportedOperationException("Function type not supported: " + functionType);
@@ -1146,6 +1153,14 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
+                    } else if (functionType == SensitivityFunctionType.BUS_REACTIVE_POWER) {
+                        String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, functionId, breakers);
+                        functionElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                        if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                        } else {
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                        }
                     } else {
                         throw createFunctionTypeNotSupportedException(functionType);
                     }
@@ -1218,7 +1233,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
         return switch (factor.getFunctionType()) {
             case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3,
-                    BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_2, BRANCH_REACTIVE_POWER_3
+                    BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_2, BRANCH_REACTIVE_POWER_3, BUS_REACTIVE_POWER
                     -> PerUnit.SB;
             case BRANCH_CURRENT_1, BRANCH_CURRENT_3 -> {
                 LfBranch branch = (LfBranch) factor.getFunctionElement();
