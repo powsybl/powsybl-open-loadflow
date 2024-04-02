@@ -116,14 +116,14 @@ public class WoodburyEngine {
 
     }
 
-    private static final class PhaseTapChangerContingenciesIndexing {
+    public static final class PhaseTapChangerContingenciesIndexing {
 
         private final List<PropagatedContingency> contingenciesWithoutTransformers = new ArrayList<>();
         private final Map<Set<LfBranch>, Collection<PropagatedContingency>> contingenciesIndexedByPhaseTapChangers = new LinkedHashMap<>();
 
-        private PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies,
-                                                     Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                     Collection<String> elementIdsToSkip) {
+        public PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies,
+                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                    Collection<String> elementIdsToSkip) {
             for (PropagatedContingency contingency : contingencies) {
                 Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().keySet().stream()
                         .filter(element -> !elementIdsToSkip.contains(element))
@@ -139,11 +139,11 @@ public class WoodburyEngine {
             }
         }
 
-        private Collection<PropagatedContingency> getContingenciesWithoutPhaseTapChangerLoss() {
+        public Collection<PropagatedContingency> getContingenciesWithoutPhaseTapChangerLoss() {
             return contingenciesWithoutTransformers;
         }
 
-        private Map<Set<LfBranch>, Collection<PropagatedContingency>> getContingenciesIndexedByPhaseTapChangers() {
+        public Map<Set<LfBranch>, Collection<PropagatedContingency>> getContingenciesIndexedByPhaseTapChangers() {
             return contingenciesIndexedByPhaseTapChangers;
         }
     }
@@ -173,7 +173,7 @@ public class WoodburyEngine {
             return contingencies;
         }
 
-        private Set<String> getElementsToReconnect() {
+        public Set<String> getElementsToReconnect() {
             return elementsToReconnect;
         }
 
@@ -189,85 +189,6 @@ public class WoodburyEngine {
             return partialDisabledBranches;
         }
     }
-
-//    /**
-//     * Calculate the states for a fictitious pre-contingency situation.
-//     * The interesting disabled branches are only phase shifters.
-//     */
-//    private DenseMatrix calculatePreContingencyStates(DcLoadFlowContext loadFlowContext,
-//                                               List<ParticipatingElement> participatingElements,
-//                                               DisabledNetwork disabledNetwork, ReportNode reporter,
-//                                               boolean updateFlowStates) {
-//        List<BusState> busStates = Collections.emptyList();
-//        DcLoadFlowParameters parameters = loadFlowContext.getParameters();
-//        if (parameters.isDistributedSlack()) {
-//            busStates = ElementState.save(participatingElements.stream()
-//                    .map(ParticipatingElement::getLfBus)
-//                    .collect(Collectors.toSet()), BusState::save);
-//        }
-//
-//        double[] dx = runDcLoadFlow(loadFlowContext, disabledNetwork, reporter);
-//
-//        if (updateFlowStates) {
-//            woodburyEngineResult.setPreContingenciesFlowStates(dx);
-//        }
-//
-//        if (parameters.isDistributedSlack()) {
-//            ElementState.restore(busStates);
-//        }
-//
-//        return new DenseMatrix(dx.length, 1, dx);
-//    }
-//
-//    /**
-//     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling and that do not
-//     * update the state vector and the network at the end (because we don't need it to just evaluate a few equations)
-//     */
-//    public double[] runDcLoadFlow(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reporter) {
-//
-//        Collection<LfBus> remainingBuses;
-//        if (disabledNetwork.getBuses().isEmpty()) {
-//            remainingBuses = loadFlowContext.getNetwork().getBuses();
-//        } else {
-//            remainingBuses = new LinkedHashSet<>(loadFlowContext.getNetwork().getBuses());
-//            remainingBuses.removeAll(disabledNetwork.getBuses());
-//        }
-//
-//        DcLoadFlowParameters parameters = loadFlowContext.getParameters();
-//        if (parameters.isDistributedSlack()) {
-//            DcLoadFlowEngine.distributeSlack(remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
-//        }
-//
-//        // we need to copy the target array because:
-//        //  - in case of disabled buses or branches some elements could be overwritten to zero
-//        //  - JacobianMatrix.solveTransposed take as an input the second member and reuse the array
-//        //    to fill with the solution
-//        // so we need to copy to later the target as it is and reusable for next run
-//        var targetVectorArray = loadFlowContext.getTargetVector().getArray().clone();
-//
-//        if (!disabledNetwork.getBuses().isEmpty()) {
-//            // set buses injections and transformers to 0
-//            disabledNetwork.getBuses().stream()
-//                    .flatMap(lfBus -> loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).stream())
-//                    .map(Equation::getColumn)
-//                    .forEach(column -> targetVectorArray[column] = 0);
-//        }
-//
-//        if (!disabledNetwork.getBranches().isEmpty()) {
-//            // set transformer phase shift to 0
-//            disabledNetwork.getBranches().stream()
-//                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
-//                    .map(Equation::getColumn)
-//                    .forEach(column -> targetVectorArray[column] = 0);
-//        }
-//
-//        boolean succeeded = DcLoadFlowEngine.solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reporter);
-//        if (!succeeded) {
-//            throw new PowsyblException("DC solver failed");
-//        }
-//
-//        return targetVectorArray; // now contains dx
-//    }
 
     private static double calculatePower(DcLoadFlowContext loadFlowContext, LfBranch lfBranch) {
         PiModel piModel = lfBranch.getPiModel();
@@ -505,10 +426,6 @@ public class WoodburyEngine {
             statesForThisConnectivity = preContingencyStates;
         }
 
-//        DenseMatrix modifiedFlowStates = calculatePreContingencyStates(loadFlowContext, participatingElementsForThisConnectivity,
-//                new DisabledNetwork(disabledBuses, Collections.emptySet()),
-//                reporter, false); // TODO : remove me
-
         double[] tempo = rhsModification.getNewFlowRhsForAConnectivity().get(connectivityAnalysisResult);
         DcLoadFlowEngine.solve(tempo, loadFlowContext.getJacobianMatrix(), reporter);
         DenseMatrix newFlowStates = new DenseMatrix(tempo.length, 1, tempo);
@@ -544,12 +461,11 @@ public class WoodburyEngine {
 
         // then we compute the ones involving the loss of a phase tap changer (because we need to recompute the load flows)
         for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> e : phaseTapChangerContingenciesIndexing.getContingenciesIndexedByPhaseTapChangers().entrySet()) {
-            Set<LfBranch> disabledPhaseTapChangers = e.getKey();
             Collection<PropagatedContingency> propagatedContingencies = e.getValue();
-            double[] modifiedFlowStates = calculatePreContingencyStates(loadFlowContext, participatingElements,
-                    new DisabledNetwork(disabledBuses, disabledPhaseTapChangers), reporter); // TODO : remove
-            DcLoadFlowEngine.solve(modifiedFlowStates, loadFlowContext.getJacobianMatrix(), reporter);
-            DenseMatrix newFlowStates = new DenseMatrix(modifiedFlowStates.length, 1, modifiedFlowStates);
+
+            // TODO : move me
+            double[] tempo = input.getNewFlowRhsByPropagatedContingecy().get(propagatedContingencies.stream().toList().get(0));
+            DenseMatrix modifiedFlowStates = runDcLoadFlowOnTargetVector(loadFlowContext, tempo.clone(), reporter);
 
             for (PropagatedContingency contingency : propagatedContingencies) {
                 Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
@@ -560,7 +476,10 @@ public class WoodburyEngine {
                 Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
                 disabledBranches.addAll(partialDisabledBranches);
 
-                calculateContingencyStateValues(loadFlowContext, newFlowStates, preContingencyStates, contingency, contingenciesStates, // TODO : modify flowStates for modifiedFlowStates
+//                double[] tempo = input.getNewFlowRhsByPropagatedContingecy().get(contingency);
+//                DenseMatrix modifiedFlowStates = runDcLoadFlowOnTargetVector(loadFlowContext, tempo.clone(), reporter);
+
+                calculateContingencyStateValues(loadFlowContext, modifiedFlowStates, preContingencyStates, contingency, contingenciesStates, // TODO : modify flowStates for modifiedFlowStates
                         contingencyElements, new DisabledNetwork(disabledBuses, disabledBranches), reporter, input);
             }
         }
@@ -572,28 +491,26 @@ public class WoodburyEngine {
      * or the sensitivity factors in case of a glsk sensitivity calculation.
      */
     private void calculateContingencyStateValues(DcLoadFlowContext loadFlowContext, DenseMatrix flowStates, DenseMatrix preContingencyStates,
-                                                 PropagatedContingency contingency, DenseMatrix contingenciesStates, Collection<ComputedContingencyElement> contingencyElements, DisabledNetwork disabledNetwork,
-                                                 ReportNode reporter, WoodburyEngineRhs input) {
+                                                 PropagatedContingency contingency, DenseMatrix contingenciesStates, Collection<ComputedContingencyElement> contingencyElements,
+                                                 DisabledNetwork disabledNetwork, ReportNode reporter, WoodburyEngineRhs input) {
 
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
             calculateStateValues(loadFlowContext, flowStates, preContingencyStates, contingenciesStates, contingency, contingencyElements, disabledNetwork); // TODO : remove
         } else {
-            LfNetwork lfNetwork = loadFlowContext.getNetwork();
-            LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
+//            LfNetwork lfNetwork = loadFlowContext.getNetwork();
+//            LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
             DenseMatrix newPreContingencyStates = preContingencyStates;
 
-            DenseMatrix newFlowStates;
-
-            if (lfContingency != null) {
+//            if (lfContingency != null) {
                 if (input.getNewInjectionVectorsByPropagatedContingency().containsKey(contingency)) {
                     newPreContingencyStates = input.getNewInjectionVectorsByPropagatedContingency().get(contingency);
                     loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStates);
                 }
-            }
+//            }
 
             double[] tempo = input.getNewFlowRhsByPropagatedContingecy().get(contingency);
             DcLoadFlowEngine.solve(tempo, loadFlowContext.getJacobianMatrix(), reporter);
-            newFlowStates = new DenseMatrix(preContingencyStates.getRowCount(), 1, tempo);
+            DenseMatrix newFlowStates = new DenseMatrix(preContingencyStates.getRowCount(), 1, tempo);
 
             calculateStateValues(loadFlowContext, newFlowStates, newPreContingencyStates, contingenciesStates, contingency, contingencyElements,
                     disabledNetwork);
@@ -710,7 +627,7 @@ public class WoodburyEngine {
         woodburyEngineResult.setPreContingenciesStates(injectionRhs);
 
         double[] flowRhs = input.getInitialFlowRhs();
-        DcLoadFlowEngine.solve(flowRhs, loadFlowContext.getJacobianMatrix(), reporter);
+        DenseMatrix flowRhsMatrix = runDcLoadFlowOnTargetVector(loadFlowContext, flowRhs, reporter);
         woodburyEngineResult.setPreContingenciesFlowStates(flowRhs);
 
         // get contingency elements indexed by branch id
@@ -722,7 +639,7 @@ public class WoodburyEngine {
         LOGGER.info("Processing contingencies with no connectivity break");
 
         // calculate state values for contingencies with no connectivity break
-        calculateStateValuesForContingencyList(loadFlowContext, contingenciesStates, new DenseMatrix(flowRhs.length, 1, flowRhs), injectionRhs, connectivityDataResult.nonBreakingConnectivityContingencies(), contingencyElementByBranch,
+        calculateStateValuesForContingencyList(loadFlowContext, contingenciesStates, flowRhsMatrix, injectionRhs, connectivityDataResult.nonBreakingConnectivityContingencies(), contingencyElementByBranch,
                 Collections.emptySet(), participatingElements, Collections.emptySet(), reporter, Collections.emptySet(), input);
 
         LOGGER.info("Processing contingencies with connectivity break");
