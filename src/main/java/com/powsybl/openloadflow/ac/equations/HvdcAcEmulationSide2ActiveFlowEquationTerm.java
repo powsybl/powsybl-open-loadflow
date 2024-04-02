@@ -23,8 +23,8 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private double p2(double ph1, double ph2) {
-        double rawP = rawP(p0, k, ph1, ph2);
-        double boundedP = boundedP(rawP);
+        double rawP = rawP(ph1, ph2);
+        double boundedP = boundedP(rawP, ph1, ph2);
         return -(isController(rawP) ? 1 : getVscLossMultiplier()) * boundedP;
     }
 
@@ -37,12 +37,17 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private double dp2dph1(double ph1, double ph2) {
-        double rawP = rawP(p0, k, ph1, ph2);
-        if (isInOperatingRange(rawP)) {
-            return -(isController(rawP) ? 1 : getVscLossMultiplier()) * k;
-        } else {
-            return 0;
+        double rawP = rawP(ph1, ph2);
+        double boundedP = boundedP(rawP, ph1, ph2);
+        double factor = k;
+        double teta = ph1 - ph2;
+        // for large values of teta return a value that helps convergence
+        if (teta > tetaMax) {
+            factor = teta < tetaMax * 2 ? 0 : (boundedP - p0) / (teta - tetaZero);
+        } else if (teta < tetaMin) {
+            factor = teta > tetaMin * 2 ? 0 : (p0 - boundedP) / (teta - tetaZero);
         }
+        return -(isController(rawP) ? 1 : getVscLossMultiplier()) * factor;
     }
 
     private double dp2dph2(double ph1, double ph2) {

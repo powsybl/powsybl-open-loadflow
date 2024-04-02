@@ -19,6 +19,8 @@ import java.util.List;
  */
 public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractElementEquationTerm<LfHvdc, AcVariableType, AcEquationType> {
 
+    static final double EPSILON = 0.1;
+
     protected final Variable<AcVariableType> ph1Var;
 
     protected final Variable<AcVariableType> ph2Var;
@@ -37,6 +39,10 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected final double pMaxFromCS2toCS1;
 
+    protected final double tetaMax;
+    protected final double tetaMin;
+    protected final double tetaZero;
+
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
@@ -48,13 +54,16 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
         pMaxFromCS1toCS2 = hvdc.getPMaxFromCS1toCS2();
         pMaxFromCS2toCS1 = hvdc.getPMaxFromCS2toCS1();
+        tetaMax = (pMaxFromCS1toCS2 - p0) / k;
+        tetaMin = -(pMaxFromCS2toCS1 - p0) / k;
+        tetaZero = -p0 / k;
     }
 
-    protected double rawP(double p0, double k, double ph1, double ph2) {
+    protected double rawP(double ph1, double ph2) {
         return p0 + k * (ph1 - ph2);
     }
 
-    protected double boundedP(double rawP) {
+    protected double boundedP(double rawP, double ph1, double ph2) {
         // If there is a maximal active power
         // it is applied at the entry of the controller VSC station
         // on the AC side of the network.
