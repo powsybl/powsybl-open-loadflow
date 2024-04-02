@@ -305,7 +305,6 @@ public enum NetworkCache {
             }
 
             if (!done) {
-                System.out.println("TOTO " + attribute + " " + oldValue + " " + newValue);
                 reset();
             }
         }
