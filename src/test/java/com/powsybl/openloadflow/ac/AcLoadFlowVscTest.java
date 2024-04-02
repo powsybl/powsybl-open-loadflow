@@ -529,4 +529,41 @@ class AcLoadFlowVscTest {
         assertActivePowerEquals(-166.280, network.getHvdcConverterStation("cs2").getTerminal());
         assertActivePowerEquals(170, network.getHvdcConverterStation("cs3").getTerminal());
     }
+
+    @Test
+    void testDcLoadFlowWithHvdcAcEmulation2() {
+        Network network = HvdcNetworkFactory.createVsc();
+        network.newLine() // in order to have only one synchronous component for the moment.
+                .setId("l23")
+                .setVoltageLevel1("vl2")
+                .setBus1("b2")
+                .setVoltageLevel2("vl3")
+                .setBus2("b3")
+                .setR(1)
+                .setX(3)
+                .setG1(0)
+                .setG2(0)
+                .setB1(0)
+                .setB2(0)
+                .add();
+        network.getHvdcLine("hvdc23").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setDc(true);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        VscConverterStation cs2 = network.getVscConverterStation("cs2");
+        assertActivePowerEquals(8.119, cs2.getTerminal());
+        VscConverterStation cs3 = network.getVscConverterStation("cs3");
+        assertActivePowerEquals(-8.014, cs3.getTerminal());
+    }
 }
