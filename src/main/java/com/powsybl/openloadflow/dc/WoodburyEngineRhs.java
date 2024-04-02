@@ -9,10 +9,8 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.network.util.ParticipatingElement;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**$
@@ -23,25 +21,19 @@ public class WoodburyEngineRhs {
     private final DenseMatrix initialInjectionRhs;
     private final double[] initialFlowRhs;
 
-    private final HashMap<PropagatedContingency, DenseMatrix> newInjectionVectorsByPropagatedContingency;
-    private final HashMap<PropagatedContingency, double[]> newFlowRhsByPropagatedContingecy;
+    private final HashMap<PropagatedContingency, DenseMatrix> newInjectionRhsByPropagatedContingency;
+    private final HashMap<PropagatedContingency, double[]> newFlowRhsByPropagatedContingency;
 
-    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> newInjectionVectorsForAConnectivity;
+    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> newInjectionRhsForAConnectivity;
     private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, double[]> newFlowRhsForAConnectivity;
-
-
-    private final HashMap<PropagatedContingency, List<ParticipatingElement>> newParticipatingElementsByPropagatedContingency;
-    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, List<ParticipatingElement>> newParticipantElementsForAConnectivity;
 
     public WoodburyEngineRhs(DenseMatrix initialInjectionRhs, double[] initialFlowRhs) {
         this.initialInjectionRhs = initialInjectionRhs;
         this.initialFlowRhs = initialFlowRhs;
-        this.newFlowRhsByPropagatedContingecy = new HashMap<>();
+        this.newFlowRhsByPropagatedContingency = new HashMap<>();
         this.newFlowRhsForAConnectivity = new HashMap<>();
-        this.newInjectionVectorsByPropagatedContingency = new HashMap<>();
-        this.newInjectionVectorsForAConnectivity = new HashMap<>();
-        this.newParticipatingElementsByPropagatedContingency = new HashMap<>();
-        this.newParticipantElementsForAConnectivity = new HashMap<>();
+        this.newInjectionRhsByPropagatedContingency = new HashMap<>();
+        this.newInjectionRhsForAConnectivity = new HashMap<>();
     }
 
     public DenseMatrix getInitialInjectionRhs() {
@@ -52,27 +44,19 @@ public class WoodburyEngineRhs {
         return initialFlowRhs;
     }
 
-    public HashMap<PropagatedContingency, double[]> getNewFlowRhsByPropagatedContingecy() {
-        return newFlowRhsByPropagatedContingecy;
+    public HashMap<PropagatedContingency, double[]> getNewFlowRhsByPropagatedContingency() {
+        return newFlowRhsByPropagatedContingency;
     }
 
     public HashMap<WoodburyEngine.ConnectivityAnalysisResult, double[]> getNewFlowRhsForAConnectivity() {
         return newFlowRhsForAConnectivity;
     }
 
-    public Map<PropagatedContingency, DenseMatrix> getNewInjectionVectorsByPropagatedContingency() {
-        return newInjectionVectorsByPropagatedContingency;
+    public Map<PropagatedContingency, DenseMatrix> getNewInjectionRhsByPropagatedContingency() {
+        return newInjectionRhsByPropagatedContingency;
     }
 
-    public Map<PropagatedContingency, List<ParticipatingElement>> getNewParticipatingElementsByPropagatedContingency() {
-        return newParticipatingElementsByPropagatedContingency;
-    }
-
-    public Map<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> getNewInjectionVectorsForAConnectivity() {
-        return newInjectionVectorsForAConnectivity;
-    }
-
-    public Map<WoodburyEngine.ConnectivityAnalysisResult, List<ParticipatingElement>> getNewParticipantElementsForAConnectivity() {
-        return newParticipantElementsForAConnectivity;
+    public Map<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> getNewInjectionRhsForAConnectivity() {
+        return newInjectionRhsForAConnectivity;
     }
 }

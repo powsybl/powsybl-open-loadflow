@@ -20,15 +20,12 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
-
-import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.calculatePreContingencyStates;
 
 /**
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
@@ -416,9 +413,9 @@ public class WoodburyEngine {
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
 
         // null and unused if slack bus is not distributed
-        DenseMatrix statesForThisConnectivity = preContingencyStates;;
-        if (rhsModification.getNewInjectionVectorsForAConnectivity().containsKey(connectivityAnalysisResult)) {
-            statesForThisConnectivity = rhsModification.getNewInjectionVectorsForAConnectivity().get(connectivityAnalysisResult);
+        DenseMatrix statesForThisConnectivity = preContingencyStates;
+        if (rhsModification.getNewInjectionRhsForAConnectivity().containsKey(connectivityAnalysisResult)) {
+            statesForThisConnectivity = rhsModification.getNewInjectionRhsForAConnectivity().get(connectivityAnalysisResult);
             loadFlowContext.getJacobianMatrix().solveTransposed(statesForThisConnectivity);
         }
 
@@ -447,14 +444,14 @@ public class WoodburyEngine {
             DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 
             DenseMatrix newFlowStates = flowStates;
-            if (input.getNewFlowRhsByPropagatedContingecy().containsKey(contingency)) {
-                double[] tempo = input.getNewFlowRhsByPropagatedContingecy().get(contingency);
+            if (input.getNewFlowRhsByPropagatedContingency().containsKey(contingency)) {
+                double[] tempo = input.getNewFlowRhsByPropagatedContingency().get(contingency);
                 newFlowStates = runDcLoadFlowOnTargetVector(loadFlowContext, tempo.clone(), reporter);
             }
 
             DenseMatrix newPreContingencyStates = preContingencyStates;
-            if (input.getNewInjectionVectorsByPropagatedContingency().containsKey(contingency)) {
-                newPreContingencyStates = input.getNewInjectionVectorsByPropagatedContingency().get(contingency);
+            if (input.getNewInjectionRhsByPropagatedContingency().containsKey(contingency)) {
+                newPreContingencyStates = input.getNewInjectionRhsByPropagatedContingency().get(contingency);
                 loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStates);
             }
 
