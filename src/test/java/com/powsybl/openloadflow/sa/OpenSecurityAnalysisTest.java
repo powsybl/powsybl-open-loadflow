@@ -13,6 +13,10 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
+import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
+import com.powsybl.iidm.criteria.IdentifiableCriterion;
+import com.powsybl.iidm.criteria.VoltageInterval;
+import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
@@ -35,12 +39,14 @@ import com.powsybl.openloadflow.network.impl.OlfThreeWindingsTransformerResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
 import com.powsybl.security.condition.TrueCondition;
+import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletionException;
@@ -3061,5 +3067,26 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1.0, operatorStrategyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // g0 is controlling voltage of b3
         assertEquals(1.0, operatorStrategyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // ... also b1 through zero impedance network
         assertEquals(0.9066748, operatorStrategyResult.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
+    }
+
+    @Test
+    void testLimitReductions() {
+        Network network = Network.read(new File("/media/sf_powsybl-data/xiidm/20220303T1600Z_20220303T1600Z_pf/pf_20220303T1600Z_20220303T1600Z.xiidm").getPath());
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        List<Contingency> contingencies = new ArrayList<>();
+        network.getBranchStream().filter(b -> b.getTerminal1().getVoltageLevel().getNominalV() > 350)
+                .forEach(l -> contingencies.add(new Contingency(l.getId(), new BranchContingency(l.getId()))));
+        LimitReduction limitReduction1 = LimitReduction.builder(LimitType.CURRENT, 0.9f)
+                .withNetworkElementCriteria(new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(380., 410., true, true))))
+                .withNetworkElementCriteria(new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(220., 240., true, true))))
+                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(0, 300, true, false))
+                .build();
+        LimitReduction limitReduction2 = LimitReduction.builder(LimitType.CURRENT, 0.95f)
+                .withNetworkElementCriteria(new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(380., 410., true, true))))
+                .withNetworkElementCriteria(new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(220., 240., true, true))))
+                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(300, 600, true, false))
+                .build();
+        List<LimitReduction> limitReductions = List.of(limitReduction1, limitReduction2);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, limitReductions, new SecurityAnalysisParameters());
     }
 }
