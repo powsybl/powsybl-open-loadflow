@@ -16,32 +16,18 @@ import java.util.Map;
 /**$
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
-public class WoodburyEngineRhs {
+public class WoodburyEngineRhsModifications {
 
-    private final DenseMatrix initialInjectionRhs;
-    private final double[] initialFlowRhs;
-
-    private final HashMap<PropagatedContingency, DenseMatrix> newInjectionRhsByPropagatedContingency;
     private final HashMap<PropagatedContingency, double[]> newFlowRhsByPropagatedContingency;
-
-    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> newInjectionRhsForAConnectivity;
     private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, double[]> newFlowRhsForAConnectivity;
+    private final HashMap<PropagatedContingency, DenseMatrix> newInjectionRhsByPropagatedContingency;
+    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> newInjectionRhsForAConnectivity;
 
-    public WoodburyEngineRhs(DenseMatrix initialInjectionRhs, double[] initialFlowRhs) {
-        this.initialInjectionRhs = initialInjectionRhs;
-        this.initialFlowRhs = initialFlowRhs;
+    public WoodburyEngineRhsModifications() {
         this.newFlowRhsByPropagatedContingency = new HashMap<>();
         this.newFlowRhsForAConnectivity = new HashMap<>();
         this.newInjectionRhsByPropagatedContingency = new HashMap<>();
         this.newInjectionRhsForAConnectivity = new HashMap<>();
-    }
-
-    public DenseMatrix getInitialInjectionRhs() {
-        return initialInjectionRhs;
-    }
-
-    public double[] getInitialFlowRhs() {
-        return initialFlowRhs;
     }
 
     public HashMap<PropagatedContingency, double[]> getNewFlowRhsByPropagatedContingency() {
