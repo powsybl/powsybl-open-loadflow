@@ -27,7 +27,7 @@ public class WoodburyEngineRhs {
     private final HashMap<PropagatedContingency, double[]> newFlowRhsByPropagatedContingecy;
 
     private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> newInjectionVectorsForAConnectivity;
-//    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> newFlowRhsForAConnectivity;
+    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, double[]> newFlowRhsForAConnectivity;
 
 
     private final HashMap<PropagatedContingency, List<ParticipatingElement>> newParticipatingElementsByPropagatedContingency;
@@ -37,7 +37,7 @@ public class WoodburyEngineRhs {
         this.initialInjectionRhs = initialInjectionRhs;
         this.initialFlowRhs = initialFlowRhs;
         this.newFlowRhsByPropagatedContingecy = new HashMap<>();
-//        this.newFlowRhsForAConnectivity = new HashMap<>();
+        this.newFlowRhsForAConnectivity = new HashMap<>();
         this.newInjectionVectorsByPropagatedContingency = new HashMap<>();
         this.newInjectionVectorsForAConnectivity = new HashMap<>();
         this.newParticipatingElementsByPropagatedContingency = new HashMap<>();
@@ -56,9 +56,9 @@ public class WoodburyEngineRhs {
         return newFlowRhsByPropagatedContingecy;
     }
 
-//    public HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> getNewFlowRhsForAConnectivity() {
-//        return newFlowRhsForAConnectivity;
-//    }
+    public HashMap<WoodburyEngine.ConnectivityAnalysisResult, double[]> getNewFlowRhsForAConnectivity() {
+        return newFlowRhsForAConnectivity;
+    }
 
     public Map<PropagatedContingency, DenseMatrix> getNewInjectionVectorsByPropagatedContingency() {
         return newInjectionVectorsByPropagatedContingency;

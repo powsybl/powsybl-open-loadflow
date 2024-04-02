@@ -28,6 +28,8 @@ import java.util.*;
 import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.calculatePreContingencyStates;
+
 /**
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
@@ -183,7 +185,7 @@ public class WoodburyEngine {
             return slackConnectedComponent;
         }
 
-        private Set<LfBranch> getPartialDisabledBranches() {
+        public Set<LfBranch> getPartialDisabledBranches() {
             return partialDisabledBranches;
         }
     }
@@ -506,7 +508,12 @@ public class WoodburyEngine {
 //        DenseMatrix modifiedFlowStates = calculatePreContingencyStates(loadFlowContext, participatingElementsForThisConnectivity,
 //                new DisabledNetwork(disabledBuses, Collections.emptySet()),
 //                reporter, false); // TODO : remove me
-        calculateStateValuesForContingencyList(loadFlowContext, contingenciesStates, new DenseMatrix(woodburyEngineResult.getPreContingenciesFlowStates().length, 1, woodburyEngineResult.getPreContingenciesFlowStates()), statesForThisConnectivity, connectivityAnalysisResult.getContingencies(),
+
+        double[] tempo = rhsModification.getNewFlowRhsForAConnectivity().get(connectivityAnalysisResult);
+        DcLoadFlowEngine.solve(tempo, loadFlowContext.getJacobianMatrix(), reporter);
+        DenseMatrix newFlowStates = new DenseMatrix(tempo.length, 1, tempo);
+
+        calculateStateValuesForContingencyList(loadFlowContext, contingenciesStates, newFlowStates, statesForThisConnectivity, connectivityAnalysisResult.getContingencies(),
                 contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity, connectivityAnalysisResult.getElementsToReconnect(),
                 reporter, partialDisabledBranches, rhsModification);
     }
@@ -539,8 +546,10 @@ public class WoodburyEngine {
         for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> e : phaseTapChangerContingenciesIndexing.getContingenciesIndexedByPhaseTapChangers().entrySet()) {
             Set<LfBranch> disabledPhaseTapChangers = e.getKey();
             Collection<PropagatedContingency> propagatedContingencies = e.getValue();
-//            modifiedFlowStates = calculatePreContingencyStates(loadFlowContext, participatingElements,
-//                    new DisabledNetwork(disabledBuses, disabledPhaseTapChangers), reporter, false); // TODO : remove
+            double[] modifiedFlowStates = calculatePreContingencyStates(loadFlowContext, participatingElements,
+                    new DisabledNetwork(disabledBuses, disabledPhaseTapChangers), reporter); // TODO : remove
+            DcLoadFlowEngine.solve(modifiedFlowStates, loadFlowContext.getJacobianMatrix(), reporter);
+            DenseMatrix newFlowStates = new DenseMatrix(modifiedFlowStates.length, 1, modifiedFlowStates);
 
             for (PropagatedContingency contingency : propagatedContingencies) {
                 Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
@@ -551,7 +560,7 @@ public class WoodburyEngine {
                 Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
                 disabledBranches.addAll(partialDisabledBranches);
 
-                calculateContingencyStateValues(loadFlowContext, flowStates, preContingencyStates, contingency, contingenciesStates, // TODO : modify flowStates for modifiedFlowStates
+                calculateContingencyStateValues(loadFlowContext, newFlowStates, preContingencyStates, contingency, contingenciesStates, // TODO : modify flowStates for modifiedFlowStates
                         contingencyElements, new DisabledNetwork(disabledBuses, disabledBranches), reporter, input);
             }
         }
@@ -573,6 +582,8 @@ public class WoodburyEngine {
             LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
             DenseMatrix newPreContingencyStates = preContingencyStates;
 
+            DenseMatrix newFlowStates;
+
             if (lfContingency != null) {
                 if (input.getNewInjectionVectorsByPropagatedContingency().containsKey(contingency)) {
                     newPreContingencyStates = input.getNewInjectionVectorsByPropagatedContingency().get(contingency);
@@ -582,7 +593,7 @@ public class WoodburyEngine {
 
             double[] tempo = input.getNewFlowRhsByPropagatedContingecy().get(contingency);
             DcLoadFlowEngine.solve(tempo, loadFlowContext.getJacobianMatrix(), reporter);
-            DenseMatrix newFlowStates = new DenseMatrix(preContingencyStates.getRowCount(), 1, tempo);
+            newFlowStates = new DenseMatrix(preContingencyStates.getRowCount(), 1, tempo);
 
             calculateStateValues(loadFlowContext, newFlowStates, newPreContingencyStates, contingenciesStates, contingency, contingencyElements,
                     disabledNetwork);
@@ -680,6 +691,14 @@ public class WoodburyEngine {
                 nonBreakingConnectivityContingencies.size(), connectivityAnalysisResults.stream().mapToInt(results -> results.getContingencies().size()).count());
 
         return new ConnectivityDataResult(nonBreakingConnectivityContingencies, connectivityAnalysisResults, contingenciesStates, contingencyElementByBranch);
+    }
+
+    private DenseMatrix runDcLoadFlowOnTargetVector(DcLoadFlowContext loadFlowContext, double[] targetVectorArray, ReportNode reporter) {
+        boolean succeeded = DcLoadFlowEngine.solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reporter);
+        if (!succeeded) {
+            throw new PowsyblException("DC solver failed");
+        }
+        return new DenseMatrix(targetVectorArray.length, 1, targetVectorArray);
     }
 
     public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, WoodburyEngineRhs input, List<ParticipatingElement> participatingElements,
