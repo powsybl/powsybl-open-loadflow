@@ -17,7 +17,7 @@ import java.util.Objects;
 public abstract class AbstractHvdcAcEmulationSide1ActiveFlowEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
         extends AbstractHvdcAcEmulationFlowEquationTerm<V, E> {
 
-    public AbstractHvdcAcEmulationSide1ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<V> variableSet,
+    protected AbstractHvdcAcEmulationSide1ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<V> variableSet,
                                                               V busPhiVariableType) {
         super(hvdc, bus1, bus2, variableSet, busPhiVariableType);
     }
