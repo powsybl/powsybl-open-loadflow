@@ -336,7 +336,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return newParticipatingElements;
     }
 
-    private void buildRhsModificationsByContingency(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
+    private void buildRhsModificationsForAContingency(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
                                                       PropagatedContingency contingency, List<ParticipatingElement> participatingElements, WoodburyEngineRhs rhs,
                                                       SensitivityResultWriter resultWriter, DisabledNetwork disabledNetwork) {
 
@@ -364,10 +364,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     // TODO : rename
-    private void buildRhsModificationsByContingencies(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
-                                                      Collection<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements, WoodburyEngineRhs rhs,
-                                                      SensitivityResultWriter resultWriter, Set<LfBus> disabledBuses, Set<LfBranch> partialDisabledBranches, Map<String, WoodburyEngine.ComputedContingencyElement> contingencyElementByBranch,
-                                                      Set<String> elementsToReconnect) {
+    private void buildRhsModificationsForContingencies(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
+                                                       Collection<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements, WoodburyEngineRhs rhs,
+                                                       SensitivityResultWriter resultWriter, Set<LfBus> disabledBuses, Set<LfBranch> partialDisabledBranches, Map<String, WoodburyEngine.ComputedContingencyElement> contingencyElementByBranch,
+                                                       Set<String> elementsToReconnect) {
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
 
         WoodburyEngine.PhaseTapChangerContingenciesIndexing phaseTapChangerContingenciesIndexing = new WoodburyEngine.PhaseTapChangerContingenciesIndexing(contingencies, contingencyElementByBranch, elementsToReconnect);
@@ -376,7 +376,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
             disabledBranches.addAll(partialDisabledBranches);
 
-            buildRhsModificationsByContingency(loadFlowContext, lfParametersExt, factorGroups, contingency, participatingElements,
+            buildRhsModificationsForAContingency(loadFlowContext, lfParametersExt, factorGroups, contingency, participatingElements,
                     rhs, resultWriter, new DisabledNetwork(disabledBuses, disabledBranches));
         }
 
@@ -391,16 +391,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
                 disabledBranches.addAll(partialDisabledBranches);
 
-                buildRhsModificationsByContingency(loadFlowContext, lfParametersExt, factorGroups, contingency, participatingElements,
+                buildRhsModificationsForAContingency(loadFlowContext, lfParametersExt, factorGroups, contingency, participatingElements,
                         rhs, resultWriter, new DisabledNetwork(disabledBuses, disabledBranches));
             }
         }
     }
 
     // TODO : rename
-    private void buildRhsModifications(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, WoodburyEngine.ConnectivityDataResult connectivityDataResult,
-                                       SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, List<ParticipatingElement> participatingElements,
-                                       WoodburyEngineRhs rhsModifications, SensitivityResultWriter resultWriter) {
+    private void buildRhsModificationsForContingenciesBreakingConnectivity(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, WoodburyEngine.ConnectivityDataResult connectivityDataResult,
+                                                                           SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, List<ParticipatingElement> participatingElements,
+                                                                           WoodburyEngineRhs rhsModifications, SensitivityResultWriter resultWriter) {
         DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
 
         // Loop on the different connectivity schemas among the post-contingency states
@@ -437,7 +437,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             List<PropagatedContingency> contingenciesWithGeneratorOrLoadLost = getContingenciesWithGeneratorOrLoadLostAndWrite(connectivityAnalysisResult, resultWriter);
 
             // Build rhs for each contingency bringing this connectivity schema
-            buildRhsModificationsByContingencies(loadFlowContext, lfParametersExt, factorGroups, connectivityAnalysisResult.getContingencies(), participatingElementsForThisConnectivity, rhsModifications, resultWriter, disabledBuses, connectivityAnalysisResult.getPartialDisabledBranches(),
+            buildRhsModificationsForContingencies(loadFlowContext, lfParametersExt, factorGroups, connectivityAnalysisResult.getContingencies(), participatingElementsForThisConnectivity, rhsModifications, resultWriter, disabledBuses, connectivityAnalysisResult.getPartialDisabledBranches(),
                     connectivityDataResult.contingencyElementByBranch(), connectivityAnalysisResult.getElementsToReconnect());
         }
     }
@@ -553,7 +553,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 WoodburyEngineRhs woodburyEngineRhs = new WoodburyEngineRhs(injectionRhs, flowsRhs);
 
                 // compute rhs modifications for contingencies breaking connectivity
-                buildRhsModifications(loadFlowContext, lfParametersExt, connectivityData, factorGroups, participatingElements, woodburyEngineRhs, resultWriter);
+                buildRhsModificationsForContingenciesBreakingConnectivity(loadFlowContext, lfParametersExt, connectivityData, factorGroups, participatingElements, woodburyEngineRhs, resultWriter);
 
                 // compute rhs modifications for contingencies with no connectivity break
                 List<PropagatedContingency> nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost = new ArrayList<>();
@@ -564,11 +564,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost.add(propagatedContingency);
 //                    }
                 }
-                buildRhsModificationsByContingencies(loadFlowContext, lfParametersExt, factorGroups, nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost, participatingElements, woodburyEngineRhs, resultWriter, Collections.emptySet(), Collections.emptySet(),
+                buildRhsModificationsForContingencies(loadFlowContext, lfParametersExt, factorGroups, nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost, participatingElements, woodburyEngineRhs, resultWriter, Collections.emptySet(), Collections.emptySet(),
                         connectivityData.contingencyElementByBranch(), Collections.emptySet());
 
                 // compute the pre- and post-contingency states using Woodbury equality
-                WoodburyEngineResult results = engine.run(loadFlowContext, woodburyEngineRhs, participatingElements, reportNode, connectivityData);
+                WoodburyEngineResult results = engine.run(loadFlowContext, woodburyEngineRhs, reportNode, connectivityData);
 
                 // set base case/function reference values of the factors
                 setFunctionReference(validLfFactors, results.getPreContingenciesFlowStates());
