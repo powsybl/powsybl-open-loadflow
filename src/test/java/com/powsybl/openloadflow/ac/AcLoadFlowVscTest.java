@@ -329,8 +329,8 @@ class AcLoadFlowVscTest {
         pcs1 = network.getVscConverterStation("cs1").getTerminal().getP();
         pcs2 = network.getVscConverterStation("cs2").getTerminal().getP();
 
-        // Test basic energy conservation terms in symetric network
-        // (active power is not a close enough symetric as in first run for some reason - so we can't compare b1 and b2 values for all termnals)
+        // Test basic energy conservation terms in symmetric network
+        // (active power is not a close enough symmetric as in first run for some reason - so we can't compare b1 and b2 values for all terminals)
         assertEquals(0.0, pg1, DELTA_POWER, "g1 should be off");
         assertTrue(-pg2 >= 5.99999, "g2 generates power for all loads");
         assertTrue(-pg2 <= 6.06, "reasonable loss");
@@ -353,7 +353,7 @@ class AcLoadFlowVscTest {
         assertActivePowerEquals(200.00, network.getHvdcConverterStation("cs3").getTerminal());
 
         Line l34 = network.getLine("l34");
-        l34.getTerminals().stream().forEach(Terminal::disconnect);
+        l34.getTerminals().forEach(Terminal::disconnect);
         result = loadFlowRunner.run(network);
         assertTrue(result.isPartiallyConverged()); // for LCC test, no PV bus in the small component -> FAILED
 
@@ -379,7 +379,7 @@ class AcLoadFlowVscTest {
         assertActivePowerEquals(200.00, network.getHvdcConverterStation("cs3").getTerminal());
 
         Line l34 = network.getLine("l34");
-        l34.getTerminals().stream().forEach(Terminal::disconnect);
+        l34.getTerminals().forEach(Terminal::disconnect);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -448,9 +448,9 @@ class AcLoadFlowVscTest {
         network.getVscConverterStation("cs2").setVoltageSetpoint(vcs2);
         network.getVscConverterStation("cs3").setVoltageSetpoint(vcs3);
 
-        // Disconnect line at HVDCoutput
+        // Disconnect line at HVDC output
         Line l34 = network.getLine("l34");
-        l34.getTerminals().stream().forEach(Terminal::disconnect);
+        l34.getTerminals().forEach(Terminal::disconnect);
 
         LoadFlowParameters p = new LoadFlowParameters();
 
@@ -465,6 +465,7 @@ class AcLoadFlowVscTest {
         // with AC emulation
         p.setHvdcAcEmulation(true);
         result = loadFlowRunner.run(network, p);
+        assertTrue(result.isFullyConverged());
 
         assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
         assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
@@ -559,7 +560,7 @@ class AcLoadFlowVscTest {
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertTrue(result.isFullyConverged());
 
         VscConverterStation cs2 = network.getVscConverterStation("cs2");
         assertActivePowerEquals(8.119, cs2.getTerminal());
