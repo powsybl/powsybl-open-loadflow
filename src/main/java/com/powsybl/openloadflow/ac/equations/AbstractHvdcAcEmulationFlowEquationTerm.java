@@ -19,8 +19,6 @@ import java.util.List;
  */
 public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractElementEquationTerm<LfHvdc, AcVariableType, AcEquationType> {
 
-    static final double EPSILON = 0.1;
-
     protected final Variable<AcVariableType> ph1Var;
 
     protected final Variable<AcVariableType> ph2Var;
@@ -63,7 +61,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return p0 + k * (ph1 - ph2);
     }
 
-    protected double boundedP(double rawP, double ph1, double ph2) {
+    protected double boundedP(double rawP) {
         // If there is a maximal active power
         // it is applied at the entry of the controller VSC station
         // on the AC side of the network.
@@ -72,6 +70,28 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         } else {
             return Math.max(rawP, -pMaxFromCS2toCS1);
         }
+    }
+
+    /**
+     * Returns a "corrected value for k that is
+     *     the droop factor between tetaMin and tetaMax
+     *     0 in a resonable range above tetaMin and tetaMax
+     *     the slot between pMax and P0 for larger angle differences to help convergence
+     * @param ph1
+     * @param ph2
+     * @return
+     */
+    protected double pseudoK(double rawP, double ph1, double ph2) {
+        double boundedP = boundedP(rawP);
+        double factor = k;
+        double teta = ph1 - ph2;
+        // for large values of teta return a value that helps convergence
+        if (teta > tetaMax) {
+            factor = teta < tetaMax * 2 ? 0 : boundedP / (teta - tetaZero);
+        } else if (teta < tetaMin) {
+            factor = teta > tetaMin * 2 ? 0 : boundedP / (teta - tetaZero);
+        }
+        return factor;
     }
 
     protected double ph1() {
