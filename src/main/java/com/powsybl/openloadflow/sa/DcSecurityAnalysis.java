@@ -55,6 +55,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, lfParameters,
                 lfParametersExt, matrixFactory, connectivityFactory, false);
         dcParameters.getNetworkParameters()
+                .setHvdcAcEmulation(false) // we only support it for DC load flow (initialization)
                 .setBreakers(breakers)
                 .setCacheEnabled(false) // force not caching as not supported in secu analysis
                 .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet

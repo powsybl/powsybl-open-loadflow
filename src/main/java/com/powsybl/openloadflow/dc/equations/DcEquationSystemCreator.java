@@ -135,11 +135,37 @@ public class DcEquationSystemCreator {
         }
     }
 
+    private void createHvdcs(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        for (LfHvdc hvdc : network.getHvdcs()) {
+            EquationTerm<DcVariableType, DcEquationType> p1 = null;
+            EquationTerm<DcVariableType, DcEquationType> p2 = null;
+            if (hvdc.getBus1() != null && hvdc.getBus2() != null && hvdc.isAcEmulation()) {
+                p1 = new HvdcDcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+                p2 = new HvdcDcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+            }
+
+            if (p1 != null) {
+                equationSystem.getEquation(hvdc.getBus1().getNum(), DcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(p1);
+                hvdc.setP1(p1);
+            }
+
+            if (p2 != null) {
+                equationSystem.getEquation(hvdc.getBus2().getNum(), DcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(p2);
+                hvdc.setP2(p2);
+            }
+        }
+    }
+
     public EquationSystem<DcVariableType, DcEquationType> create(boolean withListener) {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>();
 
         createBuses(equationSystem);
         createBranches(equationSystem);
+        createHvdcs(equationSystem);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
