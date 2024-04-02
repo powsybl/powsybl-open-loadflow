@@ -4,11 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.dc.equations;
+package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.equations.AbstractHvdcAcEmulationFlowEquationTerm;
-import com.powsybl.openloadflow.equations.Variable;
-import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfHvdc;
 
@@ -17,10 +14,12 @@ import java.util.Objects;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public class HvdcDcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEmulationFlowEquationTerm<DcVariableType, DcEquationType> {
+public abstract class AbstractHvdcAcEmulationSide2ActiveFlowEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
+        extends AbstractHvdcAcEmulationFlowEquationTerm<V, E> {
 
-    public HvdcDcEmulationSide2ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet) {
-        super(hvdc, bus1, bus2, variableSet, DcVariableType.BUS_PHI);
+    public AbstractHvdcAcEmulationSide2ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<V> variableSet,
+                                                              V busPhiVariableType) {
+        super(hvdc, bus1, bus2, variableSet, busPhiVariableType);
     }
 
     private double p2(double ph1, double ph2) {
@@ -56,7 +55,7 @@ public class HvdcDcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     @Override
-    public double der(Variable<DcVariableType> variable) {
+    public double der(Variable<V> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
             return dp2dph1(ph1(), ph2());

@@ -140,8 +140,8 @@ public class DcEquationSystemCreator {
             EquationTerm<DcVariableType, DcEquationType> p1 = null;
             EquationTerm<DcVariableType, DcEquationType> p2 = null;
             if (hvdc.getBus1() != null && hvdc.getBus2() != null && hvdc.isAcEmulation()) {
-                p1 = new HvdcDcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
-                p2 = new HvdcDcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+                p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+                p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
             }
 
             if (p1 != null) {
