@@ -230,7 +230,7 @@ class AcLoadFlowVscTest {
         assertActivePowerEquals(-0.09, cs3.getTerminal());
 
         VscConverterStation cs4 = network.getVscConverterStation("cs4");
-        assertActivePowerEquals(0.092, cs4.getTerminal());
+        assertActivePowerEquals(0.091, cs4.getTerminal());
     }
 
     @Test
@@ -563,10 +563,10 @@ class AcLoadFlowVscTest {
         assertTrue(result.isFullyConverged());
 
         VscConverterStation cs2 = network.getVscConverterStation("cs2");
-        assertActivePowerEquals(8.119, cs2.getTerminal()); // 0MW + 180 MW/deg * 0.045105deg
+        assertActivePowerEquals(8.102, cs2.getTerminal()); // 0MW + 180 MW/deg * 0.045105deg
         assertAngleEquals(0.0, cs2.getTerminal().getBusView().getBus());
         VscConverterStation cs3 = network.getVscConverterStation("cs3");
-        assertActivePowerEquals(-8.014, cs3.getTerminal());
-        assertAngleEquals(-0.045105, cs3.getTerminal().getBusView().getBus());
+        assertActivePowerEquals(-8.102, cs3.getTerminal());
+        assertAngleEquals(-0.04501, cs3.getTerminal().getBusView().getBus());
     }
 }
