@@ -32,7 +32,7 @@ public abstract class AbstractHvdcAcEmulationSide2ActiveFlowEquationTerm<V exten
         return rawP < 0;
     }
 
-    private boolean isInOperatingRange(double rawP) {
+    protected boolean isInOperatingRange(double rawP) {
         return rawP < pMaxFromCS2toCS1 && rawP > -pMaxFromCS1toCS2;
     }
 

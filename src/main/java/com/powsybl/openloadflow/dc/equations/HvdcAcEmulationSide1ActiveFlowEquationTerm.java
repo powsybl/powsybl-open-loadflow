@@ -19,4 +19,17 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     public HvdcAcEmulationSide1ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet) {
         super(hvdc, bus1, bus2, variableSet, DcVariableType.BUS_PHI);
     }
+
+    protected double boundedP(double rawP) {
+        // to be linear
+        return rawP;
+    }
+
+    protected boolean isInOperatingRange(double rawP) {
+        return true;
+    }
+
+    protected double getVscLossMultiplier() {
+        return 1;
+    }
 }
