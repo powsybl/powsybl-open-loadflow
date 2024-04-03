@@ -26,10 +26,12 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
         return rawP;
     }
 
+    @Override
     protected boolean isInOperatingRange(double rawP) {
         return true;
     }
 
+    @Override
     protected double getVscLossMultiplier() {
         return 1;
     }
