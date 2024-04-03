@@ -53,7 +53,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         pMaxFromCS1toCS2 = hvdc.getPMaxFromCS1toCS2();
         pMaxFromCS2toCS1 = hvdc.getPMaxFromCS2toCS1();
         tetaMax = (pMaxFromCS1toCS2 - p0) / k;
-        tetaMin = -(pMaxFromCS2toCS1 - p0) / k;
+        tetaMin = (-pMaxFromCS2toCS1 - p0) / k;
         tetaZero = -p0 / k;
     }
 
@@ -81,7 +81,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
      * @param ph2
      * @return
      */
-    protected double pseudoK(double rawP, double ph1, double ph2) {
+    protected double dummySlope(double rawP, double ph1, double ph2) {
         double boundedP = boundedP(rawP);
         double factor = k;
         double teta = ph1 - ph2;

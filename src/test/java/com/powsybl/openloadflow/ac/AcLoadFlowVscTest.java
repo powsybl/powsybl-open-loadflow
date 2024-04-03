@@ -503,6 +503,44 @@ class AcLoadFlowVscTest {
     }
 
     @Test
+    void testAcEmuWithOperationalLimitsWithDCInit() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        // without limit p=195
+        network.getHvdcLine("hvdc23")
+                .newExtension(HvdcOperatorActivePowerRangeAdder.class)
+                .withOprFromCS2toCS1(180)
+                .withOprFromCS1toCS2(170)
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters p = new LoadFlowParameters();
+        p.setHvdcAcEmulation(true);
+        p.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+
+        // fool the DC initialization with large angle
+        network.getHvdcLine("hvdc23").setActivePowerSetpoint(0);
+        network.getLine("l14").setX(20);
+
+        LoadFlowResult result = loadFlowRunner.run(network, p);
+
+        assertTrue(result.isFullyConverged());
+
+        // Active flow capped at limit. Output has losses (due to VSC stations)
+        assertEquals(170, network.getHvdcConverterStation("cs2").getTerminal().getP(), DELTA_POWER);
+        assertEquals(-166.280, network.getHvdcConverterStation("cs3").getTerminal().getP(), DELTA_POWER);
+
+        // now invert the angle to test ill conditioned converence in the other direction
+        network.getLine("l14").setX(-20);
+        result = loadFlowRunner.run(network, p);
+        assertTrue(result.isFullyConverged());
+
+        // Active flow capped at other direction's limit. Output has losses (due to VSC stations)
+        assertEquals(-176.062, network.getHvdcConverterStation("cs2").getTerminal().getP(), DELTA_POWER);
+        assertEquals(180, network.getHvdcConverterStation("cs3").getTerminal().getP(), DELTA_POWER);
+
+    }
+
+    @Test
     void testAcEmuAndPMax() {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
         // without limit p=195

@@ -37,8 +37,10 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private double dp2dph1(double ph1, double ph2) {
+        // return the exact derivative unless ph1-oh2 us ti large (twice value of P limit)
+        // in this case returns a dummy slope to heo th NR convergence towards desired P
         double rawP = rawP(ph1, ph2);
-        double factor = pseudoK(rawP, ph1, ph2);
+        double factor = dummySlope(rawP, ph1, ph2);
         return -(isController(rawP) ? 1 : getVscLossMultiplier()) * factor;
     }
 
