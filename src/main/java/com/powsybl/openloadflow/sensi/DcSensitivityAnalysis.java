@@ -270,19 +270,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    private List<PropagatedContingency> getContingenciesWithGeneratorOrLoadLostAndWrite(WoodburyEngine.ConnectivityAnalysisResult connectivityAnalysisResult, SensitivityResultWriter resultWriter) {
-        List<PropagatedContingency> contingenciesWithGeneratorOrLoadLost = new ArrayList<>();
-        for (PropagatedContingency propagatedContingency : connectivityAnalysisResult.getContingencies()) {
-            if (propagatedContingency.getGeneratorIdsToLose().isEmpty() && propagatedContingency.getLoadIdsToLoose().isEmpty()) {
-                resultWriter.writeContingencyStatus(propagatedContingency.getIndex(), propagatedContingency.hasNoImpact() ? SensitivityAnalysisResult.Status.NO_IMPACT : SensitivityAnalysisResult.Status.SUCCESS);
-            } else {
-                contingenciesWithGeneratorOrLoadLost.add(propagatedContingency);
-            }
-        }
-
-        return contingenciesWithGeneratorOrLoadLost;
-    }
-
     private List<ParticipatingElement> getNewNormalizedParticipationFactors(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt,
                                                                             LfContingency lfContingency, List<ParticipatingElement> participatingElements) {
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
@@ -548,14 +535,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // compute rhs modifications for contingencies breaking connectivity
                 buildRhsModificationsForContingenciesBreakingConnectivity(loadFlowContext, lfParametersExt, connectivityData, factorGroups, participatingElements, woodburyEngineRhsModification, resultWriter);
 
-//                List<PropagatedContingency> nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost = new ArrayList<>();
-//                for (PropagatedContingency propagatedContingency : connectivityData.nonBreakingConnectivityContingencies()) {
-//                    if (propagatedContingency.getGeneratorIdsToLose().isEmpty() && propagatedContingency.getLoadIdsToLoose().isEmpty()) {
-//                        resultWriter.writeContingencyStatus(propagatedContingency.getIndex(), propagatedContingency.hasNoImpact() ? SensitivityAnalysisResult.Status.NO_IMPACT : SensitivityAnalysisResult.Status.SUCCESS);
-//                    } else {
-//                    nonBreakingConnectivityContingenciesWithGeneratorOrLoadLost.add(propagatedContingency);
-//                    }
-//                }
                 // compute rhs modifications for contingencies with no connectivity break
                 buildRhsModificationsForContingencies(loadFlowContext, lfParametersExt, factorGroups, connectivityData.nonBreakingConnectivityContingencies(), participatingElements, woodburyEngineRhsModification,
                         Collections.emptySet(), Collections.emptySet(), connectivityData.contingencyElementByBranch(), Collections.emptySet(), resultWriter);

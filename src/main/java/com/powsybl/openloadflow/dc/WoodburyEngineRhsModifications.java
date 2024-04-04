@@ -30,11 +30,11 @@ public class WoodburyEngineRhsModifications {
         this.newInjectionRhsForAConnectivity = new HashMap<>();
     }
 
-    public HashMap<PropagatedContingency, double[]> getNewFlowRhsByPropagatedContingency() {
+    public Map<PropagatedContingency, double[]> getNewFlowRhsByPropagatedContingency() {
         return newFlowRhsByPropagatedContingency;
     }
 
-    public HashMap<WoodburyEngine.ConnectivityAnalysisResult, double[]> getNewFlowRhsForAConnectivity() {
+    public Map<WoodburyEngine.ConnectivityAnalysisResult, double[]> getNewFlowRhsForAConnectivity() {
         return newFlowRhsForAConnectivity;
     }
 
