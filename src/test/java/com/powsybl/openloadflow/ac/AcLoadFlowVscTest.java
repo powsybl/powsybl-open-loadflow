@@ -607,6 +607,6 @@ class AcLoadFlowVscTest {
         assertAngleEquals(0.0, cs2.getTerminal().getBusView().getBus());
         assertActivePowerEquals(-15.578, cs3.getTerminal());
         assertAngleEquals(-0.030988, cs3.getTerminal().getBusView().getBus());
-        assertActivePowerEquals(5.578, network.getVscConverterStation("cs2Bis").getTerminal()); // 0MW + 180 MW/deg * 0.045105deg
+        assertActivePowerEquals(5.578, network.getVscConverterStation("cs2Bis").getTerminal()); // 0MW + 180 MW/deg * 0.030988deg
     }
 }
