@@ -11,42 +11,44 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
 public class WoodburyEngineResult {
 
-    public record PostContingencyWoodburyResult(DenseMatrix postContingencyFlowStates,
-                                                DenseMatrix postContingencyStates) {
+    public record WoodburyStates(DenseMatrix flowStates, DenseMatrix injectionStates) {
     }
 
-    private double[] preContingenciesFlowStates;
-    private DenseMatrix preContingenciesStates;
-    private final HashMap<PropagatedContingency, PostContingencyWoodburyResult> postContingencyWoodburyResults;
+    private double[] preContingencyFlowStates;
+    private DenseMatrix preContingencyInjectionStates;
+    private final HashMap<PropagatedContingency, WoodburyStates> postContingenciesWoodburyStates;
 
     public WoodburyEngineResult() {
-        postContingencyWoodburyResults = new HashMap<>();
+        postContingenciesWoodburyStates = new HashMap<>();
     }
 
-    public void setPreContingenciesFlowStates(double[] preContingenciesFlowStates) {
-        this.preContingenciesFlowStates = preContingenciesFlowStates;
+    public double[] getPreContingencyFlowStates() {
+        return preContingencyFlowStates;
     }
 
-    public double[] getPreContingenciesFlowStates() {
-        return preContingenciesFlowStates;
+    public void setPreContingencyFlowStates(double[] preContingencyFlowStates) {
+        this.preContingencyFlowStates = preContingencyFlowStates;
     }
 
-    public void setPreContingenciesStates(DenseMatrix preContingenciesStates) {
-        this.preContingenciesStates = preContingenciesStates;
+    public DenseMatrix getPreContingencyInjectionStates() {
+        return preContingencyInjectionStates;
     }
 
-    public DenseMatrix getPreContingenciesStates() {
-        return preContingenciesStates;
+    public void setPreContingencyInjectionStates(DenseMatrix preContingencyInjectionStates) {
+        this.preContingencyInjectionStates = preContingencyInjectionStates;
     }
 
-    public Map<PropagatedContingency, PostContingencyWoodburyResult> getPostContingencyWoodburyResults() {
-        return postContingencyWoodburyResults;
+    public void addPostContingencyWoodburyStates(PropagatedContingency contingency, WoodburyStates postContingencyWoodburyStates) {
+        postContingenciesWoodburyStates.put(contingency, postContingencyWoodburyStates);
+    }
+
+    public WoodburyStates getPostContingencyWoodburyStates(PropagatedContingency contingency) {
+        return postContingenciesWoodburyStates.get(contingency);
     }
 }

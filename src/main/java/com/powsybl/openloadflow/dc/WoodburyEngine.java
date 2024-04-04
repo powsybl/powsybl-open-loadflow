@@ -35,7 +35,11 @@ public class WoodburyEngine {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(WoodburyEngine.class);
     private static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
-    private WoodburyEngineResult woodburyEngineResult;
+    private final WoodburyEngineResult woodburyEngineResult;
+
+    public WoodburyEngine() {
+        this.woodburyEngineResult = new WoodburyEngineResult();
+    }
 
     public static final class ComputedContingencyElement {
 
@@ -468,7 +472,7 @@ public class WoodburyEngine {
         }
 
         // add the post contingency matrices of the states
-        DenseMatrix postContingencyStates = new DenseMatrix(preContingencyStates.getRowCount(), preContingencyStates.getColumnCount());
+        DenseMatrix postContingencyInjectionStates = new DenseMatrix(preContingencyStates.getRowCount(), preContingencyStates.getColumnCount());
         for (int columnIndex = 0; columnIndex < preContingencyStates.getColumnCount(); columnIndex++) {
             setAlphas(loadFlowContext, contingencyElements, preContingencyStates, contingenciesStates, columnIndex, ComputedContingencyElement::setAlphaForStateValue);
             for (int rowIndex = 0; rowIndex < preContingencyStates.getRowCount(); rowIndex++) {
@@ -476,13 +480,12 @@ public class WoodburyEngine {
                 for (ComputedContingencyElement contingencyElement : contingencyElements) {
                     postContingencyValue += contingencyElement.getAlphaForStateValue() * contingenciesStates.get(rowIndex, contingencyElement.getContingencyIndex());
                 }
-                postContingencyStates.set(rowIndex, columnIndex, postContingencyValue);
+                postContingencyInjectionStates.set(rowIndex, columnIndex, postContingencyValue);
             }
         }
 
-        WoodburyEngineResult.PostContingencyWoodburyResult postContingencyWoodburyResult =
-                new WoodburyEngineResult.PostContingencyWoodburyResult(postContingencyFlowStates, postContingencyStates);
-        woodburyEngineResult.getPostContingencyWoodburyResults().put(contingency, postContingencyWoodburyResult);
+        WoodburyEngineResult.WoodburyStates postContingencyStates = new WoodburyEngineResult.WoodburyStates(postContingencyFlowStates, postContingencyInjectionStates);
+        woodburyEngineResult.addPostContingencyWoodburyStates(contingency, postContingencyStates);
     }
 
     private static Map<String, ComputedContingencyElement> createContingencyElementsIndexByBranchId(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, List<PropagatedContingency> contingencies) {
@@ -552,15 +555,12 @@ public class WoodburyEngine {
     public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, double[] flowRhs, DenseMatrix injectionRhs, WoodburyEngineRhsModifications rhsModifications,
                                     ConnectivityDataResult connectivityDataResult, ReportNode reporter) {
 
-        woodburyEngineResult = new WoodburyEngineResult();
-
-        // compute pre-contingency states
+        // compute pre-contingency injection/flow states
         loadFlowContext.getJacobianMatrix().solveTransposed(injectionRhs);
-        woodburyEngineResult.setPreContingenciesStates(injectionRhs);
+        woodburyEngineResult.setPreContingencyInjectionStates(injectionRhs);
 
-        // compute pre-contingency flow states
         DenseMatrix flowStates = runDcLoadFlowOnTargetVector(loadFlowContext, flowRhs, reporter);
-        woodburyEngineResult.setPreContingenciesFlowStates(flowRhs);
+        woodburyEngineResult.setPreContingencyFlowStates(flowRhs);
 
         // get contingency elements indexed by branch id
         Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityDataResult.contingencyElementByBranch();

@@ -84,7 +84,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                SensitivityResultWriter resultWriter) {
         Derivable<DcVariableType> p1 = factor.getFunctionEquationTerm();
         for (PropagatedContingency contingency : contingencies) {
-            WoodburyEngineResult.PostContingencyWoodburyResult postContingencyStates = woodburyResult.getPostContingencyWoodburyResults().get(contingency);
+            WoodburyEngineResult.WoodburyStates postContingencyStates = woodburyResult.getPostContingencyWoodburyStates(contingency);
             DisabledNetwork disabledNetwork = disabledNetworksByPropagatedContingencies.get(contingency); // TODO : throw if not found ?
 
             Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledNetwork, contingency);
@@ -95,11 +95,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
 
             if (sensitivityValuePredefinedResult.isEmpty()) {
-                sensitivityValue = p1.calculateSensi(postContingencyStates.postContingencyStates(), factorGroup.getIndex());
+                sensitivityValue = p1.calculateSensi(postContingencyStates.injectionStates(), factorGroup.getIndex());
             }
 
             if (functionPredefinedResults.isEmpty()) {
-                functionValue = p1.calculateSensi(postContingencyStates.postContingencyFlowStates(), 0);
+                functionValue = p1.calculateSensi(postContingencyStates.flowStates(), 0);
             }
 
             functionValue = fixZeroFunctionReference(contingency, functionValue);
@@ -558,8 +558,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 WoodburyEngineResult woodburyResult = engine.run(loadFlowContext, flowsRhs, injectionRhs, woodburyEngineRhsModification, connectivityData, reportNode);
 
                 // set base case/function reference values of the factors
-                setFunctionReference(validLfFactors, woodburyResult.getPreContingenciesFlowStates());
-                setBaseCaseSensitivityValues(factorGroups, woodburyResult.getPreContingenciesStates()); // use this state to compute the base sensitivity (without +1-1)
+                setFunctionReference(validLfFactors, woodburyResult.getPreContingencyFlowStates());
+                setBaseCaseSensitivityValues(factorGroups, woodburyResult.getPreContingencyInjectionStates()); // use this state to compute the base sensitivity (without +1-1)
 
                 // compute the sensibilities with Woodbury computed states (pre- and post- contingency), and computed disabledNetworks
                 calculateSensitivityValues(woodburyResult, disabledNetworksByPropagatedContingencies, validFactorHolder.getAllFactors(), contingencies, resultWriter);
