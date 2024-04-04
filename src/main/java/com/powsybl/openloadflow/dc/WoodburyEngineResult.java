@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.network.DisabledNetwork;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 
 import java.util.HashMap;
@@ -20,8 +19,7 @@ import java.util.Map;
 public class WoodburyEngineResult {
 
     public record PostContingencyWoodburyResult(DenseMatrix postContingencyFlowStates,
-                                                DenseMatrix postContingencyStates,
-                                                DisabledNetwork postContingencyDisabledNetwork) {
+                                                DenseMatrix postContingencyStates) {
     }
 
     private double[] preContingenciesFlowStates;
