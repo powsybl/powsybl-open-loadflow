@@ -23,7 +23,7 @@ public class AcOuterLoopContext extends AbstractOuterLoopContext<AcVariableType,
 
     private AcSolverResult lastSolverResult;
 
-    AcOuterLoopContext(LfNetwork network) {
+    public AcOuterLoopContext(LfNetwork network) {
         super(network);
     }
 

@@ -16,12 +16,12 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
+public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     protected AbstractAcOuterLoopConfig() {
     }
 
-    protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    public static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         if (parameters.isDistributedSlack()) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));
