@@ -36,7 +36,7 @@ public final class LfAction {
     private record LoadShift(String loadId, LfLoad load, PowerShift powerShift) {
     }
 
-    private record GeneratorChange(LfGenerator generator, double deltaTargetP) {
+    private record GeneratorChange(LfGenerator generator, double activePowerValue, boolean isRelative) {
     }
 
     private record SectionChange(LfShunt shunt, String controllerId, int value) {
@@ -224,16 +224,10 @@ public final class LfAction {
             OptionalDouble activePowerValue = action.getActivePowerValue();
             Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
             if (relativeValue.isPresent() && activePowerValue.isPresent()) {
-                double deltaTargetP;
-                if (relativeValue.get().equals(Boolean.TRUE)) {
-                    deltaTargetP = activePowerValue.getAsDouble() / PerUnit.SB;
-                } else {
-                    deltaTargetP = activePowerValue.getAsDouble() / PerUnit.SB - generator.getInitialTargetP();
-                }
-                var generatorChange = new GeneratorChange(generator, deltaTargetP);
+                var generatorChange = new GeneratorChange(generator, activePowerValue.getAsDouble() / PerUnit.SB, relativeValue.get());
                 return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorChange, null, null));
             } else {
-                throw new UnsupportedOperationException("Generator action: configuration not supported yet.");
+                throw new UnsupportedOperationException("Generator action on " + action.getGeneratorId() + " : configuration not supported yet. Active power value and boolean for relative value are required.");
             }
         }
         return Optional.empty();
@@ -338,7 +332,8 @@ public final class LfAction {
         if (generatorChange != null) {
             LfGenerator generator = generatorChange.generator();
             if (!generator.isDisabled()) {
-                generator.setTargetP(generator.getTargetP() + generatorChange.deltaTargetP());
+                double newTargetP = generatorChange.isRelative() ? generator.getTargetP() + generatorChange.activePowerValue() : generatorChange.activePowerValue();
+                generator.setTargetP(newTargetP);
                 if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
                         networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
                     generator.setParticipating(false);
