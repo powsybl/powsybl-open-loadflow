@@ -103,7 +103,7 @@ class LfActionTest extends AbstractSerDeTest {
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
-            assertEquals("Generator action: configuration not supported yet.", e.getMessage());
+            assertEquals("Generator action on G : configuration not supported yet. Active power value and boolean for relative value are required.", e.getMessage());
         }
     }
 
