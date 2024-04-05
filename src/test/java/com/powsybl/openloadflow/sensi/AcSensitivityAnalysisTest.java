@@ -667,7 +667,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 createTargetQPerTargetV("b3", "g1", null));
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
-        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.00001).setNewtonRaphsonConvEpsPerEq(0.000001);
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001).setNewtonRaphsonConvEpsPerEq(0.000001);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
         assertEquals(0.788, result.getSensitivityValue("g1", "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);

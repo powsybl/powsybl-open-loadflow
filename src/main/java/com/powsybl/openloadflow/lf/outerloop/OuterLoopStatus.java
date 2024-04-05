@@ -12,5 +12,10 @@ package com.powsybl.openloadflow.lf.outerloop;
 public enum OuterLoopStatus {
     STABLE,
     UNSTABLE,
-    FAILED
+    FAILED,
+    FULL_STABLE; // No need to restart the loops even if NR has run.
+
+    public boolean isStable() {
+        return this == STABLE || this == FULL_STABLE;
+    }
 }

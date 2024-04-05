@@ -20,6 +20,19 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
     @Override
     public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         List<AcOuterLoop> outerLoops = new ArrayList<>(5);
+
+        // Test new outerloop for covered cases
+        if (!parametersExt.isSecondaryVoltageControl() &&
+                !parameters.isPhaseShifterRegulationOn() &&
+                !parameters.isTransformerVoltageControlOn() &&
+                !parametersExt.isTransformerReactivePowerControl() &&
+                !parameters.isShuntCompensatorVoltageControlOn() &&
+                !parametersExt.isSimulateAutomationSystems()
+            ) {
+            outerLoops.add(new PrimaryVoltageOuterLoopGroup(parameters, parametersExt));
+            return outerLoops;
+        }
+
         // primary frequency control
         createDistributedSlackOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // secondary voltage control

@@ -7,15 +7,16 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.openloadflow.AcOuterLoopGroupContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.outerloop.ACOuterLoopGroup;
+import com.powsybl.openloadflow.ac.outerloop.AbstractACOuterLoopGroup;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.MainAcOuterLoopGroup;
 import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -114,12 +115,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     public AcLoadFlowResult run() {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
-        VoltageInitializer voltageInitializer = context.getParameters().getVoltageInitializer();
-        // in case of a DC voltage initializer, an DC equation system in created and equations are attached
-        // to the network. It is important that DC init is done before AC equation system is created by
-        // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
-        voltageInitializer.prepare(context.getNetwork());
-
         RunningContext runningContext = new RunningContext();
         AcSolver solver = solverFactory.create(context.getNetwork(),
                                                context.getParameters(),
@@ -138,8 +133,10 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     context.getNetwork().getNumSC());
         }
 
-        ACOuterLoopGroup group = new ACOuterLoopGroup(outerLoops);
-        OuterLoopStatus outerLoopFinalStatus = group.runOuterLoops(context, runningContext, solver, nrReportNode, voltageInitializer);
+        AbstractACOuterLoopGroup group = new MainAcOuterLoopGroup(outerLoops);
+        AcOuterLoopGroupContext outerLoopGroupContext = new AcOuterLoopGroupContext(context.getNetwork(), runningContext, solver);
+        outerLoopGroupContext.setLoadFlowContext(context);
+        OuterLoopStatus outerLoopFinalStatus = group.runOuterLoops(outerLoopGroupContext, nrReportNode);
 
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
                                                        runningContext.outerLoopTotalIterations,
