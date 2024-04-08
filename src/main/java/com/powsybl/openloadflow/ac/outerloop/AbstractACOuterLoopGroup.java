@@ -8,6 +8,7 @@ import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
@@ -44,7 +45,10 @@ public abstract class AbstractACOuterLoopGroup implements ACOuterLoopGroup {
 
         // TODO: Review this protocol
         // initial solver run if needed by the group
-        prepareSolverAndModel(groupContext, nrReportNode, outerLoopsAndContexts);
+        boolean modelChanged = prepareSolverAndModel(groupContext, nrReportNode, outerLoopsAndContexts);
+        if (!modelChanged) { // If init is a NOOP return groups status
+            return getStableStatus();
+        }
 
         // continue with outer loops only if solver succeed
         // The solver may not have been run if first loop prefers to run the solver itself
@@ -150,7 +154,30 @@ public abstract class AbstractACOuterLoopGroup implements ACOuterLoopGroup {
         return name;
     }
 
-    protected abstract void prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts);
+    protected VoltageInitializer getVoltageInitializer(AcOuterLoopGroupContext groupContext) {
+        if (groupContext.getRunningContext().getLastSolverResult() == null) {
+            VoltageInitializer voltageInitializer = groupContext.getLoadFlowContext().getParameters().getVoltageInitializer();
+            // in case of a DC voltage initializer, an DC equation system in created and equations are attached
+            // to the network. It is important that DC init is done before AC equation system is created by
+            // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
+            voltageInitializer.prepare(groupContext.getNetwork());
+            return voltageInitializer;
+        } else {
+            return new PreviousValueVoltageInitializer();
+        }
+    }
+
+    @Override
+    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+        AcOuterLoopGroupContext loopGroupContext = (AcOuterLoopGroupContext) context;
+        return runOuterLoops(loopGroupContext, reportNode);
+    }
+
+    /**
+     * If needed modifies the model and equations and run a first load flow
+     * @return true if a loadflow is run and outerloop needs to run, or false if the init is a NOOP
+     */
+    protected abstract boolean prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts);
 
     protected abstract void cleanModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts);
 

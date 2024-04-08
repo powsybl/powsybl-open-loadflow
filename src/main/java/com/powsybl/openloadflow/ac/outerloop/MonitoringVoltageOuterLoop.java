@@ -31,6 +31,8 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
 
     public static final String NAME = "VoltageMonitoring";
 
+    public double maxControlledNominalVoltage = 0;
+
     @Override
     public String getName() {
         return NAME;
@@ -128,7 +130,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
 
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).stream()
-                .filter(bus -> !bus.isGeneratorVoltageControlEnabled())
+                .filter(bus -> !bus.isGeneratorVoltageControlEnabled() && bus.getNominalV() > maxControlledNominalVoltage)
                 .forEach(bus -> getControlledBusVoltageLimits(bus).ifPresent(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits)));
 
         if (!pqToPvBuses.isEmpty()) {
@@ -137,5 +139,14 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
         }
 
         return status;
+    }
+
+    @Override
+    public void initialize(AcOuterLoopContext context) {
+        initialize(context, 0);
+    }
+
+    public void initialize(AcOuterLoopContext context, double maxControlledNominalVoltage) {
+        this.maxControlledNominalVoltage = maxControlledNominalVoltage;
     }
 }

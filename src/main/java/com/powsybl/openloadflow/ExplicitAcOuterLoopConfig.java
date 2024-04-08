@@ -61,12 +61,16 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                                                                      parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
             case AutomationSystemOuterLoop.NAME -> createAutomationSystemOuterLoop(parametersExt);
             case IncrementalTransformerReactivePowerControlOuterLoop.NAME -> createTransformerReactivePowerControlOuterLoop(parametersExt);
+            case PrimaryVoltageOuterLoopGroup.NAME -> Optional.of(new PrimaryVoltageOuterLoopGroup(parameters, parametersExt));
+            case TapControlOuterLoopGroup.NAME -> Optional.of(new TapControlOuterLoopGroup(parameters, parametersExt));
             default -> throw new PowsyblException("Unknown outer loop '" + name + "'");
         };
     }
 
     private static void checkTypeUnicity(List<AcOuterLoop> outerLoops) {
-        Map<String, Integer> outerLoopTypesCount = outerLoops.stream().collect(Collectors.toMap(OuterLoop::getType, outerLoop -> 1, Integer::sum));
+        Map<String, Integer> outerLoopTypesCount = outerLoops.stream()
+                .filter(acOuterLoop -> !(acOuterLoop instanceof ACOuterLoopGroup && ((ACOuterLoopGroup) acOuterLoop).isMultipleUseAllowed()))
+                .collect(Collectors.toMap(OuterLoop::getType, outerLoop -> 1, Integer::sum));
         for (var e : outerLoopTypesCount.entrySet()) {
             int count = e.getValue();
             if (count > 1) {
@@ -84,4 +88,5 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         checkTypeUnicity(outerLoops);
         return outerLoops;
     }
+
 }

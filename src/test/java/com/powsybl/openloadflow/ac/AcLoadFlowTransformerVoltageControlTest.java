@@ -20,6 +20,8 @@ import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -109,6 +111,14 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setTargetV(34.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus()); //FIXME: should be 34.427
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+
+        // TODO: New test - and simplify parameters
+        parametersExt.setOuterLoopNames(List.of("PrimaryVoltageOuterLoopGroup", "TapControlOuterLoopGroup", "PrimaryVoltageOuterLoopGroup"));
+        result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus()); //FIXME: should be 34.427

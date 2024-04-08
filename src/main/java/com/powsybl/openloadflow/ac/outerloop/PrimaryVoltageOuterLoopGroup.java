@@ -7,8 +7,9 @@ import com.powsybl.openloadflow.AcOuterLoopGroupContext;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -21,10 +22,15 @@ import java.util.List;
  * And outputs in case of success
  *     An Lf Network with power compensation and primary voltage control performed
  */
-public class PrimaryVoltageOuterLoopGroup extends AbstractACOuterLoopGroup implements AcOuterLoop {
+public class PrimaryVoltageOuterLoopGroup extends AbstractACOuterLoopGroup {
+
+    public static final String NAME = "PrimaryVoltageOuterLoopGroup";
+
+    private final boolean isTransformerVoltageControlOn;
 
     public PrimaryVoltageOuterLoopGroup(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         super(getPrimaryVoltageOuterLoopGroup(parameters, parametersExt), "Primary Voltage Outer Loop Group");
+        isTransformerVoltageControlOn = parameters.isTransformerVoltageControlOn();
     }
 
     private static List<AcOuterLoop> getPrimaryVoltageOuterLoopGroup(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
@@ -54,15 +60,14 @@ public class PrimaryVoltageOuterLoopGroup extends AbstractACOuterLoopGroup imple
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
-        AcOuterLoopGroupContext loopGroupContext = (AcOuterLoopGroupContext) context;
-        return runOuterLoops(loopGroupContext, reportNode);
-    }
+    protected boolean prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts) {
 
-    @Override
-    protected void prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts) {
-
-        // TODO: check what happens in this loop
+        // Deactivate voltage control equations of transformers if theu have been created
+        if (isTransformerVoltageControlOn) {
+            for (LfBranch controllerBranch : groupContext.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
+                controllerBranch.setVoltageControlEnabled(false);
+            }
+        }
 
         for (Pair<AcOuterLoop, AcOuterLoopContext> outerLoopAndContext : outerLoopsAndContexts) {
             AcOuterLoop outerLoop = outerLoopAndContext.getLeft();
@@ -70,17 +75,13 @@ public class PrimaryVoltageOuterLoopGroup extends AbstractACOuterLoopGroup imple
             outerLoop.initialize(loopContext);
         }
 
-        VoltageInitializer voltageInitializer = groupContext.getLoadFlowContext().getParameters().getVoltageInitializer();
-        // in case of a DC voltage initializer, an DC equation system in created and equations are attached
-        // to the network. It is important that DC init is done before AC equation system is created by
-        // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
-        voltageInitializer.prepare(groupContext.getNetwork());
-        groupContext.runSolver(voltageInitializer, nrReportNode);
+        groupContext.runSolver(getVoltageInitializer(groupContext), nrReportNode);
+
+        return true;
     }
 
     @Override
     protected void cleanModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts) {
-        // TODO: check what happens in this loop
 
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
@@ -92,5 +93,10 @@ public class PrimaryVoltageOuterLoopGroup extends AbstractACOuterLoopGroup imple
     @Override
     protected OuterLoopStatus getStableStatus() {
         return OuterLoopStatus.FULL_STABLE;
+    }
+
+    @Override
+    public boolean isMultipleUseAllowed() {
+        return true;
     }
 }

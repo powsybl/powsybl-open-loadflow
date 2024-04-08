@@ -5,7 +5,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.AcOuterLoopGroupContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
@@ -17,11 +16,11 @@ public class MainAcOuterLoopGroup extends AbstractACOuterLoopGroup {
     }
 
     @Override
-    protected void prepareSolverAndModel(AcOuterLoopGroupContext context, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts) {
+    protected boolean prepareSolverAndModel(AcOuterLoopGroupContext context, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts) {
 
         if (!outerLoopsAndContexts.isEmpty() && outerLoopsAndContexts.get(0).getLeft() instanceof ACOuterLoopGroup) {
             // OuterLoop groups should initialize themselves and should control how the netork equations are changed so independant loops are not "initialized"
-            return;
+            return true; // Continue to run the outerloop !
         }
 
         // backward compatility
@@ -32,12 +31,9 @@ public class MainAcOuterLoopGroup extends AbstractACOuterLoopGroup {
             outerLoop.initialize(outerLoopContext);
         }
 
-        VoltageInitializer voltageInitializer = context.getLoadFlowContext().getParameters().getVoltageInitializer();
-        // in case of a DC voltage initializer, an DC equation system in created and equations are attached
-        // to the network. It is important that DC init is done before AC equation system is created by
-        // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
-        voltageInitializer.prepare(context.getNetwork());
-        context.runSolver(voltageInitializer, nrReportNode);
+        context.runSolver(getVoltageInitializer(context), nrReportNode);
+
+        return true;
     }
 
     @Override
@@ -59,5 +55,10 @@ public class MainAcOuterLoopGroup extends AbstractACOuterLoopGroup {
     @Override
     protected OuterLoopStatus getStableStatus() {
         return OuterLoopStatus.STABLE;
+    }
+
+    @Override
+    public boolean isMultipleUseAllowed() {
+        return false;
     }
 }
