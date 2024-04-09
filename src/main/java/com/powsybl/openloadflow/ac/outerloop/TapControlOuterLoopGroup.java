@@ -27,8 +27,29 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TapControlOuterLoopGroup.class);
 
+    class ContextData {
+        private double maxControlledNominalVoltage = Double.MIN_VALUE;
+        private List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
+
+        public void updateMaxControlledNominalVoltage(double newVoltage) {
+            maxControlledNominalVoltage = Math.max(newVoltage, maxControlledNominalVoltage);
+        }
+
+        public double getMaxControlledNominalVoltage() {
+            return maxControlledNominalVoltage;
+        }
+
+        public void addBusWithVoltageControlDisabled(LfBus bus) {
+            busesWithVoltageControlDisabled.add(bus);
+        }
+
+        public List<LfBus> getBusesWithVoltageControlDisabled() {
+            return busesWithVoltageControlDisabled;
+        }
+    }
+
     public TapControlOuterLoopGroup(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        super(getTapControlOuterLoopGroup(parameters, parametersExt), "Tap Control OuterLoop Group");
+        super(getTapControlOuterLoopGroup(parameters, parametersExt), "Tap Control Outer Loop Group");
     }
 
     private static List<AcOuterLoop> getTapControlOuterLoopGroup(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
@@ -54,7 +75,9 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
             result.add(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch(), effectiveMaxReactivePowerMismatch));
         }
 
-        // TODO: Add the loop that controls tap limits
+        if (parameters.isTransformerVoltageControlOn()) {
+            result.add(new MonitoringTapOuterLoop());
+        }
 
         return result;
     }
@@ -62,13 +85,15 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
     @Override
     protected boolean prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts) {
 
+        ContextData contextData = new ContextData();
+        groupContext.setData(contextData);
+
         // Transformer Voltage control is removed from the equationsand replaced by continuous tap equations
         // Voltage control for "HT" groups is then disabled
 
-        double maxControlledNominalVoltage = Double.MIN_VALUE;
         for (LfBus bus : groupContext.getNetwork().getBuses()) {
             if (!bus.isDisabled() && bus.isTransformerVoltageControlled()) {
-                maxControlledNominalVoltage = Math.max(maxControlledNominalVoltage, bus.getNominalV());
+                contextData.updateMaxControlledNominalVoltage(bus.getNominalV());
             }
         }
 
@@ -78,13 +103,14 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
         // the set controlledNominalVoltages are disabled.
         // The transformer voltage controls are enabled.
         for (LfBus bus : groupContext.getNetwork().getControlledBuses(VoltageControl.Type.GENERATOR)) {
-            if (bus.getNominalV() <= maxControlledNominalVoltage) {
+            if (bus.getNominalV() <= contextData.getMaxControlledNominalVoltage()) {
                 var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
                 voltageControl.getMergedControllerElements().forEach(controllerBus -> {
                     if (controllerBus.isGeneratorVoltageControlEnabled()) {
                         controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
                         controllerBus.setGeneratorVoltageControlEnabled(false);
                     }
+                    contextData.addBusWithVoltageControlDisabled(bus);
                 });
                 modelChanged = true;
             }
@@ -102,18 +128,20 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
         }
 
         if (modelChanged) {
-            groupContext.getNetwork().fixTransformerVoltageControls();
+            groupContext.getNetwork().fixTransformerVoltageControls(false);
 
             for (Pair<AcOuterLoop, AcOuterLoopContext> outerLoopAndContext : outerLoopsAndContexts) {
                 AcOuterLoop outerLoop = outerLoopAndContext.getLeft();
                 AcOuterLoopContext loopContext = outerLoopAndContext.getRight();
                 if (outerLoop instanceof MonitoringVoltageOuterLoop) {
                     // Provide the voltage limit to that loop
-                    ((MonitoringVoltageOuterLoop) outerLoop).initialize(loopContext, maxControlledNominalVoltage);
+                    ((MonitoringVoltageOuterLoop) outerLoop).initialize(loopContext, contextData.getMaxControlledNominalVoltage());
+                } else if (outerLoop instanceof ReactiveLimitsOuterLoop) {
+                    // Provide the voltage limit to that loop
+                    ((ReactiveLimitsOuterLoop) outerLoop).initialize(loopContext, contextData.getMaxControlledNominalVoltage());
                 } else {
                     outerLoop.initialize(loopContext);
                 }
-                outerLoop.initialize(loopContext);
             }
 
             groupContext.runSolver(getVoltageInitializer(groupContext), nrReportNode);
@@ -130,6 +158,8 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
     @Override
     protected void cleanModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts) {
 
+        ContextData contextData = (ContextData) groupContext.getData();
+
         // discretize transformer taps
         for (LfBranch controllerBranch : groupContext.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             controllerBranch.setVoltageControlEnabled(false);
@@ -141,6 +171,12 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
             piModel.roundR1ToClosestTap();
             double roundedR1Value = piModel.getR1();
             LOGGER.trace("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), r1Value, roundedR1Value);
+        }
+
+        // Re-enable generator voltage control
+        for (LfBus controllerBus : contextData.getBusesWithVoltageControlDisabled()) {
+            controllerBus.setGenerationTargetQ(0);
+            controllerBus.setGeneratorVoltageControlEnabled(true);
         }
 
     }

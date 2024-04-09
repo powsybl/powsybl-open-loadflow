@@ -43,6 +43,10 @@ public interface PiModel {
 
     double getR1();
 
+    double getMinR1();
+
+    double getMaxR1();
+
     double getContinuousR1();
 
     double getA1();

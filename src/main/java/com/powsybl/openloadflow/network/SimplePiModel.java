@@ -110,6 +110,16 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
+    public double getMinR1() {
+        return getR1();
+    }
+
+    @Override
+    public double getMaxR1() {
+        return getR1();
+    }
+
+    @Override
     public double getContinuousR1() {
         return getR1();
     }

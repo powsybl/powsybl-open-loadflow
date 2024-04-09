@@ -31,7 +31,7 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
                 controllerBranch.setVoltageControlEnabled(true);
             }
         }
-        context.getNetwork().fixTransformerVoltageControls();
+        context.getNetwork().fixTransformerVoltageControls(true);
     }
 
     @Override

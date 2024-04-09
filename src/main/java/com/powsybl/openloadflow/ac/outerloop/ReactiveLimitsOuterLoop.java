@@ -53,6 +53,11 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     private static final class ContextData {
 
         private final Map<String, MutableInt> pvPqSwitchCount = new HashMap<>();
+        private final double maxControlledNominalVoltage;
+
+        ContextData(double maxControlledNominalVoltage) {
+            this.maxControlledNominalVoltage = maxControlledNominalVoltage;
+        }
 
         void incrementPvPqSwitchCount(String busId) {
             pvPqSwitchCount.computeIfAbsent(busId, k -> new MutableInt(0))
@@ -161,7 +166,11 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        context.setData(new ContextData());
+        initialize(context, 0);
+    }
+
+    public void initialize(AcOuterLoopContext context, double maxControlledNominalVoltage) {
+        context.setData(new ContextData(maxControlledNominalVoltage));
     }
 
     private static boolean switchPqPv(List<PqToPvBus> pqToPvBuses, ContextData contextData, ReportNode reportNode, int maxPqPvSwitch) {
@@ -225,7 +234,10 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
      * A PQ bus can have its Qmin or Qmax limit updated after a change in targetP of the generator or a change of the voltage magnitude of the bus.
      */
     private static void checkPqBus(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, List<LfBus> busesWithUpdatedQLimits,
-                                   double maxReactivePowerMismatch, boolean canSwitchPqToPv) {
+                                   double maxReactivePowerMismatch, boolean canSwitchPqToPv, ContextData contextData) {
+        if (controllerCapableBus.getNominalV() <= contextData.maxControlledNominalVoltage) {
+            return;
+        }
         double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
         double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
         double q = controllerCapableBus.getGenerationTargetQ();
@@ -300,6 +312,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
+        var contextData = (ContextData) context.getData();
+
         List<ControllerBusToPqBus> pvToPqBuses = new ArrayList<>();
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         List<LfBus> busesWithUpdatedQLimits = new ArrayList<>();
@@ -312,7 +326,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 checkControllerBus(bus, pvToPqBuses, remainingPvBusCount);
             } else {
                 // we don't support switching PQ to PV for bus with one controller with slope.
-                checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
+                checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope(), contextData);
             }
         });
 
@@ -323,8 +337,6 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 checkControllerBus(bus, reactiveControllerBusesToPqBuses, remainingBusWithReactivePowerControlCount);
             }
         });
-
-        var contextData = (ContextData) context.getData();
 
         ReportNode iterationReportNode = reportNode;
         if (!pvToPqBuses.isEmpty() || !pqToPvBuses.isEmpty() || !busesWithUpdatedQLimits.isEmpty() || !reactiveControllerBusesToPqBuses.isEmpty()) {

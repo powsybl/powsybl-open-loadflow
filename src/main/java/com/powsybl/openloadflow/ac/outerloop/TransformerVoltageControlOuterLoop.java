@@ -104,7 +104,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                     }
                 });
             }
-            context.getNetwork().fixTransformerVoltageControls();
+            context.getNetwork().fixTransformerVoltageControls(true);
         }
 
         // At second outer loop iteration, the transformers are rounded. The generator voltage controls that were
