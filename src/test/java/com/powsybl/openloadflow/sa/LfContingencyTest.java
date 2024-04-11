@@ -10,11 +10,9 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
-import com.powsybl.contingency.BranchContingency;
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.GeneratorContingency;
-import com.powsybl.contingency.LoadContingency;
+import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.test.BatteryNetworkFactory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -36,8 +34,9 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
+import static com.powsybl.openloadflow.network.impl.PropagatedContingency.createList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -78,11 +77,11 @@ class LfContingencyTest extends AbstractSerDeTest {
                 .setContingencyPropagation(false)
                 .setHvdcAcEmulation(false);
         List<PropagatedContingency> propagatedContingencies =
-            PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters);
+            createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters);
 
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
                 .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(mainNetwork).stream())
-                .collect(Collectors.toList());
+                .toList();
         assertEquals(1, lfContingencies.size());
 
         Path file = fileSystem.getPath("/work/lfc.json");
@@ -91,8 +90,19 @@ class LfContingencyTest extends AbstractSerDeTest {
         }
 
         try (InputStream is = Files.newInputStream(file)) {
-            ComparisonUtils.compareTxt(getClass().getResourceAsStream("/lfc.json"), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/lfc.json")), is);
         }
+    }
+
+    @Test
+    void testBatteryContingencyPropagated() {
+        Network network = BatteryNetworkFactory.create();
+        ContingencyElement element = new BatteryContingency("BAT");
+        Contingency contingency = new Contingency("contingencyId", "contingencyName", List.of(element));
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters();
+        List<PropagatedContingency> propagatedContingencies = createList(network, List.of(contingency), new LfTopoConfig(), creationParameters);
+        assertEquals(1, propagatedContingencies.size());
+        assertEquals("contingencyId", propagatedContingencies.get(0).getContingency().getId());
     }
 
     @Test
@@ -109,7 +119,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
                 .setHvdcAcEmulation(false);
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters),
+                        createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters),
                 "Generator 'GEN' not found in the network");
     }
 
@@ -127,7 +137,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
                 .setHvdcAcEmulation(false);
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters),
+                        createList(network, Collections.singletonList(contingency), new LfTopoConfig(), creationParameters),
                 "Load 'LOAD' not found in the network");
     }
 
@@ -136,7 +146,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
         LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters().setBreakers(true)).get(0);
         Contingency contingency = Contingency.threeWindingsTransformer("T3wT");
-        PropagatedContingency propagatedContingency = PropagatedContingency.createList(network, List.of(contingency), new LfTopoConfig(), new PropagatedContingencyCreationParameters()).get(0);
+        PropagatedContingency propagatedContingency = createList(network, List.of(contingency), new LfTopoConfig(), new PropagatedContingencyCreationParameters()).get(0);
         LfContingency lfContingency = propagatedContingency.toLfContingency(lfNetwork).orElseThrow();
         assertEquals(Map.of(lfNetwork.getBranchById("T3wT_leg_1"), DisabledBranchStatus.BOTH_SIDES,
                             lfNetwork.getBranchById("T3wT_leg_2"), DisabledBranchStatus.BOTH_SIDES,
