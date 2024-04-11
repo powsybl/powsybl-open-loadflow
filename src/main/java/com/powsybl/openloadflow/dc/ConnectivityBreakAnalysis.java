@@ -226,7 +226,7 @@ public final class ConnectivityBreakAnalysis {
 
     }
 
-    public static ConnectivityBreakAnalysisResults runConnectivityBreakAnalysis(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies) {
+    public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies) {
         // index contingency elements by branch id
         Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), contingencies);
 

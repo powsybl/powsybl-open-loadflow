@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ObjDoubleConsumer;
-import java.util.stream.Collectors;
 
 /**
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
@@ -35,44 +34,6 @@ public class WoodburyEngine {
 
     public WoodburyEngine() {
         this.woodburyEngineResult = new WoodburyEngineResult();
-    }
-
-    public static final class PhaseTapChangerContingenciesIndexing {
-
-        private final List<PropagatedContingency> contingenciesWithoutTransformers = new ArrayList<>();
-        private final Map<Set<LfBranch>, Collection<PropagatedContingency>> contingenciesIndexedByPhaseTapChangers = new LinkedHashMap<>();
-
-        public PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies,
-                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                    Collection<String> elementIdsToSkip) {
-            for (PropagatedContingency contingency : contingencies) {
-                Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().keySet().stream()
-                        .filter(element -> !elementIdsToSkip.contains(element))
-                        .map(contingencyElementByBranch::get)
-                        .map(ComputedContingencyElement::getLfBranch)
-                        .filter(LfBranch::hasPhaseControllerCapability)
-                        .collect(Collectors.toSet());
-                if (lostTransformers.isEmpty()) {
-                    contingenciesWithoutTransformers.add(contingency);
-                } else {
-                    contingenciesIndexedByPhaseTapChangers.computeIfAbsent(lostTransformers, key -> new ArrayList<>()).add(contingency);
-                }
-            }
-        }
-
-        public Collection<PropagatedContingency> getContingenciesWithoutPhaseTapChangerLoss() {
-            return contingenciesWithoutTransformers;
-        }
-
-        public Map<Set<LfBranch>, Collection<PropagatedContingency>> getContingenciesIndexedByPhaseTapChangers() {
-            return contingenciesIndexedByPhaseTapChangers;
-        }
-    }
-
-    private static double calculatePower(DcLoadFlowContext loadFlowContext, LfBranch lfBranch) {
-        PiModel piModel = lfBranch.getPiModel();
-        DcEquationSystemCreationParameters creationParameters = loadFlowContext.getParameters().getEquationSystemCreationParameters();
-        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
     /**
@@ -116,18 +77,10 @@ public class WoodburyEngine {
         }
     }
 
-    public static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
-        // otherwise, defining the rhs matrix will result in integer overflow
-        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
-        int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
-        if (contingencyElements.size() > maxContingencyElements) {
-            throw new PowsyblException("Too many contingency elements " + contingencyElements.size()
-                    + ", maximum is " + maxContingencyElements + " for a system with " + equationCount + " equations");
-        }
-
-        DenseMatrix rhs = new DenseMatrix(equationCount, contingencyElements.size());
-        fillRhsContingency(lfNetwork, equationSystem, contingencyElements, rhs);
-        return rhs;
+    private static double calculatePower(DcLoadFlowContext loadFlowContext, LfBranch lfBranch) {
+        PiModel piModel = lfBranch.getPiModel();
+        DcEquationSystemCreationParameters creationParameters = loadFlowContext.getParameters().getEquationSystemCreationParameters();
+        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
     /**
@@ -155,6 +108,20 @@ public class WoodburyEngine {
                 rhs.set(p2.getColumn(), element.getContingencyIndex(), -1);
             }
         }
+    }
+
+    public static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
+        // otherwise, defining the rhs matrix will result in integer overflow
+        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
+        if (contingencyElements.size() > maxContingencyElements) {
+            throw new PowsyblException("Too many contingency elements " + contingencyElements.size()
+                    + ", maximum is " + maxContingencyElements + " for a system with " + equationCount + " equations");
+        }
+
+        DenseMatrix rhs = new DenseMatrix(equationCount, contingencyElements.size());
+        fillRhsContingency(lfNetwork, equationSystem, contingencyElements, rhs);
+        return rhs;
     }
 
     // TODO : remove from this class ?

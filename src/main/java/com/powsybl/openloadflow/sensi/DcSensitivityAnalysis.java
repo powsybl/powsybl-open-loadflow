@@ -45,6 +45,38 @@ import static com.powsybl.openloadflow.network.util.ParticipatingElement.normali
 public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariableType, DcEquationType> {
     private static final double FUNCTION_REFERENCE_ZER0_THRESHOLD = 1e-13;
 
+    private static final class PhaseTapChangerContingenciesIndexing {
+
+        private final List<PropagatedContingency> contingenciesWithoutTransformers = new ArrayList<>();
+        private final Map<Set<LfBranch>, Collection<PropagatedContingency>> contingenciesIndexedByPhaseTapChangers = new LinkedHashMap<>();
+
+        private PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies,
+                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                    Collection<String> elementIdsToSkip) {
+            for (PropagatedContingency contingency : contingencies) {
+                Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().keySet().stream()
+                        .filter(element -> !elementIdsToSkip.contains(element))
+                        .map(contingencyElementByBranch::get)
+                        .map(ComputedContingencyElement::getLfBranch)
+                        .filter(LfBranch::hasPhaseControllerCapability)
+                        .collect(Collectors.toSet());
+                if (lostTransformers.isEmpty()) {
+                    contingenciesWithoutTransformers.add(contingency);
+                } else {
+                    contingenciesIndexedByPhaseTapChangers.computeIfAbsent(lostTransformers, key -> new ArrayList<>()).add(contingency);
+                }
+            }
+        }
+
+        private Collection<PropagatedContingency> getContingenciesWithoutPhaseTapChangerLoss() {
+            return contingenciesWithoutTransformers;
+        }
+
+        private Map<Set<LfBranch>, Collection<PropagatedContingency>> getContingenciesIndexedByPhaseTapChangers() {
+            return contingenciesIndexedByPhaseTapChangers;
+        }
+    }
+
     public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
         super(matrixFactory, connectivityFactory, parameters);
     }
@@ -351,7 +383,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                        Set<String> elementsToReconnect, SensitivityResultWriter resultWriter) {
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
 
-        WoodburyEngine.PhaseTapChangerContingenciesIndexing phaseTapChangerContingenciesIndexing = new WoodburyEngine.PhaseTapChangerContingenciesIndexing(contingencies, contingencyElementByBranch, elementsToReconnect);
+        PhaseTapChangerContingenciesIndexing phaseTapChangerContingenciesIndexing = new PhaseTapChangerContingenciesIndexing(contingencies, contingencyElementByBranch, elementsToReconnect);
 
         // compute rhs modifications for contingencies without loss of phase tap changer
         // first we compute the ones without loss of phase tap changers (because no need to recompute new rhs for load flows)
@@ -537,7 +569,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 double[] flowsRhs = calculatePreContingencyStates(loadFlowContext, participatingElements, new DisabledNetwork());
 
                 // compute states with +1 -1 to model the contingencies and run connectivity analysis
-                ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData = ConnectivityBreakAnalysis.runConnectivityBreakAnalysis(loadFlowContext, contingencies);
+                ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData = ConnectivityBreakAnalysis.run(loadFlowContext, contingencies);
 
                 // storage of modifications that must be applied on rhs members, due to GLSK and/or slack bus participation
                 WoodburyEngineRhsModifications woodburyEngineRhsModification = new WoodburyEngineRhsModifications();
