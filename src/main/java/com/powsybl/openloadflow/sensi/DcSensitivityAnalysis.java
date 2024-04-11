@@ -261,7 +261,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return initFactorsRhs(loadFlowContext.getEquationSystem(), factorGroups, slackParticipationByBus);
     }
 
-    private void processHvdcLinesWithDisconnection(DcLoadFlowContext loadFlowContext, Set<LfBus> disabledBuses, WoodburyEngine.ConnectivityAnalysisResult connectivityAnalysisResult) {
+    private void processHvdcLinesWithDisconnection(DcLoadFlowContext loadFlowContext, Set<LfBus> disabledBuses, ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult) {
         for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
             if (Networks.isIsolatedBusForHvdc(hvdc.getBus1(), disabledBuses) ^ Networks.isIsolatedBusForHvdc(hvdc.getBus2(), disabledBuses)) {
                 connectivityAnalysisResult.getContingencies().forEach(contingency -> {
@@ -347,7 +347,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     private void buildRhsModificationsForContingencies(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
                                                        Collection<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements, WoodburyEngineRhsModifications rhsModifications,
                                                        HashMap<PropagatedContingency, DisabledNetwork> disabledNetworksByPropagatedContingencies, Set<LfBus> disabledBuses,
-                                                       Set<LfBranch> partialDisabledBranches, Map<String, WoodburyEngine.ComputedContingencyElement> contingencyElementByBranch,
+                                                       Set<LfBranch> partialDisabledBranches, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                        Set<String> elementsToReconnect, SensitivityResultWriter resultWriter) {
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
 
@@ -387,14 +387,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    private void buildRhsModificationsForContingenciesBreakingConnectivity(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, WoodburyEngine.ConnectivityDataResult connectivityDataResult,
+    private void buildRhsModificationsForContingenciesBreakingConnectivity(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityDataResult,
                                                                            SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, List<ParticipatingElement> participatingElements,
                                                                            WoodburyEngineRhsModifications rhsModifications, HashMap<PropagatedContingency, DisabledNetwork> disabledNetworksByPropagatedContingencies,
                                                                            SensitivityResultWriter resultWriter) {
         DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
 
         // Loop on the different connectivity schemas among the post-contingency states
-        for (WoodburyEngine.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityDataResult.connectivityAnalysisResults()) {
+        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityDataResult.connectivityAnalysisResults()) {
             Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
             // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
@@ -537,7 +537,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 double[] flowsRhs = calculatePreContingencyStates(loadFlowContext, participatingElements, new DisabledNetwork());
 
                 // compute states with +1 -1 to model the contingencies and run connectivity analysis
-                WoodburyEngine.ConnectivityDataResult connectivityData = engine.runConnectivityData(loadFlowContext, contingencies);
+                ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData = ConnectivityBreakAnalysis.runConnectivityBreakAnalysis(loadFlowContext, contingencies);
 
                 // storage of modifications that must be applied on rhs members, due to GLSK and/or slack bus participation
                 WoodburyEngineRhsModifications woodburyEngineRhsModification = new WoodburyEngineRhsModifications();

@@ -19,9 +19,9 @@ import java.util.Map;
 public class WoodburyEngineRhsModifications {
 
     private final HashMap<PropagatedContingency, double[]> newFlowRhsByPropagatedContingency;
-    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, double[]> newFlowRhsForAConnectivity;
+    private final HashMap<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, double[]> newFlowRhsForAConnectivity;
     private final HashMap<PropagatedContingency, DenseMatrix> newInjectionRhsByPropagatedContingency;
-    private final HashMap<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> newInjectionRhsForAConnectivity;
+    private final HashMap<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, DenseMatrix> newInjectionRhsForAConnectivity;
 
     public WoodburyEngineRhsModifications() {
         this.newFlowRhsByPropagatedContingency = new HashMap<>();
@@ -34,7 +34,7 @@ public class WoodburyEngineRhsModifications {
         return newFlowRhsByPropagatedContingency;
     }
 
-    public Map<WoodburyEngine.ConnectivityAnalysisResult, double[]> getNewFlowRhsForAConnectivity() {
+    public Map<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, double[]> getNewFlowRhsForAConnectivity() {
         return newFlowRhsForAConnectivity;
     }
 
@@ -42,7 +42,7 @@ public class WoodburyEngineRhsModifications {
         return newInjectionRhsByPropagatedContingency;
     }
 
-    public Map<WoodburyEngine.ConnectivityAnalysisResult, DenseMatrix> getNewInjectionRhsForAConnectivity() {
+    public Map<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, DenseMatrix> getNewInjectionRhsForAConnectivity() {
         return newInjectionRhsForAConnectivity;
     }
 }
