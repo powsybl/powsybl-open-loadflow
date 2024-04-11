@@ -11,10 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
-import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.dc.equations.*;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import org.slf4j.Logger;
@@ -81,54 +78,6 @@ public class WoodburyEngine {
         PiModel piModel = lfBranch.getPiModel();
         DcEquationSystemCreationParameters creationParameters = loadFlowContext.getParameters().getEquationSystemCreationParameters();
         return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
-    }
-
-    /**
-     * Fills the right hand side with +1/-1 to model a branch contingency.
-     */
-    private static void fillRhsContingency(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                           Collection<ComputedContingencyElement> contingencyElements, Matrix rhs) {
-        for (ComputedContingencyElement element : contingencyElements) {
-            LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
-            if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
-                continue;
-            }
-            LfBus bus1 = lfBranch.getBus1();
-            LfBus bus2 = lfBranch.getBus2();
-            if (bus1.isSlack()) {
-                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getContingencyIndex(), -1);
-            } else if (bus2.isSlack()) {
-                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getContingencyIndex(), 1);
-            } else {
-                Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p1.getColumn(), element.getContingencyIndex(), 1);
-                rhs.set(p2.getColumn(), element.getContingencyIndex(), -1);
-            }
-        }
-    }
-
-    public static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
-        // otherwise, defining the rhs matrix will result in integer overflow
-        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
-        int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
-        if (contingencyElements.size() > maxContingencyElements) {
-            throw new PowsyblException("Too many contingency elements " + contingencyElements.size()
-                    + ", maximum is " + maxContingencyElements + " for a system with " + equationCount + " equations");
-        }
-
-        DenseMatrix rhs = new DenseMatrix(equationCount, contingencyElements.size());
-        fillRhsContingency(lfNetwork, equationSystem, contingencyElements, rhs);
-        return rhs;
-    }
-
-    // TODO : remove from this class ?
-    static DenseMatrix calculateContingenciesStates(DcLoadFlowContext loadFlowContext, Map<String, ComputedContingencyElement> contingencyElementByBranch) {
-        DenseMatrix contingenciesStates = initContingencyRhs(loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), contingencyElementByBranch.values()); // rhs with +1 -1 on contingency elements
-        loadFlowContext.getJacobianMatrix().solveTransposed(contingenciesStates);
-        return contingenciesStates;
     }
 
     private void processContingenciesBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates,

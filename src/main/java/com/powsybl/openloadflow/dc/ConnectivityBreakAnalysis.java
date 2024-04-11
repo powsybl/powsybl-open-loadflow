@@ -7,12 +7,15 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.ElementType;
@@ -25,8 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.powsybl.openloadflow.dc.WoodburyEngine.calculateContingenciesStates;
 
 public final class ConnectivityBreakAnalysis {
 
@@ -73,6 +74,13 @@ public final class ConnectivityBreakAnalysis {
         public Set<LfBranch> getPartialDisabledBranches() {
             return partialDisabledBranches;
         }
+    }
+
+    public record ConnectivityBreakAnalysisResults(List<PropagatedContingency> nonBreakingConnectivityContingencies,
+                                                   List<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> connectivityAnalysisResults,
+                                                   DenseMatrix contingenciesStates,
+                                                   Map<String, ComputedContingencyElement> contingencyElementByBranch) {
+
     }
 
     private ConnectivityBreakAnalysis() {
@@ -219,11 +227,51 @@ public final class ConnectivityBreakAnalysis {
         return elementsToReconnect;
     }
 
-    public record ConnectivityBreakAnalysisResults(List<PropagatedContingency> nonBreakingConnectivityContingencies,
-                                                   List<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> connectivityAnalysisResults,
-                                                   DenseMatrix contingenciesStates,
-                                                   Map<String, ComputedContingencyElement> contingencyElementByBranch) {
+    /**
+     * Fills the right hand side with +1/-1 to model a branch contingency.
+     */
+    private static void fillRhsContingency(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                           Collection<ComputedContingencyElement> contingencyElements, Matrix rhs) {
+        for (ComputedContingencyElement element : contingencyElements) {
+            LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
+            if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
+                continue;
+            }
+            LfBus bus1 = lfBranch.getBus1();
+            LfBus bus2 = lfBranch.getBus2();
+            if (bus1.isSlack()) {
+                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
+                rhs.set(p.getColumn(), element.getContingencyIndex(), -1);
+            } else if (bus2.isSlack()) {
+                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
+                rhs.set(p.getColumn(), element.getContingencyIndex(), 1);
+            } else {
+                Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
+                Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
+                rhs.set(p1.getColumn(), element.getContingencyIndex(), 1);
+                rhs.set(p2.getColumn(), element.getContingencyIndex(), -1);
+            }
+        }
+    }
 
+    public static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
+        // otherwise, defining the rhs matrix will result in integer overflow
+        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
+        if (contingencyElements.size() > maxContingencyElements) {
+            throw new PowsyblException("Too many contingency elements " + contingencyElements.size()
+                    + ", maximum is " + maxContingencyElements + " for a system with " + equationCount + " equations");
+        }
+
+        DenseMatrix rhs = new DenseMatrix(equationCount, contingencyElements.size());
+        fillRhsContingency(lfNetwork, equationSystem, contingencyElements, rhs);
+        return rhs;
+    }
+
+    static DenseMatrix calculateContingenciesStates(DcLoadFlowContext loadFlowContext, Map<String, ComputedContingencyElement> contingencyElementByBranch) {
+        DenseMatrix contingenciesStates = initContingencyRhs(loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), contingencyElementByBranch.values()); // rhs with +1 -1 on contingency elements
+        loadFlowContext.getJacobianMatrix().solveTransposed(contingenciesStates);
+        return contingenciesStates;
     }
 
     public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies) {
