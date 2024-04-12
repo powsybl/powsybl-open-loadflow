@@ -91,6 +91,30 @@ public class LimitReductionManager {
         boolean permanent = false;
         for (LimitReduction limitReduction : limitReductions) {
             if (isSupported(limitReduction)) {
+                // Compute the duration data
+                acceptableDurationRange = null;
+                permanent = false;
+                if (limitReduction.getDurationCriteria().isEmpty()) {
+                    permanent = true;
+                } else { // size 1 or 2 only (when 2, they are not of the same type).
+                    for (LimitDurationCriterion limitDurationCriterion : limitReduction.getDurationCriteria()) {
+                        switch (limitDurationCriterion.getType()) {
+                            case PERMANENT -> permanent = true;
+                            case TEMPORARY -> {
+                                if (limitDurationCriterion instanceof AllTemporaryDurationCriterion) {
+                                    acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
+                                } else if (limitDurationCriterion instanceof EqualityTemporaryDurationCriterion equalityTemporaryDurationCriterion) {
+                                    acceptableDurationRange = Range.of(equalityTemporaryDurationCriterion.getDurationEqualityValue(),
+                                            equalityTemporaryDurationCriterion.getDurationEqualityValue());
+                                } else { // intervalTemporaryDurationCriterion
+                                    IntervalTemporaryDurationCriterion intervalTemporaryDurationCriterion = (IntervalTemporaryDurationCriterion) limitDurationCriterion;
+                                    acceptableDurationRange = intervalTemporaryDurationCriterion.asRange();
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Collection<Range<Double>> nominalVoltageRanges = limitReduction.getNetworkElementCriteria().isEmpty() ?
                         List.of(DoubleRange.of(0, Double.MAX_VALUE)) :
                         limitReduction.getNetworkElementCriteria().stream().map(IdentifiableCriterion.class::cast)
@@ -100,27 +124,6 @@ public class LimitReductionManager {
                                 .collect(Collectors.toSet());
 
                 for (Range<Double> nominalVoltageRange : nominalVoltageRanges) {
-                    acceptableDurationRange = null;
-                    if (limitReduction.getDurationCriteria().isEmpty()) {
-                        permanent = true;
-                    } else { // size 1 or 2 only (when 2, they are not of the same type).
-                        for (LimitDurationCriterion limitDurationCriterion : limitReduction.getDurationCriteria()) {
-                            switch (limitDurationCriterion.getType()) {
-                                case PERMANENT -> permanent = true;
-                                case TEMPORARY -> {
-                                    if (limitDurationCriterion instanceof AllTemporaryDurationCriterion) {
-                                        acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
-                                    } else if (limitDurationCriterion instanceof EqualityTemporaryDurationCriterion equalityTemporaryDurationCriterion) {
-                                        acceptableDurationRange = Range.of(equalityTemporaryDurationCriterion.getDurationEqualityValue(),
-                                                equalityTemporaryDurationCriterion.getDurationEqualityValue());
-                                    } else { // intervalTemporaryDurationCriterion
-                                        IntervalTemporaryDurationCriterion intervalTemporaryDurationCriterion = (IntervalTemporaryDurationCriterion) limitDurationCriterion;
-                                        acceptableDurationRange = intervalTemporaryDurationCriterion.asRange();
-                                    }
-                                }
-                            }
-                        }
-                    }
                     limitReductionManager.addTerminalLimitReduction(new TerminalLimitReduction(nominalVoltageRange, permanent, acceptableDurationRange, limitReduction.getValue()));
                 }
             }
