@@ -116,7 +116,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                SensitivityResultWriter resultWriter) {
         Derivable<DcVariableType> p1 = factor.getFunctionEquationTerm();
         for (PropagatedContingency contingency : contingencies) {
-            WoodburyEngineResult.WoodburyStates postContingencyStates = woodburyResult.getPostContingencyWoodburyStates(contingency);
+            WoodburyEngine.WoodburyStates postContingencyStates = woodburyResult.getPostContingencyWoodburyStates(contingency);
             DisabledNetwork disabledNetwork = disabledNetworksByPropagatedContingencies.get(contingency); // TODO : throw if not found ?
 
             Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledNetwork, contingency);
@@ -168,8 +168,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     /**
      * Set the function reference of factors with calculated pre-contingency or post-contingency states.
      */
-    private void setFunctionReference(List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, double[] states) {
-        StateVector sv = new StateVector(states);
+    private void setFunctionReference(List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, DenseMatrix states) {
+        double[] statesArray = new double[states.getRowCount()];
+        for (int i = 0; i < states.getRowCount(); i++) {
+            statesArray[i] = states.get(i, 0);
+        }
+        StateVector sv = new StateVector(statesArray);
         for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
             factor.setFunctionReference(factor.getFunctionEquationTerm().eval(sv)); // pass explicitly the previously calculated state vector
         }

@@ -11,44 +11,33 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
 public class WoodburyEngineResult {
 
-    public record WoodburyStates(DenseMatrix flowStates, DenseMatrix injectionStates) {
-    }
+    private final DenseMatrix preContingencyFlowStates;
+    private final DenseMatrix preContingencyInjectionStates;
+    private final HashMap<PropagatedContingency, WoodburyEngine.WoodburyStates> postContingenciesWoodburyStates;
 
-    private double[] preContingencyFlowStates;
-    private DenseMatrix preContingencyInjectionStates;
-    private final HashMap<PropagatedContingency, WoodburyStates> postContingenciesWoodburyStates;
-
-    public WoodburyEngineResult() {
-        postContingenciesWoodburyStates = new HashMap<>();
-    }
-
-    public double[] getPreContingencyFlowStates() {
-        return preContingencyFlowStates;
-    }
-
-    public void setPreContingencyFlowStates(double[] preContingencyFlowStates) {
+    public WoodburyEngineResult(DenseMatrix preContingencyFlowStates, DenseMatrix preContingencyInjectionStates,
+                                Map<PropagatedContingency, WoodburyEngine.WoodburyStates> postContingenciesWoodburyStates) {
         this.preContingencyFlowStates = preContingencyFlowStates;
+        this.preContingencyInjectionStates = preContingencyInjectionStates;
+        this.postContingenciesWoodburyStates = new HashMap<>(postContingenciesWoodburyStates);
+    }
+
+    public DenseMatrix getPreContingencyFlowStates() {
+        return preContingencyFlowStates;
     }
 
     public DenseMatrix getPreContingencyInjectionStates() {
         return preContingencyInjectionStates;
     }
 
-    public void setPreContingencyInjectionStates(DenseMatrix preContingencyInjectionStates) {
-        this.preContingencyInjectionStates = preContingencyInjectionStates;
-    }
-
-    public void addPostContingencyWoodburyStates(PropagatedContingency contingency, WoodburyStates postContingencyWoodburyStates) {
-        postContingenciesWoodburyStates.put(contingency, postContingencyWoodburyStates);
-    }
-
-    public WoodburyStates getPostContingencyWoodburyStates(PropagatedContingency contingency) {
+    public WoodburyEngine.WoodburyStates getPostContingencyWoodburyStates(PropagatedContingency contingency) {
         return postContingenciesWoodburyStates.get(contingency);
     }
 }
