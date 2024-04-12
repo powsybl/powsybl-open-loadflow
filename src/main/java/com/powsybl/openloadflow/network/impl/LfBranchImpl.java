@@ -270,7 +270,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         if (limits.getLimitType() != LimitType.CURRENT) {
             return Collections.emptyList();
         }
-        if (limitReductionManager == null) {
+        if (limitReductionManager == null || limitReductionManager.isEmpty()) {
             return Collections.emptyList();
         }
         List<Double> limitReductions = new ArrayList<>(limits.getTemporaryLimits().size() + 1);

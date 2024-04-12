@@ -64,6 +64,10 @@ public class LimitReductionManager {
     public LimitReductionManager() {
     }
 
+    public boolean isEmpty() {
+        return terminalLimitReductions.isEmpty();
+    }
+
     public List<TerminalLimitReduction> getTerminalLimitReductions() {
         // to be sorted by acceptable duration
         // return terminalLimitReductions.stream().sorted().toList();
@@ -76,7 +80,7 @@ public class LimitReductionManager {
 
     public static LimitReductionManager create(List<LimitReduction> limitReductions) {
         LimitReductionManager limitReductionManager = new LimitReductionManager();
-        Range<Double> nominalVoltageRange = Range.of(0.0, 1000.0);
+        Range<Double> nominalVoltageRange;
         Range<Integer> acceptableDurationRange = null; // nothing asked
         boolean permanent = false;
         for (LimitReduction limitReduction : limitReductions) {
@@ -94,7 +98,6 @@ public class LimitReductionManager {
                                 switch (limitDurationCriterion.getType()) {
                                     case PERMANENT -> permanent = true;
                                     case TEMPORARY -> {
-                                        acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
                                         if (limitDurationCriterion instanceof AllTemporaryDurationCriterion) {
                                             acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
                                         } else if (limitDurationCriterion instanceof EqualityTemporaryDurationCriterion) {

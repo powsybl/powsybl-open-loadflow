@@ -365,7 +365,7 @@ public class LfSwitch extends AbstractLfBranch {
 
     @Override
     public List<Double> getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
-        return Collections.emptyList(); // TODO
+        return Collections.emptyList();
     }
 
     @Override
