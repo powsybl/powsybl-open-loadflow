@@ -88,14 +88,16 @@ public class LimitReductionManager {
     public static LimitReductionManager create(List<LimitReduction> limitReductions) {
         LimitReductionManager limitReductionManager = new LimitReductionManager();
         Range<Integer> acceptableDurationRange;
-        boolean permanent = false;
+        boolean permanent;
         for (LimitReduction limitReduction : limitReductions) {
             if (isSupported(limitReduction)) {
                 // Compute the duration data
-                acceptableDurationRange = null;
                 permanent = false;
+                acceptableDurationRange = null;
                 if (limitReduction.getDurationCriteria().isEmpty()) {
+                    // When no duration criterion is present, the reduction applies to permanent and temporary limits
                     permanent = true;
+                    acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
                 } else { // size 1 or 2 only (when 2, they are not of the same type).
                     for (LimitDurationCriterion limitDurationCriterion : limitReduction.getDurationCriteria()) {
                         switch (limitDurationCriterion.getType()) {
@@ -114,7 +116,8 @@ public class LimitReductionManager {
                         }
                     }
                 }
-
+                // Compute the nominal voltage ranges. When no network element criteria is present,
+                // the reduction applies to all network elements.
                 Collection<Range<Double>> nominalVoltageRanges = limitReduction.getNetworkElementCriteria().isEmpty() ?
                         List.of(DoubleRange.of(0, Double.MAX_VALUE)) :
                         limitReduction.getNetworkElementCriteria().stream().map(IdentifiableCriterion.class::cast)
