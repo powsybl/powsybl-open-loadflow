@@ -18,8 +18,8 @@ import java.util.Map;
  */
 public class WoodburyEngineRhsModifications {
 
-    private final HashMap<PropagatedContingency, double[]> newFlowRhsByPropagatedContingency;
-    private final HashMap<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, double[]> newFlowRhsForAConnectivity;
+    private final HashMap<PropagatedContingency, DenseMatrix> newFlowRhsByPropagatedContingency;
+    private final HashMap<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, DenseMatrix> newFlowRhsForAConnectivity;
     private final HashMap<PropagatedContingency, DenseMatrix> newInjectionRhsByPropagatedContingency;
     private final HashMap<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, DenseMatrix> newInjectionRhsForAConnectivity;
 
@@ -30,11 +30,11 @@ public class WoodburyEngineRhsModifications {
         this.newInjectionRhsForAConnectivity = new HashMap<>();
     }
 
-    public Map<PropagatedContingency, double[]> getNewFlowRhsByPropagatedContingency() {
+    public Map<PropagatedContingency, DenseMatrix> getNewFlowRhsByPropagatedContingency() {
         return newFlowRhsByPropagatedContingency;
     }
 
-    public Map<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, double[]> getNewFlowRhsForAConnectivity() {
+    public Map<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, DenseMatrix> getNewFlowRhsForAConnectivity() {
         return newFlowRhsForAConnectivity;
     }
 

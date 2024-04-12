@@ -7,13 +7,14 @@
  */
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
+import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,26 +80,26 @@ public class WoodburyEngine {
     }
 
     private Map<PropagatedContingency, WoodburyStates> processContingenciesBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates,
-                                                                                                                     WoodburyEngineRhsModifications rhsModification, DenseMatrix contingenciesStates, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                                                                                     ReportNode reporter) {
+                                                                                                WoodburyEngineRhsModifications rhsModification, DenseMatrix contingenciesStates, Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                                                                ReportNode reporter) {
 
         // null and unused if slack bus is not distributed
         DenseMatrix newPreContingencyStatesForThisConnectivity = preContingencyStates;
         if (rhsModification.getNewInjectionRhsForAConnectivity().containsKey(connectivityAnalysisResult)) {
             newPreContingencyStatesForThisConnectivity = rhsModification.getNewInjectionRhsForAConnectivity().get(connectivityAnalysisResult);
-            loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStatesForThisConnectivity);
+            solveRhs(loadFlowContext, newPreContingencyStatesForThisConnectivity, reporter);
         }
 
-        double[] newFlowRhsForThisConnectivity = rhsModification.getNewFlowRhsForAConnectivity().get(connectivityAnalysisResult);
-        DenseMatrix newFlowStatesForThisConnectivity = runDcLoadFlowOnTargetVector(loadFlowContext, newFlowRhsForThisConnectivity, reporter);
+        DenseMatrix newFlowStatesForThisConnectivity = rhsModification.getNewFlowRhsForAConnectivity().get(connectivityAnalysisResult);
+        solveRhs(loadFlowContext, newFlowStatesForThisConnectivity, reporter);
 
         return calculateStateValuesForContingencyList(loadFlowContext, newFlowStatesForThisConnectivity, newPreContingencyStatesForThisConnectivity, rhsModification, contingenciesStates,
                 connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, connectivityAnalysisResult.getElementsToReconnect(), reporter);
     }
 
     private Map<PropagatedContingency, WoodburyStates> calculateStateValuesForContingencyList(DcLoadFlowContext loadFlowContext, DenseMatrix flowStates, DenseMatrix preContingencyStates, WoodburyEngineRhsModifications rhsModifications,
-                                                        DenseMatrix contingenciesStates, Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                        Set<String> elementsToReconnect, ReportNode reporter) {
+                                                                                              DenseMatrix contingenciesStates, Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                                                              Set<String> elementsToReconnect, ReportNode reporter) {
 
         HashMap<PropagatedContingency, WoodburyStates> postContingencyWoodburyStates = new HashMap<>();
         for (PropagatedContingency contingency : contingencies) {
@@ -109,17 +110,18 @@ public class WoodburyEngine {
 
             DenseMatrix newFlowStates = flowStates;
             if (rhsModifications.getNewFlowRhsByPropagatedContingency().containsKey(contingency)) {
-                double[] newFlowRhs = rhsModifications.getNewFlowRhsByPropagatedContingency().get(contingency);
-                newFlowStates = runDcLoadFlowOnTargetVector(loadFlowContext, newFlowRhs, reporter);
+                newFlowStates = rhsModifications.getNewFlowRhsByPropagatedContingency().get(contingency);
+                solveRhs(loadFlowContext, newFlowStates, reporter);
             }
 
             DenseMatrix newPreContingencyStates = preContingencyStates;
             if (rhsModifications.getNewInjectionRhsByPropagatedContingency().containsKey(contingency)) {
                 newPreContingencyStates = rhsModifications.getNewInjectionRhsByPropagatedContingency().get(contingency);
-                loadFlowContext.getJacobianMatrix().solveTransposed(newPreContingencyStates);
+                solveRhs(loadFlowContext, newPreContingencyStates, reporter);
             }
 
-            WoodburyStates woodburyStates = calculateStateValuesForAContingency(loadFlowContext, newFlowStates, newPreContingencyStates, contingenciesStates, contingencyElements);
+            WoodburyStates woodburyStates = calculateStateValuesForAContingency(loadFlowContext, newFlowStates, newPreContingencyStates,
+                    contingenciesStates, contingencyElements);
             postContingencyWoodburyStates.put(contingency, woodburyStates);
         }
         return postContingencyWoodburyStates;
@@ -157,21 +159,22 @@ public class WoodburyEngine {
         return new WoodburyStates(postContingencyFlowStates, postContingencyInjectionStates);
     }
 
-    private DenseMatrix runDcLoadFlowOnTargetVector(DcLoadFlowContext loadFlowContext, double[] targetVectorArray, ReportNode reporter) {
-        boolean succeeded = DcLoadFlowEngine.solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reporter);
-        if (!succeeded) {
-            throw new PowsyblException("DC solver failed");
+    private void solveRhs(DcLoadFlowContext loadFlowContext, DenseMatrix rhs, ReportNode reporter) {
+        try {
+            loadFlowContext.getJacobianMatrix().solveTransposed(rhs);
+        } catch (MatrixException e) {
+            Reports.reportWoodburyEngineFailure(reporter, e.getMessage());
+            LOGGER.error("Failed to solve linear system for Woodbury engine", e);
         }
-        return new DenseMatrix(targetVectorArray.length, 1, targetVectorArray);
     }
 
-    public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, double[] flowRhs, DenseMatrix injectionRhs, WoodburyEngineRhsModifications rhsModifications,
+    public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, DenseMatrix flowRhs, DenseMatrix injectionRhs, WoodburyEngineRhsModifications rhsModifications,
                                     ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityDataResult, ReportNode reporter) {
 
         // compute pre-contingency injection/flow states
-        loadFlowContext.getJacobianMatrix().solveTransposed(injectionRhs);
-
-        DenseMatrix flowStates = runDcLoadFlowOnTargetVector(loadFlowContext, flowRhs, reporter);
+        solveRhs(loadFlowContext, injectionRhs, reporter);
+        solveRhs(loadFlowContext, flowRhs, reporter);
+        WoodburyStates preContingencyStates = new WoodburyStates(flowRhs, injectionRhs);
 
         // get contingency elements indexed by branch id
         Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityDataResult.contingencyElementByBranch();
@@ -182,7 +185,7 @@ public class WoodburyEngine {
         LOGGER.info("Processing contingencies with no connectivity break");
 
         // calculate state values for contingencies with no connectivity break
-        Map<PropagatedContingency, WoodburyStates> postContingencyStates = calculateStateValuesForContingencyList(loadFlowContext, flowStates, injectionRhs,
+        Map<PropagatedContingency, WoodburyStates> postContingencyStates = calculateStateValuesForContingencyList(loadFlowContext, flowRhs, injectionRhs,
                 rhsModifications, contingenciesStates, connectivityDataResult.nonBreakingConnectivityContingencies(), contingencyElementByBranch, Collections.emptySet(), reporter);
 
         LOGGER.info("Processing contingencies with connectivity break");
@@ -194,6 +197,6 @@ public class WoodburyEngine {
             postContingencyStates.putAll(postContingencyBreakingConnectivityStates);
         }
 
-        return new WoodburyEngineResult(flowStates, injectionRhs, postContingencyStates);
+        return new WoodburyEngineResult(preContingencyStates, postContingencyStates);
     }
 }

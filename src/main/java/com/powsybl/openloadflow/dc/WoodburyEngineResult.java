@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 
 import java.util.HashMap;
@@ -18,26 +17,20 @@ import java.util.Map;
  */
 public class WoodburyEngineResult {
 
-    private final DenseMatrix preContingencyFlowStates;
-    private final DenseMatrix preContingencyInjectionStates;
-    private final HashMap<PropagatedContingency, WoodburyEngine.WoodburyStates> postContingenciesWoodburyStates;
+    private final WoodburyEngine.WoodburyStates preContingencyStates;
+    private final HashMap<PropagatedContingency, WoodburyEngine.WoodburyStates> postContingencyStates;
 
-    public WoodburyEngineResult(DenseMatrix preContingencyFlowStates, DenseMatrix preContingencyInjectionStates,
-                                Map<PropagatedContingency, WoodburyEngine.WoodburyStates> postContingenciesWoodburyStates) {
-        this.preContingencyFlowStates = preContingencyFlowStates;
-        this.preContingencyInjectionStates = preContingencyInjectionStates;
-        this.postContingenciesWoodburyStates = new HashMap<>(postContingenciesWoodburyStates);
+    public WoodburyEngineResult(WoodburyEngine.WoodburyStates preContingencyStates,
+                                Map<PropagatedContingency, WoodburyEngine.WoodburyStates> postContingencyStates) {
+        this.preContingencyStates = preContingencyStates;
+        this.postContingencyStates = new HashMap<>(postContingencyStates);
     }
 
-    public DenseMatrix getPreContingencyFlowStates() {
-        return preContingencyFlowStates;
-    }
-
-    public DenseMatrix getPreContingencyInjectionStates() {
-        return preContingencyInjectionStates;
+    public WoodburyEngine.WoodburyStates getPreContingencyStates() {
+        return preContingencyStates;
     }
 
     public WoodburyEngine.WoodburyStates getPostContingencyWoodburyStates(PropagatedContingency contingency) {
-        return postContingenciesWoodburyStates.get(contingency);
+        return postContingencyStates.get(contingency);
     }
 }
