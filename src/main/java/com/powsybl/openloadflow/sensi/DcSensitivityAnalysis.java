@@ -118,7 +118,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         Derivable<DcVariableType> p1 = factor.getFunctionEquationTerm();
         for (PropagatedContingency contingency : contingencies) {
             WoodburyEngine.WoodburyStates postContingencyStates = woodburyResult.getPostContingencyWoodburyStates(contingency);
-            DisabledNetwork disabledNetwork = disabledNetworksByPropagatedContingencies.get(contingency); // TODO : throw if not found ?
+            DisabledNetwork disabledNetwork = disabledNetworksByPropagatedContingencies.get(contingency);
 
             Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledNetwork, contingency);
             Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
@@ -210,8 +210,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     /**
-     * Calculate the states for a fictitious pre-contingency situation.
-     * The interesting disabled branches are only phase shifters.
+     * Compute flow rhs taking into account slack distribution.
      */
     private static DenseMatrix getPreContingencyFlowRhs(DcLoadFlowContext loadFlowContext,
                                                         List<ParticipatingElement> participatingElements,
@@ -279,7 +278,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     /**
-     * Compute all the injection vectors taking into account slack distribution.
+     * Compute all the injection rhs taking into account slack distribution.
      */
     static DenseMatrix getPreContingencyInjectionRhs(DcLoadFlowContext loadFlowContext,
                                                      SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
