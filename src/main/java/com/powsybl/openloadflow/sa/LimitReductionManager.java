@@ -93,15 +93,14 @@ public class LimitReductionManager {
                         nominalVoltageRange = identifiableCriterion.getNominalVoltageCriterion().getVoltageInterval().asRange();
                         if (limitReduction.getDurationCriteria().isEmpty()) {
                             permanent = true;
-                        } else { // size 1 or 2 only.
+                        } else { // size 1 or 2 only (when 2, they are not of the same type).
                             for (LimitDurationCriterion limitDurationCriterion : limitReduction.getDurationCriteria()) {
                                 switch (limitDurationCriterion.getType()) {
                                     case PERMANENT -> permanent = true;
                                     case TEMPORARY -> {
                                         if (limitDurationCriterion instanceof AllTemporaryDurationCriterion) {
                                             acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
-                                        } else if (limitDurationCriterion instanceof EqualityTemporaryDurationCriterion) {
-                                            EqualityTemporaryDurationCriterion equalityTemporaryDurationCriterion = (EqualityTemporaryDurationCriterion) limitDurationCriterion;
+                                        } else if (limitDurationCriterion instanceof EqualityTemporaryDurationCriterion equalityTemporaryDurationCriterion) {
                                             acceptableDurationRange = Range.of(equalityTemporaryDurationCriterion.getDurationEqualityValue(),
                                                     equalityTemporaryDurationCriterion.getDurationEqualityValue());
                                         } else { // intervalTemporaryDurationCriterion
@@ -143,6 +142,11 @@ public class LimitReductionManager {
         }
         if (limitReduction.getDurationCriteria().size() > 2) {
             LOGGER.warn("More than two duration criteria provided.");
+            return false;
+        }
+        if (limitReduction.getDurationCriteria().size() == 2
+                && limitReduction.getDurationCriteria().get(0).getType() == limitReduction.getDurationCriteria().get(1).getType()) {
+            LOGGER.warn("When two duration criteria are provided, they cannot be of the same type");
             return false;
         }
         return true;
