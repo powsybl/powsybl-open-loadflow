@@ -6,11 +6,14 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class GeneratorTargetVoltageInconsistencyTest {
 
     @Test
-    void localTest() {
+    void localTest() throws IOException {
         Network network = Network.create("generatorLocalInconsistentTargetVoltage", "code");
         Substation s = network.newSubstation()
                 .setId("s")
@@ -84,7 +87,10 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setX(1)
                 .add();
 
-        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector());
+        ReporterModel reporter = new ReporterModel("testReport", "Test report");
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         assertEquals(1, lfNetworks.size());
 
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -94,6 +100,8 @@ class GeneratorTargetVoltageInconsistencyTest {
         Optional<GeneratorVoltageControl> vc = controlledBus.getGeneratorVoltageControl();
         assertTrue(vc.isPresent());
         assertEquals(23, vc.get().getTargetValue() * controlledBus.getNominalV());
+
+        LoadFlowAssert.assertReportEquals("/notUniqueTargetVControllerBusReport.txt", reporter);
     }
 
     @Test

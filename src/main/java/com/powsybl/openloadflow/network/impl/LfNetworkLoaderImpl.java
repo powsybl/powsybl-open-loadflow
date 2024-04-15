@@ -78,7 +78,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createVoltageControls(List<LfBus> lfBuses, LfNetworkParameters parameters) {
+    private static void createVoltageControls(List<LfBus> lfBuses, LfNetworkParameters parameters, Reporter reporter) {
         List<GeneratorVoltageControl> voltageControls = new ArrayList<>();
 
         // set controller -> controlled link
@@ -118,7 +118,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
                     if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus)) {
                         // check that target voltage is the same for the generators of current controller bus which have voltage control on
-                        checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+                        checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus, reporter);
                     }
                 });
 
@@ -204,12 +204,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return true;
     }
 
-    private static void checkUniqueTargetVControllerBus(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus) {
+    private static void checkUniqueTargetVControllerBus(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus, Reporter reporter) {
         double targetV = lfGenerator.getTargetV();
         if (FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
                 generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
+            Reports.reportNotUniqueTargetVControllerBus(reporter, generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
         }
     }
 
@@ -771,7 +772,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
-            createVoltageControls(lfBuses, parameters);
+            createVoltageControls(lfBuses, parameters, reporter);
             if (parameters.isGeneratorReactivePowerRemoteControl()) {
                 createGeneratorReactivePowerControls(lfBuses);
             }

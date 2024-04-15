@@ -55,6 +55,18 @@ public final class Reports {
                 .build());
     }
 
+    public static void reportNotUniqueTargetVControllerBus(Reporter reporter, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
+        reporter.report(Report.builder()
+                .withKey("notUniqueTargetVControllerBus")
+                .withDefaultMessage("Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} (kept) and ${rejectedTargetV} (rejected)")
+                .withValue("generatorIds", generatorIds)
+                .withValue("controllerBusId", controllerBusId)
+                .withValue("keptTargetV", keptTargetV)
+                .withValue("rejectedTargetV", rejectedTargetV)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .build());
+    }
+
     public static void reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(Reporter reporter) {
         reporter.report(Report.builder()
                 .withKey("networkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled")
