@@ -78,7 +78,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createVoltageControls(List<LfBus> lfBuses, LfNetworkParameters parameters) {
+    private static void createVoltageControls(List<LfBus> lfBuses, LfNetworkParameters parameters, ReportNode reportNode) {
         List<GeneratorVoltageControl> voltageControls = new ArrayList<>();
 
         // set controller -> controlled link
@@ -116,9 +116,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBus generatorControlledBus = lfGenerator.getControlledBus();
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                    if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus)) {
+                    if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus, reportNode)) {
                         // check that target voltage is the same for the generators of current controller bus which have voltage control on
-                        checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+                        checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus, reportNode);
                     }
                 });
 
@@ -192,24 +192,26 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static boolean checkUniqueControlledBus(LfBus controlledBus, LfBus controlledBusGen, LfBus controller) {
+    private static boolean checkUniqueControlledBus(LfBus controlledBus, LfBus controlledBusGen, LfBus controller, ReportNode reportNode) {
         Objects.requireNonNull(controlledBus);
         Objects.requireNonNull(controlledBusGen);
         if (controlledBus.getNum() != controlledBusGen.getNum()) {
             String generatorIds = controller.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: {} (kept) and {} (rejected)",
                     generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+            Reports.reportNotUniqueControlledBus(reportNode, generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
             return false;
         }
         return true;
     }
 
-    private static void checkUniqueTargetVControllerBus(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus) {
+    private static void checkUniqueTargetVControllerBus(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus, ReportNode reportNode) {
         double targetV = lfGenerator.getTargetV();
         if (FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
                 generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
+            Reports.reportNotUniqueTargetVControllerBus(reportNode, generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
         }
     }
 
@@ -763,14 +765,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
                 .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS
                         || pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName()))
-                .collect(Collectors.toList());
+                .toList();
 
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, topoConfig, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
-            createVoltageControls(lfBuses, parameters);
+            createVoltageControls(lfBuses, parameters, reportNode);
             if (parameters.isGeneratorReactivePowerRemoteControl()) {
                 createGeneratorReactivePowerControls(lfBuses);
             }

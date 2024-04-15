@@ -50,6 +50,30 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportNotUniqueControlledBus(ReportNode reportNode, String generatorIds, String controllerBusId, String keptControlledBusId, String rejectedControlledBusId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueControlledBus",
+                        "Generators [${generatorIds}] are connected to the same bus  ${controllerBusId} but control the voltage of different buses: ${keptControlledBusId} (kept) and ${rejectedControlledBusId} (rejected)")
+                .withTypedValue("generatorIds", generatorIds, "Generator ids")
+                .withTypedValue("controllerBusId", controllerBusId, "Controller bus id")
+                .withTypedValue("keptControlledBusId", keptControlledBusId, "Kept controlled bus id")
+                .withTypedValue("rejectedControlledBusId", rejectedControlledBusId, "Rejected controlled bus id")
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportNotUniqueTargetVControllerBus(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueTargetVControllerBus",
+                        "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} (kept) and ${rejectedTargetV} (rejected)")
+                .withTypedValue("generatorIds", generatorIds, "Generator ids")
+                .withTypedValue("controllerBusId", controllerBusId, "Controller bus id")
+                .withTypedValue("keptTargetV", keptTargetV, "Kept target V")
+                .withTypedValue("rejectedTargetV", rejectedTargetV, "Rejected target V")
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
     public static void reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(ReportNode reportNode) {
         reportNode.newReportNode()
                 .withMessageTemplate("networkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled", "Network must have at least one bus with generator voltage control enabled")
