@@ -143,7 +143,7 @@ public class WoodburyEngine {
             postContingencyFlowStates.set(rowIndex, 0, postContingencyFlowValue);
         }
 
-        // add the post contingency matrices of the states
+        // add the post contingency matrices of injection states
         DenseMatrix postContingencyInjectionStates = new DenseMatrix(preContingencyStates.getRowCount(), preContingencyStates.getColumnCount());
         for (int columnIndex = 0; columnIndex < preContingencyStates.getColumnCount(); columnIndex++) {
             setAlphas(loadFlowContext, contingencyElements, preContingencyStates, contingenciesStates, columnIndex, ComputedContingencyElement::setAlphaForStateValue);

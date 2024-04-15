@@ -77,7 +77,7 @@ public final class ConnectivityBreakAnalysis {
     }
 
     public record ConnectivityBreakAnalysisResults(List<PropagatedContingency> nonBreakingConnectivityContingencies,
-                                                   List<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> connectivityAnalysisResults,
+                                                   List<ConnectivityAnalysisResult> connectivityAnalysisResults,
                                                    DenseMatrix contingenciesStates,
                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch) {
 
@@ -177,7 +177,7 @@ public final class ConnectivityBreakAnalysis {
             } else {
                 ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult = connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, k -> {
                     Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
-                    return new ConnectivityBreakAnalysis.ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
+                    return new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
                 });
                 connectivityAnalysisResult.getContingencies().addAll(contingencyList);
             }
