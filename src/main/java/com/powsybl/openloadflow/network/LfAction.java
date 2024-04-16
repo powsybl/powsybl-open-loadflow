@@ -309,50 +309,70 @@ public final class LfAction {
         }
     }
 
+    private void applyTapPositionChange() {
+        LfBranch branch = tapPositionChange.branch();
+        int tapPosition = branch.getPiModel().getTapPosition();
+        int value = tapPositionChange.value();
+        int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
+        branch.getPiModel().setTapPosition(newTapPosition);
+    }
+
+    private void applyLoadShift() {
+        LfLoad load = loadShift.load();
+        if (!load.isOriginalLoadDisabled(loadShift.loadId())) {
+            PowerShift shift = loadShift.powerShift();
+            load.setTargetP(load.getTargetP() + shift.getActive());
+            load.setTargetQ(load.getTargetQ() + shift.getReactive());
+            load.setAbsVariableTargetP(load.getAbsVariableTargetP()
+                    + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
+        }
+    }
+
+    private void applyGeneratorChange(LfNetworkParameters networkParameters) {
+        LfGenerator generator = generatorChange.generator();
+        if (!generator.isDisabled()) {
+            double newTargetP = generatorChange.isRelative() ? generator.getTargetP() + generatorChange.activePowerValue() : generatorChange.activePowerValue();
+            generator.setTargetP(newTargetP);
+            if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
+                    networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
+                generator.setParticipating(false);
+            }
+        }
+    }
+
+    private void applyHvdcAction() {
+        hvdc.setAcEmulation(false);
+        hvdc.setDisabled(true); // for equations only, but should be hidden
+        hvdc.getConverterStation1().setTargetP(-hvdc.getP1().eval()); // override
+        hvdc.getConverterStation2().setTargetP(-hvdc.getP2().eval()); // override
+    }
+
+    private void applySectionChange() {
+        LfShunt shunt = sectionChange.shunt();
+        shunt.getControllers().stream().filter(controller -> controller.getId().equals(sectionChange.controllerId())).findAny()
+                .ifPresentOrElse(controller -> controller.updateSectionB(sectionChange.value()),
+                        () -> LOGGER.warn("No section change: shunt {} not present", sectionChange.controllerId));
+    }
+
     public void apply(LfNetworkParameters networkParameters) {
         if (tapPositionChange != null) {
-            LfBranch branch = tapPositionChange.branch();
-            int tapPosition = branch.getPiModel().getTapPosition();
-            int value = tapPositionChange.value();
-            int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
-            branch.getPiModel().setTapPosition(newTapPosition);
+            applyTapPositionChange();
         }
 
         if (loadShift != null) {
-            LfLoad load = loadShift.load();
-            if (!load.isOriginalLoadDisabled(loadShift.loadId())) {
-                PowerShift shift = loadShift.powerShift();
-                load.setTargetP(load.getTargetP() + shift.getActive());
-                load.setTargetQ(load.getTargetQ() + shift.getReactive());
-                load.setAbsVariableTargetP(load.getAbsVariableTargetP()
-                        + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
-            }
+            applyLoadShift();
         }
 
         if (generatorChange != null) {
-            LfGenerator generator = generatorChange.generator();
-            if (!generator.isDisabled()) {
-                double newTargetP = generatorChange.isRelative() ? generator.getTargetP() + generatorChange.activePowerValue() : generatorChange.activePowerValue();
-                generator.setTargetP(newTargetP);
-                if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                        networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
-                    generator.setParticipating(false);
-                }
-            }
+            applyGeneratorChange(networkParameters);
         }
 
         if (hvdc != null) {
-            hvdc.setAcEmulation(false);
-            hvdc.setDisabled(true); // for equations only, but should be hidden
-            hvdc.getConverterStation1().setTargetP(-hvdc.getP1().eval()); // override
-            hvdc.getConverterStation2().setTargetP(-hvdc.getP2().eval()); // override
+            applyHvdcAction();
         }
 
         if (sectionChange != null) {
-            LfShunt shunt = sectionChange.shunt();
-            shunt.getControllers().stream().filter(controller -> controller.getId().equals(sectionChange.controllerId())).findAny()
-                    .ifPresentOrElse(controller -> controller.updateSectionB(sectionChange.value()),
-                            () -> LOGGER.warn("No section change: shunt {} not present", sectionChange.controllerId));
+            applySectionChange();
         }
     }
 }
