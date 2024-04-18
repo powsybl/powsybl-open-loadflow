@@ -548,7 +548,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             try (DcLoadFlowContext loadFlowContext = new DcLoadFlowContext(lfNetwork, dcLoadFlowParameters, false)) {
 
-                // create Jacobin matrix either using calculated voltages from pre-contingency network or nominal voltages
+                // create Jacobian matrix either using calculated voltages from pre-contingency network or nominal voltages
                 VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES
                         ? new PreviousValueVoltageInitializer()
                         : new UniformValueVoltageInitializer();
@@ -594,7 +594,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // set base case/function reference values of the factors
                 setFunctionReference(validLfFactors, woodburyResult.getPreContingencyStates().flowStates());
-                setBaseCaseSensitivityValues(factorGroups, woodburyResult.getPreContingencyStates().injectionStates()); // use this state to compute the base sensitivity (without +1-1)
+                setBaseCaseSensitivityValues(factorGroups, woodburyResult.getPreContingencyStates().injectionStates());
 
                 // compute the sensibilities with Woodbury computed states (pre- and post- contingency), and computed disabledNetworks
                 calculateSensitivityValues(woodburyResult, disabledNetworksByPropagatedContingencies, validFactorHolder.getAllFactors(), contingencies, resultWriter);
