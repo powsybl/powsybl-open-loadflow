@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.*;
@@ -66,10 +66,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         this.postProcessorsSupplier = Objects.requireNonNull(postProcessorsSupplier);
     }
 
-    private static void createBuses(List<Bus> buses, LfNetworkParameters parameters, LfNetwork lfNetwork, List<LfBus> lfBuses,
+    private static void createBuses(List<Bus> buses, LfNetworkParameters parameters, LfNetwork lfNetwork, List<LfBus> lfBuses, LfTopoConfig topoConfig,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report, List<LfNetworkLoaderPostProcessor> postProcessors) {
         for (Bus bus : buses) {
-            LfBusImpl lfBus = createBus(bus, parameters, lfNetwork, loadingContext, report, postProcessors);
+            LfBusImpl lfBus = createBus(bus, parameters, lfNetwork, topoConfig, loadingContext, report, postProcessors);
             postProcessors.forEach(pp -> pp.onBusAdded(bus, lfBus));
             lfNetwork.addBus(lfBus);
             lfBuses.add(lfBus);
@@ -142,7 +142,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createGeneratorVoltageControl(LfBus controlledBus, LfBus controllerBus, double controllerTargetV, List<GeneratorVoltageControl> voltageControls,
                                                       LfNetworkParameters parameters) {
-        GeneratorVoltageControl voltageControl = new GeneratorVoltageControl(controlledBus, controllerTargetV);
+        GeneratorVoltageControl voltageControl = new GeneratorVoltageControl(controlledBus, parameters.getVoltageTargetPriority(VoltageControl.Type.GENERATOR), controllerTargetV);
         voltageControl.addControllerElement(controllerBus);
         controlledBus.setGeneratorVoltageControl(voltageControl);
         if (parameters.isVoltagePerReactivePowerControl()) {
@@ -303,7 +303,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,
+    private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LfTopoConfig topoConfig, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report, List<LfNetworkLoaderPostProcessor> postProcessors) {
         LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, parameters, participateToSlackDistribution(parameters, bus));
 
@@ -393,7 +393,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
 
         if (!shuntCompensators.isEmpty()) {
-            lfBus.setShuntCompensators(shuntCompensators, parameters);
+            lfBus.setShuntCompensators(shuntCompensators, parameters, topoConfig);
         }
 
         return lfBus;
@@ -485,9 +485,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
             LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
-            HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
             if (cs1 != null && cs2 != null) {
-                LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, control, parameters.isHvdcAcEmulation());
+                LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, parameters.isHvdcAcEmulation());
                 lfHvdc.setConverterStation1(cs1);
                 lfHvdc.setConverterStation2(cs2);
                 lfNetwork.addHvdc(lfHvdc);
@@ -639,7 +638,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
             }
         }, () -> {
-                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue, targetDeadband);
+                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, parameters.getVoltageTargetPriority(VoltageControl.Type.TRANSFORMER), targetValue, targetDeadband);
                 voltageControl.addControllerElement(controllerBranch);
                 controllerBranch.setVoltageControl(voltageControl);
                 controlledBus.setTransformerVoltageControl(voltageControl);
@@ -741,7 +740,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }, () -> {
                 // we create a new shunt voltage control.
-                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, targetValue, targetDeadband);
+                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, parameters.getVoltageTargetPriority(VoltageControl.Type.SHUNT), targetValue, targetDeadband);
                 voltageControl.addControllerElement(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);
@@ -753,9 +752,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
-                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reporter);
+                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reportNode);
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -765,7 +764,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 .collect(Collectors.toList());
 
         List<LfBus> lfBuses = new ArrayList<>();
-        createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);
+        createBuses(buses, parameters, lfNetwork, lfBuses, topoConfig, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
@@ -802,17 +801,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reportNode, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reporter, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reportNode, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small reactive range",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reporter, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reportNode, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because targetP is outside active power limits",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
         }
@@ -1018,7 +1017,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     @Override
-    public List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+    public List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
@@ -1065,7 +1064,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
                     return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                            parameters, Reports.createLfNetworkReporter(reporter, numCc, numSc));
+                            parameters, Reports.createLfNetworkReporter(reportNode, numCc, numSc));
                 })
                 .collect(Collectors.toList());
 

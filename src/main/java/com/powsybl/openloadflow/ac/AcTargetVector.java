@@ -23,8 +23,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        double targetV = bus.getHighestPriorityMainVoltageControl()
-                .map(Control::getTargetValue)
+        double targetV = bus.getHighestPriorityTargetV()
                 .orElseThrow(() -> new IllegalStateException("No active voltage control has been found for bus '" + bus.getId() + "'"));
         if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope

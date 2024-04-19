@@ -105,6 +105,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final Set<String> ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE = Collections.emptySet();
 
+    public static final Set<String> ACTIONABLE_TRANSFORMERS_IDS_DEFAULT_VALUE = Collections.emptySet();
+
     public static final Set<ReportedFeatures> REPORTED_FEATURES_DEFAULT_VALUE = Collections.emptySet();
 
     private static final ReactivePowerDispatchMode REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE = ReactivePowerDispatchMode.Q_EQUAL_PROPORTION;
@@ -113,7 +115,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     protected static final int INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_DEFAULT_VALUE = 3;
 
-    public static final boolean WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE = false;
+    public static final boolean WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE = true;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -205,6 +207,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String ACTIONABLE_SWITCHES_IDS_PARAM_NAME = "actionableSwitchesIds";
 
+    private static final String ACTIONABLE_TRANSFORMERS_IDS_PARAM_NAME = "actionableTransformersIds";
+
     private static final String ASYMMETRICAL_PARAM_NAME = "asymmetrical";
 
     private static final String REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME = "reactivePowerDispatchMode";
@@ -240,6 +244,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String REFERENCE_BUS_SELECTION_MODE_PARAM_NAME = "referenceBusSelectionMode";
 
     public static final String WRITE_REFERENCE_TERMINALS_PARAM_NAME = "writeReferenceTerminals";
+
+    public static final String VOLTAGE_TARGET_PRIORITIES_PARAM_NAME = "voltageTargetPriorities";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -290,6 +296,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class)),
         new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slack bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE), getEnumPossibleValues(Country.class)),
         new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE)),
+        new Parameter(ACTIONABLE_TRANSFORMERS_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable transformers IDs (used with fast restart for tap position change)", new ArrayList<>(ACTIONABLE_TRANSFORMERS_IDS_DEFAULT_VALUE)),
         new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN, "Asymmetrical calculation", LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE),
         new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage for target voltage check", LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE),
         new Parameter(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ParameterType.STRING, "Generators reactive power from bus dispatch mode", REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactivePowerDispatchMode.class)),
@@ -308,7 +315,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Newton Krylov max number of iterations", NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS),
         new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE),
         new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Reference bus selection mode", ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class)),
-        new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE)
+        new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE),
+        new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class))
     );
 
     public enum VoltageInitModeOverride {
@@ -440,6 +448,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private Set<String> actionableSwitchesIds = ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE;
 
+    private Set<String> actionableTransformersIds = ACTIONABLE_TRANSFORMERS_IDS_DEFAULT_VALUE;
+
     private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
 
     private ReactivePowerDispatchMode reactivePowerDispatchMode = REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE;
@@ -475,6 +485,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private ReferenceBusSelectionMode referenceBusSelectionMode = ReferenceBusSelector.DEFAULT_MODE;
 
     private boolean writeReferenceTerminals = WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE;
+
+    private List<String> voltageTargetPriorities = LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -965,6 +977,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public Set<String> getActionableTransformersIds() {
+        return actionableTransformersIds;
+    }
+
+    public OpenLoadFlowParameters setActionableTransformersIds(Set<String> actionableTransformersIds) {
+        this.actionableTransformersIds = Objects.requireNonNull(actionableTransformersIds);
+        return this;
+    }
+
     public boolean isAsymmetrical() {
         return asymmetrical;
     }
@@ -1119,6 +1140,18 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public List<String> getVoltageTargetPriorities() {
+        return voltageTargetPriorities;
+    }
+
+    public OpenLoadFlowParameters setVoltageTargetPriorities(List<String> voltageTargetPriorities) {
+        // just check, but do not use return value in this.voltageTargetPriorities:
+        // doing this would modify the user's input
+        LfNetworkParameters.checkVoltageTargetPriorities(voltageTargetPriorities);
+        this.voltageTargetPriorities = voltageTargetPriorities;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1172,6 +1205,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReportedFeatures(config.getEnumSetProperty(REPORTED_FEATURES_PARAM_NAME, ReportedFeatures.class, REPORTED_FEATURES_DEFAULT_VALUE))
                 .setSlackBusCountryFilter(config.getEnumSetProperty(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, Country.class, LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE))
                 .setActionableSwitchesIds(new HashSet<>(config.getStringListProperty(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE))))
+                .setActionableTransformersIds(new HashSet<>(config.getStringListProperty(ACTIONABLE_TRANSFORMERS_IDS_PARAM_NAME, new ArrayList<>(ACTIONABLE_TRANSFORMERS_IDS_DEFAULT_VALUE))))
                 .setAsymmetrical(config.getBooleanProperty(ASYMMETRICAL_PARAM_NAME, LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE))
                 .setMinNominalVoltageTargetVoltageCheck(config.getDoubleProperty(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE))
                 .setReactivePowerDispatchMode(config.getEnumProperty(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ReactivePowerDispatchMode.class, REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE))
@@ -1190,7 +1224,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxNewtonKrylovIterations(config.getIntProperty(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS))
                 .setNewtonKrylovLineSearch(config.getBooleanProperty(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE))
                 .setReferenceBusSelectionMode(config.getEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class, ReferenceBusSelector.DEFAULT_MODE))
-                .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE)));
+                .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE))
+                .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1199,6 +1234,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     private static List<String> parseStringListProp(String prop) {
+        if (prop.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
         return Arrays.asList(prop.split("[:,]"));
     }
 
@@ -1294,6 +1332,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setSlackBusCountryFilter(parseStringListProp(prop).stream().map(Country::valueOf).collect(Collectors.toSet())));
         Optional.ofNullable(properties.get(ACTIONABLE_SWITCHES_IDS_PARAM_NAME))
                 .ifPresent(prop -> this.setActionableSwitchesIds(new HashSet<>(parseStringListProp(prop))));
+        Optional.ofNullable(properties.get(ACTIONABLE_TRANSFORMERS_IDS_PARAM_NAME))
+                .ifPresent(prop -> this.setActionableTransformersIds(new HashSet<>(parseStringListProp(prop))));
         Optional.ofNullable(properties.get(ASYMMETRICAL_PARAM_NAME))
                 .ifPresent(prop -> this.setAsymmetrical(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME))
@@ -1332,11 +1372,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setReferenceBusSelectionMode(ReferenceBusSelectionMode.valueOf(prop)));
         Optional.ofNullable(properties.get(WRITE_REFERENCE_TERMINALS_PARAM_NAME))
                 .ifPresent(prop -> this.setWriteReferenceTerminals(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME))
+                .ifPresent(prop -> this.setVoltageTargetPriorities(parseStringListProp(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(59);
+        Map<String, Object> map = new LinkedHashMap<>(65);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
@@ -1381,6 +1423,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REPORTED_FEATURES_PARAM_NAME, reportedFeatures);
         map.put(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, slackBusCountryFilter);
         map.put(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, actionableSwitchesIds);
+        map.put(ACTIONABLE_TRANSFORMERS_IDS_PARAM_NAME, actionableTransformersIds);
         map.put(ASYMMETRICAL_PARAM_NAME, asymmetrical);
         map.put(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, minNominalVoltageTargetVoltageCheck);
         map.put(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, reactivePowerDispatchMode);
@@ -1400,6 +1443,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, newtonKrylovLineSearch);
         map.put(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, referenceBusSelectionMode);
         map.put(WRITE_REFERENCE_TERMINALS_PARAM_NAME, writeReferenceTerminals);
+        map.put(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, voltageTargetPriorities);
         return map;
     }
 
@@ -1526,7 +1570,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLinePerUnitMode(parametersExt.getLinePerUnitMode())
                 .setUseLoadModel(parametersExt.isUseLoadModel())
                 .setSimulateAutomationSystems(parametersExt.isSimulateAutomationSystems())
-                .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()));
+                .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
+                .setVoltageTargetPriorities(parametersExt.getVoltageTargetPriorities());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1651,7 +1696,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
-                .setHvdcAcEmulation(false) // FIXME
+                .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(false)
                 .setMaxSlackBusCount(1)
@@ -1746,6 +1791,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getReportedFeatures().equals(extension2.getReportedFeatures()) &&
                 extension1.getSlackBusCountryFilter().equals(extension2.getSlackBusCountryFilter()) &&
                 extension1.getActionableSwitchesIds().equals(extension2.getActionableSwitchesIds()) &&
+                extension1.getActionableTransformersIds().equals(extension2.getActionableTransformersIds()) &&
                 extension1.isAsymmetrical() == extension2.isAsymmetrical() &&
                 extension1.getMinNominalVoltageTargetVoltageCheck() == extension2.getMinNominalVoltageTargetVoltageCheck() &&
                 extension1.getReactivePowerDispatchMode() == extension2.getReactivePowerDispatchMode() &&
@@ -1771,7 +1817,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxAngleMismatch() == extension2.getMaxAngleMismatch() &&
                 extension1.getMaxRatioMismatch() == extension2.getMaxRatioMismatch() &&
                 extension1.getMaxSusceptanceMismatch() == extension2.getMaxSusceptanceMismatch() &&
-                extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType();
+                extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
+                Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1834,6 +1881,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setReportedFeatures(extension.getReportedFeatures())
                     .setSlackBusCountryFilter(new HashSet<>(extension.getSlackBusCountryFilter()))
                     .setActionableSwitchesIds(new HashSet<>(extension.getActionableSwitchesIds()))
+                    .setActionableTransformersIds(new HashSet<>(extension.getActionableTransformersIds()))
                     .setAsymmetrical(extension.isAsymmetrical())
                     .setMinNominalVoltageTargetVoltageCheck(extension.getMinNominalVoltageTargetVoltageCheck())
                     .setReactivePowerDispatchMode(extension.getReactivePowerDispatchMode())
@@ -1859,7 +1907,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxRatioMismatch(extension.getMaxRatioMismatch())
                     .setMaxSusceptanceMismatch(extension.getMaxSusceptanceMismatch())
                     .setNewtonRaphsonStoppingCriteriaType(extension.getNewtonRaphsonStoppingCriteriaType())
-                    .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode());
+                    .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
+                    .setVoltageTargetPriorities(extension.getVoltageTargetPriorities());
+
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

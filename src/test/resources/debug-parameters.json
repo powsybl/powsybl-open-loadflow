@@ -9,7 +9,7 @@
     "twtSplitShuntAdmittance" : false,
     "shuntCompensatorVoltageControlOn" : false,
     "readSlackBus" : true,
-    "writeSlackBus" : false,
+    "writeSlackBus" : true,
     "dc" : true,
     "distributedSlack" : false,
     "balanceType" : "PROPORTIONAL_TO_GENERATION_P_MAX",
@@ -65,6 +65,7 @@
         "reportedFeatures" : [ ],
         "slackBusCountryFilter" : [ ],
         "actionableSwitchesIds" : [ ],
+        "actionableTransformersIds" : [ ],
         "asymmetrical" : false,
         "reactivePowerDispatchMode" : "Q_EQUAL_PROPORTION",
         "outerLoopNames" : null,
@@ -82,7 +83,8 @@
         "maxNewtonKrylovIterations" : 100,
         "newtonKrylovLineSearch" : false,
         "referenceBusSelectionMode" : "FIRST_SLACK",
-        "writeReferenceTerminals" : false
+        "writeReferenceTerminals" : true,
+        "voltageTargetPriorities" : [ "GENERATOR", "TRANSFORMER", "SHUNT" ]
       }
     }
   },

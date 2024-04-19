@@ -7,9 +7,10 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.collect.ImmutableList;
+import com.powsybl.action.Action;
+import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
@@ -33,8 +34,10 @@ import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.network.impl.OlfThreeWindingsTransformerResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
+import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
+import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -436,7 +439,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         openLoadFlowParameters.setSlackBusPMaxMismatch(0.01);
         securityAnalysisParameters.getLoadFlowParameters().addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
-                Collections.emptyList(), Collections.emptyList(), Reporter.NO_OP);
+                Collections.emptyList(), Collections.emptyList(), ReportNode.NO_OP);
         BranchResult preContingencyBranchResult = result.getPreContingencyResult().getNetworkResult().getBranchResult("dl1");
         assertEquals(Double.NaN, preContingencyBranchResult.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
         assertEquals(91.293, preContingencyBranchResult.getP1(), LoadFlowAssert.DELTA_POWER);
@@ -1650,16 +1653,18 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = createAllBranchesContingencies(network);
 
-        ReporterModel reporter = new ReporterModel("TestSecurityAnalysis", "Test security analysis report");
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("TestSecurityAnalysis", "Test security analysis report")
+                .build();
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(loadFlowParameters)
                 .setMaxRealisticVoltage(1.5);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
                 .setLoadFlowParameters(loadFlowParameters);
-        runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reporter);
+        runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNode);
 
-        assertReportEquals("/saReport.txt", reporter);
+        assertReportEquals("/saReport.txt", reportNode);
     }
 
     @Test
@@ -1667,7 +1672,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         var network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
         network.getLine("l46").getTerminal1().disconnect();
         List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34")));
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), Reporter.NO_OP);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), ReportNode.NO_OP);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
     }
@@ -1715,14 +1720,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         //Test AC
         parameters.getLoadFlowParameters().setDc(false);
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
         var postContingencyResult = result.getPostContingencyResults().get(0);
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(0, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
 
         //Test DC
         parameters.getLoadFlowParameters().setDc(true);
-        result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
         postContingencyResult = result.getPostContingencyResults().get(0);
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(0, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
@@ -1738,7 +1743,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         //Test AC
         parameters.getLoadFlowParameters().setDc(false);
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(), Reporter.NO_OP);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(), ReportNode.NO_OP);
         PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
@@ -1750,7 +1755,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         //Test DC
         parameters.getLoadFlowParameters().setDc(true);
 
-        result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
         postContingencyResult = result.getPostContingencyResults().get(0);
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
@@ -1768,14 +1773,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         //Test AC
         parameters.getLoadFlowParameters().setDc(false);
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
         PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
 
         //Test DC
         parameters.getLoadFlowParameters().setDc(true);
-        runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
         postContingencyResult = result.getPostContingencyResults().get(0);
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
@@ -1790,7 +1795,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
 
         // test AC
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
 
         // compare with a simple load low
         network.getStaticVarCompensator("svc1").getTerminal().disconnect();
@@ -1822,7 +1827,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
 
         // test AC
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
 
         // compare with a simple load low
         network.getStaticVarCompensator("svc1").getTerminal().disconnect();
@@ -2258,6 +2263,16 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(399.999, tieLineResultExt.getV2(), DELTA_V);
         assertEquals(0.002256, tieLineResultExt.getAngle1(), DELTA_ANGLE);
         assertEquals(0.0, tieLineResultExt.getAngle2(), DELTA_ANGLE);
+
+        Set<String> allBranchIds = network.getDanglingLineStream(DanglingLineFilter.PAIRED).map(Identifiable::getId).collect(Collectors.toSet());
+        List<StateMonitor> monitors2 = List.of(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors2, securityAnalysisParameters);
+        BranchResult dl1Result = result2.getPreContingencyResult().getNetworkResult().getBranchResult("h1");
+        assertEquals(35.0, dl1Result.getP1(), DELTA_POWER);
+        assertEquals(Double.NaN, dl1Result.getP2());
+        BranchResult dl2Result = result2.getPreContingencyResult().getNetworkResult().getBranchResult("h2");
+        assertEquals(-35.0, dl2Result.getP1(), DELTA_POWER);
+        assertEquals(Double.NaN, dl2Result.getP2());
     }
 
     @Test
@@ -2454,7 +2469,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
         openLoadFlowParameters.setSlackBusSelectionMode(SlackBusSelectionMode.NAME).setSlackBusId("VL1_1");
         securityAnalysisParameters.getLoadFlowParameters().addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, Reporter.NO_OP);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, ReportNode.NO_OP);
         assertEquals(3, result.getPreContingencyResult().getNetworkResult().getBusResults().size());
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
         assertEquals("BBS1", preContingencyResult.getNetworkResult().getBusResults().get(0).getBusId());
@@ -2885,5 +2900,166 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, b2PostContingencyResult.getNetworkResult().getBusResult("b4").getV(), DELTA_V);
         assertEquals(1, b2PostContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V);
         assertEquals(0.795, b2PostContingencyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V);
+    }
+
+    /**
+     *
+     * g0 (regulate b1)                     g4
+     * |                                    | t34 (regulate b3)
+     * b0 ----- b1 ===== b2 ===== b3 --OO-- b4
+     *          |                 |
+     *           ------- b5 ------
+     *                   |
+     *                   ld5
+     */
+    @Test
+    void testTransformerTargetVoltagePrioritiesWithContingency() {
+        Network network = ZeroImpedanceNetworkFactory.createWithVoltageControl();
+
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDistributedSlack(false)
+                .setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters.create(loadFlowParameters)
+                .setVoltageTargetPriorities(List.of("TRANSFORMER"));
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(loadFlowParameters);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters()
+                .setCreateResultExtension(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(new Contingency("contingency1", new BranchContingency("l01")));
+        contingencies.add(new Contingency("contingency2", new BranchContingency("l23")));
+
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // pre-contingency verification
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, preContingencyResult.getStatus());
+        assertEquals(1.1, preContingencyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // g0 is controlling voltage of b1 (with tr34 targetV)
+        assertEquals(1.1, preContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // ... also b3 through zero impedance network
+
+        // post-contingency verification: l01 contingency disconnects g0
+        PostContingencyResult postContingencyResult0 = getPostContingencyResult(result, "contingency1");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult0.getStatus());
+        assertEquals(1.131, postContingencyResult0.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+        assertEquals(1.131, postContingencyResult0.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // ... also b1 through zero impedance network
+        assertEquals(0.9182049, postContingencyResult0.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
+
+        // post-contingency verification: l23 contingency breaks the zero impedance network
+        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result, "contingency2");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult1.getStatus());
+        assertEquals(1.000, postContingencyResult1.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // g0 is controlling voltage of b1
+        assertEquals(1.087, postContingencyResult1.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+        assertEquals(0.8755940, postContingencyResult1.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
+
+        // Verify same results are obtained with l23 initially disconnected and an operator strategy reconnecting it
+        network.getLine("l23").disconnect();
+        List<Action> actions = List.of(new TerminalsConnectionAction("close_l23", "l23", false),
+                                       new TerminalsConnectionAction("close_l01", "l01", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("contingency1"), new TrueCondition(), List.of("close_l23", "close_l01")));
+        result = runSecurityAnalysis(network, contingencies,
+                monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP);
+
+        // pre-contingency verification
+        preContingencyResult = result.getPreContingencyResult();
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, preContingencyResult.getStatus());
+        assertEquals(1.000, preContingencyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // g0 is controlling voltage of b1
+        assertEquals(1.087, preContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+
+        // post-contingency verification: l01 contingency prevents g0 to hold voltage at b1, tr34 holds voltage at b3
+        postContingencyResult0 = getPostContingencyResult(result, "contingency1");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult0.getStatus());
+        assertEquals(1.043, postContingencyResult0.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // voltage is not held at b1
+        assertEquals(1.111, postContingencyResult0.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+        assertEquals(0.9066748, postContingencyResult0.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
+
+        // post-operator strategy verification: applied action merges the zero impedance networks, target voltage of tr34 is applied.
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, operatorStrategyResult.getStatus());
+        assertEquals(1.1, operatorStrategyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // g0 is controlling voltage of b3
+        assertEquals(1.1, operatorStrategyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // with tr34 targetV
+        assertEquals(0.9066748, operatorStrategyResult.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
+    }
+
+    /**
+     *
+     * g0 (regulate b1)                     g4
+     * |                                    | t34 (regulate b3)
+     * b0 ----- b1 ===== b2 ===== b3 --OO-- b4
+     *          |                 |
+     *           ------- b5 ------
+     *                   |
+     *                   ld5
+     */
+    @Test
+    void testDefaultTargetVoltagePrioritiesWithContingency() {
+        Network network = ZeroImpedanceNetworkFactory.createWithVoltageControl();
+
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDistributedSlack(false)
+                .setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters.create(loadFlowParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(loadFlowParameters);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters()
+                .setCreateResultExtension(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(new Contingency("contingency1", new BranchContingency("l01")));
+        contingencies.add(new Contingency("contingency2", new BranchContingency("l23")));
+
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // pre-contingency verification
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, preContingencyResult.getStatus());
+        assertEquals(1.0, preContingencyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // g0 is controlling voltage of b1 (with own targetV)
+        assertEquals(1.0, preContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // ... also b3 through zero impedance network
+
+        // post-contingency verification: l01 contingency disconnects g0
+        PostContingencyResult postContingencyResult0 = getPostContingencyResult(result, "contingency1");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult0.getStatus());
+        assertEquals(1.131, postContingencyResult0.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+        assertEquals(1.131, postContingencyResult0.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // ... also b1 through zero impedance network
+        assertEquals(0.9183037, postContingencyResult0.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
+
+        // post-contingency verification: l23 contingency breaks the zero impedance network
+        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result, "contingency2");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult1.getStatus());
+        assertEquals(1.000, postContingencyResult1.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // g0 is controlling voltage of b1
+        assertEquals(1.087, postContingencyResult1.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+        assertEquals(0.8751061, postContingencyResult1.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
+
+        // Verify same results are obtained with l23 initially disconnected and an operator strategy reconnecting it
+        network.getLine("l23").disconnect();
+        List<Action> actions = List.of(new TerminalsConnectionAction("close_l23", "l23", false),
+                new TerminalsConnectionAction("close_l01", "l01", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("contingency1"), new TrueCondition(), List.of("close_l23", "close_l01")));
+        result = runSecurityAnalysis(network, List.of(new Contingency("contingency1", new BranchContingency("l01"))),
+                monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP);
+
+        // pre-contingency verification
+        preContingencyResult = result.getPreContingencyResult();
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, preContingencyResult.getStatus());
+        assertEquals(1.000, preContingencyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // g0 is controlling voltage of b1
+        assertEquals(1.087, preContingencyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+
+        // post-contingency verification: l01 contingency prevents g0 to hold voltage at b1, tr34 holds voltage at b3
+        postContingencyResult0 = getPostContingencyResult(result, "contingency1");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult0.getStatus());
+        assertEquals(1.043, postContingencyResult0.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // voltage is not held at b1
+        assertEquals(1.111, postContingencyResult0.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // tr34 is controlling voltage of b3
+        assertEquals(0.9066748, postContingencyResult0.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
+
+        // post-operator strategy verification: applied action merges the zero impedance networks, target voltage of g0 is applied.
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, operatorStrategyResult.getStatus());
+        assertEquals(1.0, operatorStrategyResult.getNetworkResult().getBusResult("b3").getV(), DELTA_V); // g0 is controlling voltage of b3
+        assertEquals(1.0, operatorStrategyResult.getNetworkResult().getBusResult("b1").getV(), DELTA_V); // ... also b1 through zero impedance network
+        assertEquals(0.9066748, operatorStrategyResult.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
     }
 }
