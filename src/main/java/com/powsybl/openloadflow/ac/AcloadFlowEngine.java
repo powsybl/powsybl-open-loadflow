@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -54,6 +55,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
     public static class RunningContext {
 
+        private final VoltageInitializer firstInitializer;
+
         private AcSolverResult lastSolverResult;
 
         private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
@@ -65,6 +68,10 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         private OuterLoopStatus lastOuterLoopStatus;
 
         private double distributedActivePower;
+
+        public RunningContext(VoltageInitializer firstInitializer) {
+            this.firstInitializer = firstInitializer;
+        }
 
         public Integer getNrTotalIterationCount() {
             return nrTotalIterations.getValue();
@@ -109,13 +116,23 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         public void addDistributedActivePower(double distributedActivePower) {
             this.distributedActivePower += distributedActivePower;
         }
+
+        public VoltageInitializer getFirstInitializer() {
+            return firstInitializer;
+        }
     }
 
     @Override
     public AcLoadFlowResult run() {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
-        RunningContext runningContext = new RunningContext();
+        VoltageInitializer voltageInitializer = context.getParameters().getVoltageInitializer();
+        // in case of a DC voltage initializer, an DC equation system in created and equations are attached
+        // to the network. It is important that DC init is done before AC equation system is created by
+        // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
+        voltageInitializer.prepare(context.getNetwork());
+
+        RunningContext runningContext = new RunningContext(voltageInitializer);
         AcSolver solver = solverFactory.create(context.getNetwork(),
                                                context.getParameters(),
                                                context.getEquationSystem(),

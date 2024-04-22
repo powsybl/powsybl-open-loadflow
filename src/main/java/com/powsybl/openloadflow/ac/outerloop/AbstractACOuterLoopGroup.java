@@ -156,12 +156,7 @@ public abstract class AbstractACOuterLoopGroup implements ACOuterLoopGroup {
 
     protected VoltageInitializer getVoltageInitializer(AcOuterLoopGroupContext groupContext) {
         if (groupContext.getRunningContext().getLastSolverResult() == null) {
-            VoltageInitializer voltageInitializer = groupContext.getLoadFlowContext().getParameters().getVoltageInitializer();
-            // in case of a DC voltage initializer, an DC equation system in created and equations are attached
-            // to the network. It is important that DC init is done before AC equation system is created by
-            // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
-            voltageInitializer.prepare(groupContext.getNetwork());
-            return voltageInitializer;
+            return groupContext.getRunningContext().getFirstInitializer();
         } else {
             return new PreviousValueVoltageInitializer();
         }
