@@ -1637,11 +1637,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLineSearch(parametersExt.isNewtonKrylovLineSearch())
                 .setMaxIterations(parametersExt.getMaxNewtonKrylovIterations());
 
+        KnitroSolverParameters knitroSolverParameters = new KnitroSolverParameters();
+
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 
         AcSolverFactory solverFactory = switch (parametersExt.getAcSolverType()) {
             case NEWTON_RAPHSON -> new NewtonRaphsonFactory();
             case NEWTON_KRYLOV -> new NewtonKrylovFactory();
+            case KNITRO -> new KnitroSolverFactory();
         };
 
         return new AcLoadFlowParameters()
@@ -1649,6 +1652,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setEquationSystemCreationParameters(equationSystemCreationParameters)
                 .setNewtonRaphsonParameters(newtonRaphsonParameters)
                 .setNewtonKrylovParameters(newtonKrylovParameters)
+                .setKnitroSolverParameters(knitroSolverParameters)
                 .setOuterLoops(outerLoops)
                 .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations())
                 .setMatrixFactory(matrixFactory)

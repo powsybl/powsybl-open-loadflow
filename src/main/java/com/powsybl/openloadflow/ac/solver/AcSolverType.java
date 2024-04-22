@@ -11,5 +11,6 @@ package com.powsybl.openloadflow.ac.solver;
  */
 public enum AcSolverType {
     NEWTON_RAPHSON,
-    NEWTON_KRYLOV
+    NEWTON_KRYLOV,
+    KNITRO
 }

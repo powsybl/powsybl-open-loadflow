@@ -219,6 +219,22 @@
             <artifactId>powsybl-psse-converter</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.artelys</groupId>
+            <artifactId>knitro-interfaces</artifactId>
+            <version>14.0.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/../libs/knitro.jar</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>com.artelys</groupId>
+            <artifactId>bridj</artifactId>
+            <version>0.7.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/../libs/bridj-0.7.0.jar</systemPath>
+        </dependency>
     </dependencies>
 </project>
 

@@ -9,10 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
-import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
-import com.powsybl.openloadflow.ac.solver.NewtonKrylovParameters;
-import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
-import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -32,6 +29,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
     private NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
 
     private NewtonKrylovParameters newtonKrylovParameters = new NewtonKrylovParameters();
+
+    private KnitroSolverParameters knitroSolverParameters = new KnitroSolverParameters();
 
     private List<AcOuterLoop> outerLoops = Collections.emptyList();
 
@@ -71,6 +70,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     public AcLoadFlowParameters setNewtonKrylovParameters(NewtonKrylovParameters newtonKrylovParameters) {
         this.newtonKrylovParameters = Objects.requireNonNull(newtonKrylovParameters);
+        return this;
+    }
+
+    public KnitroSolverParameters getKnitroSolverParameters() {
+        return knitroSolverParameters;
+    }
+
+    public AcLoadFlowParameters setKnitroSolverParameters(KnitroSolverParameters knitroSolverParameters) {
+        this.knitroSolverParameters = Objects.requireNonNull(knitroSolverParameters);
         return this;
     }
 
@@ -144,6 +152,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", equationSystemCreationParameters=" + equationSystemCreationParameters +
                 ", newtonRaphsonParameters=" + newtonRaphsonParameters +
                 ", newtonKrylovParameters=" + newtonKrylovParameters +
+                ", knitroSolverParameters=" + knitroSolverParameters +
                 ", outerLoops=" + outerLoops.stream().map(outerLoop -> outerLoop.getClass().getSimpleName()).toList() +
                 ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
