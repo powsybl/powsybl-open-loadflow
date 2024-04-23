@@ -149,6 +149,10 @@ public enum NetworkCache {
                     LfNetworkParameters networkParameters = context.getParameters().getNetworkParameters();
                     if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
                         voltageControl.setTargetValue(newTargetV);
+                        voltageControl.getControllerElements().forEach(bus -> {
+                            bus.setGeneratorVoltageControlEnabled(true); // MONITORING_VOLTAGE?
+                            bus.setQLimitType(null);
+                        }); // or just this lfBus?
                     } else {
                         context.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                         if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
@@ -335,6 +339,10 @@ public enum NetworkCache {
                     lfNetwork.getSecondaryVoltageControl(controlZone.getName())
                             .ifPresent(lfSvc -> {
                                 lfSvc.setTargetValue(event.value() / lfSvc.getPilotBus().getNominalV());
+                                lfSvc.getControllerBuses().stream().forEach(bus -> {
+                                    bus.setGeneratorVoltageControlEnabled(true); // and MONITORING_VOLTAGE?
+                                    bus.setQLimitType(null);
+                                });
                                 context.setNetworkUpdated(true);
                                 done[0] = true;
                             });
