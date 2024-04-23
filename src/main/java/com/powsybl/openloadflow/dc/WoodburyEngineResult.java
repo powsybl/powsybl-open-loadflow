@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 
 import java.util.HashMap;
@@ -17,20 +18,24 @@ import java.util.Map;
  */
 public class WoodburyEngineResult {
 
-    private final WoodburyEngine.WoodburyStates preContingencyStates;
-    private final HashMap<PropagatedContingency, WoodburyEngine.WoodburyStates> postContingencyStates;
+    // TODO add documentation
+    public record WoodburyStates(DenseMatrix flowStates, DenseMatrix injectionStates) {
+    }
 
-    public WoodburyEngineResult(WoodburyEngine.WoodburyStates preContingencyStates,
-                                Map<PropagatedContingency, WoodburyEngine.WoodburyStates> postContingencyStates) {
+    private final WoodburyStates preContingencyStates;
+    private final HashMap<PropagatedContingency, WoodburyStates> postContingencyStates;
+
+    public WoodburyEngineResult(WoodburyStates preContingencyStates,
+                                Map<PropagatedContingency, WoodburyStates> postContingencyStates) {
         this.preContingencyStates = preContingencyStates;
         this.postContingencyStates = new HashMap<>(postContingencyStates);
     }
 
-    public WoodburyEngine.WoodburyStates getPreContingencyStates() {
+    public WoodburyStates getPreContingencyStates() {
         return preContingencyStates;
     }
 
-    public WoodburyEngine.WoodburyStates getPostContingencyWoodburyStates(PropagatedContingency contingency) {
+    public WoodburyStates getPostContingencyWoodburyStates(PropagatedContingency contingency) {
         return postContingencyStates.get(contingency);
     }
 }

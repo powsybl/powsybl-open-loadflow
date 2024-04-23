@@ -94,5 +94,4 @@ public final class ComputedContingencyElement {
             element.setLocalIndex(index++);
         }
     }
-
 }

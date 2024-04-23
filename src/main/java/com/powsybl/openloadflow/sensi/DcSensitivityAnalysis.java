@@ -117,7 +117,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                SensitivityResultWriter resultWriter) {
         Derivable<DcVariableType> p1 = factor.getFunctionEquationTerm();
         for (PropagatedContingency contingency : contingencies) {
-            WoodburyEngine.WoodburyStates postContingencyStates = woodburyResult.getPostContingencyWoodburyStates(contingency);
+            WoodburyEngineResult.WoodburyStates postContingencyStates = woodburyResult.getPostContingencyWoodburyStates(contingency);
             DisabledNetwork disabledNetwork = disabledNetworksByPropagatedContingencies.get(contingency);
 
             Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledNetwork, contingency);
@@ -575,29 +575,29 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData = ConnectivityBreakAnalysis.run(loadFlowContext, contingencies);
 
                 // storage of modifications that must be applied on rhs members, due to GLSK and/or slack bus participation
-                WoodburyEngineRhsModifications woodburyEngineRhsModification = new WoodburyEngineRhsModifications();
+                WoodburyEngineRhsModifications woodburyEngineRhsModifications = new WoodburyEngineRhsModifications();
 
                 // storage of disabled network by propagated contingencies, for sensitivity calculation
-                HashMap<PropagatedContingency, DisabledNetwork> disabledNetworksByPropagatedContingencies = new HashMap<>();
+                HashMap<PropagatedContingency, DisabledNetwork> disabledNetworkByPropagatedContingency = new HashMap<>();
 
                 // compute rhs modifications for contingencies breaking connectivity
                 buildRhsModificationsForContingenciesBreakingConnectivity(loadFlowContext, lfParametersExt, connectivityData, factorGroups, participatingElements,
-                        woodburyEngineRhsModification, disabledNetworksByPropagatedContingencies, resultWriter);
+                        woodburyEngineRhsModifications, disabledNetworkByPropagatedContingency, resultWriter);
 
                 // compute rhs modifications for contingencies with no connectivity break
                 buildRhsModificationsForContingencies(loadFlowContext, lfParametersExt, factorGroups, connectivityData.nonBreakingConnectivityContingencies(), participatingElements,
-                        woodburyEngineRhsModification, disabledNetworksByPropagatedContingencies, Collections.emptySet(), Collections.emptySet(),
+                        woodburyEngineRhsModifications, disabledNetworkByPropagatedContingency, Collections.emptySet(), Collections.emptySet(),
                         connectivityData.contingencyElementByBranch(), Collections.emptySet(), resultWriter);
 
                 // compute the pre- and post-contingency states using Woodbury equality
-                WoodburyEngineResult woodburyResult = engine.run(loadFlowContext, flowsRhs, injectionRhs, woodburyEngineRhsModification, connectivityData, reportNode);
+                WoodburyEngineResult woodburyResult = engine.run(loadFlowContext, flowsRhs, injectionRhs, woodburyEngineRhsModifications, connectivityData, reportNode);
 
                 // set base case/function reference values of the factors
                 setFunctionReference(validLfFactors, woodburyResult.getPreContingencyStates().flowStates());
                 setBaseCaseSensitivityValues(factorGroups, woodburyResult.getPreContingencyStates().injectionStates());
 
                 // compute the sensibilities with Woodbury computed states (pre- and post- contingency), and computed disabledNetworks
-                calculateSensitivityValues(woodburyResult, disabledNetworksByPropagatedContingencies, validFactorHolder.getAllFactors(), contingencies, resultWriter);
+                calculateSensitivityValues(woodburyResult, disabledNetworkByPropagatedContingency, validFactorHolder.getAllFactors(), contingencies, resultWriter);
             }
 
             stopwatch.stop();
