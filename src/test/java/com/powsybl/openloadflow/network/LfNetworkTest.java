@@ -12,7 +12,6 @@ import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
 import com.powsybl.iidm.criteria.IdentifiableCriterion;
 import com.powsybl.iidm.criteria.VoltageInterval;
 import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
-import com.powsybl.iidm.criteria.duration.PermanentDurationCriterion;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
@@ -335,8 +334,6 @@ class LfNetworkTest extends AbstractSerDeTest {
         // NHV1_NHV2_1 : side 1 PATL 500, side 2 PATL 1100, 1200 for 600s and 1500 for 60s then above 0s
         // NHV1_NHV2_2 : side 1 PATL 1100, 1200 for 1200s then above 60s, side 2 PATL 500
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
-        LfBranch lfBranch1 = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
-        LfBranch lfBranch2 = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction1 =
                 new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), true, null, 0.5);
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction2 =
@@ -347,10 +344,29 @@ class LfNetworkTest extends AbstractSerDeTest {
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction1);
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction2);
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction3);
-        List<Double> reductions1 = lfBranch1.getLimitReductions(TwoSides.ONE, limitReductionManager, network.getBranch("NHV1_NHV2_1").getNullableCurrentLimits1());
-        List<Double> reductions2 = lfBranch1.getLimitReductions(TwoSides.TWO, limitReductionManager, network.getBranch("NHV1_NHV2_1").getNullableCurrentLimits2());
-        System.out.println(reductions1);
-        System.out.println(reductions2);
+
+        LfBranch lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
+        Branch<?> branch = network.getBranch("NHV1_NHV2_1");
+        List<Double> reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
+        assertEquals(1, reductions.size());
+        assertEquals(0.5, reductions.get(0), 0.001); // PATL
+        reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
+        assertEquals(4, reductions.size());
+        assertEquals(0.5, reductions.get(0), 0.001); // PATL
+        assertEquals(0.8, reductions.get(1), 0.001); // TATL 600s
+        assertEquals(0.9, reductions.get(2), 0.001); // TATL 60s
+        assertEquals(0.9, reductions.get(3), 0.001); // TATL 0s
+
+        lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_2");
+        branch = network.getBranch("NHV1_NHV2_2");
+        reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
+        assertEquals(3, reductions.size());
+        assertEquals(0.5, reductions.get(0), 0.001); // PATL
+        assertEquals(0.8, reductions.get(1), 0.001); // TATL 1200s
+        assertEquals(0.9, reductions.get(2), 0.001); // TATL 60s
+        reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
+        assertEquals(1, reductions.size());
+        assertEquals(0.5, reductions.get(0), 0.001); // PATL
     }
 
     @Test
@@ -376,7 +392,7 @@ class LfNetworkTest extends AbstractSerDeTest {
                 .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(300, 600, true, false))
                 .build();
         LimitReductionManager limitReductionManager = LimitReductionManager.create(List.of(limitReduction1, limitReduction2, limitReduction3, limitReduction4));
-        limitReductionManager.getTerminalLimitReductions().stream().forEach(terminalLimitReduction -> {
+        limitReductionManager.getTerminalLimitReductions().forEach(terminalLimitReduction -> {
             System.out.println(terminalLimitReduction.getNominalV() + terminalLimitReduction.getAcceptableDuration().toString() + terminalLimitReduction.isPermanent());
         });
     }
@@ -394,7 +410,7 @@ class LfNetworkTest extends AbstractSerDeTest {
                 .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(300, 600, true, false))
                 .build();
         LimitReductionManager limitReductionManager = LimitReductionManager.create(List.of(limitReduction1, limitReduction2));
-        limitReductionManager.getTerminalLimitReductions().stream().forEach(terminalLimitReduction -> {
+        limitReductionManager.getTerminalLimitReductions().forEach(terminalLimitReduction -> {
             System.out.println(terminalLimitReduction.getNominalV() + terminalLimitReduction.getAcceptableDuration().toString() + terminalLimitReduction.isPermanent());
         });
     }
