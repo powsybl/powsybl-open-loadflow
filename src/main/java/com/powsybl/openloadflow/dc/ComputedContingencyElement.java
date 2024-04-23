@@ -25,8 +25,8 @@ public final class ComputedContingencyElement {
 
     private int contingencyIndex = -1; // index of the element in the rhs for +1-1
     private int localIndex = -1; // local index of the element : index of the element in the matrix used in the setAlphas method
-    private double alphaForStateValue = Double.NaN;
-    private double alphaForFunctionReference = Double.NaN;
+    private double alphaForInjectionState = Double.NaN;
+    private double alphaForFlowState = Double.NaN;
     private final ContingencyElement element;
     private final LfBranch lfBranch;
     private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
@@ -53,20 +53,20 @@ public final class ComputedContingencyElement {
         this.localIndex = index;
     }
 
-    public double getAlphaForStateValue() {
-        return alphaForStateValue;
+    public double getAlphaForInjectionState() {
+        return alphaForInjectionState;
     }
 
-    public void setAlphaForStateValue(final double alpha) {
-        this.alphaForStateValue = alpha;
+    public void setAlphaForInjectionState(final double alpha) {
+        this.alphaForInjectionState = alpha;
     }
 
-    public double getAlphaForFunctionReference() {
-        return alphaForFunctionReference;
+    public double getAlphaForFlowState() {
+        return alphaForFlowState;
     }
 
-    public void setAlphaForFunctionReference(final double alpha) {
-        this.alphaForFunctionReference = alpha;
+    public void setAlphaForFlowState(final double alpha) {
+        this.alphaForFlowState = alpha;
     }
 
     public ContingencyElement getElement() {

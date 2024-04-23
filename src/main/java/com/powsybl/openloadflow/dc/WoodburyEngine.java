@@ -133,11 +133,11 @@ public class WoodburyEngine {
 
         // add the post contingency matrices of flow states
         DenseMatrix postContingencyFlowStates = new DenseMatrix(flowStates.getRowCount(), 1);
-        setAlphas(loadFlowContext, contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
+        setAlphas(loadFlowContext, contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFlowState);
         for (int rowIndex = 0; rowIndex < flowStates.getRowCount(); rowIndex++) {
             double postContingencyFlowValue = flowStates.get(rowIndex, 0);
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                postContingencyFlowValue += contingencyElement.getAlphaForFunctionReference() * contingenciesStates.get(rowIndex, contingencyElement.getContingencyIndex());
+                postContingencyFlowValue += contingencyElement.getAlphaForFlowState() * contingenciesStates.get(rowIndex, contingencyElement.getContingencyIndex());
             }
             postContingencyFlowStates.set(rowIndex, 0, postContingencyFlowValue);
         }
@@ -145,11 +145,11 @@ public class WoodburyEngine {
         // add the post contingency matrices of injection states
         DenseMatrix postContingencyInjectionStates = new DenseMatrix(preContingencyStates.getRowCount(), preContingencyStates.getColumnCount());
         for (int columnIndex = 0; columnIndex < preContingencyStates.getColumnCount(); columnIndex++) {
-            setAlphas(loadFlowContext, contingencyElements, preContingencyStates, contingenciesStates, columnIndex, ComputedContingencyElement::setAlphaForStateValue);
+            setAlphas(loadFlowContext, contingencyElements, preContingencyStates, contingenciesStates, columnIndex, ComputedContingencyElement::setAlphaForInjectionState);
             for (int rowIndex = 0; rowIndex < preContingencyStates.getRowCount(); rowIndex++) {
                 double postContingencyValue = preContingencyStates.get(rowIndex, columnIndex);
                 for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                    postContingencyValue += contingencyElement.getAlphaForStateValue() * contingenciesStates.get(rowIndex, contingencyElement.getContingencyIndex());
+                    postContingencyValue += contingencyElement.getAlphaForInjectionState() * contingenciesStates.get(rowIndex, contingencyElement.getContingencyIndex());
                 }
                 postContingencyInjectionStates.set(rowIndex, columnIndex, postContingencyValue);
             }
