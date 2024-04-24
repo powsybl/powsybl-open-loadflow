@@ -154,4 +154,10 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
         LOGGER.trace("onBranchConnectionStatusChange(branch={}, side={}, connected={})", branch, side, connected);
         delegate.onBranchConnectionStatusChange(branch, side, connected);
     }
+
+    @Override
+    public void onSecondaryVoltageControlTargetValueChange(LfSecondaryVoltageControl secondaryVoltageControl, double newTargetVoltage) {
+        LOGGER.trace("onSecondaryVoltageControlTargetValueChange(secondaryVoltageControl={}, newTargetVoltage={})", secondaryVoltageControl, newTargetVoltage);
+        delegate.onSecondaryVoltageControlTargetValueChange(secondaryVoltageControl, newTargetVoltage);
+    }
 }
