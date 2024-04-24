@@ -931,7 +931,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                                 .filter(ControlUnit::isParticipate)
                                 .map(ControlUnit::getId).collect(Collectors.toSet());
                         var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV,
-                                participatingControlUnitIds, generatorVoltageControls, lfNetwork);
+                                participatingControlUnitIds, generatorVoltageControls);
                         lfNetwork.addSecondaryVoltageControl(lfSvc);
                     }
                 }

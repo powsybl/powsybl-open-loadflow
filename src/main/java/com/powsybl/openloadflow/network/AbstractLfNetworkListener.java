@@ -104,9 +104,4 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
         // empty
     }
-
-    @Override
-    public void onSecondaryVoltageControlTargetValueChange(LfSecondaryVoltageControl secondaryVoltageControl, double newTargetVoltage) {
-        secondaryVoltageControl.tryToReEnableHelpfulControllerBuses();
-    }
 }

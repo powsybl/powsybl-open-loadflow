@@ -50,6 +50,4 @@ public interface LfNetworkListener {
     void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel);
 
     void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected);
-
-    void onSecondaryVoltageControlTargetValueChange(LfSecondaryVoltageControl secondaryVoltageControl, double newTargetVoltage);
 }

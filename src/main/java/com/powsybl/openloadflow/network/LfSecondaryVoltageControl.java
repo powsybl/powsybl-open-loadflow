@@ -29,16 +29,13 @@ public class LfSecondaryVoltageControl {
 
     private double targetValue;
 
-    private LfNetwork network;
-
     public LfSecondaryVoltageControl(String zoneName, LfBus pilotBus, double targetValue, Set<String> participatingControlUnitIds,
-                                     Set<GeneratorVoltageControl> generatorVoltageControls, LfNetwork network) {
+                                     Set<GeneratorVoltageControl> generatorVoltageControls) {
         this.zoneName = Objects.requireNonNull(zoneName);
         this.pilotBus = Objects.requireNonNull(pilotBus);
         this.targetValue = targetValue;
         this.participatingControlUnitIds = Objects.requireNonNull(participatingControlUnitIds);
         this.generatorVoltageControls = Objects.requireNonNull(generatorVoltageControls);
-        this.network = Objects.requireNonNull(network);
     }
 
     public String getZoneName() {
@@ -52,9 +49,7 @@ public class LfSecondaryVoltageControl {
     public void setTargetValue(double targetValue) {
         if (this.targetValue != targetValue) {
             this.targetValue = targetValue;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onSecondaryVoltageControlTargetValueChange(this, targetValue);
-            }
+            tryToReEnableHelpfulControllerBuses();
         }
     }
 
