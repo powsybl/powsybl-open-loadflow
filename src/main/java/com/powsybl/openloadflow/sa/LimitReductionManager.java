@@ -24,8 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -68,9 +68,6 @@ public class LimitReductionManager {
 
     List<TerminalLimitReduction> terminalLimitReductions = new ArrayList<>();
 
-    public LimitReductionManager() {
-    }
-
     public boolean isEmpty() {
         return terminalLimitReductions.isEmpty();
     }
@@ -100,38 +97,45 @@ public class LimitReductionManager {
                     acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
                 } else { // size 1 or 2 only (when 2, they are not of the same type).
                     for (LimitDurationCriterion limitDurationCriterion : limitReduction.getDurationCriteria()) {
-                        switch (limitDurationCriterion.getType()) {
-                            case PERMANENT -> permanent = true;
-                            case TEMPORARY -> {
-                                if (limitDurationCriterion instanceof AllTemporaryDurationCriterion) {
-                                    acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
-                                } else if (limitDurationCriterion instanceof EqualityTemporaryDurationCriterion equalityTemporaryDurationCriterion) {
-                                    acceptableDurationRange = Range.of(equalityTemporaryDurationCriterion.getDurationEqualityValue(),
-                                            equalityTemporaryDurationCriterion.getDurationEqualityValue());
-                                } else { // intervalTemporaryDurationCriterion
-                                    IntervalTemporaryDurationCriterion intervalTemporaryDurationCriterion = (IntervalTemporaryDurationCriterion) limitDurationCriterion;
-                                    acceptableDurationRange = intervalTemporaryDurationCriterion.asRange();
-                                }
-                            }
+                        LimitDurationCriterion.LimitDurationType type = limitDurationCriterion.getType();
+                        if (Objects.requireNonNull(type) == LimitDurationCriterion.LimitDurationType.PERMANENT) {
+                            permanent = true;
+                        } else if (type == LimitDurationCriterion.LimitDurationType.TEMPORARY) {
+                            acceptableDurationRange = getAcceptableDurationRange(limitDurationCriterion);
                         }
                     }
                 }
                 // Compute the nominal voltage ranges. When no network element criteria is present,
                 // the reduction applies to all network elements.
-                Collection<Range<Double>> nominalVoltageRanges = limitReduction.getNetworkElementCriteria().isEmpty() ?
+                Collection<DoubleRange> nominalVoltageRanges = limitReduction.getNetworkElementCriteria().isEmpty() ?
                         List.of(DoubleRange.of(0, Double.MAX_VALUE)) :
                         limitReduction.getNetworkElementCriteria().stream().map(IdentifiableCriterion.class::cast)
                                 .map(IdentifiableCriterion::getNominalVoltageCriterion)
                                 .map(AtLeastOneNominalVoltageCriterion::getVoltageInterval)
                                 .map(VoltageInterval::asRange)
-                                .collect(Collectors.toSet());
+                                .distinct()
+                                .toList();
 
-                for (Range<Double> nominalVoltageRange : nominalVoltageRanges) {
+                for (DoubleRange nominalVoltageRange : nominalVoltageRanges) {
                     limitReductionManager.addTerminalLimitReduction(new TerminalLimitReduction(nominalVoltageRange, permanent, acceptableDurationRange, limitReduction.getValue()));
                 }
             }
         }
         return limitReductionManager;
+    }
+
+    private static Range<Integer> getAcceptableDurationRange(LimitDurationCriterion limitDurationCriterion) {
+        Range<Integer> acceptableDurationRange;
+        if (limitDurationCriterion instanceof AllTemporaryDurationCriterion) {
+            acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
+        } else if (limitDurationCriterion instanceof EqualityTemporaryDurationCriterion equalityTemporaryDurationCriterion) {
+            acceptableDurationRange = Range.of(equalityTemporaryDurationCriterion.getDurationEqualityValue(),
+                    equalityTemporaryDurationCriterion.getDurationEqualityValue());
+        } else { // intervalTemporaryDurationCriterion
+            IntervalTemporaryDurationCriterion intervalTemporaryDurationCriterion = (IntervalTemporaryDurationCriterion) limitDurationCriterion;
+            acceptableDurationRange = intervalTemporaryDurationCriterion.asRange();
+        }
+        return acceptableDurationRange;
     }
 
     private static boolean isSupported(LimitReduction limitReduction) {
@@ -152,7 +156,7 @@ public class LimitReductionManager {
             return false;
         }
         if (limitReduction.getNetworkElementCriteria().stream().anyMatch(Predicate.not(IdentifiableCriterion.class::isInstance))) {
-            LOGGER.warn("Only no network element criterion or identifiable criteria is yet supported.");
+            LOGGER.warn("Only no network element criterion or identifiable criteria are yet supported.");
             return false;
         }
         if (limitReduction.getDurationCriteria().size() > 2) {

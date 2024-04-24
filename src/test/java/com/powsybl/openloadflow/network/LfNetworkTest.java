@@ -8,10 +8,6 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
-import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
-import com.powsybl.iidm.criteria.IdentifiableCriterion;
-import com.powsybl.iidm.criteria.VoltageInterval;
-import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
@@ -26,7 +22,6 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
-import com.powsybl.security.limitreduction.LimitReduction;
 import org.apache.commons.lang3.Range;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -367,51 +362,5 @@ class LfNetworkTest extends AbstractSerDeTest {
         reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
         assertEquals(1, reductions.size());
         assertEquals(0.5, reductions.get(0), 0.001); // PATL
-    }
-
-    @Test
-    void testLimitReductions2() {
-        LimitReduction limitReduction1 = LimitReduction.builder(LimitType.CURRENT, 0.9f)
-                .withNetworkElementCriteria(new IdentifiableCriterion(
-                        new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(380., 410., true, true))))
-                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(0, 300, true, false))
-                .build();
-        LimitReduction limitReduction2 = LimitReduction.builder(LimitType.CURRENT, 0.9f)
-                .withNetworkElementCriteria(new IdentifiableCriterion(
-                        new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(220., 240., true, true))))
-                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(0, 300, true, false))
-                .build();
-        LimitReduction limitReduction3 = LimitReduction.builder(LimitType.CURRENT, 0.95f)
-                .withNetworkElementCriteria(new IdentifiableCriterion(
-                        new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(380., 410., true, true))))
-                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(300, 600, true, false))
-                .build();
-        LimitReduction limitReduction4 = LimitReduction.builder(LimitType.CURRENT, 0.95f)
-                .withNetworkElementCriteria(new IdentifiableCriterion(
-                        new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(220., 240., true, true))))
-                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(300, 600, true, false))
-                .build();
-        LimitReductionManager limitReductionManager = LimitReductionManager.create(List.of(limitReduction1, limitReduction2, limitReduction3, limitReduction4));
-        limitReductionManager.getTerminalLimitReductions().forEach(terminalLimitReduction -> {
-            System.out.println(terminalLimitReduction.getNominalV() + terminalLimitReduction.getAcceptableDuration().toString() + terminalLimitReduction.isPermanent());
-        });
-    }
-
-    @Test
-    void testLimitReductions3() {
-        LimitReduction limitReduction1 = LimitReduction.builder(LimitType.CURRENT, 0.9f)
-                .withNetworkElementCriteria(new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(380., 410., true, true))),
-                        new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(220., 240., true, true))))
-                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(0, 300, true, false))
-                .build();
-        LimitReduction limitReduction2 = LimitReduction.builder(LimitType.CURRENT, 0.95f)
-                .withNetworkElementCriteria(new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(380., 410., true, true))),
-                        new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(220., 240., true, true))))
-                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(300, 600, true, false))
-                .build();
-        LimitReductionManager limitReductionManager = LimitReductionManager.create(List.of(limitReduction1, limitReduction2));
-        limitReductionManager.getTerminalLimitReductions().forEach(terminalLimitReduction -> {
-            System.out.println(terminalLimitReduction.getNominalV() + terminalLimitReduction.getAcceptableDuration().toString() + terminalLimitReduction.isPermanent());
-        });
     }
 }
