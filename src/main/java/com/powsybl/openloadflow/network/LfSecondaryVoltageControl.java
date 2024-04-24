@@ -127,9 +127,8 @@ public class LfSecondaryVoltageControl {
         List<LfBus> allControllerBuses = new ArrayList<>();
         classifyControllerBuses(allControllerBuses, controllerBusesToMinQ, controllerBusesToMaxQ);
 
-        var pilotBus = getPilotBus();
-        if (controllerBusesToMinQ.size() == allControllerBuses.size() && pilotBus.getV() < getTargetValue() // all controllers are to min q
-                || controllerBusesToMaxQ.size() == allControllerBuses.size() && pilotBus.getV() > getTargetValue()) { // all controllers are to max q
+        if (controllerBusesToMinQ.size() == allControllerBuses.size() && getPilotBus().getV() < getTargetValue() // all controllers are to min q
+                || controllerBusesToMaxQ.size() == allControllerBuses.size() && getPilotBus().getV() > getTargetValue()) { // all controllers are to max q
             for (LfBus controllerBus : allControllerBuses) {
                 controllerBus.setGeneratorVoltageControlEnabled(true);
                 controllerBus.setQLimitType(null);
