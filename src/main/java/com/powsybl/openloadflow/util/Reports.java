@@ -59,7 +59,7 @@ public final class Reports {
 
     public static void reportComponentsWithoutGenerators(ReportNode reportNode, int deadComponentsCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("componentsWithoutGenerators", "No calculation will be done on {deadComponentsCount} network(s) that have have no generators")
+                .withMessageTemplate("componentsWithoutGenerators", "No calculation will be done on ${deadComponentsCount} network(s) that have have no generators")
                 .withUntypedValue("deadComponentsCount", deadComponentsCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
