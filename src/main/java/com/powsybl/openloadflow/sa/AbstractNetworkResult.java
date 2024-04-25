@@ -16,7 +16,9 @@ import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -44,9 +46,14 @@ public abstract class AbstractNetworkResult {
         Objects.requireNonNull(monitor);
         if (!monitor.getBranchIds().isEmpty()) {
             network.getBranches().stream()
-                    .filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                     .filter(lfBranch -> !lfBranch.isDisabled())
-                    .forEach(branchConsumer);
+                    .forEach(lfBranch -> {
+                        for (String originalId : lfBranch.getOriginalIds()) {
+                            if (monitor.getBranchIds().contains(originalId)) {
+                                branchConsumer.accept(lfBranch);
+                            }
+                        }
+                    });
         }
 
         if (!monitor.getVoltageLevelIds().isEmpty()) {

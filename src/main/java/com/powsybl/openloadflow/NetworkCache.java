@@ -6,13 +6,19 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.extensions.Extension;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.ControlUnit;
+import com.powsybl.iidm.network.extensions.ControlZone;
+import com.powsybl.iidm.network.extensions.PilotPoint;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -204,6 +210,41 @@ public enum NetworkCache {
             }
         }
 
+        private boolean onTransformerTargetVoltageUpdate(String twtId, double newValue) {
+            boolean found = false;
+            for (AcLoadFlowContext context : contexts) {
+                LfNetwork lfNetwork = context.getNetwork();
+                LfBranch lfBranch = lfNetwork.getBranchById(twtId);
+                if (lfBranch != null) {
+                    var vc = lfBranch.getVoltageControl().orElseThrow();
+                    vc.setTargetValue(newValue / vc.getControlledBus().getNominalV());
+                    context.setNetworkUpdated(true);
+                    found = true;
+                }
+            }
+            if (!found) {
+                LOGGER.warn("Cannot update voltage target of transformer '{}'", twtId);
+            }
+            return found;
+        }
+
+        private boolean onTransformerTapPositionUpdate(String twtId, int newTapPosition) {
+            boolean found = false;
+            for (AcLoadFlowContext context : contexts) {
+                LfNetwork lfNetwork = context.getNetwork();
+                LfBranch lfBranch = lfNetwork.getBranchById(twtId);
+                if (lfBranch != null) {
+                    lfBranch.getPiModel().setTapPosition(newTapPosition);
+                    context.setNetworkUpdated(true);
+                    found = true;
+                }
+            }
+            if (!found) {
+                LOGGER.warn("Cannot update tap position of transformer '{}'", twtId);
+            }
+            return found;
+        }
+
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
             if (contexts == null || pause) {
@@ -218,7 +259,9 @@ public enum NetworkCache {
                      "p1",
                      "q1",
                      "p2",
-                     "q2" -> done = true; // ignore because it is related to state update and won't affect LF calculation
+                     "q2",
+                     "p3",
+                     "q3" -> done = true; // ignore because it is related to state update and won't affect LF calculation
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
@@ -237,12 +280,81 @@ public enum NetworkCache {
                         if (onSwitchUpdate(identifiable.getId(), (boolean) newValue)) {
                             done = true;
                         }
+                    } else if (identifiable.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER) {
+                        if (attribute.equals("ratioTapChanger.regulationValue")
+                                && onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue)) {
+                            done = true;
+                        } else if (attribute.equals("ratioTapChanger.tapPosition")
+                                && onTransformerTapPositionUpdate(identifiable.getId(), (int) newValue)) {
+                            done = true;
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.THREE_WINDINGS_TRANSFORMER) {
+                        for (ThreeSides side : ThreeSides.values()) {
+                            if (attribute.equals("ratioTapChanger" + side.getNum() + ".regulationValue")
+                                    && onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (double) newValue)) {
+                                done = true;
+                                break;
+                            } else if (attribute.equals("ratioTapChanger" + side.getNum() + ".tapPosition")
+                                    && onTransformerTapPositionUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (int) newValue)) {
+                                done = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
 
             if (!done) {
                 reset();
+            }
+        }
+
+        @Override
+        public void onExtensionUpdate(Extension<?> extension, String attribute, Object oldValue, Object newValue) {
+            if (contexts == null || pause) {
+                return;
+            }
+
+            boolean[] done = new boolean[1];
+            if ("secondaryVoltageControl".equals(extension.getName())) {
+                SecondaryVoltageControl svc = (SecondaryVoltageControl) extension;
+                onSecondaryVoltageControlExtensionUpdate(svc, attribute, newValue, done);
+            }
+
+            if (!done[0]) {
+                reset();
+            }
+        }
+
+        private void onSecondaryVoltageControlExtensionUpdate(SecondaryVoltageControl svc, String attribute, Object newValue, boolean[] done) {
+            if ("pilotPointTargetV".equals(attribute)) {
+                PilotPoint.TargetVoltageEvent event = (PilotPoint.TargetVoltageEvent) newValue;
+                ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
+                for (AcLoadFlowContext context : contexts) {
+                    LfNetwork lfNetwork = context.getNetwork();
+                    lfNetwork.getSecondaryVoltageControl(controlZone.getName())
+                            .ifPresent(lfSvc -> {
+                                lfSvc.setTargetValue(event.value() / lfSvc.getPilotBus().getNominalV());
+                                context.setNetworkUpdated(true);
+                                done[0] = true;
+                            });
+                }
+            } else if ("controlUnitParticipate".equals(attribute)) {
+                ControlUnit.ParticipateEvent event = (ControlUnit.ParticipateEvent) newValue;
+                ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
+                for (AcLoadFlowContext context : contexts) {
+                    LfNetwork lfNetwork = context.getNetwork();
+                    lfNetwork.getSecondaryVoltageControl(controlZone.getName())
+                            .ifPresent(lfSvc -> {
+                                if (event.value()) {
+                                    lfSvc.getParticipatingControlUnitIds().add(event.controlUnitId());
+                                } else {
+                                    lfSvc.getParticipatingControlUnitIds().remove(event.controlUnitId());
+                                }
+                                context.setNetworkUpdated(true);
+                                done[0] = true;
+                            });
+                }
             }
         }
 

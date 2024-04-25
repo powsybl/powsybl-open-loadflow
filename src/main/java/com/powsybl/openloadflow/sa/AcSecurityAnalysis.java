@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.ReferenceBusSelector;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
@@ -35,13 +36,13 @@ import java.util.List;
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcLoadFlowResult> {
 
     protected AcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                 List<StateMonitor> stateMonitors, Reporter reporter) {
-        super(network, matrixFactory, connectivityFactory, stateMonitors, reporter);
+                                 List<StateMonitor> stateMonitors, ReportNode reportNode) {
+        super(network, matrixFactory, connectivityFactory, stateMonitors, reportNode);
     }
 
     @Override
-    protected Reporter createSaRootReporter() {
-        return Reports.createAcSecurityAnalysis(reporter, network.getId());
+    protected ReportNode createSaRootReportNode() {
+        return Reports.createAcSecurityAnalysis(reportNode, network.getId());
     }
 
     @Override
@@ -50,14 +51,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected boolean isHvdcAcEmulation(LoadFlowParameters lfParameters) {
-        return lfParameters.isHvdcAcEmulation();
-    }
-
-    @Override
     protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
-        acParameters.getNetworkParameters().setCacheEnabled(false); // force not caching as not supported in secu analysis
+        acParameters.getNetworkParameters()
+                .setCacheEnabled(false) // force not caching as not supported in secu analysis
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
         acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
         return acParameters;
     }

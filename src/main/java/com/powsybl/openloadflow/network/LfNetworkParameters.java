@@ -13,10 +13,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -26,6 +23,8 @@ public class LfNetworkParameters {
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
 
     public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
+
+    public static final boolean DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE = false;
 
     /**
      * Minimal and maximal plausible target V in p.u
@@ -62,6 +61,8 @@ public class LfNetworkParameters {
 
     public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
 
+    public static final List<String> VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE = VoltageControl.VOLTAGE_CONTROL_PRIORITIES;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -73,6 +74,8 @@ public class LfNetworkParameters {
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
 
     private boolean useActiveLimits = USE_ACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits = DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE;
 
     private boolean computeMainConnectedComponentOnly = true;
 
@@ -88,7 +91,9 @@ public class LfNetworkParameters {
 
     private boolean voltagePerReactivePowerControl = false;
 
-    private boolean reactivePowerRemoteControl = false;
+    private boolean generatorReactivePowerRemoteControl = false;
+
+    private boolean transformerReactivePowerControl = false;
 
     private LoadFlowModel loadFlowModel = LoadFlowModel.AC;
 
@@ -128,6 +133,10 @@ public class LfNetworkParameters {
 
     private boolean simulateAutomationSystems = SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE;
 
+    private ReferenceBusSelector referenceBusSelector = ReferenceBusSelector.DEFAULT_SELECTOR;
+
+    private List<String> voltageTargetPriorities = VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -140,13 +149,16 @@ public class LfNetworkParameters {
         this.twtSplitShuntAdmittance = other.twtSplitShuntAdmittance;
         this.breakers = other.breakers;
         this.plausibleActivePowerLimit = other.plausibleActivePowerLimit;
+        this.useActiveLimits = other.useActiveLimits;
+        this.disableVoltageControlOfGeneratorsOutsideActivePowerLimits = other.disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
         this.computeMainConnectedComponentOnly = other.computeMainConnectedComponentOnly;
         this.countriesToBalance = new HashSet<>(other.countriesToBalance);
         this.distributedOnConformLoad = other.distributedOnConformLoad;
         this.phaseControl = other.phaseControl;
         this.transformerVoltageControl = other.transformerVoltageControl;
         this.voltagePerReactivePowerControl = other.voltagePerReactivePowerControl;
-        this.reactivePowerRemoteControl = other.reactivePowerRemoteControl;
+        this.generatorReactivePowerRemoteControl = other.generatorReactivePowerRemoteControl;
+        this.transformerReactivePowerControl = other.transformerReactivePowerControl;
         this.loadFlowModel = other.loadFlowModel;
         this.shuntVoltageControl = other.shuntVoltageControl;
         this.reactiveLimits = other.reactiveLimits;
@@ -166,6 +178,8 @@ public class LfNetworkParameters {
         this.linePerUnitMode = other.linePerUnitMode;
         this.useLoadModel = other.useLoadModel;
         this.simulateAutomationSystems = other.simulateAutomationSystems;
+        this.referenceBusSelector = other.referenceBusSelector;
+        this.voltageTargetPriorities = new ArrayList<>(other.voltageTargetPriorities);
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -240,6 +254,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() {
+        return disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
+    }
+
+    public LfNetworkParameters setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits) {
+        this.disableVoltageControlOfGeneratorsOutsideActivePowerLimits = disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
+        return this;
+    }
+
     public boolean isComputeMainConnectedComponentOnly() {
         return computeMainConnectedComponentOnly;
     }
@@ -294,12 +317,21 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isReactivePowerRemoteControl() {
-        return reactivePowerRemoteControl;
+    public boolean isGeneratorReactivePowerRemoteControl() {
+        return generatorReactivePowerRemoteControl;
     }
 
-    public LfNetworkParameters setReactivePowerRemoteControl(boolean reactivePowerRemoteControl) {
-        this.reactivePowerRemoteControl = reactivePowerRemoteControl;
+    public LfNetworkParameters setGeneratorReactivePowerRemoteControl(boolean generatorReactivePowerRemoteControl) {
+        this.generatorReactivePowerRemoteControl = generatorReactivePowerRemoteControl;
+        return this;
+    }
+
+    public boolean isTransformerReactivePowerControl() {
+        return transformerReactivePowerControl;
+    }
+
+    public LfNetworkParameters setTransformerReactivePowerControl(boolean transformerReactivePowerControl) {
+        this.transformerReactivePowerControl = transformerReactivePowerControl;
         return this;
     }
 
@@ -484,6 +516,46 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public ReferenceBusSelector getReferenceBusSelector() {
+        return referenceBusSelector;
+    }
+
+    public LfNetworkParameters setReferenceBusSelector(ReferenceBusSelector referenceBusSelector) {
+        this.referenceBusSelector = referenceBusSelector;
+        return this;
+    }
+
+    public static List<String> checkVoltageTargetPriorities(List<String> voltageTargetPriorities) {
+        Objects.requireNonNull(voltageTargetPriorities);
+        for (String type : voltageTargetPriorities) {
+            try {
+                VoltageControl.Type.valueOf(type);
+            } catch (IllegalArgumentException e) {
+                throw new PowsyblException("Unknown Voltage Control Type: " + type);
+            }
+        }
+
+        List<String> checkedVoltageTargetPriorities = new ArrayList<>(voltageTargetPriorities);
+        // append default order, in case user didn't provide all types in the parameters
+        checkedVoltageTargetPriorities.addAll(VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE);
+
+        return checkedVoltageTargetPriorities.stream().distinct().toList();
+    }
+
+    public LfNetworkParameters setVoltageTargetPriorities(List<String> voltageTargetPriorities) {
+        this.voltageTargetPriorities = checkVoltageTargetPriorities(voltageTargetPriorities);
+        return this;
+    }
+
+    public int getVoltageTargetPriority(VoltageControl.Type voltageControlType) {
+        Objects.requireNonNull(voltageControlType);
+        int priority = voltageTargetPriorities.indexOf(voltageControlType.name());
+        if (priority == -1) {
+            throw new IllegalStateException("Missing LfNetworkParameters.voltageTargetPriorities for " + voltageControlType.name());
+        }
+        return priority;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -500,7 +572,8 @@ public class LfNetworkParameters {
                 ", phaseControl=" + phaseControl +
                 ", transformerVoltageControl=" + transformerVoltageControl +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
-                ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
+                ", generatorReactivePowerRemoteControl=" + generatorReactivePowerRemoteControl +
+                ", transformerReactivePowerControl=" + transformerReactivePowerControl +
                 ", loadFlowModel=" + loadFlowModel +
                 ", reactiveLimits=" + reactiveLimits +
                 ", hvdcAcEmulation=" + hvdcAcEmulation +
@@ -519,6 +592,8 @@ public class LfNetworkParameters {
                 ", linePerUnitMode=" + linePerUnitMode +
                 ", useLoadModel=" + useLoadModel +
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
+                ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
+                ", voltageTargetPriorities=" + voltageTargetPriorities +
                 ')';
     }
 }

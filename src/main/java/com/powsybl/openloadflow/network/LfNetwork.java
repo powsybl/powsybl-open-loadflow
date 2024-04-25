@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -44,6 +44,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final SlackBusSelector slackBusSelector;
 
+    private final ReferenceBusSelector referenceBusSelector;
+
     private final int maxSlackBusCount;
 
     private final Map<String, LfBus> busesById = new LinkedHashMap<>();
@@ -53,6 +55,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private LfBus referenceBus;
 
     private List<LfBus> slackBuses;
+
+    private LfGenerator referenceGenerator;
 
     private final List<LfBranch> branches = new ArrayList<>();
 
@@ -84,7 +88,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final Map<LoadFlowModel, Set<LfZeroImpedanceNetwork>> zeroImpedanceNetworksByModel = new EnumMap<>(LoadFlowModel.class);
 
-    private Reporter reporter;
+    private ReportNode reportNode;
 
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
 
@@ -129,18 +133,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     protected final List<LfOverloadManagementSystem> overloadManagementSystems = new ArrayList<>();
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
-                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
+                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector, ReportNode reportNode) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.maxSlackBusCount = maxSlackBusCount;
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
-        this.reporter = Objects.requireNonNull(reporter);
+        this.referenceBusSelector = referenceBusSelector;
+        this.reportNode = Objects.requireNonNull(reportNode);
     }
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
-                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
-        this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, Reporter.NO_OP);
+                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector) {
+        this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, ReportNode.NO_OP);
     }
 
     public int getNumCC() {
@@ -151,12 +156,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return numSC;
     }
 
-    public Reporter getReporter() {
-        return reporter;
+    public ReportNode getReportNode() {
+        return reportNode;
     }
 
-    public void setReporter(Reporter reporter) {
-        this.reporter = Objects.requireNonNull(reporter);
+    public void setReportNode(ReportNode reportNode) {
+        this.reportNode = Objects.requireNonNull(reportNode);
     }
 
     public LfElement getElement(ElementType elementType, int num) {
@@ -179,18 +184,30 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             referenceBus.setReference(false);
         }
         referenceBus = null;
+        if (referenceGenerator != null) {
+            referenceGenerator.setReference(false);
+        }
+        referenceGenerator = null;
     }
 
     public void updateSlackBusesAndReferenceBus() {
-        if (slackBuses == null || referenceBus == null) {
+        if (slackBuses == null && referenceBus == null) {
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses();
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(true);
             }
-            referenceBus = slackBuses.get(0);
+            // reference bus must be selected after slack bus, because of ReferenceBusFirstSlackSelector implementation requiring slackBuses
+            SelectedReferenceBus selectedReferenceBus = referenceBusSelector.select(this);
+            referenceBus = selectedReferenceBus.getLfBus();
+            LOGGER.info("Network {}, reference bus is {} (method='{}')", this, referenceBus, selectedReferenceBus.getSelectionMethod());
             referenceBus.setReference(true);
+            if (selectedReferenceBus instanceof SelectedGeneratorReferenceBus generatorReferenceBus) {
+                referenceGenerator = generatorReferenceBus.getLfGenerator();
+                LOGGER.info("Network {}, reference generator is {}", this, referenceGenerator.getId());
+                referenceGenerator.setReference(true);
+            }
         }
     }
 
@@ -276,6 +293,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return slackBuses;
     }
 
+    public LfGenerator getReferenceGenerator() {
+        updateSlackBusesAndReferenceBus();
+        return referenceGenerator;
+    }
+
     public List<LfShunt> getShunts() {
         return shuntsByIndex;
     }
@@ -333,7 +355,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         for (LfBus bus : busesById.values()) {
             bus.updateState(parameters);
             for (LfGenerator generator : bus.getGenerators()) {
-                generator.updateState();
+                generator.updateState(parameters);
             }
             bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
             bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
@@ -520,13 +542,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    private void reportSize(Reporter reporter) {
-        Reports.reportNetworkSize(reporter, busesById.values().size(), branches.size());
+    private void reportSize(ReportNode reportNode) {
+        Reports.reportNetworkSize(reportNode, busesById.values().size(), branches.size());
         LOGGER.info("Network {} has {} buses and {} branches",
             this, busesById.values().size(), branches.size());
     }
 
-    public void reportBalance(Reporter reporter) {
+    public void reportBalance(ReportNode reportNode) {
         double activeGeneration = 0;
         double reactiveGeneration = 0;
         double activeLoad = 0;
@@ -538,7 +560,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
         }
 
-        Reports.reportNetworkBalance(reporter, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+        Reports.reportNetworkBalance(reportNode, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
         LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
@@ -551,12 +573,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         } else {
             // zero impedance phase shifter controller or controlled branch is not supported
             branches.stream()
-                    .filter(b -> b.isPhaseController() || b.isPhaseControlled())
+                    .filter(b -> b.isPhaseController() || b.isPhaseControlled()
+                            || b.isTransformerReactivePowerController() || b.isTransformerReactivePowerControlled()
+                            || b.getGeneratorReactivePowerControl().isPresent())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
 
-    private void validateBuses(LoadFlowModel loadFlowModel, Reporter reporter) {
+    private void validateBuses(LoadFlowModel loadFlowModel, ReportNode reportNode) {
         // DC or AC, if no generator, network is dead
         boolean hasAtLeastOneBusGenerator = false;
         for (LfBus bus : busesByIndex) {
@@ -583,45 +607,45 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             }
             if (!hasAtLeastOneBusGeneratorVoltageControlEnabled) {
                 LOGGER.error("Network {} must have at least one bus with generator voltage control enabled", this);
-                if (reporter != null) {
-                    Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reporter);
+                if (reportNode != null) {
+                    Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
                 }
                 valid = false;
             }
         }
     }
 
-    public void validate(LoadFlowModel loadFlowModel, Reporter reporter) {
+    public void validate(LoadFlowModel loadFlowModel, ReportNode reportNode) {
         valid = true;
         dead = false;
-        validateBuses(loadFlowModel, reporter);
+        validateBuses(loadFlowModel, reportNode);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
-        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), Reporter.NO_OP);
+        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), ReportNode.NO_OP);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters) {
-        return load(network, networkLoader, parameters, Reporter.NO_OP);
+        return load(network, networkLoader, parameters, ReportNode.NO_OP);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
-        return load(network, networkLoader, new LfTopoConfig(), parameters, reporter);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, ReportNode reportNode) {
+        return load(network, networkLoader, new LfTopoConfig(), parameters, reportNode);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
-        List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reporter);
+        List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reportNode);
         int deadCount = 0;
         for (LfNetwork lfNetwork : lfNetworks) {
-            Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
+            ReportNode networkReport = Reports.createNetworkInfoReporter(lfNetwork.getReportNode());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
-            lfNetwork.validate(parameters.getLoadFlowModel(), reporterNetwork);
+            lfNetwork.validate(parameters.getLoadFlowModel(), networkReport);
             if (lfNetwork.isValid()) {
-                lfNetwork.reportSize(reporterNetwork);
-                lfNetwork.reportBalance(reporterNetwork);
+                lfNetwork.reportSize(networkReport);
+                lfNetwork.reportBalance(networkReport);
             } else if (lfNetwork.isDead()) {
                 deadCount++;
             } else {
@@ -755,6 +779,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfSecondaryVoltageControl> getSecondaryVoltageControls() {
         return secondaryVoltageControls;
+    }
+
+    public Optional<LfSecondaryVoltageControl> getSecondaryVoltageControl(String controlZoneName) {
+        Objects.requireNonNull(controlZoneName);
+        return secondaryVoltageControls.stream()
+                .filter(lfSvc -> lfSvc.getZoneName().equals(controlZoneName))
+                .findFirst();
     }
 
     private static boolean filterSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {

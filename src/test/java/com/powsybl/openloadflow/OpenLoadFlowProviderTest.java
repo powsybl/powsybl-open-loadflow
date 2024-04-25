@@ -50,15 +50,15 @@ class OpenLoadFlowProviderTest {
     void testDcParameters() {
         Network network = Mockito.mock(Network.class);
         DcLoadFlowParameters dcParameters = OpenLoadFlowParameters.createDcParameters(network, new LoadFlowParameters().setReadSlackBus(true), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true);
-        assertEquals("DcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, connectivityFactory=EvenShiloachGraphDecrementalConnectivityFactory, generatorVoltageRemoteControl=false, minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=5000.0, computeMainConnectedComponentOnly=true, countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, transformerVoltageControl=false, voltagePerReactivePowerControl=false, reactivePowerRemoteControl=false, loadFlowModel=DC, reactiveLimits=false, hvdcAcEmulation=false, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, loaderPostProcessorSelection=[], reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, svcVoltageMonitoring=false, maxSlackBusCount=1, debugDir=null, secondaryVoltageControl=false, cacheEnabled=false, asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, linePerUnitMode=IMPEDANCE, useLoadModel=false, simulateAutomationSystems=false), equationSystemCreationParameters=DcEquationSystemCreationParameters(updateFlows=true, forcePhaseControlOffAndAddAngle1Var=true, useTransformerRatio=true, dcApproximationType=IGNORE_R), matrixFactory=DenseMatrixFactory, distributedSlack=true, balanceType=PROPORTIONAL_TO_GENERATION_P_MAX, setVToNan=true, maxOuterLoopIterations=20)",
-                     dcParameters.toString());
+        assertEquals("DcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, connectivityFactory=EvenShiloachGraphDecrementalConnectivityFactory, generatorVoltageRemoteControl=false, minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=5000.0, computeMainConnectedComponentOnly=true, countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, transformerVoltageControl=false, voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, transformerReactivePowerControl=false, loadFlowModel=DC, reactiveLimits=false, hvdcAcEmulation=true, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, loaderPostProcessorSelection=[], reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, svcVoltageMonitoring=false, maxSlackBusCount=1, debugDir=null, secondaryVoltageControl=false, cacheEnabled=false, asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, linePerUnitMode=IMPEDANCE, useLoadModel=false, simulateAutomationSystems=false, referenceBusSelector=ReferenceBusFirstSlackSelector, voltageTargetPriorities=[GENERATOR, TRANSFORMER, SHUNT]), equationSystemCreationParameters=DcEquationSystemCreationParameters(updateFlows=true, forcePhaseControlOffAndAddAngle1Var=true, useTransformerRatio=true, dcApproximationType=IGNORE_R), matrixFactory=DenseMatrixFactory, distributedSlack=true, balanceType=PROPORTIONAL_TO_GENERATION_P_MAX, setVToNan=true, maxOuterLoopIterations=20)",
+                dcParameters.toString());
     }
 
     @Test
     void testAcParameters() {
         Network network = Mockito.mock(Network.class);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, new LoadFlowParameters().setReadSlackBus(true), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false);
-        assertEquals("AcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, connectivityFactory=EvenShiloachGraphDecrementalConnectivityFactory, generatorVoltageRemoteControl=true, minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=5000.0, computeMainConnectedComponentOnly=true, countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, transformerVoltageControl=false, voltagePerReactivePowerControl=false, reactivePowerRemoteControl=false, loadFlowModel=AC, reactiveLimits=true, hvdcAcEmulation=true, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, loaderPostProcessorSelection=[], reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, svcVoltageMonitoring=true, maxSlackBusCount=1, debugDir=null, secondaryVoltageControl=false, cacheEnabled=false, asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, linePerUnitMode=IMPEDANCE, useLoadModel=false, simulateAutomationSystems=false), equationSystemCreationParameters=AcEquationSystemCreationParameters(forceA1Var=false), newtonRaphsonParameters=NewtonRaphsonParameters(maxIterations=15, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, stoppingCriteria=DefaultNewtonRaphsonStoppingCriteria, stateVectorScalingMode=NONE, alwaysUpdateNetwork=false, lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295), newtonKrylovParameters=NewtonKrylovParameters(maxIterations=100, lineSearch=false), outerLoops=[DistributedSlackOuterLoop, MonitoringVoltageOuterLoop, ReactiveLimitsOuterLoop], maxOuterLoopIterations=20, matrixFactory=DenseMatrixFactory, voltageInitializer=UniformValueVoltageInitializer, asymmetrical=false, slackDistributionFailureBehavior=LEAVE_ON_SLACK_BUS, solverFactory=NewtonRaphsonFactory, detailedReport=false)",
+        assertEquals("AcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, connectivityFactory=EvenShiloachGraphDecrementalConnectivityFactory, generatorVoltageRemoteControl=true, minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=5000.0, computeMainConnectedComponentOnly=true, countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, transformerVoltageControl=false, voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, transformerReactivePowerControl=false, loadFlowModel=AC, reactiveLimits=true, hvdcAcEmulation=true, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, loaderPostProcessorSelection=[], reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, svcVoltageMonitoring=true, maxSlackBusCount=1, debugDir=null, secondaryVoltageControl=false, cacheEnabled=false, asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, linePerUnitMode=IMPEDANCE, useLoadModel=false, simulateAutomationSystems=false, referenceBusSelector=ReferenceBusFirstSlackSelector, voltageTargetPriorities=[GENERATOR, TRANSFORMER, SHUNT]), equationSystemCreationParameters=AcEquationSystemCreationParameters(forceA1Var=false), newtonRaphsonParameters=NewtonRaphsonParameters(maxIterations=15, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, stoppingCriteria=DefaultNewtonRaphsonStoppingCriteria, stateVectorScalingMode=NONE, alwaysUpdateNetwork=false, lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295), newtonKrylovParameters=NewtonKrylovParameters(maxIterations=100, lineSearch=false), outerLoops=[DistributedSlackOuterLoop, MonitoringVoltageOuterLoop, ReactiveLimitsOuterLoop], maxOuterLoopIterations=20, matrixFactory=DenseMatrixFactory, voltageInitializer=UniformValueVoltageInitializer, asymmetrical=false, slackDistributionFailureBehavior=LEAVE_ON_SLACK_BUS, solverFactory=NewtonRaphsonFactory, detailedReport=false)",
                      acParameters.toString());
     }
 
@@ -86,7 +86,7 @@ class OpenLoadFlowProviderTest {
     @Test
     void specificParametersTest() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
-        assertEquals(58, provider.getSpecificParameters().size());
+        assertEquals(65, provider.getSpecificParameters().size());
         LoadFlowParameters parameters = new LoadFlowParameters();
 
         provider.loadSpecificParameters(Collections.emptyMap())
@@ -101,15 +101,16 @@ class OpenLoadFlowProviderTest {
         updateParametersMap.put("voltageRemoteControl", "false");
         provider.updateSpecificParameters(parameters.getExtension(OpenLoadFlowParameters.class), updateParametersMap);
         assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getExtension(OpenLoadFlowParameters.class).getSlackBusSelectionMode());
-        assertFalse(parameters.getExtension(OpenLoadFlowParameters.class).hasVoltageRemoteControl());
+        assertFalse(parameters.getExtension(OpenLoadFlowParameters.class).isVoltageRemoteControl());
     }
 
     @Test
     void testCreateMapFromSpecificParameters() {
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
-        Map<String, String> map = new OpenLoadFlowProvider(new DenseMatrixFactory())
-                .createMapFromSpecificParameters(parametersExt);
-        assertEquals(58, map.size());
+        OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
+        Map<String, String> map = provider.createMapFromSpecificParameters(parametersExt);
+        assertEquals(65, map.size());
+        assertEquals(provider.getSpecificParameters().size(), map.size());
     }
 
     @Test

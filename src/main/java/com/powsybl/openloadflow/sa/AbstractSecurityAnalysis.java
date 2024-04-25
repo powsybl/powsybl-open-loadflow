@@ -7,14 +7,17 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.action.*;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
+import com.powsybl.iidm.network.TieLine;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -30,7 +33,6 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.*;
-import com.powsybl.security.action.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;
@@ -67,17 +69,17 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected final StateMonitorIndex monitorIndex;
 
-    protected final Reporter reporter;
+    protected final ReportNode reportNode;
 
     private static final String NOT_FOUND = "' not found in the network";
 
     protected AbstractSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                       List<StateMonitor> stateMonitors, Reporter reporter) {
+                                       List<StateMonitor> stateMonitors, ReportNode reportNode) {
         this.network = Objects.requireNonNull(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
         this.monitorIndex = new StateMonitorIndex(stateMonitors);
-        this.reporter = Objects.requireNonNull(reporter);
+        this.reportNode = Objects.requireNonNull(reportNode);
     }
 
     protected static SecurityAnalysisResult createNoResult() {
@@ -96,17 +98,15 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }, computationManager.getExecutor());
     }
 
-    protected abstract Reporter createSaRootReporter();
+    protected abstract ReportNode createSaRootReportNode();
 
     protected abstract boolean isShuntCompensatorVoltageControlOn(LoadFlowParameters lfParameters);
-
-    protected abstract boolean isHvdcAcEmulation(LoadFlowParameters lfParameters);
 
     protected abstract P createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers);
 
     SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
                                    List<OperatorStrategy> operatorStrategies, List<Action> actions) {
-        var saReporter = createSaRootReporter();
+        var saReportNode = createSaRootReportNode();
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -124,6 +124,12 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // try to find all ptc and rtc to retain because involved in ptc and rtc actions
         findAllPtcToOperate(actions, topoConfig);
         findAllRtcToOperate(actions, topoConfig);
+        // try to find all shunts which section can change through actions.
+        findAllShuntsToOperate(actions, topoConfig);
+
+        // try to find branches (lines and two windings transformers).
+        // tie lines and three windings transformers missing.
+        findAllBranchesToClose(network, actions, topoConfig);
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
@@ -132,14 +138,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .setContingencyPropagation(securityAnalysisParametersExt.isContingencyPropagation())
                 .setShuntCompensatorVoltageControlOn(isShuntCompensatorVoltageControlOn(lfParameters))
                 .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                .setHvdcAcEmulation(isHvdcAcEmulation(lfParameters));
+                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation());
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
         var parameters = createParameters(lfParameters, lfParametersExt, topoConfig.isBreaker());
 
         // create networks including all necessary switches
-        try (LfNetworkList lfNetworks = Networks.load(network, parameters.getNetworkParameters(), topoConfig, saReporter)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, parameters.getNetworkParameters(), topoConfig, saReportNode)) {
             // run simulation on largest network
             SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
                     .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions))
@@ -166,10 +172,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
-                case LineConnectionAction.NAME: {
-                    LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
-                    if (network.getBranch(lineConnectionAction.getLineId()) == null && network.getTieLine(lineConnectionAction.getLineId()) == null) {
-                        throw new PowsyblException("Branch '" + lineConnectionAction.getLineId() + NOT_FOUND);
+                case TerminalsConnectionAction.NAME: {
+                    TerminalsConnectionAction terminalsConnectionAction = (TerminalsConnectionAction) action;
+                    if (network.getBranch(terminalsConnectionAction.getElementId()) == null) {
+                        throw new PowsyblException("Branch '" + terminalsConnectionAction.getElementId() + NOT_FOUND);
                     }
                     break;
                 }
@@ -205,6 +211,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     HvdcAction hvdcAction = (HvdcAction) action;
                     if (network.getHvdcLine(hvdcAction.getHvdcId()) == null) {
                         throw new PowsyblException("Hvdc line '" + hvdcAction.getHvdcId() + NOT_FOUND);
+                    }
+                    break;
+                }
+
+                case ShuntCompensatorPositionAction.NAME: {
+                    ShuntCompensatorPositionAction shuntCompensatorPositionAction = (ShuntCompensatorPositionAction) action;
+                    if (network.getShuntCompensator(shuntCompensatorPositionAction.getShuntCompensatorId()) == null) {
+                        throw new PowsyblException("Shunt compensator '" + shuntCompensatorPositionAction.getShuntCompensatorId() + "' not found");
                     }
                     break;
                 }
@@ -321,8 +335,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (PhaseTapChangerTapPositionAction.NAME.equals(action.getType())) {
                 PhaseTapChangerTapPositionAction ptcAction = (PhaseTapChangerTapPositionAction) action;
                 ptcAction.getSide().ifPresentOrElse(
-                        side -> topoConfig.addBranchIdsWithPtcToRetain(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
-                        () -> topoConfig.addBranchIdsWithPtcToRetain(ptcAction.getTransformerId()) // T2WT
+                        side -> topoConfig.addBranchIdWithPtcToRetain(LfLegBranch.getId(side, ptcAction.getTransformerId())), // T3WT
+                        () -> topoConfig.addBranchIdWithPtcToRetain(ptcAction.getTransformerId()) // T2WT
                 );
             }
         }
@@ -333,9 +347,32 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (RatioTapChangerTapPositionAction.NAME.equals(action.getType())) {
                 RatioTapChangerTapPositionAction rtcAction = (RatioTapChangerTapPositionAction) action;
                 rtcAction.getSide().ifPresentOrElse(
-                        side -> topoConfig.addBranchIdsWithRtcToRetain(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
-                        () -> topoConfig.addBranchIdsWithRtcToRetain(rtcAction.getTransformerId()) // T2WT
+                        side -> topoConfig.addBranchIdWithRtcToRetain(LfLegBranch.getId(side, rtcAction.getTransformerId())), // T3WT
+                        () -> topoConfig.addBranchIdWithRtcToRetain(rtcAction.getTransformerId()) // T2WT
                 );
+            }
+        }
+    }
+
+    protected static void findAllShuntsToOperate(List<Action> actions, LfTopoConfig topoConfig) {
+        actions.stream().filter(action -> action.getType().equals(ShuntCompensatorPositionAction.NAME))
+                .forEach(action -> topoConfig.addShuntIdToOperate(((ShuntCompensatorPositionAction) action).getShuntCompensatorId()));
+    }
+
+    protected static void findAllBranchesToClose(Network network, List<Action> actions, LfTopoConfig topoConfig) {
+        // only branches open at both side or open at one side are visible in the LfNetwork.
+        for (Action action : actions) {
+            if (TerminalsConnectionAction.NAME.equals(action.getType())) {
+                TerminalsConnectionAction terminalsConnectionAction = (TerminalsConnectionAction) action;
+                if (terminalsConnectionAction.getSide().isEmpty() && !terminalsConnectionAction.isOpen()) {
+                    Branch branch = network.getBranch(terminalsConnectionAction.getElementId());
+                    if (branch != null && !(branch instanceof TieLine) &&
+                            !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) {
+                        // both terminals must be disconnected. If only one is connected, the branch is present
+                        // in the Lf network.
+                        topoConfig.getBranchIdsToClose().add(terminalsConnectionAction.getElementId());
+                    }
+                }
             }
         }
     }
@@ -369,9 +406,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
         try (C context = createLoadFlowContext(lfNetwork, acParameters)) {
-            Reporter networkReporter = lfNetwork.getReporter();
-            Reporter preContSimReporter = Reports.createPreContingencySimulation(networkReporter);
-            lfNetwork.setReporter(preContSimReporter);
+            ReportNode networkReportNode = lfNetwork.getReportNode();
+            ReportNode preContSimReportNode = Reports.createPreContingencySimulation(networkReportNode);
+            lfNetwork.setReportNode(preContSimReportNode);
 
             // run pre-contingency simulation
             R preContingencyLoadFlowResult = createLoadFlowEngine(context)
@@ -402,8 +439,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     PropagatedContingency propagatedContingency = contingencyIt.next();
                     propagatedContingency.toLfContingency(lfNetwork)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                Reporter postContSimReporter = Reports.createPostContingencySimulation(networkReporter, lfContingency.getId());
-                                lfNetwork.setReporter(postContSimReporter);
+                                ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
+                                lfNetwork.setReportNode(postContSimReportNode);
 
                                 lfContingency.apply(loadFlowParameters.getBalanceType());
 

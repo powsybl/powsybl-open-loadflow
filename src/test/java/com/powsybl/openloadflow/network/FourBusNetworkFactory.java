@@ -179,5 +179,25 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         g3.setRegulatingTerminal(network.getLine("l24").getTerminal2());
         return network;
     }
+
+    public static Network createWithCondenser() {
+        Network network = createBaseNetwork();
+        network.getGenerator("g4")
+                .setTargetP(0.0)
+                .setMaxP(0.0)
+                .setMinP(0.0);
+        return network;
+    }
+
+    public static Network createWithTwoScs() {
+        Network network = createBaseNetwork();
+        Bus c1 = createBus(network, "c1");
+        Bus c2 = createBus(network, "c2");
+        createGenerator(c1, "gc1", 2);
+        createLoad(c2, "dc2", 1);
+        createLine(network, c1, c2, "lc12", 1f);
+        createLine(network, c1, c2, "lc12Bis", 1f);
+        return network;
+    }
 }
 

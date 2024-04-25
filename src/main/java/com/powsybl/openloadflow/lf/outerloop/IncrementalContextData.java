@@ -52,24 +52,24 @@ public class IncrementalContextData {
 
     private final Map<String, ControllerContext> controllersContexts = new HashMap<>();
 
-    private final List<LfBus> candiateControlledBuses;
+    private final List<LfBus> candidateControlledBuses;
 
     public Map<String, ControllerContext> getControllersContexts() {
         return controllersContexts;
     }
 
     public List<LfBus> getCandidateControlledBuses() {
-        return candiateControlledBuses;
+        return candidateControlledBuses;
     }
 
     public IncrementalContextData(LfNetwork network, VoltageControl.Type type) {
-        candiateControlledBuses = network.getBuses().stream()
+        candidateControlledBuses = network.getBuses().stream()
                 .filter(bus -> bus.isVoltageControlled(type))
                 .collect(Collectors.toList());
     }
 
     public IncrementalContextData() {
-        candiateControlledBuses = Collections.emptyList();
+        candidateControlledBuses = Collections.emptyList();
     }
 
     public static List<LfBus> getControlledBuses(List<LfBus> candidateControlledBuses, VoltageControl.Type type) {

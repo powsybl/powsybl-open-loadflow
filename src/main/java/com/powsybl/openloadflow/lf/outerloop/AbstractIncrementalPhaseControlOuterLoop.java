@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.Range;
-import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -108,9 +108,9 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
         }
     }
 
-    protected boolean checkActivePowerControlPhaseControls(AbstractSensitivityContext<V, E> sensitivityContext, IncrementalContextData contextData,
-                                                                  List<TransformerPhaseControl> activePowerControlPhaseControls) {
-        MutableBoolean updated = new MutableBoolean(false);
+    protected int checkActivePowerControlPhaseControls(AbstractSensitivityContext<V, E> sensitivityContext, IncrementalContextData contextData,
+                                                           List<TransformerPhaseControl> activePowerControlPhaseControls) {
+        MutableInt numOfActivePowerControlPstsThatChangedTap = new MutableInt(0);
 
         for (TransformerPhaseControl phaseControl : activePowerControlPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -133,7 +133,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
                     piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
                         controllerContext.updateAllowedDirection(direction);
-                        updated.setValue(true);
+                        numOfActivePowerControlPstsThatChangedTap.add(1);
                     });
 
                     if (piModel.getTapPosition() != oldTapPosition) {
@@ -143,8 +143,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
                 }
             }
         }
-
-        return updated.booleanValue();
+        return numOfActivePowerControlPstsThatChangedTap.getValue();
     }
 
 }

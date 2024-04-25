@@ -34,6 +34,11 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         }
 
         @Override
+        public void onTransformerVoltageControlTargetChange(TransformerVoltageControl transformerVoltageControl, double newTargetVoltage) {
+            invalidateValues();
+        }
+
+        @Override
         public void onLoadActivePowerTargetChange(LfLoad load, double oldTargetP, double newTargetP) {
             invalidateValues();
         }
