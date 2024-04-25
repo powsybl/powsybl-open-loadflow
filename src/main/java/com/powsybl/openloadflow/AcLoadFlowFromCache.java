@@ -7,8 +7,7 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -17,6 +16,7 @@ import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfTopoConfig;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.slf4j.Logger;
@@ -52,7 +52,7 @@ public class AcLoadFlowFromCache {
         this.reportNode = Objects.requireNonNull(reportNode);
     }
 
-    private void configureSwitches(LfTopoConfig topoConfig) {
+    private void configureTopoConfig(LfTopoConfig topoConfig) {
         for (String switchId : parametersExt.getActionableSwitchesIds()) {
             Switch sw = network.getSwitch(switchId);
             if (sw != null) {
@@ -65,6 +65,22 @@ public class AcLoadFlowFromCache {
                 LOGGER.warn("Actionable switch '{}' does not exist", switchId);
             }
         }
+        for (String transformerId : parametersExt.getActionableTransformersIds()) {
+            Branch<?> branch = network.getBranch(transformerId);
+            if (branch != null) {
+                topoConfig.addBranchIdWithRtcToRetain(transformerId);
+                topoConfig.addBranchIdWithPtcToRetain(transformerId);
+            } else {
+                ThreeWindingsTransformer tw3 = network.getThreeWindingsTransformer(transformerId);
+                if (tw3 != null) {
+                    for (ThreeSides side : ThreeSides.values()) {
+                        topoConfig.addBranchIdWithRtcToRetain(LfLegBranch.getId(side, transformerId));
+                        topoConfig.addBranchIdWithPtcToRetain(LfLegBranch.getId(side, transformerId));
+                    }
+                }
+                LOGGER.warn("Actionable transformer '{}' does not exist", transformerId);
+            }
+        }
         if (topoConfig.isBreaker()) {
             acParameters.getNetworkParameters().setBreakers(true);
         }
@@ -73,7 +89,7 @@ public class AcLoadFlowFromCache {
     private List<AcLoadFlowContext> initContexts(NetworkCache.Entry entry) {
         List<AcLoadFlowContext> contexts;
         LfTopoConfig topoConfig = new LfTopoConfig();
-        configureSwitches(topoConfig);
+        configureTopoConfig(topoConfig);
 
         // Because of caching, we only need to switch back to working variant but not to remove the variant, thus
         // WorkingVariantReverter is used instead of DefaultVariantCleaner
