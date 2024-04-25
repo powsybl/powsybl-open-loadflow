@@ -185,7 +185,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         String referenceBusId = null;
         List<LoadFlowResult.SlackBusResult> slackBusResultList = new ArrayList<>();
         double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch() * PerUnit.SB;
-        if (result.getNetwork().isValid()) {
+        if (result.getNetwork().getValidity() == LfNetwork.Validity.VALID) {
             referenceBusId = result.getNetwork().getReferenceBus().getId();
             List<LfBus> slackBuses = result.getNetwork().getSlackBuses();
             slackBusResultList = slackBuses.stream().map(
@@ -244,12 +244,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
-        final LoadFlowResult.ComponentResult.Status status;
-        if (result.getNetwork().isDead()) {
-            status = LoadFlowResult.ComponentResult.Status.NO_CALCULATION;
-        } else {
-            status = result.isSuccess() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
-        }
+        final LoadFlowResult.ComponentResult.Status status = result.toComponentResultStatus();
         return new LoadFlowResultImpl.ComponentResultImpl(
                 result.getNetwork().getNumCC(),
                 result.getNetwork().getNumSC(),

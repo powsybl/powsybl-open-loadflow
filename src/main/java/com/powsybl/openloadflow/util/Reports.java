@@ -57,6 +57,14 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportComponentsWithoutGenerators(ReportNode reportNode, int deadComponentsCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("componentsWithoutGenerators", "No calculation will be done on {deadComponentsCount} network(s) that have have no generators")
+                .withUntypedValue("deadComponentsCount", deadComponentsCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
     public static void reportMismatchDistributionFailure(ReportNode reportNode, double remainingMismatch) {
         reportNode.newReportNode()
                 .withMessageTemplate("mismatchDistributionFailure", "Failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
@@ -247,12 +255,22 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode createLfNetworkReporter(ReportNode reportNode, int networkNumCc, int networkNumSc) {
-        return reportNode.newReportNode()
+    public static ReportNode createRootLfNetworkReportNode(int networkNumCc, int networkNumSc) {
+        return ReportNode.newRootReportNode()
+                .withMessageTemplate("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}")
+                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
+                .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+                .build();
+    }
+
+    public static ReportNode createLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode, int networkNumCc, int networkNumSc) {
+        ReportNode newReportNode = reportNode.newReportNode()
                 .withMessageTemplate("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}")
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
                 .add();
+        newReportNode.include(lfNetworkReportNode);
+        return newReportNode;
     }
 
     public static ReportNode createNetworkInfoReporter(ReportNode reportNode) {
