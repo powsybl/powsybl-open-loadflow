@@ -10,8 +10,11 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixException;
-import com.powsybl.openloadflow.dc.equations.*;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
+import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
@@ -127,19 +130,19 @@ public class WoodburyEngine {
                     .map(contingencyElementByBranch::get)
                     .toList();
 
-            DenseMatrix newFlowStates = flowStates;
-            if (rhsModifications.getNewFlowRhsByPropagatedContingency().containsKey(contingency)) {
-                newFlowStates = rhsModifications.getNewFlowRhsByPropagatedContingency().get(contingency);
-                solveRhs(loadFlowContext, newFlowStates, reporter);
+            DenseMatrix flowStatesOverride = flowStates;
+            if (rhsModifications.getFlowRhsOverrideByPropagatedContingency(contingency).isPresent()) {
+                flowStatesOverride = rhsModifications.getFlowRhsOverrideByPropagatedContingency(contingency).get();
+                solveRhs(loadFlowContext, flowStatesOverride, reporter);
             }
 
-            DenseMatrix newPreContingencyStates = preContingencyStates;
-            if (rhsModifications.getNewInjectionRhsByPropagatedContingency().containsKey(contingency)) {
-                newPreContingencyStates = rhsModifications.getNewInjectionRhsByPropagatedContingency().get(contingency);
-                solveRhs(loadFlowContext, newPreContingencyStates, reporter);
+            DenseMatrix preContingencyStatesOverride = preContingencyStates;
+            if (rhsModifications.getInjectionRhsOverrideByPropagatedContingency(contingency).isPresent()) {
+                preContingencyStatesOverride = rhsModifications.getInjectionRhsOverrideByPropagatedContingency(contingency).get();
+                solveRhs(loadFlowContext, preContingencyStatesOverride, reporter);
             }
 
-            WoodburyEngineResult.WoodburyStates woodburyStates = computeSingleContingencyStates(loadFlowContext, newFlowStates, newPreContingencyStates,
+            WoodburyEngineResult.WoodburyStates woodburyStates = computeSingleContingencyStates(loadFlowContext, flowStatesOverride, preContingencyStatesOverride,
                     contingenciesStates, contingencyElements);
             postContingencyWoodburyStates.put(contingency, woodburyStates);
         }
@@ -151,21 +154,22 @@ public class WoodburyEngine {
                                                                                                                      ReportNode reporter) {
 
         // null and unused if slack bus is not distributed
-        DenseMatrix newPreContingencyStatesForThisConnectivity = preContingencyStates;
-        if (rhsModification.getNewInjectionRhsForAConnectivity().containsKey(connectivityAnalysisResult)) {
-            newPreContingencyStatesForThisConnectivity = rhsModification.getNewInjectionRhsForAConnectivity().get(connectivityAnalysisResult);
-            solveRhs(loadFlowContext, newPreContingencyStatesForThisConnectivity, reporter);
+        DenseMatrix preContingencyStatesOverrideForThisConnectivity = preContingencyStates;
+        if (rhsModification.getInjectionRhsOverrideForAConnectivity(connectivityAnalysisResult).isPresent()) {
+            preContingencyStatesOverrideForThisConnectivity = rhsModification.getInjectionRhsOverrideForAConnectivity(connectivityAnalysisResult).get();
+            solveRhs(loadFlowContext, preContingencyStatesOverrideForThisConnectivity, reporter);
         }
 
-        DenseMatrix newFlowStatesForThisConnectivity = rhsModification.getNewFlowRhsForAConnectivity().get(connectivityAnalysisResult);
-        solveRhs(loadFlowContext, newFlowStatesForThisConnectivity, reporter);
+        // a flow state override is expected if the connectivity is broken
+        DenseMatrix flowStatesOverrideForThisConnectivity = rhsModification.getFlowRhsOverrideForAConnectivity(connectivityAnalysisResult).orElseThrow();
+        solveRhs(loadFlowContext, flowStatesOverrideForThisConnectivity, reporter);
 
-        return computeStatesForContingencyList(loadFlowContext, newFlowStatesForThisConnectivity, newPreContingencyStatesForThisConnectivity, rhsModification, contingenciesStates,
+        return computeStatesForContingencyList(loadFlowContext, flowStatesOverrideForThisConnectivity, preContingencyStatesOverrideForThisConnectivity, rhsModification, contingenciesStates,
                 connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, connectivityAnalysisResult.getElementsToReconnect(), reporter);
     }
 
     public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, DenseMatrix flowRhs, DenseMatrix injectionRhs, WoodburyEngineRhsModifications rhsModifications,
-                                    ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityDataResult, ReportNode reporter) {
+                                    ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults, ReportNode reporter) {
 
         // compute pre-contingency injection/flow states
         solveRhs(loadFlowContext, injectionRhs, reporter);
@@ -173,21 +177,21 @@ public class WoodburyEngine {
         WoodburyEngineResult.WoodburyStates preContingencyStates = new WoodburyEngineResult.WoodburyStates(flowRhs, injectionRhs);
 
         // get contingency elements indexed by branch id
-        Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityDataResult.contingencyElementByBranch();
+        Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityBreakAnalysisResults.contingencyElementByBranch();
 
         // get states with +1 -1 to model the contingencies
-        DenseMatrix contingenciesStates = connectivityDataResult.contingenciesStates();
+        DenseMatrix contingenciesStates = connectivityBreakAnalysisResults.contingenciesStates();
 
         LOGGER.info("Processing contingencies with no connectivity break");
 
         // calculate state values for contingencies with no connectivity break
         Map<PropagatedContingency, WoodburyEngineResult.WoodburyStates> postContingencyStates = computeStatesForContingencyList(loadFlowContext, flowRhs, injectionRhs,
-                rhsModifications, contingenciesStates, connectivityDataResult.nonBreakingConnectivityContingencies(), contingencyElementByBranch, Collections.emptySet(), reporter);
+                rhsModifications, contingenciesStates, connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies(), contingencyElementByBranch, Collections.emptySet(), reporter);
 
         LOGGER.info("Processing contingencies with connectivity break");
 
         // process contingencies with connectivity break
-        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityDataResult.connectivityAnalysisResults()) {
+        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
             Map<PropagatedContingency, WoodburyEngineResult.WoodburyStates> postContingencyBreakingConnectivityStates = processContingenciesBreakingConnectivity(connectivityAnalysisResult,
                     loadFlowContext, injectionRhs, rhsModifications, contingenciesStates, contingencyElementByBranch, reporter);
             postContingencyStates.putAll(postContingencyBreakingConnectivityStates);
