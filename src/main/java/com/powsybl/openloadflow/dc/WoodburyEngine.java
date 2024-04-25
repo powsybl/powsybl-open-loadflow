@@ -132,13 +132,13 @@ public class WoodburyEngine {
 
             DenseMatrix flowStatesOverride = flowStates;
             if (rhsModifications.getFlowRhsOverrideByPropagatedContingency(contingency).isPresent()) {
-                flowStatesOverride = rhsModifications.getFlowRhsOverrideByPropagatedContingency(contingency).get();
+                flowStatesOverride = rhsModifications.getFlowRhsOverrideByPropagatedContingency(contingency).orElseThrow();
                 solveRhs(loadFlowContext, flowStatesOverride, reporter);
             }
 
             DenseMatrix preContingencyStatesOverride = preContingencyStates;
             if (rhsModifications.getInjectionRhsOverrideByPropagatedContingency(contingency).isPresent()) {
-                preContingencyStatesOverride = rhsModifications.getInjectionRhsOverrideByPropagatedContingency(contingency).get();
+                preContingencyStatesOverride = rhsModifications.getInjectionRhsOverrideByPropagatedContingency(contingency).orElseThrow();
                 solveRhs(loadFlowContext, preContingencyStatesOverride, reporter);
             }
 
@@ -156,7 +156,7 @@ public class WoodburyEngine {
         // null and unused if slack bus is not distributed
         DenseMatrix preContingencyStatesOverrideForThisConnectivity = preContingencyStates;
         if (rhsModification.getInjectionRhsOverrideForAConnectivity(connectivityAnalysisResult).isPresent()) {
-            preContingencyStatesOverrideForThisConnectivity = rhsModification.getInjectionRhsOverrideForAConnectivity(connectivityAnalysisResult).get();
+            preContingencyStatesOverrideForThisConnectivity = rhsModification.getInjectionRhsOverrideForAConnectivity(connectivityAnalysisResult).orElseThrow();
             solveRhs(loadFlowContext, preContingencyStatesOverrideForThisConnectivity, reporter);
         }
 
