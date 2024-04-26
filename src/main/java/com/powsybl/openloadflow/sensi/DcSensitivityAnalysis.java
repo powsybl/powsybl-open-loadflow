@@ -317,7 +317,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
             Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
             newParticipatingElements = participatingElements.stream()
-                    .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getLfGeneratorElement()))
+                    .filter(participatingElement -> !(participatingElement.getElement() instanceof LfGenerator
+                            && participatingGeneratorsToRemove.contains((LfGenerator) participatingElement.getElement())))
                     .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
                     .toList();
             normalizeParticipationFactors(newParticipatingElements);
