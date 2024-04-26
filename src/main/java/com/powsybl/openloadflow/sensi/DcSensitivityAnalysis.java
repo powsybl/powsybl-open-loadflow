@@ -381,6 +381,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
+    /**
+     * Compute right hand side overrides for a list of contingencies.
+     */
     private void buildRhsModificationsForContingencies(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
                                                        Collection<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements, WoodburyEngineRhsModifications injectionRhsModifications,
                                                        WoodburyEngineRhsModifications flowRhsModifications, HashMap<PropagatedContingency, DisabledNetwork> disabledNetworksByPropagatedContingencies, Set<LfBus> disabledBuses,
@@ -424,6 +427,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
+    /**
+     * Compute right hand side overrides for groups of contingencies breaking connectivity.
+     */
     private void buildRhsModificationsForContingenciesBreakingConnectivity(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityDataResult,
                                                                            SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, List<ParticipatingElement> participatingElements,
                                                                            WoodburyEngineRhsModifications injectionRhsModifications, WoodburyEngineRhsModifications flowRhsModifications, HashMap<PropagatedContingency, DisabledNetwork> disabledNetworksByPropagatedContingencies,

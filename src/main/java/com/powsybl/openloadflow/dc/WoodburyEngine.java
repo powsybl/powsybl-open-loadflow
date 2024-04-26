@@ -106,6 +106,9 @@ public class WoodburyEngine {
         return postContingencyStates;
     }
 
+    /**
+     * Compute post-contingency states values for each contingency of a list.
+     */
     private Map<PropagatedContingency, DenseMatrix> computeStatesForContingencyList(DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates, WoodburyEngineRhsModifications rhsModifications,
                                                                                                             DenseMatrix contingenciesStates, Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                                                                             Set<String> elementsToReconnect, ReportNode reporter) {
@@ -130,10 +133,12 @@ public class WoodburyEngine {
         return postContingencyStatesByContingency;
     }
 
+    /**
+     * Compute post-contingency states values for a group of contingency breaking connectivity.
+     */
     private Map<PropagatedContingency, DenseMatrix> processContingenciesBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates,
                                                                                                                      WoodburyEngineRhsModifications rhsModification, DenseMatrix contingenciesStates, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                                                                                      ReportNode reporter) {
-
         // null and unused if slack bus is not distributed
         DenseMatrix preContingencyStatesOverrideForThisConnectivity = preContingencyStates;
         if (rhsModification.getRhsOverrideForAConnectivity(connectivityAnalysisResult).isPresent()) {
@@ -145,11 +150,22 @@ public class WoodburyEngine {
                 connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, connectivityAnalysisResult.getElementsToReconnect(), reporter);
     }
 
+    /**
+     * Compute pre- and post-contingency angle states of a network, using Woodbury formula, and for a given connectivity break analysis.
+     * Right hand side overrides should be provided when a contingency or a connectivity analysis result (group of contingencies
+     * breaking connectivity) changes it (for example, in the case of a lost GLSK member).
+     *
+     * @param loadFlowContext the dc load flow context in which is the network.
+     * @param rhs the pre-contingency right hand side.
+     * @param rhsModifications the potential overrides of the rhs, due to contingencies modifying it.
+     * @param connectivityBreakAnalysisResults the results of a connectivity break analysis (with groups of contingencies breaking connectivity identified).
+     * @return pre- and post-contingency angle states.
+     */
     public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, DenseMatrix rhs, WoodburyEngineRhsModifications rhsModifications,
                                     ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults, ReportNode reporter) {
 
-        // compute pre-contingency states
-        solveRhs(loadFlowContext, rhs, reporter); // states are now in rhs
+        // compute pre-contingency states, they are now in rhs
+        solveRhs(loadFlowContext, rhs, reporter);
 
         // get contingency elements indexed by branch id
         Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityBreakAnalysisResults.contingencyElementByBranch();
@@ -166,8 +182,8 @@ public class WoodburyEngine {
 
         LOGGER.info("Processing contingencies with connectivity break");
 
-        // process contingencies with connectivity break
         for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
+            // calculate state values for a group of contingency breaking connectivity
             Map<PropagatedContingency, DenseMatrix> postContingencyBreakingConnectivityStates = processContingenciesBreakingConnectivity(connectivityAnalysisResult,
                     loadFlowContext, rhs, rhsModifications, contingenciesStates, contingencyElementByBranch, reporter);
             postContingencyStates.putAll(postContingencyBreakingConnectivityStates);

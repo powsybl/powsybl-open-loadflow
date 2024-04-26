@@ -13,12 +13,21 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import java.util.HashMap;
 import java.util.Optional;
 
-/**$
+/**
+ * Store the overrides of a right hand side, due to contingencies modifying it.
+ * These overrides are used in {@link WoodburyEngine}, to compute post-contingency states.
+ *
+ * For example, in a {@link com.powsybl.openloadflow.sensi.DcSensitivityAnalysis}, some elements of a GLSK may not be in the connected
+ * component anymore due to contingencies. Because the connectivity changed, the right hand side should be changed.
+ * Instead of overwriting the right hand side, on override is stored.
+ *
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
 public class WoodburyEngineRhsModifications {
 
+    // rhs overrides for propagated contingencies
     private final HashMap<PropagatedContingency, DenseMatrix> rhsOverrideByPropagatedContingency;
+    // rhs overrides for a connectivity analysis result (group of contingencies breaking connectivity)
     private final HashMap<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, DenseMatrix> rhsOverrideForAConnectivity;
 
     public WoodburyEngineRhsModifications() {
