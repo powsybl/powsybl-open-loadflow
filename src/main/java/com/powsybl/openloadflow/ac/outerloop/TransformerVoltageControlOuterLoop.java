@@ -11,8 +11,11 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.VoltageControl;
-import org.apache.commons.lang3.mutable.MutableObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,11 +27,21 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
 
     public static final String NAME = "TransformerVoltageControl";
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TransformerVoltageControlOuterLoop.class);
+
+    private enum Step {
+        NOT_STARTED,
+        TUNING,
+        DISCRETIZED
+    }
+
     private static final class ContextData {
 
         private double maxControlledNominalVoltage = Double.MIN_VALUE;
 
         private final List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
+
+        private Step step = Step.NOT_STARTED;
 
         private double getMaxControlledNominalVoltage() {
             return maxControlledNominalVoltage;
@@ -69,55 +82,80 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
 
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
-        final MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         var contextData = (ContextData) context.getData();
 
         double maxControlledNominalVoltage = contextData.getMaxControlledNominalVoltage();
 
-        // At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
-        // the set controlledNominalVoltages are disabled.
-        // The transformer voltage controls are enabled.
-        if (context.getIteration() == 0) {
-            for (LfBus bus : context.getNetwork().getControlledBuses(VoltageControl.Type.GENERATOR)) {
-                if (bus.getNominalV() <= maxControlledNominalVoltage) {
-                    var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
-                    voltageControl.getMergedControllerElements().forEach(controllerBus -> {
-                        if (controllerBus.isGeneratorVoltageControlEnabled()) {
-                            controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
-                            controllerBus.setGeneratorVoltageControlEnabled(false);
-                            contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
+        switch (contextData.step) {
+            // At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
+            // the set controlledNominalVoltages are disabled.
+            // The transformer voltage controls are enabled.
+            case NOT_STARTED : {
+                boolean needRun = false;
+                for (LfBranch branch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
+                    if (branch.getVoltageControl().isPresent()) {
+                        TransformerVoltageControl voltageControl = branch.getVoltageControl().orElseThrow();
+                        double targetV = voltageControl.getTargetValue();
+                        double v = voltageControl.getControlledBus().getV();
+                        double diffV = targetV - v;
+                        double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+                        if (Math.abs(diffV) > halfTargetDeadband && branch.isConnectedAtBothSides()) {
+                            branch.setVoltageControlEnabled(true);
+                            needRun = true;
                         }
-                    });
-                    status.setValue(OuterLoopStatus.UNSTABLE);
-                }
-            }
-            for (LfBranch branch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
-                branch.getVoltageControl().ifPresent(voltageControl -> {
-                    double targetV = voltageControl.getTargetValue();
-                    double v = voltageControl.getControlledBus().getV();
-                    double diffV = targetV - v;
-                    double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-                    if (Math.abs(diffV) > halfTargetDeadband && branch.isConnectedAtBothSides()) {
-                        branch.setVoltageControlEnabled(true);
-                        status.setValue(OuterLoopStatus.UNSTABLE);
                     }
-                });
+                }
+                if (!needRun) {
+                    contextData.step = Step.DISCRETIZED;
+                    return OuterLoopStatus.STABLE;
+                }
+                for (LfBus bus : context.getNetwork().getControlledBuses(VoltageControl.Type.GENERATOR)) {
+                    if (bus.getNominalV() <= maxControlledNominalVoltage) {
+                        var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
+                        for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
+                            if (controllerBus.isGeneratorVoltageControlEnabled()) {
+                                controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
+                                controllerBus.setGeneratorVoltageControlEnabled(false);
+                                contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
+                            }
+                        }
+                    }
+                }
+                context.getNetwork().fixTransformerVoltageControls(false);
+                contextData.step = Step.TUNING;
+                return OuterLoopStatus.UNSTABLE;
             }
-            context.getNetwork().fixTransformerVoltageControls(true);
+            case TUNING: {
+                boolean outOfBoundTap = false;
+                for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
+                    // round the rho shift to the closest tap
+                    PiModel piModel = controllerBranch.getPiModel();
+                    double r1 = piModel.getR1();
+                    if (r1 < piModel.getMinR1() || r1 > piModel.getMaxR1()) {
+                        LOGGER.info("Transformer " + controllerBranch.getId() + " tap frozen");
+                        piModel.roundR1ToClosestTap();
+                        controllerBranch.setVoltageControlEnabled(false);
+                        outOfBoundTap = true;
+                    }
+                }
+                if (!outOfBoundTap) {
+                    // No out of bound tap -  descretize
+                    roundVoltageRatios(context);
+                    for (LfBus controllerBus : contextData.getBusesWithVoltageControlDisabled()) {
+                        controllerBus.setGenerationTargetQ(0);
+                        controllerBus.setGeneratorVoltageControlEnabled(true);
+                    }
+                    contextData.step = Step.DISCRETIZED;
+                }
+                return OuterLoopStatus.UNSTABLE;
+            }
+            case DISCRETIZED:
+                return OuterLoopStatus.STABLE;
         }
 
-        // At second outer loop iteration, the transformers are rounded. The generator voltage controls that were
-        // disabled previously are enabled.
-        if (context.getIteration() == 1) {
-            status.setValue(roundVoltageRatios(context));
-            for (LfBus controllerBus : contextData.getBusesWithVoltageControlDisabled()) {
-                controllerBus.setGenerationTargetQ(0);
-                controllerBus.setGeneratorVoltageControlEnabled(true);
-                status.setValue(OuterLoopStatus.UNSTABLE);
-            }
-        }
+        // Should never happen
+        return null;
 
-        return status.getValue();
     }
 }

@@ -21,15 +21,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
+public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterLoopGroup {
 
     public static final String NAME = "TapControlOuterLoopGroup";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TapControlOuterLoopGroup.class);
 
-    class ContextData {
+    static class ContextData {
         private double maxControlledNominalVoltage = Double.MIN_VALUE;
-        private List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
+        private final List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
 
         public void updateMaxControlledNominalVoltage(double newVoltage) {
             maxControlledNominalVoltage = Math.max(newVoltage, maxControlledNominalVoltage);
@@ -49,18 +49,31 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
     }
 
     public TapControlOuterLoopGroup(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        super(getTapControlOuterLoopGroup(parameters, parametersExt), "Tap Control Outer Loop Group");
+        super(makeCompensationLoop(parameters, parametersExt), getTapControlOuterLoopGroup(parameters, parametersExt));
+    }
+
+    private static AcOuterLoop makeCompensationLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        if (parameters.isDistributedSlack()) {
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
+            return new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch());
+        } else {
+            return new AcOuterLoop() {
+                @Override
+                public String getName() {
+                    return "NOOP";
+                }
+
+                @Override
+                public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+                    return OuterLoopStatus.STABLE;
+                }
+            };
+        }
     }
 
     private static List<AcOuterLoop> getTapControlOuterLoopGroup(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
 
         List<AcOuterLoop> result = new ArrayList<>();
-
-        if (parameters.isDistributedSlack()) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
-            DistributedSlackOuterLoop distributedSlackOuterLoop = new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch());
-            result.add(distributedSlackOuterLoop);
-        }
 
         if (parametersExt.isSvcVoltageMonitoring()) {
             MonitoringVoltageOuterLoop monitoringVoltageOuterLoop = new MonitoringVoltageOuterLoop();
@@ -83,7 +96,7 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
     }
 
     @Override
-    protected boolean prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts) {
+    protected boolean prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> checkersAndContexts) {
 
         ContextData contextData = new ContextData();
         groupContext.setData(contextData);
@@ -119,9 +132,6 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
         for (LfBranch branch : groupContext.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             Optional<TransformerVoltageControl> voltageControl = branch.getVoltageControl();
             if (voltageControl.isPresent()) {
-                double targetV = voltageControl.get().getTargetValue();
-                double v = voltageControl.get().getControlledBus().getV();
-                double diffV = targetV - v;
                 branch.setVoltageControlEnabled(true);
                 modelChanged = true;
             }
@@ -130,9 +140,9 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
         if (modelChanged) {
             groupContext.getNetwork().fixTransformerVoltageControls(false);
 
-            for (Pair<AcOuterLoop, AcOuterLoopContext> outerLoopAndContext : outerLoopsAndContexts) {
-                AcOuterLoop outerLoop = outerLoopAndContext.getLeft();
-                AcOuterLoopContext loopContext = outerLoopAndContext.getRight();
+            for (Pair<AcOuterLoop, AcOuterLoopContext> checkerAndContext : checkersAndContexts) {
+                AcOuterLoop outerLoop = checkerAndContext.getLeft();
+                AcOuterLoopContext loopContext = checkerAndContext.getRight();
                 if (outerLoop instanceof MonitoringVoltageOuterLoop) {
                     // Provide the voltage limit to that loop
                     ((MonitoringVoltageOuterLoop) outerLoop).initialize(loopContext, contextData.getMaxControlledNominalVoltage());
@@ -156,7 +166,7 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
     }
 
     @Override
-    protected void cleanModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts) {
+    protected void cleanModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> checkersAndContexts) {
 
         ContextData contextData = (ContextData) groupContext.getData();
 
@@ -167,7 +177,6 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
             // round the rho shift to the closest tap
             PiModel piModel = controllerBranch.getPiModel();
             double r1Value = piModel.getR1();
-            // TODO: Enable behaviour change (to match Hades)
             piModel.roundR1ToClosestTap();
             double roundedR1Value = piModel.getR1();
             LOGGER.trace("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), r1Value, roundedR1Value);
@@ -179,15 +188,17 @@ public class TapControlOuterLoopGroup extends AbstractACOuterLoopGroup {
             controllerBus.setGeneratorVoltageControlEnabled(true);
         }
 
-    }
+        checkersAndContexts.forEach(p -> p.getLeft().cleanup(p.getRight()));
 
-    @Override
-    protected OuterLoopStatus getStableStatus() {
-        return OuterLoopStatus.FULL_STABLE;
     }
 
     @Override
     public boolean isMultipleUseAllowed() {
         return false;
+    }
+
+    @Override
+    public String getName() {
+        return "Tap Control Outer Loop Group";
     }
 }

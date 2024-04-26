@@ -5,6 +5,8 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.AcSolver;
 import com.powsybl.openloadflow.ac.solver.AcSolverResult;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
@@ -42,5 +44,11 @@ public class AcOuterLoopGroupContext extends AcOuterLoopContext {
 
     public String getSolverName() {
         return solver.getName();
+    }
+
+    public boolean unHealthy() {
+        return runningContext.getLastSolverResult().getStatus() != AcSolverStatus.CONVERGED
+                || runningContext.getLastOuterLoopStatus() == OuterLoopStatus.FAILED
+                || runningContext.getOuterLoopTotalIterationCount() >= loadFlowContext.getParameters().getMaxOuterLoopIterations();
     }
 }

@@ -9,7 +9,9 @@ import com.powsybl.openloadflow.network.VoltageControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MonitoringTapOuterLoop implements AcOuterLoop {
@@ -18,6 +20,7 @@ public class MonitoringTapOuterLoop implements AcOuterLoop {
 
     class ContextData {
         Map<String, Integer> outOfRangeMap = new HashMap<>();
+        List<String> frozenWithMoreChances = new ArrayList<>();
     }
 
     @Override
@@ -36,18 +39,26 @@ public class MonitoringTapOuterLoop implements AcOuterLoop {
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
+        if (!contextData.frozenWithMoreChances.isEmpty()) {
+            contextData.frozenWithMoreChances.forEach(id -> context.getNetwork().getBranchById(id).setVoltageControlEnabled(true));
+            contextData.frozenWithMoreChances.clear();
+            status = OuterLoopStatus.UNSTABLE;
+        }
+
         // if a controller is out of range more than 3 times it is blocked
         for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             if (controllerBranch.isVoltageControlEnabled()) {
                 PiModel piModel = controllerBranch.getPiModel();
                 double r1 = piModel.getR1();
                 if (r1 < piModel.getMinR1() || r1 > piModel.getMaxR1()) {
-                    int outOfRangeCount = contextData.outOfRangeMap.compute(controllerBranch.getId(), (k, v) -> v == null ? 1 : v + 1);
-                    if (outOfRangeCount > 2) {
-                        LOGGER.info("Transformer " + controllerBranch.getId() + " tap frozen");
-                        piModel.roundR1ToClosestTap();
-                        controllerBranch.setVoltageControlEnabled(false);
-                        status = OuterLoopStatus.UNSTABLE;
+                    status = OuterLoopStatus.UNSTABLE;
+                    int outOfRangeCount = contextData.outOfRangeMap.compute(controllerBranch.getId(), (k, v) -> v == null ? 0 : v + 1);
+
+                    LOGGER.info("Transformer " + controllerBranch.getId() + " tap frozen");
+                    piModel.roundR1ToClosestTap();
+                    controllerBranch.setVoltageControlEnabled(false);
+                    if (outOfRangeCount < 3) {
+                        contextData.frozenWithMoreChances.add(controllerBranch.getId());
                     }
                 }
             }
