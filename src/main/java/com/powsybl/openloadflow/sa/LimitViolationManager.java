@@ -164,8 +164,8 @@ public class LimitViolationManager {
                                                        LimitViolationType type, double scale, double value,
                                                        TwoSides side) {
         return new LimitViolation(branch.getId(), type, temporaryLimit.getName(),
-                temporaryLimit.getAcceptableDuration(), temporaryLimit.getValue() * scale,
-                1f, value * scale, side);
+                temporaryLimit.getAcceptableDuration(), temporaryLimit.getOriginalValue() * scale,
+                temporaryLimit.getReduction(), value * scale, side);
     }
 
     /**
@@ -196,12 +196,12 @@ public class LimitViolationManager {
         double difference = limit.getTo().getAngle() - limit.getFrom().getAngle();
         if (!Double.isNaN(limit.getHighValue()) && difference > limit.getHighValue()) {
             LimitViolation limitViolation1 = new LimitViolation(limit.getId(), LimitViolationType.HIGH_VOLTAGE_ANGLE, Math.toDegrees(limit.getHighValue()),
-                    (float) 1., Math.toDegrees(difference));
+                    1., Math.toDegrees(difference));
             addVoltageAngleLimitViolation(limitViolation1, limit);
         }
         if (!Double.isNaN(limit.getLowValue()) && difference < limit.getLowValue()) {
             LimitViolation limitViolation2 = new LimitViolation(limit.getId(), LimitViolationType.LOW_VOLTAGE_ANGLE, Math.toDegrees(limit.getLowValue()),
-                    (float) 1., Math.toDegrees(difference));
+                    1., Math.toDegrees(difference));
             addVoltageAngleLimitViolation(limitViolation2, limit);
         }
     }

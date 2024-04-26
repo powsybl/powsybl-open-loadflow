@@ -42,20 +42,31 @@ public interface LfBranch extends LfElement {
 
         private int acceptableDuration;
 
+        private final double originalValue;
+
+        private final double reduction;
+
         private final double value;
 
-        public LfLimit(String name, int acceptableDuration, double value) {
+        public LfLimit(String name, int acceptableDuration, double originalValue, Double reduction) {
             this.name = name;
             this.acceptableDuration = acceptableDuration;
-            this.value = value;
+            this.originalValue = originalValue;
+            if (reduction != null) {
+                this.reduction = reduction;
+                this.value = originalValue * reduction;
+            } else {
+                this.reduction = 1.;
+                this.value = originalValue;
+            }
         }
 
-        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double valuePerUnit) {
-            return new LfLimit(name, acceptableDuration, valuePerUnit);
+        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double originalValuePerUnit, Double reduction) {
+            return new LfLimit(name, acceptableDuration, originalValuePerUnit, reduction);
         }
 
-        public static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, valuePerUnit);
+        public static LfLimit createPermanentLimit(double originalValuePerUnit, Double reduction) {
+            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, originalValuePerUnit, reduction);
         }
 
         public String getName() {
@@ -66,12 +77,20 @@ public interface LfBranch extends LfElement {
             return acceptableDuration;
         }
 
+        public double getOriginalValue() {
+            return originalValue;
+        }
+
         public double getValue() {
             return value;
         }
 
         public void setAcceptableDuration(int acceptableDuration) {
             this.acceptableDuration = acceptableDuration;
+        }
+
+        public double getReduction() {
+            return reduction;
         }
     }
 

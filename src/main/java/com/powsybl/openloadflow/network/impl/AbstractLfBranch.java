@@ -87,13 +87,14 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                     // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
                     // for this limit is infinity.
                     // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
-                    double value = limitReductions.isEmpty() ? temporaryLimit.getValue() : temporaryLimit.getValue() * limitReductions.get(i);
-                    double valuePerUnit = value * toPerUnit;
-                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(), valuePerUnit));
+                    Double reduction = limitReductions.isEmpty() ? null : limitReductions.get(i);
+                    double originalValuePerUnit = temporaryLimit.getValue() * toPerUnit;
+                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(),
+                            originalValuePerUnit, reduction));
                 }
             }
-            double permanentLimit = limitReductions.isEmpty() ? loadingLimits.getPermanentLimit() : loadingLimits.getPermanentLimit() * limitReductions.get(0);
-            sortedLimits.addLast(LfLimit.createPermanentLimit(permanentLimit * toPerUnit));
+            Double reduction = limitReductions.isEmpty() ? null : limitReductions.get(0);
+            sortedLimits.addLast(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit, reduction));
         }
         if (sortedLimits.size() > 1) {
             // we only make that fix if there is more than a permanent limit attached to the branch.
@@ -122,13 +123,15 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits, LimitReductionManager limitReductionManager) {
-        List<Double> limitReductions = getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits);
-        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1, limitReductions));
+        // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
+        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1,
+                getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits)));
     }
 
     public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits, LimitReductionManager limitReductionManager) {
-        List<Double> limitReductions = getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits);
-        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2, limitReductions));
+        // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
+        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2,
+                getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits)));
     }
 
     @Override

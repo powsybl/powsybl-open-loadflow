@@ -43,6 +43,7 @@ import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -3069,8 +3070,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.9066748, operatorStrategyResult.getNetworkResult().getBranchResult("tr34").getExtension(OlfBranchResult.class).getContinuousR1(), DELTA_RHO);
     }
 
+    // TODO remove this test after validation on real data
+    @Disabled
     @Test
-    void testLimitReductions() {
+    void testLimitReductions0() {
         Network network = Network.read(new File("/media/sf_powsybl-data/xiidm/20220303T1600Z_20220303T1600Z_pf/pf_20220303T1600Z_20220303T1600Z.xiidm").getPath());
         List<StateMonitor> monitors = createNetworkMonitors(network);
         List<Contingency> contingencies = new ArrayList<>();
@@ -3088,5 +3091,59 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .build();
         List<LimitReduction> limitReductions = List.of(limitReduction1, limitReduction2);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, limitReductions, new SecurityAnalysisParameters());
+    }
+
+    @Test
+    void testLimitReductions() {
+        Network network = createNodeBreakerNetwork();
+        List<Contingency> contingencies = List.of(new Contingency("L2", new BranchContingency("L2")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
+
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(1, result.getPostContingencyResults().size());
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        List<LimitViolation> limitViolations = postContingencyResult.getLimitViolationsResult().getLimitViolations();
+        assertEquals(2, limitViolations.size());
+        assertEquals("L1", limitViolations.get(0).getSubjectId());
+        assertEquals("permanent", limitViolations.get(0).getLimitName());
+        assertEquals(60, limitViolations.get(0).getAcceptableDuration());
+        assertEquals(ThreeSides.ONE, limitViolations.get(0).getSide());
+        assertEquals(1., limitViolations.get(0).getLimitReduction(), 0.0001);
+        assertEquals(940., limitViolations.get(0).getLimit(), 0.0001);
+        assertEquals(945.51416, limitViolations.get(0).getValue(), 0.0001);
+
+        LimitReduction limitReduction1 = LimitReduction.builder(LimitType.CURRENT, 0.9)
+                .withNetworkElementCriteria(
+                        new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(380., 410., true, true))),
+                        new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(220., 240., true, true))))
+                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(0, 300, true, false))
+                .build();
+        LimitReduction limitReduction2 = LimitReduction.builder(LimitType.CURRENT, 0.95)
+                .withNetworkElementCriteria(
+                        new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(380., 410., true, true))),
+                        new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(220., 240., true, true))))
+                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(300, 600, true, false))
+                .build();
+        List<LimitReduction> limitReductions = List.of(limitReduction1, limitReduction2);
+        result = runSecurityAnalysis(network, contingencies, monitors, limitReductions, new SecurityAnalysisParameters());
+
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(1, result.getPostContingencyResults().size());
+        postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        limitViolations = postContingencyResult.getLimitViolationsResult().getLimitViolations();
+        assertEquals(2, limitViolations.size());
+        assertEquals("L1", limitViolations.get(0).getSubjectId());
+        assertEquals("60", limitViolations.get(0).getLimitName());
+        assertEquals(0, limitViolations.get(0).getAcceptableDuration());
+        assertEquals(ThreeSides.ONE, limitViolations.get(0).getSide());
+        assertEquals(0.9, limitViolations.get(0).getLimitReduction(), 0.0001);
+        assertEquals(1000., limitViolations.get(0).getLimit(), 0.0001);
+        assertEquals(945.51416, limitViolations.get(0).getValue(), 0.0001);
     }
 }

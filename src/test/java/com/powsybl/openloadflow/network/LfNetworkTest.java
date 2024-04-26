@@ -363,4 +363,46 @@ class LfNetworkTest extends AbstractSerDeTest {
         assertEquals(1, reductions.size());
         assertEquals(0.5, reductions.get(0), 0.001); // PATL
     }
+
+    @Test
+    void testNoLimitReductionsApplies() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits());
+        // NHV1_NHV2_1 : side 1 PATL 500, side 2 PATL 1100, 1200 for 600s and 1500 for 60s then above 0s
+        // NHV1_NHV2_2 : side 1 PATL 1100, 1200 for 1200s then above 60s, side 2 PATL 500
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfBranch lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_2");
+        Branch<?> branch = network.getBranch("NHV1_NHV2_2");
+
+        // No reductions because the LimitReductionManager is null
+        List<Double> reductions = lfBranch.getLimitReductions(TwoSides.ONE, null, branch.getNullableCurrentLimits1());
+        assertTrue(reductions.isEmpty());
+
+        // No reductions because the LimitReductionManager is empty
+        reductions = lfBranch.getLimitReductions(TwoSides.ONE, new LimitReductionManager(), branch.getNullableCurrentLimits1());
+        assertTrue(reductions.isEmpty());
+
+        // No reduction applies because the line isn't within the nominal voltage range => all values equals to 1.
+        LimitReductionManager.TerminalLimitReduction terminalLimitReduction0 =
+                new LimitReductionManager.TerminalLimitReduction(Range.of(100., 200.), true, null, 0.5);
+        LimitReductionManager limitReductionManager0 = new LimitReductionManager();
+        limitReductionManager0.addTerminalLimitReduction(terminalLimitReduction0);
+        reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager0, branch.getNullableCurrentLimits1());
+        assertEquals(3, reductions.size());
+        assertEquals(1., reductions.get(0), 0.001); // PATL
+        assertEquals(1., reductions.get(1), 0.001); // TATL 1200s
+        assertEquals(1., reductions.get(2), 0.001); // TATL 60s
+
+        // No reductions because only current limits are supported
+        branch.newActivePowerLimits1().setPermanentLimit(100.).add();
+        LimitReductionManager.TerminalLimitReduction terminalLimitReduction1 =
+                new LimitReductionManager.TerminalLimitReduction(Range.of(0., Double.MAX_VALUE), true, null, 0.5);
+        LimitReductionManager limitReductionManager1 = new LimitReductionManager();
+        limitReductionManager1.addTerminalLimitReduction(terminalLimitReduction1);
+        reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager1, branch.getNullableActivePowerLimits1());
+        assertTrue(reductions.isEmpty());
+
+        // No reductions because there's no limits
+        reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager1, null);
+        assertTrue(reductions.isEmpty());
+    }
 }
