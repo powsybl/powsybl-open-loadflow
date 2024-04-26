@@ -18,24 +18,20 @@ import java.util.Map;
  */
 public class WoodburyEngineResult {
 
-    // TODO add documentation
-    public record WoodburyStates(DenseMatrix flowStates, DenseMatrix injectionStates) {
-    }
+    private final DenseMatrix preContingencyStates;
+    private final HashMap<PropagatedContingency, DenseMatrix> postContingencyStates;
 
-    private final WoodburyStates preContingencyStates;
-    private final HashMap<PropagatedContingency, WoodburyStates> postContingencyStates;
-
-    public WoodburyEngineResult(WoodburyStates preContingencyStates,
-                                Map<PropagatedContingency, WoodburyStates> postContingencyStates) {
+    public WoodburyEngineResult(DenseMatrix preContingencyStates,
+                                Map<PropagatedContingency, DenseMatrix> postContingencyStates) {
         this.preContingencyStates = preContingencyStates;
         this.postContingencyStates = new HashMap<>(postContingencyStates);
     }
 
-    public WoodburyStates getPreContingencyStates() {
+    public DenseMatrix getPreContingencyStates() {
         return preContingencyStates;
     }
 
-    public WoodburyStates getPostContingencyWoodburyStates(PropagatedContingency contingency) {
+    public DenseMatrix getPostContingencyWoodburyStates(PropagatedContingency contingency) {
         return postContingencyStates.get(contingency);
     }
 }

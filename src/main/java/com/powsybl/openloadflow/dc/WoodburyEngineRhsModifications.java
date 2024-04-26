@@ -18,48 +18,28 @@ import java.util.Optional;
  */
 public class WoodburyEngineRhsModifications {
 
-    private final HashMap<PropagatedContingency, DenseMatrix> newFlowRhsByPropagatedContingency;
-    private final HashMap<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, DenseMatrix> newFlowRhsForAConnectivity;
-    private final HashMap<PropagatedContingency, DenseMatrix> newInjectionRhsByPropagatedContingency;
-    private final HashMap<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, DenseMatrix> newInjectionRhsForAConnectivity;
+    private final HashMap<PropagatedContingency, DenseMatrix> rhsOverrideByPropagatedContingency;
+    private final HashMap<ConnectivityBreakAnalysis.ConnectivityAnalysisResult, DenseMatrix> rhsOverrideForAConnectivity;
 
     public WoodburyEngineRhsModifications() {
-        this.newFlowRhsByPropagatedContingency = new HashMap<>();
-        this.newFlowRhsForAConnectivity = new HashMap<>();
-        this.newInjectionRhsByPropagatedContingency = new HashMap<>();
-        this.newInjectionRhsForAConnectivity = new HashMap<>();
+        this.rhsOverrideByPropagatedContingency = new HashMap<>();
+        this.rhsOverrideForAConnectivity = new HashMap<>();
     }
 
-    public void addFlowRhsOverrideByPropagatedContingency(PropagatedContingency contingency, DenseMatrix flowRhs) {
-        this.newFlowRhsByPropagatedContingency.put(contingency, flowRhs);
+    public void addRhsOverrideByPropagatedContingency(PropagatedContingency contingency, DenseMatrix flowRhs) {
+        this.rhsOverrideByPropagatedContingency.put(contingency, flowRhs);
     }
 
-    public Optional<DenseMatrix> getFlowRhsOverrideByPropagatedContingency(PropagatedContingency contingency) {
-        return Optional.ofNullable(this.newFlowRhsByPropagatedContingency.get(contingency));
+    public Optional<DenseMatrix> getRhsOverrideByPropagatedContingency(PropagatedContingency contingency) {
+        return Optional.ofNullable(this.rhsOverrideByPropagatedContingency.get(contingency));
     }
 
-    public void addFlowRhsOverrideForAConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DenseMatrix flowRhs) {
-        this.newFlowRhsForAConnectivity.put(connectivityAnalysisResult, flowRhs);
+    public void addRhsOverrideForAConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DenseMatrix flowRhs) {
+        this.rhsOverrideForAConnectivity.put(connectivityAnalysisResult, flowRhs);
     }
 
-    public Optional<DenseMatrix> getFlowRhsOverrideForAConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult) {
-        return Optional.ofNullable(this.newFlowRhsForAConnectivity.get(connectivityAnalysisResult));
-    }
-
-    public void addInjectionRhsOverrideByPropagatedContingency(PropagatedContingency contingency, DenseMatrix injectionRhs) {
-        this.newInjectionRhsByPropagatedContingency.put(contingency, injectionRhs);
-    }
-
-    public Optional<DenseMatrix> getInjectionRhsOverrideByPropagatedContingency(PropagatedContingency contingency) {
-        return Optional.ofNullable(this.newInjectionRhsByPropagatedContingency.get(contingency));
-    }
-
-    public void addInjectionRhsOverrideForAConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DenseMatrix injectionRhs) {
-        this.newInjectionRhsForAConnectivity.put(connectivityAnalysisResult, injectionRhs);
-    }
-
-    public Optional<DenseMatrix> getInjectionRhsOverrideForAConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult) {
-        return Optional.ofNullable(this.newInjectionRhsForAConnectivity.get(connectivityAnalysisResult));
+    public Optional<DenseMatrix> getRhsOverrideForAConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult) {
+        return Optional.ofNullable(this.rhsOverrideForAConnectivity.get(connectivityAnalysisResult));
     }
 
 }
