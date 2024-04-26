@@ -61,13 +61,13 @@ public class PhaseControlOuterLoop
             // at first outer loop iteration:
             // branches with active power control are switched off and taps are rounded
             // branches with current limiter control will wait for second iteration
-            return new OuterLoopResult(firstIteration(context));
+            return new OuterLoopResult(this, firstIteration(context));
         } else if (context.getIteration() > 0) {
             // at second outer loop iteration:
             // flow of branches with fixed tap are recomputed
-            return new OuterLoopResult(nextIteration(context));
+            return new OuterLoopResult(this, nextIteration(context));
         }
-        return new OuterLoopResult(OuterLoopStatus.STABLE);
+        return new OuterLoopResult(this, OuterLoopStatus.STABLE);
     }
 
     private OuterLoopStatus firstIteration(AcOuterLoopContext context) {

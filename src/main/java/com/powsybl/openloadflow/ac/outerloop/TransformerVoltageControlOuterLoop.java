@@ -119,6 +119,6 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             }
         }
 
-        return new OuterLoopResult(status.getValue());
+        return new OuterLoopResult(this, status.getValue());
     }
 }

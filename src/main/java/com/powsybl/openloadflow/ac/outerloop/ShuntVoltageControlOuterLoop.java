@@ -51,6 +51,6 @@ public class ShuntVoltageControlOuterLoop extends AbstractShuntVoltageControlOut
                 status = OuterLoopStatus.UNSTABLE;
             }
         }
-        return new OuterLoopResult(status);
+        return new OuterLoopResult(this, status);
     }
 }

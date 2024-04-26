@@ -9,10 +9,22 @@ package com.powsybl.openloadflow.lf.outerloop;
 /**
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
-public record OuterLoopResult(OuterLoopStatus status, String statusText) {
+public record OuterLoopResult(String outerLoopName, OuterLoopStatus status, String statusText) {
 
-    public OuterLoopResult(OuterLoopStatus status) {
-        this(status, status.name());
+    public OuterLoopResult(OuterLoop<?, ?, ?, ?, ?> outerLoop, OuterLoopStatus status) {
+        this(outerLoop, status, status.name());
+    }
+
+    public OuterLoopResult(OuterLoop<?, ?, ?, ?, ?> outerLoop, OuterLoopStatus status, String statusText) {
+        this(outerLoop.getName(), status, statusText);
+    }
+
+    public OuterLoopResult(String outerLoopName, OuterLoopStatus status) {
+        this(outerLoopName, status, status.name());
+    }
+
+    public static OuterLoopResult stable() {
+        return new OuterLoopResult("", OuterLoopStatus.STABLE);
     }
 
 }

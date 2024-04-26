@@ -346,6 +346,6 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, iterationReportNode)) {
             status = OuterLoopStatus.UNSTABLE;
         }
-        return new OuterLoopResult(status);
+        return new OuterLoopResult(this, status);
     }
 }

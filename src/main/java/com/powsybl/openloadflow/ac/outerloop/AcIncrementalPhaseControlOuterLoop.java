@@ -199,7 +199,7 @@ public class AcIncrementalPhaseControlOuterLoop
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (currentLimiterPhaseControls.isEmpty() && activePowerControlPhaseControls.isEmpty()) {
-            return new OuterLoopResult(status);
+            return new OuterLoopResult(this, status);
         }
 
         var sensitivityContext = new AcSensitivityContext(network,
@@ -236,6 +236,6 @@ public class AcIncrementalPhaseControlOuterLoop
             }
         }
 
-        return new OuterLoopResult(status);
+        return new OuterLoopResult(this, status);
     }
 }

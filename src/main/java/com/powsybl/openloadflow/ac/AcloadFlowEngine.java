@@ -66,7 +66,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         private final MutableInt nrTotalIterations = new MutableInt();
 
-        private OuterLoopResult lastOuterLoopResult = new OuterLoopResult(OuterLoopStatus.STABLE);
+        private OuterLoopResult lastOuterLoopResult = OuterLoopResult.stable();
     }
 
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext) {
@@ -201,8 +201,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoopFinalResult = runningContext.lastOuterLoopResult;
         } else {
             outerLoopFinalResult = runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations()
-                    ? new OuterLoopResult(OuterLoopStatus.STABLE, runningContext.lastOuterLoopResult.statusText()) :
-                    new OuterLoopResult(OuterLoopStatus.UNSTABLE, runningContext.lastOuterLoopResult.statusText());
+                    ? new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.STABLE, runningContext.lastOuterLoopResult.statusText()) :
+                    new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.UNSTABLE, runningContext.lastOuterLoopResult.statusText());
         }
 
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),

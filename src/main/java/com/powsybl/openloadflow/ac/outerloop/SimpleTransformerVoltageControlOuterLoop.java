@@ -41,6 +41,6 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
         if (context.getIteration() == 0) {
             status = roundVoltageRatios(context);
         }
-        return new OuterLoopResult(status);
+        return new OuterLoopResult(this, status);
     }
 }

@@ -90,6 +90,6 @@ public class DcIncrementalPhaseControlOuterLoop
             }
         }
 
-        return new OuterLoopResult(status);
+        return new OuterLoopResult(this, status);
     }
 }

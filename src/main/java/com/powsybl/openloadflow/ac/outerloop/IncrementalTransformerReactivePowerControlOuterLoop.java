@@ -171,7 +171,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         List<LfBranch> controllerBranchesOutOfDeadband = getControllerBranchesOutOfDeadband(controlledBranchesOutOfDeadband);
 
         if (controllerBranchesOutOfDeadband.isEmpty()) {
-            return new OuterLoopResult(status.getValue());
+            return new OuterLoopResult(this, status.getValue());
         }
 
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutOfDeadband,
@@ -221,7 +221,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
             Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReportNode), controlledBranchesWithAllItsControllersToLimit.size());
         }
 
-        return new OuterLoopResult(status.getValue());
+        return new OuterLoopResult(this, status.getValue());
     }
 
     private static double getDiffQ(TransformerReactivePowerControl reactivePowerControl) {

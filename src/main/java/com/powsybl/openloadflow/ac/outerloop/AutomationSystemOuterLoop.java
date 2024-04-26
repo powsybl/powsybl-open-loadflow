@@ -69,6 +69,6 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
             status = OuterLoopStatus.UNSTABLE;
         }
 
-        return new OuterLoopResult(status);
+        return new OuterLoopResult(this, status);
     }
 }

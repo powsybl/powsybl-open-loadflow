@@ -410,7 +410,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .toList();
 
         if (secondaryVoltageControls.isEmpty()) {
-            return new OuterLoopResult(OuterLoopStatus.STABLE);
+            return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
 
         // compute target voltage sensitivities for all controlled buses
@@ -432,6 +432,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             }
         }
 
-        return new OuterLoopResult(status);
+        return new OuterLoopResult(this, status);
     }
 }

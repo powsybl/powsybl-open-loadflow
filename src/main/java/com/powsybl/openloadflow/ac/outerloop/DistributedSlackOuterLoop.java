@@ -59,7 +59,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
 
         if (!shouldDistributeSlack) {
             LOGGER.debug("Already balanced");
-            return new OuterLoopResult(OuterLoopStatus.STABLE);
+            return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
 
         ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
@@ -88,7 +88,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                 case LEAVE_ON_SLACK_BUS -> {
                     LOGGER.warn("Failed to distribute slack bus active power mismatch, {} MW remains",
                             remainingMismatch * PerUnit.SB);
-                    return new OuterLoopResult(result.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
+                    return new OuterLoopResult(this, result.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
                 }
                 case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
                     Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
@@ -100,7 +100,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                     // create a new result with iteration++, 0.0 mismatch and movedBuses to true
                     result = new ActivePowerDistribution.Result(result.iteration() + 1, 0.0, true);
                     reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, result);
-                    return new OuterLoopResult(OuterLoopStatus.UNSTABLE);
+                    return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
                 }
                 case FAIL -> {
                     String statusText = String.format(Locale.US, "Failed to distribute slack bus active power mismatch, %.2f MW remains", remainingMismatch * PerUnit.SB);
@@ -109,13 +109,13 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                     // Since we will not be re-running an NR, revert distributedActivePower reporting which would otherwise be misleading.
                     // Said differently, we report that we didn't distribute anything, and this is indeed consistent with the network state.
                     contextData.addDistributedActivePower(-distributedActivePower);
-                    return new OuterLoopResult(OuterLoopStatus.FAILED, statusText);
+                    return new OuterLoopResult(this, OuterLoopStatus.FAILED, statusText);
                 }
                 default -> throw new IllegalArgumentException("Unknown slackDistributionFailureBehavior");
             }
         } else {
             reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, result);
-            return new OuterLoopResult(OuterLoopStatus.UNSTABLE);
+            return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
         }
     }
 

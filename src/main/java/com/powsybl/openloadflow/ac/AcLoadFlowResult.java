@@ -22,7 +22,7 @@ import java.util.Objects;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, new OuterLoopResult(OuterLoopStatus.STABLE), Double.NaN, Double.NaN);
+        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopResult.stable(), Double.NaN, Double.NaN);
     }
 
     private final int outerLoopIterations;
@@ -85,7 +85,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
             return new Status(LoadFlowResult.ComponentResult.Status.FAILED, network.getValidity().toString());
         }
         if (getOuterLoopResult().status() == OuterLoopStatus.UNSTABLE) {
-            return new Status(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, "Reached outer loop max iterations limit");
+            return new Status(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, "Reached outer loop max iterations limit. Last outer loop name: " + getOuterLoopResult().outerLoopName());
         } else if (getOuterLoopResult().status() == OuterLoopStatus.FAILED) {
             return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Outer loop failed: " + getOuterLoopResult().statusText());
         } else {

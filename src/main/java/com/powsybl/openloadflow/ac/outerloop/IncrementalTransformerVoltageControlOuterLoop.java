@@ -236,7 +236,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         // all branches are within their deadbands
         if (controllerBranchesOutOfDeadband.isEmpty()) {
-            return new OuterLoopResult(status.getValue());
+            return new OuterLoopResult(this, status.getValue());
         }
 
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutOfDeadband,
@@ -291,6 +291,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReportNode), controlledBusesWithAllItsControllersToLimit.size());
         }
 
-        return new OuterLoopResult(status.getValue());
+        return new OuterLoopResult(this, status.getValue());
     }
 }

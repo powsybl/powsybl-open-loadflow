@@ -197,7 +197,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         // all shunts are within their deadbands
         if (controllerShuntsOutOfDeadband.isEmpty()) {
-            return new OuterLoopResult(status.getValue());
+            return new OuterLoopResult(this, status.getValue());
         }
 
         MutableObject<Integer> numAdjustedShunts = new MutableObject<>(0);
@@ -221,7 +221,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
             Reports.reportShuntVoltageControlChangedSection(iterationReportNode, numAdjustedShunts.getValue());
         }
 
-        return new OuterLoopResult(status.getValue());
+        return new OuterLoopResult(this, status.getValue());
     }
 
     protected static double getHalfTargetDeadband(ShuntVoltageControl voltageControl) {
