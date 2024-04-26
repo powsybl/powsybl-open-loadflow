@@ -29,7 +29,7 @@ public interface OuterLoop<V extends Enum<V> & Quantity,
     default void initialize(O context) {
     }
 
-    OuterLoopStatus check(O context, ReportNode reportNode);
+    OuterLoopResult check(O context, ReportNode reportNode);
 
     default void cleanup(O context) {
     }

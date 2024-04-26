@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -21,7 +22,7 @@ import java.util.Objects;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE, Double.NaN, Double.NaN);
+        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, new OuterLoopResult(OuterLoopStatus.STABLE), Double.NaN, Double.NaN);
     }
 
     private final int outerLoopIterations;
@@ -30,18 +31,18 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     private final AcSolverStatus solverStatus;
 
-    private final OuterLoopStatus outerLoopStatus;
+    private final OuterLoopResult outerLoopResult;
 
     private final double distributedActivePower;
 
     public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int solverIterations,
-                            AcSolverStatus solverStatus, OuterLoopStatus outerLoopStatus,
+                            AcSolverStatus solverStatus, OuterLoopResult outerLoopResult,
                             double slackBusActivePowerMismatch, double distributedActivePower) {
         super(network, slackBusActivePowerMismatch);
         this.outerLoopIterations = outerLoopIterations;
         this.solverIterations = solverIterations;
         this.solverStatus = Objects.requireNonNull(solverStatus);
-        this.outerLoopStatus = Objects.requireNonNull(outerLoopStatus);
+        this.outerLoopResult = Objects.requireNonNull(outerLoopResult);
         this.distributedActivePower = distributedActivePower;
     }
 
@@ -57,8 +58,8 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return solverStatus;
     }
 
-    public OuterLoopStatus getOuterLoopStatus() {
-        return outerLoopStatus;
+    public OuterLoopResult getOuterLoopResult() {
+        return outerLoopResult;
     }
 
     public double getDistributedActivePower() {
@@ -67,7 +68,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     @Override
     public boolean isSuccess() {
-        return solverStatus == AcSolverStatus.CONVERGED && outerLoopStatus == OuterLoopStatus.STABLE;
+        return solverStatus == AcSolverStatus.CONVERGED && outerLoopResult.status() == OuterLoopStatus.STABLE;
     }
 
     public boolean isWithNetworkUpdate() {
@@ -77,22 +78,23 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
     }
 
     @Override
-    public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
+    public Status toComponentResultStatus() {
         if (network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR) {
-            return LoadFlowResult.ComponentResult.Status.NO_CALCULATION;
+            return new Status(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, network.getValidity().toString());
         } else if (network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL) {
-            return LoadFlowResult.ComponentResult.Status.FAILED;
+            return new Status(LoadFlowResult.ComponentResult.Status.FAILED, network.getValidity().toString());
         }
-        if (getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
-            return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-        } else if (getOuterLoopStatus() == OuterLoopStatus.FAILED) {
-            return LoadFlowResult.ComponentResult.Status.FAILED;
+        if (getOuterLoopResult().status() == OuterLoopStatus.UNSTABLE) {
+            return new Status(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, "Reached outer loop max iterations limit");
+        } else if (getOuterLoopResult().status() == OuterLoopStatus.FAILED) {
+            return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Outer loop failed: " + getOuterLoopResult().statusText());
         } else {
             return switch (getSolverStatus()) {
-                case CONVERGED -> LoadFlowResult.ComponentResult.Status.CONVERGED;
-                case MAX_ITERATION_REACHED -> LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-                case SOLVER_FAILED, UNREALISTIC_STATE -> LoadFlowResult.ComponentResult.Status.FAILED;
-                case NO_CALCULATION -> LoadFlowResult.ComponentResult.Status.NO_CALCULATION;
+                case CONVERGED -> new Status(LoadFlowResult.ComponentResult.Status.CONVERGED, "Converged");
+                case MAX_ITERATION_REACHED -> new Status(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, "Reached Newton-Raphson max iterations limit");
+                case SOLVER_FAILED -> new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Solver failed");
+                case UNREALISTIC_STATE -> new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Unrealistic state");
+                case NO_CALCULATION -> new Status(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, "Reached Newton-Raphson max iterations limit");
             };
         }
     }
@@ -102,7 +104,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
                 + ", newtonRaphsonIterations=" + solverIterations
                 + ", solverStatus=" + solverStatus
-                + ", outerLoopStatus=" + outerLoopStatus
+                + ", outerLoopStatus=" + outerLoopResult
                 + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
                 + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
                 + ")";

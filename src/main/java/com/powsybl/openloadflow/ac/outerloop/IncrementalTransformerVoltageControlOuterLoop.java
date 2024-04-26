@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Reports;
@@ -222,7 +223,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         LfNetwork network = context.getNetwork();
@@ -235,7 +236,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         // all branches are within their deadbands
         if (controllerBranchesOutOfDeadband.isEmpty()) {
-            return status.getValue();
+            return new OuterLoopResult(status.getValue());
         }
 
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutOfDeadband,
@@ -290,6 +291,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReportNode), controlledBusesWithAllItsControllersToLimit.size());
         }
 
-        return status.getValue();
+        return new OuterLoopResult(status.getValue());
     }
 }

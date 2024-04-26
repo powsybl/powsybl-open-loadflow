@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.lf.outerloop.AbstractPhaseControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.Direction;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -55,18 +56,18 @@ public class PhaseControlOuterLoop
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         if (context.getIteration() == 0) {
             // at first outer loop iteration:
             // branches with active power control are switched off and taps are rounded
             // branches with current limiter control will wait for second iteration
-            return firstIteration(context);
+            return new OuterLoopResult(firstIteration(context));
         } else if (context.getIteration() > 0) {
             // at second outer loop iteration:
             // flow of branches with fixed tap are recomputed
-            return nextIteration(context);
+            return new OuterLoopResult(nextIteration(context));
         }
-        return OuterLoopStatus.STABLE;
+        return new OuterLoopResult(OuterLoopStatus.STABLE);
     }
 
     private OuterLoopStatus firstIteration(AcOuterLoopContext context) {

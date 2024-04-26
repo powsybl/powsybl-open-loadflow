@@ -166,10 +166,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             updateAcState(network, parameters, parametersExt, result, acParameters, atLeastOneComponentHasToBeUpdated);
 
             ReferenceBusAndSlackBusesResults referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
+            final var status = result.toComponentResultStatus();
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
                     result.getNetwork().getNumSC(),
-                    result.toComponentResultStatus(),
-                    result.toComponentResultStatus().name(), // statusText: can do better later on
+                    status.status(),
+                    status.statusText(),
                     Collections.emptyMap(), // metrics: can do better later on
                     result.getSolverIterations(),
                     referenceBusAndSlackBusesResults.referenceBusId(),
@@ -244,12 +245,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
-        final LoadFlowResult.ComponentResult.Status status = result.toComponentResultStatus();
+        final var status = result.toComponentResultStatus();
         return new LoadFlowResultImpl.ComponentResultImpl(
                 result.getNetwork().getNumCC(),
                 result.getNetwork().getNumSC(),
-                status,
-                status.name(), // statusText: can do better later on
+                status.status(),
+                status.statusText(),
                 Collections.emptyMap(), // metrics: can do better later on
                 0, // iterationCount
                 referenceBusAndSlackBusesResults.referenceBusId(),

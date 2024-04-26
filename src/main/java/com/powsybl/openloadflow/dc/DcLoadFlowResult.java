@@ -28,11 +28,14 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
     }
 
     @Override
-    public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
+    public Status toComponentResultStatus() {
         if (network.getValidity() != LfNetwork.Validity.VALID) {
-            return LoadFlowResult.ComponentResult.Status.NO_CALCULATION;
+            return new Status(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, network.getValidity().toString());
         }
-        return success ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
+        if (success) {
+            return new Status(LoadFlowResult.ComponentResult.Status.CONVERGED, "Converged");
+        }
+        return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Solver Failed");
     }
 
 }

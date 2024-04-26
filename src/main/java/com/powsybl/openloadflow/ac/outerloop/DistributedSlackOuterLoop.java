@@ -11,6 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -19,6 +20,7 @@ import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -51,13 +53,13 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         double slackBusActivePowerMismatch = context.getLastSolverResult().getSlackBusActivePowerMismatch();
         boolean shouldDistributeSlack = Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB;
 
         if (!shouldDistributeSlack) {
             LOGGER.debug("Already balanced");
-            return OuterLoopStatus.STABLE;
+            return new OuterLoopResult(OuterLoopStatus.STABLE);
         }
 
         ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
@@ -86,7 +88,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                 case LEAVE_ON_SLACK_BUS -> {
                     LOGGER.warn("Failed to distribute slack bus active power mismatch, {} MW remains",
                             remainingMismatch * PerUnit.SB);
-                    return result.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
+                    return new OuterLoopResult(result.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
                 }
                 case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
                     Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
@@ -98,22 +100,22 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
                     // create a new result with iteration++, 0.0 mismatch and movedBuses to true
                     result = new ActivePowerDistribution.Result(result.iteration() + 1, 0.0, true);
                     reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, result);
-                    return OuterLoopStatus.UNSTABLE;
+                    return new OuterLoopResult(OuterLoopStatus.UNSTABLE);
                 }
                 case FAIL -> {
-                    LOGGER.error("Failed to distribute slack bus active power mismatch, {} MW remains",
-                            remainingMismatch * PerUnit.SB);
+                    String statusText = String.format(Locale.US, "Failed to distribute slack bus active power mismatch, %.2f MW remains", remainingMismatch * PerUnit.SB);
+                    LOGGER.error("{}", statusText);
                     // Mismatches reported in LoadFlowResult on slack bus(es) are the mismatches of the last NR run.
                     // Since we will not be re-running an NR, revert distributedActivePower reporting which would otherwise be misleading.
                     // Said differently, we report that we didn't distribute anything, and this is indeed consistent with the network state.
                     contextData.addDistributedActivePower(-distributedActivePower);
-                    return OuterLoopStatus.FAILED;
+                    return new OuterLoopResult(OuterLoopStatus.FAILED, statusText);
                 }
                 default -> throw new IllegalArgumentException("Unknown slackDistributionFailureBehavior");
             }
         } else {
             reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, result);
-            return OuterLoopStatus.UNSTABLE;
+            return new OuterLoopResult(OuterLoopStatus.UNSTABLE);
         }
     }
 

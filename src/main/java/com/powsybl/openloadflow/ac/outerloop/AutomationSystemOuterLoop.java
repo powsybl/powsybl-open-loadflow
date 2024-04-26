@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfSwitch;
@@ -34,7 +35,7 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         LfNetwork network = context.getNetwork();
         Set<LfBranch> branchesToOpen = new HashSet<>();
@@ -68,6 +69,6 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
             status = OuterLoopStatus.UNSTABLE;
         }
 
-        return status;
+        return new OuterLoopResult(status);
     }
 }

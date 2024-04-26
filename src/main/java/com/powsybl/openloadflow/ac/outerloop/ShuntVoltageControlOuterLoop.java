@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.VoltageControl;
@@ -35,7 +36,7 @@ public class ShuntVoltageControlOuterLoop extends AbstractShuntVoltageControlOut
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (context.getIteration() == 0) {
@@ -50,6 +51,6 @@ public class ShuntVoltageControlOuterLoop extends AbstractShuntVoltageControlOut
                 status = OuterLoopStatus.UNSTABLE;
             }
         }
-        return status;
+        return new OuterLoopResult(status);
     }
 }

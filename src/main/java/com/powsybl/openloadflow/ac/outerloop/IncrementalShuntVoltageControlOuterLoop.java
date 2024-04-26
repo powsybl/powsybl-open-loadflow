@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Reports;
@@ -183,7 +184,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         LfNetwork network = context.getNetwork();
@@ -196,7 +197,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         // all shunts are within their deadbands
         if (controllerShuntsOutOfDeadband.isEmpty()) {
-            return status.getValue();
+            return new OuterLoopResult(status.getValue());
         }
 
         MutableObject<Integer> numAdjustedShunts = new MutableObject<>(0);
@@ -220,7 +221,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
             Reports.reportShuntVoltageControlChangedSection(iterationReportNode, numAdjustedShunts.getValue());
         }
 
-        return status.getValue();
+        return new OuterLoopResult(status.getValue());
     }
 
     protected static double getHalfTargetDeadband(ShuntVoltageControl voltageControl) {
