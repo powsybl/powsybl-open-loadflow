@@ -109,7 +109,7 @@ class AcLoadFlowReportTest {
     }
 
     @Test
-    void test() throws IOException {
+    void testMultipleComponents() throws IOException {
         Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
         // open everything at bus b4 to create 3 components
         network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(Terminal::disconnect);
