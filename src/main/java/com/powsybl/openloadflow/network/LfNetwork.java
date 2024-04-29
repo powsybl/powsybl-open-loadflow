@@ -672,7 +672,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
         if (deadComponentsCount > 0) {
             Reports.reportComponentsWithoutGenerators(reportNode, deadComponentsCount);
-            LOGGER.info("No calculation will be done on {} network(s) that have have no generators", deadComponentsCount);
+            LOGGER.info("No calculation will be done on {} network(s) that have no generators", deadComponentsCount);
         }
         return lfNetworks;
     }
