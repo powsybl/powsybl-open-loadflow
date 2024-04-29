@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -869,6 +870,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         parameters.setDistributedSlack(true).setBalanceType(balanceType);
         parameters.setDc(dc);
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
+        openLoadFlowParameters.setMaxActivePowerMismatch(1e-3);
         openLoadFlowParameters.setSlackBusPMaxMismatch(1e-3);
         parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
@@ -877,17 +880,15 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
 
-        double deltaPowerAssert = 5e-3; // We need a larger delta power assert since we distribute some power in slack distribution steps
-
         // verify security analysis result through load flows step by step
         // apply contingency
         network.getLine(lineInContingencyId).getTerminal1().disconnect();
         network.getLine(lineInContingencyId).getTerminal2().disconnect();
         loadFlowRunner.run(network, parameters);
-        assertEquals(network.getLine("l12").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l12").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l14").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l14").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l23").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l23").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l34").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l34").getP1(), deltaPowerAssert);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
         network.getGeneratorStream().forEach(gen -> gen.setTargetP(-gen.getTerminal().getP()));
         double g1PostContingencyTargetP = network.getGenerator(g1).getTargetP();
@@ -896,37 +897,37 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // apply remedial action
         network.getGenerator(g1).setTargetP(g1PostContingencyTargetP + deltaG1);
         loadFlowRunner.run(network, parameters);
-        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l12").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l14").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l23").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l34").getP1(), deltaPowerAssert);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // reverse action and apply second remedial action
         network.getGenerator(g1).setTargetP(g1PostContingencyTargetP);
         network.getGenerator(g2).setTargetP(g2PostContingencyTargetP + deltaG2);
         loadFlowRunner.run(network, parameters);
-        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l12").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l14").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l23").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l34").getP1(), deltaPowerAssert);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // reverse action and apply third remedial action
         network.getGenerator(g2).setTargetP(g2PostContingencyTargetP);
         network.getGenerator(g4).setTargetP(targetPG4);
         loadFlowRunner.run(network, parameters);
-        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l12").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l14").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l23").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l34").getP1(), deltaPowerAssert);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // reverse action and apply fourth remedial action
         network.getGenerator(g2).setTargetP(g2PostContingencyTargetP + deltaG2);
         network.getGenerator(g1).setTargetP(g1PostContingencyTargetP + deltaG1);
         loadFlowRunner.run(network, parameters);
-        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l12").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l14").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l23").getP1(), deltaPowerAssert);
-        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l34").getP1(), deltaPowerAssert);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
     }
 
