@@ -227,7 +227,7 @@ public final class LfAction {
                 var generatorChange = new GeneratorChange(generator, activePowerValue.getAsDouble() / PerUnit.SB, relativeValue.get());
                 return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorChange, null, null));
             } else {
-                throw new UnsupportedOperationException("Generator action on " + action.getGeneratorId() + " : configuration not supported yet. Active power value and boolean for relative value are required.");
+                throw new UnsupportedOperationException("Generator action on " + action.getGeneratorId() + " : configuration not supported yet.");
             }
         }
         return Optional.empty();
