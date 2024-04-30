@@ -792,6 +792,40 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
+    void testGeneratorRemoteReactivePowerControl3wt() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        VoltageLevel vl3 = network.getVoltageLevel("VL_3");
+        Bus b3 = vl3.getBusBreakerView().getBus("BUS_3");
+        vl3.newGenerator()
+                .setId("GEN_3")
+                .setBus(b3.getId())
+                .setConnectableBus(b3.getId())
+                .setMinP(-100)
+                .setMaxP(+100)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(vl3.getNominalV())
+                .setTargetP(10.0)
+                .setTargetQ(0.0)
+                .add();
+
+        var gen1 = network.getGenerator("GEN_1");
+        var t3wt = network.getThreeWindingsTransformer("T3wT");
+
+        double targetQ = -5.0;
+        gen1.setTargetQ(0.0).setVoltageRegulatorOn(false)
+                .newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(t3wt.getTerminal(ThreeSides.ONE))
+                .withEnabled(true).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(targetQ, t3wt.getTerminal(ThreeSides.ONE));
+    }
+
+    @Test
     void testReactiveRangeCheckMode() {
         parameters.setUseReactiveLimits(true);
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
