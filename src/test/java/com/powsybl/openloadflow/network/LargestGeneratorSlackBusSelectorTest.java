@@ -82,4 +82,16 @@ class LargestGeneratorSlackBusSelectorTest {
         slackBus = lfNetwork.getSlackBus();
         assertEquals("S2VL1_0", slackBus.getId());
     }
+
+    @Test
+    void testNoGeneratorDcMode() {
+        var network = DistributedSlackNetworkFactory.create();
+        network.getGeneratorStream().forEach(g -> g.getTerminal().disconnect());
+        var parameters = new LfNetworkParameters()
+                .setSlackBusSelector(new LargestGeneratorSlackBusSelector(5000))
+                .setLoadFlowModel(LoadFlowModel.DC);
+        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters).get(0);
+        var slackBus = lfNetwork.getSlackBus();
+        assertEquals("b2_vl_0", slackBus.getId());
+    }
 }
