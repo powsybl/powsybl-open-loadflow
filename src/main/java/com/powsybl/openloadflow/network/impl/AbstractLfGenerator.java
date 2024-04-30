@@ -294,6 +294,9 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         if (connectable instanceof Branch<?> branch) {
             this.controlledBranchSide = branch.getSide(regulatingTerminal);
             this.controlledBranchId = branch.getId();
+        } else if (connectable instanceof ThreeWindingsTransformer t3w) {
+            this.controlledBranchSide = TwoSides.ONE; // side 2 is star bus of t3w.
+            this.controlledBranchId = LfLegBranch.getId(t3w.getSide(regulatingTerminal), t3w.getId());
         } else {
             LOGGER.error("Generator '{}' is remotely controlling reactive power of an instance of {}: not supported",
                     getId(), connectable.getClass());
