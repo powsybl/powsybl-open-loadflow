@@ -63,6 +63,8 @@ public class LfNetworkParameters {
 
     public static final List<String> VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE = VoltageControl.VOLTAGE_CONTROL_PRIORITIES;
 
+    public static final boolean TRANSFORMER_VOLTAGE_CONTROL_STABLE_DEFAULT_VALUE = false;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
