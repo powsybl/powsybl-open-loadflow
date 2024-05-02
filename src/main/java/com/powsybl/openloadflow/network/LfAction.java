@@ -328,36 +328,25 @@ public final class LfAction {
         }
     }
 
-        if (generatorChange != null) {
-            LfGenerator generator = generatorChange.generator();
-            if (!generator.isDisabled()) {
-                double changeTargetP = generatorChange.changeTargetP();
-                double oldTargetP = generator.getTargetP();
-                double newTargetP;
-                if (generatorChange.isRelative()) {
-                    newTargetP = oldTargetP + changeTargetP;
-                    // relative change : active limits are applied if useActiveLimits is true and if the generator target is already within its [Pmin;Pmax]
-                    if (networkParameters.isUseActiveLimits() && oldTargetP >= generator.getMinP() && oldTargetP <= generator.getMaxP()) {
-                        newTargetP = Math.max(Math.min(newTargetP, generator.getMaxP()), generator.getMinP());
-                        if (newTargetP == generator.getMaxP() || newTargetP == generator.getMinP()) {
-                            LOGGER.warn("Action on generator {} restricted to its active power limits [{}MW;{}MW], new target P set to {}MW", generator.getId(), generator.getMinP() * PerUnit.SB, generator.getMaxP() * PerUnit.SB, newTargetP * PerUnit.SB);
-                        }
-                    }
-                } else {
-                    // absolute change : active limits are ignored
-                    newTargetP = changeTargetP;
-                }
-                generator.setTargetP(newTargetP);
-                if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                        networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
-                    generator.setParticipating(false);
-                }
-            }
-        }
     private void applyGeneratorChange(LfNetworkParameters networkParameters) {
         LfGenerator generator = generatorChange.generator();
         if (!generator.isDisabled()) {
-            double newTargetP = generatorChange.isRelative() ? generator.getTargetP() + generatorChange.activePowerValue() : generatorChange.activePowerValue();
+            double activePowerValue = generatorChange.activePowerValue();
+            double oldTargetP = generator.getTargetP();
+            double newTargetP;
+            if (generatorChange.isRelative()) {
+                newTargetP = oldTargetP + activePowerValue;
+                // relative change : active limits are applied if useActiveLimits is true and if the generator target is already within its [Pmin;Pmax]
+                if (networkParameters.isUseActiveLimits() && oldTargetP >= generator.getMinP() && oldTargetP <= generator.getMaxP()) {
+                    newTargetP = Math.max(Math.min(newTargetP, generator.getMaxP()), generator.getMinP());
+                    if (newTargetP == generator.getMaxP() || newTargetP == generator.getMinP()) {
+                        LOGGER.warn("Action on generator {} restricted to its active power limits [{}MW;{}MW], new target P set to {}MW", generator.getId(), generator.getMinP() * PerUnit.SB, generator.getMaxP() * PerUnit.SB, newTargetP * PerUnit.SB);
+                    }
+                }
+            } else {
+                // absolute change : active limits are ignored
+                newTargetP = activePowerValue;
+            }
             generator.setTargetP(newTargetP);
             if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
                     networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
