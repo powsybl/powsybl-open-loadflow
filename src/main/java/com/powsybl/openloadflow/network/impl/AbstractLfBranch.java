@@ -75,6 +75,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
+    /**
+     * Create the list of LfLimits from a LoadingLimits and a list of reductions.
+     * The resulting list will contain the permanent limit
+     */
     protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus, List<Double> limitReductions) {
         LinkedList<LfLimit> sortedLimits = new LinkedList<>();
         if (loadingLimits != null) {
@@ -82,16 +86,16 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
             int i = 0;
             for (LoadingLimits.TemporaryLimit temporaryLimit : loadingLimits.getTemporaryLimits()) {
-                i++;
                 if (temporaryLimit.getAcceptableDuration() != 0) {
                     // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
                     // for this limit is infinity.
                     // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
-                    Double reduction = limitReductions.isEmpty() ? null : limitReductions.get(i);
+                    Double reduction = limitReductions.isEmpty() ? null : limitReductions.get(i + 1); // Temporary limit's reductions are stored starting from index 1 in `limitReductions`
                     double originalValuePerUnit = temporaryLimit.getValue() * toPerUnit;
                     sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(),
                             originalValuePerUnit, reduction));
                 }
+                i++;
             }
             Double reduction = limitReductions.isEmpty() ? null : limitReductions.get(0);
             sortedLimits.addLast(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit, reduction));

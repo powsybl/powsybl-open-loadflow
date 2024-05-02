@@ -74,8 +74,6 @@ public class LimitReductionManager {
     }
 
     public List<TerminalLimitReduction> getTerminalLimitReductions() {
-        // to be sorted by acceptable duration
-        // return terminalLimitReductions.stream().sorted().toList();
         return terminalLimitReductions;
     }
 

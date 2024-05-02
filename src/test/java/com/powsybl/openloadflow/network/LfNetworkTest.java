@@ -405,4 +405,52 @@ class LfNetworkTest extends AbstractSerDeTest {
         reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager1, null);
         assertTrue(reductions.isEmpty());
     }
+
+    @Test
+    void testSeveralLimitReductionsForTheSameLimit() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits());
+        // NHV1_NHV2_1 : side 1 PATL 500, side 2 PATL 1100, 1200 for 600s and 1500 for 60s then above 0s
+        // NHV1_NHV2_2 : side 1 PATL 1100, 1200 for 1200s then above 60s, side 2 PATL 500
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LimitReductionManager.TerminalLimitReduction terminalLimitReduction1 =
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), true, null, 0.5);
+        LimitReductionManager.TerminalLimitReduction terminalLimitReduction2 =
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 60), 0.9);
+        LimitReductionManager.TerminalLimitReduction terminalLimitReduction3 =
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(600, 1200), 0.8);
+        // The following reduction overlaps `terminalLimitReduction2` for temporary limits which acceptable duration is in [0,30] seconds.
+        LimitReductionManager.TerminalLimitReduction terminalLimitReduction4 =
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 30), 0.87);
+        LimitReductionManager limitReductionManager = new LimitReductionManager();
+        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction1);
+        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction2);
+        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction3);
+        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction4);
+
+        LfBranch lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
+        Branch<?> branch = network.getBranch("NHV1_NHV2_1");
+        List<Double> reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
+        assertEquals(1, reductions.size());
+        assertEquals(0.5, reductions.get(0), 0.001); // PATL
+        reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
+        assertEquals(4, reductions.size());
+        assertEquals(0.5, reductions.get(0), 0.001); // PATL
+        assertEquals(0.8, reductions.get(1), 0.001); // TATL 600s
+        assertEquals(0.9, reductions.get(2), 0.001); // TATL 60s
+        // `terminalLimitReduction4` is declared after `terminalLimitReduction2`, so its value is used
+        assertEquals(0.87, reductions.get(3), 0.001); // TATL 0s
+
+        limitReductionManager = new LimitReductionManager();
+        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction1);
+        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction4);
+        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction2);
+        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction3);
+        reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
+        assertEquals(4, reductions.size());
+        assertEquals(0.5, reductions.get(0), 0.001); // PATL
+        assertEquals(0.8, reductions.get(1), 0.001); // TATL 600s
+        assertEquals(0.9, reductions.get(2), 0.001); // TATL 60s
+        // `terminalLimitReduction4` is now declared before `terminalLimitReduction2`, its value is overlapped by the one of `terminalLimitReduction2`
+        assertEquals(0.9, reductions.get(3), 0.001); // TATL 0s
+    }
 }

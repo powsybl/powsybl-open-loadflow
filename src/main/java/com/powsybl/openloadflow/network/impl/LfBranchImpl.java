@@ -259,6 +259,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         }
     }
 
+    /**
+     * <p>Create the list of the limit reductions to use for each limit:
+     * <ul>
+     *  <li>the value for the permanent limit is stored at index 0, values for the temporary limits are stored from index 1;</li>
+     *  <li>if no reduction is detected for a limit, the corresponding value is set to 1;</li>
+     *  <li>if several LimitReductions are applicable for the same limit, the last one is used;</li>
+     * </ul></p>
+     * <p>This method may return an empty list when no reduction apply.</p>
+     */
     @Override
     public List<Double> getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
         if (limits == null) {
@@ -270,6 +279,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         if (limitReductionManager == null || limitReductionManager.isEmpty()) {
             return Collections.emptyList();
         }
+        // Initialize the array of the reductions with 1s
         Double[] limitReductions = new Double[limits.getTemporaryLimits().size() + 1];
         Arrays.fill(limitReductions, 1.);
         double nominalV = branchRef.get().getTerminal(side).getVoltageLevel().getNominalV();
@@ -279,7 +289,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                     limitReductions[0] = terminalLimitReduction.getReduction();
                 }
                 if (terminalLimitReduction.getAcceptableDuration() != null) {
-                    int i = 1;
+                    int i = 1; // temporary limit's reductions will be stored starting from index 1
                     for (LoadingLimits.TemporaryLimit temporaryLimit : limits.getTemporaryLimits()) {
                         if (terminalLimitReduction.getAcceptableDuration().contains(temporaryLimit.getAcceptableDuration())) {
                             limitReductions[i] = terminalLimitReduction.getReduction();
