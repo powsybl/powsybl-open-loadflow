@@ -189,6 +189,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
                     controllerBus.getId(), controlledBus.getId(), busesId, controllerTargetV * controlledBus.getNominalV(),
                     voltageControlTargetV * controlledBus.getNominalV());
+            Reports.reportBusAlreadyControlledWithDifferentTargetV(controllerBus.getNetwork().getReportNode(), controllerBus.getId(), controlledBus.getId(), busesId, controllerTargetV * controlledBus.getNominalV(),
+                    voltageControlTargetV * controlledBus.getNominalV());
         }
     }
 
@@ -210,6 +212,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
                 generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
+            Reports.reportNotUniqueTargetVControllerBus(controllerBus.getNetwork().getReportNode(), generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
         }
     }
 
@@ -289,6 +292,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!side.equals(generatorReactivePowerControl.getControlledSide())) {
             LOGGER.error("Controlled branch '{}' is controlled at both sides. Controlled side {} (kept) {} (rejected).",
                     generatorReactivePowerControl.getControlledBranch().getId(), generatorReactivePowerControl.getControlledSide(), side);
+            Reports.reportBranchControlledAtBothSides(generatorReactivePowerControl.getControlledBranch().getNetwork().getReportNode(),
+                    generatorReactivePowerControl.getControlledBranch().getId(), generatorReactivePowerControl.getControlledSide().name(), side.name());
             return false;
         }
         return true;
@@ -712,6 +717,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             // number of variables. We have only one B variable for more than one bus target V equations.
             if (!controllerShunt.getVoltageControl().orElseThrow().getControlledBus().getId().equals(controlledBus.getId())) {
                 LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
+                Reports.reportControllerShuntAlreadyInVoltageControl(controllerBus.getNetwork().getReportNode(), controllerShunt.getId(), controlledBus.getId());
             }
             return;
         }

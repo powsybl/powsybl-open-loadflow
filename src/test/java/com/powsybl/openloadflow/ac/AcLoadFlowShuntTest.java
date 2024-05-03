@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -14,8 +16,11 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -323,7 +328,7 @@ class AcLoadFlowShuntTest {
     }
 
     @Test
-    void testUnsupportedSharedVoltageControl() {
+    void testUnsupportedSharedVoltageControl() throws IOException {
         // in that test case, we test two shunts connected to the same bus, both are in voltage regulation
         // but with a different regulating terminal.
         ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
@@ -348,11 +353,15 @@ class AcLoadFlowShuntTest {
                 .add();
 
         parameters.setShuntCompensatorVoltageControlOn(true);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(391.640, bus3);
         assertEquals(1, shunt.getSectionCount());
         assertEquals(2, shunt2.getSectionCount());
+        LoadFlowAssert.assertReportEquals("/controllerShuntAlreadyInVoltageControlReport.txt", reportNode);
     }
 
     @Test

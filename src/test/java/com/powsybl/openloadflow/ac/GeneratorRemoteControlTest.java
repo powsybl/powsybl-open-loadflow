@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControlAdder;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
@@ -20,8 +22,11 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -454,7 +459,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void testSharedGeneratorRemoteReactivePowerControl() {
+    void testSharedGeneratorRemoteReactivePowerControl() throws IOException {
         // we create a basic 4-buses network
         Network network = FourBusNetworkFactory.createBaseNetwork();
         Bus b1 = network.getBusBreakerView().getBus("b1");
@@ -499,11 +504,15 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .withEnabled(true).add();
 
         parameters.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true);
-        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        LoadFlowResult result2 = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertTrue(result2.isFullyConverged());
         assertReactivePowerEquals(1, l34.getTerminal(TwoSides.TWO));
         assertEquals(0.0, Math.abs(b1.getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), DELTA_POWER);
         assertEquals(0.0, Math.abs(b4.getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), DELTA_POWER);
+        LoadFlowAssert.assertReportEquals("/sharedGeneratorRemoteReactivePowerControlReport.txt", reportNode);
     }
 
     @Test
