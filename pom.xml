@@ -220,6 +220,7 @@
             <scope>test</scope>
         </dependency>
 
+<!--    TODO : Resolve these dependencies-->
         <dependency>
             <groupId>com.artelys</groupId>
             <artifactId>knitro-interfaces</artifactId>
@@ -227,7 +228,6 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/../libs/knitro.jar</systemPath>
         </dependency>
-
         <dependency>
             <groupId>com.artelys</groupId>
             <artifactId>bridj</artifactId>
