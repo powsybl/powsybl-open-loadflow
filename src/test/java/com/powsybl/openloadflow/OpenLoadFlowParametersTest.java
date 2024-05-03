@@ -337,7 +337,7 @@ class OpenLoadFlowParametersTest {
                 newVal1 = "3";
                 newVal2 = "4";
             } else if (sp.getType() == ParameterType.STRING) {
-                if (sp.getPossibleValues().isEmpty()) {
+                if (sp.getPossibleValues() == null) {
                     // e.g. debugDir
                     newVal1 = "Foo";
                     newVal2 = "Bar";
@@ -346,7 +346,7 @@ class OpenLoadFlowParametersTest {
                     newVal2 = sp.getPossibleValues().get(1).toString();
                 }
             } else if (sp.getType() == ParameterType.STRING_LIST) {
-                if (sp.getPossibleValues() == null || sp.getPossibleValues().isEmpty()) {
+                if (sp.getPossibleValues() == null) {
                     // e.g. slackBusesIds
                     newVal1 = "Foo,Bar";
                     newVal2 = "Foo,Bar,Baz";
