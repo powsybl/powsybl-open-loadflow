@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.ac.outerloop.tap.TransformerRatioManager;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.VoltageControl;
 import org.slf4j.Logger;
@@ -116,9 +115,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                     }
                 }
 
-                if (stable) {
-                    contextData.transformerRatioManager = new TransformerRatioManager(context);
-                }
+                contextData.transformerRatioManager = new TransformerRatioManager(context, stable);
 
                 if (!needRun) {
                     contextData.step = Step.DISCRETIZED;
@@ -143,31 +140,17 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             }
             case TUNING: {
                 boolean outOfBoundTap = false;
-                if (stable) {
-                    for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
-                        if (controllerBranch.isVoltageControlEnabled() && !controllerBranch.isDisabled()) {
-                            // round the rho shift to the closest tap
-                            PiModel piModel = controllerBranch.getPiModel();
-                            double r1 = piModel.getR1();
-                            TransformerRatioManager.TransfoRatioInfo transfoRatioInfo = contextData.transformerRatioManager.getInfo(controllerBranch);
-                            double r1GroupMin = transfoRatioInfo.groupeInfo().rMin();
-                            double r1GroupMax = transfoRatioInfo.groupeInfo().rMax();
-                            if (r1 < r1GroupMin || r1 > r1GroupMax) {
-                                LOGGER.info("Transformer " + controllerBranch.getId() + " tap frozen");
-                                piModel.setR1(r1 > r1GroupMax ? r1GroupMax : r1GroupMin);
-                                piModel.roundR1ToClosestTap();
-                                controllerBranch.setVoltageControlEnabled(false);
-                                outOfBoundTap = true;
-                            }
-                        }
+
+                for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
+                    if (contextData.transformerRatioManager.freezeIfGroupAtBounds(controllerBranch)) {
+                        outOfBoundTap = true;
                     }
                 }
+
                 if (!outOfBoundTap) {
                     // No out of bound tap -  descretize
 
-                    if (stable) {
-                        updateContinousRatio(context);
-                    }
+                    updateContinousRatio(context);
 
                     roundVoltageRatios(context);
                     for (LfBus controllerBus : contextData.getBusesWithVoltageControlDisabled()) {
@@ -176,6 +159,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                     }
                     contextData.step = Step.DISCRETIZED;
                 }
+                // In any case the loop must run again
                 return OuterLoopStatus.UNSTABLE;
             }
             case DISCRETIZED:
@@ -194,13 +178,10 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> {
                         System.out.println(bus.getId());
-                        var controllerBranches = voltageControl.getMergedControllerElements().stream()
+                        voltageControl.getMergedControllerElements().stream()
                                 .filter(b -> !b.isDisabled())
                                 .filter(b -> b.isVoltageControlEnabled())
-                                .toList();
-                        if (controllerBranches.size() > 1) { // If transformers in parallel control tension
-                            controllerBranches.forEach(b -> contextData.transformerRatioManager.updateContinousRatio(b));
-                        }
+                                .forEach(b -> contextData.transformerRatioManager.updateContinousRatio(b));
                     });
         }
     }

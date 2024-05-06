@@ -31,7 +31,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
 
     public static final String NAME = "VoltageMonitoring";
 
-    public double maxControlledNominalVoltage = 0;
+    public final double maxControlledNominalVoltage;
 
     @Override
     public String getName() {
@@ -43,16 +43,15 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
         MAX
     }
 
-    private static final class PqToPvBus {
+    private record PqToPvBus(LfBus controllerBus, VoltageLimitDirection voltageLimitDirection) {
+    }
 
-        private final LfBus controllerBus;
+    public MonitoringVoltageOuterLoop() {
+        this(0);
+    }
 
-        private final VoltageLimitDirection voltageLimitDirection;
-
-        private PqToPvBus(LfBus controllerBus, VoltageLimitDirection voltageLimitDirection) {
-            this.controllerBus = controllerBus;
-            this.voltageLimitDirection = voltageLimitDirection;
-        }
+    public MonitoringVoltageOuterLoop(double maxControlledNominalVoltage) {
+        this.maxControlledNominalVoltage = maxControlledNominalVoltage;
     }
 
     private static void switchPqPv(List<PqToPvBus> pqToPvBuses, ReportNode reportNode) {
@@ -141,12 +140,4 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
         return status;
     }
 
-    @Override
-    public void initialize(AcOuterLoopContext context) {
-        initialize(context, 0);
-    }
-
-    public void initialize(AcOuterLoopContext context, double maxControlledNominalVoltage) {
-        this.maxControlledNominalVoltage = maxControlledNominalVoltage;
-    }
 }

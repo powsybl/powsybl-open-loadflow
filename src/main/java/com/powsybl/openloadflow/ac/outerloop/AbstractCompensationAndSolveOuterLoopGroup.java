@@ -15,6 +15,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractCompensationAndSolveOuterLoopGroup implements ACOuterLoopGroup {
@@ -22,11 +23,9 @@ public abstract class AbstractCompensationAndSolveOuterLoopGroup implements ACOu
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractCompensationAndSolveOuterLoopGroup.class);
 
     private final AcOuterLoop compensationLoop;
-    private final List<AcOuterLoop> modelCheckers;
 
-    protected AbstractCompensationAndSolveOuterLoopGroup(AcOuterLoop compensationLoop, List<AcOuterLoop> modelCheckers) {
+    protected AbstractCompensationAndSolveOuterLoopGroup(AcOuterLoop compensationLoop) {
         this.compensationLoop = compensationLoop;
-        this.modelCheckers = modelCheckers;
     }
 
     @Override
@@ -39,6 +38,13 @@ public abstract class AbstractCompensationAndSolveOuterLoopGroup implements ACOu
 
         compensationLoop.initialize(compensationContext);
 
+        // initial checkers and solvers - run if needed by the group
+        List<AcOuterLoop> modelCheckers = new ArrayList<>();
+        boolean modelChanged = prepareSolverAndModel(groupContext, nrReportNode, modelCheckers);
+        if (!modelChanged) { // If init is a NOOP return groups status
+            return OuterLoopStatus.FULL_STABLE;
+        }
+
         List<Pair<AcOuterLoop, AcOuterLoopContext>> checkersAndContexts = modelCheckers.stream()
                 .map(checker -> Pair.of(checker,
                         checker instanceof ACOuterLoopGroup ?
@@ -47,11 +53,7 @@ public abstract class AbstractCompensationAndSolveOuterLoopGroup implements ACOu
                                 new AcOuterLoopContext(groupContext.getLoadFlowContext().getNetwork())))
                 .toList();
 
-        // initial checkers and solvers - run if needed by the group
-        boolean modelChanged = prepareSolverAndModel(groupContext, nrReportNode, checkersAndContexts);
-        if (!modelChanged) { // If init is a NOOP return groups status
-            return OuterLoopStatus.FULL_STABLE;
-        }
+        checkersAndContexts.forEach(p -> p.getLeft().initialize(p.getRight()));
 
         // continue with outer loops only if solver succeed
         // The solver may not have been run if first loop prefers to run the solver itself
@@ -190,10 +192,11 @@ public abstract class AbstractCompensationAndSolveOuterLoopGroup implements ACOu
     }
 
     /**
-     * Select the active model equations and run a first load flow
+     * Select the active model equations and run a first load flow and appends all model checkers to the modelCheckers list
      * @return true if a loadflow is run and outerloop needs to run, or false if the init is a NOOP
      */
-    protected abstract boolean prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> checkersAndContexts);
+    protected abstract boolean prepareSolverAndModel(AcOuterLoopGroupContext groupContext,
+                                                     ReportNode nrReportNode, List<AcOuterLoop> modelCheckers);
 
     protected abstract void cleanModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> checkersAndContexts);
 

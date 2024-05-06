@@ -5,6 +5,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.AcOuterLoopGroupContext;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.ac.outerloop.tap.TransformerRatioManager;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -26,6 +27,11 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
     public static final String NAME = "TapControlOuterLoopGroup";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TapControlOuterLoopGroup.class);
+
+    private final LoadFlowParameters parameters;
+    private final OpenLoadFlowParameters parametersExt;
+
+    private TransformerRatioManager transformerRatioManager;
 
     static class ContextData {
         private double maxControlledNominalVoltage = Double.MIN_VALUE;
@@ -49,7 +55,9 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
     }
 
     public TapControlOuterLoopGroup(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        super(makeCompensationLoop(parameters, parametersExt), getTapControlOuterLoopGroup(parameters, parametersExt));
+        super(makeCompensationLoop(parameters, parametersExt));
+        this.parameters = parameters;
+        this.parametersExt = parametersExt;
     }
 
     private static AcOuterLoop makeCompensationLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
@@ -71,13 +79,11 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
         }
     }
 
-    private static List<AcOuterLoop> getTapControlOuterLoopGroup(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-
-        List<AcOuterLoop> result = new ArrayList<>();
+    private void addModelCheckers(List<AcOuterLoop> modelCheckers, double maxControlledNominalVoltage, TransformerRatioManager transformerRatioManager) {
 
         if (parametersExt.isSvcVoltageMonitoring()) {
-            MonitoringVoltageOuterLoop monitoringVoltageOuterLoop = new MonitoringVoltageOuterLoop();
-            result.add(monitoringVoltageOuterLoop);
+            MonitoringVoltageOuterLoop monitoringVoltageOuterLoop = new MonitoringVoltageOuterLoop(maxControlledNominalVoltage);
+            modelCheckers.add(monitoringVoltageOuterLoop);
         }
 
         if (parameters.isUseReactiveLimits()) {
@@ -85,23 +91,24 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
                 case UNIFORM_CRITERIA -> parametersExt.getNewtonRaphsonConvEpsPerEq();
                 case PER_EQUATION_TYPE_CRITERIA -> parametersExt.getMaxReactivePowerMismatch() / PerUnit.SB;
             };
-            result.add(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch(), effectiveMaxReactivePowerMismatch));
+            modelCheckers.add(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch(),
+                    effectiveMaxReactivePowerMismatch,
+                    maxControlledNominalVoltage));
         }
 
         if (parameters.isTransformerVoltageControlOn()) {
-            result.add(new MonitoringTapOuterLoop());
+            modelCheckers.add(new MonitoringTapOuterLoop(transformerRatioManager));
         }
 
-        return result;
     }
 
     @Override
-    protected boolean prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> checkersAndContexts) {
+    protected boolean prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<AcOuterLoop> modelCheckers) {
 
         ContextData contextData = new ContextData();
         groupContext.setData(contextData);
 
-        // Transformer Voltage control is removed from the equationsand replaced by continuous tap equations
+        // Transformer Voltage control is removed from the equations and replaced by continuous tap equations
         // Voltage control for "HT" groups is then disabled
 
         for (LfBus bus : groupContext.getNetwork().getBuses()) {
@@ -140,19 +147,9 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
         if (modelChanged) {
             groupContext.getNetwork().fixTransformerVoltageControls(false);
 
-            for (Pair<AcOuterLoop, AcOuterLoopContext> checkerAndContext : checkersAndContexts) {
-                AcOuterLoop outerLoop = checkerAndContext.getLeft();
-                AcOuterLoopContext loopContext = checkerAndContext.getRight();
-                if (outerLoop instanceof MonitoringVoltageOuterLoop) {
-                    // Provide the voltage limit to that loop
-                    ((MonitoringVoltageOuterLoop) outerLoop).initialize(loopContext, contextData.getMaxControlledNominalVoltage());
-                } else if (outerLoop instanceof ReactiveLimitsOuterLoop) {
-                    // Provide the voltage limit to that loop
-                    ((ReactiveLimitsOuterLoop) outerLoop).initialize(loopContext, contextData.getMaxControlledNominalVoltage());
-                } else {
-                    outerLoop.initialize(loopContext);
-                }
-            }
+            transformerRatioManager = new TransformerRatioManager(groupContext, parametersExt.isTransformerVoltageControlStable());
+
+            addModelCheckers(modelCheckers, contextData.getMaxControlledNominalVoltage(), transformerRatioManager);
 
             groupContext.runSolver(getVoltageInitializer(groupContext), nrReportNode);
 
@@ -160,8 +157,6 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
         } else {
             return false;
         }
-
-        // TODO: POur la loop suivante, attention a bien remettre tous les bus en PV
         // TODO: Dans un test vérifier la bonne mise à jour du slack
     }
 
@@ -172,14 +167,17 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
 
         // discretize transformer taps
         for (LfBranch controllerBranch : groupContext.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
-            controllerBranch.setVoltageControlEnabled(false);
+            if (controllerBranch.isVoltageControlEnabled() && !controllerBranch.isDisabled()) {
+                controllerBranch.setVoltageControlEnabled(false);
 
-            // round the rho shift to the closest tap
-            PiModel piModel = controllerBranch.getPiModel();
-            double r1Value = piModel.getR1();
-            piModel.roundR1ToClosestTap();
-            double roundedR1Value = piModel.getR1();
-            LOGGER.trace("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), r1Value, roundedR1Value);
+                // round the rho shift to the closest tap
+                PiModel piModel = controllerBranch.getPiModel();
+                // If stable mode take into account the initial position
+                double r1Value = transformerRatioManager.updateContinousRatio(controllerBranch);
+                piModel.roundR1ToClosestTap();
+                double roundedR1Value = piModel.getR1();
+                LOGGER.trace("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), r1Value, roundedR1Value);
+            }
         }
 
         // Re-enable generator voltage control
