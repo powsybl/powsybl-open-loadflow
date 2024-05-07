@@ -10,9 +10,18 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LineFortescue;
+import com.powsybl.iidm.network.extensions.TwoWindingsTransformerFortescue;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.extensions.*;
+import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
+import com.powsybl.openloadflow.network.extensions.iidm.StepWindingConnectionType;
+import com.powsybl.openloadflow.network.extensions.iidm.Tfo3Phases;
+import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
+import org.apache.commons.math3.complex.Complex;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,23 +41,67 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private static void createLineAsym(Line line, double zb, PiModel piModel, LfBranchImpl lfBranch) {
         var extension = line.getExtension(LineFortescue.class);
-        if (extension != null) {
+        var extension2 = line.getExtension(LineAsymmetrical.class);
+        if (extension != null && extension2 != null) {
             boolean openPhaseA = extension.isOpenPhaseA();
             boolean openPhaseB = extension.isOpenPhaseB();
             boolean openPhaseC = extension.isOpenPhaseC();
-            double rz = extension.getRz();
-            double xz = extension.getXz();
-            SimplePiModel piZeroComponent = new SimplePiModel()
-                    .setR(rz / zb)
-                    .setX(xz / zb);
-            SimplePiModel piPositiveComponent = new SimplePiModel()
-                    .setR(piModel.getR())
-                    .setX(piModel.getX());
-            SimplePiModel piNegativeComponent = new SimplePiModel()
-                    .setR(piModel.getR())
-                    .setX(piModel.getX());
-            lfBranch.setAsymLine(new LfAsymLine(piZeroComponent, piPositiveComponent, piNegativeComponent,
-                    openPhaseA, openPhaseB, openPhaseC));
+            LfAsymLine asymLine;
+            if (extension2.getYabc() != null) {
+                // the prioritized option is to use data from ABC three phase admittance matrix
+                ComplexMatrix yabcPu = extension2.getYabc().scale(zb);
+                boolean isBus1FortescueRepresented = true;
+                boolean isBus2FortescueRepresented = true;
+
+                AsymBusVariableType bus1VariableType = AsymBusVariableType.WYE;
+                AsymBusVariableType bus2VariableType = AsymBusVariableType.WYE;
+
+                boolean hasPhaseA1 = true;
+                boolean hasPhaseB1 = true;
+                boolean hasPhaseC1 = true;
+                boolean hasPhaseA2 = true;
+                boolean hasPhaseB2 = true;
+                boolean hasPhaseC2 = true;
+
+                LfAsymBus asymBus1 = lfBranch.getBus1().getAsym();
+                LfAsymBus asymBus2 = lfBranch.getBus2().getAsym();
+
+                if (asymBus1 != null) {
+                    isBus1FortescueRepresented = asymBus1.isFortescueRepresentation();
+                    hasPhaseA1 = asymBus1.isHasPhaseA();
+                    hasPhaseB1 = asymBus1.isHasPhaseB();
+                    hasPhaseC1 = asymBus1.isHasPhaseC();
+                    bus1VariableType = asymBus1.getAsymBusVariableType();
+                }
+                if (asymBus2 != null) {
+                    isBus2FortescueRepresented = asymBus2.isFortescueRepresentation();
+                    hasPhaseA2 = asymBus2.isHasPhaseA();
+                    hasPhaseB2 = asymBus2.isHasPhaseB();
+                    hasPhaseC2 = asymBus2.isHasPhaseC();
+                    bus1VariableType = asymBus2.getAsymBusVariableType();
+                }
+
+                asymLine = new LfAsymLine(yabcPu, openPhaseA, openPhaseB, openPhaseC, isBus1FortescueRepresented, isBus2FortescueRepresented,
+                        hasPhaseA1, hasPhaseB1, hasPhaseC1, hasPhaseA2, hasPhaseB2, hasPhaseC2, bus1VariableType, bus2VariableType);
+            } else {
+                // last option, use the Pi models of the Fortescue sequences
+                // this means that nodes should be Fortescue represented with WYE variables
+                double rz = extension.getRz();
+                double xz = extension.getXz();
+                SimplePiModel piZeroComponent = new SimplePiModel()
+                        .setR(rz / zb)
+                        .setX(xz / zb);
+                SimplePiModel piPositiveComponent = new SimplePiModel()
+                        .setR(piModel.getR())
+                        .setX(piModel.getX());
+                SimplePiModel piNegativeComponent = new SimplePiModel()
+                        .setR(piModel.getR())
+                        .setX(piModel.getX());
+                asymLine = new LfAsymLine(piZeroComponent, piPositiveComponent, piNegativeComponent,
+                        openPhaseA, openPhaseB, openPhaseC, AsymBusVariableType.WYE, AsymBusVariableType.WYE);
+            }
+
+            lfBranch.setAsymLine(asymLine);
         }
     }
 
@@ -106,11 +159,122 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 .setB1(b1)
                 .setB2(b2);
 
-        LfBranchImpl lfBranch = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
+        LfBranchImpl lfBranchImpl = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
         if (parameters.isAsymmetrical()) {
-            createLineAsym(line, zb, piModel, lfBranch);
+            createLineAsym(line, zb, piModel, lfBranchImpl);
         }
-        return lfBranch;
+        return lfBranchImpl;
+    }
+
+    private static void createTransfoToAsym(TwoWindingsTransformer t2w, double zb, LfBranchImpl lfBranch) {
+        var extension = t2w.getExtension(TwoWindingsTransformerFortescue.class);
+        if (extension != null) {
+            var extension2 = t2w.getExtension(Tfo3Phases.class);
+            if (extension2 != null) {
+                // We check in priority the most detailed way to describe a Three Phase transformer
+                double vTfoBase1 = t2w.getRatedU1();
+                double vTfoBase2 = t2w.getRatedU2();
+
+                WindingConnectionType leg1Type = extension.getConnectionType1();
+                WindingConnectionType leg2Type = extension.getConnectionType2();
+
+                Complex rho = Complex.ONE.multiply(vTfoBase2 / vTfoBase1);
+
+                Complex zG1pu = new Complex(extension.getGroundingR1(), extension.getGroundingX1());
+                Complex zG2pu = new Complex(extension.getGroundingR2(), extension.getGroundingX2());
+
+                List<Boolean> connectionList = new ArrayList<>();
+                for (int i = 0; i < 6; i++) {
+                    connectionList.add(true);
+                }
+                if (extension2.getOpenPhaseA1().equals(Boolean.TRUE)) {
+                    connectionList.set(0, false);
+                }
+                if (extension2.getOpenPhaseB1().equals(Boolean.TRUE)) {
+                    connectionList.set(1, false);
+                }
+                if (extension2.getOpenPhaseC1().equals(Boolean.TRUE)) {
+                    connectionList.set(2, false);
+                }
+
+                StepWindingConnectionType stepWindingConnectionType = extension2.getStepWindingConnectionType();
+                StepType stepLegConnectionType;
+                if (stepWindingConnectionType == StepWindingConnectionType.STEP_UP) {
+                    stepLegConnectionType = StepType.STEP_UP;
+                } else if (stepWindingConnectionType == StepWindingConnectionType.DEFAULT) {
+                    stepLegConnectionType = StepType.DEFAULT;
+                } else if (stepWindingConnectionType == StepWindingConnectionType.STEP_DOWN) {
+                    stepLegConnectionType = StepType.STEP_DOWN;
+                } else {
+                    stepLegConnectionType = StepType.NONE;
+                }
+
+                AsymBusVariableType side1VariableType = AsymBusVariableType.WYE;
+                AsymBusVariableType side2VariableType = AsymBusVariableType.WYE;
+
+                LfAsymBus asymBus1 = lfBranch.getBus1().getAsym();
+                LfAsymBus asymBus2 = lfBranch.getBus2().getAsym();
+
+                if (asymBus1 != null) {
+                    side1VariableType = asymBus1.getAsymBusVariableType();
+                }
+                if (asymBus2 != null) {
+                    side2VariableType = asymBus2.getAsymBusVariableType();
+                }
+
+                AsymThreePhaseTransfo asym3phaseTfo = new AsymThreePhaseTransfo(leg1Type, leg2Type, stepLegConnectionType,
+                        extension2.getYa(), extension2.getYb(), extension2.getYc(), rho, zG1pu, zG2pu, connectionList);
+
+                DenseMatrix yabcReal = asym3phaseTfo.getYabc();
+
+                double vNom1 = t2w.getTerminal(TwoSides.ONE).getVoltageLevel().getNominalV();
+                double vNom2 = t2w.getTerminal(TwoSides.TWO).getVoltageLevel().getNominalV();
+
+                double iBase1 = 100. / vNom1;
+                double iBase2 = 100. / vNom2;
+                Complex iBase1Complex = new Complex(1 / iBase1, 0.);
+                Complex iBase2Complex = new Complex(1 / iBase2, 0.);
+
+                ComplexMatrix mIbasePu = new ComplexMatrix(6, 6);
+                mIbasePu.set(1, 1, iBase1Complex);
+                mIbasePu.set(2, 2, iBase1Complex);
+                mIbasePu.set(3, 3, iBase1Complex);
+                mIbasePu.set(4, 4, iBase2Complex);
+                mIbasePu.set(5, 5, iBase2Complex);
+                mIbasePu.set(6, 6, iBase2Complex);
+
+                ComplexMatrix mVbasePu = new ComplexMatrix(6, 6);
+                Complex vNom1Complex = new Complex(vNom1, 0.);
+                Complex vNom2Complex = new Complex(vNom2, 0.);
+                mVbasePu.set(1, 1, vNom1Complex);
+                mVbasePu.set(2, 2, vNom1Complex);
+                mVbasePu.set(3, 3, vNom1Complex);
+                mVbasePu.set(4, 4, vNom2Complex);
+                mVbasePu.set(5, 5, vNom2Complex);
+                mVbasePu.set(6, 6, vNom2Complex);
+
+                ComplexMatrix yabcPu = ComplexMatrix.fromRealCartesian(mIbasePu.toRealCartesianMatrix().times(yabcReal.times(mVbasePu.toRealCartesianMatrix())));
+                LfAsymLine asymBranch = new LfAsymLine(yabcPu, extension2.getOpenPhaseA1(), extension2.getOpenPhaseB1(), extension2.getOpenPhaseC1(),
+                        true, true, true, true, true, true, true, true, side1VariableType, side2VariableType);
+
+                lfBranch.setAsymLine(asymBranch);
+
+            } else {
+                AsymTransfo2W asymTransfo2W;
+                var extensionIidm = t2w.getExtension(TwoWindingsTransformerFortescue.class);
+                if (extensionIidm != null) {
+                    double rz = extensionIidm.getRz() / zb;
+                    double xz = extensionIidm.getXz() / zb;
+                    asymTransfo2W = new AsymTransfo2W(extension.getConnectionType1(), extension.getConnectionType2(), new Complex(rz, xz), extension.isFreeFluxes(),
+                            new Complex(extension.getGroundingR1() / zb, extension.getGroundingX1() / zb),
+                            new Complex(extension.getGroundingR2() / zb, extension.getGroundingX2() / zb));
+                } else {
+                    throw new PowsyblException("Asymmetrical branch '" + lfBranch.getId() + "' has no assymmetrical Pi values input data defined");
+                }
+                lfBranch.setProperty(AsymTransfo2W.PROPERTY_ASYMMETRICAL, asymTransfo2W);
+            }
+
+        }
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2,
@@ -160,7 +324,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance());
         }
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters);
+        LfBranchImpl lfBranch = new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters);
+        if (parameters.isAsymmetrical()) {
+            createTransfoToAsym(twt, zb, lfBranch);
+        }
+        return lfBranch;
     }
 
     public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, LfTopoConfig topoConfig,

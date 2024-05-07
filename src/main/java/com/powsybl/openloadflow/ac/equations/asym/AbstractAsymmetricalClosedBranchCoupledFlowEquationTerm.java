@@ -12,8 +12,10 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 
@@ -29,6 +31,7 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  */
 public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm extends AbstractAsymmetricalBranchFlowEquationTerm {
 
+    static final String UNKNOWN_VAR = "Unknown variable: ";
     // positive
     protected final Variable<AcVariableType> v1Var;
 
@@ -59,46 +62,123 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
     protected final ComplexPart complexPart;
-    protected final TwoSides side;
+    protected final TwoSides termSide;
     protected final SequenceType sequenceType;
+    protected final AsymBusVariableType variableTypeBus1;
+    protected final AsymBusVariableType variableTypeBus2;
+
+    public final LfBranch branch;
+    public final LfBus bus1;
+    public final LfBus bus2;
+    protected final LfAsymBus asymBus1;
+    protected final LfAsymBus asymBus2;
 
     protected AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                                      ComplexPart complexPart, TwoSides side, SequenceType sequenceType) {
+                                                                      ComplexPart complexPart, TwoSides termSide, SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
         this.complexPart = Objects.requireNonNull(complexPart);
-        this.side = Objects.requireNonNull(side);
+        this.termSide = Objects.requireNonNull(termSide);
         this.sequenceType = Objects.requireNonNull(sequenceType);
+
+        this.branch = branch;
+        this.bus1 = bus1;
+        this.bus2 = bus2;
+
+        this.asymBus1 = bus1.getAsym();
+        this.asymBus2 = bus2.getAsym();
+
+        // fetching the type of variables connecting bus1
+        variableTypeBus1 = getAsymBusVariableType(bus1, asymBus1);
+        variableTypeBus2 = getAsymBusVariableType(bus2, asymBus2);
+
+        int nbPhases1 = asymBus1.getNbExistingPhases();
+        int nbPhases2 = asymBus2.getNbExistingPhases();
 
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
-
-        v1VarNegative = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_NEGATIVE);
-        v2VarNegative = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_NEGATIVE);
-        ph1VarNegative = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
-        ph2VarNegative = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
-
-        v1VarZero = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_ZERO);
-        v2VarZero = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_ZERO);
-        ph1VarZero = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_ZERO);
-        ph2VarZero = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_ZERO);
-
         variables.add(v1Var);
         variables.add(v2Var);
         variables.add(ph1Var);
         variables.add(ph2Var);
-        variables.add(v1VarNegative);
-        variables.add(v2VarNegative);
-        variables.add(ph1VarNegative);
-        variables.add(ph2VarNegative);
-        variables.add(v1VarZero);
-        variables.add(v2VarZero);
-        variables.add(ph1VarZero);
-        variables.add(ph2VarZero);
+
+        if (variableTypeBus1 == AsymBusVariableType.DELTA) {
+            v1VarNegative = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_NEGATIVE);
+            ph1VarNegative = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
+            variables.add(v1VarNegative);
+            variables.add(ph1VarNegative);
+            v1VarZero = null;
+            ph1VarZero = null;
+            // missing phases not yet handled in delta config
+        } else {
+            // Wye config
+            if (nbPhases1 == 3) {
+                v1VarNegative = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_NEGATIVE);
+                ph1VarNegative = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
+                variables.add(v1VarNegative);
+                variables.add(ph1VarNegative);
+            } else {
+                v1VarNegative = null;
+                ph1VarNegative = null;
+            }
+            if (nbPhases1 > 1) {
+                v1VarZero = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_ZERO);
+                ph1VarZero = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_ZERO);
+                variables.add(v1VarZero);
+                variables.add(ph1VarZero);
+            } else {
+                v1VarZero = null;
+                ph1VarZero = null;
+            }
+
+        }
+
+        if (variableTypeBus2 == AsymBusVariableType.DELTA) {
+            v2VarNegative = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_NEGATIVE);
+            ph2VarNegative = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
+            variables.add(v2VarNegative);
+            variables.add(ph2VarNegative);
+            v2VarZero = null;
+            ph2VarZero = null;
+            // missing phases not yet handled in delta config
+        } else {
+            // Wye config
+            if (nbPhases2 == 3) {
+                v2VarNegative = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_NEGATIVE);
+                ph2VarNegative = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
+                variables.add(v2VarNegative);
+                variables.add(ph2VarNegative);
+            } else {
+                v2VarNegative = null;
+                ph2VarNegative = null;
+            }
+
+            if (nbPhases2 > 1) {
+                v2VarZero = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_ZERO);
+                ph2VarZero = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_ZERO);
+                variables.add(v2VarZero);
+                variables.add(ph2VarZero);
+            } else {
+                v2VarZero = null;
+                ph2VarZero = null;
+            }
+
+        }
+    }
+
+    protected static AsymBusVariableType getAsymBusVariableType(LfBus bus, LfAsymBus asymBus) {
+        AsymBusVariableType tmpVariableTypeBus = AsymBusVariableType.WYE;
+        if (asymBus.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
+            tmpVariableTypeBus = AsymBusVariableType.DELTA;
+            if (asymBus.getNbMissingPhases() > 0) {
+                throw new IllegalStateException("Case with missing phase and Delta type variables not yet handled at bus : " + bus.getId());
+            }
+        }
+        return tmpVariableTypeBus;
     }
 
     protected static SequenceType getSequenceType(Variable<AcVariableType> variable) {
@@ -118,18 +198,79 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
     }
 
     protected double v(SequenceType g, TwoSides i) {
+        if (variableTypeBus1 == AsymBusVariableType.DELTA && g == SequenceType.ZERO) {
+            //zero sequence called on a delta side
+            return 0.;
+        }
+
+        // building missing sequences if one phase is disconnected
+        double vZero = 0.;
+        double vPositive;
+        double vNegative = 0.;
+
+        if (i == TwoSides.ONE) {
+            vPositive = sv.get(v1Var.getRow());
+            if (v1VarZero != null) {
+                vZero = sv.get(v1VarZero.getRow());
+            }
+            if (v1VarNegative != null) {
+                vNegative = sv.get(v1VarNegative.getRow());
+            }
+        } else {
+            vPositive = sv.get(v2Var.getRow());
+            if (v2VarZero != null) {
+                vZero = sv.get(v2VarZero.getRow());
+            }
+            if (v2VarNegative != null) {
+                vNegative = sv.get(v2VarNegative.getRow());
+            }
+        }
+
         return switch (g) {
-            case ZERO -> i == TwoSides.ONE ? sv.get(v1VarZero.getRow()) : sv.get(v2VarZero.getRow());
-            case POSITIVE -> i == TwoSides.ONE ? sv.get(v1Var.getRow()) : sv.get(v2Var.getRow());
-            case NEGATIVE -> i == TwoSides.ONE ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
+            case ZERO -> vZero;
+            case POSITIVE -> vPositive;
+            case NEGATIVE -> vNegative;
         };
     }
 
     protected double ph(SequenceType g, TwoSides i) {
+        if (variableTypeBus1 == AsymBusVariableType.DELTA && i == TwoSides.ONE && g == SequenceType.ZERO) {
+            //zero sequence called on a delta side
+            return 0.;
+        }
+
+        if (variableTypeBus2 == AsymBusVariableType.DELTA && i == TwoSides.TWO && g == SequenceType.ZERO) {
+            //zero sequence called on a delta side
+            return 0.;
+        }
+
+        // buildong missing sequences if one phase is disconnected
+        double phZero = 0.;
+        double phPositive;
+        double phNegative = 0.;
+
+        if (i == TwoSides.ONE) {
+            phPositive = sv.get(ph1Var.getRow());
+            if (v1VarZero != null) {
+                phZero = sv.get(ph1VarZero.getRow());
+            }
+            if (v1VarNegative != null) {
+                phNegative = sv.get(ph1VarNegative.getRow());
+            }
+        } else {
+            phPositive = sv.get(ph2Var.getRow());
+            if (v2VarZero != null) {
+                phZero = sv.get(ph2VarZero.getRow());
+            }
+            if (v2VarNegative != null) {
+                phNegative = sv.get(ph2VarNegative.getRow());
+            }
+        }
+
         return switch (g) {
-            case ZERO -> i == TwoSides.ONE ? sv.get(ph1VarZero.getRow()) : sv.get(ph2VarZero.getRow());
-            case POSITIVE -> i == TwoSides.ONE ? sv.get(ph1Var.getRow()) : sv.get(ph2Var.getRow());
-            case NEGATIVE -> i == TwoSides.ONE ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
+            case ZERO -> phZero;
+            case POSITIVE -> phPositive;
+            case NEGATIVE -> phNegative;
         };
     }
 
@@ -163,7 +304,21 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
                 || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
             return TwoSides.TWO;
         } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
+            throw new IllegalStateException(UNKNOWN_VAR);
         }
+    }
+
+    public int getNbPhases() {
+        int nbPhases = 0;
+        if (asymBus1.isHasPhaseA() && asymBus2.isHasPhaseA()) {
+            nbPhases++;
+        }
+        if (asymBus1.isHasPhaseB() && asymBus2.isHasPhaseB()) {
+            nbPhases++;
+        }
+        if (asymBus1.isHasPhaseC() && asymBus2.isHasPhaseC()) {
+            nbPhases++;
+        }
+        return nbPhases;
     }
 }

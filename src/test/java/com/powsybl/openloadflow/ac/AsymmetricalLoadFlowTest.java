@@ -1,18 +1,14 @@
 /**
- * Copyright (c) 2023, Jean-Baptiste Heyberger <jbheyberger at gmail.com>
- * Copyright (c) 2023, Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
+ * Copyright (c) 2023, Jean-Baptiste Heyberger <jbheyberger at gmail.com> ,
+ *                     Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
-import com.powsybl.iidm.network.extensions.LineFortescue;
-import com.powsybl.iidm.network.extensions.LineFortescueAdder;
-import com.powsybl.iidm.network.extensions.LoadAsymmetricalAdder;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -25,6 +21,7 @@ import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.BeforeEach;
@@ -192,6 +189,13 @@ public class AsymmetricalLoadFlowTest {
         }
         assertEquals(2, coupledPowerEquTerm.getElementNum());
         assertEquals("ac_pq_coupled_closed", coupledPowerEquTerm.getName());
+
+        LfBus bus4 = branch2.getBus2();
+        LfAsymBus asymBus4 = bus4.getAsym();
+        assertEquals(0., asymBus4.getAngleN(), 0.000001);
+        assertEquals(0., asymBus4.getAngleZ(), 0.000001);
+        assertEquals(0., asymBus4.getVn(), 0.000001);
+        assertEquals(0., asymBus4.getVz(), 0.000001);
     }
 
     @Test
@@ -310,7 +314,12 @@ public class AsymmetricalLoadFlowTest {
                 .withDeltaQc(0.)
                 .add();
 
-        parametersExt.setAsymmetrical(true);
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -342,7 +351,53 @@ public class AsymmetricalLoadFlowTest {
                 .withDeltaQc(0.)
                 .add();
 
-        parametersExt.setAsymmetrical(true);
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters()
+                .setUseReactiveLimits(false)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAsymmetrical(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(100., bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(99.78067026758131, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.5142639108648, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.2565397779297, bus4); // balanced = 99.29252809145005
+    }
+
+    @Test
+    void fourNodesAsymUnbalancedDeltaLoadTest() {
+
+        double coeff = 1.;
+        line23.setX(coeff * 1 / 0.2);
+
+        Line line23fault = network.getLine("B2_B3_fault");
+        var extension = line23fault.getExtension(LineFortescue.class);
+        extension.setOpenPhaseA(false);
+
+        Load load4 = network.getLoad("LOAD_4");
+
+        load4.newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(20.)
+                .withDeltaQa(0.)
+                .withDeltaPb(40.)
+                .withDeltaQb(0.)
+                .withDeltaPc(21)
+                .withDeltaQc(0.)
+                .withConnectionType(LoadConnectionType.DELTA)
+                .add();
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters()
+                .setUseReactiveLimits(false)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -518,6 +573,9 @@ public class AsymmetricalLoadFlowTest {
                 .add();
 
         // addition of asymmetrical extensions
+        line23fault.newExtension(LineAsymmetricalAdder.class)
+                .add();
+
         line23fault.newExtension(LineFortescueAdder.class)
                 .withOpenPhaseA(true)
                 .withOpenPhaseB(false)

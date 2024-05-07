@@ -39,40 +39,32 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
-    public static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
-        return switch (sequenceType) {
-            case POSITIVE -> AcVariableType.BUS_V;
-            case NEGATIVE -> AcVariableType.BUS_V_NEGATIVE;
-            case ZERO -> AcVariableType.BUS_V_ZERO;
-        };
-    }
-
-    public static AcVariableType getVoltageAngleType(Fortescue.SequenceType sequenceType) {
-        return switch (sequenceType) {
-            case POSITIVE -> AcVariableType.BUS_PHI;
-            case NEGATIVE -> AcVariableType.BUS_PHI_NEGATIVE;
-            case ZERO -> AcVariableType.BUS_PHI_ZERO;
-        };
-    }
-
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
-        AcVariableType vType = getVoltageMagnitudeType(sequenceType);
-        AcVariableType angleType = getVoltageAngleType(sequenceType);
-        v1Var = variableSet.getVariable(bus1.getNum(), vType);
-        v2Var = variableSet.getVariable(bus2.getNum(), vType);
-        ph1Var = variableSet.getVariable(bus1.getNum(), angleType);
-        ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
+
+        v1Var = createV1Var(bus1, variableSet, sequenceType);
+        ph1Var = createPh1Var(bus1, variableSet, sequenceType);
+        v2Var = createV2Var(bus2, variableSet, sequenceType);
+        ph2Var = createPh2Var(bus2, variableSet, sequenceType);
+
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
         r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
-        variables.add(v1Var);
-        variables.add(v2Var);
-        variables.add(ph1Var);
-        variables.add(ph2Var);
+        if (v1Var != null) {
+            variables.add(v1Var);
+        }
+        if (v2Var != null) {
+            variables.add(v2Var);
+        }
+        if (ph1Var != null) {
+            variables.add(ph1Var);
+        }
+        if (ph2Var != null) {
+            variables.add(ph2Var);
+        }
         if (a1Var != null) {
             variables.add(a1Var);
         }
@@ -81,23 +73,51 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         }
     }
 
+    protected Variable<AcVariableType> createV1Var(LfBus bus1, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
+        return variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
+    }
+
+    protected Variable<AcVariableType> createPh1Var(LfBus bus1, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
+        return variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
+    }
+
+    protected Variable<AcVariableType> createV2Var(LfBus bus2, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
+        return variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
+    }
+
+    protected Variable<AcVariableType> createPh2Var(LfBus bus2, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
+        return variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
+    }
+
     public Variable<AcVariableType> getA1Var() {
         return a1Var;
     }
 
     protected double v1() {
+        if (v1Var == null) {
+            return 0.;
+        }
         return sv.get(v1Var.getRow());
     }
 
     protected double v2() {
+        if (v2Var == null) {
+            return 0.;
+        }
         return sv.get(v2Var.getRow());
     }
 
     protected double ph1() {
+        if (ph1Var == null) {
+            return 0.;
+        }
         return sv.get(ph1Var.getRow());
     }
 
     protected double ph2() {
+        if (ph2Var == null) {
+            return 0.;
+        }
         return sv.get(ph2Var.getRow());
     }
 
