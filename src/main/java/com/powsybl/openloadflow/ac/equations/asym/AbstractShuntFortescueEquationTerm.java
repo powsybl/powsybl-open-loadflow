@@ -69,5 +69,4 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractElement
     protected double g() {
         return sequenceType == Fortescue.SequenceType.ZERO ? element.getAsym().getGzEquiv() : element.getAsym().getGnEquiv();
     }
-
 }

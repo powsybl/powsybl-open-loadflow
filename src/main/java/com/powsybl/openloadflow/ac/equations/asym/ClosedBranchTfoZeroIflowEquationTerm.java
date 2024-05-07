@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AsymTransfo2W;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.complex.Complex;
@@ -35,8 +35,8 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractAsymmetricalCl
     private final Complex y0m;
     private final Complex zG1;
     private final Complex zG2;
-    private final LegConnectionType leg1ConnectionType;
-    private final LegConnectionType leg2ConnectionType;
+    private final WindingConnectionType leg1ConnectionType;
+    private final WindingConnectionType leg2ConnectionType;
     private boolean freeFluxes;
 
     public ClosedBranchTfoZeroIflowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
@@ -107,8 +107,8 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractAsymmetricalCl
     }
 
     public static DenseMatrix createAdmittanceMatrix(Complex z0T1, Complex z0T2, Complex y0m, Complex zG1, Complex zG2,
-                                                     double r1, LegConnectionType leg1Type, LegConnectionType leg2Type, boolean freeFluxes) {
-        if (leg1Type == LegConnectionType.Y_GROUNDED && leg2Type == LegConnectionType.Y_GROUNDED) {
+                                                     double r1, WindingConnectionType leg1Type, WindingConnectionType leg2Type, boolean freeFluxes) {
+        if (leg1Type == WindingConnectionType.Y_GROUNDED && leg2Type == WindingConnectionType.Y_GROUNDED) {
             if (freeFluxes) {
                 return createYgYgFreeFluxesImpedanceMatrix(z0T1, z0T2, zG1, zG2, r1);
             } else {
@@ -118,16 +118,16 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractAsymmetricalCl
             Complex y11 = Complex.ZERO;
             Complex y22 = Complex.ZERO;
             Complex y12 = y22;
-            if (leg1Type == LegConnectionType.DELTA && leg2Type == LegConnectionType.Y_GROUNDED) {
+            if (leg1Type == WindingConnectionType.DELTA && leg2Type == WindingConnectionType.Y_GROUNDED) {
                 Complex tmp1 = z0T2.add(y0m.add(z0T1.reciprocal()).reciprocal());
                 y22 = (zG2.multiply(3).add(tmp1)).reciprocal();
-            } else if (leg1Type == LegConnectionType.Y_GROUNDED && leg2Type == LegConnectionType.DELTA) {
+            } else if (leg1Type == WindingConnectionType.Y_GROUNDED && leg2Type == WindingConnectionType.DELTA) {
                 Complex tmp2 = z0T1.add(y0m.add(z0T2.reciprocal()).reciprocal()).multiply(1 / (r1 * r1));
                 y11 = (zG1.multiply(3).add(tmp2)).reciprocal();
-            } else if (leg1Type == LegConnectionType.Y && leg2Type == LegConnectionType.Y_GROUNDED && !freeFluxes) {
+            } else if (leg1Type == WindingConnectionType.Y && leg2Type == WindingConnectionType.Y_GROUNDED && !freeFluxes) {
                 Complex tmp3 = z0T2.add(y0m.reciprocal());
                 y22 = (zG2.multiply(3).add(tmp3)).reciprocal();
-            } else if (leg1Type == LegConnectionType.Y_GROUNDED && leg2Type == LegConnectionType.Y && !freeFluxes) {
+            } else if (leg1Type == WindingConnectionType.Y_GROUNDED && leg2Type == WindingConnectionType.Y && !freeFluxes) {
                 Complex tmp4 = z0T1.add(y0m.reciprocal()).multiply(1 / (r1 * r1));
                 y11 = (zG1.multiply(3).add(tmp4)).reciprocal();
             } else {
@@ -140,7 +140,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractAsymmetricalCl
 
     public static DenseMatrix createIvector(DenseMatrix mV, double r1,
                                             Complex z0T1, Complex z0T2, Complex y0m, Complex zG1, Complex zG2,
-                                            LegConnectionType leg1Type, LegConnectionType leg2Type, boolean isFreeFluxes) {
+                                            WindingConnectionType leg1Type, WindingConnectionType leg2Type, boolean isFreeFluxes) {
 
         return createAdmittanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1, leg1Type, leg2Type, isFreeFluxes).times(mV); // get admittance matrix in static times voltage to get the current
     }

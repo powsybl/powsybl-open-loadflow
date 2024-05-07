@@ -48,5 +48,4 @@ public class LineAsymmetricalAdder extends AbstractExtensionAdder<Line, LineAsym
         this.c2 = c2;
         return this;
     }
-
 }

@@ -36,5 +36,4 @@ public class LineAsymmetricalAdderImplProvider implements ExtensionAdderProvider
     public LineAsymmetricalAdder newAdder(Line line) {
         return new LineAsymmetricalAdder(line);
     }
-
 }

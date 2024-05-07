@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.network.extensions.AbcPhaseType;
 import com.powsybl.openloadflow.network.extensions.AsymBusLoadType;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import org.apache.commons.math3.complex.Complex;
 
 /**
@@ -20,13 +20,13 @@ public class LfAsymLoad {
 
     private final LfBus bus;
 
-    private final LegConnectionType loadConnectionType; // how loads are connected between each other
+    private final WindingConnectionType loadConnectionType; // how loads are connected between each other
     private final AsymBusLoadType loadType;
     private Complex totalDeltaSa;
     private Complex totalDeltaSb;
     private Complex totalDeltaSc;
 
-    public LfAsymLoad(LfBus bus, AsymBusLoadType loadType, LegConnectionType loadConnectionType, Complex totalDeltaSa, Complex totalDeltaSb, Complex totalDeltaSc) {
+    public LfAsymLoad(LfBus bus, AsymBusLoadType loadType, WindingConnectionType loadConnectionType, Complex totalDeltaSa, Complex totalDeltaSb, Complex totalDeltaSc) {
         this.bus = bus;
         this.loadType = loadType;
         this.loadConnectionType = loadConnectionType;
@@ -63,7 +63,7 @@ public class LfAsymLoad {
         return loadType;
     }
 
-    public LegConnectionType getLoadConnectionType() {
+    public WindingConnectionType getLoadConnectionType() {
         return loadConnectionType;
     }
 

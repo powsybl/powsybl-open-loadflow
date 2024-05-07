@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.network.extensions.StepType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.ComplexPart;
@@ -25,7 +25,7 @@ import org.apache.commons.math3.complex.Complex;
  * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
 public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
-    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
+    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, WindingConnectionType loadConnectionType) {
         super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
 
         setSabc();
@@ -33,7 +33,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
     }
 
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType,
-                            ComplexMatrix v0V1V2, LegConnectionType loadConnectionType, ComplexMatrix sabc) {
+                            ComplexMatrix v0V1V2, WindingConnectionType loadConnectionType, ComplexMatrix sabc) {
         // We use the formula with complex matrices:
         //
         // Case of a Wye load connected to a Wye bus :
@@ -87,7 +87,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
 
         DenseMatrix m0T0 = mInvVabc.times(mSabc3);
         DenseMatrix m1T0 = m0T0;
-        if (loadConnectionType == LegConnectionType.DELTA) {
+        if (loadConnectionType == WindingConnectionType.DELTA) {
             m1T0 = complexMatrixP(StepType.STEP_DOWN).toRealCartesianMatrix().times(m0T0);
         }
         ComplexMatrix mIfortescueConjugate = ComplexMatrix.fromRealCartesian(Fortescue.createMatrix().times(m1T0));
@@ -113,7 +113,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         }
     }
 
-    public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, ComplexMatrix v0V1V2, ComplexMatrix dv0V1V2, LegConnectionType loadConnectionType, ComplexMatrix sabc) {
+    public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, ComplexMatrix v0V1V2, ComplexMatrix dv0V1V2, WindingConnectionType loadConnectionType, ComplexMatrix sabc) {
         // We derivate the PQ formula with complex matrices:
 
         // Wye Load with Wye variables at bus
@@ -162,7 +162,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         DenseMatrix m0T1 = mInvVabc.times(mSabc3);
 
         DenseMatrix m1T1 = m0T1;
-        if (loadConnectionType == LegConnectionType.DELTA) {
+        if (loadConnectionType == WindingConnectionType.DELTA) {
             m1T1 = complexMatrixP(StepType.STEP_DOWN).toRealCartesianMatrix().times(m0T1);
         }
         DenseMatrix m2T1 = Fortescue.createMatrix().times(m1T1);
@@ -180,7 +180,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         DenseMatrix m2T2 = mInvVabc.times(m1T2);
         DenseMatrix m3T2 = mMinusSabc3Square.times(m2T2);
         DenseMatrix m4T2 = m3T2;
-        if (loadConnectionType == LegConnectionType.DELTA && busVariableType == AsymBusVariableType.DELTA) {
+        if (loadConnectionType == WindingConnectionType.DELTA && busVariableType == AsymBusVariableType.DELTA) {
             m4T2 = complexMatrixP(StepType.STEP_DOWN).toRealCartesianMatrix().times(m3T2);
         }
         ComplexMatrix mdIFortescueConjugate = ComplexMatrix.fromRealCartesian(Fortescue.createMatrix().times(m4T2));
@@ -220,11 +220,11 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         return "ac_pq_fortescue_load";
     }
 
-    public static DenseMatrix getSquareInverseFromVector(LfBus bus, LfAsymBus asymBus, LegConnectionType loadConnectionType, ComplexMatrix vabc) {
+    public static DenseMatrix getSquareInverseFromVector(LfBus bus, LfAsymBus asymBus, WindingConnectionType loadConnectionType, ComplexMatrix vabc) {
         double epsilon = 0.00000001;
 
         ComplexMatrix mVabc = vabc;
-        if (loadConnectionType == LegConnectionType.DELTA && asymBus.getAsymBusVariableType() == AsymBusVariableType.WYE) {
+        if (loadConnectionType == WindingConnectionType.DELTA && asymBus.getAsymBusVariableType() == AsymBusVariableType.WYE) {
             if (asymBus.getNbMissingPhases() > 0) {
                 throw new IllegalStateException("Delta load with phase disconnection not yet handled at bus : " + bus.getId());
             }
@@ -289,11 +289,11 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         return m.toRealCartesianMatrix();
     }
 
-    public static ComplexMatrix complexMatrixP(StepType stepLegConnectionType) {
+    public static ComplexMatrix complexMatrixP(StepType stepWindingConnectionType) {
         ComplexMatrix complexMatrix = ComplexMatrix.createIdentity(3);
 
         Complex mOne = new Complex(-1., 0.);
-        if (stepLegConnectionType == StepType.STEP_DOWN) {
+        if (stepWindingConnectionType == StepType.STEP_DOWN) {
             // Step-down configuration
             //       [ 1  0 -1]
             // [P] = [-1  1  0]

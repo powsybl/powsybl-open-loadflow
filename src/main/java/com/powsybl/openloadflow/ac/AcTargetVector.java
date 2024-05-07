@@ -8,13 +8,13 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.complex.Complex;
@@ -170,20 +170,20 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         if (asymBus != null) {
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
             // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
-            LegConnectionType legConnectionType = null;
+            WindingConnectionType windingConnectionType = null;
             if (asymBus.getLoadWye1() != null) {
-                legConnectionType = LegConnectionType.Y_GROUNDED;
+                windingConnectionType = WindingConnectionType.Y_GROUNDED;
             } else if (asymBus.getLoadDelta1() != null) {
-                legConnectionType = LegConnectionType.DELTA;
+                windingConnectionType = WindingConnectionType.DELTA;
             }
 
-            if (legConnectionType != null) {
+            if (windingConnectionType != null) {
                 if (sequenceType == Fortescue.SequenceType.ZERO) {
-                    target = asymBus.getIzeroTarget(legConnectionType).multiply(-1.);
+                    target = asymBus.getIzeroTarget(windingConnectionType).multiply(-1.);
                 } else if (sequenceType == Fortescue.SequenceType.POSITIVE) {
-                    target = asymBus.getIpositiveTarget(legConnectionType).multiply(-1.);
+                    target = asymBus.getIpositiveTarget(windingConnectionType).multiply(-1.);
                 } else {
-                    target = asymBus.getInegativeTarget(legConnectionType).multiply(-1.);
+                    target = asymBus.getInegativeTarget(windingConnectionType).multiply(-1.);
                 }
             }
         }

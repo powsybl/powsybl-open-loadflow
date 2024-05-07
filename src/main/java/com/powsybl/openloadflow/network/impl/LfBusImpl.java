@@ -15,7 +15,7 @@ import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.AsymBusLoadType;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.network.extensions.iidm.AsymmetricalBranchConnector;
 import com.powsybl.openloadflow.network.extensions.iidm.BusVariableType;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
@@ -108,30 +108,30 @@ public class LfBusImpl extends AbstractLfBus {
                 String unknownLoad = "unknown load type at Bus : ";
                 if (extension.getConnectionType() == LoadConnectionType.DELTA) {
                     if (Math.abs(c0p) + Math.abs(c0q) > epsilon) {
-                        loadDelta0 = addSabcToLoad(lfBus, loadDelta0, extension, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.DELTA, c0p, c0q);
+                        loadDelta0 = addSabcToLoad(lfBus, loadDelta0, extension, AsymBusLoadType.CONSTANT_POWER, WindingConnectionType.DELTA, c0p, c0q);
                     }
                     if (Math.abs(c1p) + Math.abs(c1q) > epsilon) {
-                        loadDelta1 = addSabcToLoad(lfBus, loadDelta1, extension, AsymBusLoadType.CONSTANT_CURRENT, LegConnectionType.DELTA, c1p, c1q);
+                        loadDelta1 = addSabcToLoad(lfBus, loadDelta1, extension, AsymBusLoadType.CONSTANT_CURRENT, WindingConnectionType.DELTA, c1p, c1q);
                     }
                     if (Math.abs(c2p) + Math.abs(c2q) > epsilon) {
-                        loadDelta2 = addSabcToLoad(lfBus, loadDelta2, extension, AsymBusLoadType.CONSTANT_IMPEDANCE, LegConnectionType.DELTA, c2p, c2q);
+                        loadDelta2 = addSabcToLoad(lfBus, loadDelta2, extension, AsymBusLoadType.CONSTANT_IMPEDANCE, WindingConnectionType.DELTA, c2p, c2q);
                     }
                 } else if (extension.getConnectionType() == LoadConnectionType.Y) {
                     if (Math.abs(c0p) + Math.abs(c0q) > epsilon) {
-                        loadWye0 = addSabcToLoad(lfBus, loadWye0, extension, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.Y_GROUNDED, c0p, c0q);
+                        loadWye0 = addSabcToLoad(lfBus, loadWye0, extension, AsymBusLoadType.CONSTANT_POWER, WindingConnectionType.Y_GROUNDED, c0p, c0q);
                     }
                     if (Math.abs(c1p) + Math.abs(c1q) > epsilon) {
-                        loadWye1 = addSabcToLoad(lfBus, loadWye1, extension, AsymBusLoadType.CONSTANT_CURRENT, LegConnectionType.Y_GROUNDED, c1p, c1q);
+                        loadWye1 = addSabcToLoad(lfBus, loadWye1, extension, AsymBusLoadType.CONSTANT_CURRENT, WindingConnectionType.Y_GROUNDED, c1p, c1q);
                     }
                     if (Math.abs(c2p) + Math.abs(c2q) > epsilon) {
-                        loadWye2 = addSabcToLoad(lfBus, loadWye2, extension, AsymBusLoadType.CONSTANT_IMPEDANCE, LegConnectionType.Y_GROUNDED, c2p, c2q);
+                        loadWye2 = addSabcToLoad(lfBus, loadWye2, extension, AsymBusLoadType.CONSTANT_IMPEDANCE, WindingConnectionType.Y_GROUNDED, c2p, c2q);
                     }
                 } else {
                     throw new IllegalStateException(unknownLoad + bus.getId());
                 }
 
             } else if (Math.abs(load.getP0()) > 0.000001 && Math.abs(load.getQ0()) > 0.000001) {
-                loadWye0 = new LfAsymLoad(lfBus, AsymBusLoadType.CONSTANT_POWER, LegConnectionType.Y_GROUNDED, Complex.ZERO,
+                loadWye0 = new LfAsymLoad(lfBus, AsymBusLoadType.CONSTANT_POWER, WindingConnectionType.Y_GROUNDED, Complex.ZERO,
                         Complex.ZERO, Complex.ZERO);
             }
         }
@@ -197,10 +197,10 @@ public class LfBusImpl extends AbstractLfBus {
                 loadDelta0, loadDelta1, loadDelta2, loadWye0, loadWye1, loadWye2));
     }
 
-    public static LfAsymLoad addSabcToLoad(LfBus lfBus, LfAsymLoad asymLoad, LoadAsymmetrical extension, AsymBusLoadType asymBusLoadType, LegConnectionType legConnectionType, double cp, double cq) {
+    public static LfAsymLoad addSabcToLoad(LfBus lfBus, LfAsymLoad asymLoad, LoadAsymmetrical extension, AsymBusLoadType asymBusLoadType, WindingConnectionType windingConnectionType, double cp, double cq) {
         LfAsymLoad asymLoadNew;
         if (asymLoad == null) {
-            asymLoadNew = new LfAsymLoad(lfBus, asymBusLoadType, legConnectionType,
+            asymLoadNew = new LfAsymLoad(lfBus, asymBusLoadType, windingConnectionType,
                     new Complex(extension.getDeltaPa() / PerUnit.SB * cp, extension.getDeltaQa() / PerUnit.SB * cq),
                     new Complex(extension.getDeltaPb() / PerUnit.SB * cp, extension.getDeltaQb() / PerUnit.SB * cq),
                     new Complex(extension.getDeltaPc() / PerUnit.SB * cp, extension.getDeltaQc() / PerUnit.SB * cq));

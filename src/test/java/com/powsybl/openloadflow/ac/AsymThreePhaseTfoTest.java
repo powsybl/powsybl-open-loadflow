@@ -11,7 +11,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.network.extensions.StepType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
@@ -45,8 +45,8 @@ public class AsymThreePhaseTfoTest {
 
         Complex rho = new Complex(0.9, 0.);
 
-        LegConnectionType leg1ConnectionType = LegConnectionType.Y;
-        LegConnectionType leg2ConnectionType = LegConnectionType.Y;
+        WindingConnectionType leg1ConnectionType = WindingConnectionType.Y;
+        WindingConnectionType leg2ConnectionType = WindingConnectionType.Y;
 
         Complex zG1 = new Complex(0.01, 0.01);
         Complex zG2 = new Complex(0.03, 0.03);
@@ -82,20 +82,20 @@ public class AsymThreePhaseTfoTest {
         return cm;
     }
 
-    public DenseMatrix initYabc4busFeeder(LegConnectionType leg1Type, LegConnectionType leg2Type, int numPhaseDisconnected, StepType stepLegConnectionType) {
+    public DenseMatrix initYabc4busFeeder(WindingConnectionType leg1Type, WindingConnectionType leg2Type, int numPhaseDisconnected, StepType stepWindingConnectionType) {
         double vBase2 = 12.47;
         double vBase3 = 4.16;
-        if (stepLegConnectionType == StepType.STEP_UP) {
+        if (stepWindingConnectionType == StepType.STEP_UP) {
             vBase3 = 24.9;
         }
         double sBase = 2.;
 
         double vWinding2 = vBase2;
         double vWinding3 = vBase3;
-        if (leg1Type == LegConnectionType.Y_GROUNDED || leg1Type == LegConnectionType.Y) {
+        if (leg1Type == WindingConnectionType.Y_GROUNDED || leg1Type == WindingConnectionType.Y) {
             vWinding2 = vBase2 / Math.sqrt(3.);
         }
-        if (leg2Type == LegConnectionType.Y_GROUNDED || leg2Type == LegConnectionType.Y) {
+        if (leg2Type == WindingConnectionType.Y_GROUNDED || leg2Type == WindingConnectionType.Y) {
             vWinding3 = vBase3 / Math.sqrt(3.);
         }
 
@@ -106,8 +106,8 @@ public class AsymThreePhaseTfoTest {
 
         Complex rho = Complex.ONE.multiply(vWinding3 / vWinding2);
 
-        LegConnectionType leg1ConnectionType = leg1Type;
-        LegConnectionType leg2ConnectionType = leg2Type;
+        WindingConnectionType leg1ConnectionType = leg1Type;
+        WindingConnectionType leg2ConnectionType = leg2Type;
 
         Complex zG1 = Complex.ZERO;
         Complex zG2 = Complex.ZERO;
@@ -126,7 +126,7 @@ public class AsymThreePhaseTfoTest {
         ComplexMatrix yb = buildSinglePhaseAdmittanceMatrix(zPhase, yPhase, yPhase);
         ComplexMatrix yc = buildSinglePhaseAdmittanceMatrix(zPhase, yPhase, yPhase);
 
-        AsymThreePhaseTransfo asym3phaseTfo = new AsymThreePhaseTransfo(leg1ConnectionType, leg2ConnectionType, stepLegConnectionType,
+        AsymThreePhaseTransfo asym3phaseTfo = new AsymThreePhaseTransfo(leg1ConnectionType, leg2ConnectionType, stepWindingConnectionType,
                 ya, yb, yc, rho, zG1, zG2, connectionList);
 
         DenseMatrix yabc = asym3phaseTfo.getYabc();
@@ -137,8 +137,8 @@ public class AsymThreePhaseTfoTest {
     @Test
     void ygYgTest() {
         // test of an asymmetric three phase transformer
-        LegConnectionType leg1ConnectionType = LegConnectionType.Y_GROUNDED;
-        LegConnectionType leg2ConnectionType = LegConnectionType.Y_GROUNDED;
+        WindingConnectionType leg1ConnectionType = WindingConnectionType.Y_GROUNDED;
+        WindingConnectionType leg2ConnectionType = WindingConnectionType.Y_GROUNDED;
         DenseMatrix yabc = initYabc4busFeeder(leg1ConnectionType, leg2ConnectionType, 0, StepType.STEP_DOWN);
 
         Complex va2 = ComplexUtils.polar2Complex(7.107, Math.toRadians(-0.3));
@@ -168,8 +168,8 @@ public class AsymThreePhaseTfoTest {
     void ygDeltaTest() {
 
         // test of an asymmetric three phase transformer
-        LegConnectionType leg1Type = LegConnectionType.Y_GROUNDED;
-        LegConnectionType leg2Type = LegConnectionType.DELTA;
+        WindingConnectionType leg1Type = WindingConnectionType.Y_GROUNDED;
+        WindingConnectionType leg2Type = WindingConnectionType.DELTA;
 
         DenseMatrix yabc = initYabc4busFeeder(leg1Type, leg2Type, 0, StepType.STEP_DOWN);
 
@@ -199,8 +199,8 @@ public class AsymThreePhaseTfoTest {
     @Test
     void ygDeltaOpenTest() {
 
-        LegConnectionType leg1Type = LegConnectionType.Y_GROUNDED;
-        LegConnectionType leg2Type = LegConnectionType.DELTA;
+        WindingConnectionType leg1Type = WindingConnectionType.Y_GROUNDED;
+        WindingConnectionType leg2Type = WindingConnectionType.DELTA;
 
         DenseMatrix yabc = initYabc4busFeeder(leg1Type, leg2Type, 3, StepType.STEP_DOWN);
 
@@ -230,8 +230,8 @@ public class AsymThreePhaseTfoTest {
     @Test
     void deltaYgTest() {
 
-        LegConnectionType leg1Type = LegConnectionType.DELTA;
-        LegConnectionType leg2Type = LegConnectionType.Y_GROUNDED;
+        WindingConnectionType leg1Type = WindingConnectionType.DELTA;
+        WindingConnectionType leg2Type = WindingConnectionType.Y_GROUNDED;
 
         DenseMatrix yabc = initYabc4busFeeder(leg1Type, leg2Type, 0, StepType.STEP_DOWN);
 
@@ -261,8 +261,8 @@ public class AsymThreePhaseTfoTest {
     @Test
     void deltaDeltaTest() {
 
-        LegConnectionType leg1Type = LegConnectionType.DELTA;
-        LegConnectionType leg2Type = LegConnectionType.DELTA;
+        WindingConnectionType leg1Type = WindingConnectionType.DELTA;
+        WindingConnectionType leg2Type = WindingConnectionType.DELTA;
 
         DenseMatrix yabc = initYabc4busFeeder(leg1Type, leg2Type, 0, StepType.STEP_DOWN);
 
@@ -293,8 +293,8 @@ public class AsymThreePhaseTfoTest {
     void yDeltaTest() {
 
         // test of an asymmetric three phase transformer
-        LegConnectionType leg1Type = LegConnectionType.Y;
-        LegConnectionType leg2Type = LegConnectionType.DELTA;
+        WindingConnectionType leg1Type = WindingConnectionType.Y;
+        WindingConnectionType leg2Type = WindingConnectionType.DELTA;
 
         DenseMatrix yabc = initYabc4busFeeder(leg1Type, leg2Type, 0, StepType.STEP_DOWN);
 
@@ -325,8 +325,8 @@ public class AsymThreePhaseTfoTest {
     void yDeltaUnbalancedTest() {
 
         // test of an asymmetric three phase transformer
-        LegConnectionType leg1Type = LegConnectionType.Y;
-        LegConnectionType leg2Type = LegConnectionType.DELTA;
+        WindingConnectionType leg1Type = WindingConnectionType.Y;
+        WindingConnectionType leg2Type = WindingConnectionType.DELTA;
 
         DenseMatrix yabc = initYabc4busFeeder(leg1Type, leg2Type, 0, StepType.STEP_DOWN);
 
@@ -357,8 +357,8 @@ public class AsymThreePhaseTfoTest {
     void ygDeltaUpTest() {
 
         // test of an asymmetric three phase transformer
-        LegConnectionType leg1Type = LegConnectionType.Y_GROUNDED;
-        LegConnectionType leg2Type = LegConnectionType.DELTA;
+        WindingConnectionType leg1Type = WindingConnectionType.Y_GROUNDED;
+        WindingConnectionType leg2Type = WindingConnectionType.DELTA;
 
         DenseMatrix yabc = initYabc4busFeeder(leg1Type, leg2Type, 0, StepType.STEP_UP);
 
@@ -388,8 +388,8 @@ public class AsymThreePhaseTfoTest {
     @Test
     void deltaYgUpTest() {
 
-        LegConnectionType leg1Type = LegConnectionType.DELTA;
-        LegConnectionType leg2Type = LegConnectionType.Y_GROUNDED;
+        WindingConnectionType leg1Type = WindingConnectionType.DELTA;
+        WindingConnectionType leg2Type = WindingConnectionType.Y_GROUNDED;
 
         DenseMatrix yabc = initYabc4busFeeder(leg1Type, leg2Type, 0, StepType.STEP_UP);
 

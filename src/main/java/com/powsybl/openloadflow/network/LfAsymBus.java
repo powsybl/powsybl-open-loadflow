@@ -8,9 +8,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.network.extensions.AbcPhaseType;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 import org.apache.commons.math3.complex.Complex;
@@ -270,7 +270,7 @@ public class LfAsymBus {
         return getVc0().add(getVa0().multiply(-1.));
     }
 
-    public Complex getItarget(LegConnectionType loadConnectionType, AbcPhaseType abcPhaseType) {
+    public Complex getItarget(WindingConnectionType loadConnectionType, AbcPhaseType abcPhaseType) {
         Complex s1 = Complex.ZERO;
         Complex s2 = Complex.ZERO;
 
@@ -295,7 +295,7 @@ public class LfAsymBus {
             v1 = getVc0();
         }
 
-        if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
+        if (loadConnectionType == WindingConnectionType.Y || loadConnectionType == WindingConnectionType.Y_GROUNDED) {
             if (loadWye1 != null) {
                 s1 = loadWye1.getS(abcPhaseType);
             }
@@ -310,7 +310,7 @@ public class LfAsymBus {
         }
     }
 
-    public Complex getIzeroTarget(LegConnectionType loadConnectionType) {
+    public Complex getIzeroTarget(WindingConnectionType loadConnectionType) {
         if (isFortescueRepresentation) {
             throw new IllegalStateException(LOAD_CONFIG_NOT_SUPPORTED + bus.getId());
         }
@@ -329,7 +329,7 @@ public class LfAsymBus {
         }
     }
 
-    public Complex getIpositiveTarget(LegConnectionType loadConnectionType) {
+    public Complex getIpositiveTarget(WindingConnectionType loadConnectionType) {
         if (isFortescueRepresentation) {
             throw new IllegalStateException(LOAD_CONFIG_NOT_SUPPORTED + bus.getId());
         }
@@ -352,7 +352,7 @@ public class LfAsymBus {
         }
     }
 
-    public Complex getInegativeTarget(LegConnectionType loadConnectionType) {
+    public Complex getInegativeTarget(WindingConnectionType loadConnectionType) {
         if (isFortescueRepresentation) {
             throw new IllegalStateException(LOAD_CONFIG_NOT_SUPPORTED + bus.getId());
         }

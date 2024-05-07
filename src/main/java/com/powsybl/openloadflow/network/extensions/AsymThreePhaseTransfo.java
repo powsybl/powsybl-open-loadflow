@@ -8,6 +8,7 @@
  */
 package com.powsybl.openloadflow.network.extensions;
 
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixException;
@@ -42,7 +43,7 @@ public class AsymThreePhaseTransfo {
 
     private final DenseMatrix yabc;
 
-    public AsymThreePhaseTransfo(LegConnectionType leg1ConnectionType, LegConnectionType leg2ConnectionType, StepType stepType,
+    public AsymThreePhaseTransfo(WindingConnectionType leg1ConnectionType, WindingConnectionType leg2ConnectionType, StepType stepType,
                                  ComplexMatrix ya, ComplexMatrix yb, ComplexMatrix yc, Complex rho, Complex zG1, Complex zG2,
                                  List<Boolean> phaseConnections) {
         this.rho = rho;
@@ -107,16 +108,16 @@ public class AsymThreePhaseTransfo {
         ComplexMatrix c1V = ComplexMatrix.createIdentity(3);
         ComplexMatrix c2V = ComplexMatrix.createIdentity(3);
 
-        if (stepType == StepType.STEP_DOWN && (leg2ConnectionType == LegConnectionType.Y_GROUNDED || leg2ConnectionType == LegConnectionType.Y)
-                && leg1ConnectionType == LegConnectionType.DELTA) {
+        if (stepType == StepType.STEP_DOWN && (leg2ConnectionType == WindingConnectionType.Y_GROUNDED || leg2ConnectionType == WindingConnectionType.Y)
+                && leg1ConnectionType == WindingConnectionType.DELTA) {
             c1I = complexMatrixP(false);
             c1V = new ComplexMatrix(3, 3);
             Complex mOne = new Complex(-1., 0.);
             c1V.set(1, 3, mOne);
             c1V.set(2, 1, mOne);
             c1V.set(3, 2, mOne);
-        } else if (stepType == StepType.STEP_UP && (leg1ConnectionType == LegConnectionType.Y_GROUNDED || leg1ConnectionType == LegConnectionType.Y)
-                && leg2ConnectionType == LegConnectionType.DELTA) {
+        } else if (stepType == StepType.STEP_UP && (leg1ConnectionType == WindingConnectionType.Y_GROUNDED || leg1ConnectionType == WindingConnectionType.Y)
+                && leg2ConnectionType == WindingConnectionType.DELTA) {
             c2I = complexMatrixP(false);
             c2V = new ComplexMatrix(3, 3);
             Complex mOne = new Complex(-1., 0.);

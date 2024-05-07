@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfAsymLoad;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
@@ -30,7 +30,7 @@ public class LoadAbcImpedantEquationTerm extends AsymmetricalLoadTerm {
 
     private static final String PHASE_CONFIG = "Phase config not handled at bus : ";
 
-    public LoadAbcImpedantEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
+    public LoadAbcImpedantEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, WindingConnectionType loadConnectionType) {
         super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         Objects.requireNonNull(variableSet);
 
@@ -40,7 +40,7 @@ public class LoadAbcImpedantEquationTerm extends AsymmetricalLoadTerm {
         Complex sc = s0;
 
         LfAsymLoad asymLoad;
-        if (loadConnectionType == LegConnectionType.DELTA) {
+        if (loadConnectionType == WindingConnectionType.DELTA) {
             asymLoad = asymBus.getLoadDelta2();
         } else {
             asymLoad = asymBus.getLoadWye2();
@@ -51,7 +51,7 @@ public class LoadAbcImpedantEquationTerm extends AsymmetricalLoadTerm {
     }
 
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType,
-                            ComplexMatrix v0V1V2, ComplexMatrix sabc, LegConnectionType loadConnectionType) {
+                            ComplexMatrix v0V1V2, ComplexMatrix sabc, WindingConnectionType loadConnectionType) {
 
         // We suppose that input for impedant load is S0 at nominal voltage
         // For each phase we have :
@@ -123,7 +123,7 @@ public class LoadAbcImpedantEquationTerm extends AsymmetricalLoadTerm {
         boolean hasPhaseB = asymBus.isHasPhaseB();
         boolean hasPhaseC = asymBus.isHasPhaseC();
 
-        if (loadConnectionType == LegConnectionType.Y || loadConnectionType == LegConnectionType.Y_GROUNDED) {
+        if (loadConnectionType == WindingConnectionType.Y || loadConnectionType == WindingConnectionType.Y_GROUNDED) {
             Complex sA = sabc.getTerm(1, 1);
             Complex sB = sabc.getTerm(2, 1);
             Complex sC = sabc.getTerm(3, 1);
@@ -154,7 +154,7 @@ public class LoadAbcImpedantEquationTerm extends AsymmetricalLoadTerm {
             } else {
                 throw new IllegalStateException(PHASE_CONFIG + bus.getId());
             }
-        } else if (loadConnectionType == LegConnectionType.DELTA) {
+        } else if (loadConnectionType == WindingConnectionType.DELTA) {
 
             Complex sAb = sabc.getTerm(1, 1);
             Complex sBc = sabc.getTerm(2, 1);

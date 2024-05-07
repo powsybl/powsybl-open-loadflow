@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Fortescue;
@@ -33,18 +32,10 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
     }
 
     public static double getMagnitude(LfBus bus, Fortescue.SequenceType sequenceType) {
-        LfAsymBus asymBus = bus.getAsym();
-        if (asymBus == null) {
-            return 1;
-        }
-        return AsymUniformValueVoltageInitializer.getMagnitude(bus, asymBus, sequenceType);
+        return bus.getAsym() == null ? 1 : AsymUniformValueVoltageInitializer.getMagnitude(bus, bus.getAsym(), sequenceType);
     }
 
     public static double getAngle(LfBus bus, Fortescue.SequenceType sequenceType) {
-        LfAsymBus asymBus = bus.getAsym();
-        if (asymBus == null) {
-            return 0;
-        }
-        return AsymUniformValueVoltageInitializer.getAngle(bus, asymBus, sequenceType);
+        return bus.getAsym() == null ? 0 : AsymUniformValueVoltageInitializer.getAngle(bus, bus.getAsym(), sequenceType);
     }
 }

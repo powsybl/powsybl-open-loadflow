@@ -18,7 +18,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class Asym4DeltaTest {
+class Asym4DeltaTest {
 
     private Network network;
     private Bus bus1;
@@ -31,7 +31,6 @@ public class Asym4DeltaTest {
 
     @Test
     void deltaY() {
-
         Complex zz = new Complex(0.1, 0.01); // 0.0001 , 0.001
         Complex zn = new Complex(0.1, 0.01); // 0.001 , 0.01
         Boolean isLoadBalanced = true;
@@ -75,5 +74,4 @@ public class Asym4DeltaTest {
         assertVoltageEquals(2.274193122764982, bus3);
         assertVoltageEquals(2.0302309634844096, bus4);
     }
-
 }

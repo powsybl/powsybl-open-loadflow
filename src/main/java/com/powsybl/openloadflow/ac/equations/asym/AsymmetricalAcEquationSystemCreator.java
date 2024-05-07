@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.AsymBusLoadType;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
@@ -374,7 +374,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
     }
 
-    public AsymmetricalLoadTerm createAbcLoadEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType, AsymBusLoadType asymBusLoadType) {
+    public AsymmetricalLoadTerm createAbcLoadEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, WindingConnectionType loadConnectionType, AsymBusLoadType asymBusLoadType) {
         if (asymBusLoadType == AsymBusLoadType.CONSTANT_POWER) {
             return new LoadAbcPowerEquationTerm(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         } else if (asymBusLoadType == AsymBusLoadType.CONSTANT_IMPEDANCE) {

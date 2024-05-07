@@ -18,7 +18,7 @@ import com.powsybl.openloadflow.network.LfAsymLoad;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AbcPhaseType;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
@@ -55,7 +55,7 @@ class AsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariable
 
     protected final Fortescue.SequenceType sequenceType;
 
-    protected final LegConnectionType loadConnectionType; // how 3 phase loads are connected between each other
+    protected final WindingConnectionType loadConnectionType; // how 3 phase loads are connected between each other
 
     private final AsymBusVariableType busVariableType; // variables available at bus (Wye variables, Va, Vb, Vc or Delta variables : Vab, Vbc and Vca = -Vab - Vbc)
 
@@ -63,7 +63,7 @@ class AsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariable
 
     protected ComplexMatrix sabc;
 
-    protected AsymmetricalLoadTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
+    protected AsymmetricalLoadTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, WindingConnectionType loadConnectionType) {
         super(bus);
         Objects.requireNonNull(variableSet);
         this.complexPart = Objects.requireNonNull(complexPart);
@@ -122,7 +122,7 @@ class AsymmetricalLoadTerm extends AbstractElementEquationTerm<LfBus, AcVariable
         Complex sc = s0;
 
         LfAsymLoad asymLoad;
-        if (loadConnectionType == LegConnectionType.DELTA) {
+        if (loadConnectionType == WindingConnectionType.DELTA) {
             asymLoad = asymBus.getLoadDelta0();
         } else {
             asymLoad = asymBus.getLoadWye0();

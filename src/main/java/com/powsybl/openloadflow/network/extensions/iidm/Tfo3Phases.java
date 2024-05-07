@@ -73,6 +73,18 @@ public class Tfo3Phases extends AbstractExtension<TwoWindingsTransformer> {
         return isOpenPhaseC1;
     }
 
+    public Boolean getOpenPhaseA2() {
+        return isOpenPhaseA2;
+    }
+
+    public Boolean getOpenPhaseB2() {
+        return isOpenPhaseB2;
+    }
+
+    public Boolean getOpenPhaseC2() {
+        return isOpenPhaseC2;
+    }
+
     public ComplexMatrix getYa() {
         return ya;
     }

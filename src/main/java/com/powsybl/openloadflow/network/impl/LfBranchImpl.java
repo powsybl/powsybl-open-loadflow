@@ -175,8 +175,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 double vTfoBase1 = t2w.getRatedU1();
                 double vTfoBase2 = t2w.getRatedU2();
 
-                LegConnectionType leg1Type = getLegConnectionType(extension.getConnectionType1(), t2w);
-                LegConnectionType leg2Type = getLegConnectionType(extension.getConnectionType2(), t2w);
+                WindingConnectionType leg1Type = extension.getConnectionType1();
+                WindingConnectionType leg2Type = extension.getConnectionType2();
 
                 Complex rho = Complex.ONE.multiply(vTfoBase2 / vTfoBase1);
 
@@ -265,7 +265,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 if (extensionIidm != null) {
                     double rz = extensionIidm.getRz() / zb;
                     double xz = extensionIidm.getXz() / zb;
-                    asymTransfo2W = new AsymTransfo2W(getLegConnectionType(extension.getConnectionType1(), t2w), getLegConnectionType(extension.getConnectionType2(), t2w), new Complex(rz, xz), extension.isFreeFluxes(),
+                    asymTransfo2W = new AsymTransfo2W(extension.getConnectionType1(), extension.getConnectionType2(), new Complex(rz, xz), extension.isFreeFluxes(),
                             new Complex(extension.getGroundingR1() / zb, extension.getGroundingX1() / zb),
                             new Complex(extension.getGroundingR2() / zb, extension.getGroundingX2() / zb));
                 } else {
@@ -274,22 +274,6 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 lfBranch.setProperty(AsymTransfo2W.PROPERTY_ASYMMETRICAL, asymTransfo2W);
             }
 
-        }
-    }
-
-    private static LegConnectionType getLegConnectionType(WindingConnectionType windingConnectionType, TwoWindingsTransformer t2w) {
-        switch (windingConnectionType) {
-            case Y_GROUNDED:
-                return LegConnectionType.Y_GROUNDED;
-
-            case Y:
-                return LegConnectionType.Y;
-
-            case DELTA:
-                return LegConnectionType.DELTA;
-
-            default:
-                throw new IllegalStateException("Unknown transformer leg connection type for transformer: " + t2w.getId());
         }
     }
 

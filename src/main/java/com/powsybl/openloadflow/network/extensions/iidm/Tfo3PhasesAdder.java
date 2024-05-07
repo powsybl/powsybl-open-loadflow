@@ -96,5 +96,4 @@ public class Tfo3PhasesAdder extends AbstractExtensionAdder<TwoWindingsTransform
         this.stepWindingConnectionType = stepWindingConnectionType;
         return this;
     }
-
 }

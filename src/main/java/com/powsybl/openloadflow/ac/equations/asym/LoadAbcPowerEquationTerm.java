@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
-import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
@@ -29,7 +29,7 @@ public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
 
     public static final double EPSILON = 0.000000001;
 
-    public LoadAbcPowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, LegConnectionType loadConnectionType) {
+    public LoadAbcPowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType, WindingConnectionType loadConnectionType) {
         super(bus, variableSet, complexPart, sequenceType, loadConnectionType);
         Objects.requireNonNull(variableSet);
 
@@ -37,7 +37,7 @@ public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
     }
 
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, ComplexMatrix v0V1V2,
-                            Variable<AcVariableType> vVarZero, Variable<AcVariableType> vVarNegative, ComplexMatrix sabc, LegConnectionType loadConnectionType, boolean computeDerivative, ComplexMatrix dv0V1V2) {
+                            Variable<AcVariableType> vVarZero, Variable<AcVariableType> vVarNegative, ComplexMatrix sabc, WindingConnectionType loadConnectionType, boolean computeDerivative, ComplexMatrix dv0V1V2) {
         // We suppose that input for power load is constant S
         // For each phase we have :
         // S is also S = I* * V  which gives I* = S / V
@@ -81,7 +81,7 @@ public class LoadAbcPowerEquationTerm extends AsymmetricalLoadTerm {
 
         AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
-        if (loadConnectionType == LegConnectionType.DELTA) {
+        if (loadConnectionType == WindingConnectionType.DELTA) {
             throw new IllegalStateException("ABC load with delta load connection not yet handled at bus " + bus.getId());
         }
 
