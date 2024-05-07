@@ -11,4 +11,4 @@
       + Network CC1 SC1
          + Network info
             Network must have at least one bus with generator voltage control enabled
-      No calculation will be done on 1 network(s) that have have no generators
+      No calculation will be done on 1 network(s) that have no generators

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.util;
 
@@ -59,7 +60,7 @@ public final class Reports {
 
     public static void reportComponentsWithoutGenerators(ReportNode reportNode, int deadComponentsCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("componentsWithoutGenerators", "No calculation will be done on ${deadComponentsCount} network(s) that have have no generators")
+                .withMessageTemplate("componentsWithoutGenerators", "No calculation will be done on ${deadComponentsCount} network(s) that have no generators")
                 .withUntypedValue("deadComponentsCount", deadComponentsCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();

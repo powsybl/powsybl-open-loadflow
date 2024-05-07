@@ -10,4 +10,4 @@
             Network has 3 buses and 4 branches
             Network balance: active generation=2.0 MW, active load=4.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
          DC load flow completed (status=true)
-      No calculation will be done on 1 network(s) that have have no generators
+      No calculation will be done on 1 network(s) that have no generators
