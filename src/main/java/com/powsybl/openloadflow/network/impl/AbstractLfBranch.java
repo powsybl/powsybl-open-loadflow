@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -43,6 +44,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected TransformerVoltageControl voltageControl;
 
     protected boolean voltageControlEnabled = false;
+
+    protected TransformerReactivePowerControl transformerReactivePowerControl;
 
     static class ZeroImpedanceContext {
 
@@ -214,6 +217,26 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                 listener.onTransformerVoltageControlChange(this, voltageControlEnabled);
             }
         }
+    }
+
+    @Override
+    public Optional<TransformerReactivePowerControl> getTransformerReactivePowerControl() {
+        return Optional.ofNullable(transformerReactivePowerControl);
+    }
+
+    @Override
+    public void setTransformerReactivePowerControl(TransformerReactivePowerControl transformerReactivePowerControl) {
+        this.transformerReactivePowerControl = transformerReactivePowerControl;
+    }
+
+    @Override
+    public boolean isTransformerReactivePowerController() {
+        return transformerReactivePowerControl != null && transformerReactivePowerControl.getControllerBranch() == this;
+    }
+
+    @Override
+    public boolean isTransformerReactivePowerControlled() {
+        return transformerReactivePowerControl != null && transformerReactivePowerControl.getControlledBranch() == this;
     }
 
     public double computeApparentPower1() {

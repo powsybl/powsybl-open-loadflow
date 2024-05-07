@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -107,6 +108,10 @@ public interface LfShunt extends LfElement {
                 return Optional.of(position - oldSection > 0 ? Direction.INCREASE : Direction.DECREASE);
             }
             return Optional.empty();
+        }
+
+        public void updateSectionB(int newPosition) {
+            position = newPosition;
         }
     }
 

@@ -3,12 +3,13 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
@@ -1724,11 +1725,11 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         network.getDanglingLine("dl1").getTerminal().disconnect();
         Line l1 = network.getLine("l1");
-        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        runLf(network, sensiParameters.getLoadFlowParameters(), ReportNode.NO_OP);
         double initialP = l1.getTerminal1().getP();
         assertEquals(19.006, initialP, LoadFlowAssert.DELTA_POWER);
         network.getGenerator("g1").setTargetP(network.getGenerator("g1").getTargetP() + 1);
-        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        runLf(network, sensiParameters.getLoadFlowParameters(), ReportNode.NO_OP);
         double finalP = l1.getTerminal1().getP();
         assertEquals(19.194, finalP, LoadFlowAssert.DELTA_POWER);
         assertEquals(0.1875, finalP - initialP, LoadFlowAssert.DELTA_POWER);
@@ -1755,11 +1756,11 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         network.getDanglingLine("dl1").getTerminal().disconnect();
         Line l1 = network.getLine("l1");
-        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        runLf(network, sensiParameters.getLoadFlowParameters(), ReportNode.NO_OP);
         double initialP = l1.getTerminal1().getP();
         assertEquals(1.875, initialP, LoadFlowAssert.DELTA_POWER);
         network.getLoad("load3").setP0(network.getLoad("load3").getP0() + 1);
-        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        runLf(network, sensiParameters.getLoadFlowParameters(), ReportNode.NO_OP);
         double finalP = l1.getTerminal1().getP();
         assertEquals(2.0624, finalP, LoadFlowAssert.DELTA_POWER);
         assertEquals(0.1875, finalP - initialP, LoadFlowAssert.DELTA_POWER);
@@ -2456,5 +2457,18 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getContingencyStatus("NGEN"));
         assertEquals(300.0, result.getBranchFlow1FunctionReferenceValue("NGEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(600.0, result.getBranchFlow1FunctionReferenceValue("NGEN", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testVSCLoss() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        List<Contingency> contingencies = List.of(new Contingency("contingency", new LineContingency("l12")),
+                                                  new Contingency("bus", new BusContingency("b2")));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l34", "l4"));
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1", true);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(-200.0, result.getBranchFlow1FunctionReferenceValue("l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("contingency", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("bus", "l34"), LoadFlowAssert.DELTA_POWER);
     }
 }

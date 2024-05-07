@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.equations;
 
@@ -35,11 +36,11 @@ public class ShuntCompensatorActiveFlowEquationTerm extends AbstractShuntCompens
         return element.getG();
     }
 
-    private static double p(double v, double g) {
+    public static double p(double v, double g) {
         return g * v * v;
     }
 
-    private static double dpdv(double v, double g) {
+    public static double dpdv(double v, double g) {
         return 2 * g * v;
     }
 

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -28,7 +29,7 @@ class MostMeshedSlackBusSelectorTest {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var provider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         var runner = new LoadFlow.Runner(provider);
-        var parameters = new LoadFlowParameters();
+        var parameters = new LoadFlowParameters().setWriteSlackBus(false);
         LoadFlowResult result = runner.run(network, parameters);
         assertEquals("VLHV1_0", result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
@@ -37,6 +38,6 @@ class MostMeshedSlackBusSelectorTest {
         assertEquals("VLLOAD_0", result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> parametersExt.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(120));
-        assertEquals("Invalid percent value: 120.0", exception.getMessage());
+        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 120.0", exception.getMessage());
     }
 }

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.equations;
 
@@ -43,15 +44,15 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         return bVar != null ? sv.get(bVar.getRow()) : element.getB();
     }
 
-    private static double q(double v, double b) {
+    public static double q(double v, double b) {
         return -b * v * v;
     }
 
-    private static double dqdv(double v, double b) {
+    public static double dqdv(double v, double b) {
         return -2 * b * v;
     }
 
-    private static double dqdb(double v) {
+    public static double dqdb(double v) {
         return -v * v;
     }
 
@@ -72,13 +73,17 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         }
     }
 
+    public static double calculateSensi(double v, double b, double dv, double db) {
+        return dqdv(v, b) * dv + dqdb(v) * db;
+    }
+
     @Override
     public double calculateSensi(DenseMatrix dx, int column) {
         double dv = dx.get(vVar.getRow(), column);
         double db = bVar != null ? dx.get(bVar.getRow(), column) : 0;
         double v = v();
         double b = b();
-        return dqdv(v, b) * dv + dqdb(v) * db;
+        return calculateSensi(v, b, dv, db);
     }
 
     @Override

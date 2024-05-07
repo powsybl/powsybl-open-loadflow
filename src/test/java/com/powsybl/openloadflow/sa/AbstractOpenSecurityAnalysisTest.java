@@ -3,13 +3,19 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.action.Action;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.ComputationManager;
-import com.powsybl.contingency.*;
-import com.powsybl.iidm.network.*;
+import com.powsybl.contingency.BranchContingency;
+import com.powsybl.contingency.ContingenciesProvider;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.iidm.network.Identifiable;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -19,9 +25,14 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.network.*;
-import com.powsybl.security.*;
-import com.powsybl.security.action.Action;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.security.LimitViolationFilter;
+import com.powsybl.security.SecurityAnalysisParameters;
+import com.powsybl.security.SecurityAnalysisReport;
+import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
@@ -29,11 +40,14 @@ import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -101,7 +115,7 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     }
 
     protected LoadFlowResult runLoadFlow(Network network, LoadFlowParameters parameters) {
-        return loadFlowProvider.run(network, computationManager, network.getVariantManager().getWorkingVariantId(), parameters, Reporter.NO_OP)
+        return loadFlowProvider.run(network, computationManager, network.getVariantManager().getWorkingVariantId(), parameters, ReportNode.NO_OP)
                 .join();
     }
 
@@ -117,11 +131,11 @@ public abstract class AbstractOpenSecurityAnalysisTest {
 
     protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
                                                        SecurityAnalysisParameters saParameters) {
-        return runSecurityAnalysis(network, contingencies, monitors, saParameters, Reporter.NO_OP);
+        return runSecurityAnalysis(network, contingencies, monitors, saParameters, ReportNode.NO_OP);
     }
 
     protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
-                                                       SecurityAnalysisParameters saParameters, Reporter reporter) {
+                                                       SecurityAnalysisParameters saParameters, ReportNode reportNode) {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                 network.getVariantManager().getWorkingVariantId(),
@@ -134,14 +148,15 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                 Collections.emptyList(),
                 Collections.emptyList(),
                 monitors,
-                reporter)
+                Collections.emptyList(),
+                reportNode)
                 .join();
         return report.getResult();
     }
 
     protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
-                                                       SecurityAnalysisParameters saParameters, List<OperatorStrategy> operatorStrategies,
-                                                       List<Action> actions, Reporter reporter) {
+                                                         SecurityAnalysisParameters saParameters, List<OperatorStrategy> operatorStrategies,
+                                                         List<Action> actions, ReportNode reportNode) {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                 network.getVariantManager().getWorkingVariantId(),
@@ -154,7 +169,8 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                 operatorStrategies,
                 actions,
                 monitors,
-                reporter)
+                Collections.emptyList(),
+                reportNode)
                 .join();
         return report.getResult();
     }

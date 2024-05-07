@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -16,8 +17,8 @@ public class DiscreteVoltageControl<T extends LfElement> extends VoltageControl<
 
     private Double targetDeadband;
 
-    protected DiscreteVoltageControl(LfBus controlled, Type type, int priority, double targetValue, Double targetDeadband) {
-        super(targetValue, type, priority, controlled);
+    protected DiscreteVoltageControl(LfBus controlled, Type type, int targetPriority, double targetValue, Double targetDeadband) {
+        super(targetValue, type, targetPriority, controlled);
         this.targetDeadband = targetDeadband;
     }
 

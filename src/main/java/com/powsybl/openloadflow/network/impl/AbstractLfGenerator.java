@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -21,7 +22,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractLfGenerator extends AbstractLfInjection implements LfGenerator {
+public abstract class AbstractLfGenerator extends AbstractLfInjection implements LfGenerator, LfReferencePriorityInjection {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
 
@@ -50,6 +51,10 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     private boolean disabled;
 
     protected LfAsymGenerator asym;
+
+    protected int referencePriority;
+
+    protected boolean reference;
 
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
         super(targetP, targetP);
@@ -206,45 +211,69 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     }
 
     protected boolean checkVoltageControlConsistency(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        boolean consistency = true;
-        if (parameters.isReactiveLimits()) {
-            double rangeQ;
-            switch (parameters.getReactiveRangeCheckMode()) {
-                case MIN_MAX:
-                    double minRangeQ = getRangeQ(ReactiveRangeMode.MIN);
-                    double maxRangeQ = getRangeQ(ReactiveRangeMode.MAX);
-                    if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || minRangeQ == 0.0) {
-                        LOGGER.trace("Discard generator '{}' from voltage control because min or max reactive ranges (min: {} and max: {}) are too small", getId(), minRangeQ, maxRangeQ);
-                        report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
-                        consistency = false;
-                    }
-                    break;
-                case MAX:
-                    rangeQ = getRangeQ(ReactiveRangeMode.MAX);
-                    if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
-                        LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), rangeQ);
-                        report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
-                        consistency = false;
-                    }
-                    break;
-                case TARGET_P:
-                    rangeQ = getRangeQ(ReactiveRangeMode.TARGET_P);
-                    if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
-                        LOGGER.trace("Discard generator '{}' from voltage control because reactive range at targetP ({}) is too small", getId(), rangeQ);
-                        report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
-                        consistency = false;
-                    }
-                    break;
-                default:
-                    throw new IllegalStateException("Unknown reactive range check mode: " + parameters.getReactiveRangeCheckMode());
-            }
+        return checkIfReactiveRangesAreLargeEnoughForVoltageControl(parameters, report) &&
+                checkIfGeneratorStartedForVoltageControl(report) &&
+                checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
+    }
+
+    protected boolean checkIfReactiveRangesAreLargeEnoughForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        if (!parameters.isReactiveLimits()) {
+            return true;
         }
+
+        boolean consistency = true;
+        double rangeQ;
+        switch (parameters.getReactiveRangeCheckMode()) {
+            case MIN_MAX -> {
+                double minRangeQ = getRangeQ(ReactiveRangeMode.MIN);
+                double maxRangeQ = getRangeQ(ReactiveRangeMode.MAX);
+                if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || minRangeQ == 0.0) {
+                    LOGGER.trace("Discard generator '{}' from voltage control because min or max reactive ranges (min: {} and max: {}) are too small", getId(), minRangeQ, maxRangeQ);
+                    report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
+                    consistency = false;
+                }
+            }
+            case MAX -> {
+                rangeQ = getRangeQ(ReactiveRangeMode.MAX);
+                if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+                    LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), rangeQ);
+                    report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
+                    consistency = false;
+                }
+            }
+            case TARGET_P -> {
+                rangeQ = getRangeQ(ReactiveRangeMode.TARGET_P);
+                if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+                    LOGGER.trace("Discard generator '{}' from voltage control because reactive range at targetP ({}) is too small", getId(), rangeQ);
+                    report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
+                    consistency = false;
+                }
+            }
+            default ->
+                    throw new IllegalStateException("Unknown reactive range check mode: " + parameters.getReactiveRangeCheckMode());
+        }
+
+        return consistency;
+    }
+
+    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
         if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
-            consistency = false;
+            return false;
         }
-        return consistency;
+        return true;
+    }
+
+    protected boolean checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        if (parameters.isUseActiveLimits() &&
+            parameters.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() &&
+            (getTargetP() < getMinP() || getTargetP() > getMaxP())) {
+            LOGGER.trace("Discard generator '{}' from voltage control because targetP is outside active power limits (targetP={} MW, minP={} MW, maxP={} MW)", getId(), getTargetP(), getMinP(), getMaxP());
+            report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits++;
+            return false;
+        }
+        return true;
     }
 
     public static boolean checkTargetV(String generatorId, double targetV, double nominalV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
@@ -261,18 +290,16 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         return true;
     }
 
-    protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
+    protected void setRemoteReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
         Connectable<?> connectable = regulatingTerminal.getConnectable();
-        if (connectable instanceof Line l) {
-            this.controlledBranchSide = l.getTerminal(TwoSides.ONE) == regulatingTerminal ?
-                    TwoSides.ONE : TwoSides.TWO;
-            this.controlledBranchId = l.getId();
-        } else if (connectable instanceof TwoWindingsTransformer t) {
-            this.controlledBranchSide = t.getTerminal(TwoSides.ONE) == regulatingTerminal ?
-                    TwoSides.ONE : TwoSides.TWO;
-            this.controlledBranchId = t.getId();
+        if (connectable instanceof Branch<?> branch) {
+            this.controlledBranchSide = branch.getSide(regulatingTerminal);
+            this.controlledBranchId = branch.getId();
+        } else if (connectable instanceof ThreeWindingsTransformer t3w) {
+            this.controlledBranchSide = TwoSides.ONE; // side 2 is star bus of t3w.
+            this.controlledBranchId = LfLegBranch.getId(t3w.getSide(regulatingTerminal), t3w.getId());
         } else {
-            LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
+            LOGGER.error("Generator '{}' is remotely controlling reactive power of an instance of {}: not supported",
                     getId(), connectable.getClass());
             return;
         }
@@ -376,5 +403,25 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     @Override
     public void setAsym(LfAsymGenerator asym) {
         this.asym = asym;
+    }
+
+    @Override
+    public int getReferencePriority() {
+        return referencePriority;
+    }
+
+    @Override
+    public void setReferencePriority(int referencePriority) {
+        this.referencePriority = referencePriority;
+    }
+
+    @Override
+    public boolean isReference() {
+        return reference;
+    }
+
+    @Override
+    public void setReference(boolean reference) {
+        this.reference = reference;
     }
 }

@@ -3,12 +3,12 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -16,8 +16,9 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.LfTopoConfig;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,18 +42,18 @@ public class AcLoadFlowFromCache {
 
     private final AcLoadFlowParameters acParameters;
 
-    private final Reporter reporter;
+    private final ReportNode reportNode;
 
     public AcLoadFlowFromCache(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                               AcLoadFlowParameters acParameters, Reporter reporter) {
+                               AcLoadFlowParameters acParameters, ReportNode reportNode) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);
         this.parametersExt = Objects.requireNonNull(parametersExt);
         this.acParameters = Objects.requireNonNull(acParameters);
-        this.reporter = Objects.requireNonNull(reporter);
+        this.reportNode = Objects.requireNonNull(reportNode);
     }
 
-    private void configureSwitches(LfTopoConfig topoConfig) {
+    private void configureTopoConfig(LfTopoConfig topoConfig) {
         for (String switchId : parametersExt.getActionableSwitchesIds()) {
             Switch sw = network.getSwitch(switchId);
             if (sw != null) {
@@ -65,6 +66,22 @@ public class AcLoadFlowFromCache {
                 LOGGER.warn("Actionable switch '{}' does not exist", switchId);
             }
         }
+        for (String transformerId : parametersExt.getActionableTransformersIds()) {
+            Branch<?> branch = network.getBranch(transformerId);
+            if (branch != null) {
+                topoConfig.addBranchIdWithRtcToRetain(transformerId);
+                topoConfig.addBranchIdWithPtcToRetain(transformerId);
+            } else {
+                ThreeWindingsTransformer tw3 = network.getThreeWindingsTransformer(transformerId);
+                if (tw3 != null) {
+                    for (ThreeSides side : ThreeSides.values()) {
+                        topoConfig.addBranchIdWithRtcToRetain(LfLegBranch.getId(side, transformerId));
+                        topoConfig.addBranchIdWithPtcToRetain(LfLegBranch.getId(side, transformerId));
+                    }
+                }
+                LOGGER.warn("Actionable transformer '{}' does not exist", transformerId);
+            }
+        }
         if (topoConfig.isBreaker()) {
             acParameters.getNetworkParameters().setBreakers(true);
         }
@@ -73,12 +90,12 @@ public class AcLoadFlowFromCache {
     private List<AcLoadFlowContext> initContexts(NetworkCache.Entry entry) {
         List<AcLoadFlowContext> contexts;
         LfTopoConfig topoConfig = new LfTopoConfig();
-        configureSwitches(topoConfig);
+        configureTopoConfig(topoConfig);
 
         // Because of caching, we only need to switch back to working variant but not to remove the variant, thus
         // WorkingVariantReverter is used instead of DefaultVariantCleaner
         try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), topoConfig,
-                LfNetworkList.WorkingVariantReverter::new, reporter)) {
+                LfNetworkList.WorkingVariantReverter::new, reportNode)) {
             contexts = lfNetworkList.getList()
                     .stream()
                     .map(n -> new AcLoadFlowContext(n, acParameters))

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -60,6 +61,13 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
         LOGGER.trace("onTransformerPhaseControlChange(controllerBranchId='{}', newPhaseControlEnabled={})",
                 controllerBranch.getId(), newPhaseControlEnabled);
         delegate.onTransformerPhaseControlChange(controllerBranch, newPhaseControlEnabled);
+    }
+
+    @Override
+    public void onTransformerVoltageControlTargetChange(TransformerVoltageControl transformerVoltageControl, double newTargetVoltage) {
+        LOGGER.trace("onTransformerVoltageControlTargetChange(controlledBusId='{}', newTargetVoltage={})",
+                transformerVoltageControl.getControlledBus().getId(), newTargetVoltage);
+        delegate.onTransformerVoltageControlTargetChange(transformerVoltageControl, newTargetVoltage);
     }
 
     @Override

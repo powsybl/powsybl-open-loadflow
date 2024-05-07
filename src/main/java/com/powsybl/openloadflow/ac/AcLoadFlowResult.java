@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
@@ -65,16 +66,18 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return distributedActivePower;
     }
 
-    public boolean isOk() {
+    @Override
+    public boolean isSuccess() {
         return solverStatus == AcSolverStatus.CONVERGED && outerLoopStatus == OuterLoopStatus.STABLE;
     }
 
     public boolean isWithNetworkUpdate() {
         // do not reset state in case all results are ok and no NR iterations because it means that the network was
         // not changed and no calculation update was needed.
-        return isOk() && solverIterations > 0;
+        return isSuccess() && solverIterations > 0;
     }
 
+    @Override
     public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
         if (getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
             return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.equations;
 
@@ -143,7 +144,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         updateLu(allowIncrementalUpdate);
     }
 
-    public Matrix getMatrix() {
+    public void forceUpdate() {
+        update();
+    }
+
+    private void update() {
         if (status != Status.VALID) {
             switch (status) {
                 case STRUCTURE_INVALID:
@@ -163,6 +168,10 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             }
             status = Status.VALID;
         }
+    }
+
+    public Matrix getMatrix() {
+        update();
         return matrix;
     }
 

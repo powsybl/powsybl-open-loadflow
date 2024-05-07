@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -12,10 +13,7 @@ import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.iidm.network.extensions.StandbyAutomaton;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.LfStaticVarCompensator;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,16 +81,26 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
             setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), parameters, report);
-            if (parameters.isVoltagePerReactivePowerControl() && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
-                if (parameters.isSvcVoltageMonitoring() && svc.getExtension(StandbyAutomaton.class) == null) {
-                    this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
-                } else {
-                    LOGGER.warn("Static var compensator {} has VoltagePerReactivePowerControl" +
-                            " and StandbyAutomaton extensions: VoltagePerReactivePowerControl extension ignored", svc.getId());
-                }
-            }
+
+            // slope model: check if to be applied based on 1/ option and 2/ this SVC extension
+            VoltagePerReactivePowerControl voltagePerReactivePowerControl = svc.getExtension(VoltagePerReactivePowerControl.class);
+            boolean svcWithVoltagePerReactivePowerControl = parameters.isVoltagePerReactivePowerControl() && voltagePerReactivePowerControl != null;
+
+            // standby automaton: same, check if to be applied based on 1/ option and 2/ this SVC extension
             StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
-            if (parameters.isSvcVoltageMonitoring() && standbyAutomaton != null) {
+            boolean svcWithStandbyAutomaton = parameters.isSvcVoltageMonitoring() && standbyAutomaton != null;
+
+            // we can't do both slope model & standby automaton. Keep only standby automaton if both present.
+            if (svcWithStandbyAutomaton && svcWithVoltagePerReactivePowerControl) {
+                LOGGER.warn("Static var compensator {} has VoltagePerReactivePowerControl" +
+                        " and StandbyAutomaton extensions: VoltagePerReactivePowerControl extension ignored", svc.getId());
+                svcWithVoltagePerReactivePowerControl = false;
+            }
+
+            if (svcWithVoltagePerReactivePowerControl) {
+                this.slope = voltagePerReactivePowerControl.getSlope() * PerUnit.SB / nominalV;
+            }
+            if (svcWithStandbyAutomaton) {
                 if (standbyAutomaton.getB0() != 0.0) {
                     // a static var compensator with an extension stand by automaton includes an offset of B0,
                     // whatever it is in stand by or not.
@@ -152,10 +160,9 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     }
 
     @Override
-    public void updateState() {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         double vSquare = bus.getV() * bus.getV() * nominalV * nominalV;
-        double newTargetQ = Double.isNaN(targetQ) ? 0 : -targetQ;
-        double q = (Double.isNaN(calculatedQ) ? newTargetQ : -calculatedQ) * PerUnit.SB;
+        double q = (Double.isNaN(calculatedQ) ? -targetQ : -calculatedQ) * PerUnit.SB;
         getSvc().getTerminal()
                 .setP(0)
                 .setQ(q - b0 * vSquare);

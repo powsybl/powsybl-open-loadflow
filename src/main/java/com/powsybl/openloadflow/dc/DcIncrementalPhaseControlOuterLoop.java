@@ -3,19 +3,22 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.TransformerPhaseControl;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -55,7 +58,7 @@ public class DcIncrementalPhaseControlOuterLoop
     }
 
     @Override
-    public OuterLoopStatus check(DcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(DcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         var contextData = (IncrementalContextData) context.getData();
@@ -82,7 +85,7 @@ public class DcIncrementalPhaseControlOuterLoop
 
             if (checkActivePowerControlPhaseControls(sensitivityContext,
                     contextData,
-                    activePowerControlPhaseControls)) {
+                    activePowerControlPhaseControls) != 0) {
                 status = OuterLoopStatus.UNSTABLE;
             }
         }

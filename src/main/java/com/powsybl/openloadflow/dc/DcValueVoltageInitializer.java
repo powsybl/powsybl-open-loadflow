@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.dc;
 
@@ -72,7 +73,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
         try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
             DcLoadFlowEngine engine = new DcLoadFlowEngine(context);
-            if (!engine.run().isSucceeded()) {
+            if (!engine.run().isSuccess()) {
                 throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
             }
         }

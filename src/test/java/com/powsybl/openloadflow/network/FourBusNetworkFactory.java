@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -156,6 +157,47 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
                 .withEnabled(true)
                 .add();
+        return network;
+    }
+
+    public static Network createWithAdditionalReactiveTerms() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        createGenerator(b2, "g2", 2);
+        createGenerator(b3, "g3", 2);
+        createLoad(b1, "d1", 1);
+        createLoad(b3, "d3", 3);
+        createLine(network, b1, b2, "l12", 0.5f);
+        createLine(network, b1, b3, "l13", 0.5f);
+        createLine(network, b2, b4, "l24", 1f);
+        createLine(network, b3, b4, "l34", 1f);
+        Generator g2 = network.getGenerator("g2");
+        g2.setRegulatingTerminal(network.getLine("l24").getTerminal2());
+        Generator g3 = network.getGenerator("g3");
+        g3.setRegulatingTerminal(network.getLine("l24").getTerminal2());
+        return network;
+    }
+
+    public static Network createWithCondenser() {
+        Network network = createBaseNetwork();
+        network.getGenerator("g4")
+                .setTargetP(0.0)
+                .setMaxP(0.0)
+                .setMinP(0.0);
+        return network;
+    }
+
+    public static Network createWithTwoScs() {
+        Network network = createBaseNetwork();
+        Bus c1 = createBus(network, "c1");
+        Bus c2 = createBus(network, "c2");
+        createGenerator(c1, "gc1", 2);
+        createLoad(c2, "dc2", 1);
+        createLine(network, c1, c2, "lc12", 1f);
+        createLine(network, c1, c2, "lc12Bis", 1f);
         return network;
     }
 }

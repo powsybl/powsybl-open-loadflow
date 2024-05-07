@@ -3,9 +3,11 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -102,7 +104,13 @@ public class DcEquationSystemCreator {
             }
             if (creationParameters.isUpdateFlows()) {
                 branch.setP1(p1);
+                branch.setClosedP1(p1);
                 branch.setP2(p2);
+                branch.setClosedP2(p2);
+                ClosedBranchDcCurrent i1 = new ClosedBranchDcCurrent(branch, TwoSides.ONE, creationParameters.getDcPowerFactor());
+                ClosedBranchDcCurrent i2 = new ClosedBranchDcCurrent(branch, TwoSides.TWO, creationParameters.getDcPowerFactor());
+                branch.setI1(i1);
+                branch.setI2(i2);
             }
         } else if (bus1 != null && creationParameters.isUpdateFlows()) {
             branch.setP1(EvaluableConstants.ZERO);
@@ -128,11 +136,37 @@ public class DcEquationSystemCreator {
         }
     }
 
+    private void createHvdcs(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        for (LfHvdc hvdc : network.getHvdcs()) {
+            EquationTerm<DcVariableType, DcEquationType> p1 = null;
+            EquationTerm<DcVariableType, DcEquationType> p2 = null;
+            if (hvdc.getBus1() != null && hvdc.getBus2() != null && hvdc.isAcEmulation()) {
+                p1 = new HvdcAcEmulationSide1DCFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+                p2 = new HvdcAcEmulationSide2DCFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+            }
+
+            if (p1 != null) {
+                equationSystem.getEquation(hvdc.getBus1().getNum(), DcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(p1);
+                hvdc.setP1(p1);
+            }
+
+            if (p2 != null) {
+                equationSystem.getEquation(hvdc.getBus2().getNum(), DcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(p2);
+                hvdc.setP2(p2);
+            }
+        }
+    }
+
     public EquationSystem<DcVariableType, DcEquationType> create(boolean withListener) {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>();
 
         createBuses(equationSystem);
         createBranches(equationSystem);
+        createHvdcs(equationSystem);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 

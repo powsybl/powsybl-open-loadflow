@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -14,6 +15,8 @@ public class LfNetworkLoadingReport {
     int generatorsDiscardedFromVoltageControlBecauseNotStarted = 0;
 
     int generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall = 0;
+
+    int generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = 0;
 
@@ -36,4 +39,6 @@ public class LfNetworkLoadingReport {
     int generatorsWithZeroRemoteVoltageControlReactivePowerKey = 0;
 
     int transformerVoltageControlDiscardedBecauseControllerBranchIsOpen = 0;
+
+    int transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen = 0;
 }

@@ -3,13 +3,16 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadAsymmetrical;
+import com.powsybl.iidm.network.extensions.ReferenceTerminals;
 import com.powsybl.iidm.network.extensions.LoadConnectionType;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.AsymBusLoadType;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
@@ -264,6 +267,9 @@ public class LfBusImpl extends AbstractLfBus {
         // update slack bus
         if (slack && parameters.isWriteSlackBus()) {
             SlackTerminal.attach(bus);
+        }
+        if (reference && parameters.isWriteReferenceTerminals() && parameters.getReferenceBusSelectionMode() == ReferenceBusSelectionMode.FIRST_SLACK) {
+            bus.getConnectedTerminalStream().findFirst().ifPresent(ReferenceTerminals::addTerminal);
         }
 
         super.updateState(parameters);

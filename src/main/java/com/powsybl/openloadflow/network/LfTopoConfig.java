@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -27,9 +28,13 @@ public class LfTopoConfig {
 
     private final Set<String> branchIdsWithRtcToRetain = new HashSet<>();
 
+    private final Set<String> shuntIdsToOperate = new HashSet();
+
     private final Set<String> branchIdsOpenableSide1 = new HashSet<>();
 
     private final Set<String> branchIdsOpenableSide2 = new HashSet<>();
+
+    private final Set<String> branchIdsToClose = new HashSet<>();
 
     public LfTopoConfig() {
         switchesToOpen = new HashSet<>();
@@ -56,12 +61,16 @@ public class LfTopoConfig {
         return busIdsToLose;
     }
 
-    public void addBranchIdsWithPtcToRetain(String branchId) {
+    public void addBranchIdWithPtcToRetain(String branchId) {
         branchIdsWithPtcToRetain.add(branchId);
     }
 
-    public void addBranchIdsWithRtcToRetain(String branchId) {
+    public void addBranchIdWithRtcToRetain(String branchId) {
         branchIdsWithRtcToRetain.add(branchId);
+    }
+
+    public void addShuntIdToOperate(String shuntId) {
+        shuntIdsToOperate.add(shuntId);
     }
 
     public boolean isBreaker() {
@@ -76,11 +85,19 @@ public class LfTopoConfig {
         return branchIdsWithRtcToRetain.contains(branchId);
     }
 
+    public boolean isOperatedShunt(String shuntId) {
+        return shuntIdsToOperate.contains(shuntId);
+    }
+
     public Set<String> getBranchIdsOpenableSide1() {
         return branchIdsOpenableSide1;
     }
 
     public Set<String> getBranchIdsOpenableSide2() {
         return branchIdsOpenableSide2;
+    }
+
+    public Set<String> getBranchIdsToClose() {
+        return branchIdsToClose;
     }
 }

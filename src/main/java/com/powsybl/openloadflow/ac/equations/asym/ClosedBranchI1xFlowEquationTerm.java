@@ -44,15 +44,15 @@ public class ClosedBranchI1xFlowEquationTerm extends AbstractAsymmetricalClosedB
         return (g1 + g12) * v1 * FastMath.cos(ph1) - (b1 + b12) * v1 * FastMath.sin(ph1) - g12 * v2 * FastMath.cos(ph2) + b12 * v2 * FastMath.sin(ph2);
     }
 
-    private static double di1xdv1(double g1, double b1, double ph1, double g12, double b12) {
+    public static double di1xdv1(double g1, double b1, double ph1, double g12, double b12) {
         return (g1 + g12) * FastMath.cos(ph1) - (b1 + b12) * FastMath.sin(ph1);
     }
 
-    private static double di1xdv2(double ph2, double g12, double b12) {
+    public static double di1xdv2(double ph2, double g12, double b12) {
         return -g12 * FastMath.cos(ph2) + b12 * FastMath.sin(ph2);
     }
 
-    private static double di1xdph1(double g1, double b1, double v1, double ph1, double g12, double b12) {
+    public static double di1xdph1(double g1, double b1, double v1, double ph1, double g12, double b12) {
         return -(g1 + g12) * v1 * FastMath.sin(ph1) - (b1 + b12) * v1 * FastMath.cos(ph1);
     }
 

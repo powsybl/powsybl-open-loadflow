@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -15,10 +16,8 @@ import java.util.List;
  */
 public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
-    private static final int PRIORITY = 0;
-
-    public GeneratorVoltageControl(LfBus controlledBus, double targetValue) {
-        super(targetValue, Type.GENERATOR, PRIORITY, controlledBus);
+    public GeneratorVoltageControl(LfBus controlledBus, int targetPriority, double targetValue) {
+        super(targetValue, Type.GENERATOR, targetPriority, controlledBus);
     }
 
     @Override

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -100,18 +101,6 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         return lfBranch;
     }
 
-    private int getLegNum() {
-        var twt = getTwt();
-        var leg = getLeg();
-        if (leg == twt.getLeg1()) {
-            return 1;
-        } else if (leg == twt.getLeg2()) {
-            return 2;
-        } else {
-            return 3;
-        }
-    }
-
     public static String getId(String twtId, int legNum) {
         return twtId + "_leg_" + legNum;
     }
@@ -122,20 +111,17 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
 
     @Override
     public String getId() {
-        return getId(getTwt().getId(), getLegNum());
+        return getId(getTwt().getId(), getLeg().getSide().getNum());
     }
 
     @Override
     public BranchType getBranchType() {
-        var twt = getTwt();
         var leg = getLeg();
-        if (leg == twt.getLeg1()) {
-            return BranchType.TRANSFO_3_LEG_1;
-        } else if (leg == twt.getLeg2()) {
-            return BranchType.TRANSFO_3_LEG_2;
-        } else {
-            return BranchType.TRANSFO_3_LEG_3;
-        }
+        return switch (leg.getSide()) {
+            case ONE -> BranchType.TRANSFO_3_LEG_1;
+            case TWO -> BranchType.TRANSFO_3_LEG_2;
+            case THREE -> BranchType.TRANSFO_3_LEG_3;
+        };
     }
 
     @Override
@@ -149,7 +135,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
@@ -181,7 +167,8 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
             updateTapPosition(leg.getPhaseTapChanger());
         }
 
-        if (parameters.isTransformerVoltageControlOn() && isVoltageController()) { // it means there is a regulating ratio tap changer
+        if (parameters.isTransformerVoltageControlOn() && isVoltageController()
+                || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
             RatioTapChanger rtc = leg.getRatioTapChanger();
             double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
             double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * baseRatio;

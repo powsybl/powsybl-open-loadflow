@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -13,24 +14,12 @@ import java.util.*;
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  */
-public class GeneratorReactivePowerControl extends Control {
+public class GeneratorReactivePowerControl extends ReactivePowerControl {
 
-    private final LfBranch controlledBranch;
-    private final TwoSides controlledSide;
     private final List<LfBus> controllerBuses = new ArrayList<>();
 
     public GeneratorReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, double targetValue) {
-        super(targetValue);
-        this.controlledBranch = Objects.requireNonNull(controlledBranch);
-        this.controlledSide = Objects.requireNonNull(controlledSide);
-    }
-
-    public LfBranch getControlledBranch() {
-        return controlledBranch;
-    }
-
-    public TwoSides getControlledSide() {
-        return controlledSide;
+        super(controlledBranch, controlledSide, targetValue);
     }
 
     public List<LfBus> getControllerBuses() {

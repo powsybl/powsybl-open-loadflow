@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sa;
 
@@ -32,8 +33,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     private void addResults(StateMonitor monitor) {
         addResults(monitor, branch -> {
-            var branchResult = branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension);
-            branchResults.put(branch.getId(), branchResult);
+            branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension)
+                    .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
         });
     }
 

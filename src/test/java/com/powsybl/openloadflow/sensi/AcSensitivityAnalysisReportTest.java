@@ -3,10 +3,11 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sensi;
 
-import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -34,23 +35,27 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testEsgTuto() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        ReporterModel reporter = new ReporterModel("testEsgTutoReport", "Test ESG tutorial report");
-        runAcLf(network, reporter);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testEsgTutoReport", "Test ESG tutorial report")
+                .build();
+        runAcLf(network, reportNode);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
         sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
             network.getLineStream().collect(Collectors.toList()));
         sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault(), reporter);
+            sensiParameters, LocalComputationManager.getDefault(), reportNode);
 
-        assertReportEquals("/esgTutoReport.txt", reporter);
+        assertReportEquals("/esgTutoReport.txt", reportNode);
     }
 
     @Test
     void testEsgTutoDetailedNrLogsSensi() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        ReporterModel reporter = new ReporterModel("testEsgTutoReport", "Test ESG tutorial report");
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testEsgTutoReport", "Test ESG tutorial report")
+                .build();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
         OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters())
@@ -58,8 +63,8 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getLineStream().collect(Collectors.toList()));
         sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(), factors, Collections.emptyList(), Collections.emptyList(),
-                sensiParameters, LocalComputationManager.getDefault(), reporter);
+                sensiParameters, LocalComputationManager.getDefault(), reportNode);
 
-        assertReportEquals("/esgTutoReportDetailedNrReportSensi.txt", reporter);
+        assertReportEquals("/esgTutoReportDetailedNrReportSensi.txt", reportNode);
     }
 }

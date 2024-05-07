@@ -3,13 +3,13 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
@@ -19,11 +19,13 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
-import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -77,6 +79,7 @@ public class AcIncrementalPhaseControlOuterLoop
             return rhs;
         }
 
+        @SuppressWarnings("unchecked")
         private EquationTerm<AcVariableType, AcEquationType> getI1(LfBranch controlledBranch) {
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getI1();
         }
@@ -92,9 +95,9 @@ public class AcIncrementalPhaseControlOuterLoop
         }
     }
 
-    private boolean checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
-                                                            List<TransformerPhaseControl> currentLimiterPhaseControls) {
-        MutableBoolean updated = new MutableBoolean(false);
+    private int checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
+                                                     List<TransformerPhaseControl> currentLimiterPhaseControls) {
+        MutableInt numOfCurrentLimiterPstsThatChangedTap = new MutableInt(0);
 
         for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -116,11 +119,11 @@ public class AcIncrementalPhaseControlOuterLoop
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
                     piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
                         controllerContext.updateAllowedDirection(direction);
-                        updated.setValue(true);
+                        numOfCurrentLimiterPstsThatChangedTap.add(1);
                     });
 
                     if (piModel.getTapPosition() != oldTapPosition) {
-                        logger.debug("Controller branch '{}' change tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
+                        logger.debug("Controller branch '{}' changed tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
 
                         double discreteDa = piModel.getA1() - oldA1;
@@ -129,8 +132,7 @@ public class AcIncrementalPhaseControlOuterLoop
                 }
             }
         }
-
-        return updated.booleanValue();
+        return numOfCurrentLimiterPstsThatChangedTap.getValue();
     }
 
     private void checkImpactOnOtherPhaseShifters(AcSensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
@@ -168,8 +170,7 @@ public class AcIncrementalPhaseControlOuterLoop
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
+    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
 
         var contextData = (IncrementalContextData) context.getData();
 
@@ -195,24 +196,43 @@ public class AcIncrementalPhaseControlOuterLoop
             });
         }
 
-        if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
-            var sensitivityContext = new AcSensitivityContext(network,
-                                                            controllerBranches,
-                                                            context.getLoadFlowContext().getEquationSystem(),
-                                                            context.getLoadFlowContext().getJacobianMatrix());
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-            if (!currentLimiterPhaseControls.isEmpty()
-                    && checkCurrentLimiterPhaseControls(sensitivityContext,
-                                                        contextData,
-                                                        currentLimiterPhaseControls)) {
-                status = OuterLoopStatus.UNSTABLE;
+        if (currentLimiterPhaseControls.isEmpty() && activePowerControlPhaseControls.isEmpty()) {
+            return status;
+        }
+
+        var sensitivityContext = new AcSensitivityContext(network,
+                                                        controllerBranches,
+                                                        context.getLoadFlowContext().getEquationSystem(),
+                                                        context.getLoadFlowContext().getJacobianMatrix());
+
+        final int numOfCurrentLimiterPstsThatChangedTap;
+        final int numOfActivePowerControlPstsThatChangedTap;
+        if (!currentLimiterPhaseControls.isEmpty()) {
+            numOfCurrentLimiterPstsThatChangedTap = checkCurrentLimiterPhaseControls(sensitivityContext,
+                                                                                         contextData,
+                                                                                         currentLimiterPhaseControls);
+        } else {
+            numOfCurrentLimiterPstsThatChangedTap = 0;
+        }
+
+        if (!activePowerControlPhaseControls.isEmpty()) {
+            numOfActivePowerControlPstsThatChangedTap = checkActivePowerControlPhaseControls(sensitivityContext,
+                                                                                                 contextData,
+                                                                                                 activePowerControlPhaseControls);
+        } else {
+            numOfActivePowerControlPstsThatChangedTap = 0;
+        }
+
+        if (numOfCurrentLimiterPstsThatChangedTap + numOfActivePowerControlPstsThatChangedTap != 0) {
+            status = OuterLoopStatus.UNSTABLE;
+            ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+            if (numOfCurrentLimiterPstsThatChangedTap != 0) {
+                Reports.reportCurrentLimiterPstsChangedTaps(iterationReportNode, numOfCurrentLimiterPstsThatChangedTap);
             }
-
-            if (!activePowerControlPhaseControls.isEmpty()
-                    && checkActivePowerControlPhaseControls(sensitivityContext,
-                                                            contextData,
-                                                            activePowerControlPhaseControls)) {
-                status = OuterLoopStatus.UNSTABLE;
+            if (numOfActivePowerControlPstsThatChangedTap != 0) {
+                Reports.reportActivePowerControlPstsChangedTaps(iterationReportNode, numOfActivePowerControlPstsThatChangedTap);
             }
         }
 

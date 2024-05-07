@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
@@ -10,6 +11,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
+import com.powsybl.openloadflow.ac.solver.NewtonKrylovParameters;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
@@ -29,6 +31,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
     private AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters();
 
     private NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
+
+    private NewtonKrylovParameters newtonKrylovParameters = new NewtonKrylovParameters();
 
     private List<AcOuterLoop> outerLoops = Collections.emptyList();
 
@@ -59,6 +63,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     public AcLoadFlowParameters setNewtonRaphsonParameters(NewtonRaphsonParameters newtonRaphsonParameters) {
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
+        return this;
+    }
+
+    public NewtonKrylovParameters getNewtonKrylovParameters() {
+        return newtonKrylovParameters;
+    }
+
+    public AcLoadFlowParameters setNewtonKrylovParameters(NewtonKrylovParameters newtonKrylovParameters) {
+        this.newtonKrylovParameters = Objects.requireNonNull(newtonKrylovParameters);
         return this;
     }
 
@@ -131,6 +144,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 "networkParameters=" + networkParameters +
                 ", equationSystemCreationParameters=" + equationSystemCreationParameters +
                 ", newtonRaphsonParameters=" + newtonRaphsonParameters +
+                ", newtonKrylovParameters=" + newtonKrylovParameters +
                 ", outerLoops=" + outerLoops.stream().map(outerLoop -> outerLoop.getClass().getSimpleName()).toList() +
                 ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +

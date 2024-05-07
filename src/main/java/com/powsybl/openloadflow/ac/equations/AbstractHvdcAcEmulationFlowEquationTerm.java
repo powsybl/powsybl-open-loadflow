@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.equations;
 
@@ -33,6 +34,10 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected final double lossFactor2;
 
+    protected final double pMaxFromCS1toCS2;
+
+    protected final double pMaxFromCS2toCS1;
+
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
@@ -42,6 +47,23 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         p0 = hvdc.getP0();
         lossFactor1 = hvdc.getConverterStation1().getLossFactor() / 100;
         lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
+        pMaxFromCS1toCS2 = hvdc.getPMaxFromCS1toCS2();
+        pMaxFromCS2toCS1 = hvdc.getPMaxFromCS2toCS1();
+    }
+
+    protected double rawP(double p0, double k, double ph1, double ph2) {
+        return p0 + k * (ph1 - ph2);
+    }
+
+    protected double boundedP(double rawP) {
+        // If there is a maximal active power
+        // it is applied at the entry of the controller VSC station
+        // on the AC side of the network.
+        if (rawP >= 0) {
+            return Math.min(rawP, pMaxFromCS1toCS2);
+        } else {
+            return Math.max(rawP, -pMaxFromCS2toCS1);
+        }
     }
 
     protected double ph1() {
@@ -52,7 +74,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return sv.get(ph2Var.getRow());
     }
 
-    protected static double getLossMultiplier(double lossFactor1, double lossFactor2) {
+    protected double getVscLossMultiplier() {
         return (1 - lossFactor1) * (1 - lossFactor2);
     }
 

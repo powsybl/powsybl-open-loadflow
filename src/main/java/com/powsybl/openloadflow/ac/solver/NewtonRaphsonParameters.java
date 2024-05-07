@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.solver;
 
@@ -11,7 +12,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NewtonRaphsonParameters {
+public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaphsonParameters> {
 
     public static final int DEFAULT_MAX_ITERATIONS = 15;
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
@@ -19,7 +20,9 @@ public class NewtonRaphsonParameters {
     public static final StateVectorScalingMode DEFAULT_STATE_VECTOR_SCALING_MODE = StateVectorScalingMode.NONE;
     public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
 
-    private int maxIterations = DEFAULT_MAX_ITERATIONS;
+    public NewtonRaphsonParameters() {
+        super(DEFAULT_MAX_ITERATIONS);
+    }
 
     private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
 
@@ -38,22 +41,6 @@ public class NewtonRaphsonParameters {
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
     private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
-
-    public static int checkMaxIteration(int maxIteration) {
-        if (maxIteration < 1) {
-            throw new IllegalArgumentException("Invalid max iteration value: " + maxIteration);
-        }
-        return maxIteration;
-    }
-
-    public int getMaxIterations() {
-        return maxIterations;
-    }
-
-    public NewtonRaphsonParameters setMaxIterations(int maxIterations) {
-        this.maxIterations = checkMaxIteration(maxIterations);
-        return this;
-    }
 
     public double getMinRealisticVoltage() {
         return minRealisticVoltage;
