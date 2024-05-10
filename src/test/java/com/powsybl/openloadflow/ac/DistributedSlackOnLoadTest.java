@@ -261,4 +261,27 @@ class DistributedSlackOnLoadTest {
         assertEquals(0.0, sumBus, 10E-3);
         assertPowerFactor(network);
     }
+
+    @Test
+    void testFictitiousLoad() {
+        l1.setFictitious(true);
+        l2.setFictitious(true);
+        l3.setFictitious(true);
+        l4.setFictitious(false);
+        l5.setFictitious(false);
+        l6.setFictitious(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(30.0, l1.getTerminal());
+        assertActivePowerEquals(60.0, l2.getTerminal());
+        assertActivePowerEquals(50.0, l3.getTerminal());
+        assertActivePowerEquals(182.0, l4.getTerminal());
+        assertActivePowerEquals(13.0, l5.getTerminal());
+        assertActivePowerEquals(-35.0, l6.getTerminal());
+        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
+                .addMetrics("3", "CONVERGED")
+                .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 4.0392134081912445E-9)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected, result);
+    }
 }
