@@ -49,7 +49,7 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
                     LfBranch branchToOperate = branchTripping.branchToOperate();
                     if (i > threshold && branchTripping.branchOpen() != branchToOperate.isDisabled()) {
                         double ib = PerUnit.ib((system.getMonitoredSide() == TwoSides.ONE ?
-                                branchToMonitor.getBus1() : branchToMonitor.getBus2()).getNominalV()); // FIXME, can be null
+                                branchToMonitor.getBus1() : branchToMonitor.getBus2()).getNominalV());
                         if (branchTripping.branchOpen() && branchToOperate.isConnectedAtBothSides()) {
                             LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), open branch at both side '{}'",
                                     branchToMonitor.getId(), i * ib, threshold * ib, branchToOperate.getId());

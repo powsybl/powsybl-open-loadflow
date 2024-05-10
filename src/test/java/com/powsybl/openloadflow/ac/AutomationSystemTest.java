@@ -44,6 +44,22 @@ class AutomationSystemTest {
     }
 
     @Test
+    void testSwitchTripping2() {
+        Network network = AutomationSystemNetworkFactory.createWithSwitchToClose();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSimulateAutomationSystems(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        Line l12 = network.getLine("l12");
+        Line l34 = network.getLine("l34");
+        assertCurrentEquals(175.408, l12.getTerminal1());
+        assertCurrentEquals(378.417, l34.getTerminal1());
+        assertFalse(network.getSwitch("br1").isOpen());
+    }
+
+    @Test
     void testBranchTripping() {
         Network network = AutomationSystemNetworkFactory.createWithBranchTripping();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));

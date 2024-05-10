@@ -297,18 +297,12 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                     LOGGER.warn("Update state of branch {}: terminal 1 is connected.", branch.getId());
                     branch.getTerminal1().connect();
                 }
-                if (!connectedSide1 && branch.getTerminal1().isConnected()) {
-                    LOGGER.warn("Update state of branch {}: terminal 1 is disconnected.", branch.getId());
-                    branch.getTerminal1().disconnect();
-                }
                 if (connectedSide2 && !branch.getTerminal2().isConnected()) {
                     LOGGER.warn("Update state of branch {}: terminal 2 is connected.", branch.getId());
                     branch.getTerminal2().connect();
                 }
-                if (!connectedSide2 && branch.getTerminal2().isConnected()) {
-                    LOGGER.warn("Update state of branch {}: terminal 2 is disconnected.", branch.getId());
-                    branch.getTerminal2().disconnect();
-                }
+                // !connectedSide1 && branch.getTerminal1().isConnected() and !connectedSide2 && branch.getTerminal2().isConnected()
+                // conditions are not needed for the moment because it is handled by disabled status.
             }
         }
     }

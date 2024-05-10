@@ -59,6 +59,31 @@ public final class AutomationSystemNetworkFactory extends AbstractLoadFlowNetwor
         return network;
     }
 
+    public static Network createWithSwitchToClose() {
+        Network network = createCommonNetwork();
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        b3.getVoltageLevel().getBusBreakerView().newSwitch()
+                .setId("br1")
+                .setBus1("b3")
+                .setBus2("b3p")
+                .setOpen(true)
+                .add();
+        Substation s1 = network.getSubstation("s1");
+        s1.newOverloadManagementSystem()
+                .setId("l12_closes_br1")
+                .setEnabled(true)
+                .setMonitoredElementId("l12")
+                .setMonitoredElementSide(ThreeSides.ONE)
+                .newSwitchTripping()
+                .setKey("br1 key")
+                .setSwitchToOperateId("br1")
+                .setCurrentLimit(250.0)
+                .setOpenAction(false)
+                .add()
+                .add();
+        return network;
+    }
+
     /**
      * From previous test case, the switch b3p is replaced by line l33p.
      */
