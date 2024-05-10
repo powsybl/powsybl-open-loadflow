@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -42,20 +43,21 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
         for (LfOverloadManagementSystem system : network.getOverloadManagementSystems()) {
             LfBranch branchToMonitor = system.getMonitoredBranch();
             if (branchToMonitor.isConnectedAtBothSides()) {
-                double i1 = branchToMonitor.getI1().eval(); // FIXME Side
+                double i = system.getMonitoredSide() == TwoSides.ONE ? branchToMonitor.getI1().eval() : branchToMonitor.getI2().eval();
                 for (LfOverloadManagementSystem.LfBranchTripping branchTripping : system.getBranchTrippingList()) {
                     double threshold = branchTripping.threshold();
                     LfBranch branchToOperate = branchTripping.branchToOperate();
-                    if (i1 > threshold && branchTripping.branchOpen() != branchToOperate.isDisabled()) {
-                        double ib = PerUnit.ib(branchToMonitor.getBus1().getNominalV());
+                    if (i > threshold && branchTripping.branchOpen() != branchToOperate.isDisabled()) {
+                        double ib = PerUnit.ib((system.getMonitoredSide() == TwoSides.ONE ?
+                                branchToMonitor.getBus1() : branchToMonitor.getBus2()).getNominalV()); // FIXME, can be null
                         if (branchTripping.branchOpen() && branchToOperate.isConnectedAtBothSides()) {
                             LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), open branch '{}'",
-                                    branchToMonitor.getId(), i1 * ib, threshold * ib, branchToOperate.getId());
+                                    branchToMonitor.getId(), i * ib, threshold * ib, branchToOperate.getId());
                             branchesToOpen.add(branchToOperate);
                             break;
                         } else if (!branchTripping.branchOpen() && branchToOperate.isConnectedAtBothSides()) {
                             LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), close branch '{}'",
-                                    branchToMonitor.getId(), i1 * ib, threshold * ib, branchToOperate.getId());
+                                    branchToMonitor.getId(), i * ib, threshold * ib, branchToOperate.getId());
                             branchesToClose.add(branchToOperate);
                             break;
                         }
