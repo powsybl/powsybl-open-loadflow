@@ -104,6 +104,51 @@ class AutomationSystemTest {
     @Test
     void testNoTripping() {
         Network network = AutomationSystemNetworkFactory.createWithBadAutomationSystems();
+        Substation s1 = network.getSubstation("s1");
+        s1.newOverloadManagementSystem()
+                .setId("l34_opens_l12")
+                .setEnabled(true)
+                .setMonitoredElementId("l56")
+                .setMonitoredElementSide(ThreeSides.ONE)
+                .newBranchTripping()
+                .setKey("l33p key")
+                .setBranchToOperateId("l33p")
+                .setSideToOperate(TwoSides.TWO)
+                .setCurrentLimit(200.)
+                .add()
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSimulateAutomationSystems(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        Line l12 = network.getLine("l12");
+        Line l34 = network.getLine("l34");
+        assertCurrentEquals(207.012, l12.getTerminal1());
+        assertCurrentEquals(272.485, l34.getTerminal1());
+        assertTrue(network.getLine("l33p").getTerminal1().isConnected());
+        assertTrue(network.getLine("l33p").getTerminal2().isConnected());
+    }
+
+    @Test
+    void testNoTripping2() {
+        Network network = AutomationSystemNetworkFactory.createWithBadAutomationSystems();
+        Substation s1 = network.getSubstation("s1");
+        s1.newOverloadManagementSystem()
+                .setId("l34_opens_l12")
+                .setEnabled(true)
+                .setMonitoredElementId("l34")
+                .setMonitoredElementSide(ThreeSides.ONE)
+                .newBranchTripping()
+                .setKey("key")
+                .setBranchToOperateId("l56")
+                .setSideToOperate(TwoSides.TWO)
+                .setCurrentLimit(200.)
+                .add()
+                .add();
+
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)

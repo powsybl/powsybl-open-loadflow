@@ -141,20 +141,6 @@ public final class AutomationSystemNetworkFactory extends AbstractLoadFlowNetwor
         Bus b5 = createBus(network, "s3", "b5", 225);
         Bus b6 = createBus(network, "s4", "b6", 225);
         createLine(network, b5, b6, "l56", 0.5, 3);
-        Substation s1 = network.getSubstation("s1");
-        // an now the automation system
-        s1.newOverloadManagementSystem()
-                .setId("l34_opens_l12")
-                .setEnabled(true)
-                .setMonitoredElementId("l56")
-                .setMonitoredElementSide(ThreeSides.ONE)
-                .newBranchTripping()
-                .setKey("l33p key")
-                .setBranchToOperateId("l33p")
-                .setSideToOperate(TwoSides.TWO)
-                .setCurrentLimit(200.)
-                .add()
-                .add();
         return network;
     }
 
