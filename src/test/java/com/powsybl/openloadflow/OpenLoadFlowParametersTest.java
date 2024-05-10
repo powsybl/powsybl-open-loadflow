@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
@@ -336,7 +337,7 @@ class OpenLoadFlowParametersTest {
                 newVal1 = "3";
                 newVal2 = "4";
             } else if (sp.getType() == ParameterType.STRING) {
-                if (sp.getPossibleValues().isEmpty()) {
+                if (sp.getPossibleValues() == null) {
                     // e.g. debugDir
                     newVal1 = "Foo";
                     newVal2 = "Bar";
@@ -345,7 +346,7 @@ class OpenLoadFlowParametersTest {
                     newVal2 = sp.getPossibleValues().get(1).toString();
                 }
             } else if (sp.getType() == ParameterType.STRING_LIST) {
-                if (sp.getPossibleValues() == null || sp.getPossibleValues().isEmpty()) {
+                if (sp.getPossibleValues() == null) {
                     // e.g. slackBusesIds
                     newVal1 = "Foo,Bar";
                     newVal2 = "Foo,Bar,Baz";

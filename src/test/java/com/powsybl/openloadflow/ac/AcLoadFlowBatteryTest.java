@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
@@ -82,5 +83,7 @@ class AcLoadFlowBatteryTest {
         LoadFlowAssert.assertAngleEquals(5.468356, genBus);
         assertVoltageEquals(401.0, batBus);
         LoadFlowAssert.assertAngleEquals(0.0, batBus);
+        assertActivePowerEquals(1000.0, battery2.getTerminal());
+        assertReactivePowerEquals(122.716, battery2.getTerminal());
     }
 }
