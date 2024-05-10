@@ -84,4 +84,21 @@ class AutomationSystemTest {
         assertTrue(l33p.getTerminal1().isConnected());
         assertTrue(l33p.getTerminal2().isConnected());
     }
+
+    @Test
+    void testNoTripping() {
+        Network network = AutomationSystemNetworkFactory.createWithBadAutomationSystems();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSimulateAutomationSystems(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        Line l12 = network.getLine("l12");
+        Line l34 = network.getLine("l34");
+        assertCurrentEquals(207.012, l12.getTerminal1());
+        assertCurrentEquals(272.485, l34.getTerminal1());
+        assertTrue(network.getLine("l33p").getTerminal1().isConnected());
+        assertTrue(network.getLine("l33p").getTerminal2().isConnected());
+    }
 }

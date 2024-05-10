@@ -107,6 +107,32 @@ public final class AutomationSystemNetworkFactory extends AbstractLoadFlowNetwor
         return network;
     }
 
+    public static Network createWithBadAutomationSystems() {
+        Network network = AutomationSystemNetworkFactory.createCommonNetwork();
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Bus b3p = network.getBusBreakerView().getBus("b3p");
+        createLine(network, b3, b3p, "l33p", 0.1, 3);
+        // we create another component.
+        Bus b5 = createBus(network, "s3", "b5", 225);
+        Bus b6 = createBus(network, "s4", "b6", 225);
+        createLine(network, b5, b6, "l56", 0.5, 3);
+        Substation s1 = network.getSubstation("s1");
+        // an now the automation system
+        s1.newOverloadManagementSystem()
+                .setId("l34_opens_l12")
+                .setEnabled(true)
+                .setMonitoredElementId("l56")
+                .setMonitoredElementSide(ThreeSides.ONE)
+                .newBranchTripping()
+                .setKey("l33p key")
+                .setBranchToOperateId("l33p")
+                .setSideToOperate(TwoSides.TWO)
+                .setCurrentLimit(200.)
+                .add()
+                .add();
+        return network;
+    }
+
     private static Network createCommonNetwork() {
         Network network = Network.create("OverloadManagementSystemTestCase", "code");
         network.setCaseDate(ZonedDateTime.parse("2020-04-05T14:11:00.000+01:00"));

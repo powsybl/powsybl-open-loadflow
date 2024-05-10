@@ -997,7 +997,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         double threshold = tripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
                         lfOverloadManagementSystem.addLfBranchTripping(lfBranchToOperate, tripping.isOpenAction(), threshold);
                     } else {
-                        LOGGER.warn("Invalid overload management system: branch to monitor is '{}'", branchToOperateId);
+                        LOGGER.warn("Invalid overload management system: branch to operate is '{}'", branchToOperateId);
                     }
                 });
                 if (lfOverloadManagementSystem.getBranchTrippingList().size() > 0) {
