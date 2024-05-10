@@ -13,6 +13,8 @@ import com.powsybl.iidm.network.Switch;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +26,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfSwitch extends AbstractLfBranch {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfSwitch.class);
 
     private final Ref<Switch> switchRef;
 
@@ -367,8 +371,15 @@ public class LfSwitch extends AbstractLfBranch {
 
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
-        if (isDisabled()) {
-            switchRef.get().setOpen(true);
+        if (parameters.isSimulateAutomationSystems()) {
+            if (isDisabled() && !switchRef.get().isOpen()) {
+                LOGGER.warn("Update state of switch {}: switch now open.", switchRef.get().getId());
+                switchRef.get().setOpen(true);
+            }
+            if (!isDisabled() && switchRef.get().isOpen()) {
+                LOGGER.warn("Update state of switch {}: switch now closed.", switchRef.get().getId());
+                switchRef.get().setOpen(false);
+            }
         }
     }
 

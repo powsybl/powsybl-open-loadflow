@@ -13,6 +13,8 @@ import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,8 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfBranchImpl extends AbstractImpedantLfBranch {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
     private final Ref<Branch<?>> branchRef;
 
@@ -265,7 +269,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         var branch = getBranch();
 
-        if (isDisabled()) {
+        if (isDisabled() && parameters.isSimulateAutomationSystems()) {
+            LOGGER.warn("Update state of disabled branch {}: both terminals ended with disconnected status.", branch.getId());
             updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
             branch.getTerminal1().disconnect();
             branch.getTerminal2().disconnect();
@@ -287,15 +292,23 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 updateTapPosition(rtc, ptcRho, rho);
             }
 
-            if (connectedSide1) {
-                branch.getTerminal1().connect();
-            } else {
-                branch.getTerminal1().disconnect();
-            }
-            if (connectedSide2) {
-                branch.getTerminal2().connect();
-            } else {
-                branch.getTerminal2().disconnect();
+            if (parameters.isSimulateAutomationSystems()) {
+                if (connectedSide1 && !branch.getTerminal1().isConnected()) {
+                    LOGGER.warn("Update state of branch {}: terminal 1 is connected.", branch.getId());
+                    branch.getTerminal1().connect();
+                }
+                if (!connectedSide1 && branch.getTerminal1().isConnected()) {
+                    LOGGER.warn("Update state of branch {}: terminal 1 is disconnected.", branch.getId());
+                    branch.getTerminal1().disconnect();
+                }
+                if (connectedSide2 && !branch.getTerminal2().isConnected()) {
+                    LOGGER.warn("Update state of branch {}: terminal 2 is connected.", branch.getId());
+                    branch.getTerminal2().connect();
+                }
+                if (!connectedSide2 && branch.getTerminal2().isConnected()) {
+                    LOGGER.warn("Update state of branch {}: terminal 2 is disconnected.", branch.getId());
+                    branch.getTerminal2().disconnect();
+                }
             }
         }
     }

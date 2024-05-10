@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -59,6 +60,9 @@ class AutomationSystemTest {
         assertCurrentEquals(34.448, l34.getTerminal1());
         assertTrue(Double.isNaN(l33p.getTerminal1().getI()));
         assertTrue(Double.isNaN(l33p.getTerminal2().getI()));
+        // both sides are disconnected after simulation and not only side two as expected.
+        assertFalse(l33p.getTerminal1().isConnected());
+        assertFalse(l33p.getTerminal2().isConnected());
     }
 
     @Test
@@ -76,5 +80,8 @@ class AutomationSystemTest {
         assertCurrentEquals(207.012, l12.getTerminal1());
         assertCurrentEquals(272.484, l34.getTerminal1());
         assertCurrentEquals(305.65, l33p.getTerminal1());
+        // both sides are re-connected after simulation and not only side two as expected.
+        assertTrue(l33p.getTerminal1().isConnected());
+        assertTrue(l33p.getTerminal2().isConnected());
     }
 }

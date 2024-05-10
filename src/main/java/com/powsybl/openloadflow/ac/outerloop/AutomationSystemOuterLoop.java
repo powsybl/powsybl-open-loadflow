@@ -51,12 +51,12 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
                         double ib = PerUnit.ib((system.getMonitoredSide() == TwoSides.ONE ?
                                 branchToMonitor.getBus1() : branchToMonitor.getBus2()).getNominalV()); // FIXME, can be null
                         if (branchTripping.branchOpen() && branchToOperate.isConnectedAtBothSides()) {
-                            LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), open branch '{}'",
+                            LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), open branch at both side '{}'",
                                     branchToMonitor.getId(), i * ib, threshold * ib, branchToOperate.getId());
                             branchesToOpen.add(branchToOperate);
                             break;
                         } else if (!branchTripping.branchOpen() && branchToOperate.isConnectedAtBothSides()) {
-                            LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), close branch '{}'",
+                            LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), close branch at both side '{}'",
                                     branchToMonitor.getId(), i * ib, threshold * ib, branchToOperate.getId());
                             branchesToClose.add(branchToOperate);
                             break;
