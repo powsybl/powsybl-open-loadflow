@@ -74,6 +74,17 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
+    public boolean isFictitious() {
+        // if at least one load is fictitious, then we return true
+        for (Ref<Load> loadRef : loadsRefs) {
+            if (loadRef.get().isFictitious()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public Optional<LfLoadModel> getLoadModel() {
         return Optional.ofNullable(loadModel);
     }

@@ -22,6 +22,8 @@ public interface LfLoad extends PropertyBag {
 
     LfBus getBus();
 
+    boolean isFictitious();
+
     Optional<LfLoadModel> getLoadModel();
 
     double getInitialTargetP();
