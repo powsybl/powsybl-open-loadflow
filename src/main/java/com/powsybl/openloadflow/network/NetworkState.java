@@ -28,7 +28,7 @@ public class NetworkState {
 
     private final List<HvdcState> hvdcStates;
 
-    private final Set<LfBus> excludedSlackBuses;
+    private final Set<LfBus> excludedSlackBuses; // why?
 
     protected NetworkState(LfNetwork network, List<BusState> busStates, List<BranchState> branchStates, List<HvdcState> hvdcStates,
                            Set<LfBus> excludedSlackBuses) {

@@ -360,7 +360,10 @@ public class PropagatedContingency {
     }
 
     private static boolean isIsolatedBus(GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork network, LfBus bus) {
-        return connectivity.getConnectedComponent(bus).size() < Math.round(1d * network.getBuses().size() / 3);
+        // the good criteria is to check all components size and verify that the slack bus component is still the
+        // main one. If not, we take the biggest.
+        // Below simple check that works for small networks.
+        return connectivity.getConnectedComponent(bus).size() == 1;
     }
 
     private Map<LfBranch, DisabledBranchStatus> findBranchToOpenDirectlyImpactedByContingency(LfNetwork network) {
@@ -387,7 +390,8 @@ public class PropagatedContingency {
     record ContingencyConnectivityLossImpact(boolean ok, int createdSynchronousComponents, Set<LfBus> busesToLost, Set<LfHvdc> hvdcsWithoutPower) {
     }
 
-    private ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen) {
+    private ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen,
+                                                                                                    Set<LfBus> initialBusIdsToLose) {
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
@@ -401,8 +405,10 @@ public class PropagatedContingency {
                         contingency.getId());
                 // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
                 // we select a new slack bus excluding buses from isolated component
+                // FIXME: excluded buses mut be the buses from components that are not the main one.
+                // initialBusIdsToLose is not the good solution.
                 Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getVerticesRemovedFromMainComponent());
-                network.setExcludedSlackBuses(excludedBuses);
+                network.setExcludedSlackBuses(Sets.union(excludedBuses, initialBusIdsToLose));
                 // reverse main component to the one containing the relocated slack bus
                 connectivity.setMainComponentVertex(network.getSlackBus());
             }
@@ -449,7 +455,8 @@ public class PropagatedContingency {
 
         // find branches to open and buses to lost not directly from the contingency impact but as a consequence of
         // loss of connectivity once contingency applied on the network
-        ContingencyConnectivityLossImpact connectivityLossImpact = findBusesAndBranchesImpactedBecauseOfConnectivityLoss(network, branchesToOpen);
+        ContingencyConnectivityLossImpact connectivityLossImpact = findBusesAndBranchesImpactedBecauseOfConnectivityLoss(network, branchesToOpen,
+                busIdsToLose.stream().map(network::getBusById).filter(Objects::nonNull).collect(Collectors.toSet()));
         if (!connectivityLossImpact.ok) {
             return Optional.empty();
         }

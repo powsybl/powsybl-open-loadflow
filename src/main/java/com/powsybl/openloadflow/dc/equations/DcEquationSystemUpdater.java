@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -46,7 +47,7 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                 LfBus bus = (LfBus) element;
                 checkSlackBus(bus, disabled);
                 equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_PHI)
-                        .ifPresent(eq -> eq.setActive(!bus.isDisabled()));
+                        .ifPresent(eq -> eq.setActive(!bus.isDisabled() && bus.isReference()));
                 equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
                 break;
@@ -79,6 +80,30 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                 branch.setP1(EvaluableConstants.NAN);
                 branch.setP2(EvaluableConstants.NAN);
             }
+        }
+    }
+
+    @Override
+    public void onSlackBusChange(LfBus bus, boolean slack) {
+        equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
+                .orElseThrow()
+                .setActive(!slack);
+    }
+
+    @Override
+    public void onReferenceBusChange(LfBus bus, boolean reference) {
+        if (reference) {
+            Equation<DcVariableType, DcEquationType> phiEq = equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_PHI).orElse(null);
+            if (phiEq == null) {
+                phiEq = equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_PHI)
+                        .addTerm(equationSystem.getVariable(bus.getNum(), DcVariableType.BUS_PHI)
+                                .createTerm());
+            }
+            phiEq.setActive(true);
+        } else {
+            equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_PHI)
+                    .orElseThrow()
+                    .setActive(false);
         }
     }
 }

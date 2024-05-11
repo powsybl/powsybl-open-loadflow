@@ -96,7 +96,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 LfBus bus = (LfBus) element;
                 checkSlackBus(bus, disabled);
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_PHI)
-                        .ifPresent(eq -> eq.setActive(!bus.isDisabled()));
+                        .ifPresent(eq -> eq.setActive(!bus.isDisabled() && bus.isReference()));
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P)
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
                 // set voltage target equation inactive, various voltage control will set next to the correct value
