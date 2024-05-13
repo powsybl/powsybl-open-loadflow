@@ -15,25 +15,31 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AutomationSystemNetworkFactory;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertCurrentEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AutomationSystemTest {
 
+    private LoadFlow.Runner loadFlowRunner;
+    private LoadFlowParameters parameters;
+
+    @BeforeEach
+    void setUp() {
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSimulateAutomationSystems(true);
+    }
+
     @Test
     void testSwitchTripping() {
         Network network = AutomationSystemNetworkFactory.create();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSimulateAutomationSystems(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         Line l12 = network.getLine("l12");
@@ -46,10 +52,6 @@ class AutomationSystemTest {
     @Test
     void testSwitchTripping2() {
         Network network = AutomationSystemNetworkFactory.createWithSwitchToClose();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSimulateAutomationSystems(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         Line l12 = network.getLine("l12");
@@ -62,10 +64,6 @@ class AutomationSystemTest {
     @Test
     void testBranchTripping() {
         Network network = AutomationSystemNetworkFactory.createWithBranchTripping();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSimulateAutomationSystems(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         Line l12 = network.getLine("l12");
@@ -84,10 +82,6 @@ class AutomationSystemTest {
     @Test
     void testBranchTripping2() {
         Network network = AutomationSystemNetworkFactory.createWithBranchTripping2();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSimulateAutomationSystems(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         Line l12 = network.getLine("l12");
@@ -118,10 +112,6 @@ class AutomationSystemTest {
                 .add()
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSimulateAutomationSystems(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         Line l12 = network.getLine("l12");
@@ -149,10 +139,6 @@ class AutomationSystemTest {
                 .add()
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSimulateAutomationSystems(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         Line l12 = network.getLine("l12");

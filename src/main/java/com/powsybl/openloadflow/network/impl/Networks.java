@@ -164,42 +164,38 @@ public final class Networks {
         }
     }
 
-    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig,
-                                                              OverloadManagementSystem system) {
-        system.getTrippings().stream()
-                .filter(t -> t.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING)
-                .forEach(tripping -> {
-                    Switch aSwitch =
-                            network.getSwitch(((OverloadManagementSystem.SwitchTripping) tripping).getSwitchToOperateId());
-                    if (aSwitch != null) {
-                        if (tripping.isOpenAction()) {
-                            topoConfig.getSwitchesToOpen().add(aSwitch);
-                        } else {
-                            topoConfig.getSwitchesToClose().add(aSwitch);
-                        }
-                    }
-                });
+    private static void addSwitchToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem.SwitchTripping tripping) {
+        Switch aSwitch = network.getSwitch(tripping.getSwitchToOperateId());
+        if (aSwitch != null) {
+            if (tripping.isOpenAction()) {
+                topoConfig.getSwitchesToOpen().add(aSwitch);
+            } else {
+                topoConfig.getSwitchesToClose().add(aSwitch);
+            }
+        }
     }
 
-    private static void addBranchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig,
-                                                              OverloadManagementSystem system) {
-        system.getTrippings().stream()
-                .filter(t -> t.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING)
-                .forEach(tripping -> {
-                    Branch branch =
-                            network.getBranch(((OverloadManagementSystem.BranchTripping) tripping).getBranchToOperateId());
-                    if (branch != null && !tripping.isOpenAction()
-                            && !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) {
-                        topoConfig.getBranchIdsToClose().add(branch.getId());
-                    }
-                });
+    private static void addBranchToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem.BranchTripping tripping) {
+        Branch<?> branch = network.getBranch(tripping.getBranchToOperateId());
+        if (branch != null && !tripping.isOpenAction()
+                && !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) {
+            topoConfig.getBranchIdsToClose().add(branch.getId());
+        }
     }
 
-    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig) {
+    private static void addElementsToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig) {
         for (Substation substation : network.getSubstations()) {
             for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
-                addSwitchesOperatedByAutomationSystem(network, topoConfig, system);
-                addBranchesOperatedByAutomationSystem(network, topoConfig, system);
+                system.getTrippings()
+                        .forEach(tripping -> {
+                            if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+                                addSwitchToOperateByAutomationSystem(network, topoConfig, (OverloadManagementSystem.SwitchTripping) tripping);
+                            } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
+                                addBranchToOperateByAutomationSystem(network, topoConfig, (OverloadManagementSystem.BranchTripping) tripping);
+                            } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING) {
+                                // TODO
+                            }
+                        });
             }
         }
     }
@@ -214,7 +210,7 @@ public final class Networks {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
-            addSwitchesOperatedByAutomationSystem(network, modifiedTopoConfig);
+            addElementsToOperateByAutomationSystem(network, modifiedTopoConfig);
             if (modifiedTopoConfig.isBreaker()) {
                 networkParameters.setBreakers(true);
             }

@@ -975,7 +975,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (system.isEnabled()) {
             LfBranch lfMonitoredElement = lfNetwork.getBranchById(system.getMonitoredElementId());
             if (system.getTrippings().stream().map(OverloadManagementSystem.Tripping::getType)
-                    .anyMatch(type -> type.equals(OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING))) {
+                    .anyMatch(type -> type == OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING)) {
                 LOGGER.warn("Unsupported overload management system {}: three windings transformer tripping supported", system.getId());
                 return;
             }
