@@ -72,13 +72,13 @@ class LargestGeneratorSlackBusSelectorTest {
         network.getSubstation("S3").setCountry(Country.FR);
         network.getSubstation("S4").setCountry(Country.FR);
         lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
-                new LargestGeneratorSlackBusSelector(5000, Collections.singleton(Country.FR))).get(0);
+                new LargestGeneratorSlackBusSelector(5000, Collections.singleton(Country.FR), new MostMeshedSlackBusSelector())).get(0);
         slackBus = lfNetwork.getSlackBus();
         assertEquals("S3VL1_0", slackBus.getId());
 
         lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
                 new LargestGeneratorSlackBusSelector(5000,
-                        Set.of(Country.BE, Country.FR))).get(0);
+                        Set.of(Country.BE, Country.FR), new MostMeshedSlackBusSelector())).get(0);
         slackBus = lfNetwork.getSlackBus();
         assertEquals("S2VL1_0", slackBus.getId());
     }
@@ -92,6 +92,6 @@ class LargestGeneratorSlackBusSelectorTest {
                 .setLoadFlowModel(LoadFlowModel.DC);
         var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters).get(0);
         var slackBus = lfNetwork.getSlackBus();
-        assertEquals("b2_vl_0", slackBus.getId());
+        assertEquals("b4_vl_0", slackBus.getId());
     }
 }

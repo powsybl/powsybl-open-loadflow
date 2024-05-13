@@ -22,13 +22,16 @@ public class LargestGeneratorSlackBusSelector extends AbstractSlackBusSelector {
 
     private final double plausibleActivePowerLimit;
 
+    private final SlackBusSelector fallbackSelector;
+
     public LargestGeneratorSlackBusSelector(double plausibleActivePowerLimit) {
-        this(plausibleActivePowerLimit, Collections.emptySet());
+        this(plausibleActivePowerLimit, Collections.emptySet(), new MostMeshedSlackBusSelector());
     }
 
-    public LargestGeneratorSlackBusSelector(double plausibleActivePowerLimit, Set<Country> countries) {
+    public LargestGeneratorSlackBusSelector(double plausibleActivePowerLimit, Set<Country> countries, SlackBusSelector fallbackSelector) {
         super(countries);
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+        this.fallbackSelector = fallbackSelector;
     }
 
     private static double getMaxP(LfBus bus) {
@@ -49,6 +52,10 @@ public class LargestGeneratorSlackBusSelector extends AbstractSlackBusSelector {
                 .limit(limit)
                 .collect(Collectors.toList());
 
-        return new SelectedSlackBus(slackBuses, "Largest generator bus");
+        if (!slackBuses.isEmpty()) {
+            return new SelectedSlackBus(slackBuses, "Largest generator bus");
+        } else {
+            return fallbackSelector.select(buses, limit);
+        }
     }
 }
