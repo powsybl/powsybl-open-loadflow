@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
@@ -205,32 +206,6 @@ class AcLoadFlowVscTest {
         VscConverterStation cs3 = network.getVscConverterStation("cs3");
         assertActivePowerEquals(-49.35, cs3.getTerminal());
         assertReactivePowerEquals(-10.0, cs3.getTerminal());
-    }
-
-    @Test
-    void testHvdcAcEmulationNonSupported2() {
-        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
-        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
-                .withDroop(180)
-                .withP0(0.f)
-                .withEnabled(true)
-                .add();
-
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
-                .setDc(true)
-                .setHvdcAcEmulation(true);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-
-        VscConverterStation cs3 = network.getVscConverterStation("cs3");
-        assertActivePowerEquals(-1.956, cs3.getTerminal());
-
-        VscConverterStation cs4 = network.getVscConverterStation("cs4");
-        assertActivePowerEquals(2.0, cs4.getTerminal());
     }
 
     @Test
@@ -528,5 +503,111 @@ class AcLoadFlowVscTest {
 
         assertActivePowerEquals(-166.280, network.getHvdcConverterStation("cs2").getTerminal());
         assertActivePowerEquals(170, network.getHvdcConverterStation("cs3").getTerminal());
+    }
+
+    @Test
+    void testDcLoadFlowWithHvdcAcEmulation2() {
+        Network network = HvdcNetworkFactory.createVsc();
+        network.newLine() // in order to have only one synchronous component for the moment.
+                .setId("l23")
+                .setVoltageLevel1("vl2")
+                .setBus1("b2")
+                .setVoltageLevel2("vl3")
+                .setBus2("b3")
+                .setR(1)
+                .setX(3)
+                .setG1(0)
+                .setG2(0)
+                .setB1(0)
+                .setB2(0)
+                .add();
+        HvdcAngleDroopActivePowerControl hvdcAngleDroopActivePowerControl = network.getHvdcLine("hvdc23").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setDc(true);
+        OpenLoadFlowParameters olfParams = OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        VscConverterStation cs2 = network.getVscConverterStation("cs2");
+        assertActivePowerEquals(8.102, cs2.getTerminal()); // 0MW + 180 MW/deg * 0.04501deg
+        assertAngleEquals(0.0, cs2.getTerminal().getBusView().getBus());
+        VscConverterStation cs3 = network.getVscConverterStation("cs3");
+        assertActivePowerEquals(-8.102, cs3.getTerminal());
+        assertAngleEquals(-0.04501, cs3.getTerminal().getBusView().getBus());
+
+        // Now with a non null P0
+        hvdcAngleDroopActivePowerControl.setP0(10);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertActivePowerEquals(16.482, cs2.getTerminal()); // 10MW + 180 MW/deg * 0.036008deg
+        assertAngleEquals(0.0, cs2.getTerminal().getBusView().getBus());
+        assertActivePowerEquals(-16.482, cs3.getTerminal());
+        assertAngleEquals(-0.036008, cs3.getTerminal().getBusView().getBus());
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertActivePowerEquals(16.482, cs2.getTerminal()); // 10MW + 180 MW/deg * 0.036008deg
+        assertAngleEquals(0.0, cs2.getTerminal().getBusView().getBus());
+        assertActivePowerEquals(-16.482, cs3.getTerminal());
+        assertAngleEquals(-0.036008, cs3.getTerminal().getBusView().getBus());
+
+        // Add another HVDC line connected the other way arround to make sure all equation terms are run
+        // (the equations on the slack bus are not run)
+        network.getVoltageLevel("vl2")
+                .newVscConverterStation()
+                .setId("cs2Bis")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setVoltageRegulatorOn(true)
+                .setVoltageSetpoint(385)
+                .setReactivePowerSetpoint(100)
+                .setLossFactor(1.1f)
+                .add();
+        network.getVoltageLevel("vl3")
+                .newVscConverterStation()
+                .setId("cs3Bis")
+                .setConnectableBus("b3")
+                .setBus("b3")
+                .setVoltageRegulatorOn(true)
+                .setVoltageSetpoint(383)
+                .setReactivePowerSetpoint(100)
+                .setLossFactor(0.2f)
+                .add();
+
+        network.newHvdcLine()
+                .setId("hvdc32")
+                .setConverterStationId1("cs3Bis")
+                .setConverterStationId2("cs2Bis")
+                .setNominalV(400)
+                .setR(0.1)
+                .setActivePowerSetpoint(50)
+                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+                .setMaxP(500)
+                .add();
+        network.getHvdcLine("hvdc32").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertActivePowerEquals(15.578, cs2.getTerminal()); // 10MW + 180 MW/deg * 0.030988deg
+        assertAngleEquals(0.0, cs2.getTerminal().getBusView().getBus());
+        assertActivePowerEquals(-15.578, cs3.getTerminal());
+        assertAngleEquals(-0.030988, cs3.getTerminal().getBusView().getBus());
+        assertActivePowerEquals(5.578, network.getVscConverterStation("cs2Bis").getTerminal()); // 0MW + 180 MW/deg * 0.030988deg
     }
 }

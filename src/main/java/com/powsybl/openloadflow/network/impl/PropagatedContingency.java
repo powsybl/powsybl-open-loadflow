@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -292,61 +293,62 @@ public class PropagatedContingency {
 
     private static Identifiable<?> getIdentifiable(Network network, ContingencyElement element) {
         Identifiable<?> identifiable;
-        String identifiableType;
-        switch (element.getType()) {
-            case BRANCH,
-                 LINE,
-                 TWO_WINDINGS_TRANSFORMER:
+        String identifiableType = switch (element.getType()) {
+            case BRANCH, LINE, TWO_WINDINGS_TRANSFORMER -> {
                 identifiable = network.getBranch(element.getId());
-                identifiableType = "Branch";
-                break;
-            case HVDC_LINE:
+                yield "Branch";
+            }
+            case HVDC_LINE -> {
                 identifiable = network.getHvdcLine(element.getId());
-                identifiableType = "HVDC line";
-                break;
-            case DANGLING_LINE:
+                yield "HVDC line";
+            }
+            case DANGLING_LINE -> {
                 identifiable = network.getDanglingLine(element.getId());
-                identifiableType = "Dangling line";
-                break;
-            case GENERATOR:
+                yield "Dangling line";
+            }
+            case GENERATOR -> {
                 identifiable = network.getGenerator(element.getId());
-                identifiableType = "Generator";
-                break;
-            case STATIC_VAR_COMPENSATOR:
+                yield "Generator";
+            }
+            case STATIC_VAR_COMPENSATOR -> {
                 identifiable = network.getStaticVarCompensator(element.getId());
-                identifiableType = "Static var compensator";
-                break;
-            case LOAD:
+                yield "Static var compensator";
+            }
+            case LOAD -> {
                 identifiable = network.getLoad(element.getId());
-                identifiableType = "Load";
-                break;
-            case SHUNT_COMPENSATOR:
+                yield "Load";
+            }
+            case SHUNT_COMPENSATOR -> {
                 identifiable = network.getShuntCompensator(element.getId());
-                identifiableType = "Shunt compensator";
-                break;
-            case SWITCH:
+                yield "Shunt compensator";
+            }
+            case SWITCH -> {
                 identifiable = network.getSwitch(element.getId());
-                identifiableType = "Switch";
-                break;
-            case THREE_WINDINGS_TRANSFORMER:
+                yield "Switch";
+            }
+            case THREE_WINDINGS_TRANSFORMER -> {
                 identifiable = network.getThreeWindingsTransformer(element.getId());
-                identifiableType = "Three windings transformer";
-                break;
-            case BUSBAR_SECTION:
+                yield "Three windings transformer";
+            }
+            case BUSBAR_SECTION -> {
                 identifiable = network.getBusbarSection(element.getId());
-                identifiableType = "Busbar section";
-                break;
-            case TIE_LINE:
+                yield "Busbar section";
+            }
+            case TIE_LINE -> {
                 identifiable = network.getTieLine(element.getId());
-                identifiableType = "Tie line";
-                break;
-            case BUS:
+                yield "Tie line";
+            }
+            case BUS -> {
                 identifiable = network.getBusBreakerView().getBus(element.getId());
-                identifiableType = "Configured bus";
-                break;
-            default:
+                yield "Configured bus";
+            }
+            case BATTERY -> {
+                identifiable = network.getBattery(element.getId());
+                yield "Battery";
+            }
+            default ->
                 throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
-        }
+        };
         if (identifiable == null) {
             throw new PowsyblException(identifiableType + " '" + element.getId() + "' not found in the network");
         }

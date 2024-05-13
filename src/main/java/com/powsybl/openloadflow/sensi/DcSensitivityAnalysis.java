@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sensi;
 
@@ -948,7 +949,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
-                .setHvdcAcEmulation(false)
+                .setHvdcAcEmulation(false) // still not supported
                 .setCacheEnabled(false) // force not caching as not supported in sensi analysis
                 .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
         // create networks including all necessary switches

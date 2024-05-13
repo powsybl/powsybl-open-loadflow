@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sa;
 
@@ -102,8 +103,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract boolean isShuntCompensatorVoltageControlOn(LoadFlowParameters lfParameters);
 
-    protected abstract boolean isHvdcAcEmulation(LoadFlowParameters lfParameters);
-
     protected abstract P createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers);
 
     SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
@@ -140,7 +139,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .setContingencyPropagation(securityAnalysisParametersExt.isContingencyPropagation())
                 .setShuntCompensatorVoltageControlOn(isShuntCompensatorVoltageControlOn(lfParameters))
                 .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                .setHvdcAcEmulation(isHvdcAcEmulation(lfParameters));
+                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation());
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
