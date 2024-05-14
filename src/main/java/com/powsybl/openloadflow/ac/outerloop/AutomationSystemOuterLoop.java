@@ -35,6 +35,8 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
     }
 
     private boolean isInService(LfBranch branch) {
+        // a branch could be disabled and connected at both sides so we also need to check if disabled
+        // to improve later
         return !branch.isDisabled() && branch.isConnectedAtBothSides();
     }
 
