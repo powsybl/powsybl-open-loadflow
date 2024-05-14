@@ -225,7 +225,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     public static List<AcLoadFlowResult> run(List<LfNetwork> lfNetworks, AcLoadFlowParameters parameters) {
         return lfNetworks.stream()
                 .map(n -> {
-                    if (n.isValid()) {
+                    if (n.getValidity() == LfNetwork.Validity.VALID) {
                         try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {
                             return new AcloadFlowEngine(context, parameters.getSolverFactory())
                                     .run();

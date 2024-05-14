@@ -1,0 +1,14 @@
++ Test Report
+   + Load flow on network 'test'
+      + Network CC0 SC0
+         + Network info
+            Network has 3 buses and 4 branches
+            Network balance: active generation=3.0 MW, active load=2.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+         Outer loop DistributedSlack
+         Outer loop VoltageMonitoring
+         Outer loop ReactiveLimits
+         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+      + Network CC1 SC1
+         + Network info
+            Network must have at least one bus with generator voltage control enabled
+      No calculation will be done on 1 network(s) that have no generators

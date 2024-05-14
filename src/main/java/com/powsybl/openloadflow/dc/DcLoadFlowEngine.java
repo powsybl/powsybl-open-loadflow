@@ -210,7 +210,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reportNode)
                 .stream()
                 .map(n -> {
-                    if (n.isValid()) {
+                    if (n.getValidity() == LfNetwork.Validity.VALID) {
                         try (DcLoadFlowContext context = new DcLoadFlowContext(n, parameters)) {
                             return new DcLoadFlowEngine(context)
                                     .run();
