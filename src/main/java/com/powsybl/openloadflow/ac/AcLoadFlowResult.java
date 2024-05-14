@@ -79,6 +79,11 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     @Override
     public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
+        if (network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR) {
+            return LoadFlowResult.ComponentResult.Status.NO_CALCULATION;
+        } else if (network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL) {
+            return LoadFlowResult.ComponentResult.Status.FAILED;
+        }
         if (getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
             return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
         } else if (getOuterLoopStatus() == OuterLoopStatus.FAILED) {
@@ -87,8 +92,8 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
             return switch (getSolverStatus()) {
                 case CONVERGED -> LoadFlowResult.ComponentResult.Status.CONVERGED;
                 case MAX_ITERATION_REACHED -> LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-                case SOLVER_FAILED -> LoadFlowResult.ComponentResult.Status.FAILED;
-                default -> LoadFlowResult.ComponentResult.Status.FAILED;
+                case SOLVER_FAILED, UNREALISTIC_STATE -> LoadFlowResult.ComponentResult.Status.FAILED;
+                case NO_CALCULATION -> LoadFlowResult.ComponentResult.Status.NO_CALCULATION;
             };
         }
     }

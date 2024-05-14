@@ -274,8 +274,9 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void noGeneratorTest() {
-        network.getGenerator("GEN").getTerminal().disconnect();
+    void noGeneratorPvTest() {
+        // GEN is only generator with voltage control, disable it
+        network.getGenerator("GEN").setVoltageRegulatorOn(false);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("unitTest", "")
