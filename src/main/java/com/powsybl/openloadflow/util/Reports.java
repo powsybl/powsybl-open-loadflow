@@ -51,6 +51,17 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportNotUniqueControlledBus(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueControlledBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: ${controlledBusId} (kept) and ${controlledBusGenId} (rejected)")
+                .withTypedValue("generatorIds", generatorIds, "Generator ids")
+                .withTypedValue("controllerBusId", controllerBusId, "Controller bus id")
+                .withTypedValue("controlledBusId", controlledBusId, "Controlled bus id")
+                .withTypedValue("controlledBusGenId", controlledBusGenId, "Controlled bus generator id")
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
     public static void reportNotUniqueTargetVControllerBus(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
         reportNode.newReportNode()
                 .withMessageTemplate("notUniqueTargetVControllerBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} kV (kept) and ${rejectedTargetV} kV (rejected)")
