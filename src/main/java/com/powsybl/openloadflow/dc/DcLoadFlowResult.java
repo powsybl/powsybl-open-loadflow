@@ -38,5 +38,4 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
         }
         return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Solver Failed");
     }
-
 }
