@@ -266,44 +266,57 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters) {
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
         var branch = getBranch();
 
-        if (isDisabled() && parameters.isSimulateAutomationSystems()) {
-            LOGGER.warn("Update state of disabled branch {}: both terminals ended with disconnected status.", branch.getId());
+        if (isDisabled()) {
             updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
-            branch.getTerminal1().disconnect();
-            branch.getTerminal2().disconnect();
         } else {
             updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
+        }
 
-            if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
-                // it means there is a regulating phase tap changer located on that branch
-                updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
-            }
+        // in case of automation system simulation we might need to update IIDM terminals connection status
+        if (parameters.isSimulateAutomationSystems()) {
+            boolean connectedSide1Before = branch.getTerminal1().isConnected();
+            boolean connectedSide2Before = branch.getTerminal2().isConnected();
+            boolean connectedSide1After = !isDisabled() && isConnectedSide1();
+            boolean connectedSide2After = !isDisabled() && isConnectedSide2();
 
-            if (parameters.isTransformerVoltageControlOn() && isVoltageController()
-                    || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
-                TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-                RatioTapChanger rtc = twt.getRatioTapChanger();
-                double baseRatio = Transformers.getRatioPerUnitBase(twt);
-                double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
-                double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
-                updateTapPosition(rtc, ptcRho, rho);
+            if (connectedSide1Before && !connectedSide1After) {
+                LOGGER.warn("Disconnect terminal 1 of branch '{}'", branch.getId());
+                branch.getTerminal1().disconnect();
+                updateReport.disconnectedBranchSide1Count++;
             }
+            if (!connectedSide1Before && connectedSide1After) {
+                LOGGER.warn("Connect terminal 1 of branch '{}'", branch.getId());
+                branch.getTerminal1().connect();
+                updateReport.connectedBranchSide1Count++;
+            }
+            if (connectedSide2Before && !connectedSide2After) {
+                LOGGER.warn("Disconnect terminal 2 of branch '{}'", branch.getId());
+                branch.getTerminal2().disconnect();
+                updateReport.disconnectedBranchSide2Count++;
+            }
+            if (!connectedSide2Before && connectedSide2After) {
+                LOGGER.warn("Connect terminal 2 of branch '{}'", branch.getId());
+                branch.getTerminal2().connect();
+                updateReport.connectedBranchSide2Count++;
+            }
+        }
 
-            if (parameters.isSimulateAutomationSystems()) {
-                if (connectedSide1 && !branch.getTerminal1().isConnected()) {
-                    LOGGER.warn("Update state of branch {}: terminal 1 is connected.", branch.getId());
-                    branch.getTerminal1().connect();
-                }
-                if (connectedSide2 && !branch.getTerminal2().isConnected()) {
-                    LOGGER.warn("Update state of branch {}: terminal 2 is connected.", branch.getId());
-                    branch.getTerminal2().connect();
-                }
-                // !connectedSide1 && branch.getTerminal1().isConnected() and !connectedSide2 && branch.getTerminal2().isConnected()
-                // conditions are not needed for the moment because it is handled by disabled status.
-            }
+        if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
+            // it means there is a regulating phase tap changer located on that branch
+            updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
+        }
+
+        if (parameters.isTransformerVoltageControlOn() && isVoltageController()
+                || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
+            TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
+            RatioTapChanger rtc = twt.getRatioTapChanger();
+            double baseRatio = Transformers.getRatioPerUnitBase(twt);
+            double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
+            double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
+            updateTapPosition(rtc, ptcRho, rho);
         }
     }
 

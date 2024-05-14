@@ -370,14 +370,16 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters) {
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
         if (parameters.isSimulateAutomationSystems()) {
             if (isDisabled() && !switchRef.get().isOpen()) {
-                LOGGER.warn("Update state of switch {}: switch now open.", switchRef.get().getId());
+                LOGGER.trace("Open switch '{}'", switchRef.get().getId());
+                updateReport.openedSwitchCount++;
                 switchRef.get().setOpen(true);
             }
             if (!isDisabled() && switchRef.get().isOpen()) {
-                LOGGER.warn("Update state of switch {}: switch now closed.", switchRef.get().getId());
+                LOGGER.trace("Close switch '{}'", switchRef.get().getId());
+                updateReport.closedSwitchCount++;
                 switchRef.get().setOpen(false);
             }
         }
