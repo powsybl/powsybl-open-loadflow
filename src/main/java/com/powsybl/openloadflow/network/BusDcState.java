@@ -22,10 +22,6 @@ public class BusDcState extends ElementState<LfBus> {
     private final Map<String, Boolean> disablingStatusGenerators;
     private final List<LoadDcState> loadStates;
 
-    private final boolean isSlack;
-
-    private final boolean isReference;
-
     protected static class LoadDcState {
 
         private double loadTargetP;
@@ -52,8 +48,6 @@ public class BusDcState extends ElementState<LfBus> {
         this.participatingGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isParticipating));
         this.disablingStatusGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isDisabled));
         loadStates = bus.getLoads().stream().map(load -> createLoadState().save(load)).toList();
-        this.isSlack = bus.isSlack();
-        this.isReference = bus.isReference();
     }
 
     protected LoadDcState createLoadState() {
@@ -70,8 +64,6 @@ public class BusDcState extends ElementState<LfBus> {
             LfLoad load = element.getLoads().get(i);
             loadStates.get(i).restore(load);
         }
-        element.setSlack(this.isSlack); // needed or not?
-        element.setReference(this.isReference); // needed or not?
     }
 
     public static BusDcState save(LfBus bus) {
