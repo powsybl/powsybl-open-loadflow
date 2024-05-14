@@ -971,6 +971,31 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
     }
 
+    private static String getTrippingLfBranchId(OverloadManagementSystem.Tripping tripping) {
+        String branchToOperateId = null;
+        if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+            OverloadManagementSystem.SwitchTripping switchTripping = (OverloadManagementSystem.SwitchTripping) tripping;
+            branchToOperateId = switchTripping.getSwitchToOperateId();
+        } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
+            OverloadManagementSystem.BranchTripping branchTripping = (OverloadManagementSystem.BranchTripping) tripping;
+            branchToOperateId = branchTripping.getBranchToOperateId();
+        }
+        return branchToOperateId;
+    }
+
+    private static void addTripping(LfNetwork lfNetwork, LfOverloadManagementSystem lfOverloadManagementSystem, OverloadManagementSystem.Tripping tripping) {
+        String branchToOperateId = getTrippingLfBranchId(tripping);
+        LfBranch lfBranchToOperate = lfNetwork.getBranchById(branchToOperateId);
+        if (lfBranchToOperate != null) {
+            LfBus bus = lfOverloadManagementSystem.getMonitoredSide().equals(TwoSides.ONE) ?
+                    lfOverloadManagementSystem.getMonitoredBranch().getBus1() : lfOverloadManagementSystem.getMonitoredBranch().getBus2();
+            double threshold = tripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
+            lfOverloadManagementSystem.addLfBranchTripping(lfBranchToOperate, tripping.isOpenAction(), threshold);
+        } else {
+            LOGGER.warn("Invalid overload management system: branch to operate is '{}'", branchToOperateId);
+        }
+    }
+
     private static void createOverloadManagementSystem(LfNetwork lfNetwork, OverloadManagementSystem system) {
         if (system.isEnabled()) {
             LfBranch lfMonitoredElement = lfNetwork.getBranchById(system.getMonitoredElementId());
@@ -981,26 +1006,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             if (lfMonitoredElement != null) {
                 LfOverloadManagementSystem lfOverloadManagementSystem = new LfOverloadManagementSystem(lfMonitoredElement, system.getMonitoredSide().toTwoSides());
-                system.getTrippings().stream().forEach(tripping -> {
-                    String branchToOperateId = null;
-                    if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
-                        OverloadManagementSystem.SwitchTripping switchTripping = (OverloadManagementSystem.SwitchTripping) tripping;
-                        branchToOperateId = switchTripping.getSwitchToOperateId();
-                    } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
-                        OverloadManagementSystem.BranchTripping branchTripping = (OverloadManagementSystem.BranchTripping) tripping;
-                        branchToOperateId = branchTripping.getBranchToOperateId();
-                    }
-                    LfBranch lfBranchToOperate = lfNetwork.getBranchById(branchToOperateId);
-                    if (lfBranchToOperate != null) {
-                        LfBus bus = lfOverloadManagementSystem.getMonitoredSide().equals(TwoSides.ONE) ?
-                                lfOverloadManagementSystem.getMonitoredBranch().getBus1() : lfOverloadManagementSystem.getMonitoredBranch().getBus2();
-                        double threshold = tripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
-                        lfOverloadManagementSystem.addLfBranchTripping(lfBranchToOperate, tripping.isOpenAction(), threshold);
-                    } else {
-                        LOGGER.warn("Invalid overload management system: branch to operate is '{}'", branchToOperateId);
-                    }
-                });
-                if (lfOverloadManagementSystem.getBranchTrippingList().size() > 0) {
+                system.getTrippings().forEach(tripping -> addTripping(lfNetwork, lfOverloadManagementSystem, tripping));
+                if (!lfOverloadManagementSystem.getBranchTrippingList().isEmpty()) {
                     lfNetwork.addOverloadManagementSystem(lfOverloadManagementSystem);
                 }
             } else {
