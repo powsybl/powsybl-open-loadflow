@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sa;
 
@@ -103,7 +104,7 @@ class LfActionTest extends AbstractSerDeTest {
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
-            assertEquals("Generator action: configuration not supported yet.", e.getMessage());
+            assertEquals("Generator action on G : configuration not supported yet.", e.getMessage());
         }
     }
 
