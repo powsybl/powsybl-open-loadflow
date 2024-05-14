@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -85,26 +84,17 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
     }
 
     @Override
-    public void onSlackBusChange(LfBus bus, boolean slack) {
-        equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
-                .orElseThrow()
-                .setActive(!slack);
+    protected DcEquationType getTypeBusTargetP() {
+        return DcEquationType.BUS_TARGET_P;
     }
 
     @Override
-    public void onReferenceBusChange(LfBus bus, boolean reference) {
-        if (reference) {
-            Equation<DcVariableType, DcEquationType> phiEq = equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_PHI).orElse(null);
-            if (phiEq == null) {
-                phiEq = equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_PHI)
-                        .addTerm(equationSystem.getVariable(bus.getNum(), DcVariableType.BUS_PHI)
-                                .createTerm());
-            }
-            phiEq.setActive(true);
-        } else {
-            equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_PHI)
-                    .orElseThrow()
-                    .setActive(false);
-        }
+    protected DcEquationType getTypeBusTargetPhi() {
+        return DcEquationType.BUS_TARGET_PHI;
+    }
+
+    @Override
+    protected DcVariableType getTypeBusPhi() {
+        return DcVariableType.BUS_PHI;
     }
 }
