@@ -34,6 +34,10 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
         return NAME;
     }
 
+    private boolean isInService(LfBranch branch) {
+        return !branch.isDisabled() && branch.isConnectedAtBothSides();
+    }
+
     @Override
     public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
@@ -50,12 +54,12 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
                     if (i > threshold && branchTripping.branchOpen() != branchToOperate.isDisabled()) {
                         double ib = PerUnit.ib((system.getMonitoredSide() == TwoSides.ONE ?
                                 branchToMonitor.getBus1() : branchToMonitor.getBus2()).getNominalV());
-                        if (branchTripping.branchOpen() && branchToOperate.isConnectedAtBothSides()) {
+                        if (branchTripping.branchOpen() && isInService(branchToOperate)) {
                             LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), open branch at both side '{}'",
                                     branchToMonitor.getId(), i * ib, threshold * ib, branchToOperate.getId());
                             branchesToOpen.add(branchToOperate);
                             break;
-                        } else if (!branchTripping.branchOpen() && branchToOperate.isConnectedAtBothSides()) {
+                        } else if (!branchTripping.branchOpen() && !isInService(branchToOperate)) {
                             LOGGER.debug("Branch '{}' is overloaded ({} A > {} A), close branch at both side '{}'",
                                     branchToMonitor.getId(), i * ib, threshold * ib, branchToOperate.getId());
                             branchesToClose.add(branchToOperate);
