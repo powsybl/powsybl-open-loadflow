@@ -361,11 +361,16 @@ public class PropagatedContingency {
                 && loadIdsToLoose.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
     }
 
-    private static boolean isIsolatedBus(GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork network, LfBus bus) {
-        // the good criteria is to check all components size and verify that the slack bus component is still the
-        // main one. If not, we take the biggest.
-        // Below simple check that works for small networks.
-        return connectivity.getConnectedComponent(bus).size() == 1;
+    private static boolean isSlackBusIsolated(GraphConnectivity<LfBus, LfBranch> connectivity, LfBus slackBus) {
+        // check that slack bus belongs to the largest component.
+        // Largest component has always the number 0.
+        int number = connectivity.getComponentNumber(slackBus);
+        if (number != 0) {
+            // if not main component anymore but same size as the main one, still consider it as not isolated
+            // (mainly useful for unit test small networks...)
+            return connectivity.getLargestConnectedComponent().size() != connectivity.getConnectedComponent(slackBus).size();
+        }
+        return false;
     }
 
     private Map<LfBranch, DisabledBranchStatus> findBranchToOpenDirectlyImpactedByContingency(LfNetwork network) {
@@ -402,7 +407,7 @@ public class PropagatedContingency {
                     .filter(LfBranch::isConnectedAtBothSides)
                     .forEach(connectivity::removeEdge);
 
-            if (isIsolatedBus(connectivity, network, network.getSlackBus())) {
+            if (isSlackBusIsolated(connectivity, network.getSlackBus())) {
                 LOGGER.warn("Contingency '{}' leads to an isolated slack bus: relocate slack bus inside main component",
                         contingency.getId());
                 // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
