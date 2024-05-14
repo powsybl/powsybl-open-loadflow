@@ -412,10 +412,8 @@ public class PropagatedContingency {
                         contingency.getId());
                 // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
                 // we select a new slack bus excluding buses from isolated component
-                // FIXME: excluded buses mut be the buses from components that are not the main one.
-                // initialBusIdsToLose is not the good solution.
-                Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getVerticesRemovedFromMainComponent());
-                network.setExcludedSlackBuses(Sets.union(excludedBuses, initialBusIdsToLose));
+                Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getLargestConnectedComponent());
+                network.setExcludedSlackBuses(excludedBuses);
                 // reverse main component to the one containing the relocated slack bus
                 connectivity.setMainComponentVertex(network.getSlackBus());
             }
