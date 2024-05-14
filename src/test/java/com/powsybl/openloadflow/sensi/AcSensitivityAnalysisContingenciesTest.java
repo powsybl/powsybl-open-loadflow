@@ -1016,18 +1016,22 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<Contingency> contingencies = List.of(new Contingency("l34", new BranchContingency("l34")), new Contingency("l13+l23", new BranchContingency("l13"), new BranchContingency("l23")));
 
-        List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b4", "g3", "l34"), createBusVoltagePerTargetV("b1", "g3", "l13+l23"), createBusVoltagePerTargetV("b4", "g3", "l13+l23"));
+        List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b4", "g3"),
+                                                  createBusVoltagePerTargetV("b1", "g3"),
+                                                  createBusVoltagePerTargetV("b4", "g3"));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
-        assertEquals(3, result.getValues().size());
+        assertEquals(9, result.getValues().size());
 
         assertEquals(0.0, result.getBusVoltageSensitivityValue("l34", "g3", "b4", SensitivityVariableType.BUS_TARGET_VOLTAGE));
         assertEquals(Double.NaN, result.getBusVoltageFunctionReferenceValue("l34", "b4"));
+        assertEquals(0.995, result.getBusVoltageFunctionReferenceValue("l34", "b1"), LoadFlowAssert.DELTA_V);
+        // Contingency "l13+l23" leads to a component with only b1 and b2, slack bus is relocated on b3.
         assertEquals(0.0, result.getBusVoltageSensitivityValue("l13+l23", "g3", "b1", SensitivityVariableType.BUS_TARGET_VOLTAGE));
-        assertEquals(0.9798, result.getBusVoltageFunctionReferenceValue("l13+l23", "b1"), LoadFlowAssert.DELTA_V);
-        assertEquals(Double.NaN, result.getBusVoltageSensitivityValue("l13+l23", "g3", "b4", SensitivityVariableType.BUS_TARGET_VOLTAGE));
-        assertEquals(Double.NaN, result.getBusVoltageFunctionReferenceValue("l13+l23", "b4"));
+        assertEquals(Double.NaN, result.getBusVoltageFunctionReferenceValue("l13+l23", "b1"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.860, result.getBusVoltageFunctionReferenceValue("l13+l23", "b4"), LoadFlowAssert.DELTA_V);
+        assertEquals(1.900, result.getBusVoltageSensitivityValue("l13+l23", "g3", "b4", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
     }
 
     @Test
