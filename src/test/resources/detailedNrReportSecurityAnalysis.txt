@@ -4,8 +4,8 @@
          + Network info
             Network has 2 buses and 2 branches
             Network balance: active generation=603.77 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
-            Angle Reference Bus: VL1_0
-            Slack Bus: VL1_0
+            Angle reference bus:  VL1_0
+            Slack bus: VL1_0
          + Pre-contingency simulation
             + Newton Raphson on Network CC0 SC0
                No outer loops have been launched

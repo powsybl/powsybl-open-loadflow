@@ -465,12 +465,12 @@ public final class Reports {
 
     public static void reportAngleReferenceBusAndSlackBuses(ReportNode reportNode, String referenceBus, List<String> slackBuses) {
         reportNode.newReportNode()
-                .withMessageTemplate("angleReferenceBusSelection", "Angle Reference Bus: ${referenceBus}")
+                .withMessageTemplate("angleReferenceBusSelection", "Angle reference bus: ${referenceBus}")
                 .withUntypedValue("referenceBus", referenceBus)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
         slackBuses.forEach(slackBus -> reportNode.newReportNode()
-                .withMessageTemplate("slackBusSelection", "Slack Bus: ${slackBus}")
+                .withMessageTemplate("slackBusSelection", "Slack bus: ${slackBus}")
                 .withUntypedValue("slackBus", slackBus)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add());
