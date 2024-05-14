@@ -4,10 +4,14 @@
          + Network info
             Network has 3 buses and 4 branches
             Network balance: active generation=3.0 MW, active load=2.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+            Angle Reference Bus: b1_vl_0
+            Slack Bus: b1_vl_0
          DC load flow completed (status=true)
       + Network CC1 SC1
          + Network info
             Network has 3 buses and 4 branches
             Network balance: active generation=2.0 MW, active load=4.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+            Angle Reference Bus: b5_vl_0
+            Slack Bus: b5_vl_0
          DC load flow completed (status=true)
       No calculation will be done on 1 network(s) that have no generators
