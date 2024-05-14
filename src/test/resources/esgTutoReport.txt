@@ -4,7 +4,7 @@
          + Network info
             Network has 4 buses and 4 branches
             Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
-            Angle reference bus:  VLHV1_0
+            Angle reference bus: VLHV1_0
             Slack bus: VLHV1_0
          + Outer loop DistributedSlack
             + Outer loop iteration 1
@@ -20,7 +20,7 @@
          + Network info
             Network has 4 buses and 4 branches
             Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
-            Angle reference bus:  VLLOAD_0
+            Angle reference bus: VLLOAD_0
             Slack bus: VLLOAD_0
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
