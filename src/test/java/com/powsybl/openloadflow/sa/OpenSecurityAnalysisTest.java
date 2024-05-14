@@ -1688,7 +1688,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 buildTestAcLoadFlowResult(AcSolverStatus.MAX_ITERATION_REACHED, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
                 buildTestAcLoadFlowResult(AcSolverStatus.SOLVER_FAILED, OuterLoopStatus.STABLE).toComponentResultStatus());
-        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION,
                 buildTestAcLoadFlowResult(AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE).toComponentResultStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
                 buildTestAcLoadFlowResult(AcSolverStatus.UNREALISTIC_STATE, OuterLoopStatus.STABLE).toComponentResultStatus());

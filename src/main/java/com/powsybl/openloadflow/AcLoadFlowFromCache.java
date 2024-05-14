@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -110,7 +111,7 @@ public class AcLoadFlowFromCache {
     }
 
     private static AcLoadFlowResult run(AcLoadFlowContext context) {
-        if (!context.getNetwork().isValid()) {
+        if (context.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
             return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
         }
         if (context.isNetworkUpdated()) {

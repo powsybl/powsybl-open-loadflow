@@ -196,6 +196,17 @@ class DcLoadFlowTest {
     @Test
     void multiCcTest() {
         Network network = IeeeCdfNetworkFactory.create14();
+        network.getVoltageLevel("VL12").newGenerator()
+                .setId("gvl12")
+                .setBus("B12")
+                .setConnectableBus("B12")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(1)
+                .setTargetP(0)
+                .setTargetQ(0)
+                .setVoltageRegulatorOn(false)
+                .add();
         for (Line l : List.of(network.getLine("L13-14-1"),
                               network.getLine("L6-13-1"),
                               network.getLine("L6-12-1"))) {
