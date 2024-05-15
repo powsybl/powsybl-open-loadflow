@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.Load;
+import com.powsybl.iidm.network.LoadType;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.*;
@@ -77,7 +78,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     public boolean isFictitious() {
         // if at least one load is fictitious, then we return true
         for (Ref<Load> loadRef : loadsRefs) {
-            if (loadRef.get().isFictitious()) {
+            Load load = loadRef.get();
+            if (load.isFictitious() || load.getLoadType().equals(LoadType.FICTITIOUS)) {
                 return true;
             }
         }
