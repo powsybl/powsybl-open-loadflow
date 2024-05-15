@@ -271,8 +271,9 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void noGeneratorTest() {
-        network.getGenerator("GEN").getTerminal().disconnect();
+    void noGeneratorPvTest() {
+        // GEN is only generator with voltage control, disable it
+        network.getGenerator("GEN").setVoltageRegulatorOn(false);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("unitTest", "")
@@ -467,6 +468,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Reached outer loop max iterations limit. Last outer loop name: DistributedSlack", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test

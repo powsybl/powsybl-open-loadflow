@@ -11,6 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -55,6 +56,14 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("networkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled", "Network must have at least one bus with generator voltage control enabled")
                 .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportComponentsWithoutGenerators(ReportNode reportNode, int deadComponentsCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("componentsWithoutGenerators", "No calculation will be done on ${deadComponentsCount} network(s) that have no generators")
+                .withUntypedValue("deadComponentsCount", deadComponentsCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
 
@@ -248,12 +257,22 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode createLfNetworkReporter(ReportNode reportNode, int networkNumCc, int networkNumSc) {
-        return reportNode.newReportNode()
+    public static ReportNode createRootLfNetworkReportNode(int networkNumCc, int networkNumSc) {
+        return ReportNode.newRootReportNode()
+                .withMessageTemplate("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}")
+                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
+                .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+                .build();
+    }
+
+    public static ReportNode createLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode, int networkNumCc, int networkNumSc) {
+        ReportNode newReportNode = reportNode.newReportNode()
                 .withMessageTemplate("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}")
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
                 .add();
+        newReportNode.include(lfNetworkReportNode);
+        return newReportNode;
     }
 
     public static ReportNode createNetworkInfoReporter(ReportNode reportNode) {
@@ -442,5 +461,18 @@ public final class Reports {
                 .withUntypedValue("busesOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.toString())
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
+    }
+
+    public static void reportAngleReferenceBusAndSlackBuses(ReportNode reportNode, String referenceBus, List<String> slackBuses) {
+        reportNode.newReportNode()
+                .withMessageTemplate("angleReferenceBusSelection", "Angle reference bus: ${referenceBus}")
+                .withUntypedValue("referenceBus", referenceBus)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        slackBuses.forEach(slackBus -> reportNode.newReportNode()
+                .withMessageTemplate("slackBusSelection", "Slack bus: ${slackBus}")
+                .withUntypedValue("slackBus", slackBus)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add());
     }
 }

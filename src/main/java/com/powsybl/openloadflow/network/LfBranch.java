@@ -200,7 +200,7 @@ public interface LfBranch extends LfElement {
         return Collections.emptyList();
     }
 
-    void updateState(LfNetworkStateUpdateParameters parameters);
+    void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport);
 
     void updateFlows(double p1, double q1, double p2, double q2);
 

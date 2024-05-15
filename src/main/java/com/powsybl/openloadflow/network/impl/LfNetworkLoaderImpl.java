@@ -13,8 +13,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
-import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -973,28 +971,55 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
     }
 
+    private static String getTrippingLfBranchId(OverloadManagementSystem.Tripping tripping) {
+        String branchToOperateId = null;
+        if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+            OverloadManagementSystem.SwitchTripping switchTripping = (OverloadManagementSystem.SwitchTripping) tripping;
+            branchToOperateId = switchTripping.getSwitchToOperateId();
+        } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
+            OverloadManagementSystem.BranchTripping branchTripping = (OverloadManagementSystem.BranchTripping) tripping;
+            branchToOperateId = branchTripping.getBranchToOperateId();
+        }
+        return branchToOperateId;
+    }
+
+    private static void addTripping(LfNetwork lfNetwork, LfOverloadManagementSystem lfOverloadManagementSystem, OverloadManagementSystem.Tripping tripping) {
+        String branchToOperateId = getTrippingLfBranchId(tripping);
+        LfBranch lfBranchToOperate = lfNetwork.getBranchById(branchToOperateId);
+        if (lfBranchToOperate != null) {
+            LfBus bus = lfOverloadManagementSystem.getMonitoredSide().equals(TwoSides.ONE) ?
+                    lfOverloadManagementSystem.getMonitoredBranch().getBus1() : lfOverloadManagementSystem.getMonitoredBranch().getBus2();
+            double threshold = tripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
+            lfOverloadManagementSystem.addLfBranchTripping(lfBranchToOperate, tripping.isOpenAction(), threshold);
+        } else {
+            LOGGER.warn("Invalid overload management system: branch to operate is '{}'", branchToOperateId);
+        }
+    }
+
     private static void createOverloadManagementSystem(LfNetwork lfNetwork, OverloadManagementSystem system) {
         if (system.isEnabled()) {
-            LfBranch lfLineToMonitor = lfNetwork.getBranchById(system.getMonitoredLineId());
-            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(system.getSwitchIdToOperate());
-            if (lfLineToMonitor != null && lfSwitchToOperate != null) {
-                LfBus bus = lfLineToMonitor.getBus1() != null ? lfLineToMonitor.getBus1() : lfLineToMonitor.getBus2();
-                double threshold = system.getThreshold() / PerUnit.ib(bus.getNominalV());
-                lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, threshold, lfSwitchToOperate, system.isSwitchOpen()));
+            LfBranch lfMonitoredElement = lfNetwork.getBranchById(system.getMonitoredElementId());
+            if (system.getTrippings().stream().map(OverloadManagementSystem.Tripping::getType)
+                    .anyMatch(type -> type == OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING)) {
+                LOGGER.warn("Unsupported overload management system {}: three windings transformer tripping supported", system.getId());
+                return;
+            }
+            if (lfMonitoredElement != null) {
+                LfOverloadManagementSystem lfOverloadManagementSystem = new LfOverloadManagementSystem(lfMonitoredElement, system.getMonitoredSide().toTwoSides());
+                system.getTrippings().forEach(tripping -> addTripping(lfNetwork, lfOverloadManagementSystem, tripping));
+                if (!lfOverloadManagementSystem.getBranchTrippingList().isEmpty()) {
+                    lfNetwork.addOverloadManagementSystem(lfOverloadManagementSystem);
+                }
             } else {
-                LOGGER.warn("Invalid overload management system: line to monitor is '{}', switch to operate is '{}'",
-                        system.getMonitoredLineId(), system.getSwitchIdToOperate());
+                LOGGER.warn("Invalid overload management system: element to monitor is '{}'", system.getMonitoredElementId());
             }
         }
     }
 
     private void createAutomationSystems(Network network, LfNetwork lfNetwork) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
-            if (systems != null) {
-                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
-                    createOverloadManagementSystem(lfNetwork, system);
-                }
+            for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
+                createOverloadManagementSystem(lfNetwork, system);
             }
         }
     }
@@ -1047,7 +1072,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
                     return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                            parameters, Reports.createLfNetworkReporter(reportNode, numCc, numSc));
+                            parameters, Reports.createRootLfNetworkReportNode(numCc, numSc));
                 })
                 .collect(Collectors.toList());
 
