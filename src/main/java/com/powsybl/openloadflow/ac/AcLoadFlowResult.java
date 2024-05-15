@@ -95,7 +95,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
                 case MAX_ITERATION_REACHED -> new Status(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, "Reached Newton-Raphson max iterations limit");
                 case SOLVER_FAILED -> new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Solver failed");
                 case UNREALISTIC_STATE -> new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Unrealistic state");
-                case NO_CALCULATION -> new Status(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, "Reached Newton-Raphson max iterations limit");
+                case NO_CALCULATION -> new Status(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, "No calculation");
             };
         }
     }
@@ -105,7 +105,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
                 + ", newtonRaphsonIterations=" + solverIterations
                 + ", solverStatus=" + solverStatus
-                + ", outerLoopStatus=" + outerLoopResult
+                + ", outerLoopStatus=" + outerLoopResult.status()
                 + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
                 + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
                 + ")";
