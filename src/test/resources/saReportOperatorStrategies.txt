@@ -1,0 +1,36 @@
++ Test report of security analysis with operator strategies
+   + AC security analysis on network 'test'
+      + Network CC0 SC0
+         + Network info
+            Network has 4 buses and 5 branches
+            Network balance: active generation=600.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+            Angle reference bus: VL2_0
+            Slack bus: VL2_0
+         + Pre-contingency simulation
+            Outer loop VoltageMonitoring
+            Outer loop ReactiveLimits
+            AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+         + Post-contingency simulation 'L1'
+            Outer loop VoltageMonitoring
+            Outer loop ReactiveLimits
+            AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+            + Operator strategy simulation 'strategyL1'
+               Outer loop VoltageMonitoring
+               Outer loop ReactiveLimits
+               AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+         + Post-contingency simulation 'L3'
+            Outer loop VoltageMonitoring
+            Outer loop ReactiveLimits
+            AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+            + Operator strategy simulation 'strategyL3'
+               Outer loop VoltageMonitoring
+               Outer loop ReactiveLimits
+               AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+         + Post-contingency simulation 'L2'
+            Outer loop VoltageMonitoring
+            Outer loop ReactiveLimits
+            AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+            + Operator strategy simulation 'strategyL2'
+               Outer loop VoltageMonitoring
+               Outer loop ReactiveLimits
+               AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

@@ -329,6 +329,13 @@ public final class Reports {
                 .add();
     }
 
+    public static ReportNode createOperatorStrategySimulation(ReportNode reportNode, String operatorStrategyId) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("operatorStrategySimulation", "Operator strategy simulation '${operatorStrategyId}'")
+                .withUntypedValue("operatorStrategyId", operatorStrategyId)
+                .add();
+    }
+
     public static ReportNode createDetailedSolverReporter(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc) {
         ReportNode subReportNode = reportNode.newReportNode()
                 .withMessageTemplate("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc}")
