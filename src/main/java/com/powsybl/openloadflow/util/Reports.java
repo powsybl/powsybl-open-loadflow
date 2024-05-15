@@ -24,6 +24,10 @@ public final class Reports {
     private static final String ITERATION = "iteration";
     private static final String NETWORK_ID = "networkId";
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
+
+    private static final String IMPACTED_RTC_COUNT = "impactedRatioTapChangerCount";
+
+    private static final String IMPACTED_SHUNT_COUNT = "impactedShuntCount";
     private static final String BUS_ID = "busId";
 
     public record BusReport(String busId, double mismatch, double nominalV, double v, double phi, double p, double q) {
@@ -235,6 +239,30 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits", "${impactedGeneratorCount} generators have been discarded from voltage control because targetP is outside active power limits")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedGeneratorCount} generators have been discarded from voltage control because targetV is inconsistent")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportRatioTapChangersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedRatioTapChangerCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("ratioTapChangersDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedRatioTapChangerCount} ratio tap changers have been discarded from voltage control because targetV is inconsistent")
+                .withUntypedValue(IMPACTED_RTC_COUNT, impactedRatioTapChangerCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportShuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedShuntCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("shuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedShuntCount} shunts have been discarded from voltage control because targetV is inconsistent")
+                .withUntypedValue(IMPACTED_SHUNT_COUNT, impactedShuntCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }

@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
-import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -328,33 +327,40 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfBatteryImpl.create(generator, network, parameters, report));
     }
 
-    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, LfNetworkParameters parameters, LfTopoConfig topoConfig) {
+    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, LfNetworkParameters parameters, LfTopoConfig topoConfig, LfNetworkLoadingReport report) {
         if (!parameters.isShuntVoltageControl() && !shuntCompensators.isEmpty()) {
             shunt = new LfShuntImpl(shuntCompensators, network, this, false, parameters, topoConfig);
         } else {
-            Map<Boolean, List<ShuntCompensator>> shuntsByVoltageControlCapability = shuntCompensators.stream()
-                    .collect(Collectors.partitioningBy(shunt -> checkVoltageRegulation(shunt, parameters)));
+            List<ShuntCompensator> controllerShuntCompensators = new ArrayList<>();
+            List<ShuntCompensator> fixedShuntCompensators = new ArrayList<>();
+            shuntCompensators.forEach(shunt -> {
+                if (checkVoltageRegulation(shunt, parameters, report)) {
+                    controllerShuntCompensators.add(shunt);
+                } else {
+                    fixedShuntCompensators.add(shunt);
+                }
+            });
 
-            List<ShuntCompensator> controllerShuntCompensators = shuntsByVoltageControlCapability.get(true);
             if (!controllerShuntCompensators.isEmpty()) {
                 controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true, parameters, topoConfig);
             }
-            List<ShuntCompensator> fixedShuntCompensators = shuntsByVoltageControlCapability.get(false);
             if (!fixedShuntCompensators.isEmpty()) {
                 shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false, parameters, topoConfig);
             }
         }
     }
 
-    static boolean checkVoltageRegulation(ShuntCompensator shuntCompensator, LfNetworkParameters parameters) {
+    static boolean checkVoltageRegulation(ShuntCompensator shuntCompensator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         double nominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetV = shuntCompensator.getTargetV();
         if (!shuntCompensator.isVoltageRegulatorOn()) {
             return false;
         }
         if (!VoltageControl.checkTargetV(targetV / nominalV, nominalV, parameters)) {
-            shuntCompensator.setVoltageRegulatorOn(false);
-            LOGGER.warn("Shunt compensator '{}' has an inconsistent target voltage: {} pu: Shunt voltage control discarded", shuntCompensator.getId(), targetV);
+            LOGGER.trace("Shunt compensator '{}' has an inconsistent target voltage: {} pu: Shunt voltage control discarded", shuntCompensator.getId(), targetV);
+            if (report != null) {
+                report.shuntsWithInconsistentTargetVoltage++;
+            }
             return false;
         }
         return true;

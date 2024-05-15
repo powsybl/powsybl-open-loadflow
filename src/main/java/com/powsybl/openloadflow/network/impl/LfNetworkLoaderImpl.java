@@ -394,7 +394,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
 
         if (!shuntCompensators.isEmpty()) {
-            lfBus.setShuntCompensators(shuntCompensators, parameters, topoConfig);
+            lfBus.setShuntCompensators(shuntCompensators, parameters, topoConfig, report);
         }
 
         return lfBus;
@@ -622,8 +622,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         Double targetDeadband = rtc.getTargetDeadband() > 0 ? rtc.getTargetDeadband() / regulatingTerminalNominalV : null;
 
         if (!VoltageControl.checkTargetV(targetValue, controlledBus.getNominalV(), parameters)) {
-            LOGGER.warn("RatioTapChanger on transformer '{}' has an inconsistent target voltage: {} pu: incremental voltage control discarded", controllerBranchId, targetValue);
-            rtc.setRegulating(false);
+            LOGGER.trace("RatioTapChanger on transformer '{}' has an inconsistent target voltage: {} pu: Rtc voltage control discarded", controllerBranchId, targetValue);
+            if (report != null) {
+                report.ratioTapChangersWithInconsistentTargetVoltage++;
+            }
             return;
         }
 
@@ -705,7 +707,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
             return;
         }
-        LfShunt controllerShunt = controllerBus.getControllerShunt().orElseThrow();
+        Optional<LfShunt> controllerShuntOpt = controllerBus.getControllerShunt();
+        if (controllerShuntOpt.isEmpty()) {
+            // The shunt voltage control has been discarded
+            return;
+        }
+        LfShunt controllerShunt = controllerShuntOpt.get();
         LfBus controlledBus = getLfBus(shuntCompensator.getRegulatingTerminal(), lfNetwork, parameters.isBreakers());
         if (controlledBus == null) {
             LOGGER.warn("Regulating terminal of voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
@@ -842,15 +849,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Network {}: {} branches have been discarded because connected to same bus at both ends",
                     lfNetwork, report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
         }
-        if (report.linesWithDifferentNominalVoltageAtBothEnds > 0) {
-            LOGGER.warn("Network {}: {} lines have a different nominal voltage at both ends: a ratio has been added",
-                    lfNetwork, report.linesWithDifferentNominalVoltageAtBothEnds);
-        }
         if (report.nonImpedantBranches > 0) {
             LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork, report.nonImpedantBranches);
         }
 
         if (report.generatorsWithInconsistentTargetVoltage > 0) {
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.generatorsWithInconsistentTargetVoltage);
             LOGGER.warn("Network {}: {} generators have an inconsistent target voltage and have been discarded from voltage control",
                     lfNetwork, report.generatorsWithInconsistentTargetVoltage);
         }
@@ -868,6 +872,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (report.transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen > 0) {
             LOGGER.warn("Network {}: {} ratio tap changer reactive power controls have been discarded because controller branch is open",
                     lfNetwork, report.transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen);
+        }
+
+        if (report.ratioTapChangersWithInconsistentTargetVoltage > 0) {
+            Reports.reportRatioTapChangersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.ratioTapChangersWithInconsistentTargetVoltage);
+            LOGGER.warn("Network {}: {} ratio tap changers have an inconsistent target voltage and have been discarded from voltage control",
+                    lfNetwork, report.ratioTapChangersWithInconsistentTargetVoltage);
+        }
+
+        if (report.shuntsWithInconsistentTargetVoltage > 0) {
+            Reports.reportShuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.shuntsWithInconsistentTargetVoltage);
+            LOGGER.warn("Network {}: {} shunts have an inconsistent target voltage and have been discarded from voltage control",
+                    lfNetwork, report.shuntsWithInconsistentTargetVoltage);
         }
 
         if (parameters.getDebugDir() != null) {
