@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.dc;
 
@@ -209,7 +210,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reportNode)
                 .stream()
                 .map(n -> {
-                    if (n.isValid()) {
+                    if (n.getValidity() == LfNetwork.Validity.VALID) {
                         try (DcLoadFlowContext context = new DcLoadFlowContext(n, parameters)) {
                             return new DcLoadFlowEngine(context)
                                     .run();

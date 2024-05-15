@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
@@ -329,7 +330,7 @@ class AcLoadFlowVscTest {
         Line l34 = network.getLine("l34");
         l34.getTerminals().stream().forEach(Terminal::disconnect);
         result = loadFlowRunner.run(network);
-        assertTrue(result.isPartiallyConverged()); // for LCC test, no PV bus in the small component -> FAILED
+        assertTrue(result.isFullyConverged()); // note that for LCC test the smaller component is flagged as NO_CALCULATION
 
         assertActivePowerEquals(-300.00, network.getGenerator("g1").getTerminal());
         assertActivePowerEquals(300.00, network.getLoad("l4").getTerminal());

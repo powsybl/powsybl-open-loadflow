@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.dc;
 
@@ -195,6 +196,17 @@ class DcLoadFlowTest {
     @Test
     void multiCcTest() {
         Network network = IeeeCdfNetworkFactory.create14();
+        network.getVoltageLevel("VL12").newGenerator()
+                .setId("gvl12")
+                .setBus("B12")
+                .setConnectableBus("B12")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(1)
+                .setTargetP(0)
+                .setTargetQ(0)
+                .setVoltageRegulatorOn(false)
+                .add();
         for (Line l : List.of(network.getLine("L13-14-1"),
                               network.getLine("L6-13-1"),
                               network.getLine("L6-12-1"))) {

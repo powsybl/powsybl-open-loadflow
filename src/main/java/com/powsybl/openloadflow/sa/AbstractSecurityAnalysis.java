@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sa;
 
@@ -147,7 +148,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, parameters.getNetworkParameters(), topoConfig, saReportNode)) {
             // run simulation on largest network
-            SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
+            SecurityAnalysisResult result = lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
                     .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions))
                     .orElse(createNoResult());
 

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
@@ -114,7 +115,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                           acParameters.getNetworkParameters().isBreakers(),
                                                                           parametersExt.getReactivePowerDispatchMode(),
                                                                           parametersExt.isWriteReferenceTerminals(),
-                                                                          parametersExt.getReferenceBusSelectionMode());
+                                                                          parametersExt.getReferenceBusSelectionMode(),
+                                                                          parametersExt.isSimulateAutomationSystems());
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
@@ -185,7 +187,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         String referenceBusId = null;
         List<LoadFlowResult.SlackBusResult> slackBusResultList = new ArrayList<>();
         double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch() * PerUnit.SB;
-        if (result.getNetwork().isValid()) {
+        if (result.getNetwork().getValidity() == LfNetwork.Validity.VALID) {
             referenceBusId = result.getNetwork().getReferenceBus().getId();
             List<LfBus> slackBuses = result.getNetwork().getSlackBuses();
             slackBusResultList = slackBuses.stream().map(
@@ -236,7 +238,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       breakers,
                                                                       ReactivePowerDispatchMode.Q_EQUAL_PROPORTION,
                                                                       parametersExt.isWriteReferenceTerminals(),
-                                                                      parametersExt.getReferenceBusSelectionMode());
+                                                                      parametersExt.getReferenceBusSelectionMode(),
+                                                                      false);
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
@@ -244,7 +247,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
-        LoadFlowResult.ComponentResult.Status status = result.isSuccess() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
+        final LoadFlowResult.ComponentResult.Status status = result.toComponentResultStatus();
         return new LoadFlowResultImpl.ComponentResultImpl(
                 result.getNetwork().getNumCC(),
                 result.getNetwork().getNumSC(),

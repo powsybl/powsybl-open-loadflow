@@ -11,6 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.RatioTapChanger;
+import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -22,10 +23,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.MaxVoltageChangeStateVectorScaling;
 import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
-import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.ShuntNetworkFactory;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.Test;
 
@@ -108,5 +106,45 @@ class AcLoadFlowReportTest {
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         LoadFlowAssert.assertReportEquals("/transformerReactivePowerControlOuterLoopReport.txt", reportNode);
+    }
+
+    @Test
+    void testMultipleComponents() throws IOException {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
+        // open everything at bus b4 to create 3 components
+        network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(Terminal::disconnect);
+
+        // CC1 SC1 has generator but no voltage control. OK in DC, but KO in AC.
+        network.getGenerator("g6").setTargetQ(0.0).setVoltageRegulatorOn(false);
+        // CC2 SC2 has no generator connected. Ignored in for DC and AC.
+        network.getGenerator("g10").disconnect();
+
+        var lfParameters = new LoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+
+        // test in AC
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(1).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(2).getStatus());
+        LoadFlowAssert.assertReportEquals("/multipleConnectedComponentsAcReport.txt", reportNode);
+
+        // test in DC
+        lfParameters.setDc(true);
+        reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(1).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(2).getStatus());
+        LoadFlowAssert.assertReportEquals("/multipleConnectedComponentsDcReport.txt", reportNode);
     }
 }

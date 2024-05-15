@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -35,10 +36,13 @@ public class LfNetworkStateUpdateParameters {
 
     private final ReferenceBusSelectionMode referenceBusSelectionMode;
 
+    private boolean simulateAutomationSystems;
+
     public LfNetworkStateUpdateParameters(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
                                           boolean transformerVoltageControlOn, boolean transformerReactivePowerControlOn, boolean loadPowerFactorConstant, boolean dc,
                                           boolean breakers, ReactivePowerDispatchMode reactivePowerDispatchMode,
-                                          boolean writeReferenceTerminals, ReferenceBusSelectionMode referenceBusSelectionMode) {
+                                          boolean writeReferenceTerminals, ReferenceBusSelectionMode referenceBusSelectionMode,
+                                          boolean simulateAutomationSystems) {
         this.reactiveLimits = reactiveLimits;
         this.writeSlackBus = writeSlackBus;
         this.phaseShifterRegulationOn = phaseShifterRegulationOn;
@@ -50,6 +54,7 @@ public class LfNetworkStateUpdateParameters {
         this.reactivePowerDispatchMode = Objects.requireNonNull(reactivePowerDispatchMode);
         this.writeReferenceTerminals = writeReferenceTerminals;
         this.referenceBusSelectionMode = referenceBusSelectionMode;
+        this.simulateAutomationSystems = simulateAutomationSystems;
     }
 
     public boolean isReactiveLimits() {
@@ -94,5 +99,9 @@ public class LfNetworkStateUpdateParameters {
 
     public ReactivePowerDispatchMode getReactivePowerDispatchMode() {
         return reactivePowerDispatchMode;
+    }
+
+    public boolean isSimulateAutomationSystems() {
+        return simulateAutomationSystems;
     }
 }

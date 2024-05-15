@@ -3,11 +3,14 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.network.impl.LfSwitch;
+import com.powsybl.iidm.network.TwoSides;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -17,32 +20,30 @@ public class LfOverloadManagementSystem {
 
     private final LfBranch monitoredBranch;
 
-    private final double threshold;
+    private final TwoSides monitoredSide;
 
-    private final LfSwitch switchToOperate;
+    public record LfBranchTripping(LfBranch branchToOperate, boolean branchOpen, double threshold) { }
 
-    private final boolean switchOpen;
+    private final List<LfBranchTripping> branchTrippingList = new ArrayList<>();
 
-    public LfOverloadManagementSystem(LfBranch monitoredBranch, double threshold, LfSwitch switchToOperate, boolean switchOpen) {
+    public LfOverloadManagementSystem(LfBranch monitoredBranch, TwoSides monitoredSide) {
         this.monitoredBranch = Objects.requireNonNull(monitoredBranch);
-        this.threshold = threshold;
-        this.switchToOperate = Objects.requireNonNull(switchToOperate);
-        this.switchOpen = switchOpen;
+        this.monitoredSide = Objects.requireNonNull(monitoredSide);
     }
 
     public LfBranch getMonitoredBranch() {
         return monitoredBranch;
     }
 
-    public double getThreshold() {
-        return threshold;
+    public TwoSides getMonitoredSide() {
+        return monitoredSide;
     }
 
-    public LfSwitch getSwitchToOperate() {
-        return switchToOperate;
+    public void addLfBranchTripping(LfBranch branchToOperate, boolean branchOpen, double threshold) {
+        branchTrippingList.add(new LfBranchTripping(Objects.requireNonNull(branchToOperate), branchOpen, threshold));
     }
 
-    public boolean isSwitchOpen() {
-        return switchOpen;
+    public List<LfBranchTripping> getBranchTrippingList() {
+        return branchTrippingList;
     }
 }
