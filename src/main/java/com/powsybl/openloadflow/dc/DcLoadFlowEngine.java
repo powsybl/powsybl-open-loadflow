@@ -121,7 +121,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration);
             outerLoopContext.setLoadFlowContext(context);
-            outerLoopStatus = outerLoop.check(outerLoopContext, olReportNode);
+            outerLoopStatus = outerLoop.check(outerLoopContext, olReportNode).status();
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getName(), outerLoopStatus);
@@ -210,7 +210,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reportNode)
                 .stream()
                 .map(n -> {
-                    if (n.isValid()) {
+                    if (n.getValidity() == LfNetwork.Validity.VALID) {
                         try (DcLoadFlowContext context = new DcLoadFlowContext(n, parameters)) {
                             return new DcLoadFlowEngine(context)
                                     .run();

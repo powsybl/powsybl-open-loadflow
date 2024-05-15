@@ -148,7 +148,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, parameters.getNetworkParameters(), topoConfig, saReportNode)) {
             // run simulation on largest network
-            SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
+            SecurityAnalysisResult result = lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
                     .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions))
                     .orElse(createNoResult());
 
@@ -490,7 +490,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
             return new SecurityAnalysisResult(
                     new PreContingencyResult(
-                            preContingencyLoadFlowResult.toComponentResultStatus(),
+                            preContingencyLoadFlowResult.toComponentResultStatus().status(),
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),

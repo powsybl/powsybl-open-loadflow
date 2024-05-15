@@ -15,7 +15,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -110,7 +111,7 @@ public class AcLoadFlowFromCache {
     }
 
     private static AcLoadFlowResult run(AcLoadFlowContext context) {
-        if (!context.getNetwork().isValid()) {
+        if (context.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
             return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
         }
         if (context.isNetworkUpdated()) {
@@ -119,7 +120,7 @@ public class AcLoadFlowFromCache {
             context.setNetworkUpdated(false);
             return result;
         }
-        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE, 0d, 0d);
+        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), 0d, 0d);
     }
 
     public List<AcLoadFlowResult> run() {
