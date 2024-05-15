@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -331,19 +332,32 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (!parameters.isShuntVoltageControl() && !shuntCompensators.isEmpty()) {
             shunt = new LfShuntImpl(shuntCompensators, network, this, false, parameters, topoConfig);
         } else {
-            List<ShuntCompensator> controllerShuntCompensators = shuntCompensators.stream()
-                    .filter(ShuntCompensator::isVoltageRegulatorOn)
-                    .toList();
+            Map<Boolean, List<ShuntCompensator>> shuntsByVoltageControlCapability = shuntCompensators.stream()
+                    .collect(Collectors.partitioningBy(shunt -> checkVoltageRegulation(shunt, parameters)));
+
+            List<ShuntCompensator> controllerShuntCompensators = shuntsByVoltageControlCapability.get(true);
             if (!controllerShuntCompensators.isEmpty()) {
                 controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true, parameters, topoConfig);
             }
-            List<ShuntCompensator> fixedShuntCompensators = shuntCompensators.stream()
-                    .filter(sc -> !sc.isVoltageRegulatorOn())
-                    .toList();
+            List<ShuntCompensator> fixedShuntCompensators = shuntsByVoltageControlCapability.get(false);
             if (!fixedShuntCompensators.isEmpty()) {
                 shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false, parameters, topoConfig);
             }
         }
+    }
+
+    static boolean checkVoltageRegulation(ShuntCompensator shuntCompensator, LfNetworkParameters parameters) {
+        double nominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
+        double targetV = shuntCompensator.getTargetV();
+        if (!shuntCompensator.isVoltageRegulatorOn()) {
+            return false;
+        }
+        if (!VoltageControl.checkTargetV(targetV / nominalV, nominalV, parameters)) {
+            shuntCompensator.setVoltageRegulatorOn(false);
+            LOGGER.warn("Shunt compensator '{}' has an inconsistent target voltage: {} pu: Shunt voltage control discarded", shuntCompensator.getId(), targetV);
+            return false;
+        }
+        return true;
     }
 
     @Override
