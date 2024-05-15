@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
@@ -15,6 +16,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -109,7 +111,7 @@ public class AcLoadFlowFromCache {
     }
 
     private static AcLoadFlowResult run(AcLoadFlowContext context) {
-        if (!context.getNetwork().isValid()) {
+        if (context.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
             return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
         }
         if (context.isNetworkUpdated()) {

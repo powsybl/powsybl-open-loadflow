@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 package com.powsybl.openloadflow.ac;
@@ -270,8 +271,9 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void noGeneratorTest() {
-        network.getGenerator("GEN").getTerminal().disconnect();
+    void noGeneratorPvTest() {
+        // GEN is only generator with voltage control, disable it
+        network.getGenerator("GEN").setVoltageRegulatorOn(false);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("unitTest", "")
