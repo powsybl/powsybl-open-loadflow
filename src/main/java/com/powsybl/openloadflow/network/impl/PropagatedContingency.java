@@ -397,8 +397,7 @@ public class PropagatedContingency {
     record ContingencyConnectivityLossImpact(boolean ok, int createdSynchronousComponents, Set<LfBus> busesToLost, Set<LfHvdc> hvdcsWithoutPower) {
     }
 
-    private ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen,
-                                                                                                    Set<LfBus> initialBusIdsToLose) {
+    private ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen) {
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
@@ -460,8 +459,7 @@ public class PropagatedContingency {
 
         // find branches to open and buses to lost not directly from the contingency impact but as a consequence of
         // loss of connectivity once contingency applied on the network
-        ContingencyConnectivityLossImpact connectivityLossImpact = findBusesAndBranchesImpactedBecauseOfConnectivityLoss(network, branchesToOpen,
-                busIdsToLose.stream().map(network::getBusById).filter(Objects::nonNull).collect(Collectors.toSet()));
+        ContingencyConnectivityLossImpact connectivityLossImpact = findBusesAndBranchesImpactedBecauseOfConnectivityLoss(network, branchesToOpen);
         if (!connectivityLossImpact.ok) {
             return Optional.empty();
         }
