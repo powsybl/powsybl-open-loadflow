@@ -431,14 +431,13 @@ class AcLoadFlowShuntTest {
     }
 
     @Test
-    void testIncrementalVoltageControlNotPlausibleTargetV() {
+    void testNotPlausibleTargetV() {
         parameters.setShuntCompensatorVoltageControlOn(true);
         shunt.setSectionCount(0);
         shunt.setVoltageRegulatorOn(true);
         shunt.setTargetV(600);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
-        assertFalse(shunt.isVoltageRegulatorOn());
         assertVoltageEquals(388.581, bus3);
         assertEquals(0, shunt.getSectionCount());
     }

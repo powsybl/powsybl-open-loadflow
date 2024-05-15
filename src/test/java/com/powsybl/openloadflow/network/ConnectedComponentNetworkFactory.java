@@ -308,6 +308,28 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    public static Network createThreeCcLinkedByASingleBusWithInconsistentVoltages() {
+        Network network = createThreeCcLinkedByASingleBus();
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        createGenerator(b2, "g2_bis", 0, 2);
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Bus b3Bis = createBus(network, "b3_s", "b3_bis", 1);
+
+        var t2wt = createTransformer(network, "b3_s", b3, b3Bis, "l35", 0.1f, 1d);
+        t2wt.newRatioTapChanger()
+            .beginStep()
+                .setRho(1)
+            .endStep()
+            .setTapPosition(0)
+            .setLoadTapChangingCapabilities(true)
+            .setRegulating(true)
+            .setTargetV(2)
+            .setTargetDeadband(0)
+            .setRegulationTerminal(t2wt.getTerminal1())
+            .add();
+        return network;
+    }
+
     /**
      * <pre>
      * b1 (d1) ----------+                               b6 (g6) ---PTC----+

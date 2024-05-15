@@ -63,6 +63,7 @@ class AcLoadFlowReportTest {
     @Test
     void testShuntVoltageControlOuterLoopReport() throws IOException {
         Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
+        network.getShuntCompensator("SHUNT2").setVoltageRegulatorOn(true).setTargetV(600); // not plausible targetV, will be discarded and reported
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
@@ -110,7 +111,7 @@ class AcLoadFlowReportTest {
 
     @Test
     void testMultipleComponents() throws IOException {
-        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithInconsistentVoltages();
         // open everything at bus b4 to create 3 components
         network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(Terminal::disconnect);
 
@@ -119,7 +120,9 @@ class AcLoadFlowReportTest {
         // CC2 SC2 has no generator connected. Ignored in for DC and AC.
         network.getGenerator("g10").disconnect();
 
-        var lfParameters = new LoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        var lfParameters = new LoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
+                .setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters.create(lfParameters).setMinNominalVoltageTargetVoltageCheck(0.5);
 
         LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);

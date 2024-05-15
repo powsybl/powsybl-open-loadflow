@@ -281,7 +281,6 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setTargetV(60);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertFalse(t2wt.getRatioTapChanger().isRegulating());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(27.0, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(7, t2wt.getRatioTapChanger().getTapPosition());
