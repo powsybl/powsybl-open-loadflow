@@ -12,8 +12,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
-import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -166,10 +164,10 @@ public final class Networks {
         }
     }
 
-    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem system) {
-        Switch aSwitch = network.getSwitch(system.getSwitchIdToOperate());
+    private static void addSwitchToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem.SwitchTripping tripping) {
+        Switch aSwitch = network.getSwitch(tripping.getSwitchToOperateId());
         if (aSwitch != null) {
-            if (system.isSwitchOpen()) {
+            if (tripping.isOpenAction()) {
                 topoConfig.getSwitchesToOpen().add(aSwitch);
             } else {
                 topoConfig.getSwitchesToClose().add(aSwitch);
@@ -177,13 +175,27 @@ public final class Networks {
         }
     }
 
-    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig) {
+    private static void addBranchToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem.BranchTripping tripping) {
+        Branch<?> branch = network.getBranch(tripping.getBranchToOperateId());
+        if (branch != null && !tripping.isOpenAction()
+                && !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) {
+            topoConfig.getBranchIdsToClose().add(branch.getId());
+        }
+    }
+
+    private static void addElementsToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
-            if (systems != null) {
-                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
-                    addSwitchesOperatedByAutomationSystem(network, topoConfig, system);
-                }
+            for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
+                system.getTrippings()
+                        .forEach(tripping -> {
+                            if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+                                addSwitchToOperateByAutomationSystem(network, topoConfig, (OverloadManagementSystem.SwitchTripping) tripping);
+                            } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
+                                addBranchToOperateByAutomationSystem(network, topoConfig, (OverloadManagementSystem.BranchTripping) tripping);
+                            } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING) {
+                                // TODO
+                            }
+                        });
             }
         }
     }
@@ -198,7 +210,7 @@ public final class Networks {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
-            addSwitchesOperatedByAutomationSystem(network, modifiedTopoConfig);
+            addElementsToOperateByAutomationSystem(network, modifiedTopoConfig);
             if (modifiedTopoConfig.isBreaker()) {
                 networkParameters.setBreakers(true);
             }
