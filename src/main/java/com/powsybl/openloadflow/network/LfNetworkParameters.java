@@ -65,6 +65,8 @@ public class LfNetworkParameters {
 
     public static final boolean TRANSFORMER_VOLTAGE_CONTROL_STABLE_DEFAULT_VALUE = false;
 
+    public static final int TRANSFORMER_VOLTAGE_CONTROL_HT_LIMIT_DEFAULT_VALUE = -1;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;

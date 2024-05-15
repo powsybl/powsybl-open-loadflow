@@ -249,6 +249,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String TRANSFORMER_VOLTAGE_CONTROL_STABLE_PARAM_NAME = "transformerVoltageControlStable";
 
+    public static final String TRANSFORMER_VOLTAGE_CONTROL_HT_LIMIT_PARAM_NAME = "transformerVoltageControlHTLimit";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -319,7 +321,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Reference bus selection mode", ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class)),
         new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE),
         new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class)),
-        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_STABLE_PARAM_NAME, ParameterType.BOOLEAN, "Maintain initial tap position if possible", LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_STABLE_DEFAULT_VALUE)
+        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_STABLE_PARAM_NAME, ParameterType.BOOLEAN, "Maintain initial tap position if possible", LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_STABLE_DEFAULT_VALUE),
+        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_HT_LIMIT_PARAM_NAME, ParameterType.INTEGER, "Limit in KV below wich group stop controlling tension during tap computation. -1 - the default - for automatic determination.", LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_HT_LIMIT_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -492,6 +495,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private List<String> voltageTargetPriorities = LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
     private boolean transformerVoltageControlStable = LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_STABLE_DEFAULT_VALUE;
+
+    private int transformerVoltageControlHTLimit = LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_HT_LIMIT_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1166,6 +1171,26 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    /**
+     * Returns in KV the tension below wich groups controlling tension are forced to PQ
+     * during tap computation.
+     * @return The HT limit or -1 if the limit is determined automatically
+     */
+    public int getTransformerVoltageControlHTLimit() {
+        return transformerVoltageControlHTLimit;
+    }
+
+    /**
+     * Sets the tension below wich groups controlling tension are forced to PQ
+     * during tap computation.
+     * @param transformerVoltageControlHTLimit the limit in KV or -1 the limit
+     *                                         shoud be determined automatically.
+     */
+    public OpenLoadFlowParameters setTransformerVoltageControlHTLimit(int transformerVoltageControlHTLimit) {
+        this.transformerVoltageControlHTLimit = transformerVoltageControlHTLimit;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1240,7 +1265,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReferenceBusSelectionMode(config.getEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class, ReferenceBusSelector.DEFAULT_MODE))
                 .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE))
                 .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE))
-                .setTransformerVoltageControlStable(config.getBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_STABLE_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE)));
+                .setTransformerVoltageControlStable(config.getBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_STABLE_PARAM_NAME, LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_STABLE_DEFAULT_VALUE))
+                .setTransformerVoltageControlHTLimit(config.getIntProperty(TRANSFORMER_VOLTAGE_CONTROL_HT_LIMIT_PARAM_NAME, LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_HT_LIMIT_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1391,6 +1417,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setVoltageTargetPriorities(parseStringListProp(prop)));
         Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_STABLE_PARAM_NAME))
                 .ifPresent(prop -> this.setTransformerVoltageControlStable(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_HT_LIMIT_PARAM_NAME))
+                .ifPresent(prop -> this.setTransformerVoltageControlHTLimit(Integer.parseInt(prop)));
         return this;
     }
 
@@ -1462,6 +1490,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(WRITE_REFERENCE_TERMINALS_PARAM_NAME, writeReferenceTerminals);
         map.put(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, voltageTargetPriorities);
         map.put(TRANSFORMER_VOLTAGE_CONTROL_STABLE_PARAM_NAME, transformerVoltageControlStable);
+        map.put(TRANSFORMER_VOLTAGE_CONTROL_HT_LIMIT_PARAM_NAME, transformerVoltageControlStable);
         return map;
     }
 
@@ -1837,7 +1866,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxSusceptanceMismatch() == extension2.getMaxSusceptanceMismatch() &&
                 extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
                 Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities()) &&
-                extension1.isTransformerVoltageControlStable() == extension2.isTransformerVoltageControlStable();
+                extension1.isTransformerVoltageControlStable() == extension2.isTransformerVoltageControlStable() &&
+                extension1.getTransformerVoltageControlHTLimit() == extension2.getTransformerVoltageControlHTLimit();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1928,7 +1958,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setNewtonRaphsonStoppingCriteriaType(extension.getNewtonRaphsonStoppingCriteriaType())
                     .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
                     .setVoltageTargetPriorities(extension.getVoltageTargetPriorities())
-                    .setTransformerVoltageControlStable(extension.isTransformerVoltageControlStable());
+                    .setTransformerVoltageControlStable(extension.isTransformerVoltageControlStable())
+                    .setTransformerVoltageControlHTLimit(extension.getTransformerVoltageControlHTLimit());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

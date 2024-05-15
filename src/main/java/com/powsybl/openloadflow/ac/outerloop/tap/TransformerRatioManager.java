@@ -24,8 +24,9 @@ public class TransformerRatioManager {
         public ParallelRatioInfo(PiModel piModel) {
             this(piModel.getMaxR1(), piModel.getMinR1(), piModel.getR1());
         }
+
         public ParallelRatioInfo(double rMax, double rMin, double coefA, double coefB, int count) {
-            this(rMax, rMin,  (rMin * coefA + rMax * coefB) / count);
+            this(rMax, rMin, (rMin * coefA + rMax * coefB) / count);
         }
     }
 

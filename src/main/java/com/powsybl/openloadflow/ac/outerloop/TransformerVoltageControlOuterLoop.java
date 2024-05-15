@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.ac.outerloop.tap.TransformerRatioManager;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfVscConverterStation;
 import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.VoltageControl;
 import org.slf4j.Logger;
@@ -59,9 +60,11 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     }
 
     private final boolean stable;
+    private final int htLimit;
 
-    public TransformerVoltageControlOuterLoop(boolean stable) {
+    public TransformerVoltageControlOuterLoop(boolean stable, int htLImit) {
         this.stable = stable;
+        this.htLimit = htLImit;
     }
 
     @Override
@@ -73,14 +76,16 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         }
 
         // All transformer voltage control are disabled for the first equation system resolution.
-        double[] maxControlledNominalVoltage = new double[1];
-        maxControlledNominalVoltage[0] = Double.MIN_VALUE;
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            if (!bus.isDisabled() && bus.isTransformerVoltageControlled()) {
-                maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], bus.getNominalV());
+        double maxControlledNominalVoltage = Double.MIN_VALUE;
+        if (htLimit < 0) {
+            // Compute the default value
+            for (LfBus bus : context.getNetwork().getBuses()) {
+                if (!bus.isDisabled() && bus.isTransformerVoltageControlled()) {
+                    maxControlledNominalVoltage = Math.max(maxControlledNominalVoltage, bus.getNominalV());
+                }
             }
         }
-        ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxControlledNominalVoltage[0]);
+        ((ContextData) context.getData()).setMaxControlledNominalVoltage(htLimit < 0 ? maxControlledNominalVoltage : htLimit);
     }
 
     @Override
@@ -122,19 +127,23 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                     return OuterLoopStatus.STABLE;
                 }
                 for (LfBus bus : context.getNetwork().getControlledBuses(VoltageControl.Type.GENERATOR)) {
-                    if (bus.getNominalV() <= maxControlledNominalVoltage) {
+                    if (bus.getNominalV() < maxControlledNominalVoltage) {
                         var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
                         for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
                             if (controllerBus.isGeneratorVoltageControlEnabled()) {
-                                controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
-                                controllerBus.setGeneratorVoltageControlEnabled(false);
-                                contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
+                                if (!isBusBehindTHTTransfo(controllerBus, maxControlledNominalVoltage)) {
+                                    controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
+                                    controllerBus.setGeneratorVoltageControlEnabled(false);
+                                    contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
+                                }
                             }
                         }
                     }
                 }
+
                 // In stable mode, Group maintaining tension but in PQ mode are ignored
                 context.getNetwork().fixTransformerVoltageControls(!stable);
+
                 contextData.step = Step.TUNING;
                 return OuterLoopStatus.UNSTABLE;
             }
@@ -169,6 +178,22 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         // Should never happen
         return null;
 
+    }
+
+    private boolean isBusBehindTHTTransfo(LfBus bus, double thtLimit) {
+        if (bus.getBranches().size() != 1) {
+            return false;
+        }
+        LfBranch b = bus.getBranches().get(0);
+        if (!b.isConnectedAtBothSides()) {
+            return false;
+        }
+        // Always keep VSC stations
+        if (bus.getGenerators().stream().filter(g -> g instanceof LfVscConverterStation).findAny().isPresent()) {
+            return true;
+        }
+
+        return Math.max(b.getBus1().getNominalV(), b.getBus2().getNominalV()) >= thtLimit;
     }
 
     private void updateContinousRatio(AcOuterLoopContext context) {

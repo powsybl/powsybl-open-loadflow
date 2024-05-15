@@ -109,7 +109,7 @@ class OpenLoadFlowProviderTest {
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
         Map<String, String> map = provider.createMapFromSpecificParameters(parametersExt);
-        assertEquals(66, map.size());
+        assertEquals(67, map.size());
         assertEquals(provider.getSpecificParameters().size(), map.size());
     }
 
