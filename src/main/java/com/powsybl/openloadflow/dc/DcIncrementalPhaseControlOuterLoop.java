@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -58,7 +59,7 @@ public class DcIncrementalPhaseControlOuterLoop
     }
 
     @Override
-    public OuterLoopStatus check(DcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(DcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         var contextData = (IncrementalContextData) context.getData();
@@ -90,6 +91,6 @@ public class DcIncrementalPhaseControlOuterLoop
             }
         }
 
-        return status;
+        return new OuterLoopResult(this, status);
     }
 }

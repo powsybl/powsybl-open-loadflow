@@ -490,7 +490,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
             return new SecurityAnalysisResult(
                     new PreContingencyResult(
-                            preContingencyLoadFlowResult.toComponentResultStatus(),
+                            preContingencyLoadFlowResult.toComponentResultStatus().status(),
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),
