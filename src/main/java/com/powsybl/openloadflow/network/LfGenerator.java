@@ -40,10 +40,6 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
         return (2 * q - maxQ - minQ) / (maxQ - minQ);
     }
 
-    static boolean isTargetVoltageNotPlausible(double targetV, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
-        return targetV < minPlausibleTargetVoltage || targetV > maxPlausibleTargetVoltage;
-    }
-
     String getId();
 
     String getOriginalId();
