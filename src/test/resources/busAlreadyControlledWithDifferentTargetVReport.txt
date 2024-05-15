@@ -4,3 +4,5 @@
       + Network info
          Network has 3 buses and 2 branches
          Network balance: active generation=200.0 MW, active load=99.9 MW, reactive generation=0.0 MVar, reactive load=80.0 MVar
+         Angle reference bus: vl2_0
+         Slack bus: vl2_0
