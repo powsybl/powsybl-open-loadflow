@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.dc.equations;
 
@@ -209,6 +210,31 @@ public class DcEquationSystemCreator {
         }
     }
 
+    private void createHvdcs(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        for (LfHvdc hvdc : network.getHvdcs()) {
+            EquationTerm<DcVariableType, DcEquationType> p1 = null;
+            EquationTerm<DcVariableType, DcEquationType> p2 = null;
+            if (hvdc.getBus1() != null && hvdc.getBus2() != null && hvdc.isAcEmulation()) {
+                p1 = new HvdcAcEmulationSide1DCFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+                p2 = new HvdcAcEmulationSide2DCFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+            }
+
+            if (p1 != null) {
+                equationSystem.getEquation(hvdc.getBus1().getNum(), DcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(p1);
+                hvdc.setP1(p1);
+            }
+
+            if (p2 != null) {
+                equationSystem.getEquation(hvdc.getBus2().getNum(), DcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(p2);
+                hvdc.setP2(p2);
+            }
+        }
+    }
+
     // TODO adapt to DC system
 //    static void updateBranchEquations(LfBranch branch) {
 //        if (!branch.isDisabled() && !branch.isZeroImpedance(LoadFlowModel.DC)) {
@@ -295,6 +321,7 @@ public class DcEquationSystemCreator {
 
         createBuses(equationSystem);
         createBranches(equationSystem);
+        createHvdcs(equationSystem);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 

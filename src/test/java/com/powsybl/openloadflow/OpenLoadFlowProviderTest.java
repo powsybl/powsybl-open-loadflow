@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
@@ -50,7 +51,7 @@ class OpenLoadFlowProviderTest {
     void testDcParameters() {
         Network network = Mockito.mock(Network.class);
         DcLoadFlowParameters dcParameters = OpenLoadFlowParameters.createDcParameters(network, new LoadFlowParameters().setReadSlackBus(true), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true);
-        assertEquals("DcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, connectivityFactory=EvenShiloachGraphDecrementalConnectivityFactory, generatorVoltageRemoteControl=false, minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=5000.0, computeMainConnectedComponentOnly=true, countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, transformerVoltageControl=false, voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, transformerReactivePowerControl=false, loadFlowModel=DC, reactiveLimits=false, hvdcAcEmulation=false, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, loaderPostProcessorSelection=[], reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, svcVoltageMonitoring=false, maxSlackBusCount=1, debugDir=null, secondaryVoltageControl=false, cacheEnabled=false, asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, linePerUnitMode=IMPEDANCE, useLoadModel=false, simulateAutomationSystems=false, referenceBusSelector=ReferenceBusFirstSlackSelector, voltageTargetPriorities=[GENERATOR, TRANSFORMER, SHUNT]), equationSystemCreationParameters=DcEquationSystemCreationParameters(updateFlows=true, forcePhaseControlOffAndAddAngle1Var=true, useTransformerRatio=true, dcApproximationType=IGNORE_R), matrixFactory=DenseMatrixFactory, distributedSlack=true, balanceType=PROPORTIONAL_TO_GENERATION_P_MAX, setVToNan=true, maxOuterLoopIterations=20)",
+        assertEquals("DcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, connectivityFactory=EvenShiloachGraphDecrementalConnectivityFactory, generatorVoltageRemoteControl=false, minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=5000.0, computeMainConnectedComponentOnly=true, countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, transformerVoltageControl=false, voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, transformerReactivePowerControl=false, loadFlowModel=DC, reactiveLimits=false, hvdcAcEmulation=true, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, loaderPostProcessorSelection=[], reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, svcVoltageMonitoring=false, maxSlackBusCount=1, debugDir=null, secondaryVoltageControl=false, cacheEnabled=false, asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, linePerUnitMode=IMPEDANCE, useLoadModel=false, simulateAutomationSystems=false, referenceBusSelector=ReferenceBusFirstSlackSelector, voltageTargetPriorities=[GENERATOR, TRANSFORMER, SHUNT]), equationSystemCreationParameters=DcEquationSystemCreationParameters(updateFlows=true, forcePhaseControlOffAndAddAngle1Var=true, useTransformerRatio=true, dcApproximationType=IGNORE_R), matrixFactory=DenseMatrixFactory, distributedSlack=true, balanceType=PROPORTIONAL_TO_GENERATION_P_MAX, setVToNan=true, maxOuterLoopIterations=20)",
                 dcParameters.toString());
     }
 
@@ -86,7 +87,7 @@ class OpenLoadFlowProviderTest {
     @Test
     void specificParametersTest() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
-        assertEquals(64, provider.getSpecificParameters().size());
+        assertEquals(65, provider.getSpecificParameters().size());
         LoadFlowParameters parameters = new LoadFlowParameters();
 
         provider.loadSpecificParameters(Collections.emptyMap())
@@ -109,7 +110,7 @@ class OpenLoadFlowProviderTest {
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
         Map<String, String> map = provider.createMapFromSpecificParameters(parametersExt);
-        assertEquals(64, map.size());
+        assertEquals(65, map.size());
         assertEquals(provider.getSpecificParameters().size(), map.size());
     }
 

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
@@ -577,5 +578,45 @@ class AcLoadFlowWithCachingTest {
         assertTrue(result.isFullyConverged());
         assertEquals(2, twt.getLeg2().getRatioTapChanger().getTapPosition());
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+    }
+
+    @Test
+    void testTransfo2TapPositionChange() {
+        var network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        var twt = network.getTwoWindingsTransformer("T2wT");
+        assertEquals(0, twt.getRatioTapChanger().getTapPosition());
+
+        parametersExt.setActionableTransformersIds(Set.of("T2wT"));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        twt.getRatioTapChanger().setTapPosition(1);
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+    }
+
+    @Test
+    void testTransfo3TapPositionChange() {
+        var network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        var twt = network.getThreeWindingsTransformer("T3wT");
+        assertEquals(0, twt.getLeg2().getRatioTapChanger().getTapPosition());
+
+        parametersExt.setActionableTransformersIds(Set.of("T3wT"));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        twt.getLeg2().getRatioTapChanger().setTapPosition(1);
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
     }
 }

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.dc;
 
@@ -29,6 +30,10 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
 
     @Override
     public LoadFlowResult.ComponentResult.Status toComponentResultStatus() {
+        if (network.getValidity() != LfNetwork.Validity.VALID) {
+            return LoadFlowResult.ComponentResult.Status.NO_CALCULATION;
+        }
         return success ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
     }
+
 }

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -186,6 +187,17 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setTargetP(0.0)
                 .setMaxP(0.0)
                 .setMinP(0.0);
+        return network;
+    }
+
+    public static Network createWithTwoScs() {
+        Network network = createBaseNetwork();
+        Bus c1 = createBus(network, "c1");
+        Bus c2 = createBus(network, "c2");
+        createGenerator(c1, "gc1", 2);
+        createLoad(c2, "dc2", 1);
+        createLine(network, c1, c2, "lc12", 1f);
+        createLine(network, c1, c2, "lc12Bis", 1f);
         return network;
     }
 }

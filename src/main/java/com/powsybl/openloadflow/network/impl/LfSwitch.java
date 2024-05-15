@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -12,6 +13,8 @@ import com.powsybl.iidm.network.Switch;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
@@ -23,6 +26,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfSwitch extends AbstractLfBranch {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfSwitch.class);
 
     private final Ref<Switch> switchRef;
 
@@ -365,8 +370,19 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters) {
-        // nothing to do
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
+        if (parameters.isSimulateAutomationSystems()) {
+            if (isDisabled() && !switchRef.get().isOpen()) {
+                LOGGER.trace("Open switch '{}'", switchRef.get().getId());
+                updateReport.openedSwitchCount++;
+                switchRef.get().setOpen(true);
+            }
+            if (!isDisabled() && switchRef.get().isOpen()) {
+                LOGGER.trace("Close switch '{}'", switchRef.get().getId());
+                updateReport.closedSwitchCount++;
+                switchRef.get().setOpen(false);
+            }
+        }
     }
 
     @Override

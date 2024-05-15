@@ -3,12 +3,14 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.extensions.VoltageRegulation;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -50,6 +52,12 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMinP(), battery.getMaxP(),
                 parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
+        }
+
+        // get voltage control from extension
+        VoltageRegulation voltageRegulation = battery.getExtension(VoltageRegulation.class);
+        if (voltageRegulation != null && voltageRegulation.isVoltageRegulatorOn()) {
+            setVoltageControl(voltageRegulation.getTargetV(), battery.getTerminal(), voltageRegulation.getRegulatingTerminal(), parameters, report);
         }
     }
 
@@ -115,6 +123,6 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         var battery = getBattery();
         battery.getTerminal()
                 .setP(-targetP * PerUnit.SB)
-                .setQ(-battery.getTargetQ());
+                .setQ(Double.isNaN(calculatedQ) ? -getTargetQ() * PerUnit.SB : -calculatedQ * PerUnit.SB);
     }
 }

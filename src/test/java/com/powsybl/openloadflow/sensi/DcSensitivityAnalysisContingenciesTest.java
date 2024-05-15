@@ -3,12 +3,13 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
@@ -1724,11 +1725,11 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         network.getDanglingLine("dl1").getTerminal().disconnect();
         Line l1 = network.getLine("l1");
-        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        runLf(network, sensiParameters.getLoadFlowParameters(), ReportNode.NO_OP);
         double initialP = l1.getTerminal1().getP();
         assertEquals(19.006, initialP, LoadFlowAssert.DELTA_POWER);
         network.getGenerator("g1").setTargetP(network.getGenerator("g1").getTargetP() + 1);
-        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        runLf(network, sensiParameters.getLoadFlowParameters(), ReportNode.NO_OP);
         double finalP = l1.getTerminal1().getP();
         assertEquals(19.194, finalP, LoadFlowAssert.DELTA_POWER);
         assertEquals(0.1875, finalP - initialP, LoadFlowAssert.DELTA_POWER);
@@ -1755,11 +1756,11 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         network.getDanglingLine("dl1").getTerminal().disconnect();
         Line l1 = network.getLine("l1");
-        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        runLf(network, sensiParameters.getLoadFlowParameters(), ReportNode.NO_OP);
         double initialP = l1.getTerminal1().getP();
         assertEquals(1.875, initialP, LoadFlowAssert.DELTA_POWER);
         network.getLoad("load3").setP0(network.getLoad("load3").getP0() + 1);
-        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        runLf(network, sensiParameters.getLoadFlowParameters(), ReportNode.NO_OP);
         double finalP = l1.getTerminal1().getP();
         assertEquals(2.0624, finalP, LoadFlowAssert.DELTA_POWER);
         assertEquals(0.1875, finalP - initialP, LoadFlowAssert.DELTA_POWER);

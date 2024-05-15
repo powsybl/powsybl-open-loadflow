@@ -4,10 +4,11 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
@@ -24,7 +25,8 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
 import java.util.function.Predicate;
 
 /**
@@ -182,7 +184,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         LfNetwork network = context.getNetwork();
@@ -215,8 +217,8 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         if (numAdjustedShunts.getValue() != 0) {
             status.setValue(OuterLoopStatus.UNSTABLE);
-            Reporter iterationReporter = Reports.createOuterLoopIterationReporter(reporter, context.getOuterLoopTotalIterations() + 1);
-            Reports.reportShuntVoltageControlChangedSection(iterationReporter, numAdjustedShunts.getValue());
+            ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+            Reports.reportShuntVoltageControlChangedSection(iterationReportNode, numAdjustedShunts.getValue());
         }
 
         return status.getValue();

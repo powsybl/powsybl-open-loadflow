@@ -3,17 +3,16 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
-import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -487,9 +486,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
             LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
-            HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
             if (cs1 != null && cs2 != null) {
-                LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, control, parameters.isHvdcAcEmulation());
+                LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, parameters.isHvdcAcEmulation());
                 lfHvdc.setConverterStation1(cs1);
                 lfHvdc.setConverterStation2(cs2);
                 lfNetwork.addHvdc(lfHvdc);
@@ -755,9 +753,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
-                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reporter);
+                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reportNode);
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -804,17 +802,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reportNode, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reporter, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reportNode, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small reactive range",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reporter, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reportNode, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because targetP is outside active power limits",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
         }
@@ -973,34 +971,61 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
     }
 
+    private static String getTrippingLfBranchId(OverloadManagementSystem.Tripping tripping) {
+        String branchToOperateId = null;
+        if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+            OverloadManagementSystem.SwitchTripping switchTripping = (OverloadManagementSystem.SwitchTripping) tripping;
+            branchToOperateId = switchTripping.getSwitchToOperateId();
+        } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
+            OverloadManagementSystem.BranchTripping branchTripping = (OverloadManagementSystem.BranchTripping) tripping;
+            branchToOperateId = branchTripping.getBranchToOperateId();
+        }
+        return branchToOperateId;
+    }
+
+    private static void addTripping(LfNetwork lfNetwork, LfOverloadManagementSystem lfOverloadManagementSystem, OverloadManagementSystem.Tripping tripping) {
+        String branchToOperateId = getTrippingLfBranchId(tripping);
+        LfBranch lfBranchToOperate = lfNetwork.getBranchById(branchToOperateId);
+        if (lfBranchToOperate != null) {
+            LfBus bus = lfOverloadManagementSystem.getMonitoredSide().equals(TwoSides.ONE) ?
+                    lfOverloadManagementSystem.getMonitoredBranch().getBus1() : lfOverloadManagementSystem.getMonitoredBranch().getBus2();
+            double threshold = tripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
+            lfOverloadManagementSystem.addLfBranchTripping(lfBranchToOperate, tripping.isOpenAction(), threshold);
+        } else {
+            LOGGER.warn("Invalid overload management system: branch to operate is '{}'", branchToOperateId);
+        }
+    }
+
     private static void createOverloadManagementSystem(LfNetwork lfNetwork, OverloadManagementSystem system) {
         if (system.isEnabled()) {
-            LfBranch lfLineToMonitor = lfNetwork.getBranchById(system.getMonitoredLineId());
-            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(system.getSwitchIdToOperate());
-            if (lfLineToMonitor != null && lfSwitchToOperate != null) {
-                LfBus bus = lfLineToMonitor.getBus1() != null ? lfLineToMonitor.getBus1() : lfLineToMonitor.getBus2();
-                double threshold = system.getThreshold() / PerUnit.ib(bus.getNominalV());
-                lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, threshold, lfSwitchToOperate, system.isSwitchOpen()));
+            LfBranch lfMonitoredElement = lfNetwork.getBranchById(system.getMonitoredElementId());
+            if (system.getTrippings().stream().map(OverloadManagementSystem.Tripping::getType)
+                    .anyMatch(type -> type == OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING)) {
+                LOGGER.warn("Unsupported overload management system {}: three windings transformer tripping supported", system.getId());
+                return;
+            }
+            if (lfMonitoredElement != null) {
+                LfOverloadManagementSystem lfOverloadManagementSystem = new LfOverloadManagementSystem(lfMonitoredElement, system.getMonitoredSide().toTwoSides());
+                system.getTrippings().forEach(tripping -> addTripping(lfNetwork, lfOverloadManagementSystem, tripping));
+                if (!lfOverloadManagementSystem.getBranchTrippingList().isEmpty()) {
+                    lfNetwork.addOverloadManagementSystem(lfOverloadManagementSystem);
+                }
             } else {
-                LOGGER.warn("Invalid overload management system: line to monitor is '{}', switch to operate is '{}'",
-                        system.getMonitoredLineId(), system.getSwitchIdToOperate());
+                LOGGER.warn("Invalid overload management system: element to monitor is '{}'", system.getMonitoredElementId());
             }
         }
     }
 
     private void createAutomationSystems(Network network, LfNetwork lfNetwork) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
-            if (systems != null) {
-                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
-                    createOverloadManagementSystem(lfNetwork, system);
-                }
+            for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
+                createOverloadManagementSystem(lfNetwork, system);
             }
         }
     }
 
     @Override
-    public List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+    public List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
@@ -1047,7 +1072,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
                     return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                            parameters, Reports.createLfNetworkReporter(reporter, numCc, numSc));
+                            parameters, Reports.createRootLfNetworkReportNode(numCc, numSc));
                 })
                 .collect(Collectors.toList());
 

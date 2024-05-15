@@ -3,13 +3,14 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -78,7 +79,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
-    private boolean valid = true;
+    private Validity validity = Validity.VALID;
 
     private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
@@ -86,11 +87,28 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final Map<LoadFlowModel, Set<LfZeroImpedanceNetwork>> zeroImpedanceNetworksByModel = new EnumMap<>(LoadFlowModel.class);
 
-    private Reporter reporter;
+    private ReportNode reportNode;
 
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
 
     private final List<LfVoltageAngleLimit> voltageAngleLimits = new ArrayList<>();
+
+    public enum Validity {
+        VALID("Valid"),
+        INVALID_NO_GENERATOR("Network has no generator"),
+        INVALID_NO_GENERATOR_VOLTAGE_CONTROL("Network has no generator with voltage control enabled");
+
+        private final String description;
+
+        Validity(String description) {
+            this.description = description;
+        }
+
+        @Override
+        public String toString() {
+            return this.description;
+        }
+    }
 
     public static class LfVoltageAngleLimit {
         private final String id;
@@ -131,19 +149,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     protected final List<LfOverloadManagementSystem> overloadManagementSystems = new ArrayList<>();
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
-                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector, Reporter reporter) {
+                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector, ReportNode reportNode) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.maxSlackBusCount = maxSlackBusCount;
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
         this.referenceBusSelector = referenceBusSelector;
-        this.reporter = Objects.requireNonNull(reporter);
+        this.reportNode = Objects.requireNonNull(reportNode);
     }
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector) {
-        this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, Reporter.NO_OP);
+        this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, ReportNode.NO_OP);
     }
 
     public int getNumCC() {
@@ -154,12 +172,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return numSC;
     }
 
-    public Reporter getReporter() {
-        return reporter;
+    public ReportNode getReportNode() {
+        return reportNode;
     }
 
-    public void setReporter(Reporter reporter) {
-        this.reporter = Objects.requireNonNull(reporter);
+    public void setReportNode(ReportNode reportNode) {
+        this.reportNode = Objects.requireNonNull(reportNode);
     }
 
     public LfElement getElement(ElementType elementType, int num) {
@@ -279,6 +297,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public LfBus getReferenceBus() {
+        updateSlackBusesAndReferenceBus();
         return referenceBus;
     }
 
@@ -350,6 +369,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
+        LfNetworkUpdateReport updateReport = new LfNetworkUpdateReport();
+
         for (LfBus bus : busesById.values()) {
             bus.updateState(parameters);
             for (LfGenerator generator : bus.getGenerators()) {
@@ -358,11 +379,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
             bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
         }
-        for (LfBranch branch : branches) {
-            branch.updateState(parameters);
+        branches.forEach(branch -> branch.updateState(parameters, updateReport));
+        hvdcs.forEach(LfHvdc::updateState);
+
+        if (updateReport.closedSwitchCount + updateReport.openedSwitchCount > 0) {
+            LOGGER.debug("Switches status update: {} closed and {} opened", updateReport.closedSwitchCount, updateReport.openedSwitchCount);
         }
-        for (LfHvdc hvdc : hvdcs) {
-            hvdc.updateState();
+        if (updateReport.connectedBranchSide1Count + updateReport.disconnectedBranchSide1Count
+                + updateReport.connectedBranchSide2Count + updateReport.disconnectedBranchSide2Count > 0) {
+            LOGGER.debug("Branches connection status update: {} connected side 1, {} disconnected side1, {} connected side 2, {} disconnected side 2",
+                    updateReport.connectedBranchSide1Count, updateReport.disconnectedBranchSide1Count, updateReport.connectedBranchSide2Count, updateReport.disconnectedBranchSide2Count);
         }
 
         stopwatch.stop();
@@ -540,13 +566,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    private void reportSize(Reporter reporter) {
-        Reports.reportNetworkSize(reporter, busesById.values().size(), branches.size());
+    private void reportSize(ReportNode reportNode) {
+        Reports.reportNetworkSize(reportNode, busesById.values().size(), branches.size());
         LOGGER.info("Network {} has {} buses and {} branches",
             this, busesById.values().size(), branches.size());
     }
 
-    public void reportBalance(Reporter reporter) {
+    public void reportBalance(ReportNode reportNode) {
         double activeGeneration = 0;
         double reactiveGeneration = 0;
         double activeLoad = 0;
@@ -558,7 +584,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
         }
 
-        Reports.reportNetworkBalance(reporter, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+        Reports.reportNetworkBalance(reportNode, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
         LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
@@ -578,7 +604,22 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    private void validateBuses(LoadFlowModel loadFlowModel, Reporter reporter) {
+    private void validateBuses(LoadFlowModel loadFlowModel, ReportNode reportNode) {
+        // DC or AC, if no generator, network is dead
+        boolean hasAtLeastOneBusGenerator = false;
+        for (LfBus bus : busesByIndex) {
+            if (!bus.getGenerators().isEmpty()) {
+                hasAtLeastOneBusGenerator = true;
+                break;
+            }
+        }
+        if (!hasAtLeastOneBusGenerator) {
+            // we don't report because this is too much on real networks
+            LOGGER.debug("Network {} has no generator and will be considered dead", this);
+            validity = Validity.INVALID_NO_GENERATOR;
+            return;
+        }
+        // AC requires at least one bus under voltage control
         if (loadFlowModel == LoadFlowModel.AC) {
             boolean hasAtLeastOneBusGeneratorVoltageControlEnabled = false;
             for (LfBus bus : busesByIndex) {
@@ -589,46 +630,59 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             }
             if (!hasAtLeastOneBusGeneratorVoltageControlEnabled) {
                 LOGGER.error("Network {} must have at least one bus with generator voltage control enabled", this);
-                if (reporter != null) {
-                    Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reporter);
+                if (reportNode != null) {
+                    Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
                 }
-                valid = false;
+                validity = Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL;
             }
         }
     }
 
-    public void validate(LoadFlowModel loadFlowModel, Reporter reporter) {
-        valid = true;
-        validateBuses(loadFlowModel, reporter);
+    public void validate(LoadFlowModel loadFlowModel, ReportNode reportNode) {
+        validity = Validity.VALID;
+        validateBuses(loadFlowModel, reportNode);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
-        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), Reporter.NO_OP);
+        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), ReportNode.NO_OP);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters) {
-        return load(network, networkLoader, parameters, Reporter.NO_OP);
+        return load(network, networkLoader, parameters, ReportNode.NO_OP);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
-        return load(network, networkLoader, new LfTopoConfig(), parameters, reporter);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, ReportNode reportNode) {
+        return load(network, networkLoader, new LfTopoConfig(), parameters, reportNode);
     }
 
-    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
-        List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reporter);
+        List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reportNode);
+        int deadComponentsCount = 0;
         for (LfNetwork lfNetwork : lfNetworks) {
-            Reporter reporterNetwork = Reports.createNetworkInfoReporter(lfNetwork.getReporter());
+            ReportNode networkReport = Reports.createNetworkInfoReporter(lfNetwork.getReportNode());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
-            lfNetwork.validate(parameters.getLoadFlowModel(), reporterNetwork);
-            if (lfNetwork.isValid()) {
-                lfNetwork.reportSize(reporterNetwork);
-                lfNetwork.reportBalance(reporterNetwork);
-            } else {
-                LOGGER.info("Network {} is invalid, no calculation will be done", lfNetwork);
+            lfNetwork.validate(parameters.getLoadFlowModel(), networkReport);
+            switch (lfNetwork.getValidity()) {
+                case VALID -> {
+                    lfNetwork.reportSize(networkReport);
+                    lfNetwork.reportBalance(networkReport);
+                    Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfNetwork.getReferenceBus().getId(), lfNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
+                    lfNetwork.setReportNode(Reports.createLfNetworkReportNode(reportNode, lfNetwork.getReportNode(), lfNetwork.getNumCC(), lfNetwork.getNumCC()));
+                }
+                case INVALID_NO_GENERATOR_VOLTAGE_CONTROL -> {
+                    LOGGER.info("Network {} is invalid, no calculation will be done", lfNetwork);
+                    // we want to report this
+                    lfNetwork.setReportNode(Reports.createLfNetworkReportNode(reportNode, lfNetwork.getReportNode(), lfNetwork.getNumCC(), lfNetwork.getNumCC()));
+                }
+                case INVALID_NO_GENERATOR -> deadComponentsCount++; // will be reported later on altogether
             }
+        }
+        if (deadComponentsCount > 0) {
+            Reports.reportComponentsWithoutGenerators(reportNode, deadComponentsCount);
+            LOGGER.info("No calculation will be done on {} network(s) that have no generators", deadComponentsCount);
         }
         return lfNetworks;
     }
@@ -672,8 +726,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return listeners;
     }
 
-    public boolean isValid() {
-        return valid;
+    public Validity getValidity() {
+        return validity;
     }
 
     /**

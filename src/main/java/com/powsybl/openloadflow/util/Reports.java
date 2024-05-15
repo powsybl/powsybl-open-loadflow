@@ -3,16 +3,15 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.util;
 
-import com.powsybl.commons.reporter.Report;
-import com.powsybl.commons.reporter.ReportBuilder;
-import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.reporter.TypedValue;
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,405 +32,447 @@ public final class Reports {
     private Reports() {
     }
 
-    public static void reportNetworkSize(Reporter reporter, int busCount, int branchCount) {
-        reporter.report(Report.builder()
-                .withKey("networkSize")
-                .withDefaultMessage("Network has ${busCount} buses and ${branchCount} branches")
-                .withValue("busCount", busCount)
-                .withValue("branchCount", branchCount)
+    public static void reportNetworkSize(ReportNode reportNode, int busCount, int branchCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("networkSize", "Network has ${busCount} buses and ${branchCount} branches")
+                .withUntypedValue("busCount", busCount)
+                .withUntypedValue("branchCount", branchCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportNetworkBalance(Reporter reporter, double activeGeneration, double activeLoad, double reactiveGeneration, double reactiveLoad) {
-        reporter.report(Report.builder()
-                .withKey("networkBalance")
-                .withDefaultMessage("Network balance: active generation=${activeGeneration} MW, active load=${activeLoad} MW, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
-                .withValue("activeGeneration", activeGeneration)
-                .withValue("activeLoad", activeLoad)
-                .withValue("reactiveGeneration", reactiveGeneration)
-                .withValue("reactiveLoad", reactiveLoad)
+    public static void reportNetworkBalance(ReportNode reportNode, double activeGeneration, double activeLoad, double reactiveGeneration, double reactiveLoad) {
+        reportNode.newReportNode()
+                .withMessageTemplate("networkBalance", "Network balance: active generation=${activeGeneration} MW, active load=${activeLoad} MW, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
+                .withUntypedValue("activeGeneration", activeGeneration)
+                .withUntypedValue("activeLoad", activeLoad)
+                .withUntypedValue("reactiveGeneration", reactiveGeneration)
+                .withUntypedValue("reactiveLoad", reactiveLoad)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(Reporter reporter) {
-        reporter.report(Report.builder()
-                .withKey("networkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled")
-                .withDefaultMessage("Network must have at least one bus with generator voltage control enabled")
+    public static void reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(ReportNode reportNode) {
+        reportNode.newReportNode()
+                .withMessageTemplate("networkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled", "Network must have at least one bus with generator voltage control enabled")
                 .withSeverity(TypedValue.ERROR_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportMismatchDistributionFailure(Reporter reporter, double remainingMismatch) {
-        reporter.report(Report.builder()
-                .withKey("mismatchDistributionFailure")
-                .withDefaultMessage("Failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
+    public static void reportComponentsWithoutGenerators(ReportNode reportNode, int deadComponentsCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("componentsWithoutGenerators", "No calculation will be done on ${deadComponentsCount} network(s) that have no generators")
+                .withUntypedValue("deadComponentsCount", deadComponentsCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportMismatchDistributionFailure(ReportNode reportNode, double remainingMismatch) {
+        reportNode.newReportNode()
+                .withMessageTemplate("mismatchDistributionFailure", "Failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
                 .withTypedValue("mismatch", remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportMismatchDistributionSuccess(Reporter reporter, double slackBusActivePowerMismatch, int iterationCount) {
-        reporter.report(Report.builder()
-                .withKey("mismatchDistributionSuccess")
-                .withDefaultMessage("Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
+    public static void reportMismatchDistributionSuccess(ReportNode reportNode, double slackBusActivePowerMismatch, int iterationCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("mismatchDistributionSuccess", "Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
                 .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                .withValue("iterationCount", iterationCount)
+                .withUntypedValue("iterationCount", iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportPvToPqBuses(Reporter reporter, int pvToPqBusCount, int remainingPvBusCount) {
-        reporter.report(Report.builder()
-                .withKey("switchPvPq")
-                .withDefaultMessage("${pvToPqBusCount} buses switched PV -> PQ (${remainingPvBusCount} buses remain PV)")
-                .withValue("pvToPqBusCount", pvToPqBusCount)
-                .withValue("remainingPvBusCount", remainingPvBusCount)
+    public static void reportPvToPqBuses(ReportNode reportNode, int pvToPqBusCount, int remainingPvBusCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("switchPvPq", "${pvToPqBusCount} buses switched PV -> PQ (${remainingPvBusCount} buses remain PV)")
+                .withUntypedValue("pvToPqBusCount", pvToPqBusCount)
+                .withUntypedValue("remainingPvBusCount", remainingPvBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportPqToPvBuses(Reporter reporter, int pqToPvBusCount, int blockedPqBusCount) {
-        reporter.report(Report.builder()
-                .withKey("switchPqPv")
-                .withDefaultMessage("${pqToPvBusCount} buses switched PQ -> PV (${blockedPqBusCount} buses blocked PQ due to the max number of switches)")
-                .withValue("pqToPvBusCount", pqToPvBusCount)
-                .withValue("blockedPqBusCount", blockedPqBusCount)
+    public static void reportPqToPvBuses(ReportNode reportNode, int pqToPvBusCount, int blockedPqBusCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("switchPqPv", "${pqToPvBusCount} buses switched PQ -> PV (${blockedPqBusCount} buses blocked PQ due to the max number of switches)")
+                .withUntypedValue("pqToPvBusCount", pqToPvBusCount)
+                .withUntypedValue("blockedPqBusCount", blockedPqBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportBusForcedToBePv(Reporter reporter, String busId) {
-        reporter.report(Report.builder()
-                .withKey("busForcedToBePv")
-                .withDefaultMessage("All PV buses should switch PQ, strongest one will stay PV: ${busId}")
-                .withValue(BUS_ID, busId)
+    public static void reportBusForcedToBePv(ReportNode reportNode, String busId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("busForcedToBePv", "All PV buses should switch PQ, strongest one will stay PV: ${busId}")
+                .withUntypedValue(BUS_ID, busId)
                 .withSeverity(TypedValue.WARN_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportBusesWithUpdatedQLimits(Reporter reporter, int numBusesWithUpdatedQLimits) {
-        reporter.report(Report.builder()
-                .withKey("busWithUpdatedQLimits")
-                .withDefaultMessage("${numBusesWithUpdatedQLimits} buses blocked at a reactive limit have been adjusted because the reactive limit changed")
-                .withValue("numBusesWithUpdatedQLimits", numBusesWithUpdatedQLimits)
+    public static void reportBusesWithUpdatedQLimits(ReportNode reportNode, int numBusesWithUpdatedQLimits) {
+        reportNode.newReportNode()
+                .withMessageTemplate("busWithUpdatedQLimits", "${numBusesWithUpdatedQLimits} buses blocked at a reactive limit have been adjusted because the reactive limit changed")
+                .withUntypedValue("numBusesWithUpdatedQLimits", numBusesWithUpdatedQLimits)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportReactiveControllerBusesToPqBuses(Reporter reporter, int remoteReactivePowerControllerBusToPqCount) {
-        reporter.report(Report.builder()
-                .withKey("remoteReactiveControllerBusToPq")
-                .withDefaultMessage("${remoteReactivePowerControllerBusToPqCount} bus(es) with remote reactive power controller switched PQ")
-                .withValue("remoteReactivePowerControllerBusToPqCount", remoteReactivePowerControllerBusToPqCount)
+    public static void reportReactiveControllerBusesToPqBuses(ReportNode reportNode, int remoteReactivePowerControllerBusToPqCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("remoteReactiveControllerBusToPq", "${remoteReactivePowerControllerBusToPqCount} bus(es) with remote reactive power controller switched PQ")
+                .withUntypedValue("remoteReactivePowerControllerBusToPqCount", remoteReactivePowerControllerBusToPqCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportStandByAutomatonActivation(Reporter reporter, String busId, double newTargetV) {
-        reporter.report(Report.builder()
-                .withKey("standByAutomatonActivation")
-                .withDefaultMessage("Activation of voltage control of static var compensator with stand by automaton: bus ${busId} switched PQ -> PV with targetV ${newTargetV}")
-                .withValue(BUS_ID, busId)
-                .withValue("newTargetV", newTargetV)
+    public static void reportStandByAutomatonActivation(ReportNode reportNode, String busId, double newTargetV) {
+        reportNode.newReportNode()
+                .withMessageTemplate("standByAutomatonActivation", "Activation of voltage control of static var compensator with stand by automaton: bus ${busId} switched PQ -> PV with targetV ${newTargetV}")
+                .withUntypedValue(BUS_ID, busId)
+                .withUntypedValue("newTargetV", newTargetV)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportCurrentLimiterPstsChangedTaps(Reporter reporter, int numOfCurrentLimiterPstsThatChangedTap) {
-        reporter.report(Report.builder()
-                .withKey("currentLimiterPstsChangedTaps")
-                .withDefaultMessage("${numOfCurrentLimiterPstsThatChangedTap} current limiter PST(s) changed taps")
-                .withValue("numOfCurrentLimiterPstsThatChangedTap", numOfCurrentLimiterPstsThatChangedTap)
+    public static void reportCurrentLimiterPstsChangedTaps(ReportNode reportNode, int numOfCurrentLimiterPstsThatChangedTap) {
+        reportNode.newReportNode()
+                .withMessageTemplate("currentLimiterPstsChangedTaps", "${numOfCurrentLimiterPstsThatChangedTap} current limiter PST(s) changed taps")
+                .withUntypedValue("numOfCurrentLimiterPstsThatChangedTap", numOfCurrentLimiterPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportActivePowerControlPstsChangedTaps(Reporter reporter, int numOfActivePowerControlPstsThatChangedTap) {
-        reporter.report(Report.builder()
-                .withKey("activePowerControlPstsChangedTaps")
-                .withDefaultMessage("${numOfActivePowerControlPstsThatChangedTap} active power control PST(s) changed taps")
-                .withValue("numOfActivePowerControlPstsThatChangedTap", numOfActivePowerControlPstsThatChangedTap)
+    public static void reportActivePowerControlPstsChangedTaps(ReportNode reportNode, int numOfActivePowerControlPstsThatChangedTap) {
+        reportNode.newReportNode()
+                .withMessageTemplate("activePowerControlPstsChangedTaps", "${numOfActivePowerControlPstsThatChangedTap} active power control PST(s) changed taps")
+                .withUntypedValue("numOfActivePowerControlPstsThatChangedTap", numOfActivePowerControlPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportTransformerControlBusesOutsideDeadband(Reporter reporter, int numTransformerControlBusesOutsideDeadband) {
-        reporter.report(Report.builder()
-                .withKey("transformerControlBusesOutsideDeadband")
-                .withDefaultMessage("${numTransformerControlBusesOutsideDeadband} voltage-controlled buses are outside of their target deadbands")
-                .withValue("numTransformerControlBusesOutsideDeadband", numTransformerControlBusesOutsideDeadband)
+    public static void reportTransformerControlBusesOutsideDeadband(ReportNode reportNode, int numTransformerControlBusesOutsideDeadband) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlBusesOutsideDeadband", "${numTransformerControlBusesOutsideDeadband} voltage-controlled buses are outside of their target deadbands")
+                .withUntypedValue("numTransformerControlBusesOutsideDeadband", numTransformerControlBusesOutsideDeadband)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportTransformerControlBranchesOutsideDeadband(Reporter reporter, int numTransformerControlBranchesOutsideDeadband) {
-        reporter.report(Report.builder()
-                .withKey("transformerControlBranchesOutsideDeadband")
-                .withDefaultMessage("${numTransformerControlBranchesOutsideDeadband} reactive power-controlled branches are outside of their target deadbands")
-                .withValue("numTransformerControlBranchesOutsideDeadband", numTransformerControlBranchesOutsideDeadband)
+    public static void reportTransformerControlBranchesOutsideDeadband(ReportNode reportNode, int numTransformerControlBranchesOutsideDeadband) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlBranchesOutsideDeadband", "${numTransformerControlBranchesOutsideDeadband} reactive power-controlled branches are outside of their target deadbands")
+                .withUntypedValue("numTransformerControlBranchesOutsideDeadband", numTransformerControlBranchesOutsideDeadband)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportTransformerControlChangedTaps(Reporter reporter, int numTransformerControlAdjusted) {
-        reporter.report(Report.builder()
-                .withKey("transformerControlChangedTaps")
-                .withDefaultMessage("${numTransformerControlAdjusted} transformers changed tap position")
-                .withValue("numTransformerControlAdjusted", numTransformerControlAdjusted)
+    public static void reportTransformerControlChangedTaps(ReportNode reportNode, int numTransformerControlAdjusted) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlChangedTaps", "${numTransformerControlAdjusted} transformers changed tap position")
+                .withUntypedValue("numTransformerControlAdjusted", numTransformerControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportTransformerControlTapLimit(Reporter reporter, int numTransformerControlTapLimit) {
-        reporter.report(Report.builder()
-                .withKey("transformerControlTapLimit")
-                .withDefaultMessage("${numTransformerControlTapLimit} transformers reached their tap maximum position")
-                .withValue("numTransformerControlTapLimit", numTransformerControlTapLimit)
+    public static void reportTransformerControlTapLimit(ReportNode reportNode, int numTransformerControlTapLimit) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlTapLimit", "${numTransformerControlTapLimit} transformers reached their tap maximum position")
+                .withUntypedValue("numTransformerControlTapLimit", numTransformerControlTapLimit)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportShuntVoltageControlChangedSection(Reporter reporter, int numShuntVoltageControlAdjusted) {
-        reporter.report(Report.builder()
-                .withKey("shuntVoltageControlChangedSection")
-                .withDefaultMessage("${numShuntVoltageControlAdjusted} shunts changed section")
-                .withValue("numShuntVoltageControlAdjusted", numShuntVoltageControlAdjusted)
+    public static void reportShuntVoltageControlChangedSection(ReportNode reportNode, int numShuntVoltageControlAdjusted) {
+        reportNode.newReportNode()
+                .withMessageTemplate("shuntVoltageControlChangedSection", "${numShuntVoltageControlAdjusted} shunts changed section")
+                .withUntypedValue("numShuntVoltageControlAdjusted", numShuntVoltageControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportUnsuccessfulOuterLoop(Reporter reporter, String outerLoopStatus) {
-        reporter.report(Report.builder()
-                .withKey("outerLoopStatus")
-                .withDefaultMessage("Outer loop unsuccessful with status: ${outerLoopStatus}")
-                .withValue("outerLoopStatus", outerLoopStatus)
+    public static void reportUnsuccessfulOuterLoop(ReportNode reportNode, String outerLoopStatus) {
+        reportNode.newReportNode()
+                .withMessageTemplate("outerLoopStatus", "Outer loop unsuccessful with status: ${outerLoopStatus}")
+                .withUntypedValue("outerLoopStatus", outerLoopStatus)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportDcLfSolverFailure(Reporter reporter, String errorMessage) {
-        reporter.report(Report.builder()
-                .withKey("dcLfFailure")
-                .withDefaultMessage("Failed to solve linear system for DC load flow: ${errorMessage}")
-                .withValue("errorMessage", errorMessage)
+    public static void reportDcLfSolverFailure(ReportNode reportNode, String errorMessage) {
+        reportNode.newReportNode()
+                .withMessageTemplate("dcLfFailure", "Failed to solve linear system for DC load flow: ${errorMessage}")
+                .withUntypedValue("errorMessage", errorMessage)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportDcLfComplete(Reporter reporter, boolean succeeded) {
-        reporter.report(Report.builder()
-                .withKey("dcLfComplete")
-                .withDefaultMessage("DC load flow completed (status=${succeeded})")
-                .withValue("succeeded", succeeded)
+    public static void reportDcLfComplete(ReportNode reportNode, boolean succeeded) {
+        reportNode.newReportNode()
+                .withMessageTemplate("dcLfComplete", "DC load flow completed (status=${succeeded})")
+                .withUntypedValue("succeeded", succeeded)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(Reporter reporter, int impactedGeneratorCount) {
-        reporter.report(Report.builder()
-                .withKey("generatorsDiscardedFromVoltageControlBecauseNotStarted")
-                .withDefaultMessage("${impactedGeneratorCount} generators were discarded from voltage control because not started")
-                .withValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseNotStarted", "${impactedGeneratorCount} generators were discarded from voltage control because not started")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(Reporter reporter, int impactedGeneratorCount) {
-        reporter.report(Report.builder()
-                .withKey("generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
-                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because of a too small reactive range")
-                .withValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall", "${impactedGeneratorCount} generators have been discarded from voltage control because of a too small reactive range")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(Reporter reporter, int impactedGeneratorCount) {
-        reporter.report(Report.builder()
-                .withKey("generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
-                .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because targetP is outside active power limits")
-                .withValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits", "${impactedGeneratorCount} generators have been discarded from voltage control because targetP is outside active power limits")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportAcLfComplete(Reporter reporter, boolean success, String solverStatus, String outerloopStatus) {
+    public static void reportAcLfComplete(ReportNode reportNode, boolean success, String solverStatus, String outerloopStatus) {
         TypedValue severity = success ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
         String successText = success ? "successfully" : "with error";
-        reporter.report(Report.builder()
-                .withKey("acLfComplete")
-                .withDefaultMessage("AC load flow completed ${successText} (solverStatus=${solverStatus}, outerloopStatus=${outerloopStatus})")
-                .withValue("successText", successText)
-                .withValue("solverStatus", solverStatus)
-                .withValue("outerloopStatus", outerloopStatus)
+        reportNode.newReportNode()
+                .withMessageTemplate("acLfComplete", "AC load flow completed ${successText} (solverStatus=${solverStatus}, outerloopStatus=${outerloopStatus})")
+                .withUntypedValue("successText", successText)
+                .withUntypedValue("solverStatus", solverStatus)
+                .withUntypedValue("outerloopStatus", outerloopStatus)
                 .withSeverity(severity)
-                .build());
+                .add();
     }
 
-    public static Reporter createLoadFlowReporter(Reporter reporter, String networkId) {
-        return reporter.createSubReporter("loadFlow", "Load flow on network '${networkId}'",
-                NETWORK_ID, networkId);
+    public static ReportNode createLoadFlowReporter(ReportNode reportNode, String networkId) {
+        return reportNode.newReportNode().withMessageTemplate("loadFlow", "Load flow on network '${networkId}'")
+                .withUntypedValue(NETWORK_ID, networkId)
+                .add();
     }
 
-    public static Reporter createLfNetworkReporter(Reporter reporter, int networkNumCc, int networkNumSc) {
-        return reporter.createSubReporter("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}",
-                Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
-                        NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+    public static ReportNode createRootLfNetworkReportNode(int networkNumCc, int networkNumSc) {
+        return ReportNode.newRootReportNode()
+                .withMessageTemplate("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}")
+                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
+                .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+                .build();
     }
 
-    public static Reporter createNetworkInfoReporter(Reporter reporter) {
-        return reporter.createSubReporter("networkInfo", "Network info");
+    public static ReportNode createLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode, int networkNumCc, int networkNumSc) {
+        ReportNode newReportNode = reportNode.newReportNode()
+                .withMessageTemplate("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}")
+                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
+                .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+                .add();
+        newReportNode.include(lfNetworkReportNode);
+        return newReportNode;
     }
 
-    public static Reporter createOuterLoopReporter(Reporter reporter, String outerLoopType) {
-        return reporter.createSubReporter("OuterLoop", "Outer loop ${outerLoopType}", "outerLoopType", outerLoopType);
+    public static ReportNode createNetworkInfoReporter(ReportNode reportNode) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("networkInfo", "Network info")
+                .add();
     }
 
-    public static Reporter createOuterLoopIterationReporter(Reporter reporter, int outerLoopIteration) {
-        Map<String, TypedValue> subReporterMap = new HashMap<>();
-        subReporterMap.put("outerLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED));
-        return reporter.createSubReporter("OuterLoopIteration", "Outer loop iteration ${outerLoopIteration}", subReporterMap);
+    public static ReportNode createOuterLoopReporter(ReportNode reportNode, String outerLoopType) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("OuterLoop", "Outer loop ${outerLoopType}")
+                .withUntypedValue("outerLoopType", outerLoopType)
+                .add();
     }
 
-    public static Reporter createSensitivityAnalysis(Reporter reporter, String networkId) {
-        return reporter.createSubReporter("sensitivityAnalysis",
-                "Sensitivity analysis on network '${networkId}'", NETWORK_ID, networkId);
+    public static ReportNode createOuterLoopIterationReporter(ReportNode reportNode, int outerLoopIteration) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("OuterLoopIteration", "Outer loop iteration ${outerLoopIteration}")
+                .withUntypedValue("outerLoopIteration", outerLoopIteration)
+                .add();
     }
 
-    public static Reporter createAcSecurityAnalysis(Reporter reporter, String networkId) {
-        return reporter.createSubReporter("acSecurityAnalysis",
-                "AC security analysis on network '${networkId}'", NETWORK_ID, networkId);
+    public static ReportNode createSensitivityAnalysis(ReportNode reportNode, String networkId) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("sensitivityAnalysis", "Sensitivity analysis on network '${networkId}'")
+                .withUntypedValue(NETWORK_ID, networkId)
+                .add();
     }
 
-    public static Reporter createDcSecurityAnalysis(Reporter reporter, String networkId) {
-        return reporter.createSubReporter("dcSecurityAnalysis",
-                "DC security analysis on network '${networkId}'", NETWORK_ID, networkId);
+    public static ReportNode createAcSecurityAnalysis(ReportNode reportNode, String networkId) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("acSecurityAnalysis", "AC security analysis on network '${networkId}'")
+                .withUntypedValue(NETWORK_ID, networkId)
+                .add();
     }
 
-    public static Reporter createPreContingencySimulation(Reporter reporter) {
-        return reporter.createSubReporter("preContingencySimulation", "Pre-contingency simulation");
+    public static ReportNode createDcSecurityAnalysis(ReportNode reportNode, String networkId) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("dcSecurityAnalysis", "DC security analysis on network '${networkId}'")
+                .withUntypedValue(NETWORK_ID, networkId)
+                .add();
     }
 
-    public static Reporter createPostContingencySimulation(Reporter reporter, String contingencyId) {
-        return reporter.createSubReporter("postContingencySimulation", "Post-contingency simulation '${contingencyId}'",
-                "contingencyId", contingencyId);
+    public static ReportNode createPreContingencySimulation(ReportNode reportNode) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("preContingencySimulation", "Pre-contingency simulation")
+                .add();
     }
 
-    public static Reporter createDetailedSolverReporter(Reporter reporter, String solverName, int networkNumCc, int networkNumSc) {
-        Reporter subReporter = reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc}",
-                Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
-                        NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
-        subReporter.report(Report.builder()
-                .withKey("solverNoOuterLoops")
-                .withDefaultMessage("No outer loops have been launched")
+    public static ReportNode createPostContingencySimulation(ReportNode reportNode, String contingencyId) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("postContingencySimulation", "Post-contingency simulation '${contingencyId}'")
+                .withUntypedValue("contingencyId", contingencyId)
+                .add();
+    }
+
+    public static ReportNode createDetailedSolverReporter(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc) {
+        ReportNode subReportNode = reportNode.newReportNode()
+                .withMessageTemplate("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc}")
+                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
+                .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+                .add();
+        subReportNode.newReportNode()
+                .withMessageTemplate("solverNoOuterLoops", "No outer loops have been launched")
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
-        return subReporter;
+                .add();
+        return subReportNode;
     }
 
-    public static Reporter createDetailedSolverReporterOuterLoop(Reporter reporter, String solverName, int networkNumCc, int networkNumSc,
-                                                                 int outerLoopIteration, String outerLoopType) {
-        Reporter subReporter = reporter.createSubReporter("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc}",
-                Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
-                        NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
-        subReporter.report(Report.builder()
-                .withKey("solverOuterLoopCurrentType")
-                .withDefaultMessage("Newton-Raphson of outer loop iteration ${outerLoopIteration} of type ${outerLoopType}")
-                .withValue("outerLoopIteration", outerLoopIteration)
-                .withValue("outerLoopType", outerLoopType)
+    public static ReportNode createDetailedSolverReporterOuterLoop(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc,
+                                                                   int outerLoopIteration, String outerLoopType) {
+        ReportNode subReportNode = reportNode.newReportNode()
+                .withMessageTemplate("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc}")
+                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
+                .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+                .add();
+        subReportNode.newReportNode()
+                .withMessageTemplate("solverOuterLoopCurrentType", "Newton-Raphson of outer loop iteration ${outerLoopIteration} of type ${outerLoopType}")
+                .withUntypedValue("outerLoopIteration", outerLoopIteration)
+                .withUntypedValue("outerLoopType", outerLoopType)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
-        return subReporter;
+                .add();
+        return subReportNode;
     }
 
-    public static Reporter createNewtonRaphsonMismatchReporter(Reporter reporter, int iteration) {
+    public static ReportNode createNewtonRaphsonMismatchReporter(ReportNode reportNode, int iteration) {
         if (iteration == 0) {
-            return reporter.createSubReporter("mismatchInitial", "Initial mismatch");
+            return reportNode.newReportNode()
+                    .withMessageTemplate("mismatchInitial", "Initial mismatch").
+                    add();
         } else {
-            return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} mismatch", ITERATION, iteration);
+            return reportNode.newReportNode()
+                    .withMessageTemplate("mismatchIteration", "Iteration ${iteration} mismatch")
+                    .withUntypedValue(ITERATION, iteration)
+                    .add();
         }
     }
 
-    public static void reportNewtonRaphsonError(Reporter reporter, String error) {
-        reporter.report(Report.builder()
-                .withKey("NRError")
-                .withDefaultMessage("Newton Raphson error: ${error}")
-                .withValue("error", error)
+    public static void reportNewtonRaphsonError(ReportNode reportNode, String error) {
+        reportNode.newReportNode()
+                .withMessageTemplate("NRError", "Newton Raphson error: ${error}")
+                .withUntypedValue("error", error)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportNewtonRaphsonNorm(Reporter reporter, double norm) {
-        reporter.report(Report.builder()
-                .withKey("NRNorm")
-                .withDefaultMessage("Newton-Raphson norm |f(x)|=${norm}")
-                .withValue("norm", norm)
+    public static void reportNewtonRaphsonNorm(ReportNode reportNode, double norm) {
+        reportNode.newReportNode()
+                .withMessageTemplate("NRNorm", "Newton-Raphson norm |f(x)|=${norm}")
+                .withUntypedValue("norm", norm)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportNewtonRaphsonLargestMismatches(Reporter reporter, String acEquationType, BusReport busReport) {
-        Map<String, TypedValue> subReporterMap = new HashMap<>();
-        subReporterMap.put("equationType", new TypedValue(acEquationType, TypedValue.UNTYPED));
-        subReporterMap.put("mismatch", new TypedValue(busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE));
+    public static void reportNewtonRaphsonLargestMismatches(ReportNode reportNode, String acEquationType, BusReport busReport) {
+        String mismatchUnit;
+        double mismatchUnitConverter;
+        switch (acEquationType) {
+            case "P" -> {
+                mismatchUnit = "MW";
+                mismatchUnitConverter = PerUnit.SB;
+            }
+            case "Q" -> {
+                mismatchUnit = "MVar";
+                mismatchUnitConverter = PerUnit.SB;
+            }
+            default -> {
+                mismatchUnit = "p.u.";
+                mismatchUnitConverter = 1.0;
+            }
+        }
 
-        ReportBuilder busIdReportBuilder = Report.builder();
-        busIdReportBuilder.withKey("NRMismatchBusInfo")
-                .withDefaultMessage("Bus Id: ${busId} (nominalVoltage=${busNominalV}kV)")
-                .withValue(BUS_ID, busReport.busId())
-                .withValue("busNominalV", busReport.nominalV())
-                .withSeverity(TypedValue.TRACE_SEVERITY);
+        ReportNode subReportNode = reportNode.newReportNode()
+                .withMessageTemplate("NRMismatch", "Largest ${equationType} mismatch: ${mismatch} ${mismatchUnit}")
+                .withUntypedValue("equationType", acEquationType)
+                .withTypedValue("mismatch", mismatchUnitConverter * busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withUntypedValue("mismatchUnit", mismatchUnit)
+                .add();
 
-        ReportBuilder busVReportBuilder = Report.builder();
-        busVReportBuilder.withKey("NRMismatchBusV")
-                .withDefaultMessage("Bus V: ${busV} pu, ${busPhi} rad")
-                .withValue("busV", busReport.v())
-                .withValue("busPhi", busReport.phi())
-                .withSeverity(TypedValue.TRACE_SEVERITY);
+        subReportNode.newReportNode()
+                .withMessageTemplate("NRMismatchBusInfo", "Bus Id: ${busId} (nominalVoltage=${busNominalV}kV)")
+                .withUntypedValue(BUS_ID, busReport.busId())
+                .withUntypedValue("busNominalV", busReport.nominalV())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .add();
 
-        ReportBuilder busInjectionReportBuilder = Report.builder();
-        busInjectionReportBuilder.withKey("NRMismatchBusInjection")
-                .withDefaultMessage("Bus injection: ${busSumP} MW, ${busSumQ} MVar")
-                .withValue("busSumP", busReport.p())
-                .withValue("busSumQ", busReport.q())
-                .withSeverity(TypedValue.TRACE_SEVERITY);
+        subReportNode.newReportNode()
+                .withMessageTemplate("NRMismatchBusV", "Bus V: ${busV} pu, ${busPhi} rad")
+                .withUntypedValue("busV", busReport.v())
+                .withUntypedValue("busPhi", busReport.phi())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .add();
 
-        Reporter subReporter = reporter.createSubReporter("NRMismatch", "Largest ${equationType} mismatch: ${mismatch}", subReporterMap);
-        subReporter.report(busIdReportBuilder.build());
-        subReporter.report(busVReportBuilder.build());
-        subReporter.report(busInjectionReportBuilder.build());
+        subReportNode.newReportNode()
+                .withMessageTemplate("NRMismatchBusInjection", "Bus injection: ${busP} MW, ${busQ} MVar")
+                .withUntypedValue("busP", busReport.p())
+                .withUntypedValue("busQ", busReport.q())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .add();
     }
 
-    public static void reportLineSearchStateVectorScaling(Reporter reporter, double stepSize) {
-        reporter.report(Report.builder()
-                .withKey("lineSearchStateVectorScaling")
-                .withDefaultMessage("Step size: ${stepSize} (line search)")
-                .withValue("stepSize", stepSize)
+    public static void reportLineSearchStateVectorScaling(ReportNode reportNode, double stepSize) {
+        reportNode.newReportNode()
+                .withMessageTemplate("lineSearchStateVectorScaling", "Step size: ${stepSize} (line search)")
+                .withUntypedValue("stepSize", stepSize)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportMaxVoltageChangeStateVectorScaling(Reporter reporter, double stepSize, int vCutCount, int phiCutCount) {
-        reporter.report(Report.builder()
-                .withKey("maxVoltageChangeStateVectorScaling")
-                .withDefaultMessage("Step size: ${stepSize} (max voltage change: ${vCutCount} Vmagnitude and ${phiCutCount} Vangle changes outside configured thresholds)")
-                .withValue("stepSize", stepSize)
-                .withValue("vCutCount", vCutCount)
-                .withValue("phiCutCount", phiCutCount)
+    public static void reportMaxVoltageChangeStateVectorScaling(ReportNode reportNode, double stepSize, int vCutCount, int phiCutCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("maxVoltageChangeStateVectorScaling", "Step size: ${stepSize} (max voltage change: ${vCutCount} Vmagnitude and ${phiCutCount} Vangle changes outside configured thresholds)")
+                .withUntypedValue("stepSize", stepSize)
+                .withUntypedValue("vCutCount", vCutCount)
+                .withUntypedValue("phiCutCount", phiCutCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
-                .build());
+                .add();
     }
 
-    public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(Reporter reporter, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
-        reporter.report(Report.builder()
-                .withKey("newtonRaphsonBusesOutOfRealisticVoltageRange")
-                .withDefaultMessage("${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.: ${busesOutOfRealisticVoltageRange}")
-                .withValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
-                .withValue("minRealisticVoltage", minRealisticVoltage)
-                .withValue("maxRealisticVoltage", maxRealisticVoltage)
-                .withValue("busesOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.toString())
+    public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
+        reportNode.newReportNode()
+                .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRange", "${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.: ${busesOutOfRealisticVoltageRange}")
+                .withUntypedValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
+                .withUntypedValue("minRealisticVoltage", minRealisticVoltage)
+                .withUntypedValue("maxRealisticVoltage", maxRealisticVoltage)
+                .withUntypedValue("busesOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.toString())
                 .withSeverity(TypedValue.ERROR_SEVERITY)
-                .build());
+                .add();
+    }
+
+    public static void reportAngleReferenceBusAndSlackBuses(ReportNode reportNode, String referenceBus, List<String> slackBuses) {
+        reportNode.newReportNode()
+                .withMessageTemplate("angleReferenceBusSelection", "Angle reference bus: ${referenceBus}")
+                .withUntypedValue("referenceBus", referenceBus)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        slackBuses.forEach(slackBus -> reportNode.newReportNode()
+                .withMessageTemplate("slackBusSelection", "Slack bus: ${slackBus}")
+                .withUntypedValue("slackBus", slackBus)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add());
     }
 }

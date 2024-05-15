@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -35,7 +36,7 @@ public class NetworkSlackBusSelector extends AbstractSlackBusSelector {
         this.fallbackSelector = Objects.requireNonNull(fallbackSelector);
         for (VoltageLevel vl : network.getVoltageLevels()) {
             SlackTerminal slackTerminal = vl.getExtension(SlackTerminal.class);
-            if (slackTerminal != null) {
+            if (slackTerminal != null && slackTerminal.getTerminal() != null) {
                 Bus bus = slackTerminal.getTerminal().getBusView().getBus();
                 if (bus != null) {
                     slackBusIds.add(bus.getId());

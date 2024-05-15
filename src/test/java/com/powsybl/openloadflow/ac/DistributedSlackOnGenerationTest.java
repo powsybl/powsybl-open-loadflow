@@ -4,6 +4,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
@@ -330,6 +331,10 @@ class DistributedSlackOnGenerationTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        // DistributedActivePower: 520MW, breakdown:
+        // - 320MW by all 4 generators hitting maxP limit
+        // - 200MW by distributing on reference generator g1
+        assertEquals(520., componentResult.getDistributedActivePower(), 1e-3);
         assertEquals(0., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
         assertAngleEquals(0., g1.getTerminal().getBusView().getBus());
         // can exceed maxP (200MW)

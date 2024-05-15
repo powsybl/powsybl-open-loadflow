@@ -3,10 +3,11 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
@@ -110,7 +111,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     private boolean runPhaseControlOuterLoop(DcIncrementalPhaseControlOuterLoop outerLoop, DcOuterLoopContext outerLoopContext) {
-        Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getName());
+        ReportNode olReportNode = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReportNode(), outerLoop.getName());
         OuterLoopStatus outerLoopStatus;
         int outerLoopIteration = 0;
         boolean success = true;
@@ -120,14 +121,14 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration);
             outerLoopContext.setLoadFlowContext(context);
-            outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
+            outerLoopStatus = outerLoop.check(outerLoopContext, olReportNode);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getName(), outerLoopStatus);
 
                 // if not yet stable, restart linear system solving
                 double[] targetVectorArray = context.getTargetVector().getArray().clone();
-                success = solve(targetVectorArray, context.getJacobianMatrix(), olReporter);
+                success = solve(targetVectorArray, context.getJacobianMatrix(), olReportNode);
 
                 if (success) {
                     context.getEquationSystem().getStateVector().set(targetVectorArray);
@@ -145,12 +146,12 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
     public static boolean solve(double[] targetVectorArray,
                                 JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix,
-                                Reporter reporter) {
+                                ReportNode reportNode) {
         try {
             jacobianMatrix.solveTransposed(targetVectorArray);
             return true;
         } catch (MatrixException e) {
-            Reports.reportDcLfSolverFailure(reporter, e.getMessage());
+            Reports.reportDcLfSolverFailure(reportNode, e.getMessage());
             LOGGER.error("Failed to solve linear system for DC load flow", e);
             return false;
         }
@@ -158,7 +159,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
     public DcLoadFlowResult run() {
         LfNetwork network = context.getNetwork();
-        Reporter reporter = network.getReporter();
+        ReportNode reportNode = network.getReportNode();
         EquationSystem<DcVariableType, DcEquationType> equationSystem = context.getEquationSystem();
         DcLoadFlowParameters parameters = context.getParameters();
         TargetVector<DcVariableType, DcEquationType> targetVector = context.getTargetVector();
@@ -182,7 +183,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         var targetVectorArray = targetVector.getArray().clone();
 
         // First linear system solution
-        boolean success = solve(targetVectorArray, context.getJacobianMatrix(), reporter);
+        boolean success = solve(targetVectorArray, context.getJacobianMatrix(), reportNode);
 
         equationSystem.getStateVector().set(targetVectorArray);
         updateNetwork(network, equationSystem, targetVectorArray);
@@ -199,17 +200,17 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             }
         }
 
-        Reports.reportDcLfComplete(reporter, success);
+        Reports.reportDcLfComplete(reportNode, success);
         LOGGER.info("DC load flow completed (success={})", success);
 
         return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), success);
     }
 
-    public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter)
+    public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, ReportNode reportNode) {
+        return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reportNode)
                 .stream()
                 .map(n -> {
-                    if (n.isValid()) {
+                    if (n.getValidity() == LfNetwork.Validity.VALID) {
                         try (DcLoadFlowContext context = new DcLoadFlowContext(n, parameters)) {
                             return new DcLoadFlowEngine(context)
                                     .run();

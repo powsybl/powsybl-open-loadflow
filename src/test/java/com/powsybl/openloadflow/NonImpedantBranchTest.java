@@ -3,16 +3,20 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Line;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -52,7 +56,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     @BeforeEach
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters();
+        parameters = new LoadFlowParameters().setWriteSlackBus(false);
         parametersExt = OpenLoadFlowParameters.create(parameters);
     }
 
@@ -364,7 +368,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         SecurityAnalysisReport report = securityAnalysisProvider.run(network, network.getVariantManager().getWorkingVariantId(), new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(), LocalComputationManager.getDefault(), new SecurityAnalysisParameters(), provider, Collections.emptyList(),
                 Collections.emptyList(), Collections.emptyList(),
-                Collections.emptyList(), Reporter.NO_OP).join();
+                Collections.emptyList(), Collections.emptyList(),
+                ReportNode.NO_OP).join();
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(0).getStatus());
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(1).getStatus());
     }
@@ -408,7 +413,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                         Collections.emptyList(),
                         Collections.emptyList(),
                         monitors,
-                        Reporter.NO_OP)
+                        Collections.emptyList(),
+                        ReportNode.NO_OP)
                 .join()
                 .getResult();
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());

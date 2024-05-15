@@ -3,11 +3,13 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
@@ -22,7 +24,7 @@ import java.util.function.DoubleSupplier;
  *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Evaluable {
+public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Derivable<V> {
 
     static void setActive(Evaluable evaluable, boolean active) {
         if (evaluable instanceof EquationTerm<?, ?> term) {

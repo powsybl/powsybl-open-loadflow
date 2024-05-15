@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sensi;
 
@@ -13,14 +14,18 @@ import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -606,6 +611,97 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(getV.apply("VLHV1_0"), result.getBusVoltageFunctionReferenceValue("NHV1"), LoadFlowAssert.DELTA_V);
         assertEquals(getV.apply("VLHV2_0"), result.getBusVoltageFunctionReferenceValue("NHV2"), LoadFlowAssert.DELTA_V);
         assertEquals(getV.apply("VLLOAD_0"), result.getBusVoltageFunctionReferenceValue("NLOAD"), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testBusVoltagePerTargetQGen() {
+        Network network = ReactiveInjectionNetworkFactory.createTwoGensOneLoad();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+
+        List<SensitivityFactor> factors = Arrays.asList(new SensitivityFactor[] {
+                createBusVoltagePerTargetQ("b3", "g2", null),
+                createBusVoltagePerTargetQ("b2", "g2", null),
+                createBusVoltagePerTargetQ("b1", "g2", null)});
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001).setNewtonRaphsonConvEpsPerEq(0.0001);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b1", SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-5);
+        assertEquals(0.00963d, result.getBusVoltageSensitivityValue("g2", "b3", SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-5);
+        assertEquals(0.01926d, result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-5);
+
+        // sensitivty of V to Q of PVBus should be exactly 0
+        factors = Arrays.asList(new SensitivityFactor[] {
+                createBusVoltagePerTargetQ("b3", "g1", null),
+                createBusVoltagePerTargetQ("b2", "g1", null),
+                createBusVoltagePerTargetQ("b1", "g1", null)});
+        result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b1", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
+        assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b3", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
+        assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
+    }
+
+    @Test
+    void testInjectionQPerTargetV() {
+        Network network = ReactiveInjectionNetworkFactory.createTwoGensOneLoad();
+
+        List<SensitivityFactor> factors = Arrays.asList(createTargetQPerTargetV("b1", "g1", null),
+                createTargetQPerTargetV("b2", "g1", null),
+                createTargetQPerTargetV("b3", "g1", null));
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.00001).setNewtonRaphsonConvEpsPerEq(0.000001);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0.0741, result.getSensitivityValue("g1", "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
+        // Other sensi should be null
+        assertEquals(0, result.getSensitivityValue("g1", "b2", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
+        assertEquals(0, result.getSensitivityValue("g1", "b3", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
+    }
+
+    @Test
+    void testInjectionQPerTargetVWithShunt() {
+        Network network = ShuntNetworkFactory.create();
+        network.getShuntCompensator("SHUNT").setSectionCount(1); // non null b
+
+        List<SensitivityFactor> factors = Arrays.asList(createTargetQPerTargetV("b1", "g1", null),
+                createTargetQPerTargetV("b2", "g1", null),
+                createTargetQPerTargetV("b3", "g1", null));
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.00001).setNewtonRaphsonConvEpsPerEq(0.000001);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(0.788, result.getSensitivityValue("g1", "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
+        assertEquals(-0.789, result.getSensitivityValue("g1", "b3", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
+        // Other sensi should be null
+        assertEquals(0, result.getSensitivityValue("g1", "b2", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
+    }
+
+    @Test
+    void testInjectionQPerTargetVCornerCases() {
+        // Tests mainly created to satisfy code coverage criteria
+        Network network = ShuntNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
+
+        // Test a combination that is not supported yet
+        SensitivityFactor notSupportedYetAndSonarWantsToSeeItInAction =
+                new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, "b1",
+                        SensitivityVariableType.INJECTION_ACTIVE_POWER, "b2", false,
+                        ContingencyContext.all());
+        Throwable thrown = assertThrows(CompletionException.class,
+                () -> sensiRunner.run(network, Arrays.asList(notSupportedYetAndSonarWantsToSeeItInAction), Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        assertTrue(thrown.getMessage().contains("Variable type INJECTION_ACTIVE_POWER not supported with function type BUS_REACTIVE_POWER"));
+
+        // Test sensitivity for a bus that does not exist in the LfNetwork
+        network.getVoltageLevel("vl1").getBusBreakerView().newBus().setId("NotConnected").add();
+        SensitivityFactor injectionBusDoesNotExist =
+                new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, "NotConnected",
+                        SensitivityVariableType.BUS_TARGET_VOLTAGE, "g1", false,
+                        ContingencyContext.all());
+        SensitivityAnalysisResult result = sensiRunner.run(network, Arrays.asList(injectionBusDoesNotExist), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0,
+                result.getSensitivityValue("g1", "NotConnected", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE),
+                0);
     }
 
     @Test

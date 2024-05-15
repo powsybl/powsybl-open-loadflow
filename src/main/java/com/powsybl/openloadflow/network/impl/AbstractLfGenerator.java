@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -289,18 +290,16 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         return true;
     }
 
-    protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
+    protected void setRemoteReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
         Connectable<?> connectable = regulatingTerminal.getConnectable();
-        if (connectable instanceof Line l) {
-            this.controlledBranchSide = l.getTerminal(TwoSides.ONE) == regulatingTerminal ?
-                    TwoSides.ONE : TwoSides.TWO;
-            this.controlledBranchId = l.getId();
-        } else if (connectable instanceof TwoWindingsTransformer t) {
-            this.controlledBranchSide = t.getTerminal(TwoSides.ONE) == regulatingTerminal ?
-                    TwoSides.ONE : TwoSides.TWO;
-            this.controlledBranchId = t.getId();
+        if (connectable instanceof Branch<?> branch) {
+            this.controlledBranchSide = branch.getSide(regulatingTerminal);
+            this.controlledBranchId = branch.getId();
+        } else if (connectable instanceof ThreeWindingsTransformer t3w) {
+            this.controlledBranchSide = TwoSides.ONE; // side 2 is star bus of t3w.
+            this.controlledBranchId = LfLegBranch.getId(t3w.getSide(regulatingTerminal), t3w.getId());
         } else {
-            LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
+            LOGGER.error("Generator '{}' is remotely controlling reactive power of an instance of {}: not supported",
                     getId(), connectable.getClass());
             return;
         }

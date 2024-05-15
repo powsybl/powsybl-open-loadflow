@@ -3,18 +3,18 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
-import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -109,12 +109,12 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters);
     }
 
-    public static List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reporter);
+    public static List<LfNetwork> load(Network network, LfNetworkParameters parameters, ReportNode reportNode) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reportNode);
     }
 
-    public static List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, parameters, reporter);
+    public static List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, parameters, reportNode);
     }
 
     private static void retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig) {
@@ -135,17 +135,18 @@ public final class Networks {
         }); // in order to be present in the network.
     }
 
-    private static void restoreInitialTopology(LfNetwork network, Set<Switch> allSwitchesToClose, Set<String> branchIdsToClose) {
+    private static void restoreInitialTopology(LfNetwork network, Set<String> switchAndBranchIdsToClose) {
         var connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
-        allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
+        Set<String> toRemove = new HashSet<>();
+        switchAndBranchIdsToClose.forEach(id -> {
             LfBranch branch = network.getBranchById(id);
-            connectivity.removeEdge(branch);
+            if (branch != null) {
+                connectivity.removeEdge(branch);
+                toRemove.add(id);
+            }
         });
-        branchIdsToClose.stream().forEach(id -> {
-            LfBranch branch = network.getBranchById(id);
-            connectivity.removeEdge(branch);
-        });
+        switchAndBranchIdsToClose.removeAll(toRemove);
         Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
         removedBuses.forEach(bus -> bus.setDisabled(true));
         Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
@@ -163,10 +164,10 @@ public final class Networks {
         }
     }
 
-    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem system) {
-        Switch aSwitch = network.getSwitch(system.getSwitchIdToOperate());
+    private static void addSwitchToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem.SwitchTripping tripping) {
+        Switch aSwitch = network.getSwitch(tripping.getSwitchToOperateId());
         if (aSwitch != null) {
-            if (system.isSwitchOpen()) {
+            if (tripping.isOpenAction()) {
                 topoConfig.getSwitchesToOpen().add(aSwitch);
             } else {
                 topoConfig.getSwitchesToClose().add(aSwitch);
@@ -174,28 +175,42 @@ public final class Networks {
         }
     }
 
-    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig) {
+    private static void addBranchToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem.BranchTripping tripping) {
+        Branch<?> branch = network.getBranch(tripping.getBranchToOperateId());
+        if (branch != null && !tripping.isOpenAction()
+                && !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) {
+            topoConfig.getBranchIdsToClose().add(branch.getId());
+        }
+    }
+
+    private static void addElementsToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
-            if (systems != null) {
-                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
-                    addSwitchesOperatedByAutomationSystem(network, topoConfig, system);
-                }
+            for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
+                system.getTrippings()
+                        .forEach(tripping -> {
+                            if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+                                addSwitchToOperateByAutomationSystem(network, topoConfig, (OverloadManagementSystem.SwitchTripping) tripping);
+                            } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
+                                addBranchToOperateByAutomationSystem(network, topoConfig, (OverloadManagementSystem.BranchTripping) tripping);
+                            } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING) {
+                                // TODO
+                            }
+                        });
             }
         }
     }
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
-                                     LfTopoConfig topoConfig, Reporter reporter) {
-        return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reporter);
+                                     LfTopoConfig topoConfig, ReportNode reportNode) {
+        return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reportNode);
     }
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
-                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
+                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
-            addSwitchesOperatedByAutomationSystem(network, modifiedTopoConfig);
+            addElementsToOperateByAutomationSystem(network, modifiedTopoConfig);
             if (modifiedTopoConfig.isBreaker()) {
                 networkParameters.setBreakers(true);
             }
@@ -203,7 +218,7 @@ public final class Networks {
             modifiedTopoConfig = topoConfig;
         }
         if (!modifiedTopoConfig.isBreaker() && modifiedTopoConfig.getBranchIdsToClose().isEmpty()) {
-            return new LfNetworkList(load(network, topoConfig, networkParameters, reporter));
+            return new LfNetworkList(load(network, topoConfig, networkParameters, reportNode));
         } else {
             if (!networkParameters.isBreakers() && modifiedTopoConfig.isBreaker()) {
                 throw new PowsyblException("LF networks have to be built from bus/breaker view");
@@ -219,12 +234,21 @@ public final class Networks {
             // and close switches that could be closed during the simulation
             retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
-            List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reporter);
+            List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reportNode);
 
             if (!(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
+                Set<String> switchAndBranchIdsLeftToClose = modifiedTopoConfig.getSwitchesToClose().stream()
+                        .filter(Objects::nonNull)
+                        .map(Identifiable::getId)
+                        .collect(Collectors.toSet());
+                switchAndBranchIdsLeftToClose.addAll(modifiedTopoConfig.getBranchIdsToClose());
                 for (LfNetwork lfNetwork : lfNetworks) {
+                    // all switches and branches were closed
+                    if (switchAndBranchIdsLeftToClose.isEmpty()) {
+                        break;
+                    }
                     // disable all buses and branches not connected to main component (because of switch to close)
-                    restoreInitialTopology(lfNetwork, modifiedTopoConfig.getSwitchesToClose(), modifiedTopoConfig.getBranchIdsToClose());
+                    restoreInitialTopology(lfNetwork, switchAndBranchIdsLeftToClose);
                 }
             }
 

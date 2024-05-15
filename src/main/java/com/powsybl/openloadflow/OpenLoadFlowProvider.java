@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
@@ -12,7 +13,7 @@ import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.parameters.Parameter;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.ReferenceTerminals;
@@ -114,7 +115,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                           acParameters.getNetworkParameters().isBreakers(),
                                                                           parametersExt.getReactivePowerDispatchMode(),
                                                                           parametersExt.isWriteReferenceTerminals(),
-                                                                          parametersExt.getReferenceBusSelectionMode());
+                                                                          parametersExt.getReferenceBusSelectionMode(),
+                                                                          parametersExt.isSimulateAutomationSystems());
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
@@ -127,7 +129,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
     }
 
-    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
+    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ReportNode reportNode) {
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = getConnectivityFactory(parametersExt);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
         acParameters.setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
@@ -138,10 +140,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         List<AcLoadFlowResult> results;
         if (parametersExt.isNetworkCacheEnabled()) {
-            results = new AcLoadFlowFromCache(network, parameters, parametersExt, acParameters, reporter)
+            results = new AcLoadFlowFromCache(network, parameters, parametersExt, acParameters, reportNode)
                     .run();
         } else {
-            try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), reporter)) {
+            try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), reportNode)) {
                 results = AcloadFlowEngine.run(lfNetworkList.getList(), acParameters);
             }
         }
@@ -185,7 +187,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         String referenceBusId = null;
         List<LoadFlowResult.SlackBusResult> slackBusResultList = new ArrayList<>();
         double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch() * PerUnit.SB;
-        if (result.getNetwork().isValid()) {
+        if (result.getNetwork().getValidity() == LfNetwork.Validity.VALID) {
             referenceBusId = result.getNetwork().getReferenceBus().getId();
             List<LfBus> slackBuses = result.getNetwork().getSlackBuses();
             slackBusResultList = slackBuses.stream().map(
@@ -205,13 +207,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
     }
 
-    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
+    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ReportNode reportNode) {
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
         dcParameters.getNetworkParameters()
                 .setCacheEnabled(false); // force not caching as not supported in DC LF
 
-        List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reporter);
+        List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reportNode);
 
         Networks.resetState(network);
 
@@ -236,7 +238,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       breakers,
                                                                       ReactivePowerDispatchMode.Q_EQUAL_PROPORTION,
                                                                       parametersExt.isWriteReferenceTerminals(),
-                                                                      parametersExt.getReferenceBusSelectionMode());
+                                                                      parametersExt.getReferenceBusSelectionMode(),
+                                                                      false);
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
@@ -244,7 +247,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
-        LoadFlowResult.ComponentResult.Status status = result.isSuccess() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
+        final LoadFlowResult.ComponentResult.Status status = result.toComponentResultStatus();
         return new LoadFlowResultImpl.ComponentResultImpl(
                 result.getNetwork().getNumCC(),
                 result.getNetwork().getNumSC(),
@@ -258,16 +261,16 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     @Override
-    public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters, Reporter reporter) {
+    public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(computationManager);
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(parameters);
-        Objects.requireNonNull(reporter);
+        Objects.requireNonNull(reportNode);
 
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
-        Reporter lfReporter = Reports.createLoadFlowReporter(reporter, network.getId());
+        ReportNode lfReportNode = Reports.createLoadFlowReporter(reportNode, network.getId());
 
         return CompletableFuture.supplyAsync(() -> {
 
@@ -278,8 +281,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
             OpenLoadFlowParameters.log(parameters, parametersExt);
 
-            LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, parametersExt, lfReporter)
-                                                      : runAc(network, parameters, parametersExt, lfReporter);
+            LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, parametersExt, lfReportNode)
+                                                      : runAc(network, parameters, parametersExt, lfReportNode);
 
             stopwatch.stop();
             LOGGER.info(Markers.PERFORMANCE_MARKER, "Load flow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
