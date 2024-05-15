@@ -623,6 +623,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
         Double targetDeadband = rtc.getTargetDeadband() > 0 ? rtc.getTargetDeadband() / regulatingTerminalNominalV : null;
 
+        if (!VoltageControl.checkTargetV(targetValue, controlledBus.getNominalV(), parameters)) {
+            LOGGER.warn("RatioTapChanger on transformer '{}' has an inconsistent target voltage: {} pu: incremental voltage control discarded", controllerBranchId, targetValue);
+            rtc.setRegulating(false);
+            return;
+        }
+
         controlledBus.getTransformerVoltageControl().ifPresentOrElse(vc -> {
             LOGGER.trace("Controlled bus '{}' already has a transformer voltage control: a shared control is created", controlledBus.getId());
             if (FastMath.abs(vc.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
