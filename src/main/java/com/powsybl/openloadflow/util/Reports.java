@@ -11,6 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -513,5 +514,18 @@ public final class Reports {
                 .withUntypedValue("busesOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.toString())
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
+    }
+
+    public static void reportAngleReferenceBusAndSlackBuses(ReportNode reportNode, String referenceBus, List<String> slackBuses) {
+        reportNode.newReportNode()
+                .withMessageTemplate("angleReferenceBusSelection", "Angle reference bus: ${referenceBus}")
+                .withUntypedValue("referenceBus", referenceBus)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        slackBuses.forEach(slackBus -> reportNode.newReportNode()
+                .withMessageTemplate("slackBusSelection", "Slack bus: ${slackBus}")
+                .withUntypedValue("slackBus", slackBus)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add());
     }
 }

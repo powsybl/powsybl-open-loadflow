@@ -348,9 +348,9 @@ public enum NetworkCache {
                     lfNetwork.getSecondaryVoltageControl(controlZone.getName())
                             .ifPresent(lfSvc -> {
                                 if (event.value()) {
-                                    lfSvc.getParticipatingControlUnitIds().add(event.controlUnitId());
+                                    lfSvc.addParticipatingControlUnit(event.controlUnitId());
                                 } else {
-                                    lfSvc.getParticipatingControlUnitIds().remove(event.controlUnitId());
+                                    lfSvc.removeParticipatingControlUnit(event.controlUnitId());
                                 }
                                 context.setNetworkUpdated(true);
                                 done[0] = true;

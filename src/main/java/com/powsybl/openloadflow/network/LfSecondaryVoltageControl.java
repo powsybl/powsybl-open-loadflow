@@ -7,16 +7,18 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfSecondaryVoltageControl {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfSecondaryVoltageControl.class);
 
     private final String zoneName;
 
@@ -46,15 +48,26 @@ public class LfSecondaryVoltageControl {
     }
 
     public void setTargetValue(double targetValue) {
-        this.targetValue = targetValue;
+        if (this.targetValue != targetValue) {
+            this.targetValue = targetValue;
+            tryToReEnableHelpfulControllerBuses();
+        }
     }
 
     public LfBus getPilotBus() {
         return pilotBus;
     }
 
-    public Set<String> getParticipatingControlUnitIds() {
-        return participatingControlUnitIds;
+    public void addParticipatingControlUnit(String id) {
+        if (participatingControlUnitIds.add(id)) {
+            tryToReEnableHelpfulControllerBuses();
+        }
+    }
+
+    public void removeParticipatingControlUnit(String id) {
+        if (participatingControlUnitIds.remove(id)) {
+            tryToReEnableHelpfulControllerBuses();
+        }
     }
 
     public Set<GeneratorVoltageControl> getGeneratorVoltageControls() {
@@ -110,5 +123,40 @@ public class LfSecondaryVoltageControl {
         return getControllerBuses().stream()
                 .filter(LfBus::isGeneratorVoltageControlEnabled)
                 .toList();
+    }
+
+    public void tryToReEnableHelpfulControllerBuses() {
+        List<LfBus> controllerBusesToMinQ = new ArrayList<>();
+        List<LfBus> controllerBusesToMaxQ = new ArrayList<>();
+        List<LfBus> allControllerBuses = new ArrayList<>();
+        classifyControllerBuses(allControllerBuses, controllerBusesToMinQ, controllerBusesToMaxQ);
+
+        List<LfBus> controllerBusesToLimit = new ArrayList<>(controllerBusesToMinQ.size() + controllerBusesToMaxQ.size());
+        controllerBusesToLimit.addAll(controllerBusesToMinQ);
+        controllerBusesToLimit.addAll(controllerBusesToMaxQ);
+        // if there is at least one of the generator to the limit but not all, re-enable all generators to help
+        // the secondary voltage control to get a reactive power alignment
+        if (!controllerBusesToLimit.isEmpty() && controllerBusesToLimit.size() < allControllerBuses.size()) {
+            for (LfBus controllerBus : controllerBusesToLimit) {
+                controllerBus.setGeneratorVoltageControlEnabled(true);
+                controllerBus.setQLimitType(null);
+            }
+            LOGGER.debug("Secondary voltage control of zone '{}': controller buses {} have been re-enabled because might help to reach pilot bus target",
+                    getZoneName(), controllerBusesToLimit);
+        }
+    }
+
+    private void classifyControllerBuses(List<LfBus> allControllerBuses, List<LfBus> controllerBusesToMinQ, List<LfBus> controllerBusesToMaxQ) {
+        getControllerBuses()
+                .forEach(controllerBus -> {
+                    allControllerBuses.add(controllerBus);
+                    controllerBus.getQLimitType().ifPresent(qLimitType -> {
+                        if (qLimitType == LfBus.QLimitType.MIN_Q) {
+                            controllerBusesToMinQ.add(controllerBus);
+                        } else { // MAX_Q
+                            controllerBusesToMaxQ.add(controllerBus);
+                        }
+                    });
+                });
     }
 }
