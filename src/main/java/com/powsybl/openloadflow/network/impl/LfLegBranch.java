@@ -156,7 +156,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters) {
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
         var twt = getTwt();
         var leg = getLeg();
 

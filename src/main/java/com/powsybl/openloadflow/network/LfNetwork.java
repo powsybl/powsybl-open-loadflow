@@ -369,6 +369,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
+        LfNetworkUpdateReport updateReport = new LfNetworkUpdateReport();
+
         for (LfBus bus : busesById.values()) {
             bus.updateState(parameters);
             for (LfGenerator generator : bus.getGenerators()) {
@@ -377,11 +379,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
             bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
         }
-        for (LfBranch branch : branches) {
-            branch.updateState(parameters);
+        branches.forEach(branch -> branch.updateState(parameters, updateReport));
+        hvdcs.forEach(LfHvdc::updateState);
+
+        if (updateReport.closedSwitchCount + updateReport.openedSwitchCount > 0) {
+            LOGGER.debug("Switches status update: {} closed and {} opened", updateReport.closedSwitchCount, updateReport.openedSwitchCount);
         }
-        for (LfHvdc hvdc : hvdcs) {
-            hvdc.updateState();
+        if (updateReport.connectedBranchSide1Count + updateReport.disconnectedBranchSide1Count
+                + updateReport.connectedBranchSide2Count + updateReport.disconnectedBranchSide2Count > 0) {
+            LOGGER.debug("Branches connection status update: {} connected side 1, {} disconnected side1, {} connected side 2, {} disconnected side 2",
+                    updateReport.connectedBranchSide1Count, updateReport.disconnectedBranchSide1Count, updateReport.connectedBranchSide2Count, updateReport.disconnectedBranchSide2Count);
         }
 
         stopwatch.stop();

@@ -131,7 +131,7 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters) {
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
         updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
     }
 
