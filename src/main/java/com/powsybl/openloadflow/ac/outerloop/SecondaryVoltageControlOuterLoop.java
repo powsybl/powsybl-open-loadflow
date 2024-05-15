@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -348,7 +349,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         LfNetwork network = context.getNetwork();
 
         // try to re-enable controller buses that have reached a reactive power limit (so bus switched to PQ) if they
@@ -365,7 +366,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .toList();
 
         if (secondaryVoltageControls.isEmpty()) {
-            return OuterLoopStatus.STABLE;
+            return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
 
         // compute target voltage sensitivities for all controlled buses
@@ -387,6 +388,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             }
         }
 
-        return status;
+        return new OuterLoopResult(this, status);
     }
 }
