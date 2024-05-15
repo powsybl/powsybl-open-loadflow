@@ -297,6 +297,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public LfBus getReferenceBus() {
+        updateSlackBusesAndReferenceBus();
         return referenceBus;
     }
 
@@ -661,6 +662,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 case VALID -> {
                     lfNetwork.reportSize(networkReport);
                     lfNetwork.reportBalance(networkReport);
+                    Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfNetwork.getReferenceBus().getId(), lfNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
                     lfNetwork.setReportNode(Reports.createLfNetworkReportNode(reportNode, lfNetwork.getReportNode(), lfNetwork.getNumCC(), lfNetwork.getNumCC()));
                 }
                 case INVALID_NO_GENERATOR_VOLTAGE_CONTROL -> {
