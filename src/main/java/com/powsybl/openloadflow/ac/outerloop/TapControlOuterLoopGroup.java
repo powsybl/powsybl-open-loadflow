@@ -5,10 +5,10 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.AcOuterLoopGroupContext;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.ac.outerloop.tap.GroupVoltageControlManager;
 import com.powsybl.openloadflow.ac.outerloop.tap.TransformerRatioManager;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.VoltageControl;
@@ -18,7 +18,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,27 +31,7 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
     private final OpenLoadFlowParameters parametersExt;
 
     private TransformerRatioManager transformerRatioManager;
-
-    static class ContextData {
-        private double maxControlledNominalVoltage = Double.MIN_VALUE;
-        private final List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
-
-        public void updateMaxControlledNominalVoltage(double newVoltage) {
-            maxControlledNominalVoltage = Math.max(newVoltage, maxControlledNominalVoltage);
-        }
-
-        public double getMaxControlledNominalVoltage() {
-            return maxControlledNominalVoltage;
-        }
-
-        public void addBusWithVoltageControlDisabled(LfBus bus) {
-            busesWithVoltageControlDisabled.add(bus);
-        }
-
-        public List<LfBus> getBusesWithVoltageControlDisabled() {
-            return busesWithVoltageControlDisabled;
-        }
-    }
+    private GroupVoltageControlManager groupVoltageControlManager;
 
     public TapControlOuterLoopGroup(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         super(makeCompensationLoop(parameters, parametersExt));
@@ -105,36 +84,13 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
     @Override
     protected boolean prepareSolverAndModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<AcOuterLoop> modelCheckers) {
 
-        ContextData contextData = new ContextData();
-        groupContext.setData(contextData);
-
         // Transformer Voltage control is removed from the equations and replaced by continuous tap equations
         // Voltage control for "HT" groups is then disabled
 
-        for (LfBus bus : groupContext.getNetwork().getBuses()) {
-            if (!bus.isDisabled() && bus.isTransformerVoltageControlled()) {
-                contextData.updateMaxControlledNominalVoltage(bus.getNominalV());
-            }
-        }
+        groupVoltageControlManager = new GroupVoltageControlManager(groupContext.getNetwork(),
+                parametersExt.getTransformerVoltageControlThtLimit());
 
-        boolean modelChanged = false;
-
-        // The voltage control of generators that controlled at nominal voltage of
-        // the set controlledNominalVoltages are disabled.
-        // The transformer voltage controls are enabled.
-        for (LfBus bus : groupContext.getNetwork().getControlledBuses(VoltageControl.Type.GENERATOR)) {
-            if (bus.getNominalV() <= contextData.getMaxControlledNominalVoltage()) {
-                var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
-                voltageControl.getMergedControllerElements().forEach(controllerBus -> {
-                    if (controllerBus.isGeneratorVoltageControlEnabled()) {
-                        controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
-                        controllerBus.setGeneratorVoltageControlEnabled(false);
-                    }
-                    contextData.addBusWithVoltageControlDisabled(bus);
-                });
-                modelChanged = true;
-            }
-        }
+        boolean modelChanged = groupVoltageControlManager.stopHTGroupTensionControl(groupContext.getNetwork());
 
         for (LfBranch branch : groupContext.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             Optional<TransformerVoltageControl> voltageControl = branch.getVoltageControl();
@@ -149,7 +105,7 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
 
             transformerRatioManager = new TransformerRatioManager(groupContext, parametersExt.isTransformerVoltageControlStable());
 
-            addModelCheckers(modelCheckers, contextData.getMaxControlledNominalVoltage(), transformerRatioManager);
+            addModelCheckers(modelCheckers, groupVoltageControlManager.getThtLimit(), transformerRatioManager);
 
             groupContext.runSolver(getVoltageInitializer(groupContext), nrReportNode);
 
@@ -162,8 +118,6 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
 
     @Override
     protected void cleanModel(AcOuterLoopGroupContext groupContext, ReportNode nrReportNode, List<Pair<AcOuterLoop, AcOuterLoopContext>> checkersAndContexts) {
-
-        ContextData contextData = (ContextData) groupContext.getData();
 
         // discretize transformer taps
         for (LfBranch controllerBranch : groupContext.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
@@ -181,10 +135,7 @@ public class TapControlOuterLoopGroup extends AbstractCompensationAndSolveOuterL
         }
 
         // Re-enable generator voltage control
-        for (LfBus controllerBus : contextData.getBusesWithVoltageControlDisabled()) {
-            controllerBus.setGenerationTargetQ(0);
-            controllerBus.setGeneratorVoltageControlEnabled(true);
-        }
+        groupVoltageControlManager.restartHTGroupTensionControl();
 
         checkersAndContexts.forEach(p -> p.getLeft().cleanup(p.getRight()));
 
