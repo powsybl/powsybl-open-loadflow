@@ -25,6 +25,8 @@ public final class Reports {
     private static final String NETWORK_ID = "networkId";
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
     private static final String BUS_ID = "busId";
+    private static final String CONTROLLER_BUS_ID = "controllerBusId";
+    private static final String CONTROLLED_BUS_ID = "controlledBusId";
 
     public record BusReport(String busId, double mismatch, double nominalV, double v, double phi, double p, double q) {
     }
@@ -49,6 +51,59 @@ public final class Reports {
                 .withUntypedValue("reactiveGeneration", reactiveGeneration)
                 .withUntypedValue("reactiveLoad", reactiveLoad)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportNotUniqueControlledBus(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueControlledBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: ${controlledBusId} (kept) and ${controlledBusGenId} (rejected)")
+                .withUntypedValue("generatorIds", generatorIds)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("controlledBusGenId", controlledBusGenId)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportNotUniqueTargetVControllerBus(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueTargetVControllerBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} kV (kept) and ${rejectedTargetV} kV (rejected)")
+                .withUntypedValue("generatorIds", generatorIds)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue("keptTargetV", keptTargetV)
+                .withUntypedValue("rejectedTargetV", rejectedTargetV)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportControllerShuntAlreadyInVoltageControl(ReportNode reportNode, String controllerShuntId, String controlledBusId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("controllerShuntAlreadyInVoltageControl", "Controller shunt ${controllerShuntId} is already in a shunt voltage control. The second controlled bus ${controlledBusId} is ignored")
+                .withUntypedValue("controllerShuntId", controllerShuntId)
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportBusAlreadyControlledWithDifferentTargetV(ReportNode reportNode, String controllerBusId, String controlledBusId, String busesId, Double keptTargetV, Double ignoredTargetV) {
+        reportNode.newReportNode()
+                .withMessageTemplate("busAlreadyControlledWithDifferentTargetV", "Bus ${controllerBusId} controls voltage of bus ${controlledBusId} which is already controlled by buses [${busesId}] with a different target voltage: ${keptTargetV} kV (kept) and ${ignoredTargetV} kV (ignored)")
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("busesId", busesId)
+                .withUntypedValue("keptTargetV", keptTargetV)
+                .withUntypedValue("ignoredTargetV", ignoredTargetV)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportBranchControlledAtBothSides(ReportNode reportNode, String controlledBranchId, String keptSide, String rejectedSide) {
+        reportNode.newReportNode()
+                .withMessageTemplate("branchControlledAtBothSides", "Controlled branch ${controlledBranchId} is controlled at both sides. Controlled side ${keptSide} (kept) side ${rejectedSide} (rejected).")
+                .withUntypedValue("controlledBranchId", controlledBranchId)
+                .withUntypedValue("keptSide", keptSide)
+                .withUntypedValue("rejectedSide", rejectedSide)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
 
