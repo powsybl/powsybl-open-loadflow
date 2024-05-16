@@ -333,11 +333,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         } else {
             List<ShuntCompensator> controllerShuntCompensators = new ArrayList<>();
             List<ShuntCompensator> fixedShuntCompensators = new ArrayList<>();
-            shuntCompensators.forEach(shunt -> {
-                if (checkVoltageControl(shunt, parameters, report)) {
-                    controllerShuntCompensators.add(shunt);
+            shuntCompensators.forEach(sc -> {
+                if (checkVoltageControl(sc, parameters, report)) {
+                    controllerShuntCompensators.add(sc);
                 } else {
-                    fixedShuntCompensators.add(shunt);
+                    fixedShuntCompensators.add(sc);
                 }
             });
 
