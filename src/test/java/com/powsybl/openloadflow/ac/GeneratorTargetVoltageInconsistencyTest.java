@@ -7,11 +7,14 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class GeneratorTargetVoltageInconsistencyTest {
 
     @Test
-    void localTest() {
+    void localTest() throws IOException {
         Network network = Network.create("generatorLocalInconsistentTargetVoltage", "code");
         Substation s = network.newSubstation()
                 .setId("s")
@@ -85,7 +88,12 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setX(1)
                 .add();
 
-        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector());
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reportNode);
         assertEquals(1, lfNetworks.size());
 
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -95,6 +103,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         Optional<GeneratorVoltageControl> vc = controlledBus.getGeneratorVoltageControl();
         assertTrue(vc.isPresent());
         assertEquals(23, vc.get().getTargetValue() * controlledBus.getNominalV());
+        LoadFlowAssert.assertReportEquals("/notUniqueTargetVControllerBusReport.txt", reportNode);
     }
 
     @Test
@@ -195,7 +204,7 @@ class GeneratorTargetVoltageInconsistencyTest {
     }
 
     @Test
-    void remoteAndLocalTest() {
+    void remoteAndLocalTest() throws IOException {
         Network network = Network.create("generatorRemoteAndLocalInconsistentTargetVoltage", "code");
         Substation s = network.newSubstation()
                 .setId("s")
@@ -283,12 +292,15 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());
-
-        List<LfNetwork> networkList = Networks.load(network, parameters);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
         LfNetwork mainNetwork = networkList.get(0);
         Optional<GeneratorVoltageControl> sharedVoltageControl = mainNetwork.getBusById("vl2_0").getGeneratorVoltageControl();
         assertTrue(sharedVoltageControl.isPresent());
 
         assertEquals(413 / g2.getTerminal().getVoltageLevel().getNominalV(), sharedVoltageControl.get().getTargetValue());
+        LoadFlowAssert.assertReportEquals("/busAlreadyControlledWithDifferentTargetVReport.txt", reportNode);
     }
 }
