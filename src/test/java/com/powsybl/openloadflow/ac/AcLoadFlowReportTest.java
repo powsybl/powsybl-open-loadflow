@@ -63,7 +63,6 @@ class AcLoadFlowReportTest {
     @Test
     void testShuntVoltageControlOuterLoopReport() throws IOException {
         Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
-        network.getShuntCompensator("SHUNT2").setVoltageRegulatorOn(true).setTargetV(600); // not plausible targetV, will be discarded and reported
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
@@ -111,7 +110,7 @@ class AcLoadFlowReportTest {
 
     @Test
     void testMultipleComponents() throws IOException {
-        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithInconsistentVoltages();
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
         // open everything at bus b4 to create 3 components
         network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(Terminal::disconnect);
 
@@ -120,9 +119,7 @@ class AcLoadFlowReportTest {
         // CC2 SC2 has no generator connected. Ignored in for DC and AC.
         network.getGenerator("g10").disconnect();
 
-        var lfParameters = new LoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
-                .setTransformerVoltageControlOn(true);
-        OpenLoadFlowParameters.create(lfParameters).setMinNominalVoltageTargetVoltageCheck(0.5);
+        var lfParameters = new LoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
 
         LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
@@ -156,4 +153,68 @@ class AcLoadFlowReportTest {
         assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR.toString(), result.getComponentResults().get(2).getStatusText());
         LoadFlowAssert.assertReportEquals("/multipleConnectedComponentsDcReport.txt", reportNode);
     }
+
+    @Test
+    void generatorVoltageControlDiscarded() throws IOException {
+        Network network = FourBusNetworkFactory.create();
+        network.getGenerator("g2").setTargetV(10); // not plausible targetV, will be discarded and reported
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters.create(lfParameters).setMinNominalVoltageTargetVoltageCheck(0.5);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/generatorVoltageControlDiscarded.txt", reportNode);
+    }
+
+    @Test
+    void ratioTapChangerVoltageControlDiscarded() throws IOException {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        var t2wt = network.getTwoWindingsTransformer("T2wT");
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationMode(RatioTapChanger.RegulationMode.VOLTAGE)
+                .setTargetV(100); // not plausible, will be discarded and reported
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/ratioTapChangerVoltageControlDiscarded.txt", reportNode);
+    }
+
+    @Test
+    void shuntVoltageControlDiscarded() throws IOException {
+        Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
+        network.getShuntCompensator("SHUNT2").setVoltageRegulatorOn(true).setTargetV(600); // not plausible targetV, will be discarded and reported
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters()
+                .setShuntCompensatorVoltageControlOn(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/shuntVoltageControlDiscarded.txt", reportNode);
+    }
+
 }
