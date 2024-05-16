@@ -334,7 +334,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             List<ShuntCompensator> controllerShuntCompensators = new ArrayList<>();
             List<ShuntCompensator> fixedShuntCompensators = new ArrayList<>();
             shuntCompensators.forEach(shunt -> {
-                if (checkVoltageRegulation(shunt, parameters, report)) {
+                if (checkVoltageControl(shunt, parameters, report)) {
                     controllerShuntCompensators.add(shunt);
                 } else {
                     fixedShuntCompensators.add(shunt);
@@ -350,7 +350,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    static boolean checkVoltageRegulation(ShuntCompensator shuntCompensator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    static boolean checkVoltageControl(ShuntCompensator shuntCompensator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         double nominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetV = shuntCompensator.getTargetV();
         if (!shuntCompensator.isVoltageRegulatorOn()) {
