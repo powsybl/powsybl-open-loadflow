@@ -185,6 +185,52 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
         assertEquals(2, t2wt2.getRatioTapChanger().getTapPosition());
+
+        // Now test in stable mode with AfterVoltageControl
+        // dealign transformers
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(3)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt2.getTerminal2())
+                .setTargetV(34.0);
+        LoadFlowParameters stableParams = parameters.copy();
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlStable(true);
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
+
+        // still stable mode but with movement needed
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(3)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt2.getTerminal2())
+                .setTargetV(34.0);
+
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
+
     }
 
     @Test
