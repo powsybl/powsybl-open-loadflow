@@ -300,6 +300,7 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setTargetV(26.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, stableParams);
+        System.out.println("This fails on the git build !"); // A trace to identify in the logs
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.283, bus2);
         assertVoltageEquals(28.71, t2wt.getTerminal2().getBusView().getBus());
