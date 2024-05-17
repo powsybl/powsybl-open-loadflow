@@ -123,6 +123,6 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         var battery = getBattery();
         battery.getTerminal()
                 .setP(-targetP * PerUnit.SB)
-                .setQ(-battery.getTargetQ());
+                .setQ(Double.isNaN(calculatedQ) ? -getTargetQ() * PerUnit.SB : -calculatedQ * PerUnit.SB);
     }
 }

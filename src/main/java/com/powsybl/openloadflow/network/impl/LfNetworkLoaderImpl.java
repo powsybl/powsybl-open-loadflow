@@ -13,8 +13,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
-import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -190,6 +188,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
                     controllerBus.getId(), controlledBus.getId(), busesId, controllerTargetV * controlledBus.getNominalV(),
                     voltageControlTargetV * controlledBus.getNominalV());
+            Reports.reportBusAlreadyControlledWithDifferentTargetV(controllerBus.getNetwork().getReportNode(), controllerBus.getId(), controlledBus.getId(), busesId, controllerTargetV * controlledBus.getNominalV(),
+                    voltageControlTargetV * controlledBus.getNominalV());
         }
     }
 
@@ -200,6 +200,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             String generatorIds = controller.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: {} (kept) and {} (rejected)",
                     generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+            Reports.reportNotUniqueControlledBus(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
             return false;
         }
         return true;
@@ -211,6 +212,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
                 generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
+            Reports.reportNotUniqueTargetVControllerBus(controllerBus.getNetwork().getReportNode(), generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
         }
     }
 
@@ -290,6 +292,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!side.equals(generatorReactivePowerControl.getControlledSide())) {
             LOGGER.error("Controlled branch '{}' is controlled at both sides. Controlled side {} (kept) {} (rejected).",
                     generatorReactivePowerControl.getControlledBranch().getId(), generatorReactivePowerControl.getControlledSide(), side);
+            Reports.reportBranchControlledAtBothSides(generatorReactivePowerControl.getControlledBranch().getNetwork().getReportNode(),
+                    generatorReactivePowerControl.getControlledBranch().getId(), generatorReactivePowerControl.getControlledSide().name(), side.name());
             return false;
         }
         return true;
@@ -713,6 +717,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             // number of variables. We have only one B variable for more than one bus target V equations.
             if (!controllerShunt.getVoltageControl().orElseThrow().getControlledBus().getId().equals(controlledBus.getId())) {
                 LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
+                Reports.reportControllerShuntAlreadyInVoltageControl(controllerBus.getNetwork().getReportNode(), controllerShunt.getId(), controlledBus.getId());
             }
             return;
         }
@@ -973,28 +978,55 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
     }
 
+    private static String getTrippingLfBranchId(OverloadManagementSystem.Tripping tripping) {
+        String branchToOperateId = null;
+        if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+            OverloadManagementSystem.SwitchTripping switchTripping = (OverloadManagementSystem.SwitchTripping) tripping;
+            branchToOperateId = switchTripping.getSwitchToOperateId();
+        } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
+            OverloadManagementSystem.BranchTripping branchTripping = (OverloadManagementSystem.BranchTripping) tripping;
+            branchToOperateId = branchTripping.getBranchToOperateId();
+        }
+        return branchToOperateId;
+    }
+
+    private static void addTripping(LfNetwork lfNetwork, LfOverloadManagementSystem lfOverloadManagementSystem, OverloadManagementSystem.Tripping tripping) {
+        String branchToOperateId = getTrippingLfBranchId(tripping);
+        LfBranch lfBranchToOperate = lfNetwork.getBranchById(branchToOperateId);
+        if (lfBranchToOperate != null) {
+            LfBus bus = lfOverloadManagementSystem.getMonitoredSide().equals(TwoSides.ONE) ?
+                    lfOverloadManagementSystem.getMonitoredBranch().getBus1() : lfOverloadManagementSystem.getMonitoredBranch().getBus2();
+            double threshold = tripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
+            lfOverloadManagementSystem.addLfBranchTripping(lfBranchToOperate, tripping.isOpenAction(), threshold);
+        } else {
+            LOGGER.warn("Invalid overload management system: branch to operate is '{}'", branchToOperateId);
+        }
+    }
+
     private static void createOverloadManagementSystem(LfNetwork lfNetwork, OverloadManagementSystem system) {
         if (system.isEnabled()) {
-            LfBranch lfLineToMonitor = lfNetwork.getBranchById(system.getMonitoredLineId());
-            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(system.getSwitchIdToOperate());
-            if (lfLineToMonitor != null && lfSwitchToOperate != null) {
-                LfBus bus = lfLineToMonitor.getBus1() != null ? lfLineToMonitor.getBus1() : lfLineToMonitor.getBus2();
-                double threshold = system.getThreshold() / PerUnit.ib(bus.getNominalV());
-                lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, threshold, lfSwitchToOperate, system.isSwitchOpen()));
+            LfBranch lfMonitoredElement = lfNetwork.getBranchById(system.getMonitoredElementId());
+            if (system.getTrippings().stream().map(OverloadManagementSystem.Tripping::getType)
+                    .anyMatch(type -> type == OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING)) {
+                LOGGER.warn("Unsupported overload management system {}: three windings transformer tripping supported", system.getId());
+                return;
+            }
+            if (lfMonitoredElement != null) {
+                LfOverloadManagementSystem lfOverloadManagementSystem = new LfOverloadManagementSystem(lfMonitoredElement, system.getMonitoredSide().toTwoSides());
+                system.getTrippings().forEach(tripping -> addTripping(lfNetwork, lfOverloadManagementSystem, tripping));
+                if (!lfOverloadManagementSystem.getBranchTrippingList().isEmpty()) {
+                    lfNetwork.addOverloadManagementSystem(lfOverloadManagementSystem);
+                }
             } else {
-                LOGGER.warn("Invalid overload management system: line to monitor is '{}', switch to operate is '{}'",
-                        system.getMonitoredLineId(), system.getSwitchIdToOperate());
+                LOGGER.warn("Invalid overload management system: element to monitor is '{}'", system.getMonitoredElementId());
             }
         }
     }
 
     private void createAutomationSystems(Network network, LfNetwork lfNetwork) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
-            if (systems != null) {
-                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
-                    createOverloadManagementSystem(lfNetwork, system);
-                }
+            for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
+                createOverloadManagementSystem(lfNetwork, system);
             }
         }
     }
@@ -1047,7 +1079,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
                     return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                            parameters, Reports.createLfNetworkReporter(reportNode, numCc, numSc));
+                            parameters, Reports.createRootLfNetworkReportNode(numCc, numSc));
                 })
                 .collect(Collectors.toList());
 

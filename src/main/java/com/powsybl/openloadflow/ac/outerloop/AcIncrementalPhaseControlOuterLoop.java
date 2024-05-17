@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -170,7 +171,7 @@ public class AcIncrementalPhaseControlOuterLoop
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
 
         var contextData = (IncrementalContextData) context.getData();
 
@@ -199,7 +200,7 @@ public class AcIncrementalPhaseControlOuterLoop
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (currentLimiterPhaseControls.isEmpty() && activePowerControlPhaseControls.isEmpty()) {
-            return status;
+            return new OuterLoopResult(this, status);
         }
 
         var sensitivityContext = new AcSensitivityContext(network,
@@ -236,6 +237,6 @@ public class AcIncrementalPhaseControlOuterLoop
             }
         }
 
-        return status;
+        return new OuterLoopResult(this, status);
     }
 }

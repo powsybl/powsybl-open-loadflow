@@ -82,9 +82,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     public static PostContingencyComputationStatus postContingencyStatusFromAcLoadFlowResult(AcLoadFlowResult result) {
-        if (result.getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
+        if (result.getOuterLoopResult().status() == OuterLoopStatus.UNSTABLE) {
             return PostContingencyComputationStatus.MAX_ITERATION_REACHED;
-        } else if (result.getOuterLoopStatus() == OuterLoopStatus.FAILED) {
+        } else if (result.getOuterLoopResult().status() == OuterLoopStatus.FAILED) {
             return PostContingencyComputationStatus.FAILED;
         } else {
             return switch (result.getSolverStatus()) {

@@ -4,6 +4,8 @@
          + Network info
             Network has 3 buses and 2 branches
             Network balance: active generation=25.0 MW, active load=16.2 MW, reactive generation=0.0 MVar, reactive load=7.5 MVar
+            Angle reference bus: VL_2_0
+            Slack bus: VL_2_0
          + Newton Raphson on Network CC0 SC0
             No outer loops have been launched
             + Initial mismatch

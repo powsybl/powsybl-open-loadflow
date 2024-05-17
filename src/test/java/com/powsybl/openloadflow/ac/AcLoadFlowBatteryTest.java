@@ -83,5 +83,7 @@ class AcLoadFlowBatteryTest {
         LoadFlowAssert.assertAngleEquals(5.468356, genBus);
         assertVoltageEquals(401.0, batBus);
         LoadFlowAssert.assertAngleEquals(0.0, batBus);
+        assertActivePowerEquals(1000.0, battery2.getTerminal());
+        assertReactivePowerEquals(122.716, battery2.getTerminal());
     }
 }
