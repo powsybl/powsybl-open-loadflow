@@ -283,7 +283,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         stableParams.setTransformerVoltageControlOn(true);
         stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlStable(true);
         stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
-        stableParams.getExtension(OpenLoadFlowParameters.class).setMinRealisticVoltage(0.5); // please, code not merged yet, do not remove transfomers from voltage control
+        stableParams.getExtension(OpenLoadFlowParameters.class).setMinPlausibleTargetVoltage(0.5); // please, code not merged yet, do not remove transfomers from voltage control
 
         // Move group to its limit
         selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt()); // recreate the network (strange bug in server built otherwise)
