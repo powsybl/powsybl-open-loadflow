@@ -253,7 +253,6 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
         assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition()); // No change expected
 
-
         // generator now included in tht limit
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
