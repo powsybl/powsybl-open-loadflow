@@ -40,7 +40,7 @@ public class LfNetworkLoadingReport {
 
     int transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen = 0;
 
-    int ratioTapChangersWithInconsistentTargetVoltage = 0;
+    int transformersWithInconsistentTargetVoltage = 0;
 
     int shuntsWithInconsistentTargetVoltage = 0;
 }

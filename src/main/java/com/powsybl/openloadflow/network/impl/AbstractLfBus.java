@@ -357,7 +357,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             return false;
         }
         if (!VoltageControl.checkTargetV(targetV / nominalV, nominalV, parameters)) {
-            LOGGER.trace("Shunt compensator '{}' has an inconsistent target voltage: {} pu: Shunt voltage control discarded", shuntCompensator.getId(), targetV);
+            LOGGER.trace("Shunt compensator '{}' has an inconsistent target voltage: {} pu: shunt voltage control discarded", shuntCompensator.getId(), targetV);
             if (report != null) {
                 report.shuntsWithInconsistentTargetVoltage++;
             }

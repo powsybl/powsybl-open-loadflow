@@ -628,9 +628,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         Double targetDeadband = rtc.getTargetDeadband() > 0 ? rtc.getTargetDeadband() / regulatingTerminalNominalV : null;
 
         if (!VoltageControl.checkTargetV(targetValue, controlledBus.getNominalV(), parameters)) {
-            LOGGER.trace("RatioTapChanger on transformer '{}' has an inconsistent target voltage: {} pu: Rtc voltage control discarded", controllerBranchId, targetValue);
+            LOGGER.trace("RatioTapChanger on transformer '{}' has an inconsistent target voltage: {} pu: transformer voltage control discarded", controllerBranchId, targetValue);
             if (report != null) {
-                report.ratioTapChangersWithInconsistentTargetVoltage++;
+                report.transformersWithInconsistentTargetVoltage++;
             }
             return;
         }
@@ -713,59 +713,55 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
             return;
         }
-        Optional<LfShunt> controllerShuntOpt = controllerBus.getControllerShunt();
-        if (controllerShuntOpt.isEmpty()) {
-            // The shunt voltage control has been discarded
-            return;
-        }
-        LfShunt controllerShunt = controllerShuntOpt.get();
-        LfBus controlledBus = getLfBus(shuntCompensator.getRegulatingTerminal(), lfNetwork, parameters.isBreakers());
-        if (controlledBus == null) {
-            LOGGER.warn("Regulating terminal of voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
-            controllerShunt.setVoltageControlCapability(false);
-            return;
-        }
-        if (controllerShunt.getVoltageControl().isPresent()) {
-            // if a controller shunt is already in a shunt voltage control, the number of equations will not equal the
-            // number of variables. We have only one B variable for more than one bus target V equations.
-            if (!controllerShunt.getVoltageControl().orElseThrow().getControlledBus().getId().equals(controlledBus.getId())) {
-                LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
-                Reports.reportControllerShuntAlreadyInVoltageControl(controllerBus.getNetwork().getReportNode(), controllerShunt.getId(), controlledBus.getId());
+        controllerBus.getControllerShunt().ifPresent(controllerShunt -> {
+            LfBus controlledBus = getLfBus(shuntCompensator.getRegulatingTerminal(), lfNetwork, parameters.isBreakers());
+            if (controlledBus == null) {
+                LOGGER.warn("Regulating terminal of voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
+                controllerShunt.setVoltageControlCapability(false);
+                return;
             }
-            return;
-        }
-
-        double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
-        double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
-        Double targetDeadband = shuntCompensator.getTargetDeadband() > 0 ? shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV : null;
-
-        controlledBus.getShuntVoltageControl().ifPresentOrElse(voltageControl -> {
-            LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
-            if (FastMath.abs(voltageControl.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
-                LOGGER.warn("Controlled bus {} already has a shunt voltage control with a different target voltage: {} and {}",
-                        controlledBus.getId(), voltageControl.getTargetValue(), targetValue);
+            if (controllerShunt.getVoltageControl().isPresent()) {
+                // if a controller shunt is already in a shunt voltage control, the number of equations will not equal the
+                // number of variables. We have only one B variable for more than one bus target V equations.
+                if (!controllerShunt.getVoltageControl().orElseThrow().getControlledBus().getId().equals(controlledBus.getId())) {
+                    LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
+                    Reports.reportControllerShuntAlreadyInVoltageControl(controllerBus.getNetwork().getReportNode(), controllerShunt.getId(), controlledBus.getId());
+                }
+                return;
             }
-            if (!voltageControl.getControllerElements().contains(controllerShunt)) {
-                voltageControl.addControllerElement(controllerShunt);
-                controllerShunt.setVoltageControl(voltageControl);
-                controlledBus.setShuntVoltageControl(voltageControl);
-                if (targetDeadband != null) {
-                    Double oldTargetDeadband = voltageControl.getTargetDeadband().orElse(null);
-                    if (oldTargetDeadband == null) {
-                        voltageControl.setTargetDeadband(targetDeadband);
-                    } else {
-                        // merge target deadbands by taking minimum
-                        voltageControl.setTargetDeadband(Math.min(oldTargetDeadband, targetDeadband));
+
+            double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
+            double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
+            Double targetDeadband = shuntCompensator.getTargetDeadband() > 0 ? shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV : null;
+
+            controlledBus.getShuntVoltageControl().ifPresentOrElse(voltageControl -> {
+                LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
+                if (FastMath.abs(voltageControl.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
+                    LOGGER.warn("Controlled bus {} already has a shunt voltage control with a different target voltage: {} and {}",
+                            controlledBus.getId(), voltageControl.getTargetValue(), targetValue);
+                }
+                if (!voltageControl.getControllerElements().contains(controllerShunt)) {
+                    voltageControl.addControllerElement(controllerShunt);
+                    controllerShunt.setVoltageControl(voltageControl);
+                    controlledBus.setShuntVoltageControl(voltageControl);
+                    if (targetDeadband != null) {
+                        Double oldTargetDeadband = voltageControl.getTargetDeadband().orElse(null);
+                        if (oldTargetDeadband == null) {
+                            voltageControl.setTargetDeadband(targetDeadband);
+                        } else {
+                            // merge target deadbands by taking minimum
+                            voltageControl.setTargetDeadband(Math.min(oldTargetDeadband, targetDeadband));
+                        }
                     }
                 }
-            }
-        }, () -> {
+            }, () -> {
                 // we create a new shunt voltage control.
                 ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, parameters.getVoltageTargetPriority(VoltageControl.Type.SHUNT), targetValue, targetDeadband);
                 voltageControl.addControllerElement(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);
             });
+        });
     }
 
     private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork, boolean breakers) {
@@ -877,19 +873,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen > 0) {
-            LOGGER.warn("Network {}: {} ratio tap changer reactive power controls have been discarded because controller branch is open",
+            LOGGER.warn("Network {}: {} transformer reactive power controls have been discarded because controller branch is open",
                     lfNetwork, report.transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen);
         }
 
-        if (report.ratioTapChangersWithInconsistentTargetVoltage > 0) {
-            Reports.reportRatioTapChangersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.ratioTapChangersWithInconsistentTargetVoltage);
-            LOGGER.warn("Network {}: {} ratio tap changers have an inconsistent target voltage and have been discarded from voltage control",
-                    lfNetwork, report.ratioTapChangersWithInconsistentTargetVoltage);
+        if (report.transformersWithInconsistentTargetVoltage > 0) {
+            Reports.reportTransformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.transformersWithInconsistentTargetVoltage);
+            LOGGER.warn("Network {}: {} transformer voltage controls have an inconsistent target voltage and have been discarded from voltage control",
+                    lfNetwork, report.transformersWithInconsistentTargetVoltage);
         }
 
         if (report.shuntsWithInconsistentTargetVoltage > 0) {
             Reports.reportShuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.shuntsWithInconsistentTargetVoltage);
-            LOGGER.warn("Network {}: {} shunts have an inconsistent target voltage and have been discarded from voltage control",
+            LOGGER.warn("Network {}: {} shunt voltage controls have an inconsistent target voltage and have been discarded from voltage control",
                     lfNetwork, report.shuntsWithInconsistentTargetVoltage);
         }
 

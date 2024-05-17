@@ -1,7 +1,7 @@
 + Test Report
    + Load flow on network 'two-windings-transformer-control'
       + Network CC0 SC0
-         1 ratio tap changers have been discarded from voltage control because targetV is inconsistent
+         1 transformers have been discarded from voltage control because targetV is inconsistent
          + Network info
             Network has 3 buses and 2 branches
             Network balance: active generation=25.0 MW, active load=16.2 MW, reactive generation=0.0 MVar, reactive load=7.5 MVar

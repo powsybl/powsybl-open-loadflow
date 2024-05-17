@@ -175,7 +175,7 @@ class AcLoadFlowReportTest {
     }
 
     @Test
-    void ratioTapChangerVoltageControlDiscarded() throws IOException {
+    void transformerVoltageControlDiscarded() throws IOException {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         var t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
@@ -196,7 +196,7 @@ class AcLoadFlowReportTest {
         LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        LoadFlowAssert.assertReportEquals("/ratioTapChangerVoltageControlDiscarded.txt", reportNode);
+        LoadFlowAssert.assertReportEquals("/transformerVoltageControlDiscarded.txt", reportNode);
     }
 
     @Test

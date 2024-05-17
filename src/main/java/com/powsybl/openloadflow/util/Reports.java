@@ -25,7 +25,7 @@ public final class Reports {
     private static final String NETWORK_ID = "networkId";
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
 
-    private static final String IMPACTED_RTC_COUNT = "impactedRatioTapChangerCount";
+    private static final String IMPACTED_TRANSFORMER_COUNT = "impactedTransformerCount";
 
     private static final String IMPACTED_SHUNT_COUNT = "impactedShuntCount";
     private static final String BUS_ID = "busId";
@@ -306,17 +306,17 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportRatioTapChangersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedRatioTapChangerCount) {
+    public static void reportTransformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedTransformerCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("ratioTapChangersDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedRatioTapChangerCount} ratio tap changers have been discarded from voltage control because targetV is inconsistent")
-                .withUntypedValue(IMPACTED_RTC_COUNT, impactedRatioTapChangerCount)
+                .withMessageTemplate("transformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedTransformerCount} transformers have been discarded from voltage control because targetV is inconsistent")
+                .withUntypedValue(IMPACTED_TRANSFORMER_COUNT, impactedTransformerCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
     public static void reportShuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedShuntCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("shuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedShuntCount} shunts have been discarded from voltage control because targetV is inconsistent")
+                .withMessageTemplate("shuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedShuntCount} shunt compensators have been discarded from voltage control because targetV is inconsistent")
                 .withUntypedValue(IMPACTED_SHUNT_COUNT, impactedShuntCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
