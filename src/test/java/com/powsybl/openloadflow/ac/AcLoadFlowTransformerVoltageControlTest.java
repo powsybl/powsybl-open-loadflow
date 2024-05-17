@@ -300,6 +300,7 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setRegulationTerminal(t2wt2.getTerminal2())
                 .setTargetV(26.0);
 
+        System.out.println("build on server fails here");
         LoadFlowResult result = loadFlowRunner.run(network, stableParams);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.283, bus2);
