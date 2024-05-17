@@ -286,7 +286,6 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
         assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
 
-
     }
 
     @Test
