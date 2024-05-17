@@ -43,13 +43,11 @@ public class GroupVoltageControlManager {
             if (bus.getNominalV() < thtLimit) {
                 var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
                 for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
-                    if (controllerBus.isGeneratorVoltageControlEnabled()) {
-                        if (!isBusBehindTHTTransfo(controllerBus, thtLimit)) {
-                            controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
-                            controllerBus.setGeneratorVoltageControlEnabled(false);
-                            busesWithVoltageControlDisabled.add(controllerBus);
-                            result = true;
-                        }
+                    if (controllerBus.isGeneratorVoltageControlEnabled() && !isBusBehindTHTTransfo(controllerBus, thtLimit)) {
+                        controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
+                        controllerBus.setGeneratorVoltageControlEnabled(false);
+                        busesWithVoltageControlDisabled.add(controllerBus);
+                        result = true;
                     }
                 }
             }
@@ -73,7 +71,7 @@ public class GroupVoltageControlManager {
             return false;
         }
         // Always keep VSC stations
-        if (bus.getGenerators().stream().anyMatch(g -> g instanceof LfVscConverterStation)) {
+        if (bus.getGenerators().stream().anyMatch(LfVscConverterStation.class::isInstance)) {
             return true;
         }
 

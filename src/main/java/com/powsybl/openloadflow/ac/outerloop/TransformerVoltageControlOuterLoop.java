@@ -149,7 +149,6 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> {
-                        System.out.println(bus.getId());
                         voltageControl.getMergedControllerElements().stream()
                                 .filter(b -> !b.isDisabled())
                                 .filter(LfBranch::isVoltageControlEnabled)
