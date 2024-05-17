@@ -33,14 +33,14 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
                 controllerBranch.setVoltageControlEnabled(true);
             }
         }
-        context.getNetwork().fixTransformerVoltageControls();
+        context.getNetwork().fixTransformerVoltageControls(true);
     }
 
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         if (context.getIteration() == 0) {
-            status = roundVoltageRatios(context);
+            status = roundVoltageRatios(context.getNetwork());
         }
         return new OuterLoopResult(this, status);
     }

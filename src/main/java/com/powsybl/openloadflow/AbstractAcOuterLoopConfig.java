@@ -55,12 +55,15 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
-    protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.TransformerVoltageControlMode controlMode,
+    protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters,
+                                                                                    boolean isTransformerVoltageControlStable,
+                                                                                    int transformerVoltageControlThtLimit,
+                                                                                    OpenLoadFlowParameters.TransformerVoltageControlMode controlMode,
                                                                                     int incrementalTransformerVoltageControlOuterLoopMaxTapShift) {
         if (parameters.isTransformerVoltageControlOn()) {
             AcOuterLoop outerLoop = switch (controlMode) {
                 case WITH_GENERATOR_VOLTAGE_CONTROL -> new SimpleTransformerVoltageControlOuterLoop();
-                case AFTER_GENERATOR_VOLTAGE_CONTROL -> new TransformerVoltageControlOuterLoop();
+                case AFTER_GENERATOR_VOLTAGE_CONTROL -> new TransformerVoltageControlOuterLoop(isTransformerVoltageControlStable, transformerVoltageControlThtLimit);
                 case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalTransformerVoltageControlOuterLoop(incrementalTransformerVoltageControlOuterLoopMaxTapShift);
             };
             return Optional.of(outerLoop);
@@ -70,6 +73,8 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return createTransformerVoltageControlOuterLoop(parameters,
+                                                        parametersExt.isTransformerVoltageControlStable(),
+                                                        parametersExt.getTransformerVoltageControlThtLimit(),
                                                         parametersExt.getTransformerVoltageControlMode(),
                                                         parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
     }

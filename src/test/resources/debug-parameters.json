@@ -84,7 +84,9 @@
         "newtonKrylovLineSearch" : false,
         "referenceBusSelectionMode" : "FIRST_SLACK",
         "writeReferenceTerminals" : true,
-        "voltageTargetPriorities" : [ "GENERATOR", "TRANSFORMER", "SHUNT" ]
+        "voltageTargetPriorities" : [ "GENERATOR", "TRANSFORMER", "SHUNT" ],
+        "transformerVoltageControlStable" : false,
+        "transformerVoltageControlThtLimit" : -1
       }
     }
   },

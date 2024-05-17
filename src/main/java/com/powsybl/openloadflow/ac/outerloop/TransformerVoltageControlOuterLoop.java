@@ -9,15 +9,15 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.ac.outerloop.tap.GroupVoltageControlManager;
+import com.powsybl.openloadflow.ac.outerloop.tap.TransformerRatioManager;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.VoltageControl;
-import org.apache.commons.lang3.mutable.MutableObject;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -26,42 +26,41 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
 
     public static final String NAME = "TransformerVoltageControl";
 
+    private enum Step {
+        NOT_STARTED,
+        TUNING,
+        DISCRETIZED
+    }
+
     private static final class ContextData {
 
-        private double maxControlledNominalVoltage = Double.MIN_VALUE;
+        private TransformerRatioManager transformerRatioManager;
 
-        private final List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
+        private GroupVoltageControlManager groupVoltageControlManager;
 
-        private double getMaxControlledNominalVoltage() {
-            return maxControlledNominalVoltage;
-        }
+        private Step step = Step.NOT_STARTED;
 
-        private void setMaxControlledNominalVoltage(double maxControlledNominalVoltage) {
-            this.maxControlledNominalVoltage = maxControlledNominalVoltage;
-        }
+    }
 
-        private List<LfBus> getBusesWithVoltageControlDisabled() {
-            return busesWithVoltageControlDisabled;
-        }
+    private final boolean stable;
+    private final int thtLimit;
+
+    public TransformerVoltageControlOuterLoop(boolean stable, int thtLimit) {
+        this.stable = stable;
+        this.thtLimit = thtLimit;
     }
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        context.setData(new ContextData());
+        ContextData contextData = new ContextData();
+        context.setData(contextData);
 
         for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             controllerBranch.setVoltageControlEnabled(false);
         }
 
         // All transformer voltage control are disabled for the first equation system resolution.
-        double[] maxControlledNominalVoltage = new double[1];
-        maxControlledNominalVoltage[0] = Double.MIN_VALUE;
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            if (!bus.isDisabled() && bus.isTransformerVoltageControlled()) {
-                maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], bus.getNominalV());
-            }
-        }
-        ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxControlledNominalVoltage[0]);
+        contextData.groupVoltageControlManager = new GroupVoltageControlManager(context.getNetwork(), thtLimit);
     }
 
     @Override
@@ -71,62 +70,92 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
 
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
-        final MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         var contextData = (ContextData) context.getData();
 
-        // At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
-        // the set controlledNominalVoltages are disabled.
-        // The transformer voltage controls are enabled.
-        if (context.getIteration() == 0) {
-            firstOuterLoop(context, contextData, status);
-        }
+        return switch (contextData.step) {
+            case NOT_STARTED -> initStep(context.getNetwork(), contextData);
+            case TUNING -> tuningStep(context.getNetwork(), contextData);
+            case DISCRETIZED -> new OuterLoopResult(this, OuterLoopStatus.STABLE);
+        };
 
-        // At second outer loop iteration, the transformers are rounded. The generator voltage controls that were
-        // disabled previously are enabled.
-        if (context.getIteration() == 1) {
-            secondOuterLoop(context, status, contextData);
-        }
-
-        return new OuterLoopResult(this, status.getValue());
     }
 
-    private static void firstOuterLoop(AcOuterLoopContext context, ContextData contextData, MutableObject<OuterLoopStatus> status) {
-        double maxControlledNominalVoltage = contextData.getMaxControlledNominalVoltage();
-        for (LfBus bus : context.getNetwork().getControlledBuses(VoltageControl.Type.GENERATOR)) {
-            if (bus.getNominalV() <= maxControlledNominalVoltage) {
-                var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
-                voltageControl.getMergedControllerElements().forEach(controllerBus -> {
-                    if (controllerBus.isGeneratorVoltageControlEnabled()) {
-                        controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
-                        controllerBus.setGeneratorVoltageControlEnabled(false);
-                        contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
-                    }
-                });
-                status.setValue(OuterLoopStatus.UNSTABLE);
-            }
-        }
-        for (LfBranch branch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
-            branch.getVoltageControl().ifPresent(voltageControl -> {
+    /**
+     * At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
+     * the set controlledNominalVoltages are disabled.
+     * The transformer voltage controls are enabled ant their continuous ratio is computed$
+     * @return a stable status if all taps are already tuned for tension control, unstable otherwise
+     */
+    private OuterLoopResult initStep(LfNetwork network, ContextData contextData) {
+        boolean needRun = false;
+        for (LfBranch branch : network.<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
+            if (branch.getVoltageControl().isPresent()) {
+                TransformerVoltageControl voltageControl = branch.getVoltageControl().orElseThrow();
                 double targetV = voltageControl.getTargetValue();
                 double v = voltageControl.getControlledBus().getV();
                 double diffV = targetV - v;
                 double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
                 if (Math.abs(diffV) > halfTargetDeadband && branch.isConnectedAtBothSides()) {
                     branch.setVoltageControlEnabled(true);
-                    status.setValue(OuterLoopStatus.UNSTABLE);
+                    needRun = true;
                 }
-            });
+            }
         }
-        context.getNetwork().fixTransformerVoltageControls();
+
+        contextData.transformerRatioManager = new TransformerRatioManager(network, stable);
+
+        if (!needRun) {
+            contextData.step = Step.DISCRETIZED;
+            return new OuterLoopResult(this, OuterLoopStatus.STABLE);
+        }
+        contextData.groupVoltageControlManager.stopHTGroupTensionControl(network);
+
+        // In stable mode, Group maintaining tension but in PQ mode are ignored
+        network.fixTransformerVoltageControls(!stable);
+
+        contextData.step = Step.TUNING;
+        return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
     }
 
-    private void secondOuterLoop(AcOuterLoopContext context, MutableObject<OuterLoopStatus> status, ContextData contextData) {
-        status.setValue(roundVoltageRatios(context));
-        for (LfBus controllerBus : contextData.getBusesWithVoltageControlDisabled()) {
-            controllerBus.setGenerationTargetQ(0);
-            controllerBus.setGeneratorVoltageControlEnabled(true);
-            status.setValue(OuterLoopStatus.UNSTABLE);
+    /**
+     * During tuning step, transformers with ratio outside of range are discretized. Iterate until all transformers
+     * with continuous ratio are within their operating range , discretize then then switch to DISCTERIZED state
+     */
+    private OuterLoopResult tuningStep(LfNetwork network, ContextData contextData) {
+        boolean outOfBoundTap = false;
+
+        for (LfBranch controllerBranch : network.<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
+            if (contextData.transformerRatioManager.freezeIfGroupAtBounds(controllerBranch)) {
+                outOfBoundTap = true;
+            }
+        }
+
+        if (!outOfBoundTap) {
+            // No out of bound tap -  descretize
+            updateContinuousRatio(network, contextData);
+
+            roundVoltageRatios(network);
+            contextData.groupVoltageControlManager.restartHTGroupTensionControl();
+
+            contextData.step = Step.DISCRETIZED;
+        }
+        // In any case the loop must run again
+        return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
+    }
+
+    private void updateContinuousRatio(LfNetwork network, ContextData contextData) {
+        for (LfBus bus : network.getControlledBuses(VoltageControl.Type.TRANSFORMER)) {
+            bus.getTransformerVoltageControl()
+                    .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                    .ifPresent(voltageControl -> {
+                        System.out.println(bus.getId());
+                        voltageControl.getMergedControllerElements().stream()
+                                .filter(b -> !b.isDisabled())
+                                .filter(LfBranch::isVoltageControlEnabled)
+                                .forEach(b -> contextData.transformerRatioManager.updateContinuousRatio(b));
+                    });
         }
     }
+
 }
