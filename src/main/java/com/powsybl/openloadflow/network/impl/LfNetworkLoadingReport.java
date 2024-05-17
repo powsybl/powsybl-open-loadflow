@@ -30,8 +30,6 @@ public class LfNetworkLoadingReport {
 
     int branchesDiscardedBecauseConnectedToSameBusAtBothEnds = 0;
 
-    int linesWithDifferentNominalVoltageAtBothEnds = 0;
-
     int nonImpedantBranches = 0;
 
     int generatorsWithInconsistentTargetVoltage = 0;
@@ -41,4 +39,8 @@ public class LfNetworkLoadingReport {
     int transformerVoltageControlDiscardedBecauseControllerBranchIsOpen = 0;
 
     int transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen = 0;
+
+    int transformersWithInconsistentTargetVoltage = 0;
+
+    int shuntsWithInconsistentTargetVoltage = 0;
 }
