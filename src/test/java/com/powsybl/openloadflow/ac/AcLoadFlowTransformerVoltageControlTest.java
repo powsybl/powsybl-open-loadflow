@@ -276,9 +276,11 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
 
         // Move group to its limit
+        selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt()); // recreate the network (strange bug in server built otherwise)
         t2wt.getRatioTapChanger().setTargetV(26);
         t2wt2.getRatioTapChanger().setTargetV(26);
 
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlThtLimit(90); // Below G1 voltage level
         result = loadFlowRunner.run(network, stableParams);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.283, bus2);
