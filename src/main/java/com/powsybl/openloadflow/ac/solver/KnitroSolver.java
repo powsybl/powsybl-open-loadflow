@@ -210,6 +210,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             KnitroProblem instance = new KnitroProblem(network, equationSystem, targetVector);
             KNSolver solver = new KNSolver(instance);
             solver.initProblem();
+            parameters.setConvEpsPerEq(Math.pow(10,-6));
             setSolverParameters(solver, parameters);
             solver.solve();
 

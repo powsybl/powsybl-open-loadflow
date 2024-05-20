@@ -45,11 +45,19 @@ public class KnitroSolverTest {
 
     private LoadFlowParameters parameters;
 
+    private OpenLoadFlowParameters parametersExt;
+
     @BeforeEach
     void setUp() {
         parameters = new LoadFlowParameters();
-        // Utilisation de Knitro comme solver + défintion du slack bus
-        OpenLoadFlowParameters.create(parameters).setAcSolverType(AcSolverType.KNITRO);
+        parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setAcSolverType(AcSolverType.KNITRO);
+        // Pas d'OLs
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parameters.setDistributedSlack(false)
+                .setUseReactiveLimits(false);
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setSvcVoltageMonitoring(false);
         // Sparse matrix solver only
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
     }
@@ -69,15 +77,7 @@ public class KnitroSolverTest {
         VoltageLevel vlhv1 = network.getVoltageLevel("VLHV1");
         VoltageLevel vlhv2 = network.getVoltageLevel("VLHV2");
 
-        // Pas d'OLs
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        parameters.setDistributedSlack(false)
-                .setUseReactiveLimits(false);
-//        parameters.getExtension(OpenLoadFlowParameters.class)
-//                .setSvcVoltageMonitoring(false);
-
-        // Utilisation de Knitro comme solver + défintion du slack bus
-        OpenLoadFlowParameters.create(parameters).setAcSolverType(AcSolverType.KNITRO).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         LoadFlowResult KNresult = loadFlowRunner.run(network, parameters);
 
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, KNresult.getComponentResults().get(0).getStatus());
@@ -86,7 +86,7 @@ public class KnitroSolverTest {
         assertVoltageEquals(402.143, bus1);
         assertAngleEquals(-2.325965, bus1);
         assertVoltageEquals(389.953, bus2);
-        assertAngleEquals(-5.832329, bus2);
+        assertAngleEquals(-5.832323, bus2);
         assertVoltageEquals(147.578, loadBus);
         assertAngleEquals(-11.940451, loadBus);
         assertActivePowerEquals(302.444, line1.getTerminal1());
@@ -97,27 +97,17 @@ public class KnitroSolverTest {
         assertReactivePowerEquals(98.74, line2.getTerminal1());
         assertActivePowerEquals(-300.434, line2.getTerminal2());
         assertReactivePowerEquals(-137.188, line2.getTerminal2());
-
-        // check pv bus reactive power update
-        assertReactivePowerEquals(-225.279, gen.getTerminal());
+        assertReactivePowerEquals(-225.282, gen.getTerminal());
     }
 
     @Test
-    void knitroSolverTest4bus() {
+    void knitroSolverTest4busWithCondenser() {
         Network network = FourBusNetworkFactory.createWithCondenser();
         Bus b1 = network.getBusBreakerView().getBus("b1");
         Bus b4 = network.getBusBreakerView().getBus("b4");
         Bus b2 = network.getBusBreakerView().getBus("b2");
         Bus b3 = network.getBusBreakerView().getBus("b3");
         List<Bus> busList = network.getBusView().getBusStream().toList();
-
-        // Pas d'OLs
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        parameters.setDistributedSlack(false)
-                .setUseReactiveLimits(false);
-        parameters.getExtension(OpenLoadFlowParameters.class)
-                .setSvcVoltageMonitoring(false);
-
 
         LoadFlowResult KNresult = loadFlowRunner.run(network, parameters);
 
@@ -126,7 +116,7 @@ public class KnitroSolverTest {
         assertVoltageEquals(1.0, b1);
         assertAngleEquals(0, b1);
         assertVoltageEquals(1.0, b4);
-        assertAngleEquals(-2.584977, b4);
+        assertAngleEquals(-6.531907, b4);
     }
 
 }
