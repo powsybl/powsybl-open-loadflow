@@ -198,7 +198,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
     private void setSolverParameters(KNSolver solver, KnitroSolverParameters parameters) throws KNException {
         solver.setParam(KNConstants.KN_PARAM_GRADOPT, parameters.getGradientComputationMode());
-        solver.setParam(KNConstants.KN_PARAM_FEASTOL, parameters.getDefaultConvEpsPerEq());
+        solver.setParam(KNConstants.KN_PARAM_FEASTOL, parameters.getConvEpsPerEq());
     }
 
     @Override

@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
+ * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
 public class KnitroSolverTest {
 

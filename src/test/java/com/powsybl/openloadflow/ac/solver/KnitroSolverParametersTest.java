@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
+ * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
 public class KnitroSolverParametersTest {
 
@@ -32,6 +33,23 @@ public class KnitroSolverParametersTest {
         assertEquals("Knitro gradient computation mode must be between 1 and 3", e.getMessage());
         IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parameters.setGradientComputationMode(4));
         assertEquals("Knitro gradient computation mode must be between 1 and 3", e2.getMessage());
+    }
+
+    @Test
+    void testConvEpsPerEq() {
+        KnitroSolverParameters parameters = new KnitroSolverParameters();
+        // default value
+        assertEquals(Math.pow(10,-4),parameters.getConvEpsPerEq());
+
+        // set other value
+        parameters.setConvEpsPerEq(Math.pow(10,-6));
+        assertEquals(Math.pow(10,-6),parameters.getConvEpsPerEq());
+
+        // wrong values
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> parameters.setConvEpsPerEq(Math.pow(-10,-3)));
+        assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e.getMessage());
+        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parameters.setConvEpsPerEq(0));
+        assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e2.getMessage());
     }
 
     @Test

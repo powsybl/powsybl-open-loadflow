@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.solver;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
+ * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
 public class KnitroSolverParameters {
 
@@ -26,7 +27,7 @@ public class KnitroSolverParameters {
         return gradientComputationMode;
     }
 
-    public double getDefaultConvEpsPerEq() {
+    public double getConvEpsPerEq() {
         return convEpsPerEq;
     }
 
@@ -38,8 +39,8 @@ public class KnitroSolverParameters {
     }
 
     public void setConvEpsPerEq(double convEpsPerEq) {
-        if (convEpsPerEq<0) {
-            throw new IllegalArgumentException("Knitro final relative stopping tolerance for the feasibility error must be greater than 0");
+        if (convEpsPerEq<=0) {
+            throw new IllegalArgumentException("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0");
         }
         this.convEpsPerEq = convEpsPerEq;
     }
