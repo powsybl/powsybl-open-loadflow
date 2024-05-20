@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.action.Action;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -23,9 +24,13 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.ReferenceBusSelector;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
+import com.powsybl.security.SecurityAnalysisParameters;
+import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.List;
 
@@ -65,6 +70,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     @Override
     protected DcLoadFlowEngine createLoadFlowEngine(DcLoadFlowContext context) {
         return new DcLoadFlowEngine(context);
+    }
+
+    @Override
+    protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters acParameters, SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies, List<Action> actions) {
+        return null;
     }
 
     @Override

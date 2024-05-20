@@ -371,6 +371,13 @@ public final class Reports {
                 .add();
     }
 
+    public static ReportNode createWoodburyDcSecurityAnalysis(ReportNode reportNode, String networkId) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("woodburyDcSecurityAnalysis", "Woodbury DC security analysis on network '${networkId}'")
+                .withUntypedValue(NETWORK_ID, networkId)
+                .add();
+    }
+
     public static ReportNode createPreContingencySimulation(ReportNode reportNode) {
         return reportNode.newReportNode()
                 .withMessageTemplate("preContingencySimulation", "Pre-contingency simulation")
