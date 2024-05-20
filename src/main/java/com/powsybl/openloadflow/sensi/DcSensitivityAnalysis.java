@@ -214,9 +214,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     /**
      * Compute flow rhs taking into account slack distribution.
      */
-    private static DenseMatrix getPreContingencyFlowRhs(DcLoadFlowContext loadFlowContext,
-                                                        List<ParticipatingElement> participatingElements,
-                                                        DisabledNetwork disabledNetwork) {
+    public static DenseMatrix getPreContingencyFlowRhs(DcLoadFlowContext loadFlowContext,
+                                                       List<ParticipatingElement> participatingElements,
+                                                       DisabledNetwork disabledNetwork) {
         List<BusState> busStates = Collections.emptyList();
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
         if (parameters.isDistributedSlack()) {
