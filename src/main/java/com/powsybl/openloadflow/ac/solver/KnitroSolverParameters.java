@@ -8,6 +8,8 @@
 package com.powsybl.openloadflow.ac.solver;
 //import com.powsybl.openloadflow.ac.solver.DefaultNewtonRaphsonStoppingCriteria;
 
+import com.powsybl.loadflow.LoadFlowParameters;
+
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
@@ -15,11 +17,12 @@ package com.powsybl.openloadflow.ac.solver;
 public class KnitroSolverParameters {
 
     public static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 2; // Knitro computes gradients by forward finite differences
-    public static final double DEFAULT_CONV_EPS_PER_EQ = NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
 
     private int gradientComputationMode = GRADIENT_COMPUTATION_MODE_DEFAULT;
 
-    private double convEpsPerEq = DEFAULT_CONV_EPS_PER_EQ;
+    private double convEpsPerEq = NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
+
+    private LoadFlowParameters.VoltageInitMode voltageInitMode = LoadFlowParameters.DEFAULT_VOLTAGE_INIT_MODE;
 
     public KnitroSolverParameters() {
     }
@@ -30,6 +33,10 @@ public class KnitroSolverParameters {
 
     public double getConvEpsPerEq() {
         return convEpsPerEq;
+    }
+
+    public LoadFlowParameters.VoltageInitMode getVoltageInitMode() {
+        return voltageInitMode;
     }
 
     public void setGradientComputationMode(int gradientComputationMode) {
@@ -44,6 +51,13 @@ public class KnitroSolverParameters {
             throw new IllegalArgumentException("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0");
         }
         this.convEpsPerEq = convEpsPerEq;
+    }
+
+    public void setVoltageInitMode(LoadFlowParameters.VoltageInitMode voltageInitMode) {
+        if ((voltageInitMode!=LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES)&(voltageInitMode!=LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES)&(voltageInitMode!=LoadFlowParameters.VoltageInitMode.DC_VALUES)) {
+            throw new IllegalArgumentException("Knitro init mode must be UNIFORM_VALUES, PREVIOUS_VALUES or DC_VALUES");
+        }
+        this.voltageInitMode = voltageInitMode;
     }
 
     @Override

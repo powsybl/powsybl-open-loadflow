@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.powsybl.loadflow.LoadFlowParameters;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,7 +42,6 @@ public class KnitroSolverParametersTest {
         NewtonRaphsonParameters parametersNewtonRaphson = new NewtonRaphsonParameters();
 
         // default value
-        assertEquals(Math.pow(10,-4),parameters.getConvEpsPerEq());
         assertEquals(parameters.getConvEpsPerEq(),NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ);
 
         // set other value
@@ -54,6 +54,20 @@ public class KnitroSolverParametersTest {
         IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parameters.setConvEpsPerEq(0));
         assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e2.getMessage());
     }
+
+    @Test
+    void testInitValues(){
+        KnitroSolverParameters parameters = new KnitroSolverParameters();
+
+        // default value
+        assertEquals(parameters.getVoltageInitMode(),LoadFlowParameters.DEFAULT_VOLTAGE_INIT_MODE);
+
+        // set other value
+        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        assertEquals(LoadFlowParameters.VoltageInitMode.DC_VALUES,parameters.getVoltageInitMode());
+    }
+
+
 
     @Test
     void testToString() {

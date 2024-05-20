@@ -25,15 +25,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-//import java.util.stream.Collectors;
-
-//import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
-//import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-//import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
