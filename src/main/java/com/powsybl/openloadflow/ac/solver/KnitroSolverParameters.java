@@ -12,15 +12,22 @@ package com.powsybl.openloadflow.ac.solver;
  */
 public class KnitroSolverParameters {
 
-    private static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 2; // Knitro computes gradients by forward finite differences
+    public static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 2; // Knitro computes gradients by forward finite differences
+    public static final double DEFAULT_CONV_EPS_PER_EQ = Math.pow(10, -4);
 
     private int gradientComputationMode = GRADIENT_COMPUTATION_MODE_DEFAULT;
+
+    private double convEpsPerEq = DEFAULT_CONV_EPS_PER_EQ;
 
     public KnitroSolverParameters() {
     }
 
     public int getGradientComputationMode() {
         return gradientComputationMode;
+    }
+
+    public double getDefaultConvEpsPerEq() {
+        return convEpsPerEq;
     }
 
     public void setGradientComputationMode(int gradientComputationMode) {
@@ -30,10 +37,18 @@ public class KnitroSolverParameters {
         this.gradientComputationMode = gradientComputationMode;
     }
 
+    public void setConvEpsPerEq(double convEpsPerEq) {
+        if (convEpsPerEq<0) {
+            throw new IllegalArgumentException("Knitro final relative stopping tolerance for the feasibility error must be greater than 0");
+        }
+        this.convEpsPerEq = convEpsPerEq;
+    }
+
     @Override
     public String toString() {
         return "KnitroSolverParameters(" +
                 "gradientComputationMode=" + gradientComputationMode +
+                "; " + "convEpsPerEq=" + convEpsPerEq +
                 ')';
     }
 }
