@@ -38,8 +38,11 @@ public class KnitroSolverParametersTest {
     @Test
     void testConvEpsPerEq() {
         KnitroSolverParameters parameters = new KnitroSolverParameters();
+        NewtonRaphsonParameters parametersNewtonRaphson = new NewtonRaphsonParameters();
+
         // default value
         assertEquals(Math.pow(10,-4),parameters.getConvEpsPerEq());
+        assertEquals(parameters.getConvEpsPerEq(),NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ);
 
         // set other value
         parameters.setConvEpsPerEq(Math.pow(10,-6));

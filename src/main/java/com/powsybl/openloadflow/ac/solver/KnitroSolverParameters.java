@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.solver;
+//import com.powsybl.openloadflow.ac.solver.DefaultNewtonRaphsonStoppingCriteria;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
@@ -14,7 +15,7 @@ package com.powsybl.openloadflow.ac.solver;
 public class KnitroSolverParameters {
 
     public static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 2; // Knitro computes gradients by forward finite differences
-    public static final double DEFAULT_CONV_EPS_PER_EQ = Math.pow(10, -4);
+    public static final double DEFAULT_CONV_EPS_PER_EQ = NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
 
     private int gradientComputationMode = GRADIENT_COMPUTATION_MODE_DEFAULT;
 
