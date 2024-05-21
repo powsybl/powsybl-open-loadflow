@@ -51,7 +51,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         return "Knitro Solver";
     }
 
-    // List of possible Knitro status
+    // List of all possible Knitro status
     public enum enumKnitroStatus{
     CONVERGED_TO_LOCAL_OPTIMUM,
     CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION,
@@ -115,16 +115,16 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     LOGGER.trace("============ Knitro evaluating callback function ============");
                 }
 
-                // =============== Objectif ===============
+                // =============== Objective ===============
 
-                // =============== Contraintes en P et Q non linéaires ===============
-                // On récupère le nombre de contraintes et on met à jour l'état courant
+                // =============== Non-linear constraints in P and Q ===============
+                // Update current state
                 StateVector currentState = new StateVector(toArray(x));
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Current state vector {}", currentState.get());
                     LOGGER.trace("Evaluating {} non-linear constraints",listNonLinearConsts.size());
                 }
-
+                // Add non-linear constraints
                 for (int equationId : listNonLinearConsts) {
                     Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                     AcEquationType typeEq = equation.getType();
@@ -178,12 +178,12 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         private KnitroProblem(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem, TargetVector targetVector, VoltageInitializer voltageInitializer) throws KNException {
 
             // =============== Variables ===============
-            // Définition des variables, ordonnées par bus et par V, Phi
+            // Defining variables and ordering them by bus and in the order V, Phi
             super(equationSystem.getVariableSet().getVariables().size(), equationSystem.getIndex().getSortedEquationsToSolve().size());
             int numVar = equationSystem.getVariableSet().getVariables().size();
             LOGGER.info("Defining {} variables",numVar);
 
-            // Types, bounds et états initiaux des variables
+            // Types, bounds and inital states of variables
             List<Integer> listVarTypes = new ArrayList<>(Collections.nCopies(numVar, KNConstants.KN_VARTYPE_CONTINUOUS));
             List<Double> listVarLoBounds = new ArrayList<>(numVar);
             List<Double> listVarUpBounds = new ArrayList<>(numVar);
@@ -194,10 +194,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             double loBndV = 0.5;
             double upBndV = 1.5;
             for (int i = 0; i < numVar; i++) {
-                if (i % 2 == 0) { //init V
+                if (i % 2 == 0) { // Initialize V
                     listVarLoBounds.add(loBndV);
                     listVarUpBounds.add(upBndV);
-                } else { //init phi
+                } else { // Initialize Phi
                     listVarLoBounds.add(-KNConstants.KN_INFINITY);
                     listVarUpBounds.add(KNConstants.KN_INFINITY);
                 }
@@ -212,15 +212,15 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // TODO faire en sorte qu'on puisse passer un état initial, sinon 1 0 1 0... par défaut
             LOGGER.info("Initialization of variables : type of initialization {}", voltageInitializer);
 
-            // =============== Contraintes ==============
-            // ----- Contraintes actives -----
-            // Récupérer les contraintes actives et les ordonner dans le même ordre que les targets, par bus et dans l'ordre P Q V Phi
+            // =============== Constraints ==============
+            // ----- Active constraints -----
+            // Get active constraints and order them in same order as targets (i.e by bus and in the order P Q V Phi)
             List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
             int numConst = sortedEquationsToSolve.size();
             List<Integer> listNonLinearConsts = new ArrayList<>() ;
             LOGGER.info("Defining {} active constraints", numConst);
 
-            // ----- Contraintes en V et Phi linéaires -----
+            // ----- Linear constraints in V and Phi -----
             for (int equationId = 0; equationId < numConst; equationId++) {
                 Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                 AcEquationType typeEq = equation.getType();
@@ -236,11 +236,11 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2 + 1);}
                 }
                 else {
-                    listNonLinearConsts.add(equationId);
+                    listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
                 }
             }
 
-            // ----- Contraintes en P et Q non linéaires -----
+            // ----- Non-linear constraints in P and Q -----
             listNonLinearConsts = IntStream.rangeClosed(0, numConst-1).boxed().collect(Collectors.toList()); //TODO A reprendre ca pas clair si on peut passer seulement les CTs non linéaires
             setMainCallbackCstIndexes(listNonLinearConsts);
 
@@ -248,7 +248,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Double> listTarget = Arrays.stream(targetVector.getArray()).boxed().toList();
             setConEqBnds(listTarget);
 
-            // =============== Objectif et Callback ==============
+            // =============== Objective and Callback ==============
             setObjConstPart(0.0);
             setObjEvalCallback(new CallbackEvalFC(sortedEquationsToSolve, lfNetwork, listNonLinearConsts));
         }
