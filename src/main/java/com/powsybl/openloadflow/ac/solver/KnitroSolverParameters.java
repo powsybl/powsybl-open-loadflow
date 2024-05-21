@@ -40,7 +40,7 @@ public class KnitroSolverParameters {
 
     public void setGradientComputationMode(int gradientComputationMode) {
         if (gradientComputationMode < 1 || gradientComputationMode > 3) {
-            throw new IllegalArgumentException("Knitro gradient computation mode must be between 1 and 3");
+            throw new IllegalArgumentException( );
         }
         this.gradientComputationMode = gradientComputationMode;
     }

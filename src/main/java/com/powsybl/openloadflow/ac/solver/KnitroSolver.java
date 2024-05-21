@@ -111,19 +111,21 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             @Override
             public void evaluateFC(final List<Double> x, final List<Double> obj, final List<Double> c) {
+                LOGGER.debug("============ Knitro evaluating callback function ============");
+
                 // =============== Objectif ===============
-                obj.set(0, 0.0);
 
                 // =============== Contraintes en P et Q non linéaires ===============
                 // On récupère le nombre de contraintes et on met à jour l'état courant
-//                int numConst = sortedEquationsToSolve.size();
-//                int numConst = 5;
                 StateVector currentState = new StateVector(toArray(x));
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("Current state vector {}", currentState.get());
+                }
+                LOGGER.debug("Evaluating {} non-linear constraints",listNonLinearConsts.size());
 
                 for (int equationId : listNonLinearConsts) {
                     Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                     AcEquationType typeEq = equation.getType();
-//                    LfBus bus = lfNetwork.getBus(equation.getElementNum());
                     double valueConst = 0;
 
                     if (typeEq == AcEquationType.BUS_TARGET_P || typeEq == AcEquationType.BUS_TARGET_Q) {
@@ -131,15 +133,19 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                             term.setStateVector(currentState);
                             if (term.isActive()) {
                                 valueConst += term.eval();
+                                if (LOGGER.isTraceEnabled()) {
+                                    LOGGER.trace("Term of equation n° {} was evaluated at {}", equationId, term.eval()); //TODO a reprendre pour log le nom du terme également
+                                }
                             }
                         }
+                        try {
+                            c.set(equationId, valueConst);
+                            if (LOGGER.isTraceEnabled()) {
+                                LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);}
+                        } catch (Exception e) {
+                            LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
+                        }
                     }
-                    try {
-                        c.set(equationId, valueConst);
-                    } catch (Exception e) {
-                        System.out.println("Exception found while trying to add non-linear constraint n° " + equationId);
-                    }
-
                 }
             }
         }
@@ -173,6 +179,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // Définition des variables, ordonnées par bus et par V, Phi
             super(equationSystem.getVariableSet().getVariables().size(), equationSystem.getIndex().getSortedEquationsToSolve().size());
             int numVar = equationSystem.getVariableSet().getVariables().size();
+            LOGGER.info("Defining {} variables",numVar);
 
             // Types, bounds et états initiaux des variables
             List<Integer> listVarTypes = new ArrayList<>(Collections.nCopies(numVar, KNConstants.KN_VARTYPE_CONTINUOUS));
@@ -200,6 +207,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             setVarTypes(listVarTypes);
             setXInitial(listXInitial);
             // TODO faire en sorte qu'on puisse passer un état initial, sinon 1 0 1 0... par défaut
+            // LOGGER.info("Initialisation of variables : yes/no + type {}");
 
             // =============== Contraintes ==============
             // ----- Contraintes actives -----
@@ -207,6 +215,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
             int numConst = sortedEquationsToSolve.size();
             List<Integer> listNonLinearConsts = new ArrayList<>() ;
+            LOGGER.info("Defining {} active constraints", numConst);
 
             // ----- Contraintes en V et Phi linéaires -----
             for (int equationId = 0; equationId < numConst; equationId++) {
@@ -215,9 +224,13 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 LfBus bus = lfNetwork.getBus(equation.getElementNum());
                 if (typeEq == AcEquationType.BUS_TARGET_V) {
                     addConstraintLinearPart(equationId, bus.getNum() * 2, 1.0);
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2);}
                 }
                 else if (typeEq == AcEquationType.BUS_TARGET_PHI) {
                     addConstraintLinearPart(equationId, bus.getNum() * 2 + 1, 1.0);
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2 + 1);}
                 }
                 else {
                     listNonLinearConsts.add(equationId);
@@ -232,7 +245,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Double> listTarget = Arrays.stream(targetVector.getArray()).boxed().toList();
             setConEqBnds(listTarget);
 
-            // =============== Objectif ==============
+            // =============== Objectif et Callback ==============
+            setObjConstPart(0.0);
             setObjEvalCallback(new CallbackEvalFC(sortedEquationsToSolve, lfNetwork, listNonLinearConsts));
         }
     }
@@ -258,25 +272,26 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             parameters.setConvEpsPerEq(Math.pow(10, -6));
             setSolverParameters(solver, parameters);
 
-            // Solve and print solutions
+            // Solve
             solver.solve();
             KNSolution solution = solver.getSolution();
             List<Double> constraintValues = solver.getConstraintValues();
-            System.out.println("Optimal objective value  = " + solution.getObjValue());
-            System.out.println("Optimal x");
-            for (int i = 0; i < solution.getX().size(); i++) {
-                System.out.format(" x[%d] = %f%n", i, solution.getX().get(i));
-            }
-            System.out.println("Optimal constraint values (with corresponding multiplier)");
-            for (int i = 0; i < instance.getNumCons(); i++) {
-                System.out.format(" c[%d] = %f (lambda = %f)%n", i, constraintValues.get(i), solution.getLambda().get(i));
-            }
-            System.out.format("Feasibility violation    = %f%n", solver.getAbsFeasError());
-            System.out.format("Optimality violation     = %f%n", solver.getAbsOptError());
-
             acStatus = getAcStatusAndKnitroStatus(solution.getStatus());
-//            LOGGER.info(status);
             nbIter = solver.getNumberIters();
+
+            // Log solution
+            LOGGER.info("Optimal objective value  = {}", solution.getObjValue());
+            LOGGER.info("Feasibility violation    = {}", solver.getAbsFeasError());
+            LOGGER.info("Optimality violation     = {}", solver.getAbsOptError());
+
+            LOGGER.debug("Optimal x");
+            for (int i = 0; i < solution.getX().size(); i++) {
+                LOGGER.debug(" x[{}] = {}", i, solution.getX().get(i));
+            }
+            LOGGER.debug("Optimal constraint values (with corresponding multiplier)");
+            for (int i = 0; i < instance.getNumCons(); i++) {
+                LOGGER.debug(" c[{}] = {} (lambda = {} )", i, constraintValues.get(i), solution.getLambda().get(i));
+            }
 
             // Load results in the network
             equationSystem.getStateVector().set(toArray(solution.getX()));
