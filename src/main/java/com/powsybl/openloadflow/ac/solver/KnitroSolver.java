@@ -111,7 +111,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             @Override
             public void evaluateFC(final List<Double> x, final List<Double> obj, final List<Double> c) {
-                LOGGER.debug("============ Knitro evaluating callback function ============");
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("============ Knitro evaluating callback function ============");
+                }
 
                 // =============== Objectif ===============
 
@@ -120,8 +122,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 StateVector currentState = new StateVector(toArray(x));
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Current state vector {}", currentState.get());
+                    LOGGER.trace("Evaluating {} non-linear constraints",listNonLinearConsts.size());
                 }
-                LOGGER.debug("Evaluating {} non-linear constraints",listNonLinearConsts.size());
 
                 for (int equationId : listNonLinearConsts) {
                     Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
