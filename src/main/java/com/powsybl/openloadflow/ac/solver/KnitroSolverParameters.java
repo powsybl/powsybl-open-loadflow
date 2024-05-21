@@ -6,7 +6,6 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.solver;
-//import com.powsybl.openloadflow.ac.solver.DefaultNewtonRaphsonStoppingCriteria;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 
@@ -65,6 +64,7 @@ public class KnitroSolverParameters {
         return "KnitroSolverParameters(" +
                 "gradientComputationMode=" + gradientComputationMode +
                 "; " + "convEpsPerEq=" + convEpsPerEq +
+                "; " + "voltageInitMode=" + voltageInitMode +
                 ')';
     }
 }

@@ -51,6 +51,47 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         return "Knitro Solver";
     }
 
+    // List of possible Knitro status
+    public enum enumKnitroStatus{
+    CONVERGED_TO_LOCAL_OPTIMUM,
+    CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION,
+    TERMINATED_AT_INFEASIBLE_POINT,
+    PROBLEM_UNBOUNDED,
+    TERMINATED_DUE_TO_PRE_DEFINED_LIMIT,
+    INPUT_OR_NON_STANDARD_ERROR}
+
+    // Get AcStatus equivalent from Knitro Status, and log Knitro Status
+    public AcSolverStatus getAcStatusAndKnitroStatus(int knitroStatus){
+        if (knitroStatus == 0) {
+            LOGGER.info("Knitro Status : {}", enumKnitroStatus.CONVERGED_TO_LOCAL_OPTIMUM);
+            return AcSolverStatus.CONVERGED;
+        }
+        else if (-199 <= knitroStatus & knitroStatus <= -100) {
+            LOGGER.info("Knitro Status : {}", enumKnitroStatus.CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION);
+            return AcSolverStatus.CONVERGED;
+        }
+        else if (-299 <= knitroStatus & knitroStatus <= -200) {
+            LOGGER.info("Knitro Status : {}", enumKnitroStatus.TERMINATED_AT_INFEASIBLE_POINT);
+            return AcSolverStatus.SOLVER_FAILED;
+        }
+        else if (-399 <= knitroStatus & knitroStatus <= -300) {
+            LOGGER.info("Knitro Status : {}", enumKnitroStatus.PROBLEM_UNBOUNDED);
+            return AcSolverStatus.SOLVER_FAILED;
+        }
+        else if (-499 <= knitroStatus & knitroStatus <= -400) {
+            LOGGER.info("Knitro Status : {}", enumKnitroStatus.TERMINATED_DUE_TO_PRE_DEFINED_LIMIT);
+            return AcSolverStatus.MAX_ITERATION_REACHED;
+        }
+        else if (-599 <= knitroStatus & knitroStatus <= -500) {
+            LOGGER.info("Knitro Status : {}", enumKnitroStatus.INPUT_OR_NON_STANDARD_ERROR);
+            return AcSolverStatus.NO_CALCULATION;
+        }
+        else{
+            LOGGER.info("Knitro Status : unknown");
+            throw new IllegalArgumentException("Unknown Knitro Status");
+        }
+    }
+
     private static final class KnitroProblem extends KNProblem {
         /*------------------------------------------------------------------*/
         /*     FUNCTION callbackEvalF                                       */
@@ -206,32 +247,35 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         AcSolverStatus status;
         int nbIter = -1;
 
+        AcSolverStatus acStatus = null;
         try {
+            // Create instance of problem
             KnitroProblem instance = new KnitroProblem(network, equationSystem, targetVector);
             KNSolver solver = new KNSolver(instance);
             solver.initProblem();
-            parameters.setConvEpsPerEq(Math.pow(10,-6));
-            setSolverParameters(solver, parameters);
-            solver.solve();
 
+            // Set solver parameters
+            parameters.setConvEpsPerEq(Math.pow(10, -6));
+            setSolverParameters(solver, parameters);
+
+            // Solve and print solutions
+            solver.solve();
             KNSolution solution = solver.getSolution();
             List<Double> constraintValues = solver.getConstraintValues();
-
             System.out.println("Optimal objective value  = " + solution.getObjValue());
             System.out.println("Optimal x");
-            for (int i=0; i<solution.getX().size(); i++)
-            {
+            for (int i = 0; i < solution.getX().size(); i++) {
                 System.out.format(" x[%d] = %f%n", i, solution.getX().get(i));
             }
             System.out.println("Optimal constraint values (with corresponding multiplier)");
-            for (int i=0; i < instance.getNumCons(); i++)
-            {
+            for (int i = 0; i < instance.getNumCons(); i++) {
                 System.out.format(" c[%d] = %f (lambda = %f)%n", i, constraintValues.get(i), solution.getLambda().get(i));
             }
             System.out.format("Feasibility violation    = %f%n", solver.getAbsFeasError());
             System.out.format("Optimality violation     = %f%n", solver.getAbsOptError());
 
-            status = AcSolverStatus.CONVERGED;
+            acStatus = getAcStatusAndKnitroStatus(solution.getStatus());
+//            LOGGER.info(status);
             nbIter = solver.getNumberIters();
 
             // Load results in the network
@@ -240,9 +284,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
         } catch (KNException e) {
             System.out.println("Exception found while trying to solve with Knitro");
-            status = AcSolverStatus.NO_CALCULATION;
+//            status = AcSolverStatus.NO_CALCULATION;
         }
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new AcSolverResult(status, nbIter, slackBusActivePowerMismatch);
+        return new AcSolverResult(acStatus, nbIter, slackBusActivePowerMismatch);
     }
 }
