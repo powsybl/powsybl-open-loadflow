@@ -175,7 +175,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             }
         }
 
-        private KnitroProblem(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem, TargetVector targetVector) throws KNException {
+        private KnitroProblem(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem, TargetVector targetVector, VoltageInitializer voltageInitializer) throws KNException {
 
             // =============== Variables ===============
             // Définition des variables, ordonnées par bus et par V, Phi
@@ -189,27 +189,28 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Double> listVarUpBounds = new ArrayList<>(numVar);
             List<Double> listXInitial = new ArrayList<>(numVar);
 
+            AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer); // Initialize state vector
+
             double loBndV = 0.5;
             double upBndV = 1.5;
-            double vInit = 1.0;
-            double phiInit = 0.0;
             for (int i = 0; i < numVar; i++) {
                 if (i % 2 == 0) { //init V
                     listVarLoBounds.add(loBndV);
                     listVarUpBounds.add(upBndV);
-                    listXInitial.add(vInit);
                 } else { //init phi
                     listVarLoBounds.add(-KNConstants.KN_INFINITY);
                     listVarUpBounds.add(KNConstants.KN_INFINITY);
-                    listXInitial.add(phiInit);
                 }
+                listXInitial.add(equationSystem.getStateVector().get(i));
             }
+
             setVarLoBnds(listVarLoBounds);
             setVarUpBnds(listVarUpBounds);
             setVarTypes(listVarTypes);
             setXInitial(listXInitial);
+
             // TODO faire en sorte qu'on puisse passer un état initial, sinon 1 0 1 0... par défaut
-            // LOGGER.info("Initialisation of variables : yes/no + type {}");
+            LOGGER.info("Initialization of variables : type of initialization {}", voltageInitializer);
 
             // =============== Contraintes ==============
             // ----- Contraintes actives -----
@@ -266,7 +267,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         AcSolverStatus acStatus = null;
         try {
             // Create instance of problem
-            KnitroProblem instance = new KnitroProblem(network, equationSystem, targetVector);
+            KnitroProblem instance = new KnitroProblem(network, equationSystem, targetVector, voltageInitializer);
             KNSolver solver = new KNSolver(instance);
             solver.initProblem();
 

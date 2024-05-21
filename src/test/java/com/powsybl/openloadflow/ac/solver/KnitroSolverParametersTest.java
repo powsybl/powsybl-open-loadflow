@@ -55,17 +55,17 @@ public class KnitroSolverParametersTest {
         assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e2.getMessage());
     }
 
-    @Test
-    void testInitValues(){
-        KnitroSolverParameters parameters = new KnitroSolverParameters();
-
-        // default value
-        assertEquals(parameters.getVoltageInitMode(),LoadFlowParameters.DEFAULT_VOLTAGE_INIT_MODE);
-
-        // set other value
-        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        assertEquals(LoadFlowParameters.VoltageInitMode.DC_VALUES,parameters.getVoltageInitMode());
-    }
+//    @Test
+//    void testInitValues(){
+//        KnitroSolverParameters parameters = new KnitroSolverParameters();
+//
+//        // default value
+//        assertEquals(parameters.getVoltageInitMode(),LoadFlowParameters.DEFAULT_VOLTAGE_INIT_MODE);
+//
+//        // set other value
+//        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+//        assertEquals(LoadFlowParameters.VoltageInitMode.DC_VALUES,parameters.getVoltageInitMode());
+//    }
 
 
     @Test

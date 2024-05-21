@@ -13,6 +13,8 @@ import com.powsybl.loadflow.LoadFlowParameters;
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
+
+// TODO check si c'est vraiment utile de passer un paramètre voltageInitMode (ce n'est par exemple pas fait dans NR)
 public class KnitroSolverParameters {
 
     public static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 2; // Knitro computes gradients by forward finite differences
@@ -21,7 +23,7 @@ public class KnitroSolverParameters {
 
     private double convEpsPerEq = NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
 
-    private LoadFlowParameters.VoltageInitMode voltageInitMode = LoadFlowParameters.DEFAULT_VOLTAGE_INIT_MODE;
+//    private LoadFlowParameters.VoltageInitMode voltageInitMode = LoadFlowParameters.DEFAULT_VOLTAGE_INIT_MODE;
 
     public KnitroSolverParameters() {
     }
@@ -34,9 +36,9 @@ public class KnitroSolverParameters {
         return convEpsPerEq;
     }
 
-    public LoadFlowParameters.VoltageInitMode getVoltageInitMode() {
-        return voltageInitMode;
-    }
+//    public LoadFlowParameters.VoltageInitMode getVoltageInitMode() {
+//        return voltageInitMode;
+//    }
 
     public void setGradientComputationMode(int gradientComputationMode) {
         if (gradientComputationMode < 1 || gradientComputationMode > 3) {
@@ -56,7 +58,7 @@ public class KnitroSolverParameters {
         if ((voltageInitMode!=LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES)&(voltageInitMode!=LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES)&(voltageInitMode!=LoadFlowParameters.VoltageInitMode.DC_VALUES)) {
             throw new IllegalArgumentException("Knitro init mode must be UNIFORM_VALUES, PREVIOUS_VALUES or DC_VALUES");
         }
-        this.voltageInitMode = voltageInitMode;
+//        this.voltageInitMode = voltageInitMode;
     }
 
     @Override
@@ -64,7 +66,7 @@ public class KnitroSolverParameters {
         return "KnitroSolverParameters(" +
                 "gradientComputationMode=" + gradientComputationMode +
                 "; " + "convEpsPerEq=" + convEpsPerEq +
-                "; " + "voltageInitMode=" + voltageInitMode +
+//                "; " + "voltageInitMode=" + voltageInitMode +
                 ')';
     }
 }
