@@ -79,7 +79,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         Path file = fileSystem.getPath("/work/n.json");
         mainNetwork.writeJson(file);
         try (InputStream is = Files.newInputStream(file)) {
-            ComparisonUtils.compareTxt(getClass().getResourceAsStream("/n.json"), is);
+            ComparisonUtils.assertTxtEquals(getClass().getResourceAsStream("/n.json"), is);
         }
     }
 
@@ -104,7 +104,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         Path file = fileSystem.getPath("/work/n2.json");
         mainNetwork.writeJson(file);
         try (InputStream is = Files.newInputStream(file)) {
-            ComparisonUtils.compareTxt(getClass().getResourceAsStream("/n2.json"), is);
+            ComparisonUtils.assertTxtEquals(getClass().getResourceAsStream("/n2.json"), is);
         }
     }
 
@@ -198,7 +198,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         try (StringWriter writer = new StringWriter()) {
             lfNetwork.writeGraphViz(writer, LoadFlowModel.AC);
             writer.flush();
-            ComparisonUtils.compareTxt(Objects.requireNonNull(LfNetworkTest.class.getResourceAsStream("/" + ref)), writer.toString());
+            ComparisonUtils.assertTxtEquals(Objects.requireNonNull(LfNetworkTest.class.getResourceAsStream("/" + ref)), writer.toString());
         }
     }
 

@@ -1671,19 +1671,19 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertNotNull(parametersFile);
         assertNotNull(variableSetsFile);
         try (InputStream is = Files.newInputStream(contingenciesFile)) {
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-contingencies.json")), is);
+            ComparisonUtils.assertTxtEquals(Objects.requireNonNull(getClass().getResourceAsStream("/debug-contingencies.json")), is);
         }
         try (InputStream is = Files.newInputStream(factorsFile)) {
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-factors.json")), is);
+            ComparisonUtils.assertTxtEquals(Objects.requireNonNull(getClass().getResourceAsStream("/debug-factors.json")), is);
         }
         try (InputStream is = Files.newInputStream(networkFile)) {
-            ComparisonUtils.compareXml(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
+            ComparisonUtils.assertXmlEquals(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
         }
         try (InputStream is = Files.newInputStream(parametersFile)) {
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-parameters.json")), is);
+            ComparisonUtils.assertTxtEquals(Objects.requireNonNull(getClass().getResourceAsStream("/debug-parameters.json")), is);
         }
         try (InputStream is = Files.newInputStream(variableSetsFile)) {
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
+            ComparisonUtils.assertTxtEquals(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
         }
 
         String fileName = contingenciesFile.getFileName().toString();
