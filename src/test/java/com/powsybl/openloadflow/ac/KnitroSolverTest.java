@@ -114,4 +114,5 @@ public class KnitroSolverTest {
         assertAngleEquals(-6.531907, b4);
     }
 
+
 }

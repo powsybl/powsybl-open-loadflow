@@ -71,7 +71,12 @@ public class KnitroSolverParametersTest {
     @Test
     void testToString() {
         KnitroSolverParameters parameters = new KnitroSolverParameters();
-        assertEquals("KnitroSolverParameters(gradientComputationMode=2; convEpsPerEq=1.0E-4; voltageInitMode=UNIFORM_VALUES)", parameters.toString());
+        assertEquals("KnitroSolverParameters(gradientComputationMode=2, " +
+                "convEpsPerEq=1.0E-4, " +
+//                "voltageInitMode=UNIFORM_VALUES, " +
+                "minRealisticVoltage=0.5, " +
+                "maxRealisticVoltage=1.5)"
+                , parameters.toString());
     }
 
 }

@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.solver;
 
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
@@ -18,12 +19,15 @@ import com.powsybl.loadflow.LoadFlowParameters;
 public class KnitroSolverParameters {
 
     public static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 2; // Knitro computes gradients by forward finite differences
+    public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
+    public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
 
     private int gradientComputationMode = GRADIENT_COMPUTATION_MODE_DEFAULT;
-
     private double convEpsPerEq = NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
-
 //    private LoadFlowParameters.VoltageInitMode voltageInitMode = LoadFlowParameters.DEFAULT_VOLTAGE_INIT_MODE;
+    private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
+
+    private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
 
     public KnitroSolverParameters() {
     }
@@ -40,6 +44,14 @@ public class KnitroSolverParameters {
 //        return voltageInitMode;
 //    }
 
+    public double getMinRealisticVoltage() {
+        return minRealisticVoltage;
+    }
+
+    public double getMaxRealisticVoltage() {
+        return maxRealisticVoltage;
+    }
+
     public void setGradientComputationMode(int gradientComputationMode) {
         if (gradientComputationMode < 1 || gradientComputationMode > 3) {
             throw new IllegalArgumentException( );
@@ -54,19 +66,29 @@ public class KnitroSolverParameters {
         this.convEpsPerEq = convEpsPerEq;
     }
 
-    public void setVoltageInitMode(LoadFlowParameters.VoltageInitMode voltageInitMode) {
-        if ((voltageInitMode!=LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES)&(voltageInitMode!=LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES)&(voltageInitMode!=LoadFlowParameters.VoltageInitMode.DC_VALUES)) {
-            throw new IllegalArgumentException("Knitro init mode must be UNIFORM_VALUES, PREVIOUS_VALUES or DC_VALUES");
-        }
+//    public void setVoltageInitMode(LoadFlowParameters.VoltageInitMode voltageInitMode) {
+//        if ((voltageInitMode!=LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES)&(voltageInitMode!=LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES)&(voltageInitMode!=LoadFlowParameters.VoltageInitMode.DC_VALUES)) {
+//            throw new IllegalArgumentException("Knitro init mode must be UNIFORM_VALUES, PREVIOUS_VALUES or DC_VALUES");
+//        }
 //        this.voltageInitMode = voltageInitMode;
+//    }
+
+    public void setMinRealisticVoltage(double minRealisticVoltage) {
+        this.minRealisticVoltage = minRealisticVoltage;
+    }
+
+    public void setMaxRealisticVoltage(double maxRealisticVoltage) {
+        this.maxRealisticVoltage = maxRealisticVoltage;
     }
 
     @Override
     public String toString() {
         return "KnitroSolverParameters(" +
                 "gradientComputationMode=" + gradientComputationMode +
-                "; " + "convEpsPerEq=" + convEpsPerEq +
-//                "; " + "voltageInitMode=" + voltageInitMode +
+                ", " + "convEpsPerEq=" + convEpsPerEq +
+//                ", " + "voltageInitMode=" + voltageInitMode +
+                ", minRealisticVoltage=" + minRealisticVoltage +
+                ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ')';
     }
 }

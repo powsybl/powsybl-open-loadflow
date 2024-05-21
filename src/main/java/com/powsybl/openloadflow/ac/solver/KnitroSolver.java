@@ -301,8 +301,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             AcSolverUtil.updateNetwork(network, equationSystem);
 
         } catch (KNException e) {
-            System.out.println("Exception found while trying to solve with Knitro");
-//            status = AcSolverStatus.NO_CALCULATION;
+            LOGGER.error("Exception found while trying to solve with Knitro");
+            LOGGER.error(e.toString(), e);
+            acStatus = AcSolverStatus.NO_CALCULATION;
         }
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
         return new AcSolverResult(acStatus, nbIter, slackBusActivePowerMismatch);
