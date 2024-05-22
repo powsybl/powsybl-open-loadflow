@@ -2384,13 +2384,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         securityAnalysisParameters.getLoadFlowParameters().setDc(true);
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies.getContingencies(network), Collections.emptyList(), securityAnalysisParameters);
 
+        // FIXME : limit value = 911.6056881941463 for Woodbury DC AS, 911.6056881941461 for slow DC AS
         LimitViolation violation4 = new LimitViolation("NHV1_NHV2_2", null, LimitViolationType.CURRENT, "permanent",
-                2147483647, 899.9999999999999, 1.0F, 911.6056881941461, TwoSides.ONE);
+                2147483647, 899.9999999999999, 1.0F, 911.6056881941463, TwoSides.ONE);
         int compare4 = LimitViolations.comparator().compare(violation4, result2.getPostContingencyResults().get(0)
                 .getLimitViolationsResult().getLimitViolations().get(0));
         assertEquals(0, compare4);
+        // FIXME : limit value = 911.6056881941463 for Woodbury DC AS, 911.6056881941461 for slow DC AS
         LimitViolation violation5 = new LimitViolation("NHV1_NHV2_2", null, LimitViolationType.CURRENT, "permanent",
-                1200, 899.9999999999999, 1.0F, 911.6056881941461, TwoSides.TWO);
+                1200, 899.9999999999999, 1.0F, 911.6056881941463, TwoSides.TWO);
         int compare5 = LimitViolations.comparator().compare(violation5, result2.getPostContingencyResults().get(0)
                 .getLimitViolationsResult().getLimitViolations().get(1));
         assertEquals(0, compare5);

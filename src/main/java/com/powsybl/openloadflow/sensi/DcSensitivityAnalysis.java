@@ -47,14 +47,14 @@ import static com.powsybl.openloadflow.network.util.ParticipatingElement.normali
 public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariableType, DcEquationType> {
     private static final double FUNCTION_REFERENCE_ZER0_THRESHOLD = 1e-13;
 
-    private static final class PhaseTapChangerContingenciesIndexing {
+    public static final class PhaseTapChangerContingenciesIndexing {
 
         private final List<PropagatedContingency> contingenciesWithoutTransformers = new ArrayList<>();
         private final Map<Set<LfBranch>, Collection<PropagatedContingency>> contingenciesIndexedByPhaseTapChangers = new LinkedHashMap<>();
 
-        private PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies,
-                                                     Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                     Collection<String> elementIdsToSkip) {
+        public PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies,
+                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                    Collection<String> elementIdsToSkip) {
             for (PropagatedContingency contingency : contingencies) {
                 Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().keySet().stream()
                         .filter(element -> !elementIdsToSkip.contains(element))
@@ -70,11 +70,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
-        private Collection<PropagatedContingency> getContingenciesWithoutPhaseTapChangerLoss() {
+        public Collection<PropagatedContingency> getContingenciesWithoutPhaseTapChangerLoss() {
             return contingenciesWithoutTransformers;
         }
 
-        private Map<Set<LfBranch>, Collection<PropagatedContingency>> getContingenciesIndexedByPhaseTapChangers() {
+        public Map<Set<LfBranch>, Collection<PropagatedContingency>> getContingenciesIndexedByPhaseTapChangers() {
             return contingenciesIndexedByPhaseTapChangers;
         }
     }
