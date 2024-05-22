@@ -160,6 +160,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME = "newtonRaphsonConvEpsPerEq";
 
+    public static final String KNITRO_CONV_EPS_PER_EQ_PARAM_NAME = "knitroConvEpsPerEq";
+
     public static final String VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME = "voltageInitModeOverride";
 
     public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME = "transformerVoltageControlMode";
@@ -267,6 +269,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max iterations per Newton-Raphson", NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS),
         new Parameter(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max outer loop iterations", AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS),
         new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, ParameterType.DOUBLE, "Newton-Raphson convergence epsilon per equation", NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
+        new Parameter(KNITRO_CONV_EPS_PER_EQ_PARAM_NAME, ParameterType.DOUBLE, "Knitro convergence epsilon per equation", KnitroSolverStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
         new Parameter(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, ParameterType.STRING, "Voltage init mode override", VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE.name(), getEnumPossibleValues(VoltageInitModeOverride.class)),
         new Parameter(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Transformer voltage control mode", TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(TransformerVoltageControlMode.class)),
         new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Shunt voltage control mode", SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class)),
@@ -394,6 +397,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private int maxOuterLoopIterations = AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
 
     private double newtonRaphsonConvEpsPerEq = NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
+
+    private double knitroSolverConvEpsPerEq = KnitroSolverStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
 
     private VoltageInitModeOverride voltageInitModeOverride = VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE;
 
@@ -656,6 +661,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType newtonRaphsonStoppingCriteriaType) {
         this.newtonRaphsonStoppingCriteriaType = Objects.requireNonNull(newtonRaphsonStoppingCriteriaType);
+        return this;
+    }
+
+    public double getKnitroSolverConvEpsPerEq() {
+        return knitroSolverConvEpsPerEq;
+    }
+
+    public OpenLoadFlowParameters setKnitroSolverConvEpsPerEq(double knitroConvEpsPerEq) {
+        this.knitroSolverConvEpsPerEq = checkParameterValue(knitroConvEpsPerEq,
+                knitroConvEpsPerEq > 0,
+                KNITRO_CONV_EPS_PER_EQ_PARAM_NAME);
         return this;
     }
 
@@ -1182,6 +1198,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxNewtonRaphsonIterations(config.getIntProperty(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS))
                 .setMaxOuterLoopIterations(config.getIntProperty(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS))
                 .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
+                .setKnitroSolverConvEpsPerEq(config.getDoubleProperty(KNITRO_CONV_EPS_PER_EQ_PARAM_NAME, KnitroSolverStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
                 .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 .setShuntVoltageControlMode(config.getEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ShuntVoltageControlMode.class, SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
@@ -1284,6 +1301,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMaxOuterLoopIterations(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME))
                 .ifPresent(prop -> this.setNewtonRaphsonConvEpsPerEq(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(KNITRO_CONV_EPS_PER_EQ_PARAM_NAME))
+                .ifPresent(prop -> this.setKnitroSolverConvEpsPerEq(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME))
                 .ifPresent(prop -> this.setVoltageInitModeOverride(VoltageInitModeOverride.valueOf(prop)));
         Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME))
@@ -1401,6 +1420,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, maxNewtonRaphsonIterations);
         map.put(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, maxOuterLoopIterations);
         map.put(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, newtonRaphsonConvEpsPerEq);
+        map.put(KNITRO_CONV_EPS_PER_EQ_PARAM_NAME, knitroSolverConvEpsPerEq);
         map.put(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, voltageInitModeOverride);
         map.put(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, transformerVoltageControlMode);
         map.put(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, shuntVoltageControlMode);
@@ -1603,6 +1623,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         };
     }
 
+    private static KnitroSolverStoppingCriteria createKnitroSolverStoppingCriteria(OpenLoadFlowParameters parametersExt) {
+        return new DefaultKnitroSolverStoppingCriteria(parametersExt.getKnitroSolverConvEpsPerEq());
+    }
+
+
+
     static List<AcOuterLoop> createOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig()
                 .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitAcOuterLoopConfig()
@@ -1638,7 +1664,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLineSearch(parametersExt.isNewtonKrylovLineSearch())
                 .setMaxIterations(parametersExt.getMaxNewtonKrylovIterations());
 
-        KnitroSolverParameters knitroSolverParameters = new KnitroSolverParameters();
+        var knitroSolverParameters = new KnitroSolverParameters()
+                .setStoppingCriteria(createKnitroSolverStoppingCriteria(parametersExt));
 
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 

@@ -7,49 +7,32 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import java.util.Objects;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
 
-// TODO check si c'est vraiment utile de passer un paramètre voltageInitMode (ce n'est par exemple pas fait dans NR)
 public class KnitroSolverParameters {
 
     public static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 2; // Knitro computes gradients by forward finite differences
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
 
+    public KnitroSolverParameters() {
+    }
+
     private int gradientComputationMode = GRADIENT_COMPUTATION_MODE_DEFAULT;
-    private double convEpsPerEq = NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
-//    private LoadFlowParameters.VoltageInitMode voltageInitMode = LoadFlowParameters.DEFAULT_VOLTAGE_INIT_MODE;
+
     private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
 
-    public KnitroSolverParameters() {
-    }
+    private KnitroSolverStoppingCriteria stoppingCriteria = new DefaultKnitroSolverStoppingCriteria();
 
     public int getGradientComputationMode() {
         return gradientComputationMode;
-    }
-
-    public double getConvEpsPerEq() {
-        return convEpsPerEq;
-    }
-
-//    public LoadFlowParameters.VoltageInitMode getVoltageInitMode() {
-//        return voltageInitMode;
-//    }
-
-    public double getMinRealisticVoltage() {
-        return minRealisticVoltage;
-    }
-
-    public double getMaxRealisticVoltage() {
-        return maxRealisticVoltage;
     }
 
     public void setGradientComputationMode(int gradientComputationMode) {
@@ -59,34 +42,37 @@ public class KnitroSolverParameters {
         this.gradientComputationMode = gradientComputationMode;
     }
 
-    public void setConvEpsPerEq(double convEpsPerEq) {
-        if (convEpsPerEq<=0) {
-            throw new IllegalArgumentException("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0");
-        }
-        this.convEpsPerEq = convEpsPerEq;
+    public double getMinRealisticVoltage() {
+        return minRealisticVoltage;
     }
-
-//    public void setVoltageInitMode(LoadFlowParameters.VoltageInitMode voltageInitMode) {
-//        if ((voltageInitMode!=LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES)&(voltageInitMode!=LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES)&(voltageInitMode!=LoadFlowParameters.VoltageInitMode.DC_VALUES)) {
-//            throw new IllegalArgumentException("Knitro init mode must be UNIFORM_VALUES, PREVIOUS_VALUES or DC_VALUES");
-//        }
-//        this.voltageInitMode = voltageInitMode;
-//    }
 
     public void setMinRealisticVoltage(double minRealisticVoltage) {
         this.minRealisticVoltage = minRealisticVoltage;
+    }
+
+    public double getMaxRealisticVoltage() {
+        return maxRealisticVoltage;
     }
 
     public void setMaxRealisticVoltage(double maxRealisticVoltage) {
         this.maxRealisticVoltage = maxRealisticVoltage;
     }
 
+    public KnitroSolverStoppingCriteria getStoppingCriteria() {
+        return stoppingCriteria;
+    }
+
+    public KnitroSolverParameters setStoppingCriteria(KnitroSolverStoppingCriteria stoppingCriteria) {
+        this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
+        return this;
+    }
+
+
     @Override
     public String toString() {
         return "KnitroSolverParameters(" +
                 "gradientComputationMode=" + gradientComputationMode +
-                ", " + "convEpsPerEq=" + convEpsPerEq +
-//                ", " + "voltageInitMode=" + voltageInitMode +
+                ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ')';

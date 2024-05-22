@@ -7,11 +7,24 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.util.List;
+
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
@@ -21,59 +34,50 @@ public class KnitroSolverParametersTest {
 
     @Test
     void testGradientComputationMode() {
-        KnitroSolverParameters parameters = new KnitroSolverParameters();
+        KnitroSolverParameters parametersKnitro = new KnitroSolverParameters();
         // default value
-        assertEquals(2, parameters.getGradientComputationMode());
+        assertEquals(2, parametersKnitro.getGradientComputationMode());
 
         // set other value
-        parameters.setGradientComputationMode(3);
-        assertEquals(3, parameters.getGradientComputationMode());
+        parametersKnitro.setGradientComputationMode(3);
+        assertEquals(3, parametersKnitro.getGradientComputationMode());
 
         // wrong values
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> parameters.setGradientComputationMode(0));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setGradientComputationMode(0));
         assertEquals("Knitro gradient computation mode must be between 1 and 3", e.getMessage());
-        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parameters.setGradientComputationMode(4));
+        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setGradientComputationMode(4));
         assertEquals("Knitro gradient computation mode must be between 1 and 3", e2.getMessage());
     }
-
-    @Test
-    void testConvEpsPerEq() {
-        KnitroSolverParameters parameters = new KnitroSolverParameters();
-        NewtonRaphsonParameters parametersNewtonRaphson = new NewtonRaphsonParameters();
-
-        // default value
-        assertEquals(parameters.getConvEpsPerEq(),NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ);
-
-        // set other value
-        parameters.setConvEpsPerEq(Math.pow(10,-6));
-        assertEquals(Math.pow(10,-6),parameters.getConvEpsPerEq());
-
-        // wrong values
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> parameters.setConvEpsPerEq(Math.pow(-10,-3)));
-        assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e.getMessage());
-        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parameters.setConvEpsPerEq(0));
-        assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e2.getMessage());
-    }
-
+// TODO a transferer dans le fichier adéquat
 //    @Test
-//    void testInitValues(){
-//        KnitroSolverParameters parameters = new KnitroSolverParameters();
+//    void testSetAndGetConvEpsPerEq() {
+//        /*
+//         * Checks Knitro's parameter convEpsPerEq default value, setting it to other value and trying to set it to wrong value
+//         */
+//        KnitroSolverParameters parametersKnitro = new KnitroSolverParameters();
 //
-//        // default value
-//        assertEquals(parameters.getVoltageInitMode(),LoadFlowParameters.DEFAULT_VOLTAGE_INIT_MODE);
+//        // check default value
+//        assertEquals(parametersKnitro.getConvEpsPerEq(),Math.pow(10,-6));
 //
 //        // set other value
-//        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-//        assertEquals(LoadFlowParameters.VoltageInitMode.DC_VALUES,parameters.getVoltageInitMode());
+//        parametersKnitro.setConvEpsPerEq(Math.pow(10,-2));
+//        assertEquals(Math.pow(10,-2),parametersKnitro.getConvEpsPerEq());
+//
+//        // wrong values
+//        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setConvEpsPerEq(Math.pow(-10,-3)));
+//        assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e.getMessage());
+//        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setConvEpsPerEq(0));
+//        assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e2.getMessage());
 //    }
+
 
 
     @Test
     void testToString() {
         KnitroSolverParameters parameters = new KnitroSolverParameters();
         assertEquals("KnitroSolverParameters(gradientComputationMode=2, " +
-                "convEpsPerEq=1.0E-4, " +
-//                "voltageInitMode=UNIFORM_VALUES, " +
+//                "convEpsPerEq=1.0E-6, " +
+                "stoppingCriteria=DefaultKnitroSolverStoppingCriteria, " +
                 "minRealisticVoltage=0.5, " +
                 "maxRealisticVoltage=1.5)"
                 , parameters.toString());

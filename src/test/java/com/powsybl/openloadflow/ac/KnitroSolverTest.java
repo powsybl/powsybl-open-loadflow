@@ -47,7 +47,7 @@ public class KnitroSolverTest {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setAcSolverType(AcSolverType.KNITRO);
-        // Pas d'OLs
+        // No OLs
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parameters.setDistributedSlack(false)
                 .setUseReactiveLimits(false);

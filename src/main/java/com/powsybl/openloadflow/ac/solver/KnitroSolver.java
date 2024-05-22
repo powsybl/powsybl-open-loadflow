@@ -36,14 +36,14 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KnitroSolver.class);
 
-    protected final KnitroSolverParameters parameters;
+    protected final KnitroSolverParameters knitroParameters;
 
-    public KnitroSolver(LfNetwork network, KnitroSolverParameters parameters,
+    public KnitroSolver(LfNetwork network, KnitroSolverParameters knitroParameters,
                            EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
                            TargetVector<AcVariableType, AcEquationType> targetVector, EquationVector<AcVariableType, AcEquationType> equationVector,
                            boolean detailedReport) {
         super(network, equationSystem, j, targetVector, equationVector, detailedReport);
-        this.parameters = parameters;
+        this.knitroParameters = knitroParameters;
     }
 
     @Override
@@ -254,9 +254,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         }
     }
 
-    private void setSolverParameters(KNSolver solver, KnitroSolverParameters parameters) throws KNException {
-        solver.setParam(KNConstants.KN_PARAM_GRADOPT, parameters.getGradientComputationMode());
-        solver.setParam(KNConstants.KN_PARAM_FEASTOL, parameters.getConvEpsPerEq());
+    private void setSolverParameters(KNSolver solver, KnitroSolverParameters knitroParameters) throws KNException {
+        solver.setParam(KNConstants.KN_PARAM_GRADOPT, knitroParameters.getGradientComputationMode());
+        DefaultKnitroSolverStoppingCriteria knitroSolverStoppingCriteria = (DefaultKnitroSolverStoppingCriteria) knitroParameters.getStoppingCriteria();
+        solver.setParam(KNConstants.KN_PARAM_FEASTOL, knitroSolverStoppingCriteria.convEpsPerEq);
     }
 
     @Override
@@ -272,8 +273,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             solver.initProblem();
 
             // Set solver parameters
-            parameters.setConvEpsPerEq(Math.pow(10, -6));
-            setSolverParameters(solver, parameters);
+            setSolverParameters(solver, knitroParameters);
 
             // Solve
             solver.solve();
