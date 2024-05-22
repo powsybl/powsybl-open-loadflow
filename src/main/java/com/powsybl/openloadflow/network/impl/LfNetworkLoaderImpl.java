@@ -1097,7 +1097,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
                     return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                            parameters, Reports.createRootLfNetworkReportNode(numCc, numSc));
+                            parameters, Reports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
                 })
                 .collect(Collectors.toList());
 

@@ -9,6 +9,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeRootBuilderImpl;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -278,7 +279,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         // GEN is only generator with voltage control, disable it
         network.getGenerator("GEN").setVoltageRegulatorOn(false);
 
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("unitTest", "")
                 .build();
         LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
@@ -458,7 +459,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setTargetV(148)
                 .setRegulatingTerminal(network.getLoad("LOAD").getTerminal())
                 .add();
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
         loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);

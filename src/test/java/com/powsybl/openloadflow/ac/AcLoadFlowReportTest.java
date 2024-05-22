@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeRootBuilderImpl;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.RatioTapChanger;
@@ -40,7 +41,7 @@ class AcLoadFlowReportTest {
     @Test
     void testEsgTutoDetailedNrLogsLf() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testEsgTutoReport", "Test ESG tutorial report")
                 .build();
         var lfParameters = new LoadFlowParameters()
@@ -63,7 +64,7 @@ class AcLoadFlowReportTest {
     @Test
     void testShuntVoltageControlOuterLoopReport() throws IOException {
         Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
         var lfParameters = new LoadFlowParameters()
@@ -92,7 +93,7 @@ class AcLoadFlowReportTest {
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-0.55);
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
         var lfParameters = new LoadFlowParameters();
@@ -125,7 +126,7 @@ class AcLoadFlowReportTest {
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
 
         // test in AC
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
         LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
@@ -140,7 +141,7 @@ class AcLoadFlowReportTest {
 
         // test in DC
         lfParameters.setDc(true);
-        reportNode = ReportNode.newRootReportNode()
+        reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
         result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
@@ -159,7 +160,7 @@ class AcLoadFlowReportTest {
         Network network = FourBusNetworkFactory.create();
         network.getGenerator("g2").setTargetV(10); // not plausible targetV, will be discarded and reported
 
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
         var lfParameters = new LoadFlowParameters();
@@ -185,7 +186,7 @@ class AcLoadFlowReportTest {
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationMode(RatioTapChanger.RegulationMode.VOLTAGE)
                 .setTargetV(100); // not plausible, will be discarded and reported
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
         var lfParameters = new LoadFlowParameters();
@@ -203,7 +204,7 @@ class AcLoadFlowReportTest {
     void shuntVoltageControlDiscarded() throws IOException {
         Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
         network.getShuntCompensator("SHUNT2").setVoltageRegulatorOn(true).setTargetV(600); // not plausible targetV, will be discarded and reported
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
         var lfParameters = new LoadFlowParameters()

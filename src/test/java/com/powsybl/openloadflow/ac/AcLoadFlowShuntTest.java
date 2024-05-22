@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeRootBuilderImpl;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
@@ -354,7 +355,7 @@ class AcLoadFlowShuntTest {
                 .add();
 
         parameters.setShuntCompensatorVoltageControlOn(true);
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
         LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);

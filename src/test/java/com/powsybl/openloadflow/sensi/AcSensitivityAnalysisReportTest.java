@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeRootBuilderImpl;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -35,7 +36,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testEsgTuto() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testEsgTutoReport", "Test ESG tutorial report")
                 .build();
         runAcLf(network, reportNode);
@@ -53,7 +54,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testEsgTutoDetailedNrLogsSensi() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("testEsgTutoReport", "Test ESG tutorial report")
                 .build();
 

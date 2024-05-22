@@ -12,6 +12,7 @@ import com.powsybl.action.Action;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeRootBuilderImpl;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
@@ -1655,7 +1656,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = createAllBranchesContingencies(network);
 
-        ReportNode reportNode = ReportNode.newRootReportNode()
+        ReportNode reportNode = new ReportNodeRootBuilderImpl()
                 .withMessageTemplate("TestSecurityAnalysis", "Test security analysis report")
                 .build();
 

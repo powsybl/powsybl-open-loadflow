@@ -340,8 +340,8 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode createRootLfNetworkReportNode(int networkNumCc, int networkNumSc) {
-        return ReportNode.newRootReportNode()
+    public static ReportNode createRootLfNetworkReportNode(ReportNode reportNode, int networkNumCc, int networkNumSc) {
+        return reportNode.newRootReportNode()
                 .withMessageTemplate("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}")
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
