@@ -15,6 +15,10 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.solver.AcSolverType;
+import com.powsybl.openloadflow.ac.solver.DefaultNewtonRaphsonStoppingCriteria;
+import com.powsybl.openloadflow.ac.solver.NewtonKrylovParameters;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -193,5 +197,33 @@ class AcLoadFlowTwoBusNetworkTest {
                 .reduce(0.0, Double::sum);
 
         assertEquals(0.0, bus2BalanceQ, DELTA_POWER);
+    }
+
+
+    @Test
+    void baseCaseTestKnitroSolver() {
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parameters.setDistributedSlack(false)
+                .setUseReactiveLimits(false);
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setSvcVoltageMonitoring(false);
+
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcSolverType(AcSolverType.KNITRO);
+
+        parametersExt.setKnitroSolverConvEpsPerEq(DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertVoltageEquals(1, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(0.855, bus2);
+        assertAngleEquals(-13.520904, bus2);
+        assertActivePowerEquals(2, line1.getTerminal1());
+        assertReactivePowerEquals(1.683, line1.getTerminal1());
+        assertActivePowerEquals(-2, line1.getTerminal2());
+        assertReactivePowerEquals(-1, line1.getTerminal2());
     }
 }
