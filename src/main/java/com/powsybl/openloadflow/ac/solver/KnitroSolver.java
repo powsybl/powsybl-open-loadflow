@@ -184,15 +184,14 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             LOGGER.info("Defining {} variables",numVar);
 
             // Types, bounds and inital states of variables
+            // Types
             List<Integer> listVarTypes = new ArrayList<>(Collections.nCopies(numVar, KNConstants.KN_VARTYPE_CONTINUOUS));
+            setVarTypes(listVarTypes);
+            // Bounds
             List<Double> listVarLoBounds = new ArrayList<>(numVar);
             List<Double> listVarUpBounds = new ArrayList<>(numVar);
-            List<Double> listXInitial = new ArrayList<>(numVar);
-
-            AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer); // Initialize state vector
-
-            double loBndV = 0.5;
-            double upBndV = 1.5;
+            double loBndV = KnitroSolverParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
+            double upBndV = KnitroSolverParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
             for (int i = 0; i < numVar; i++) {
                 if (i % 2 == 0) { // Initialize V
                     listVarLoBounds.add(loBndV);
@@ -201,12 +200,15 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     listVarLoBounds.add(-KNConstants.KN_INFINITY);
                     listVarUpBounds.add(KNConstants.KN_INFINITY);
                 }
-                listXInitial.add(equationSystem.getStateVector().get(i));
             }
-
             setVarLoBnds(listVarLoBounds);
             setVarUpBnds(listVarUpBounds);
-            setVarTypes(listVarTypes);
+            // Initial state
+            List<Double> listXInitial = new ArrayList<>(numVar);
+            AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer); // Initialize state vector
+            for (int i = 0; i < numVar; i++) {
+                listXInitial.add(equationSystem.getStateVector().get(i));
+            }
             setXInitial(listXInitial);
 
             // TODO faire en sorte qu'on puisse passer un état initial, sinon 1 0 1 0... par défaut
