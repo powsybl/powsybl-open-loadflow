@@ -172,9 +172,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME = "maxPlausibleTargetVoltage";
 
-    public static final String MIN_REALISTIC_VOLTAGE_PARAM_NAME = "minRealisticVoltage";
+    public static final String MIN_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME = "minRealisticVoltageNewtonRaphson";
 
-    public static final String MAX_REALISTIC_VOLTAGE_PARAM_NAME = "maxRealisticVoltage";
+    public static final String MAX_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME = "maxRealisticVoltageNewtonRaphson";
 
     public static final String MIN_REALISTIC_VOLTAGE_KNITRO_SOLVER_PARAM_NAME = "minRealisticVoltageKnitroSolver";
 
@@ -279,8 +279,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Shunt voltage control mode", SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class)),
         new Parameter(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min plausible target voltage", LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
         new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max plausible target voltage", LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
-        new Parameter(MIN_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min realistic voltage", NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE),
-        new Parameter(MAX_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max realistic voltage", NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE),
+        new Parameter(MIN_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME, ParameterType.DOUBLE, "Min realistic voltage", NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE),
+        new Parameter(MAX_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME, ParameterType.DOUBLE, "Max realistic voltage", NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE),
         new Parameter(MIN_REALISTIC_VOLTAGE_KNITRO_SOLVER_PARAM_NAME, ParameterType.DOUBLE, "Min knitro solver realistic voltage", KnitroSolverParameters.DEFAULT_MIN_REALISTIC_VOLTAGE),
         new Parameter(MAX_REALISTIC_VOLTAGE_KNITRO_SOLVER_PARAM_NAME, ParameterType.DOUBLE, "Max knitro solver realistic voltage", KnitroSolverParameters.DEFAULT_MAX_REALISTIC_VOLTAGE),
         new Parameter(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ParameterType.STRING, "Reactive range check mode", LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class)),
@@ -418,9 +418,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double minNominalVoltageTargetVoltageCheck = LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE;
 
-    private double minRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
+    private double minRealisticVoltageNewtonRaphson = NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
 
-    private double maxRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
+    private double maxRealisticVoltageNewtonRaphson = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
 
     private double minRealisticVoltageKnitroSolver = KnitroSolverParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
 
@@ -811,25 +811,25 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public double getMinRealisticVoltage() {
-        return minRealisticVoltage;
+    public double getMinRealisticVoltageNewtonRaphson() {
+        return minRealisticVoltageNewtonRaphson;
     }
 
-    public OpenLoadFlowParameters setMinRealisticVoltage(double minRealisticVoltage) {
-        this.minRealisticVoltage = checkParameterValue(minRealisticVoltage,
-                minRealisticVoltage >= 0,
-                MIN_REALISTIC_VOLTAGE_PARAM_NAME);
+    public OpenLoadFlowParameters setMinRealisticVoltageNewtonRaphson(double minRealisticVoltageNewtonRaphson) {
+        this.minRealisticVoltageNewtonRaphson = checkParameterValue(minRealisticVoltageNewtonRaphson,
+                minRealisticVoltageNewtonRaphson >= 0,
+                MIN_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME);
         return this;
     }
 
-    public double getMaxRealisticVoltage() {
-        return maxRealisticVoltage;
+    public double getMaxRealisticVoltageNewtonRaphson() {
+        return maxRealisticVoltageNewtonRaphson;
     }
 
-    public OpenLoadFlowParameters setMaxRealisticVoltage(double maxRealisticVoltage) {
-        this.maxRealisticVoltage = checkParameterValue(maxRealisticVoltage,
-                maxRealisticVoltage >= 0,
-                MAX_REALISTIC_VOLTAGE_PARAM_NAME);
+    public OpenLoadFlowParameters setMaxRealisticVoltageNewtonRaphson(double maxRealisticVoltageNewtonRaphson) {
+        this.maxRealisticVoltageNewtonRaphson = checkParameterValue(maxRealisticVoltageNewtonRaphson,
+                maxRealisticVoltageNewtonRaphson >= 0,
+                MAX_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME);
         return this;
     }
 
@@ -1236,8 +1236,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setShuntVoltageControlMode(config.getEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ShuntVoltageControlMode.class, SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
-                .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
-                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
+                .setMinRealisticVoltageNewtonRaphson(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
+                .setMaxRealisticVoltageNewtonRaphson(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
                 .setMinRealisticVoltageKnitroSolver(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_KNITRO_SOLVER_PARAM_NAME, KnitroSolverParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
                 .setMaxRealisticVoltageKnitroSolver(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_KNITRO_SOLVER_PARAM_NAME, KnitroSolverParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
                 .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
@@ -1347,10 +1347,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMinPlausibleTargetVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxPlausibleTargetVoltage(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(MIN_REALISTIC_VOLTAGE_PARAM_NAME))
-                .ifPresent(prop -> this.setMinRealisticVoltage(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_PARAM_NAME))
-                .ifPresent(prop -> this.setMaxRealisticVoltage(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MIN_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME))
+                .ifPresent(prop -> this.setMinRealisticVoltageNewtonRaphson(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxRealisticVoltageNewtonRaphson(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MIN_REALISTIC_VOLTAGE_KNITRO_SOLVER_PARAM_NAME))
                 .ifPresent(prop -> this.setMinRealisticVoltageKnitroSolver(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_KNITRO_SOLVER_PARAM_NAME))
@@ -1464,8 +1464,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, shuntVoltageControlMode);
         map.put(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, minPlausibleTargetVoltage);
         map.put(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, maxPlausibleTargetVoltage);
-        map.put(MIN_REALISTIC_VOLTAGE_PARAM_NAME, minRealisticVoltage);
-        map.put(MAX_REALISTIC_VOLTAGE_PARAM_NAME, maxRealisticVoltage);
+        map.put(MIN_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME, minRealisticVoltageNewtonRaphson);
+        map.put(MAX_REALISTIC_VOLTAGE_NEWTON_RAPHSON_PARAM_NAME, maxRealisticVoltageNewtonRaphson);
         map.put(MIN_REALISTIC_VOLTAGE_KNITRO_SOLVER_PARAM_NAME, minRealisticVoltageKnitroSolver);
         map.put(MAX_REALISTIC_VOLTAGE_KNITRO_SOLVER_PARAM_NAME, maxRealisticVoltageKnitroSolver);
         map.put(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, reactiveRangeCheckMode);
@@ -1691,8 +1691,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setStoppingCriteria(createNewtonRaphsonStoppingCriteria(parametersExt))
                 .setMaxIterations(parametersExt.getMaxNewtonRaphsonIterations())
-                .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
-                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
+                .setMinRealisticVoltage(parametersExt.getMinRealisticVoltageNewtonRaphson())
+                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltageNewtonRaphson())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
                 .setLineSearchStateVectorScalingMaxIteration(parametersExt.getLineSearchStateVectorScalingMaxIteration())
                 .setLineSearchStateVectorScalingStepFold(parametersExt.getLineSearchStateVectorScalingStepFold())
@@ -1847,8 +1847,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getShuntVoltageControlMode() == extension2.getShuntVoltageControlMode() &&
                 extension1.getMinPlausibleTargetVoltage() == extension2.getMinPlausibleTargetVoltage() &&
                 extension1.getMaxPlausibleTargetVoltage() == extension2.getMaxPlausibleTargetVoltage() &&
-                extension1.getMinRealisticVoltage() == extension2.getMinRealisticVoltage() &&
-                extension1.getMaxRealisticVoltage() == extension2.getMaxRealisticVoltage() &&
+                extension1.getMinRealisticVoltageNewtonRaphson() == extension2.getMinRealisticVoltageNewtonRaphson() &&
+                extension1.getMaxRealisticVoltageNewtonRaphson() == extension2.getMaxRealisticVoltageNewtonRaphson() &&
                 extension1.getMinRealisticVoltageKnitroSolver() == extension2.getMinRealisticVoltageKnitroSolver() &&
                 extension1.getMaxRealisticVoltageKnitroSolver() == extension2.getMaxRealisticVoltageKnitroSolver() &&
                 extension1.getReactiveRangeCheckMode() == extension2.getReactiveRangeCheckMode() &&
@@ -1939,8 +1939,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setShuntVoltageControlMode(extension.getShuntVoltageControlMode())
                     .setMinPlausibleTargetVoltage(extension.getMinPlausibleTargetVoltage())
                     .setMaxPlausibleTargetVoltage(extension.getMaxPlausibleTargetVoltage())
-                    .setMinRealisticVoltage(extension.getMinRealisticVoltage())
-                    .setMaxRealisticVoltage(extension.getMaxRealisticVoltage())
+                    .setMinRealisticVoltageNewtonRaphson(extension.getMinRealisticVoltageNewtonRaphson())
+                    .setMaxRealisticVoltageNewtonRaphson(extension.getMaxRealisticVoltageNewtonRaphson())
                     .setMinRealisticVoltageKnitroSolver(extension.getMinRealisticVoltageKnitroSolver())
                     .setMaxRealisticVoltageKnitroSolver(extension.getMaxRealisticVoltageKnitroSolver())
                     .setReactiveRangeCheckMode(extension.getReactiveRangeCheckMode())
