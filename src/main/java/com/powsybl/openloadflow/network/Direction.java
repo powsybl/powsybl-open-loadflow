@@ -11,16 +11,7 @@ package com.powsybl.openloadflow.network;
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public enum Direction {
-    INCREASE(AllowedDirection.INCREASE),
-    DECREASE(AllowedDirection.DECREASE);
-
-    private final AllowedDirection allowedDirection;
-
-    Direction(AllowedDirection allowedDirection) {
-        this.allowedDirection = allowedDirection;
-    }
-
-    public AllowedDirection getAllowedDirection() {
-        return allowedDirection;
-    }
+    INCREASE,
+    DECREASE,
+    BOTH
 }

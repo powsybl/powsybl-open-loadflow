@@ -73,7 +73,7 @@ public interface LfShunt extends LfElement {
             return bMagnitude;
         }
 
-        private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
+        private Range<Integer> getAllowedPositionRange(Direction allowedDirection) {
             return switch (allowedDirection) {
                 case INCREASE -> Range.of(position, sectionsB.size() - 1);
                 case DECREASE -> Range.of(0, position);
@@ -81,7 +81,7 @@ public interface LfShunt extends LfElement {
             };
         }
 
-        public Optional<Direction> updateSectionB(double deltaB, int maxSectionShift, AllowedDirection allowedDirection) {
+        public Optional<Direction> updateSectionB(double deltaB, int maxSectionShift, Direction allowedDirection) {
             // an increase allowed direction means that the section could increase.
             // a decrease allowed direction means that the section could decrease.
             double newB = getB() + deltaB;

@@ -105,7 +105,7 @@ class PiModelArrayTest {
 
     @Test
     void testUpdateTapPositionToReachNewR1() {
-        piModelArray.updateTapPositionToReachNewR1(-0.08d, 1, AllowedDirection.BOTH);
+        piModelArray.updateTapPositionToReachNewR1(-0.08d, 1, Direction.BOTH);
         assertEquals(1, piModelArray.getTapPosition());
     }
 

@@ -147,17 +147,17 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
+    public Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, Direction allowedDirection) {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 
     @Override
-    public Optional<Direction> updateTapPositionToExceedNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+    public Optional<Direction> updateTapPositionToExceedNewA1(double deltaA1, int maxTapShift, Direction allowedDirection) {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 
     @Override
-    public Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+    public Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, Direction allowedDirection) {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 

@@ -245,7 +245,7 @@ public class PiModelArray implements PiModel {
         return Optional.empty();
     }
 
-    private Range<Integer> getAllowedPositionIndexRange(AllowedDirection allowedDirection) {
+    private Range<Integer> getAllowedPositionIndexRange(Direction allowedDirection) {
         switch (allowedDirection) {
             case INCREASE:
                 return Range.of(tapPositionIndex, models.size() - 1);
@@ -265,7 +265,7 @@ public class PiModelArray implements PiModel {
         }
 
         // find tap position with the closest a1 value
-        updateTapPosition(PiModel::getA1, getAllowedPositionIndexRange(AllowedDirection.BOTH), Integer.MAX_VALUE,
+        updateTapPosition(PiModel::getA1, getAllowedPositionIndexRange(Direction.BOTH), Integer.MAX_VALUE,
                 new ClosestTapPositionFinder(a1));
         a1 = Double.NaN;
     }
@@ -277,7 +277,7 @@ public class PiModelArray implements PiModel {
         }
 
         // find tap position with the closest r1 value
-        updateTapPosition(PiModel::getR1, getAllowedPositionIndexRange(AllowedDirection.BOTH), Integer.MAX_VALUE,
+        updateTapPosition(PiModel::getR1, getAllowedPositionIndexRange(Direction.BOTH), Integer.MAX_VALUE,
                 new ClosestTapPositionFinder(r1));
         continuousR1 = r1;
         r1 = Double.NaN;
@@ -318,7 +318,7 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
+    public Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, Direction allowedDirection) {
         double newR1 = getR1() + deltaR1;
         Range<Integer> positionIndexRange = getAllowedPositionIndexRange(allowedDirection);
         Optional<Direction> direction = updateTapPosition(PiModel::getR1, positionIndexRange, maxTapShift,
@@ -330,7 +330,7 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public Optional<Direction> updateTapPositionToExceedNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+    public Optional<Direction> updateTapPositionToExceedNewA1(double deltaA1, int maxTapShift, Direction allowedDirection) {
         Range<Integer> positionIndexRange = getAllowedPositionIndexRange(allowedDirection);
         Optional<Direction> direction = updateTapPosition(PiModel::getA1, positionIndexRange, maxTapShift,
                 new FirstTapPositionAboveFinder(deltaA1));
@@ -341,7 +341,7 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+    public Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, Direction allowedDirection) {
         double newA1 = getA1() + deltaA1;
         Range<Integer> positionIndexRange = getAllowedPositionIndexRange(allowedDirection);
         Optional<Direction> direction = updateTapPosition(PiModel::getA1, positionIndexRange, maxTapShift,

@@ -38,7 +38,7 @@ public class LfShuntImpl extends AbstractLfShunt {
         }
 
         @Override
-        public Optional<Direction> updateSectionB(double deltaB, int maxSectionShift, AllowedDirection allowedDirection) {
+        public Optional<Direction> updateSectionB(double deltaB, int maxSectionShift, Direction allowedDirection) {
             Optional<Direction> direction = super.updateSectionB(deltaB, maxSectionShift, allowedDirection);
             if (direction.isPresent()) { // it means position has changed
                 setG(controllers.stream().mapToDouble(Controller::getG).sum());
