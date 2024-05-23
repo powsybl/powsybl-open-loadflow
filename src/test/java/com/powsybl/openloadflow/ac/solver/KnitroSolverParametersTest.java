@@ -48,6 +48,13 @@ public class KnitroSolverParametersTest {
         IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setGradientComputationMode(4));
         assertEquals("Knitro gradient computation mode must be between 1 and 3", e2.getMessage());
     }
+
+    void testVoltageBounds() {
+        //TODO
+        // default value
+        // set other value
+        // wrong values
+    }
 // TODO a transferer dans le fichier adéquat
 //    @Test
 //    void testSetAndGetConvEpsPerEq() {

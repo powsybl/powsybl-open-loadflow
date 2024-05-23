@@ -175,7 +175,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             }
         }
 
-        private KnitroProblem(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem, TargetVector targetVector, VoltageInitializer voltageInitializer) throws KNException {
+        private KnitroProblem(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem, TargetVector targetVector, VoltageInitializer voltageInitializer, KnitroSolverParameters knitroParameters) throws KNException {
 
             // =============== Variables ===============
             // Defining variables and ordering them by bus and in the order V, Phi
@@ -190,8 +190,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // Bounds
             List<Double> listVarLoBounds = new ArrayList<>(numVar);
             List<Double> listVarUpBounds = new ArrayList<>(numVar);
-            double loBndV = KnitroSolverParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
-            double upBndV = KnitroSolverParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
+            double loBndV = knitroParameters.getMinRealisticVoltage();
+            double upBndV = knitroParameters.getMaxRealisticVoltage();
             for (int i = 0; i < numVar; i++) {
                 if (i % 2 == 0) { // Initialize V
                     listVarLoBounds.add(loBndV);
@@ -270,7 +270,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         AcSolverStatus acStatus = null;
         try {
             // Create instance of problem
-            KnitroProblem instance = new KnitroProblem(network, equationSystem, targetVector, voltageInitializer);
+            KnitroProblem instance = new KnitroProblem(network, equationSystem, targetVector, voltageInitializer, knitroParameters);
             KNSolver solver = new KNSolver(instance);
             solver.initProblem();
 

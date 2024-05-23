@@ -46,16 +46,18 @@ public class KnitroSolverParameters {
         return minRealisticVoltage;
     }
 
-    public void setMinRealisticVoltage(double minRealisticVoltage) {
+    public KnitroSolverParameters setMinRealisticVoltage(double minRealisticVoltage) {
         this.minRealisticVoltage = minRealisticVoltage;
+        return this;
     }
 
     public double getMaxRealisticVoltage() {
         return maxRealisticVoltage;
     }
 
-    public void setMaxRealisticVoltage(double maxRealisticVoltage) {
+    public KnitroSolverParameters setMaxRealisticVoltage(double maxRealisticVoltage) {
         this.maxRealisticVoltage = maxRealisticVoltage;
+        return this;
     }
 
     public KnitroSolverStoppingCriteria getStoppingCriteria() {
