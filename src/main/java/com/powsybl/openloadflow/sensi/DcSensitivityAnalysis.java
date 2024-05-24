@@ -874,6 +874,50 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return contingencyElementByBranch;
     }
 
+    protected void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        for (PropagatedContingency contingency : contingencies) {
+            // Elements have already been checked and found in PropagatedContingency, so there is no need to
+            // check them again
+            Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
+            for (String branchId : contingency.getBranchIdsToOpen().keySet()) {
+                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+                if (lfBranch == null) {
+                    branchesToRemove.add(branchId); // disconnected branch
+                    continue;
+                }
+                if (!lfBranch.isConnectedAtBothSides()) {
+                    branchesToRemove.add(branchId); // branch connected only on one side
+                }
+            }
+            branchesToRemove.forEach(branchToRemove -> contingency.getBranchIdsToOpen().remove(branchToRemove));
+
+            // update branches to open connected with buses in contingency. This is an approximation:
+            // these branches are indeed just open at one side.
+            String slackBusId = null;
+            for (String busId : contingency.getBusIdsToLose()) {
+                LfBus bus = lfNetwork.getBusById(busId);
+                if (bus != null) {
+                    if (bus.isSlack()) {
+                        // slack bus disabling is not supported in DC because the relocation is done from propagated contingency
+                        // to LfContingency
+                        // we keep the slack bus enabled and the connected branches
+                        LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
+                        slackBusId = busId;
+                    } else {
+                        bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().put(branch.getId(), DisabledBranchStatus.BOTH_SIDES));
+                    }
+                }
+            }
+            if (slackBusId != null) {
+                contingency.getBusIdsToLose().remove(slackBusId);
+            }
+
+            if (contingency.hasNoImpact()) {
+                LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
+            }
+        }
+    }
+
     @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode reportNode,
@@ -926,7 +970,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reportNode)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
 
-            checkContingencies(lfNetwork, contingencies);
+            checkContingencies(contingencies);
+            cleanContingencies(lfNetwork, contingencies);
             checkLoadFlowParameters(lfParameters);
 
             Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));

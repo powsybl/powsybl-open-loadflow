@@ -155,4 +155,16 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
         LOGGER.trace("onBranchConnectionStatusChange(branch={}, side={}, connected={})", branch, side, connected);
         delegate.onBranchConnectionStatusChange(branch, side, connected);
     }
+
+    @Override
+    public void onSlackBusChange(LfBus bus, boolean slack) {
+        LOGGER.trace("onSlackBusChange(bus={}, slack={})", bus, slack);
+        delegate.onSlackBusChange(bus, slack);
+    }
+
+    @Override
+    public void onReferenceBusChange(LfBus bus, boolean reference) {
+        LOGGER.trace("onReferenceBusChange(bus={}, reference={})", bus, reference);
+        delegate.onReferenceBusChange(bus, reference);
+    }
 }
