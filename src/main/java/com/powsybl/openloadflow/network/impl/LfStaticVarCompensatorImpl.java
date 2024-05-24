@@ -80,14 +80,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         };
 
         switch (svc.getRegulationMode()) {
-            case VOLTAGE -> setupVoltageRegulation(svc, parameters, report);
+            case VOLTAGE -> setupVoltageControl(svc, parameters, report);
             case REACTIVE_POWER -> targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
             case OFF -> targetQ = 0;
-            default -> throw new IllegalStateException("Unexpected value: " + svc.getRegulationMode());
         }
     }
 
-    private void setupVoltageRegulation(StaticVarCompensator svc, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    private void setupVoltageControl(StaticVarCompensator svc, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), parameters, report);
 
         // slope model: check if to be applied based on 1/ option and 2/ this SVC extension
