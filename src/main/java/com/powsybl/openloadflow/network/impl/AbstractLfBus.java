@@ -316,16 +316,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, LfNetworkParameters parameters,
                                  LfNetworkLoadingReport report) {
-        if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, parameters, report);
-            add(lfSvc);
-            if (lfSvc.getSlope() != 0) {
-                hasGeneratorsWithSlope = true;
-            }
-            if (lfSvc.getB0() != 0) {
-                svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
-                lfSvc.setStandByAutomatonShunt(svcShunt);
-            }
+        LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, parameters, report);
+        add(lfSvc);
+        if (lfSvc.getSlope() != 0) {
+            hasGeneratorsWithSlope = true;
+        }
+        if (lfSvc.getB0() != 0) {
+            svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
+            lfSvc.setStandByAutomatonShunt(svcShunt);
         }
     }
 
