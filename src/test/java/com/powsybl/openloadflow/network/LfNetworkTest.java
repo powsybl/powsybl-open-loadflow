@@ -343,26 +343,26 @@ class LfNetworkTest extends AbstractSerDeTest {
 
         LfBranch lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
         Branch<?> branch = network.getBranch("NHV1_NHV2_1");
-        List<Double> reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
-        assertEquals(1, reductions.size());
-        assertEquals(0.5, reductions.get(0), 0.001); // PATL
+        double[] reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
+        assertEquals(1, reductions.length);
+        assertEquals(0.5, reductions[0], 0.001); // PATL
         reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
-        assertEquals(4, reductions.size());
-        assertEquals(0.5, reductions.get(0), 0.001); // PATL
-        assertEquals(0.8, reductions.get(1), 0.001); // TATL 600s
-        assertEquals(0.9, reductions.get(2), 0.001); // TATL 60s
-        assertEquals(0.9, reductions.get(3), 0.001); // TATL 0s
+        assertEquals(4, reductions.length);
+        assertEquals(0.5, reductions[0], 0.001); // PATL
+        assertEquals(0.8, reductions[1], 0.001); // TATL 600s
+        assertEquals(0.9, reductions[2], 0.001); // TATL 60s
+        assertEquals(0.9, reductions[3], 0.001); // TATL 0s
 
         lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_2");
         branch = network.getBranch("NHV1_NHV2_2");
         reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
-        assertEquals(3, reductions.size());
-        assertEquals(0.5, reductions.get(0), 0.001); // PATL
-        assertEquals(0.8, reductions.get(1), 0.001); // TATL 1200s
-        assertEquals(0.9, reductions.get(2), 0.001); // TATL 60s
+        assertEquals(3, reductions.length);
+        assertEquals(0.5, reductions[0], 0.001); // PATL
+        assertEquals(0.8, reductions[1], 0.001); // TATL 1200s
+        assertEquals(0.9, reductions[2], 0.001); // TATL 60s
         reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
-        assertEquals(1, reductions.size());
-        assertEquals(0.5, reductions.get(0), 0.001); // PATL
+        assertEquals(1, reductions.length);
+        assertEquals(0.5, reductions[0], 0.001); // PATL
     }
 
     @Test
@@ -375,12 +375,12 @@ class LfNetworkTest extends AbstractSerDeTest {
         Branch<?> branch = network.getBranch("NHV1_NHV2_2");
 
         // No reductions because the LimitReductionManager is null
-        List<Double> reductions = lfBranch.getLimitReductions(TwoSides.ONE, null, branch.getNullableCurrentLimits1());
-        assertTrue(reductions.isEmpty());
+        double[] reductions = lfBranch.getLimitReductions(TwoSides.ONE, null, branch.getNullableCurrentLimits1());
+        assertEquals(0, reductions.length);
 
         // No reductions because the LimitReductionManager is empty
         reductions = lfBranch.getLimitReductions(TwoSides.ONE, new LimitReductionManager(), branch.getNullableCurrentLimits1());
-        assertTrue(reductions.isEmpty());
+        assertEquals(0, reductions.length);
 
         // No reduction applies because the line isn't within the nominal voltage range => all values equals to 1.
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction0 =
@@ -388,10 +388,10 @@ class LfNetworkTest extends AbstractSerDeTest {
         LimitReductionManager limitReductionManager0 = new LimitReductionManager();
         limitReductionManager0.addTerminalLimitReduction(terminalLimitReduction0);
         reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager0, branch.getNullableCurrentLimits1());
-        assertEquals(3, reductions.size());
-        assertEquals(1., reductions.get(0), 0.001); // PATL
-        assertEquals(1., reductions.get(1), 0.001); // TATL 1200s
-        assertEquals(1., reductions.get(2), 0.001); // TATL 60s
+        assertEquals(3, reductions.length);
+        assertEquals(1., reductions[0], 0.001); // PATL
+        assertEquals(1., reductions[1], 0.001); // TATL 1200s
+        assertEquals(1., reductions[2], 0.001); // TATL 60s
 
         // No reductions because only current limits are supported
         branch.newActivePowerLimits1().setPermanentLimit(100.).add();
@@ -400,11 +400,11 @@ class LfNetworkTest extends AbstractSerDeTest {
         LimitReductionManager limitReductionManager1 = new LimitReductionManager();
         limitReductionManager1.addTerminalLimitReduction(terminalLimitReduction1);
         reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager1, branch.getNullableActivePowerLimits1());
-        assertTrue(reductions.isEmpty());
+        assertEquals(0, reductions.length);
 
         // No reductions because there's no limits
         reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager1, null);
-        assertTrue(reductions.isEmpty());
+        assertEquals(0, reductions.length);
     }
 
     @Test
@@ -430,16 +430,16 @@ class LfNetworkTest extends AbstractSerDeTest {
 
         LfBranch lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
         Branch<?> branch = network.getBranch("NHV1_NHV2_1");
-        List<Double> reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
-        assertEquals(1, reductions.size());
-        assertEquals(0.5, reductions.get(0), 0.001); // PATL
+        double[] reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
+        assertEquals(1, reductions.length);
+        assertEquals(0.5, reductions[0], 0.001); // PATL
         reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
-        assertEquals(4, reductions.size());
-        assertEquals(0.5, reductions.get(0), 0.001); // PATL
-        assertEquals(0.8, reductions.get(1), 0.001); // TATL 600s
-        assertEquals(0.9, reductions.get(2), 0.001); // TATL 60s
+        assertEquals(4, reductions.length);
+        assertEquals(0.5, reductions[0], 0.001); // PATL
+        assertEquals(0.8, reductions[1], 0.001); // TATL 600s
+        assertEquals(0.9, reductions[2], 0.001); // TATL 60s
         // `terminalLimitReduction4` is declared after `terminalLimitReduction2`, so its value is used
-        assertEquals(0.87, reductions.get(3), 0.001); // TATL 0s
+        assertEquals(0.87, reductions[3], 0.001); // TATL 0s
 
         limitReductionManager = new LimitReductionManager();
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction1);
@@ -447,11 +447,11 @@ class LfNetworkTest extends AbstractSerDeTest {
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction2);
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction3);
         reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
-        assertEquals(4, reductions.size());
-        assertEquals(0.5, reductions.get(0), 0.001); // PATL
-        assertEquals(0.8, reductions.get(1), 0.001); // TATL 600s
-        assertEquals(0.9, reductions.get(2), 0.001); // TATL 60s
+        assertEquals(4, reductions.length);
+        assertEquals(0.5, reductions[0], 0.001); // PATL
+        assertEquals(0.8, reductions[1], 0.001); // TATL 600s
+        assertEquals(0.9, reductions[2], 0.001); // TATL 60s
         // `terminalLimitReduction4` is now declared before `terminalLimitReduction2`, its value is overlapped by the one of `terminalLimitReduction2`
-        assertEquals(0.9, reductions.get(3), 0.001); // TATL 0s
+        assertEquals(0.9, reductions[3], 0.001); // TATL 0s
     }
 }

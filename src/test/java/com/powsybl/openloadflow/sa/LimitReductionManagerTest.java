@@ -67,15 +67,15 @@ class LimitReductionManagerTest {
     private void assertTerminalLimitReduction(double expectedReduction, Range<Double> expectedNominalV,
                                               boolean expectedIsPermanent, Range<Integer> expectedAcceptableDuration,
                                               LimitReductionManager.TerminalLimitReduction actual) {
-        assertEquals(expectedReduction, actual.getReduction(), 0.001);
-        assertEquals(expectedNominalV.getMinimum(), actual.getNominalV().getMinimum(), 0.001);
-        assertEquals(expectedNominalV.getMaximum(), actual.getNominalV().getMaximum(), 0.001);
+        assertEquals(expectedReduction, actual.reduction(), 0.001);
+        assertEquals(expectedNominalV.getMinimum(), actual.nominalV().getMinimum(), 0.001);
+        assertEquals(expectedNominalV.getMaximum(), actual.nominalV().getMaximum(), 0.001);
         assertEquals(expectedIsPermanent, actual.isPermanent());
         if (expectedAcceptableDuration == null) {
-            assertNull(actual.getAcceptableDuration());
+            assertNull(actual.acceptableDuration());
         } else {
-            assertEquals(expectedAcceptableDuration.getMinimum(), actual.getAcceptableDuration().getMinimum());
-            assertEquals(expectedAcceptableDuration.getMaximum(), actual.getAcceptableDuration().getMaximum());
+            assertEquals(expectedAcceptableDuration.getMinimum(), actual.acceptableDuration().getMinimum());
+            assertEquals(expectedAcceptableDuration.getMaximum(), actual.acceptableDuration().getMaximum());
         }
     }
 

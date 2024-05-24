@@ -115,7 +115,7 @@ public class LimitViolationManager {
         if (!limits.isEmpty()) {
             double i = iGetter.apply(branch).eval();
             limits.stream()
-                    .filter(temporaryLimit -> i > temporaryLimit.getValue())
+                    .filter(temporaryLimit -> i > temporaryLimit.getReducedValue())
                     .findFirst()
                     .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side))
                     .ifPresent(this::addBranchLimitViolation);
@@ -125,7 +125,7 @@ public class LimitViolationManager {
         if (!limits.isEmpty()) {
             double p = pGetter.apply(branch).eval();
             limits.stream()
-                    .filter(temporaryLimit -> Math.abs(p) > temporaryLimit.getValue())
+                    .filter(temporaryLimit -> Math.abs(p) > temporaryLimit.getReducedValue())
                     .findFirst()
                     .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side))
                     .ifPresent(this::addBranchLimitViolation);
@@ -137,7 +137,7 @@ public class LimitViolationManager {
             double s = sGetter.applyAsDouble(branch);
             if (!Double.isNaN(s)) {
                 limits.stream()
-                        .filter(temporaryLimit -> s > temporaryLimit.getValue())
+                        .filter(temporaryLimit -> s > temporaryLimit.getReducedValue())
                         .findFirst()
                         .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side))
                         .ifPresent(this::addBranchLimitViolation);
@@ -165,7 +165,7 @@ public class LimitViolationManager {
                                                        LimitViolationType type, double scale, double value,
                                                        TwoSides side) {
         return new LimitViolation(branch.getId(), type, temporaryLimit.getName(),
-                temporaryLimit.getAcceptableDuration(), temporaryLimit.getOriginalValue() * scale,
+                temporaryLimit.getAcceptableDuration(), temporaryLimit.getValue() * scale,
                 temporaryLimit.getReduction(), value * scale, side);
     }
 

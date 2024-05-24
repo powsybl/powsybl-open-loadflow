@@ -43,23 +43,15 @@ public interface LfBranch extends LfElement {
 
         private int acceptableDuration;
 
-        private final double originalValue;
+        private final double value;
 
         private final double reduction;
 
-        private final double value;
-
-        public LfLimit(String name, int acceptableDuration, double originalValue, Double reduction) {
+        public LfLimit(String name, int acceptableDuration, double value, double reduction) {
             this.name = name;
             this.acceptableDuration = acceptableDuration;
-            this.originalValue = originalValue;
-            if (reduction != null) {
-                this.reduction = reduction;
-                this.value = originalValue * reduction;
-            } else {
-                this.reduction = 1.;
-                this.value = originalValue;
-            }
+            this.value = value;
+            this.reduction = reduction;
         }
 
         public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double originalValuePerUnit, Double reduction) {
@@ -78,12 +70,12 @@ public interface LfBranch extends LfElement {
             return acceptableDuration;
         }
 
-        public double getOriginalValue() {
-            return originalValue;
-        }
-
         public double getValue() {
             return value;
+        }
+
+        public double getReducedValue() {
+            return value * reduction;
         }
 
         public void setAcceptableDuration(int acceptableDuration) {
@@ -222,7 +214,7 @@ public interface LfBranch extends LfElement {
         return Collections.emptyList();
     }
 
-    List<Double> getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits);
+    double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits);
 
     void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport);
 

@@ -274,37 +274,37 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
      * <p>This method may return an empty list when no reduction apply.</p>
      */
     @Override
-    public List<Double> getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+    public double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
         if (limits == null) {
-            return Collections.emptyList();
+            return new double[] {};
         }
         if (limits.getLimitType() != LimitType.CURRENT) {
-            return Collections.emptyList();
+            return new double[] {};
         }
         if (limitReductionManager == null || limitReductionManager.isEmpty()) {
-            return Collections.emptyList();
+            return new double[] {};
         }
         // Initialize the array of the reductions with 1s
-        Double[] limitReductions = new Double[limits.getTemporaryLimits().size() + 1];
+        double[] limitReductions = new double[limits.getTemporaryLimits().size() + 1];
         Arrays.fill(limitReductions, 1.);
         double nominalV = branchRef.get().getTerminal(side).getVoltageLevel().getNominalV();
         for (LimitReductionManager.TerminalLimitReduction terminalLimitReduction : limitReductionManager.getTerminalLimitReductions()) {
-            if (terminalLimitReduction.getNominalV().contains(nominalV)) {
+            if (terminalLimitReduction.nominalV().contains(nominalV)) {
                 if (terminalLimitReduction.isPermanent()) {
-                    limitReductions[0] = terminalLimitReduction.getReduction();
+                    limitReductions[0] = terminalLimitReduction.reduction();
                 }
-                if (terminalLimitReduction.getAcceptableDuration() != null) {
+                if (terminalLimitReduction.acceptableDuration() != null) {
                     int i = 1; // temporary limit's reductions will be stored starting from index 1
                     for (LoadingLimits.TemporaryLimit temporaryLimit : limits.getTemporaryLimits()) {
-                        if (terminalLimitReduction.getAcceptableDuration().contains(temporaryLimit.getAcceptableDuration())) {
-                            limitReductions[i] = terminalLimitReduction.getReduction();
+                        if (terminalLimitReduction.acceptableDuration().contains(temporaryLimit.getAcceptableDuration())) {
+                            limitReductions[i] = terminalLimitReduction.reduction();
                         }
                         i++;
                     }
                 }
             }
         }
-        return Arrays.asList(limitReductions);
+        return limitReductions;
     }
 
     @Override

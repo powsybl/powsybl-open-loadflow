@@ -36,38 +36,15 @@ public class LimitReductionManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LimitReductionManager.class);
 
-    public static class TerminalLimitReduction {
+    /**
+     * @param acceptableDuration can be null
+     */
+    public record TerminalLimitReduction(Range<Double> nominalV, boolean isPermanent, Range<Integer> acceptableDuration,
+                                         double reduction) {
 
-        Range<Double> nominalV;
-        Range<Integer> acceptableDuration; // can be null
-        boolean isPermanent;
-        double reduction;
-
-        public TerminalLimitReduction(Range<Double> nominalV, boolean isPermanent, Range<Integer> acceptableDuration, double reduction) {
-            this.nominalV = nominalV;
-            this.isPermanent = isPermanent;
-            this.acceptableDuration = acceptableDuration;
-            this.reduction = reduction;
-        }
-
-        public boolean isPermanent() {
-            return isPermanent;
-        }
-
-        public double getReduction() {
-            return reduction;
-        }
-
-        public Range<Double> getNominalV() {
-            return nominalV;
-        }
-
-        public Range<Integer> getAcceptableDuration() {
-            return acceptableDuration;
-        }
     }
 
-    List<TerminalLimitReduction> terminalLimitReductions = new ArrayList<>();
+    private final List<TerminalLimitReduction> terminalLimitReductions = new ArrayList<>();
 
     public boolean isEmpty() {
         return terminalLimitReductions.isEmpty();
@@ -138,7 +115,7 @@ public class LimitReductionManager {
     }
 
     private static boolean isSupported(LimitReduction limitReduction) {
-        if (!limitReduction.getContingencyContext().getContextType().equals(ContingencyContextType.ALL)) {
+        if (limitReduction.getContingencyContext().getContextType() != ContingencyContextType.ALL) {
             // Contingency context NONE with empty contingency lists could be supported too.
             LOGGER.warn("Only contingency context ALL is yet supported.");
             return false;

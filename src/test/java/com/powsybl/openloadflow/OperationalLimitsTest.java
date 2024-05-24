@@ -79,7 +79,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     private double getLimitValueFromAcceptableDuration(LfBranch branch, int acceptableDuration, TwoSides side, LimitType type) {
         return (side == TwoSides.ONE ? branch.getLimits1(type, null) : branch.getLimits2(type, null)).stream()
                                                                                              .filter(l -> l.getAcceptableDuration() == acceptableDuration)
-                                                                                             .map(LfBranch.LfLimit::getValue)
+                                                                                             .map(LfBranch.LfLimit::getReducedValue)
                                                                                              .findFirst().orElse(Double.NaN);
     }
 
