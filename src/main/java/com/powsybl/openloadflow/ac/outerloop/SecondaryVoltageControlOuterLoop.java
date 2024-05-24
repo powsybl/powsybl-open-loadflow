@@ -304,7 +304,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .stream()
                 .filter(e -> {
                     double newTargetV = e.getValue();
-                    return LfGenerator.isTargetVoltageNotPlausible(newTargetV, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+                    return !VoltageControl.isTargetVoltagePlausible(newTargetV, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
                 })
                 .map(e -> {
                     // convert target to Kv for better display
