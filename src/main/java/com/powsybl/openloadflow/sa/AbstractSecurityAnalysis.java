@@ -149,7 +149,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, parameters.getNetworkParameters(), topoConfig, saReportNode)) {
             // run simulation on largest network
-            SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
+            SecurityAnalysisResult result = lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
                     .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
                     .orElse(createNoResult());
 
@@ -458,8 +458,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                 if (operatorStrategiesForThisContingency != null) {
                                     // we have at least an operator strategy for this contingency.
                                     if (operatorStrategiesForThisContingency.size() == 1) {
+                                        OperatorStrategy operatorStrategy = operatorStrategiesForThisContingency.get(0);
+                                        ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
+                                        lfNetwork.setReportNode(osSimReportNode);
                                         runActionSimulation(lfNetwork, context,
-                                                operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
+                                                operatorStrategy, preContingencyLimitViolationManager,
                                                 securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
                                                 createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
                                                 acParameters.getNetworkParameters(), limitReductions)
@@ -468,6 +471,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                         // save post contingency state for later restoration after action
                                         NetworkState postContingencyNetworkState = NetworkState.save(lfNetwork);
                                         for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
+                                            ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
+                                            lfNetwork.setReportNode(osSimReportNode);
                                             runActionSimulation(lfNetwork, context,
                                                     operatorStrategy, preContingencyLimitViolationManager,
                                                     securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
@@ -491,7 +496,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
             return new SecurityAnalysisResult(
                     new PreContingencyResult(
-                            preContingencyLoadFlowResult.toComponentResultStatus(),
+                            preContingencyLoadFlowResult.toComponentResultStatus().status(),
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),

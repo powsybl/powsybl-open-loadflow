@@ -224,7 +224,7 @@ public interface LfBranch extends LfElement {
 
     List<Double> getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits);
 
-    void updateState(LfNetworkStateUpdateParameters parameters);
+    void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport);
 
     void updateFlows(double p1, double q1, double p2, double q2);
 
