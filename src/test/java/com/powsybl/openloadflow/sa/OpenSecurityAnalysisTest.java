@@ -3105,4 +3105,25 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(2).getStatus());
     }
+
+    @Test
+    void testSlackBusRelocationAndMultipleSlackBuses() {
+        // should give the same result as with one slack bus because not supported and forced to one
+        Network network = createNodeBreakerNetwork();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setMaxSlackBusCount(2);
+
+        List<Contingency> contingencies = List.of(
+                Contingency.busbarSection("BBS1"),
+                Contingency.busbarSection("BBS3"),
+                Contingency.line("L1")
+        );
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
+        assertEquals(3, result.getPostContingencyResults().size());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(2).getStatus());
+    }
 }
