@@ -582,6 +582,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream()
                     .filter(element -> isBreakingConnectivity(connectivity, element))
                     .collect(Collectors.toCollection(LinkedHashSet::new));
+            connectivity.undoTemporaryChanges();
             if (breakingConnectivityElements.isEmpty()) {
                 // we did not break any connectivity
                 nonLosingConnectivityContingencies.addAll(contingencyList);
@@ -591,11 +592,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds);
                 if (!lfFactors.isEmpty()) {
+                    connectivity.startTemporaryChanges();
+                    breakingConnectivityElements.stream()
+                            .map(ComputedContingencyElement::getElement)
+                            .map(ContingencyElement::getId)
+                            .distinct()
+                            .map(lfNetwork::getBranchById)
+                            .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                            .forEach(connectivity::removeEdge);
                     ConnectivityAnalysisResult connectivityAnalysisResult = connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, k -> {
                         Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
                         return new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
                     });
                     connectivityAnalysisResult.getContingencies().addAll(contingencyList);
+                    connectivity.undoTemporaryChanges();
                 } else {
                     // write contingency status
                     for (PropagatedContingency propagatedContingency : contingencyList) {
@@ -603,7 +613,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     }
                 }
             }
-            connectivity.undoTemporaryChanges();
         }
         return new ArrayList<>(connectivityAnalysisResults.values());
     }
