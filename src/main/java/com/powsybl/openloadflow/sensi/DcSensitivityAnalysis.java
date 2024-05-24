@@ -131,6 +131,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
+        static void applyToConnectivity(LfNetwork lfNetwork, GraphConnectivity<LfBus, LfBranch> connectivity, Collection<ComputedContingencyElement> breakingConnectivityElements) {
+            breakingConnectivityElements.stream()
+                    .map(ComputedContingencyElement::getElement)
+                    .map(ContingencyElement::getId)
+                    .distinct()
+                    .map(lfNetwork::getBranchById)
+                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                    .forEach(connectivity::removeEdge);
+        }
     }
 
     private static final class PhaseTapChangerContingenciesIndexing {
@@ -569,19 +578,19 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         for (Map.Entry<Set<ComputedContingencyElement>, List<PropagatedContingency>> e : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
             Set<ComputedContingencyElement> breakingConnectivityCandidates = e.getKey();
             List<PropagatedContingency> contingencyList = e.getValue();
-            connectivity.startTemporaryChanges();
-            breakingConnectivityCandidates.stream()
-                    .map(ComputedContingencyElement::getElement)
-                    .map(ContingencyElement::getId)
-                    .distinct()
-                    .map(lfNetwork::getBranchById)
-                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                    .forEach(connectivity::removeEdge);
 
-            // filter the branches that really impacts connectivity
-            Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream()
-                    .filter(element -> isBreakingConnectivity(connectivity, element))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            Set<ComputedContingencyElement> breakingConnectivityElements;
+            connectivity.startTemporaryChanges();
+            try {
+                ComputedContingencyElement.applyToConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates);
+                // filter the branches that really impacts connectivity
+                breakingConnectivityElements = breakingConnectivityCandidates.stream()
+                        .filter(element -> isBreakingConnectivity(connectivity, element))
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+            } finally {
+                connectivity.undoTemporaryChanges();
+            }
+
             if (breakingConnectivityElements.isEmpty()) {
                 // we did not break any connectivity
                 nonLosingConnectivityContingencies.addAll(contingencyList);
@@ -591,11 +600,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds);
                 if (!lfFactors.isEmpty()) {
-                    ConnectivityAnalysisResult connectivityAnalysisResult = connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, k -> {
-                        Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
-                        return new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
-                    });
-                    connectivityAnalysisResult.getContingencies().addAll(contingencyList);
+                    connectivity.startTemporaryChanges();
+                    try {
+                        ComputedContingencyElement.applyToConnectivity(lfNetwork, connectivity, breakingConnectivityElements);
+                        ConnectivityAnalysisResult connectivityAnalysisResult = connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, k -> {
+                            Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
+                            return new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
+                        });
+                        connectivityAnalysisResult.getContingencies().addAll(contingencyList);
+                    } finally {
+                        connectivity.undoTemporaryChanges();
+                    }
                 } else {
                     // write contingency status
                     for (PropagatedContingency propagatedContingency : contingencyList) {
@@ -603,7 +618,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     }
                 }
             }
-            connectivity.undoTemporaryChanges();
         }
         return new ArrayList<>(connectivityAnalysisResults.values());
     }
