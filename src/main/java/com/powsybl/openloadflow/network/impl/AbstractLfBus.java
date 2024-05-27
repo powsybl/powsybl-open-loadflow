@@ -594,8 +594,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             double maxRangeQ = generator.getRangeQ(LfGenerator.ReactiveRangeMode.MAX);
             sumMaxRanges += maxRangeQ;
         }
-        if (sumMaxRanges == 0) { // to avoid division by zero
-            sumMaxRanges = 1;
+        if (sumMaxRanges == 0) {
+            // this is mostly to make sonar happy ...
+            // never supposed to happen because of check done beforehand in allGeneratorsHavePlausibleReactiveLimits
+            throw new IllegalStateException("sumMaxRanges is zero");
         }
 
         Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsWithControl.size());
@@ -619,8 +621,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private static boolean allGeneratorsHavePlausibleReactiveLimits(List<LfGenerator> generators) {
         for (LfGenerator generator : generators) {
-            if (Math.abs(generator.getMinQ()) > PLAUSIBLE_REACTIVE_LIMITS
-                    || Math.abs(generator.getMaxQ()) > PLAUSIBLE_REACTIVE_LIMITS) {
+            double minQ = generator.getMinQ();
+            double maxQ = generator.getMaxQ();
+            double rangeQ = maxQ - minQ;
+            if (Math.abs(minQ) > PLAUSIBLE_REACTIVE_LIMITS ||
+                    Math.abs(maxQ) > PLAUSIBLE_REACTIVE_LIMITS ||
+                    rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB ||
+                    rangeQ > PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB) {
                 return false;
             }
         }
