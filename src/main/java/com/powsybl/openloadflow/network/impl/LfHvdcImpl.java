@@ -34,19 +34,11 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private Evaluable p2 = NAN;
 
-    private double droop = Double.NaN;
-
-    private double p0 = Double.NaN;
-
     private LfVscConverterStation converterStation1;
 
     private LfVscConverterStation converterStation2;
 
     private boolean acEmulation;
-
-    private final double pMaxFromCS1toCS2;
-
-    private final double pMaxFromCS2toCS1;
 
     public class AcEmulationControl {
         private final double droop;
@@ -55,7 +47,49 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         private final double pMaxFromCS2toCS1;
         private boolean activated = true;
         private TwoSides feedingSide;
+
+        public AcEmulationControl(double droop, double p0, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1) {
+            this.droop = droop;
+            this.p0 = p0;
+            this.pMaxFromCS1toCS2 = pMaxFromCS1toCS2;
+            this.pMaxFromCS2toCS1 = pMaxFromCS2toCS1;
+            this.feedingSide = (p0 >= 0) ? TwoSides.ONE : TwoSides.TWO;
+        }
+
+        double getDroop() {
+            return droop / PerUnit.SB;
+        }
+
+        double getP0() {
+            return p0 / PerUnit.SB;
+        }
+
+        double getPMaxFromCS1toCS2() {
+            return pMaxFromCS1toCS2 / PerUnit.SB;
+        }
+
+        double getPMaxFromCS2toCS1() {
+            return pMaxFromCS2toCS1 / PerUnit.SB;
+        }
+
+        boolean isActivated() {
+            return activated;
+        }
+
+        TwoSides getFeedingSide() {
+            return feedingSide;
+        }
+
+        void setActivated(boolean activated) {
+            this.activated = activated;
+        }
+
+        void setFeedingSide(TwoSides side) {
+            feedingSide = side;
+        }
     };
+
+    AcEmulationControl acEmulationControl;
 
     public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine, boolean acEmulation) {
         super(network);
@@ -63,18 +97,12 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         this.bus1 = bus1;
         this.bus2 = bus2;
         HvdcAngleDroopActivePowerControl droopControl = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
+        HvdcOperatorActivePowerRange powerRange = hvdcLine.getExtension(HvdcOperatorActivePowerRange.class);
+        double pMaxFromCS1toCS2 = (powerRange != null) ? powerRange.getOprFromCS1toCS2() : hvdcLine.getMaxP();
+        double pMaxFromCS2toCS1 = (powerRange != null) ? powerRange.getOprFromCS2toCS1() : hvdcLine.getMaxP();
         this.acEmulation = acEmulation && droopControl != null && droopControl.isEnabled();
         if (this.acEmulation) {
-            droop = droopControl.getDroop();
-            p0 = droopControl.getP0();
-        }
-        HvdcOperatorActivePowerRange powerRange = hvdcLine.getExtension(HvdcOperatorActivePowerRange.class);
-        if (powerRange != null) {
-            pMaxFromCS1toCS2 = powerRange.getOprFromCS1toCS2();
-            pMaxFromCS2toCS1 = powerRange.getOprFromCS2toCS1();
-        } else {
-            pMaxFromCS2toCS1 = hvdcLine.getMaxP();
-            pMaxFromCS1toCS2 = hvdcLine.getMaxP();
+            acEmulationControl = new AcEmulationControl(droopControl.getDroop(), droopControl.getP0(), pMaxFromCS1toCS2, pMaxFromCS2toCS1);
         }
     }
 
@@ -134,16 +162,6 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public double getDroop() {
-        return droop / PerUnit.SB;
-    }
-
-    @Override
-    public double getP0() {
-        return p0 / PerUnit.SB;
-    }
-
-    @Override
     public boolean isAcEmulation() {
         return acEmulation;
     }
@@ -181,15 +199,5 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
             ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
             ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
         }
-    }
-
-    @Override
-    public double getPMaxFromCS1toCS2() {
-        return Double.isNaN(pMaxFromCS1toCS2) ? Double.MAX_VALUE : pMaxFromCS1toCS2 / PerUnit.SB;
-    }
-
-    @Override
-    public double getPMaxFromCS2toCS1() {
-        return Double.isNaN(pMaxFromCS1toCS2) ? Double.MAX_VALUE : pMaxFromCS2toCS1 / PerUnit.SB;
     }
 }

@@ -28,10 +28,6 @@ public interface LfHvdc extends LfElement {
 
     Evaluable getP2();
 
-    double getDroop();
-
-    double getP0();
-
     boolean isAcEmulation();
 
     void setAcEmulation(boolean acEmulation);
@@ -45,8 +41,4 @@ public interface LfHvdc extends LfElement {
     void setConverterStation2(LfVscConverterStation converterStation2);
 
     void updateState();
-
-    double getPMaxFromCS1toCS2();
-
-    double getPMaxFromCS2toCS1();
 }
