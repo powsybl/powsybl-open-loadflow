@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.HvdcLine;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRange;
 import com.powsybl.openloadflow.network.*;
@@ -46,6 +47,15 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     private final double pMaxFromCS1toCS2;
 
     private final double pMaxFromCS2toCS1;
+
+    public class AcEmulationControl {
+        private final double droop;
+        private final double p0;
+        private final double pMaxFromCS1toCS2;
+        private final double pMaxFromCS2toCS1;
+        private boolean activated = true;
+        private TwoSides feedingSide;
+    };
 
     public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine, boolean acEmulation) {
         super(network);
