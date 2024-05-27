@@ -570,13 +570,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     private static ToDoubleFunction<String> splitDispatchQWithReactiveKeys(List<LfGenerator> generatorsWithControl, double qToDispatch) {
-        double sumQkeys = 0;
+        double sumQkeys = 0; // guaranteed to become non-zero by previous checks
         for (LfGenerator generator : generatorsWithControl) {
             double qKey = generator.getRemoteControlReactiveKey().orElseThrow();
             sumQkeys += qKey;
-        }
-        if (sumQkeys == 0) { // to avoid division by zero
-            sumQkeys = 1;
         }
 
         Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsWithControl.size());
@@ -589,15 +586,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     private static ToDoubleFunction<String> splitDispatchQFromMaxReactivePowerRange(List<LfGenerator> generatorsWithControl, double qToDispatch) {
-        double sumMaxRanges = 0.0;
+        double sumMaxRanges = 0.0; // guaranteed to become non-zero by previous checks
         for (LfGenerator generator : generatorsWithControl) {
             double maxRangeQ = generator.getRangeQ(LfGenerator.ReactiveRangeMode.MAX);
             sumMaxRanges += maxRangeQ;
-        }
-        if (sumMaxRanges == 0) {
-            // this is mostly to make sonar happy ...
-            // never supposed to happen because of check done beforehand in allGeneratorsHavePlausibleReactiveLimits
-            throw new IllegalStateException("sumMaxRanges is zero");
         }
 
         Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsWithControl.size());
@@ -610,13 +602,18 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     private static boolean allGeneratorsHaveReactiveKeys(List<LfGenerator> generators) {
+        // All keys must be defined.
+        // It is OK to have *some* zero keys, but there must be at least one non-zero key.
+        double sumKeys = 0.0;
         for (LfGenerator generator : generators) {
             double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
             if (Double.isNaN(qKey)) {
                 return false;
+            } else {
+                sumKeys += qKey;
             }
         }
-        return true;
+        return sumKeys > 0.0;
     }
 
     private static boolean allGeneratorsHavePlausibleReactiveLimits(List<LfGenerator> generators) {
