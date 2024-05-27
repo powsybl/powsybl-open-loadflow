@@ -37,7 +37,7 @@ public class KnitroSolverParameters {
 
     public void setGradientComputationMode(int gradientComputationMode) {
         if (gradientComputationMode < 1 || gradientComputationMode > 3) {
-            throw new IllegalArgumentException( );
+            throw new IllegalArgumentException("Knitro gradient computation mode must be between 1 and 3");
         }
         this.gradientComputationMode = gradientComputationMode;
     }
@@ -47,6 +47,9 @@ public class KnitroSolverParameters {
     }
 
     public KnitroSolverParameters setMinRealisticVoltage(double minRealisticVoltage) {
+        if (minRealisticVoltage < 0) {
+            throw new IllegalArgumentException("Realistic voltage bounds must strictly greater then 0");
+        }
         this.minRealisticVoltage = minRealisticVoltage;
         return this;
     }
@@ -56,6 +59,12 @@ public class KnitroSolverParameters {
     }
 
     public KnitroSolverParameters setMaxRealisticVoltage(double maxRealisticVoltage) {
+        if (maxRealisticVoltage < 0) {
+            throw new IllegalArgumentException("Realistic voltage bounds must strictly greater then 0");
+        }
+        if (maxRealisticVoltage <= minRealisticVoltage) {
+            throw new IllegalArgumentException("Realistic voltage upper bounds must greater then lower bounds");
+        }
         this.maxRealisticVoltage = maxRealisticVoltage;
         return this;
     }

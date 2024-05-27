@@ -71,11 +71,15 @@ public class KnitroSolverVoltageBounds {
         List<Bus> busList = network.getBusView().getBusStream().toList();
         return busList;
     }
-    
+
+
     @Test
-    void voltageLoAndUpBounds(){
+    void effectVoltageLoAndUpBounds(){
         /*
-         * Checks the effect of changing Knitro's voltage bounds
+         * Checks
+         * the effect of changing Knitro's voltage bounds
+         * First case => feasible solution, Knitro converges
+         * Second case => problem infeasible
          */
 
         List<Bus> busList = setUp4Bus();
