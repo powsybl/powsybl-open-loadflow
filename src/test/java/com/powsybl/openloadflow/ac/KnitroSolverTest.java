@@ -73,9 +73,9 @@ public class KnitroSolverTest {
         VoltageLevel vlhv2 = network.getVoltageLevel("VLHV2");
 
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-        LoadFlowResult KNresult = loadFlowRunner.run(network, parameters);
+        LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
 
-        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, KNresult.getComponentResults().get(0).getStatus());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
         assertVoltageEquals(24.5, genBus);
         assertAngleEquals(0, genBus);
         assertVoltageEquals(402.143, bus1);
@@ -104,15 +104,13 @@ public class KnitroSolverTest {
         Bus b3 = network.getBusBreakerView().getBus("b3");
         List<Bus> busList = network.getBusView().getBusStream().toList();
 
-        LoadFlowResult KNresult = loadFlowRunner.run(network, parameters);
+        LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
 
-        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, KNresult.getComponentResults().get(0).getStatus());
-        assertTrue(KNresult.isFullyConverged());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
+        assertTrue(knitroResult.isFullyConverged());
         assertVoltageEquals(1.0, b1);
         assertAngleEquals(0, b1);
         assertVoltageEquals(1.0, b4);
         assertAngleEquals(-6.531907, b4);
     }
-
-
 }

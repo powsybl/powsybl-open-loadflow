@@ -7,12 +7,6 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.Vectors;
-import net.jafama.FastMath;
-
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */

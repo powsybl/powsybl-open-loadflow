@@ -17,8 +17,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
 import com.powsybl.openloadflow.ac.solver.DefaultNewtonRaphsonStoppingCriteria;
-import com.powsybl.openloadflow.ac.solver.NewtonKrylovParameters;
-import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -198,7 +196,6 @@ class AcLoadFlowTwoBusNetworkTest {
 
         assertEquals(0.0, bus2BalanceQ, DELTA_POWER);
     }
-
 
     @Test
     void baseCaseTestKnitroSolver() {

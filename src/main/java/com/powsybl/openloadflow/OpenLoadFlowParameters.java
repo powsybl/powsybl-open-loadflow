@@ -1667,8 +1667,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return new DefaultKnitroSolverStoppingCriteria(parametersExt.getKnitroSolverConvEpsPerEq());
     }
 
-
-
     static List<AcOuterLoop> createOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig()
                 .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitAcOuterLoopConfig()
@@ -1842,6 +1840,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxNewtonRaphsonIterations() == extension2.getMaxNewtonRaphsonIterations() &&
                 extension1.getMaxOuterLoopIterations() == extension2.getMaxOuterLoopIterations() &&
                 extension1.getNewtonRaphsonConvEpsPerEq() == extension2.getNewtonRaphsonConvEpsPerEq() &&
+                extension1.getKnitroSolverConvEpsPerEq() == extension2.getKnitroSolverConvEpsPerEq() &&
                 extension1.getVoltageInitModeOverride() == extension2.getVoltageInitModeOverride() &&
                 extension1.getTransformerVoltageControlMode() == extension2.getTransformerVoltageControlMode() &&
                 extension1.getShuntVoltageControlMode() == extension2.getShuntVoltageControlMode() &&
@@ -1934,6 +1933,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxNewtonRaphsonIterations(extension.getMaxNewtonRaphsonIterations())
                     .setMaxOuterLoopIterations(extension.getMaxOuterLoopIterations())
                     .setNewtonRaphsonConvEpsPerEq(extension.getNewtonRaphsonConvEpsPerEq())
+                    .setKnitroSolverConvEpsPerEq(extension.getKnitroSolverConvEpsPerEq())
                     .setVoltageInitModeOverride(extension.getVoltageInitModeOverride())
                     .setTransformerVoltageControlMode(extension.getTransformerVoltageControlMode())
                     .setShuntVoltageControlMode(extension.getShuntVoltageControlMode())

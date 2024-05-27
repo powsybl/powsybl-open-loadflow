@@ -78,7 +78,6 @@ public class KnitroSolverParameters {
         return this;
     }
 
-
     @Override
     public String toString() {
         return "KnitroSolverParameters(" +

@@ -52,41 +52,35 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
     }
 
     // List of all possible Knitro status
-    public enum enumKnitroStatus{
+    public enum KnitroStatus {
     CONVERGED_TO_LOCAL_OPTIMUM,
     CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION,
     TERMINATED_AT_INFEASIBLE_POINT,
     PROBLEM_UNBOUNDED,
     TERMINATED_DUE_TO_PRE_DEFINED_LIMIT,
-    INPUT_OR_NON_STANDARD_ERROR}
+    INPUT_OR_NON_STANDARD_ERROR }
 
     // Get AcStatus equivalent from Knitro Status, and log Knitro Status
-    public AcSolverStatus getAcStatusAndKnitroStatus(int knitroStatus){
+    public AcSolverStatus getAcStatusAndKnitroStatus(int knitroStatus) {
         if (knitroStatus == 0) {
-            LOGGER.info("Knitro Status : {}", enumKnitroStatus.CONVERGED_TO_LOCAL_OPTIMUM);
+            LOGGER.info("Knitro Status : {}", KnitroStatus.CONVERGED_TO_LOCAL_OPTIMUM);
             return AcSolverStatus.CONVERGED;
-        }
-        else if (-199 <= knitroStatus & knitroStatus <= -100) {
-            LOGGER.info("Knitro Status : {}", enumKnitroStatus.CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION);
+        } else if (-199 <= knitroStatus & knitroStatus <= -100) {
+            LOGGER.info("Knitro Status : {}", KnitroStatus.CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION);
             return AcSolverStatus.CONVERGED;
-        }
-        else if (-299 <= knitroStatus & knitroStatus <= -200) {
-            LOGGER.info("Knitro Status : {}", enumKnitroStatus.TERMINATED_AT_INFEASIBLE_POINT);
+        } else if (-299 <= knitroStatus & knitroStatus <= -200) {
+            LOGGER.info("Knitro Status : {}", KnitroStatus.TERMINATED_AT_INFEASIBLE_POINT);
             return AcSolverStatus.SOLVER_FAILED;
-        }
-        else if (-399 <= knitroStatus & knitroStatus <= -300) {
-            LOGGER.info("Knitro Status : {}", enumKnitroStatus.PROBLEM_UNBOUNDED);
+        } else if (-399 <= knitroStatus & knitroStatus <= -300) {
+            LOGGER.info("Knitro Status : {}", KnitroStatus.PROBLEM_UNBOUNDED);
             return AcSolverStatus.SOLVER_FAILED;
-        }
-        else if (-499 <= knitroStatus & knitroStatus <= -400) {
-            LOGGER.info("Knitro Status : {}", enumKnitroStatus.TERMINATED_DUE_TO_PRE_DEFINED_LIMIT);
+        } else if (-499 <= knitroStatus & knitroStatus <= -400) {
+            LOGGER.info("Knitro Status : {}", KnitroStatus.TERMINATED_DUE_TO_PRE_DEFINED_LIMIT);
             return AcSolverStatus.MAX_ITERATION_REACHED;
-        }
-        else if (-599 <= knitroStatus & knitroStatus <= -500) {
-            LOGGER.info("Knitro Status : {}", enumKnitroStatus.INPUT_OR_NON_STANDARD_ERROR);
+        } else if (-599 <= knitroStatus & knitroStatus <= -500) {
+            LOGGER.info("Knitro Status : {}", KnitroStatus.INPUT_OR_NON_STANDARD_ERROR);
             return AcSolverStatus.NO_CALCULATION;
-        }
-        else{
+        } else {
             LOGGER.info("Knitro Status : unknown");
             throw new IllegalArgumentException("Unknown Knitro Status");
         }
@@ -122,7 +116,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 StateVector currentState = new StateVector(toArray(x));
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Current state vector {}", currentState.get());
-                    LOGGER.trace("Evaluating {} non-linear constraints",listNonLinearConsts.size());
+                    LOGGER.trace("Evaluating {} non-linear constraints", listNonLinearConsts.size());
                 }
                 // Add non-linear constraints
                 for (int equationId : listNonLinearConsts) {
@@ -143,7 +137,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         try {
                             c.set(equationId, valueConst);
                             if (LOGGER.isTraceEnabled()) {
-                                LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);}
+                                LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
+                            }
                         } catch (Exception e) {
                             LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
                         }
@@ -181,7 +176,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // Defining variables and ordering them by bus and in the order V, Phi
             super(equationSystem.getVariableSet().getVariables().size(), equationSystem.getIndex().getSortedEquationsToSolve().size());
             int numVar = equationSystem.getVariableSet().getVariables().size();
-            LOGGER.info("Defining {} variables",numVar);
+            LOGGER.info("Defining {} variables", numVar);
 
             // Types, bounds and inital states of variables
             // Types
@@ -219,7 +214,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // Get active constraints and order them in same order as targets (i.e by bus and in the order P Q V Phi)
             List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
             int numConst = sortedEquationsToSolve.size();
-            List<Integer> listNonLinearConsts = new ArrayList<>() ;
+            List<Integer> listNonLinearConsts = new ArrayList<>();
             LOGGER.info("Defining {} active constraints", numConst);
 
             // ----- Linear constraints in V and Phi -----
@@ -230,20 +225,20 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 if (typeEq == AcEquationType.BUS_TARGET_V) {
                     addConstraintLinearPart(equationId, bus.getNum() * 2, 1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2);}
-                }
-                else if (typeEq == AcEquationType.BUS_TARGET_PHI) {
+                        LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2);
+                    }
+                } else if (typeEq == AcEquationType.BUS_TARGET_PHI) {
                     addConstraintLinearPart(equationId, bus.getNum() * 2 + 1, 1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2 + 1);}
-                }
-                else {
+                        LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2 + 1);
+                    }
+                } else {
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
                 }
             }
 
             // ----- Non-linear constraints in P and Q -----
-            listNonLinearConsts = IntStream.rangeClosed(0, numConst-1).boxed().collect(Collectors.toList()); //TODO A reprendre ca pas clair si on peut passer seulement les CTs non linéaires
+            listNonLinearConsts = IntStream.rangeClosed(0, numConst - 1).boxed().collect(Collectors.toList()); //TODO A reprendre ca pas clair si on peut passer seulement les CTs non linéaires
             setMainCallbackCstIndexes(listNonLinearConsts);
 
             // ----- RHS : targets -----

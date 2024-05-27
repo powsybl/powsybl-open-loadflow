@@ -54,7 +54,7 @@ class KnitroSolverStoppingCriteriaTest {
     }
 
     // Builds 4 bus network with condenser and returns busList
-    List<Bus>  setUp4Bus() {
+    List<Bus> setUp4Bus() {
         // ============= Building network =============
         network = FourBusNetworkFactory.createWithCondenser();
         Bus b1 = network.getBusBreakerView().getBus("b1");
@@ -64,7 +64,6 @@ class KnitroSolverStoppingCriteriaTest {
         List<Bus> busList = network.getBusView().getBusStream().toList();
         return busList;
     }
-
 
     @Test
     void testEffectOfConvEpsPerEq() {
@@ -88,7 +87,7 @@ class KnitroSolverStoppingCriteriaTest {
         assertAngleEquals(-6.531907, busList.get(3));
 
         // ============= Model with smaller precision =============
-        parametersExt.setKnitroSolverConvEpsPerEq(Math.pow(10,-2));
+        parametersExt.setKnitroSolverConvEpsPerEq(Math.pow(10, -2));
         LoadFlowResult knitroResultLessPrecise = loadFlowRunner.run(network, parameters);
 
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResultLessPrecise.getComponentResults().get(0).getStatus());

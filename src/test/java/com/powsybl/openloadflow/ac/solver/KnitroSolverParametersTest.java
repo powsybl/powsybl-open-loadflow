@@ -7,23 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.loadflow.LoadFlow;
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
-import static org.junit.Assert.assertSame;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -54,15 +38,15 @@ public class KnitroSolverParametersTest {
         KnitroSolverParameters parametersKnitro = new KnitroSolverParameters();
         //TODO
         // default value
-        assertEquals(0.5,parametersKnitro.getMinRealisticVoltage());
-        assertEquals(1.5,parametersKnitro.getMaxRealisticVoltage());
+        assertEquals(0.5, parametersKnitro.getMinRealisticVoltage());
+        assertEquals(1.5, parametersKnitro.getMaxRealisticVoltage());
         // set other value
         parametersKnitro.setMinRealisticVoltage(0.95);
         parametersKnitro.setMaxRealisticVoltage(1.05);
-        assertEquals(0.95,parametersKnitro.getMinRealisticVoltage());
-        assertEquals(1.05,parametersKnitro.getMaxRealisticVoltage());
+        assertEquals(0.95, parametersKnitro.getMinRealisticVoltage());
+        assertEquals(1.05, parametersKnitro.getMaxRealisticVoltage());
         // wrong values
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setMinRealisticVoltage(-Math.pow(10,-6)));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setMinRealisticVoltage(-Math.pow(10, -6)));
         assertEquals("Realistic voltage bounds must strictly greater then 0", e.getMessage());
         IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setMaxRealisticVoltage(-2.0));
         assertEquals("Realistic voltage bounds must strictly greater then 0", e2.getMessage());
@@ -92,8 +76,6 @@ public class KnitroSolverParametersTest {
 //        assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e2.getMessage());
 //    }
 
-
-
     @Test
     void testToString() {
         KnitroSolverParameters parameters = new KnitroSolverParameters();
@@ -101,8 +83,6 @@ public class KnitroSolverParametersTest {
 //                "convEpsPerEq=1.0E-6, " +
                 "stoppingCriteria=DefaultKnitroSolverStoppingCriteria, " +
                 "minRealisticVoltage=0.5, " +
-                "maxRealisticVoltage=1.5)"
-                , parameters.toString());
+                "maxRealisticVoltage=1.5)", parameters.toString());
     }
-
 }

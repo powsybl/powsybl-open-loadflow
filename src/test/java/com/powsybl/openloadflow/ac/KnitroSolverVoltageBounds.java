@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -19,17 +18,13 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
 //import com.powsybl.openloadflow.ac.solver.KnitroSolver;
 import com.powsybl.openloadflow.ac.solver.KnitroSolverParameters;
-import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -61,7 +56,7 @@ public class KnitroSolverVoltageBounds {
     }
 
     // Builds 4 bus network with condenser and returns busList
-    List<Bus>  setUp4Bus() {
+    List<Bus> setUp4Bus() {
         // ============= Building network =============
         network = FourBusNetworkFactory.createWithCondenser();
         Bus b1 = network.getBusBreakerView().getBus("b1");
@@ -72,9 +67,8 @@ public class KnitroSolverVoltageBounds {
         return busList;
     }
 
-
     @Test
-    void effectVoltageLoAndUpBounds(){
+    void effectVoltageLoAndUpBounds() {
         /*
          * Checks
          * the effect of changing Knitro's voltage bounds
