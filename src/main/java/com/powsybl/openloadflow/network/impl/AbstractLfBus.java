@@ -525,18 +525,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     private static ToDoubleFunction<String> splitDispatchQ(List<LfGenerator> generatorsWithControl, double qToDispatch) {
-        // proportional to reactive keys
-        if (allGeneratorsHaveReactiveKeys(generatorsWithControl)) {
-            return splitDispatchQWithReactiveKeys(generatorsWithControl, qToDispatch);
-        }
-
-        // fallback on dispatch q proportional to max reactive power range
-        if (allGeneratorsHavePlausibleReactiveLimits(generatorsWithControl)) {
-            return splitDispatchQFromMaxReactivePowerRange(generatorsWithControl, qToDispatch);
-        }
-
-        // fall back on dispatch q equally
-        return splitDispatchQEqually(generatorsWithControl, qToDispatch);
+        // proportional to reactive keys if possible,
+        // or else, fallback on dispatch q proportional to max reactive power range if possible,
+        // or else, fallback on dispatch q equally (always possible)
+        return splitDispatchQWithReactiveKeys(generatorsWithControl, qToDispatch)
+                .orElse(splitDispatchQFromMaxReactivePowerRange(generatorsWithControl, qToDispatch)
+                        .orElse(splitDispatchQEqually(generatorsWithControl, qToDispatch))
+                );
     }
 
     private static ToDoubleFunction<String> splitDispatchQEqually(List<LfGenerator> generatorsWithControl, double qToDispatch) {
@@ -569,11 +564,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return qToDispatchByGeneratorId::get;
     }
 
-    private static ToDoubleFunction<String> splitDispatchQWithReactiveKeys(List<LfGenerator> generatorsWithControl, double qToDispatch) {
-        double sumQkeys = 0; // guaranteed to become non-zero by previous checks
+    private static Optional<ToDoubleFunction<String>> splitDispatchQWithReactiveKeys(List<LfGenerator> generatorsWithControl, double qToDispatch) {
+        double sumQkeys = 0;
         for (LfGenerator generator : generatorsWithControl) {
-            double qKey = generator.getRemoteControlReactiveKey().orElseThrow();
+            double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
             sumQkeys += qKey;
+        }
+
+        if (Double.isNaN(sumQkeys) || sumQkeys == 0.0) {
+            return Optional.empty();
         }
 
         Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsWithControl.size());
@@ -582,14 +581,20 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             qToDispatchByGeneratorId.put(generator.getId(), (qKey / sumQkeys) * qToDispatch);
         }
 
-        return qToDispatchByGeneratorId::get;
+        return Optional.of(qToDispatchByGeneratorId::get);
     }
 
-    private static ToDoubleFunction<String> splitDispatchQFromMaxReactivePowerRange(List<LfGenerator> generatorsWithControl, double qToDispatch) {
-        double sumMaxRanges = 0.0; // guaranteed to become non-zero by previous checks
+    private static Optional<ToDoubleFunction<String>> splitDispatchQFromMaxReactivePowerRange(List<LfGenerator> generatorsWithControl, double qToDispatch) {
+        double sumMaxRanges = 0.0;
         for (LfGenerator generator : generatorsWithControl) {
+            if (!generatorHasPlausibleReactiveLimits(generator)) {
+                return Optional.empty();
+            }
             double maxRangeQ = generator.getRangeQ(LfGenerator.ReactiveRangeMode.MAX);
             sumMaxRanges += maxRangeQ;
+        }
+        if (sumMaxRanges == 0.0) {
+            return Optional.empty();
         }
 
         Map<String, Double> qToDispatchByGeneratorId = new HashMap<>(generatorsWithControl.size());
@@ -598,37 +603,21 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             qToDispatchByGeneratorId.put(generator.getId(), (maxRangeQ / sumMaxRanges) * qToDispatch);
         }
 
-        return qToDispatchByGeneratorId::get;
+        return Optional.of(qToDispatchByGeneratorId::get);
     }
 
-    private static boolean allGeneratorsHaveReactiveKeys(List<LfGenerator> generators) {
-        // All keys must be defined.
-        // It is OK to have *some* zero keys, but there must be at least one non-zero key.
-        double sumKeys = 0.0;
-        for (LfGenerator generator : generators) {
-            double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
-            if (Double.isNaN(qKey)) {
-                return false;
-            } else {
-                sumKeys += qKey;
-            }
-        }
-        return sumKeys > 0.0;
+    private static boolean generatorHasPlausibleReactiveLimits(LfGenerator generator) {
+        double minQ = generator.getMinQ();
+        double maxQ = generator.getMaxQ();
+        double rangeQ = maxQ - minQ;
+        return Math.abs(minQ) < PLAUSIBLE_REACTIVE_LIMITS &&
+                Math.abs(maxQ) < PLAUSIBLE_REACTIVE_LIMITS &&
+                rangeQ > PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB &&
+                rangeQ < PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB;
     }
 
     private static boolean allGeneratorsHavePlausibleReactiveLimits(List<LfGenerator> generators) {
-        for (LfGenerator generator : generators) {
-            double minQ = generator.getMinQ();
-            double maxQ = generator.getMaxQ();
-            double rangeQ = maxQ - minQ;
-            if (Math.abs(minQ) > PLAUSIBLE_REACTIVE_LIMITS ||
-                    Math.abs(maxQ) > PLAUSIBLE_REACTIVE_LIMITS ||
-                    rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB ||
-                    rangeQ > PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB) {
-                return false;
-            }
-        }
-        return true;
+        return generators.stream().allMatch(AbstractLfBus::generatorHasPlausibleReactiveLimits);
     }
 
     protected static double dispatchQ(List<LfGenerator> generatorsWithControl, boolean reactiveLimits,
