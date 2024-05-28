@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.VoltageControl;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,14 +55,13 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         }
 
         // All transformer voltage control are disabled for the first equation system resolution.
-        double[] maxControlledNominalVoltage = new double[1];
-        maxControlledNominalVoltage[0] = Double.MIN_VALUE;
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            if (!bus.isDisabled() && bus.isTransformerVoltageControlled()) {
-                maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], bus.getNominalV());
-            }
-        }
-        ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxControlledNominalVoltage[0]);
+        double[] controlledNominalVoltages = context.getNetwork().getBuses().stream()
+                .filter(bus -> !bus.isDisabled() && bus.isTransformerVoltageControlled())
+                .map(LfBus::getNominalV).mapToDouble(Double::valueOf).toArray();
+        double maxNominalV = new Percentile()
+                .withEstimationType(Percentile.EstimationType.R_3)
+                .evaluate(controlledNominalVoltages, 95);
+        ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxNominalV);
     }
 
     @Override
