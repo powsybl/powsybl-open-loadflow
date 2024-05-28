@@ -107,7 +107,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setSlack(boolean slack) {
-        this.slack = slack;
+        if (slack != this.slack) {
+            this.slack = slack;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onSlackBusChange(this, slack);
+            }
+        }
     }
 
     @Override
@@ -118,7 +123,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setReference(boolean reference) {
-        this.reference = reference;
+        if (reference != this.reference) {
+            this.reference = reference;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onReferenceBusChange(this, reference);
+            }
+        }
     }
 
     @Override
@@ -306,16 +316,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, LfNetworkParameters parameters,
                                  LfNetworkLoadingReport report) {
-        if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, parameters, report);
-            add(lfSvc);
-            if (lfSvc.getSlope() != 0) {
-                hasGeneratorsWithSlope = true;
-            }
-            if (lfSvc.getB0() != 0) {
-                svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
-                lfSvc.setStandByAutomatonShunt(svcShunt);
-            }
+        LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, parameters, report);
+        add(lfSvc);
+        if (lfSvc.getSlope() != 0) {
+            hasGeneratorsWithSlope = true;
+        }
+        if (lfSvc.getB0() != 0) {
+            svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
+            lfSvc.setStandByAutomatonShunt(svcShunt);
         }
     }
 
@@ -327,23 +335,43 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfBatteryImpl.create(generator, network, parameters, report));
     }
 
-    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, LfNetworkParameters parameters, LfTopoConfig topoConfig) {
+    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, LfNetworkParameters parameters, LfTopoConfig topoConfig, LfNetworkLoadingReport report) {
         if (!parameters.isShuntVoltageControl() && !shuntCompensators.isEmpty()) {
             shunt = new LfShuntImpl(shuntCompensators, network, this, false, parameters, topoConfig);
         } else {
-            List<ShuntCompensator> controllerShuntCompensators = shuntCompensators.stream()
-                    .filter(ShuntCompensator::isVoltageRegulatorOn)
-                    .toList();
+            List<ShuntCompensator> controllerShuntCompensators = new ArrayList<>();
+            List<ShuntCompensator> fixedShuntCompensators = new ArrayList<>();
+            shuntCompensators.forEach(sc -> {
+                if (checkVoltageControl(sc, parameters, report)) {
+                    controllerShuntCompensators.add(sc);
+                } else {
+                    fixedShuntCompensators.add(sc);
+                }
+            });
+
             if (!controllerShuntCompensators.isEmpty()) {
                 controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true, parameters, topoConfig);
             }
-            List<ShuntCompensator> fixedShuntCompensators = shuntCompensators.stream()
-                    .filter(sc -> !sc.isVoltageRegulatorOn())
-                    .toList();
             if (!fixedShuntCompensators.isEmpty()) {
                 shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false, parameters, topoConfig);
             }
         }
+    }
+
+    static boolean checkVoltageControl(ShuntCompensator shuntCompensator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        double nominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
+        double targetV = shuntCompensator.getTargetV();
+        if (!shuntCompensator.isVoltageRegulatorOn()) {
+            return false;
+        }
+        if (!VoltageControl.checkTargetV(targetV / nominalV, nominalV, parameters)) {
+            LOGGER.trace("Shunt compensator '{}' has an inconsistent target voltage: {} pu: shunt voltage control discarded", shuntCompensator.getId(), targetV);
+            if (report != null) {
+                report.shuntsWithInconsistentTargetVoltage++;
+            }
+            return false;
+        }
+        return true;
     }
 
     @Override

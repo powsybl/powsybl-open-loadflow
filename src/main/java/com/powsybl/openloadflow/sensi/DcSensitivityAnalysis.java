@@ -131,6 +131,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
+        static void applyToConnectivity(LfNetwork lfNetwork, GraphConnectivity<LfBus, LfBranch> connectivity, Collection<ComputedContingencyElement> breakingConnectivityElements) {
+            breakingConnectivityElements.stream()
+                    .map(ComputedContingencyElement::getElement)
+                    .map(ContingencyElement::getId)
+                    .distinct()
+                    .map(lfNetwork::getBranchById)
+                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                    .forEach(connectivity::removeEdge);
+        }
     }
 
     private static final class PhaseTapChangerContingenciesIndexing {
@@ -569,19 +578,19 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         for (Map.Entry<Set<ComputedContingencyElement>, List<PropagatedContingency>> e : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
             Set<ComputedContingencyElement> breakingConnectivityCandidates = e.getKey();
             List<PropagatedContingency> contingencyList = e.getValue();
-            connectivity.startTemporaryChanges();
-            breakingConnectivityCandidates.stream()
-                    .map(ComputedContingencyElement::getElement)
-                    .map(ContingencyElement::getId)
-                    .distinct()
-                    .map(lfNetwork::getBranchById)
-                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                    .forEach(connectivity::removeEdge);
 
-            // filter the branches that really impacts connectivity
-            Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream()
-                    .filter(element -> isBreakingConnectivity(connectivity, element))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            Set<ComputedContingencyElement> breakingConnectivityElements;
+            connectivity.startTemporaryChanges();
+            try {
+                ComputedContingencyElement.applyToConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates);
+                // filter the branches that really impacts connectivity
+                breakingConnectivityElements = breakingConnectivityCandidates.stream()
+                        .filter(element -> isBreakingConnectivity(connectivity, element))
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+            } finally {
+                connectivity.undoTemporaryChanges();
+            }
+
             if (breakingConnectivityElements.isEmpty()) {
                 // we did not break any connectivity
                 nonLosingConnectivityContingencies.addAll(contingencyList);
@@ -591,11 +600,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds);
                 if (!lfFactors.isEmpty()) {
-                    ConnectivityAnalysisResult connectivityAnalysisResult = connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, k -> {
-                        Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
-                        return new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
-                    });
-                    connectivityAnalysisResult.getContingencies().addAll(contingencyList);
+                    connectivity.startTemporaryChanges();
+                    try {
+                        ComputedContingencyElement.applyToConnectivity(lfNetwork, connectivity, breakingConnectivityElements);
+                        ConnectivityAnalysisResult connectivityAnalysisResult = connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, k -> {
+                            Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
+                            return new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
+                        });
+                        connectivityAnalysisResult.getContingencies().addAll(contingencyList);
+                    } finally {
+                        connectivity.undoTemporaryChanges();
+                    }
                 } else {
                     // write contingency status
                     for (PropagatedContingency propagatedContingency : contingencyList) {
@@ -603,7 +618,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     }
                 }
             }
-            connectivity.undoTemporaryChanges();
         }
         return new ArrayList<>(connectivityAnalysisResults.values());
     }
@@ -860,6 +874,50 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return contingencyElementByBranch;
     }
 
+    protected void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        for (PropagatedContingency contingency : contingencies) {
+            // Elements have already been checked and found in PropagatedContingency, so there is no need to
+            // check them again
+            Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
+            for (String branchId : contingency.getBranchIdsToOpen().keySet()) {
+                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+                if (lfBranch == null) {
+                    branchesToRemove.add(branchId); // disconnected branch
+                    continue;
+                }
+                if (!lfBranch.isConnectedAtBothSides()) {
+                    branchesToRemove.add(branchId); // branch connected only on one side
+                }
+            }
+            branchesToRemove.forEach(branchToRemove -> contingency.getBranchIdsToOpen().remove(branchToRemove));
+
+            // update branches to open connected with buses in contingency. This is an approximation:
+            // these branches are indeed just open at one side.
+            String slackBusId = null;
+            for (String busId : contingency.getBusIdsToLose()) {
+                LfBus bus = lfNetwork.getBusById(busId);
+                if (bus != null) {
+                    if (bus.isSlack()) {
+                        // slack bus disabling is not supported in DC because the relocation is done from propagated contingency
+                        // to LfContingency
+                        // we keep the slack bus enabled and the connected branches
+                        LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
+                        slackBusId = busId;
+                    } else {
+                        bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().put(branch.getId(), DisabledBranchStatus.BOTH_SIDES));
+                    }
+                }
+            }
+            if (slackBusId != null) {
+                contingency.getBusIdsToLose().remove(slackBusId);
+            }
+
+            if (contingency.hasNoImpact()) {
+                LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
+            }
+        }
+    }
+
     @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode reportNode,
@@ -912,7 +970,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reportNode)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
 
-            checkContingencies(lfNetwork, contingencies);
+            checkContingencies(contingencies);
+            cleanContingencies(lfNetwork, contingencies);
             checkLoadFlowParameters(lfParameters);
 
             Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
