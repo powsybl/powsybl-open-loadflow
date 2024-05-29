@@ -21,8 +21,6 @@ import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
-
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -964,15 +962,5 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(27.00, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
-    }
-
-    @Test
-    void testReal() {
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setTransformerVoltageControlOn(true).setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(parameters);
-        openLoadFlowParameters.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
-        Network network = Network.read(new File("D:\\powsybl-data\\export-rte\\stanway\\test\\pf.xiidm").getPath());
-        LoadFlowResult result = LoadFlow.run(network, parameters);
     }
 }
