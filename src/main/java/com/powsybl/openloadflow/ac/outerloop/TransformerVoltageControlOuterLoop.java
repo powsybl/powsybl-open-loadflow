@@ -13,12 +13,13 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.VoltageControl;
 import org.apache.commons.lang3.mutable.MutableObject;
-import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -48,8 +49,8 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         }
     }
 
-    public TransformerVoltageControlOuterLoop(double generatorVoltageControlMinNominalVoltage) {
-        if (generatorVoltageControlMinNominalVoltage != -1.) {
+    public TransformerVoltageControlOuterLoop(Double generatorVoltageControlMinNominalVoltage) {
+        if (generatorVoltageControlMinNominalVoltage != -1.0) {
             this.maxControlledNominalVoltageOverride = generatorVoltageControlMinNominalVoltage;
         }
     }
@@ -63,14 +64,15 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         }
 
         // All transformer voltage control are disabled for the first equation system resolution.
-        double[] controlledNominalVoltages = context.getNetwork().getBuses().stream()
-                .filter(bus -> !bus.isDisabled() && bus.isTransformerVoltageControlled())
-                .map(LfBus::getNominalV).mapToDouble(Double::valueOf).toArray();
-        double maxNominalV = new Percentile()
-                .withEstimationType(Percentile.EstimationType.R_3)
-                .evaluate(controlledNominalVoltages, 95);
+        double[] maxControlledNominalVoltage = new double[1];
+        maxControlledNominalVoltage[0] = Double.MIN_VALUE;
+        for (LfBus bus : context.getNetwork().getBuses()) {
+            if (!bus.isDisabled() && bus.isTransformerVoltageControlled() && keepTransformerVoltageControls(bus.getTransformerVoltageControl())) {
+                maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], bus.getNominalV());
+            }
+        }
         ((ContextData) context.getData())
-                .setMaxControlledNominalVoltage(maxControlledNominalVoltageOverride != null ? maxControlledNominalVoltageOverride : maxNominalV);
+                .setMaxControlledNominalVoltage(maxControlledNominalVoltageOverride != null ? maxControlledNominalVoltageOverride : maxControlledNominalVoltage[0]);
     }
 
     @Override
@@ -137,5 +139,21 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             controllerBus.setGeneratorVoltageControlEnabled(true);
             status.setValue(OuterLoopStatus.UNSTABLE);
         }
+    }
+
+    private boolean keepTransformerVoltageControls(Optional<TransformerVoltageControl> transformerVoltageControl) {
+        // are removed from this automatic algorithm the transformer voltage control that are between two nominal
+        // voltages equivalents.
+        if (transformerVoltageControl.isPresent()) {
+            for (LfBranch branch : transformerVoltageControl.get().getControllerElements()) {
+                if (!branch.isConnectedAtBothSides()) {
+                    return false;
+                } else if (branch.getBus1().getNominalV() == branch.getBus2().getNominalV()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 }
