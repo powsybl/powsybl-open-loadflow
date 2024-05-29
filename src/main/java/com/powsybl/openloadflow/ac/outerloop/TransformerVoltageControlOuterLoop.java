@@ -27,6 +27,8 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
 
     public static final String NAME = "TransformerVoltageControl";
 
+    private Double maxControlledNominalVoltageOverride;
+
     private static final class ContextData {
 
         private double maxControlledNominalVoltage = Double.MIN_VALUE;
@@ -46,6 +48,12 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         }
     }
 
+    public TransformerVoltageControlOuterLoop(double generatorVoltageControlMinNominalVoltage) {
+        if (generatorVoltageControlMinNominalVoltage != -1.) {
+            this.maxControlledNominalVoltageOverride = generatorVoltageControlMinNominalVoltage;
+        }
+    }
+
     @Override
     public void initialize(AcOuterLoopContext context) {
         context.setData(new ContextData());
@@ -61,7 +69,8 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         double maxNominalV = new Percentile()
                 .withEstimationType(Percentile.EstimationType.R_3)
                 .evaluate(controlledNominalVoltages, 95);
-        ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxNominalV);
+        ((ContextData) context.getData())
+                .setMaxControlledNominalVoltage(maxControlledNominalVoltageOverride != null ? maxControlledNominalVoltageOverride : maxNominalV);
     }
 
     @Override
