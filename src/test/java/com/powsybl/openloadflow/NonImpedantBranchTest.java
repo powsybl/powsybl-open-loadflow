@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
@@ -365,11 +364,12 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
-        SecurityAnalysisReport report = securityAnalysisProvider.run(network, network.getVariantManager().getWorkingVariantId(), new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(), LocalComputationManager.getDefault(), new SecurityAnalysisParameters(), provider, Collections.emptyList(),
-                Collections.emptyList(), Collections.emptyList(),
-                Collections.emptyList(), Collections.emptyList(),
-                ReportNode.NO_OP).join();
+        SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
+                .setDetector(new DefaultLimitViolationDetector())
+                .setFilter(new LimitViolationFilter())
+                .setComputationManager(LocalComputationManager.getDefault())
+                .setSecurityAnalysisParameters(new SecurityAnalysisParameters());
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network, network.getVariantManager().getWorkingVariantId(), provider, runParameters).join();
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(0).getStatus());
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(1).getStatus());
     }
@@ -402,19 +402,16 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                 Set.of("tr34"),
                 Set.of("b0_vl", "b1_vl", "b2_vl", "b3_vl", "b4_vl", "b5_vl"),
                 Collections.emptySet()));
+        SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
+                .setDetector(new DefaultLimitViolationDetector())
+                .setFilter(new LimitViolationFilter())
+                .setComputationManager(LocalComputationManager.getDefault())
+                .setSecurityAnalysisParameters(securityAnalysisParameters)
+                .setMonitors(monitors);
         SecurityAnalysisResult result = provider.run(network,
                         network.getVariantManager().getWorkingVariantId(),
-                        new DefaultLimitViolationDetector(),
-                        new LimitViolationFilter(),
-                        LocalComputationManager.getDefault(),
-                        securityAnalysisParameters,
                         n -> contingencies,
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        monitors,
-                        Collections.emptyList(),
-                        ReportNode.NO_OP)
+                        runParameters)
                 .join()
                 .getResult();
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
