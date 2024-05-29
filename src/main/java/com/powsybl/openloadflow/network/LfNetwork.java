@@ -39,6 +39,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
+    private static final SlackBusSelector SLACK_BUS_SELECTOR_FALLBACK = new MostMeshedSlackBusSelector();
+
     private final int numCC;
 
     private final int numSC;
@@ -56,6 +58,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private LfBus referenceBus;
 
     private List<LfBus> slackBuses;
+
+    private Set<LfBus> excludedSlackBuses = Collections.emptySet();
 
     private LfGenerator referenceGenerator;
 
@@ -209,7 +213,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public void updateSlackBusesAndReferenceBus() {
         if (slackBuses == null && referenceBus == null) {
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
-            slackBuses = selectedSlackBus.getBuses();
+            slackBuses = selectedSlackBus.getBuses().stream()
+                    .filter(bus -> !excludedSlackBuses.contains(bus))
+                    .toList();
+            if (slackBuses.isEmpty()) { // ultimate fallback
+                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(busesByIndex, excludedSlackBuses.size() + maxSlackBusCount);
+                slackBuses = selectedSlackBus.getBuses().stream()
+                        .filter(bus -> !excludedSlackBuses.contains(bus))
+                        .limit(maxSlackBusCount)
+                        .toList();
+            }
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(true);
@@ -223,6 +236,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 referenceGenerator = generatorReferenceBus.getLfGenerator();
                 LOGGER.info("Network {}, reference generator is {}", this, referenceGenerator.getId());
                 referenceGenerator.setReference(true);
+            }
+            if (connectivity != null) {
+                connectivity.setMainComponentVertex(slackBuses.get(0));
             }
         }
     }
@@ -308,6 +324,18 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public List<LfBus> getSlackBuses() {
         updateSlackBusesAndReferenceBus();
         return slackBuses;
+    }
+
+    public Set<LfBus> getExcludedSlackBuses() {
+        return excludedSlackBuses;
+    }
+
+    public void setExcludedSlackBuses(Set<LfBus> excludedSlackBuses) {
+        Objects.requireNonNull(excludedSlackBuses);
+        if (!excludedSlackBuses.equals(this.excludedSlackBuses)) {
+            this.excludedSlackBuses = excludedSlackBuses;
+            invalidateSlackAndReference();
+        }
     }
 
     public LfGenerator getReferenceGenerator() {
@@ -703,7 +731,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             getBranches().stream()
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
-            connectivity.setMainComponentVertex(getSlackBus());
+            connectivity.setMainComponentVertex(getSlackBuses().get(0));
             // this is necessary to create a first temporary changes level in order to allow
             // some outer loop to change permanently the connectivity (with automation systems for instance)
             // this one will never be reverted

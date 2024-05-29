@@ -2471,4 +2471,22 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("contingency", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("bus", "l34"), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testContingenciesWithConnectivityBreak() {
+        Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), "d5")).collect(Collectors.toList());
+
+        List<Contingency> contingencies = List.of(
+                new Contingency("l67+l57+l56", new BranchContingency("l67"), new BranchContingency("l57"), new BranchContingency("l56")),
+                new Contingency("l67+l57", new BranchContingency("l67"), new BranchContingency("l57")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l67+l57+l56", "l56"));
+        assertEquals(-0.296, result.getBranchFlow1FunctionReferenceValue("l67+l57", "l56"), LoadFlowAssert.DELTA_POWER);
+    }
 }

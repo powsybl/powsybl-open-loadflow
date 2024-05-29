@@ -47,7 +47,7 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                 LfBus bus = (LfBus) element;
                 checkSlackBus(bus, disabled);
                 equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_PHI)
-                        .ifPresent(eq -> eq.setActive(!bus.isDisabled()));
+                        .ifPresent(eq -> eq.setActive(!bus.isDisabled() && bus.isReference()));
                 equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
                 break;
@@ -81,5 +81,20 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                 branch.setP2(EvaluableConstants.NAN);
             }
         }
+    }
+
+    @Override
+    protected DcEquationType getTypeBusTargetP() {
+        return DcEquationType.BUS_TARGET_P;
+    }
+
+    @Override
+    protected DcEquationType getTypeBusTargetPhi() {
+        return DcEquationType.BUS_TARGET_PHI;
+    }
+
+    @Override
+    protected DcVariableType getTypeBusPhi() {
+        return DcVariableType.BUS_PHI;
     }
 }

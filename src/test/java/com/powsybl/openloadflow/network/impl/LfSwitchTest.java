@@ -62,8 +62,8 @@ class LfSwitchTest {
         assertEquals(Double.NaN, lfSwitch.getP2().eval());
         assertEquals(Double.NaN, lfSwitch.getI1().eval());
         assertEquals(Double.NaN, lfSwitch.getI2().eval());
-        assertEquals(Collections.emptyList(), lfSwitch.getLimits1(LimitType.CURRENT));
-        assertEquals(Collections.emptyList(), lfSwitch.getLimits2(LimitType.CURRENT));
+        assertEquals(Collections.emptyList(), lfSwitch.getLimits1(LimitType.CURRENT, null));
+        assertEquals(Collections.emptyList(), lfSwitch.getLimits2(LimitType.CURRENT, null));
     }
 
     @Test
