@@ -173,31 +173,37 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         private KnitroProblem(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem, TargetVector targetVector, VoltageInitializer voltageInitializer, KnitroSolverParameters knitroParameters) throws KNException {
 
             // =============== Variables ===============
-            // Defining variables and ordering them by bus and in the order V, Phi
+            // Defining variables
             super(equationSystem.getVariableSet().getVariables().size(), equationSystem.getIndex().getSortedEquationsToSolve().size());
             int numVar = equationSystem.getVariableSet().getVariables().size();
+            List<Variable<AcVariableType>> sortedVariables = equationSystem.getIndex().getSortedVariablesToFind(); // ordering variables
             LOGGER.info("Defining {} variables", numVar);
 
-            // Types, bounds and inital states of variables
+            // Types, bounds and initial states of variables
             // Types
             List<Integer> listVarTypes = new ArrayList<>(Collections.nCopies(numVar, KNConstants.KN_VARTYPE_CONTINUOUS));
             setVarTypes(listVarTypes);
+
             // Bounds
             List<Double> listVarLoBounds = new ArrayList<>(numVar);
             List<Double> listVarUpBounds = new ArrayList<>(numVar);
             double loBndV = knitroParameters.getMinRealisticVoltage();
             double upBndV = knitroParameters.getMaxRealisticVoltage();
-            for (int i = 0; i < numVar; i++) {
-                if (i % 2 == 0) { // Initialize V
+//            List<LfBus> busList = lfNetwork.getBuses();
+
+            for (int var = 0; var < sortedVariables.size() ; var ++) {
+                Enum<AcVariableType> typeVar = sortedVariables.get(var).getType();
+                int busId = sortedVariables.get(var).getElementNum();
+                if (typeVar == AcVariableType.BUS_V){
                     listVarLoBounds.add(loBndV);
                     listVarUpBounds.add(upBndV);
-                } else { // Initialize Phi
+                } else {
                     listVarLoBounds.add(-KNConstants.KN_INFINITY);
                     listVarUpBounds.add(KNConstants.KN_INFINITY);
                 }
             }
-            setVarLoBnds(listVarLoBounds);
-            setVarUpBnds(listVarUpBounds);
+            
+
             // Initial state
             List<Double> listXInitial = new ArrayList<>(numVar);
             AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer); // Initialize state vector
@@ -205,14 +211,13 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 listXInitial.add(equationSystem.getStateVector().get(i));
             }
             setXInitial(listXInitial);
-
-            // TODO faire en sorte qu'on puisse passer un état initial, sinon 1 0 1 0... par défaut
             LOGGER.info("Initialization of variables : type of initialization {}", voltageInitializer);
 
             // =============== Constraints ==============
             // ----- Active constraints -----
-            // Get active constraints and order them in same order as targets (i.e by bus and in the order P Q V Phi)
+            // Get active constraints and order them in same order as targets
             List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+
             int numConst = sortedEquationsToSolve.size();
             List<Integer> listNonLinearConsts = new ArrayList<>();
             LOGGER.info("Defining {} active constraints", numConst);
@@ -225,12 +230,12 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 if (typeEq == AcEquationType.BUS_TARGET_V) {
                     addConstraintLinearPart(equationId, bus.getNum() * 2, 1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2);
+                        LOGGER.trace("Adding linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2);
                     }
                 } else if (typeEq == AcEquationType.BUS_TARGET_PHI) {
                     addConstraintLinearPart(equationId, bus.getNum() * 2 + 1, 1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2 + 1);
+                        LOGGER.trace("Adding linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2 + 1);
                     }
                 } else {
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
