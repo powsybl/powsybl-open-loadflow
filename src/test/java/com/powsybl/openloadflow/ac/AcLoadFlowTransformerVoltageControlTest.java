@@ -15,6 +15,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
@@ -962,5 +963,29 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(27.00, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void testGeneratorVoltageControlMinNominalVoltage() {
+        Network network1 = FourBusNetworkFactory.createWithSeveralTransformerVoltageControls();
+        LoadFlowParameters parameters = new LoadFlowParameters().setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(parameters);
+        openLoadFlowParameters.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        TwoWindingsTransformer twt1 = network1.getTwoWindingsTransformer("t24");
+        TwoWindingsTransformer twt2 = network1.getTwoWindingsTransformer("t57");
+        TwoWindingsTransformer twt3 = network1.getTwoWindingsTransformer("t56");
+        // automatic detection of min nominal voltage for generator voltage controls.
+        LoadFlowResult result = loadFlowRunner.run(network1, parameters);
+        assertEquals(1, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt3.getRatioTapChanger().getTapPosition());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+        // we force the min nominal voltage control to 230kV...
+        parametersExt.setGeneratorVoltageControlMinNominalVoltage(225);
+        LoadFlowResult result2 = loadFlowRunner.run(network1, parameters);
+        assertEquals(1, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt3.getRatioTapChanger().getTapPosition());
+        assertEquals(5, result2.getComponentResults().get(0).getIterationCount());
     }
 }
