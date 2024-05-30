@@ -222,24 +222,30 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             for (int equationId = 0; equationId < numConst; equationId++) {
                 Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                 AcEquationType typeEq = equation.getType();
-                LfBus bus = lfNetwork.getBus(equation.getElementNum());
-                int idBus = bus.getNum();
+                List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
+
                 if (typeEq == AcEquationType.BUS_TARGET_V) {
-                    // get the variable corresponding to the constraint in V
-                    List varV = sortedVariables.stream().filter(variable -> variable.getElementNum() == idBus).filter(variable -> variable.getType() == AcVariableType.BUS_V).toList();
-                    int idVarV = ((Variable) varV.get(0)).getRow(); // get id of the variable
-                     addConstraintLinearPart(equationId, idVarV, 1.0);
+                    // get the variable V corresponding to the constraint
+                    int idV = terms.get(0).getVariables().get(0).getRow();
+                     addConstraintLinearPart(equationId, idV, 1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
+                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idV);
                     }
                 } else if (typeEq == AcEquationType.BUS_TARGET_PHI) {
-                    // get the variable corresponding to the constraint in Theta
-                    List varTheta = sortedVariables.stream().filter(variable -> variable.getElementNum() == idBus).filter(variable -> variable.getType() == AcVariableType.BUS_PHI).toList();
-                    int idVarTheta = ((Variable) varTheta.get(0)).getRow(); // get id of the variable
-                    addConstraintLinearPart(equationId, idVarTheta, 1.0);
-                    // addConstraintLinearPart(equationId, bus.getNum() * 2 + 1, 1.0);
+                    // get the variable Theta corresponding to the constraint
+                    int idTheta = terms.get(0).getVariables().get(0).getRow();
+                    addConstraintLinearPart(equationId, idTheta, 1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
+                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idTheta);
+                    }
+                } else if (typeEq == AcEquationType.ZERO_V) {
+                    // get the variables Vi and Vj corresponding to the constraint
+                    int idVi = terms.get(0).getVariables().get(0).getRow();
+                    int idVj = terms.get(1).getVariables().get(0).getRow();
+                    addConstraintLinearPart(equationId, idVi, 1.0);
+                    addConstraintLinearPart(equationId, idVj, -1.0);
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variables {} and {}", equationId, typeEq, idVi, idVj);
                     }
                 } else {
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
