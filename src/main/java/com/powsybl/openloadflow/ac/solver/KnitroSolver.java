@@ -119,6 +119,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     LOGGER.trace("Evaluating {} non-linear constraints", listNonLinearConsts.size());
                 }
                 // Add non-linear constraints
+                int indexNonLinearCst = 0;
                 for (int equationId : listNonLinearConsts) {
                     Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                     AcEquationType typeEq = equation.getType();
@@ -135,14 +136,17 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                             }
                         }
                         try {
-                            c.set(equationId, valueConst);
+                            c.set(indexNonLinearCst, valueConst);
                             if (LOGGER.isTraceEnabled()) {
                                 LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
                             }
                         } catch (Exception e) {
                             LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
+                            LOGGER.error( e.getMessage());
+
                         }
                     }
+                    indexNonLinearCst += 1;
                 }
             }
         }
@@ -247,13 +251,21 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     if (LOGGER.isTraceEnabled()) {
                         LOGGER.trace("Adding linear constraint n° {} of type {}, with variables {} and {}", equationId, typeEq, idVi, idVj);
                     }
+                } else if (typeEq == AcEquationType.ZERO_PHI) {
+                    // get the variables Thetai and Thetaj corresponding to the constraint
+                    int idThetai = terms.get(0).getVariables().get(0).getRow();
+                    int idThetaj = terms.get(1).getVariables().get(0).getRow();
+                    addConstraintLinearPart(equationId, idThetai, 1.0);
+                    addConstraintLinearPart(equationId, idThetaj, -1.0);
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variables {} and {}", equationId, typeEq, idThetai, idThetaj);
+                    }
                 } else {
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
                 }
             }
 
             // ----- Non-linear constraints in P and Q -----
-            listNonLinearConsts = IntStream.rangeClosed(0, numConst - 1).boxed().collect(Collectors.toList()); //TODO A reprendre ca pas clair si on peut passer seulement les CTs non linéaires
             setMainCallbackCstIndexes(listNonLinearConsts);
 
             // ----- RHS : targets -----
