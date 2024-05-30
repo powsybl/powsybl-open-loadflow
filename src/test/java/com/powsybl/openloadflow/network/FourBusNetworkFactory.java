@@ -207,7 +207,8 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *     |                      |
      *     |                      |
      *     b2 ------------------- b3 ----- t57 ------ b7 - d7
-     *                            |--------t56 ------ b6 - d6
+     *     | tr                   |--------t56 ------ b6 - d6
+     *     b8 - g3
      **/
     public static Network createWithSeveralTransformerVoltageControls() {
         Network network = Network.create("testTransformerVoltageControls", "code");
@@ -218,8 +219,9 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Bus b5 = createBus(network, "s", "b5", 225);
         Bus b6 = createBus(network, "s", "b6", 90);
         Bus b7 = createBus(network, "s", "b7", 90);
+        Bus b8 = createBus(network, "s", "b8", 90);
         createGenerator(b1, "g1", 4, 230);
-        createGenerator(b3, "g3", 3, 231);
+        createGenerator(b8, "g3", 3, 93);
         createLoad(b4, "d4", 2);
         createLoad(b6, "d6", 1);
         createLoad(b7, "d7", 4);
@@ -227,7 +229,8 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b1, b3, "l13", 0.1);
         createLine(network, b3, b5, "l35", 0.2);
         createLine(network, b2, b5, "l25", 0.16);
-        TwoWindingsTransformer twt = createTransformer(network, "s", b2, b4, "t24", 0.15, 1d);
+        createTransformer(network, "s", b3, b8, "t38", 0.15, 1d);
+        TwoWindingsTransformer twt = createTransformer(network, "s", b2, b4, "t24", 1.0, 1d);
         twt.newRatioTapChanger()
                 .setTapPosition(0)
                 .setRegulationTerminal(twt.getTerminal2())
