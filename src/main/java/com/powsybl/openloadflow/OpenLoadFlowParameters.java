@@ -118,7 +118,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE = true;
 
-    protected static final double GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE = 0;
+    protected static final double GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE = -1d;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -1163,7 +1163,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     /**
      * Only if transformer voltage control is active and with mode `AFTER_GENERATOR_VOLTAGE_CONTROL`. Set the nominal
      * voltage under which the generator voltage control are disabled during outer loop. This parameter overrides the
-     * automatic nominal voltage computation if > 0.
+     * automatic nominal voltage computation if >= 0.
      */
     public OpenLoadFlowParameters setGeneratorVoltageControlMinNominalVoltage(double generatorVoltageControlMinNominalVoltage) {
         this.generatorVoltageControlMinNominalVoltage = generatorVoltageControlMinNominalVoltage;

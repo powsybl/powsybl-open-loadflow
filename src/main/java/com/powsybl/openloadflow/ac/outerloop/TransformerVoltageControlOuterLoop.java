@@ -88,7 +88,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         }
 
         // all transformer voltage control are disabled for the first equation system resolution.
-        double maxControlledNominalVoltage = maxControlledNominalVoltageOverride > 0 ? maxControlledNominalVoltageOverride : calculateMaxControlledNominalVoltage(context);
+        double maxControlledNominalVoltage = maxControlledNominalVoltageOverride < 0 ? calculateMaxControlledNominalVoltage(context) : maxControlledNominalVoltageOverride;
         ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxControlledNominalVoltage);
     }
 
