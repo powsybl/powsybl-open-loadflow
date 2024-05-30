@@ -56,7 +56,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.TransformerVoltageControlMode controlMode,
-                                                                                    int incrementalTransformerVoltageControlOuterLoopMaxTapShift, Double generatorVoltageControlMinNominalVoltage) {
+                                                                                    int incrementalTransformerVoltageControlOuterLoopMaxTapShift, double generatorVoltageControlMinNominalVoltage) {
         if (parameters.isTransformerVoltageControlOn()) {
             AcOuterLoop outerLoop = switch (controlMode) {
                 case WITH_GENERATOR_VOLTAGE_CONTROL -> new SimpleTransformerVoltageControlOuterLoop();
