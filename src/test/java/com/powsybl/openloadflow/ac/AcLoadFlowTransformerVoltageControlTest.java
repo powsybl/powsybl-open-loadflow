@@ -968,9 +968,8 @@ class AcLoadFlowTransformerVoltageControlTest {
     @Test
     void testGeneratorVoltageControlMinNominalVoltage() {
         Network network1 = FourBusNetworkFactory.createWithSeveralTransformerVoltageControls();
-        LoadFlowParameters parameters = new LoadFlowParameters().setTransformerVoltageControlOn(true);
-        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(parameters);
-        openLoadFlowParameters.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
         TwoWindingsTransformer twt1 = network1.getTwoWindingsTransformer("t24");
         TwoWindingsTransformer twt2 = network1.getTwoWindingsTransformer("t57");
         TwoWindingsTransformer twt3 = network1.getTwoWindingsTransformer("t56");
@@ -986,6 +985,6 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(1, twt1.getRatioTapChanger().getTapPosition());
         assertEquals(1, twt2.getRatioTapChanger().getTapPosition());
         assertEquals(1, twt3.getRatioTapChanger().getTapPosition());
-        assertEquals(5, result2.getComponentResults().get(0).getIterationCount());
+        assertEquals(4, result2.getComponentResults().get(0).getIterationCount());
     }
 }
