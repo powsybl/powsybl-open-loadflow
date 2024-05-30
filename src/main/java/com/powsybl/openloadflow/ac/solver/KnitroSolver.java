@@ -189,11 +189,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Double> listVarUpBounds = new ArrayList<>(numVar);
             double loBndV = knitroParameters.getMinRealisticVoltage();
             double upBndV = knitroParameters.getMaxRealisticVoltage();
-//            List<LfBus> busList = lfNetwork.getBuses();
-
             for (int var = 0; var < sortedVariables.size() ; var ++) {
                 Enum<AcVariableType> typeVar = sortedVariables.get(var).getType();
-                int busId = sortedVariables.get(var).getElementNum();
                 if (typeVar == AcVariableType.BUS_V){
                     listVarLoBounds.add(loBndV);
                     listVarUpBounds.add(upBndV);
@@ -202,7 +199,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     listVarUpBounds.add(KNConstants.KN_INFINITY);
                 }
             }
-            
 
             // Initial state
             List<Double> listXInitial = new ArrayList<>(numVar);
@@ -227,15 +223,23 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                 AcEquationType typeEq = equation.getType();
                 LfBus bus = lfNetwork.getBus(equation.getElementNum());
+                int idBus = bus.getNum();
                 if (typeEq == AcEquationType.BUS_TARGET_V) {
-                    addConstraintLinearPart(equationId, bus.getNum() * 2, 1.0);
+                    // get the variable corresponding to the constraint in V
+                    List varV = sortedVariables.stream().filter(variable -> variable.getElementNum() == idBus).filter(variable -> variable.getType() == AcVariableType.BUS_V).toList();
+                    int idVarV = ((Variable) varV.get(0)).getRow(); // get id of the variable
+                     addConstraintLinearPart(equationId, idVarV, 1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2);
+                        LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
                     }
                 } else if (typeEq == AcEquationType.BUS_TARGET_PHI) {
-                    addConstraintLinearPart(equationId, bus.getNum() * 2 + 1, 1.0);
+                    // get the variable corresponding to the constraint in Theta
+                    List varTheta = sortedVariables.stream().filter(variable -> variable.getElementNum() == idBus).filter(variable -> variable.getType() == AcVariableType.BUS_PHI).toList();
+                    int idVarTheta = ((Variable) varTheta.get(0)).getRow(); // get id of the variable
+                    addConstraintLinearPart(equationId, idVarTheta, 1.0);
+                    // addConstraintLinearPart(equationId, bus.getNum() * 2 + 1, 1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {}, of type {} and of value {}", equationId, typeEq, bus.getNum() * 2 + 1);
+                        LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
                     }
                 } else {
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
