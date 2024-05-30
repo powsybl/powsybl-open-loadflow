@@ -19,7 +19,6 @@ import org.apache.commons.lang3.mutable.MutableObject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -28,7 +27,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
 
     public static final String NAME = "TransformerVoltageControl";
 
-    private Double maxControlledNominalVoltageOverride;
+    private final double maxControlledNominalVoltageOverride;
 
     private static final class ContextData {
 
@@ -49,10 +48,35 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         }
     }
 
-    public TransformerVoltageControlOuterLoop(Double generatorVoltageControlMinNominalVoltage) {
-        if (generatorVoltageControlMinNominalVoltage != -1.0) {
-            this.maxControlledNominalVoltageOverride = generatorVoltageControlMinNominalVoltage;
+    public TransformerVoltageControlOuterLoop(double maxControlledNominalVoltageOverride) {
+        this.maxControlledNominalVoltageOverride = maxControlledNominalVoltageOverride;
+    }
+
+    private static boolean isTransformerVoltageControlsValidForMaxControlledNominalVoltageCalculation(TransformerVoltageControl transformerVoltageControl) {
+        // are removed from this automatic algorithm the transformer voltage control that are between two nominal
+        // voltages equivalents.
+        if (transformerVoltageControl != null) {
+            for (LfBranch branch : transformerVoltageControl.getControllerElements()) {
+                if (!branch.isConnectedAtBothSides()
+                        || branch.getBus1().getNominalV() == branch.getBus2().getNominalV()) {
+                    return false;
+                }
+            }
+            return true;
         }
+        return false;
+    }
+
+    private static double calculateMaxControlledNominalVoltage(AcOuterLoopContext context) {
+        double maxControlledNominalVoltage = Double.MIN_VALUE;
+        for (LfBus bus : context.getNetwork().getBuses()) {
+            if (!bus.isDisabled()
+                    && bus.isTransformerVoltageControlled()
+                    && isTransformerVoltageControlsValidForMaxControlledNominalVoltageCalculation(bus.getTransformerVoltageControl().orElse(null))) {
+                maxControlledNominalVoltage = Math.max(maxControlledNominalVoltage, bus.getNominalV());
+            }
+        }
+        return maxControlledNominalVoltage;
     }
 
     @Override
@@ -63,16 +87,9 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             controllerBranch.setVoltageControlEnabled(false);
         }
 
-        // All transformer voltage control are disabled for the first equation system resolution.
-        double[] maxControlledNominalVoltage = new double[1];
-        maxControlledNominalVoltage[0] = Double.MIN_VALUE;
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            if (!bus.isDisabled() && bus.isTransformerVoltageControlled() && keepTransformerVoltageControls(bus.getTransformerVoltageControl())) {
-                maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], bus.getNominalV());
-            }
-        }
-        ((ContextData) context.getData())
-                .setMaxControlledNominalVoltage(maxControlledNominalVoltageOverride != null ? maxControlledNominalVoltageOverride : maxControlledNominalVoltage[0]);
+        // all transformer voltage control are disabled for the first equation system resolution.
+        double maxControlledNominalVoltage = maxControlledNominalVoltageOverride > 0 ? maxControlledNominalVoltageOverride : calculateMaxControlledNominalVoltage(context);
+        ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxControlledNominalVoltage);
     }
 
     @Override
@@ -109,7 +126,6 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                 var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
                 voltageControl.getMergedControllerElements().forEach(controllerBus -> {
                     if (controllerBus.isGeneratorVoltageControlEnabled()) {
-                        System.out.println(controllerBus.getId());
                         controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
                         controllerBus.setGeneratorVoltageControlEnabled(false);
                         contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
@@ -140,21 +156,5 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             controllerBus.setGeneratorVoltageControlEnabled(true);
             status.setValue(OuterLoopStatus.UNSTABLE);
         }
-    }
-
-    private boolean keepTransformerVoltageControls(Optional<TransformerVoltageControl> transformerVoltageControl) {
-        // are removed from this automatic algorithm the transformer voltage control that are between two nominal
-        // voltages equivalents.
-        if (transformerVoltageControl.isPresent()) {
-            for (LfBranch branch : transformerVoltageControl.get().getControllerElements()) {
-                if (!branch.isConnectedAtBothSides()) {
-                    return false;
-                } else if (branch.getBus1().getNominalV() == branch.getBus2().getNominalV()) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
     }
 }
