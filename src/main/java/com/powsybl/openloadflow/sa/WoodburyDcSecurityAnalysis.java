@@ -38,7 +38,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.initStateVector;
-import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.updateNetwork;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.getPreContingencyFlowRhs;
 
@@ -265,13 +264,38 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
 
     private double[] getAngleStatesAsArray(DenseMatrix angleStates) {
         if (angleStates.getColumnCount() > 1) {
-            throw new PowsyblException();
+            throw new PowsyblException("Angle states should be a DenseMatrix with 1 column");
         }
         double[] angleStatesArray = new double[angleStates.getRowCount()];
         for (int i = 0; i < angleStatesArray.length; i++) {
             angleStatesArray[i] = angleStates.get(i, 0);
         }
         return angleStatesArray;
+    }
+
+    private void filterPropagatedContingencies(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies) {
+
+        // contingencies on switch not yet supported
+        propagatedContingencies.stream()
+                .flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream())
+                .map(branchId -> lfNetwork.getBranchById(branchId).getBranchType())
+                .filter(branchType -> branchType == LfBranch.BranchType.SWITCH)
+                .findAny()
+                .ifPresent(e -> {
+                    throw new IllegalArgumentException("Contingencies on switch not yet supported in fast DC Security Analysis");
+                });
+
+        // map contingencies on buses to contingencies on linked branches terminals
+        propagatedContingencies.stream()
+                .filter(contingency -> !contingency.getBusIdsToLose().isEmpty())
+                .forEach(contingency -> {
+                    for (String s : contingency.getBusIdsToLose()) {
+                        for (LfBranch disabledBranch : lfNetwork.getBusById(s).getBranches()) {
+                            DisabledBranchStatus status = disabledBranch.getBus1().getId().equals(s) ? DisabledBranchStatus.SIDE_1 : DisabledBranchStatus.SIDE_2;
+                            contingency.getBranchIdsToOpen().put(disabledBranch.getId(), status);
+                        }
+                    }
+                });
     }
 
     @Override
@@ -288,28 +312,8 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
             ReportNode preContSimReportNode = Reports.createPreContingencySimulation(networkReportNode);
             lfNetwork.setReportNode(preContSimReportNode);
 
-            propagatedContingencies.stream()
-                    .filter(contingency -> !contingency.getBusIdsToLose().isEmpty())
-                    .forEach(contingency -> {
-                        for (String s : contingency.getBusIdsToLose()) {
-                            for (LfBranch disabledBranch : lfNetwork.getBusById(s).getBranches()) {
-                                DisabledBranchStatus status = disabledBranch.getBus1().getId().equals(s) ? DisabledBranchStatus.SIDE_1 : DisabledBranchStatus.SIDE_2;
-                                contingency.getBranchIdsToOpen().put(disabledBranch.getId(), status);
-                            }
-                        }
-                    });
-
-            propagatedContingencies.forEach(contingency -> {
-                List<String> toRemove = new ArrayList<>();
-                for (String key : contingency.getBranchIdsToOpen().keySet()) {
-                    if (lfNetwork.getBranchById(key).getBranchType() == LfBranch.BranchType.SWITCH) {
-                        toRemove.add(key);
-                    }
-                }
-                for (String key : toRemove) {
-                    contingency.getBranchIdsToOpen().remove(key);
-                }
-            });
+            // prepare contingencies for connectivity analysis and woodbury engine
+            filterPropagatedContingencies(lfNetwork, propagatedContingencies);
 
             // connectivity analysis
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
@@ -321,8 +325,8 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
                     ? getParticipatingElements(lfNetwork.getBuses(), loadFlowParameters.getBalanceType(), openLoadFlowParameters)
                     : Collections.emptyList();
 
+            // woodbury engine input
             DenseMatrix flowsRhs = getPreContingencyFlowRhs(context, participatingElements, new DisabledNetwork());
-
             HashMap<PropagatedContingency, DisabledNetwork> disabledNetworkByPropagatedContingency = new HashMap<>();
             WoodburyEngineRhsModifications flowRhsModifications = new WoodburyEngineRhsModifications();
             buildRhsModificationsForContingenciesBreakingConnectivity(context, openLoadFlowParameters, connectivityData, participatingElements,
@@ -331,145 +335,79 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
                     participatingElements, null,
                     flowRhsModifications, disabledNetworkByPropagatedContingency, Collections.emptySet(), Collections.emptySet(),
                     connectivityData.contingencyElementByBranch(), Collections.emptySet(), null);
+
             // compute pre- and post-contingency flow states
             WoodburyEngine engine = new WoodburyEngine();
             WoodburyEngineResult angleStates = engine.run(context, flowsRhs, flowRhsModifications, connectivityData, reportNode);
 
-            // Update pre contingency network results
+            // set pre contingency angle states as state vector of equation system
             double[] preContingencyAnglesStates = getAngleStatesAsArray(angleStates.getPreContingencyStates());
             context.getEquationSystem().getStateVector().set(preContingencyAnglesStates);
-            updateNetwork(lfNetwork, context.getEquationSystem(), preContingencyAnglesStates);
-
-            // set all calculated voltages to NaN
-            if (context.getParameters().isSetVToNan()) {
-                for (LfBus bus : lfNetwork.getBuses()) {
-                    bus.setV(Double.NaN);
-                }
-            }
-
-//            boolean preContingencyComputationOk = true;
-            var preContingencyLimitViolationManager = new LimitViolationManager();
-            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
+            // TODO : remove this ? seems important for next step
+//            updateNetwork(lfNetwork, context.getEquationSystem(), preContingencyAnglesStates);
 
             // update network result
+            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
             preContingencyNetworkResult.update();
 
             // detect violations
+            var preContingencyLimitViolationManager = new LimitViolationManager();
             preContingencyLimitViolationManager.detectViolations(lfNetwork);
 
-                // save base state for later restoration after each contingency
+            // save base state for later restoration after each contingency
             NetworkState networkState = NetworkState.save(lfNetwork);
 
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+            Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
+            // TODO : should we keep this now that all computation is done in Woodbury engine ?
+            while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
+                PropagatedContingency propagatedContingency = contingencyIt.next();
+                propagatedContingency.toLfContingency(lfNetwork)
+                        .ifPresent(lfContingency -> { // only process contingencies that impact the network
+                            LOGGER.info("Start post contingency '{}' violations detection on network {}", lfContingency.getId(), network);
+                            LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift {} loads",
+                                lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranchesStatus(),
+                                lfContingency.getLostGenerators(), lfContingency.getShuntsShift(), lfContingency.getLostLoads());
 
-            for (PropagatedContingency contingency : propagatedContingencies) {
-                Optional<LfContingency> optionalLfContingency = contingency.toLfContingency(lfNetwork);
-                if (optionalLfContingency.isPresent()) {
+                            lfContingency.apply(loadFlowParameters.getBalanceType());
+                            // TODO : see if following is useful. Should not as active power is taken into account in woodbury
+//                            distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                    LfContingency lfContingency = optionalLfContingency.get();
-                    LOGGER.info("Start post contingency '{}' violations detection on network {}", lfContingency.getId(), network);
-                    LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift {} loads",
-                        lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranchesStatus(),
-                        lfContingency.getLostGenerators(), lfContingency.getShuntsShift(), lfContingency.getLostLoads());
+                            // TODO : Should not be there.
+                            initStateVector(lfNetwork, context.getEquationSystem(), new UniformValueVoltageInitializer());
+                            double[] postContingencyAngleStates = getAngleStatesAsArray(angleStates.getPostContingencyWoodburyStates(propagatedContingency));
+                            context.getEquationSystem().getStateVector().set(postContingencyAngleStates);
 
-                    lfContingency.apply(loadFlowParameters.getBalanceType());
-                    // TODO : see if this is necessary
-                    distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+                            var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, preContingencyNetworkResult, propagatedContingency.getContingency());
+                            postContingencyNetworkResult.update();
 
-                    var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters());
-                    var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency.getContingency());
+                            // detect violations
+                            var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters());
+                            postContingencyLimitViolationManager.detectViolations(lfNetwork);
 
-                    // TODO : Should not be there.
-                    initStateVector(lfNetwork, context.getEquationSystem(), new UniformValueVoltageInitializer());
-                    double[] postContingencyAngleStates = getAngleStatesAsArray(angleStates.getPostContingencyWoodburyStates(contingency));
-                    context.getEquationSystem().getStateVector().set(postContingencyAngleStates);
-                    postContingencyNetworkResult.update();
+                            var connectivityResult = new ConnectivityResult(
+                                    lfContingency.getCreatedSynchronousComponentsCount(), 0,
+                                    lfContingency.getDisconnectedLoadActivePower() * PerUnit.SB,
+                                    lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB,
+                                    lfContingency.getDisconnectedElementIds());
 
-                    // detect violations
-                    postContingencyLimitViolationManager.detectViolations(lfNetwork);
+                            PostContingencyResult postContingencyResult = new PostContingencyResult(propagatedContingency.getContingency(), PostContingencyComputationStatus.CONVERGED,
+                                    new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
+                                    postContingencyNetworkResult.getBranchResults(),
+                                    postContingencyNetworkResult.getBusResults(),
+                                    postContingencyNetworkResult.getThreeWindingsTransformerResults(),
+                                    connectivityResult);
+                            postContingencyResults.add(postContingencyResult);
 
-                    var connectivityResult = new ConnectivityResult(
-                            lfContingency.getCreatedSynchronousComponentsCount(), 0,
-                            lfContingency.getDisconnectedLoadActivePower() * PerUnit.SB,
-                            lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB,
-                            lfContingency.getDisconnectedElementIds());
-
-                    PostContingencyResult postContingencyResult = new PostContingencyResult(contingency.getContingency(), PostContingencyComputationStatus.CONVERGED,
-                            new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
-                            postContingencyNetworkResult.getBranchResults(),
-                            postContingencyNetworkResult.getBusResults(),
-                            postContingencyNetworkResult.getThreeWindingsTransformerResults(),
-                            connectivityResult);
-                    postContingencyResults.add(postContingencyResult);
-
-                    networkState.restore();
-                }
+                            if (contingencyIt.hasNext()) {
+                                // restore base state
+                                networkState.restore();
+                            }
+                        });
             }
 
-//            // start a simulation for each of the contingency
-//            Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
-//            while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
-//                PropagatedContingency propagatedContingency = contingencyIt.next();
-//                propagatedContingency.toLfContingency(lfNetwork)
-//                        .ifPresent(lfContingency -> { // only process contingencies that impact the network
-//                            ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
-//                            lfNetwork.setReportNode(postContSimReportNode);
-//
-//                            lfContingency.apply(loadFlowParameters.getBalanceType());
-//
-//                            distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
-//
-//                            var postContingencyResult = runPostContingencySimulation(lfNetwork, context, propagatedContingency.getContingency(),
-//                                    lfContingency, preContingencyLimitViolationManager,
-//                                    securityAnalysisParameters.getIncreasedViolationsParameters(),
-//                                    preContingencyNetworkResult, createResultExtension);
-//                            postContingencyResults.add(postContingencyResult);
-//
-//                                List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(lfContingency.getId());
-//                                if (operatorStrategiesForThisContingency != null) {
-//                                    // we have at least an operator strategy for this contingency.
-//                                    if (operatorStrategiesForThisContingency.size() == 1) {
-//                                        runActionSimulation(lfNetwork, context,
-//                                                operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
-//                                                securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
-//                                                createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
-//                                                acParameters.getNetworkParameters())
-//                                                .ifPresent(operatorStrategyResults::add);
-//                                    } else {
-//                                        // save post contingency state for later restoration after action
-//                                        NetworkState postContingencyNetworkState = NetworkState.save(lfNetwork);
-//                                        for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-//                                            runActionSimulation(lfNetwork, context,
-//                                                    operatorStrategy, preContingencyLimitViolationManager,
-//                                                    securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
-//                                                    createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
-//                                                    acParameters.getNetworkParameters())
-//                                                    .ifPresent(result -> {
-//                                                        operatorStrategyResults.add(result);
-//                                                        postContingencyNetworkState.restore();
-//                                                    });
-//                                        }
-//                                    }
-//                                }
-//
-//                            if (contingencyIt.hasNext()) {
-//                                // restore base state
-//                                networkState.restore();
-//                            }
-//                        });
-//            }
-
-//            return new SecurityAnalysisResult(
-//                    new PreContingencyResult(
-//                            preContingencyLoadFlowResult.toComponentResultStatus().status(),
-//                            new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
-//                            preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
-//                            preContingencyNetworkResult.getThreeWindingsTransformerResults()),
-//                    postContingencyResults, operatorStrategyResults);
-
             return new SecurityAnalysisResult(
-                    new PreContingencyResult(
-                            LoadFlowResult.ComponentResult.Status.CONVERGED, // FIXME : should depend on result of Woodbury engine
+                    new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED, // if not converge, woodbury whould have throw first
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),
