@@ -15,6 +15,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
@@ -962,5 +963,54 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(27.00, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void testGeneratorVoltageControlMinNominalVoltage() {
+        Network network1 = FourBusNetworkFactory.createWithSeveralTransformerVoltageControls();
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        TwoWindingsTransformer twt1 = network1.getTwoWindingsTransformer("t24");
+        TwoWindingsTransformer twt2 = network1.getTwoWindingsTransformer("t57");
+        TwoWindingsTransformer twt3 = network1.getTwoWindingsTransformer("t56");
+        Bus b4 = network1.getBusBreakerView().getBus("b4");
+        Bus b6 = network1.getBusBreakerView().getBus("b6");
+        // automatic detection of min nominal voltage for generator voltage controls: 90 kV
+        assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
+        LoadFlowResult result = loadFlowRunner.run(network1, parameters);
+        assertEquals(1, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt3.getRatioTapChanger().getTapPosition());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(230.060, b4);
+        assertVoltageEquals(92.050, b6);
+        // we force the min nominal voltage control to 225kV...
+        // 3 transformer voltage controls have been disabled because no PV buses on not controlled side connected component
+        parametersExt.setGeneratorVoltageControlMinNominalVoltage(225.0);
+        twt1.getRatioTapChanger().setTapPosition(0);
+        twt2.getRatioTapChanger().setTapPosition(0);
+        twt3.getRatioTapChanger().setTapPosition(0);
+        LoadFlowResult result2 = loadFlowRunner.run(network1, parameters);
+        assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
+        assertEquals(6, result2.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(276.072, b4);
+        assertVoltageEquals(110.460, b6);
+        // we force the min nominal voltage control to 20k...
+        // the 2 generators are kept
+        parametersExt.setGeneratorVoltageControlMinNominalVoltage(20.0);
+        twt1.getRatioTapChanger().setTapPosition(0);
+        twt2.getRatioTapChanger().setTapPosition(0);
+        twt3.getRatioTapChanger().setTapPosition(0);
+        LoadFlowResult result3 = loadFlowRunner.run(network1, parameters);
+        assertEquals(1, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt3.getRatioTapChanger().getTapPosition());
+        assertEquals(8, result3.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(230.060, b4);
+        assertVoltageEquals(92.050, b6);
     }
 }
