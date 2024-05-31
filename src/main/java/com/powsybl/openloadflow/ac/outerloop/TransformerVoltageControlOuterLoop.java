@@ -32,6 +32,8 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         DISCRETIZED
     }
 
+    private final double maxControlledNominalVoltageOverride;
+
     private static final class ContextData {
 
         private TransformerRatioManager transformerRatioManager;
@@ -43,11 +45,10 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     }
 
     private final boolean stable;
-    private final int thtLimit;
 
-    public TransformerVoltageControlOuterLoop(boolean stable, int thtLimit) {
+    public TransformerVoltageControlOuterLoop(boolean stable, double maxControlledNominalVoltageOverride) {
         this.stable = stable;
-        this.thtLimit = thtLimit;
+        this.maxControlledNominalVoltageOverride = maxControlledNominalVoltageOverride;
     }
 
     @Override
@@ -60,7 +61,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         }
 
         // All transformer voltage control are disabled for the first equation system resolution.
-        contextData.groupVoltageControlManager = new GroupVoltageControlManager(context.getNetwork(), thtLimit);
+        contextData.groupVoltageControlManager = new GroupVoltageControlManager(context.getNetwork(), maxControlledNominalVoltageOverride);
     }
 
     @Override
@@ -109,10 +110,10 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             contextData.step = Step.DISCRETIZED;
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
-        contextData.groupVoltageControlManager.stopHTGroupTensionControl(network);
+        contextData.groupVoltageControlManager.stopTensionControlBelowLimit(network);
 
         // In stable mode, Group maintaining tension but in PQ mode are ignored
-        network.fixTransformerVoltageControls(!stable);
+        network.fixTransformerVoltageControls();
 
         contextData.step = Step.TUNING;
         return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
@@ -136,7 +137,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             updateContinuousRatio(network, contextData);
 
             roundVoltageRatios(network);
-            contextData.groupVoltageControlManager.restartHTGroupTensionControl();
+            contextData.groupVoltageControlManager.restartGroupTensionControl();
 
             contextData.step = Step.DISCRETIZED;
         }

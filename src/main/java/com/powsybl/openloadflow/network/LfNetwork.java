@@ -760,10 +760,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     /**
      * Disable transformer voltage control when there is no generator controlling voltage on the connected component
-     * that belong to the not controlled side of the transformer.
-     * @param includePQBus if true, generators with voltage control but currently excluded are accepted
+     * that belong to the not controlled side of the transformer. Note that branches in contingency are not taken into
+     * account.
      */
-    public void fixTransformerVoltageControls(boolean includePQBus) {
+    public void fixTransformerVoltageControls() {
         List<LfBranch> controllerBranches = new ArrayList<>(1);
         getConnectivity().startTemporaryChanges();
         for (LfBranch branch : branches) {
@@ -792,7 +792,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             }
             boolean noPvBusesInComponent = componentNoPVBusesMap.computeIfAbsent(getConnectivity().getComponentNumber(notControlledSide),
                 k -> getConnectivity().getConnectedComponent(notControlledSide).stream()
-                        .noneMatch(b -> b.isGeneratorVoltageControlled() && (includePQBus ? true : b.isGeneratorVoltageControlEnabled())));
+                        .noneMatch(bus -> bus.isGeneratorVoltageControlled() && bus.isGeneratorVoltageControlEnabled()));
             if (noPvBusesInComponent) {
                 branch.setVoltageControlEnabled(false);
                 LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
