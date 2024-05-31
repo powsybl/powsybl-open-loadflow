@@ -94,7 +94,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
         AbstractSecurityAnalysis<?, ?, ?, ?, ?> securityAnalysis;
         if (loadFlowParameters.isDc()) {
-            if (loadFlowParametersExt.getFastDcSecurityAnalysis()) {
+            if (OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters).isDcFastMode()) {
                 securityAnalysis = new WoodburyDcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reportNode);
             } else {
                 securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reportNode);

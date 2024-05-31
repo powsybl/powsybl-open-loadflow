@@ -30,7 +30,8 @@
   "extensions" : {
     "open-security-analysis-parameters" : {
       "createResultExtension" : true,
-      "contingencyPropagation" : false
+      "contingencyPropagation" : false,
+      "dcFastMode" : true
     }
   }
 }
