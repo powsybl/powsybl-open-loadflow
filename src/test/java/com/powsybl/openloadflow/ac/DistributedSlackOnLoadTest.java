@@ -28,8 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResultsEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -289,5 +288,9 @@ class DistributedSlackOnLoadTest {
         assertEquals(0.0, sumP, parametersExt.getMaxActivePowerMismatch());
         assertEquals(0.0, sumQ, parametersExt.getMaxReactivePowerMismatch());
         assertPowerFactor(network);
+        assertActivePowerEquals(0.0, l4.getTerminal());
+        assertReactivePowerEquals(50.0, l4.getTerminal());
+        assertActivePowerEquals(300.0, l5.getTerminal());
+        assertReactivePowerEquals(37.5, l5.getTerminal());
     }
 }
