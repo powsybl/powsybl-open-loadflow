@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -17,6 +18,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -259,6 +261,33 @@ class DistributedSlackOnLoadTest {
         sumBus += network.getLoad("l4").getTerminal().getQ();
         sumBus += network.getLoad("l5").getTerminal().getQ();
         assertEquals(0.0, sumBus, 10E-3);
+        assertPowerFactor(network);
+    }
+
+    @Test
+    void testPowerFactorConstant4() {
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parametersExt.setLoadPowerFactorConstant(true)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxActivePowerMismatch(1e-2)
+                .setMaxReactivePowerMismatch(1e-2);
+        // network has 300 MW generation, we set 400MW total P0 load
+        Load l4 = network.getLoad("l4");
+        l4.setP0(0.0).setQ0(50.0); // 0MW -> 0% participation factor
+        Load l5 = network.getLoad("l5");
+        l5.setP0(400.0).setQ0(50.0); // only non-zero load -> 100% participation factor
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        double sumP = 0.0;
+        double sumQ = 0.0;
+        for (Terminal t : network.getBusBreakerView().getBus("b4").getConnectedTerminals()) {
+            sumP += t.getP();
+            sumQ += t.getQ();
+        }
+        assertEquals(0.0, sumP, parametersExt.getMaxActivePowerMismatch());
+        assertEquals(0.0, sumQ, parametersExt.getMaxReactivePowerMismatch());
         assertPowerFactor(network);
     }
 }
