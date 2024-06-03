@@ -93,7 +93,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
                 hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
             }
         }
-        if (p0 < 0 || (p0 == 0 && q0 != 0) || hasVariableActivePower) {
+        boolean reactiveOnlyLoad = p0 == 0 && q0 != 0;
+        if (p0 < 0 || hasVariableActivePower || reactiveOnlyLoad) {
             ensurePowerFactorConstantByLoad = true;
         }
         double absTargetP = getAbsVariableTargetP(load);
