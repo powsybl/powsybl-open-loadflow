@@ -55,17 +55,6 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return p0 + k * (ph1 - ph2);
     }
 
-    protected double boundedP(double rawP) {
-        // If there is a maximal active power
-        // it is applied at the entry of the controller VSC station
-        // on the AC side of the network.
-        if (rawP >= 0) {
-            return Math.min(rawP, pMaxFromCS1toCS2);
-        } else {
-            return Math.max(rawP, -pMaxFromCS2toCS1);
-        }
-    }
-
     protected double ph1() {
         return sv.get(ph1Var.getRow());
     }

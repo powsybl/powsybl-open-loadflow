@@ -25,8 +25,7 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
 
     private double p1(double ph1, double ph2) {
         double rawP = rawP(p0, k, ph1, ph2);
-        double boundedP = boundedP(rawP);
-        return (isController(rawP) ? 1 : getVscLossMultiplier()) * boundedP;
+        return (isController(rawP) ? 1 : getVscLossMultiplier()) * rawP;
     }
 
     private static boolean isController(double rawP) {
