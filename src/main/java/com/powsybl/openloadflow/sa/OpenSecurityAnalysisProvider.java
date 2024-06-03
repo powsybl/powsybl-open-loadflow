@@ -70,7 +70,6 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
                                                          List<StateMonitor> stateMonitors, List<LimitReduction> limitReductions, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(workingVariantId);
-        Objects.requireNonNull(limitViolationDetector);
         Objects.requireNonNull(computationManager);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
@@ -99,7 +98,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
             securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reportNode);
         }
 
-        return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager, operatorStrategies, actions);
+        return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager, operatorStrategies, actions, limitReductions);
     }
 
     @Override

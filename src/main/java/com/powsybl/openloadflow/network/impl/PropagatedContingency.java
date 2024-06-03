@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.google.common.collect.Sets;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
@@ -360,6 +361,18 @@ public class PropagatedContingency {
                 && loadIdsToLoose.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
     }
 
+    private static boolean isSlackBusIsolated(GraphConnectivity<LfBus, LfBranch> connectivity, LfBus slackBus) {
+        // check that slack bus belongs to the largest component.
+        // Largest component has always the number 0.
+        int number = connectivity.getComponentNumber(slackBus);
+        if (number != 0) {
+            // if not main component anymore but same size as the main one, still consider it as not isolated
+            // (mainly useful for unit test small networks...)
+            return connectivity.getLargestConnectedComponent().size() != connectivity.getConnectedComponent(slackBus).size();
+        }
+        return false;
+    }
+
     private Map<LfBranch, DisabledBranchStatus> findBranchToOpenDirectlyImpactedByContingency(LfNetwork network) {
         // we add the branches connected to buses to lose.
         Map<LfBranch, DisabledBranchStatus> branchesToOpen = branchIdsToOpen.entrySet().stream()
@@ -372,16 +385,10 @@ public class PropagatedContingency {
         busIdsToLose.stream().map(network::getBusById)
                 .filter(Objects::nonNull)
                 .forEach(bus -> {
-                    if (bus.isSlack()) {
-                        // slack bus disabling is not supported
-                        // we keep the slack bus enabled and the connected lostBranches
-                        LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", bus.getId());
-                    } else {
-                        bus.getBranches().forEach(branch -> {
-                            DisabledBranchStatus status = branch.getBus1() == bus ? DisabledBranchStatus.SIDE_1 : DisabledBranchStatus.SIDE_2;
-                            addBranchToOpen(branch, status, branchesToOpen);
-                        });
-                    }
+                    bus.getBranches().forEach(branch -> {
+                        DisabledBranchStatus status = branch.getBus1() == bus ? DisabledBranchStatus.SIDE_1 : DisabledBranchStatus.SIDE_2;
+                        addBranchToOpen(branch, status, branchesToOpen);
+                    });
                 });
 
         return branchesToOpen;
@@ -399,12 +406,15 @@ public class PropagatedContingency {
                     .filter(LfBranch::isConnectedAtBothSides)
                     .forEach(connectivity::removeEdge);
 
-            if (connectivity.getConnectedComponent(network.getSlackBus()).size() == 1) {
-                // FIXME
-                // If a contingency leads to an isolated slack bus, this bus is considered as the main component.
-                // In that case, we have an issue with a different number of variables and equations.
-                LOGGER.error("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
-                return new ContingencyConnectivityLossImpact(false, 0, Collections.emptySet(), Collections.emptySet());
+            if (isSlackBusIsolated(connectivity, network.getSlackBus())) {
+                LOGGER.warn("Contingency '{}' leads to an isolated slack bus: relocate slack bus inside main component",
+                        contingency.getId());
+                // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
+                // we select a new slack bus excluding buses from isolated component
+                Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getLargestConnectedComponent());
+                network.setExcludedSlackBuses(excludedBuses);
+                // reverse main component to the one containing the relocated slack bus
+                connectivity.setMainComponentVertex(network.getSlackBus());
             }
 
             // add to contingency description buses and branches that won't be part of the main connected

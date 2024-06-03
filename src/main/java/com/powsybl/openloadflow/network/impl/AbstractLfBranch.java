@@ -7,11 +7,9 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.LimitType;
-import com.powsybl.iidm.network.LoadingLimits;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.RatioTapChanger;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
@@ -78,21 +76,30 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {
+    /**
+     * Create the list of LfLimits from a LoadingLimits and a list of reductions.
+     * The resulting list will contain the permanent limit
+     */
+    protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus, double[] limitReductions) {
         LinkedList<LfLimit> sortedLimits = new LinkedList<>();
         if (loadingLimits != null) {
             double toPerUnit = getScaleForLimitType(loadingLimits.getLimitType(), bus);
 
+            int i = 0;
             for (LoadingLimits.TemporaryLimit temporaryLimit : loadingLimits.getTemporaryLimits()) {
                 if (temporaryLimit.getAcceptableDuration() != 0) {
                     // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
                     // for this limit is infinity.
                     // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
-                    double valuePerUnit = temporaryLimit.getValue() * toPerUnit;
-                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(), valuePerUnit));
+                    double reduction = limitReductions.length == 0 ? 1d : limitReductions[i + 1]; // Temporary limit's reductions are stored starting from index 1 in `limitReductions`
+                    double originalValuePerUnit = temporaryLimit.getValue() * toPerUnit;
+                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(),
+                            originalValuePerUnit, reduction));
                 }
+                i++;
             }
-            sortedLimits.addLast(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit));
+            double reduction = limitReductions.length == 0 ? 1d : limitReductions[0];
+            sortedLimits.addLast(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit, reduction));
         }
         if (sortedLimits.size() > 1) {
             // we only make that fix if there is more than a permanent limit attached to the branch.
@@ -120,12 +127,16 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return bus2;
     }
 
-    public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits) {
-        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1));
+    public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits, LimitReductionManager limitReductionManager) {
+        // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
+        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1,
+                getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits)));
     }
 
-    public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits) {
-        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2));
+    public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits, LimitReductionManager limitReductionManager) {
+        // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
+        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2,
+                getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits)));
     }
 
     @Override

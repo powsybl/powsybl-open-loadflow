@@ -133,6 +133,13 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         return componentSets.get(componentNumber);
     }
 
+    @Override
+    public Set<V> getLargestConnectedComponent() {
+        checkSavedContext();
+        updateComponents();
+        return componentSets.get(0);
+    }
+
     protected Set<V> getNonConnectedVertices(V vertex) {
         Set<V> connectedComponent = getConnectedComponent(vertex);
         return componentSets.stream()
