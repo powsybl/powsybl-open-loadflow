@@ -88,10 +88,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
     }
 
     private static final class KnitroProblem extends KNProblem {
-
         /*------------------------------------------------------------------*/
         /*     FUNCTION callbackEvalF                                       */
         /*------------------------------------------------------------------*/
+
         private final class CallbackEvalFC extends KNEvalFCCallback {
 
             private final List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve;
@@ -195,6 +195,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
 
         private KnitroProblem(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem, TargetVector targetVector, VoltageInitializer voltageInitializer, JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix, KnitroSolverParameters knitroParameters) throws KNException {
+
 
             // =============== Variables ===============
             // Defining variables
@@ -302,8 +303,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             /* Constraint Jacobian non-zero structure for callback */
 //            setJacNnzPattern(Arrays.asList(0, 1, 1), Arrays.asList(0, 0, 3));
             /* Plug the callback "callbackEvalGA" */
-//            setGradEvalCallback(new CallbackEvalG(jacobianMatrix,listNonLinearConsts));
-            Matrix nonLinearJacobian = getNonLinearJacobian(jacobianMatrix,listNonLinearConsts);
+            setGradEvalCallback(new CallbackEvalG(jacobianMatrix,listNonLinearConsts));
+//            Matrix nonLinearJacobian = getNonLinearJacobian(jacobianMatrix,listNonLinearConsts);
         }
 
     }
