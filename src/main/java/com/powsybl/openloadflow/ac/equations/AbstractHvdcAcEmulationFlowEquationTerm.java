@@ -43,12 +43,12 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
         variables = List.of(ph1Var, ph2Var);
-        k = hvdc.getDroop() * 180 / Math.PI;
-        p0 = hvdc.getP0();
+        k = hvdc.getAcEmulationControl().getDroop() * 180 / Math.PI;
+        p0 = hvdc.getAcEmulationControl().getP0();
         lossFactor1 = hvdc.getConverterStation1().getLossFactor() / 100;
         lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
-        pMaxFromCS1toCS2 = hvdc.getPMaxFromCS1toCS2();
-        pMaxFromCS2toCS1 = hvdc.getPMaxFromCS2toCS1();
+        pMaxFromCS1toCS2 = hvdc.getAcEmulationControl().getPMaxFromCS1toCS2();
+        pMaxFromCS2toCS1 = hvdc.getAcEmulationControl().getPMaxFromCS2toCS1();
     }
 
     protected double rawP(double p0, double k, double ph1, double ph2) {

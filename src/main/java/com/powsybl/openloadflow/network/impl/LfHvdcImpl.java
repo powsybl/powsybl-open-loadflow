@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.HvdcLine;
-import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRange;
 import com.powsybl.openloadflow.network.*;
@@ -39,55 +38,6 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     private LfVscConverterStation converterStation2;
 
     private boolean acEmulation;
-
-    public class AcEmulationControl {
-        private final double droop;
-        private final double p0;
-        private final double pMaxFromCS1toCS2;
-        private final double pMaxFromCS2toCS1;
-        private boolean activated = true;
-        private TwoSides feedingSide;
-
-        public AcEmulationControl(double droop, double p0, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1) {
-            this.droop = droop;
-            this.p0 = p0;
-            this.pMaxFromCS1toCS2 = pMaxFromCS1toCS2;
-            this.pMaxFromCS2toCS1 = pMaxFromCS2toCS1;
-            this.feedingSide = (p0 >= 0) ? TwoSides.ONE : TwoSides.TWO;
-        }
-
-        double getDroop() {
-            return droop / PerUnit.SB;
-        }
-
-        double getP0() {
-            return p0 / PerUnit.SB;
-        }
-
-        double getPMaxFromCS1toCS2() {
-            return pMaxFromCS1toCS2 / PerUnit.SB;
-        }
-
-        double getPMaxFromCS2toCS1() {
-            return pMaxFromCS2toCS1 / PerUnit.SB;
-        }
-
-        boolean isActivated() {
-            return activated;
-        }
-
-        TwoSides getFeedingSide() {
-            return feedingSide;
-        }
-
-        void setActivated(boolean activated) {
-            this.activated = activated;
-        }
-
-        void setFeedingSide(TwoSides side) {
-            feedingSide = side;
-        }
-    };
 
     AcEmulationControl acEmulationControl;
 
@@ -191,6 +141,11 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     public void setConverterStation2(LfVscConverterStation converterStation2) {
         this.converterStation2 = Objects.requireNonNull(converterStation2);
         converterStation2.setHvdc(this);
+    }
+
+    @Override
+    public AcEmulationControl getAcEmulationControl() {
+        return acEmulationControl;
     }
 
     @Override
