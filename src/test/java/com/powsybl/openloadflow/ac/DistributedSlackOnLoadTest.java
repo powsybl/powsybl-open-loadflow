@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.LoadType;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -18,6 +19,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -27,8 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResultsEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -208,7 +209,7 @@ class DistributedSlackOnLoadTest {
     void testPowerFactorConstant2() {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-        parametersExt.setLoadPowerFactorConstant(true);
+        parametersExt.setLoadPowerFactorConstant(true).setNewtonRaphsonConvEpsPerEq(1e-6);
         network.getLoad("l4").newExtension(LoadDetailAdder.class)
                 .withVariableActivePower(100)
                 .withFixedActivePower(0)
@@ -219,13 +220,7 @@ class DistributedSlackOnLoadTest {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        double sumBus = 0.0;
-        sumBus += network.getLine("l14").getTerminal2().getQ();
-        sumBus += network.getLine("l24").getTerminal2().getQ();
-        sumBus += network.getLine("l34").getTerminal2().getQ();
-        sumBus += network.getLoad("l4").getTerminal().getQ();
-        sumBus += network.getLoad("l5").getTerminal().getQ();
-        assertEquals(0.0, sumBus, 10E-6);
+        assertBusBalance(network, "b4", 10E-6, 10E-6);
         assertPowerFactor(network);
     }
 
@@ -253,14 +248,56 @@ class DistributedSlackOnLoadTest {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        double sumBus = 0.0;
-        sumBus += network.getLine("l14").getTerminal2().getQ();
-        sumBus += network.getLine("l24").getTerminal2().getQ();
-        sumBus += network.getLine("l34").getTerminal2().getQ();
-        sumBus += network.getLoad("l4").getTerminal().getQ();
-        sumBus += network.getLoad("l5").getTerminal().getQ();
-        assertEquals(0.0, sumBus, 10E-3);
+        assertBusBalance(network, "b4", 10E-3, 10E-3);
         assertPowerFactor(network);
+    }
+
+    @Test
+    void testPowerFactorConstant4() {
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parametersExt.setLoadPowerFactorConstant(true)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxActivePowerMismatch(1e-2)
+                .setMaxReactivePowerMismatch(1e-2);
+        // network has 300 MW generation, we set 400MW total P0 load
+        Load l4 = network.getLoad("l4");
+        l4.setP0(0.0).setQ0(50.0); // 0MW -> 0% participation factor
+        Load l5 = network.getLoad("l5");
+        l5.setP0(400.0).setQ0(50.0); // only non-zero load -> 100% participation factor
+
+        // test with l4 being reactive only load
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertBusBalance(network, "b4", parametersExt.getMaxActivePowerMismatch(), parametersExt.getMaxReactivePowerMismatch());
+        assertPowerFactor(network);
+        assertActivePowerEquals(0.0, l4.getTerminal());
+        assertReactivePowerEquals(50.0, l4.getTerminal());
+        assertActivePowerEquals(300.0, l5.getTerminal());
+        assertReactivePowerEquals(37.5, l5.getTerminal());
+
+        // test also with l4 being zero load
+        l4.setP0(0.0).setQ0(0.0);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertBusBalance(network, "b4", parametersExt.getMaxActivePowerMismatch(), parametersExt.getMaxReactivePowerMismatch());
+        assertPowerFactor(network);
+        assertActivePowerEquals(0.0, l4.getTerminal());
+        assertReactivePowerEquals(0.0, l4.getTerminal());
+        assertActivePowerEquals(300.0, l5.getTerminal());
+        assertReactivePowerEquals(37.5, l5.getTerminal());
+    }
+
+    private void assertBusBalance(Network network, String busId, double pTol, double qTol) {
+        double sumP = 0.0;
+        double sumQ = 0.0;
+        for (Terminal t : network.getBusBreakerView().getBus(busId).getConnectedTerminals()) {
+            sumP += t.getP();
+            sumQ += t.getQ();
+        }
+        assertEquals(0.0, sumP, pTol);
+        assertEquals(0.0, sumQ, qTol);
     }
 
     @Test
