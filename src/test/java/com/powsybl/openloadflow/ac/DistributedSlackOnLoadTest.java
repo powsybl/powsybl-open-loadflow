@@ -325,19 +325,19 @@ class DistributedSlackOnLoadTest {
 
     @Test
     void testFictitiousLoadType() {
-        l1.setLoadType(LoadType.FICTITIOUS);
-        l2.setLoadType(LoadType.FICTITIOUS);
-        l3.setLoadType(LoadType.FICTITIOUS);
-        l4.setLoadType(LoadType.UNDEFINED);
-        l5.setLoadType(LoadType.FICTITIOUS);
-        l6.setLoadType(LoadType.FICTITIOUS);
+        l1.setLoadType(LoadType.AUXILIARY); // 30 MW
+        l2.setLoadType(LoadType.UNDEFINED); // 60 MW
+        l3.setLoadType(LoadType.FICTITIOUS); // 50 MW
+        l4.setLoadType(LoadType.AUXILIARY); // 140 MW
+        l5.setLoadType(LoadType.UNDEFINED); // 10 MW
+        l6.setLoadType(LoadType.FICTITIOUS); // -50 MW
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertActivePowerEquals(l1.getP0(), l1.getTerminal());
-        assertActivePowerEquals(l2.getP0(), l2.getTerminal());
+        assertActivePowerEquals(l1.getP0() + 7.5, l1.getTerminal());
+        assertActivePowerEquals(l2.getP0() + 15, l2.getTerminal());
         assertActivePowerEquals(l3.getP0(), l3.getTerminal());
-        assertActivePowerEquals(l4.getP0() + 60, l4.getTerminal());
-        assertActivePowerEquals(l5.getP0(), l5.getTerminal());
+        assertActivePowerEquals(l4.getP0() + 35, l4.getTerminal());
+        assertActivePowerEquals(l5.getP0() + 2.5, l5.getTerminal());
         assertActivePowerEquals(l6.getP0(), l6.getTerminal());
         LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
                 .addMetrics("3", "CONVERGED")
