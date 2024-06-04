@@ -306,16 +306,16 @@ class DistributedSlackOnLoadTest {
         l2.setFictitious(true);
         l3.setFictitious(true);
         l4.setFictitious(false);
-        l5.setFictitious(false);
-        l6.setFictitious(false);
+        l5.setFictitious(true);
+        l6.setFictitious(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertActivePowerEquals(30.0, l1.getTerminal());
-        assertActivePowerEquals(60.0, l2.getTerminal());
-        assertActivePowerEquals(50.0, l3.getTerminal());
-        assertActivePowerEquals(182.0, l4.getTerminal());
-        assertActivePowerEquals(13.0, l5.getTerminal());
-        assertActivePowerEquals(-35.0, l6.getTerminal());
+        assertActivePowerEquals(l1.getP0(), l1.getTerminal());
+        assertActivePowerEquals(l2.getP0(), l2.getTerminal());
+        assertActivePowerEquals(l3.getP0(), l3.getTerminal());
+        assertActivePowerEquals(l4.getP0() + 60, l4.getTerminal());
+        assertActivePowerEquals(l5.getP0(), l5.getTerminal());
+        assertActivePowerEquals(l6.getP0(), l6.getTerminal());
         LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
                 .addMetrics("3", "CONVERGED")
                 .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 4.0392134081912445E-9)
@@ -329,16 +329,16 @@ class DistributedSlackOnLoadTest {
         l2.setLoadType(LoadType.FICTITIOUS);
         l3.setLoadType(LoadType.FICTITIOUS);
         l4.setLoadType(LoadType.UNDEFINED);
-        l5.setLoadType(LoadType.UNDEFINED);
-        l6.setLoadType(LoadType.UNDEFINED);
+        l5.setLoadType(LoadType.FICTITIOUS);
+        l6.setLoadType(LoadType.FICTITIOUS);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertActivePowerEquals(30.0, l1.getTerminal());
-        assertActivePowerEquals(60.0, l2.getTerminal());
-        assertActivePowerEquals(50.0, l3.getTerminal());
-        assertActivePowerEquals(182.0, l4.getTerminal());
-        assertActivePowerEquals(13.0, l5.getTerminal());
-        assertActivePowerEquals(-35.0, l6.getTerminal());
+        assertActivePowerEquals(l1.getP0(), l1.getTerminal());
+        assertActivePowerEquals(l2.getP0(), l2.getTerminal());
+        assertActivePowerEquals(l3.getP0(), l3.getTerminal());
+        assertActivePowerEquals(l4.getP0() + 60, l4.getTerminal());
+        assertActivePowerEquals(l5.getP0(), l5.getTerminal());
+        assertActivePowerEquals(l6.getP0(), l6.getTerminal());
         LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
                 .addMetrics("3", "CONVERGED")
                 .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 4.0392134081912445E-9)
