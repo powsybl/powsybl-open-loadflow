@@ -79,8 +79,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         // all Loads must be fictitious to return true
         for (Ref<Load> loadRef : loadsRefs) {
             Load load = loadRef.get();
-            boolean isLoadFictitious = load.isFictitious() || load.getLoadType().equals(LoadType.FICTITIOUS);
-            if (!isLoadFictitious) {
+            if (!isLoadFictitious(load)) {
                 return false;
             }
         }
@@ -173,7 +172,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     private double getAbsVariableTargetP(Load load) {
-        if (load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType())) {
+        if (isLoadFictitious(load)) {
             return 0.0;
         }
         double varP;
@@ -270,6 +269,10 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private static double getPowerFactor(Load load) {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
+    }
+
+    private static boolean isLoadFictitious(Load load) {
+        return load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType());
     }
 
     @Override
