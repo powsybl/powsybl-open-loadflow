@@ -99,6 +99,43 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void testProportionalToPWithOverride() {
+        // decrease g1 max limit power, so that distributed slack algo reach the g1 max
+        g1.setMaxP(105);
+        g1.getExtension(ActivePowerControl.class).setMaxPOverride(103);
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-103, g1.getTerminal());
+        assertActivePowerEquals(-261.579, g2.getTerminal());
+        assertActivePowerEquals(-117.711, g3.getTerminal());
+        assertActivePowerEquals(-117.711, g4.getTerminal());
+
+        // now compensation down
+        Load l1 = network.getLoad("l1");
+        l1.setP0(400);  // was 600
+        result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-83.333, g1.getTerminal());
+        assertActivePowerEquals(-166.667, g2.getTerminal());
+        assertActivePowerEquals(-75.000, g3.getTerminal());
+        assertActivePowerEquals(-75.000, g4.getTerminal());
+
+        // With a pMin temporary limit for g1
+        g1.getExtension(ActivePowerControl.class).setMinPOverride(85);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-85, g1.getTerminal());
+        assertActivePowerEquals(-165.790, g2.getTerminal());
+        assertActivePowerEquals(-74.605, g3.getTerminal());
+        assertActivePowerEquals(-74.605, g4.getTerminal());
+
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void testProportionalToParticipationFactor() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max

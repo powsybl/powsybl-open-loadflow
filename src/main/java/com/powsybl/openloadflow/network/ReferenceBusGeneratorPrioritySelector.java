@@ -43,7 +43,7 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
         // if multiple generators of same priority, select based on highest maxP
         LfGenerator referenceGenerator = lfGenerators.stream()
                 .filter(g -> g.getReferencePriority() == priority)
-                .min(Comparator.comparingDouble(LfGenerator::getMaxP).reversed().thenComparing(LfGenerator::getId)
+                .min(Comparator.comparingDouble(LfGenerator::getActivePowerOperationMaxP).reversed().thenComparing(LfGenerator::getId)
                 ).orElseThrow(() -> new IllegalStateException("No reference Generator for network " + lfNetwork));
         LfBus referenceBus = referenceGenerator.getBus();
         return new SelectedGeneratorReferenceBus(referenceBus, METHOD_NAME, referenceGenerator);

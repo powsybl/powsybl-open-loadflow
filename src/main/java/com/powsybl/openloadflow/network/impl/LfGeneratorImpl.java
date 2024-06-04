@@ -166,6 +166,20 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public double getActivePowerOperationMinP() {
+        Generator generator = getGenerator();
+        ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
+        return activePowerControl == null ? getMinP() : activePowerControl.getMinPOverride().orElse(generator.getMinP()) / PerUnit.SB;
+    }
+
+    @Override
+    public double getActivePowerOperationMaxP() {
+        Generator generator = getGenerator();
+        ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
+        return activePowerControl == null ? getMaxP() : activePowerControl.getMaxPOverride().orElse(generator.getMaxP()) / PerUnit.SB;
+    }
+
+    @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(getGenerator().getReactiveLimits());
     }

@@ -94,6 +94,20 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public double getActivePowerOperationMinP() {
+        Battery battery = getBattery();
+        ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
+        return activePowerControl == null ? getMinP() : activePowerControl.getMinPOverride().orElse(battery.getMinP()) / PerUnit.SB;
+    }
+
+    @Override
+    public double getActivePowerOperationMaxP() {
+        Battery battery = getBattery();
+        ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
+        return activePowerControl == null ? getMaxP() : activePowerControl.getMaxPOverride().orElse(battery.getMaxP()) / PerUnit.SB;
+    }
+
+    @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(getBattery().getReactiveLimits());
     }

@@ -74,8 +74,8 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
             LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
             double factor = participatingGenerator.getFactor();
 
-            double minP = useActiveLimits ? generator.getMinP() : -Double.MAX_VALUE;
-            double maxP = useActiveLimits ? generator.getMaxP() : Double.MAX_VALUE;
+            double minP = useActiveLimits ? generator.getActivePowerOperationMinP() : -Double.MAX_VALUE;
+            double maxP = useActiveLimits ? generator.getActivePowerOperationMaxP() : Double.MAX_VALUE;
             double targetP = generator.getTargetP();
 
             // we don't want to change the generation sign
@@ -114,10 +114,10 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
 
     private double getParticipationFactor(LfGenerator generator) {
         return switch (participationType) {
-            case MAX -> generator.getMaxP() / generator.getDroop();
+            case MAX -> generator.getActivePowerOperationMaxP() / generator.getDroop();
             case TARGET -> Math.abs(generator.getTargetP());
             case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
-            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxP() - generator.getTargetP());
+            case REMAINING_MARGIN -> Math.max(0.0, generator.getActivePowerOperationMaxP() - generator.getTargetP());
         };
     }
 

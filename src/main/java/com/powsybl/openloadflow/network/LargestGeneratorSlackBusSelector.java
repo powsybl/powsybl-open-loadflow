@@ -33,7 +33,7 @@ public class LargestGeneratorSlackBusSelector extends AbstractSlackBusSelector {
     }
 
     private static double getMaxP(LfBus bus) {
-        return bus.getGenerators().stream().mapToDouble(LfGenerator::getMaxP).sum();
+        return bus.getGenerators().stream().mapToDouble(LfGenerator::getActivePowerOperationMaxP).sum();
     }
 
     private boolean isGeneratorInvalid(LfGenerator generator) {
