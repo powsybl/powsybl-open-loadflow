@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.initStateVector;
+import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.updateNetwork;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.getPreContingencyFlowRhs;
 
@@ -84,6 +85,7 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
         return result.isSuccess() ? PostContingencyComputationStatus.CONVERGED : PostContingencyComputationStatus.FAILED;
     }
 
+    // TODO : remove this method after woodbury refactoring
     protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
@@ -91,6 +93,7 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
         return participatingElements;
     }
 
+    // TODO : remove this method after woodbury refactoring
     private List<ParticipatingElement> getNewNormalizedParticipationFactors(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt,
                                                                             LfContingency lfContingency, List<ParticipatingElement> participatingElements) {
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
@@ -111,6 +114,7 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
         return newParticipatingElements;
     }
 
+    // TODO : remove this method after woodbury refactoring
     private List<ParticipatingElement> processInjectionRhsModificationForAContingency(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt,
                                                                                       LfContingency lfContingency, PropagatedContingency contingency, List<ParticipatingElement> participatingElements,
                                                                                       WoodburyEngineRhsModifications injectionRhsModifications) {
@@ -125,18 +129,21 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
         return modifiedParticipatingElements;
     }
 
+    // TODO : remove this method after woodbury refactoring
     public static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
         return lfParameters.isDistributedSlack()
                 && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
     }
 
+    // TODO : remove this method after woodbury refactoring
     public static boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
         return lfParameters.isDistributedSlack()
                 && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 
+    // TODO : remove this method after woodbury refactoring
     protected void buildRhsModificationsForAContingency(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt,
                                                       PropagatedContingency contingency, List<ParticipatingElement> participatingElements,
                                                       WoodburyEngineRhsModifications flowRhsModifications, DisabledNetwork disabledNetwork) {
@@ -161,6 +168,7 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
 
     /**
      * Compute right hand side overrides for a list of contingencies.
+     * TODO : remove this method after woodbury refactoring
      */
     protected void buildRhsModificationsForContingencies(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt,
                                                        Collection<PropagatedContingency> contingencies, List<ParticipatingElement> participatingElements, WoodburyEngineRhsModifications injectionRhsModifications,
@@ -203,6 +211,7 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
         }
     }
 
+    // TODO : remove this method after woodbury refactoring
     private void processHvdcLinesWithDisconnection(DcLoadFlowContext loadFlowContext, Set<LfBus> disabledBuses, ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult) {
         for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
             if (Networks.isIsolatedBusForHvdc(hvdc.getBus1(), disabledBuses) ^ Networks.isIsolatedBusForHvdc(hvdc.getBus2(), disabledBuses)) {
@@ -216,6 +225,7 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
 
     /**
      * Compute right hand side overrides for groups of contingencies breaking connectivity.
+     * // TODO : remove this method after woodbury refactoring
      */
     private void buildRhsModificationsForContingenciesBreakingConnectivity(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityDataResult,
                                                                            List<ParticipatingElement> participatingElements,
@@ -237,17 +247,12 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
             if (lfParameters.isDistributedSlack()) {
                 rhsChanged = participatingElementsForThisConnectivity.stream().anyMatch(element -> disabledBuses.contains(element.getLfBus()));
             }
-//            if (factorGroups.hasMultiVariables()) {
-                // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-//                rhsChanged |= rescaleGlsk(factorGroups, disabledBuses);
-//            }
+
             // we need to recompute the injection rhs because the connectivity changed
             if (rhsChanged) {
                 participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
                         ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
                         : Collections.emptyList());
-//                DenseMatrix injectionRhsOverrideForThisConnectivity = getPreContingencyInjectionRhs(loadFlowContext, null, participatingElementsForThisConnectivity);
-//                injectionRhsModifications.addRhsOverrideForAConnectivity(connectivityAnalysisResult, injectionRhsOverrideForThisConnectivity);
             }
 
             DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, Collections.emptySet());
@@ -343,8 +348,14 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
             // set pre contingency angle states as state vector of equation system
             double[] preContingencyAnglesStates = getAngleStatesAsArray(angleStates.getPreContingencyStates());
             context.getEquationSystem().getStateVector().set(preContingencyAnglesStates);
-            // TODO : remove this ? seems important for next step
-//            updateNetwork(lfNetwork, context.getEquationSystem(), preContingencyAnglesStates);
+
+            // Update network voltages with pre contingency states
+            updateNetwork(lfNetwork, context.getEquationSystem(), preContingencyAnglesStates);
+            if (context.getParameters().isSetVToNan()) {
+                for (LfBus bus : lfNetwork.getBuses()) {
+                    bus.setV(Double.NaN);
+                }
+            }
 
             // update network result
             var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
@@ -359,7 +370,6 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
 
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
             Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
-            // TODO : should we keep this now that all computation is done in Woodbury engine ?
             while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
                 PropagatedContingency propagatedContingency = contingencyIt.next();
                 propagatedContingency.toLfContingency(lfNetwork)
@@ -370,10 +380,7 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
                                 lfContingency.getLostGenerators(), lfContingency.getShuntsShift(), lfContingency.getLostLoads());
 
                             lfContingency.apply(loadFlowParameters.getBalanceType());
-                            // TODO : see if following is useful. Should not as active power is taken into account in woodbury
-//                            distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                            // TODO : Should not be there.
                             initStateVector(lfNetwork, context.getEquationSystem(), new UniformValueVoltageInitializer());
                             double[] postContingencyAngleStates = getAngleStatesAsArray(angleStates.getPostContingencyWoodburyStates(propagatedContingency));
                             context.getEquationSystem().getStateVector().set(postContingencyAngleStates);
@@ -391,8 +398,8 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
                                     lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB,
                                     lfContingency.getDisconnectedElementIds());
 
-                            PostContingencyResult postContingencyResult = new PostContingencyResult(propagatedContingency.getContingency(), PostContingencyComputationStatus.CONVERGED,
-                                    new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
+                            PostContingencyResult postContingencyResult = new PostContingencyResult(propagatedContingency.getContingency(),
+                                    PostContingencyComputationStatus.CONVERGED, new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
                                     postContingencyNetworkResult.getBranchResults(),
                                     postContingencyNetworkResult.getBusResults(),
                                     postContingencyNetworkResult.getThreeWindingsTransformerResults(),
