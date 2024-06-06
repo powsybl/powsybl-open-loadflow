@@ -8,10 +8,7 @@
  */
 package com.powsybl.openloadflow.util;
 
-import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.math.matrix.Matrix;
-import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.*;
 import org.tukaani.xz.check.None;
 
 import java.util.List;
@@ -53,7 +50,7 @@ public final class MatrixUtil {
     public static Matrix extractRowsAndColumns(Matrix originalMatrix, List<Integer> listRowsAndColumnsToKeep) {
         int newRowCount = listRowsAndColumnsToKeep.size();
         int newColumnCount = listRowsAndColumnsToKeep.size();
-        MatrixFactory factory = new DenseMatrixFactory();
+        MatrixFactory factory = new SparseMatrixFactory();
         Matrix newMatrix = factory.create(newRowCount, newColumnCount, listRowsAndColumnsToKeep.size()*2);
 
         originalMatrix.iterateNonZeroValue(new Matrix.ElementHandler() {

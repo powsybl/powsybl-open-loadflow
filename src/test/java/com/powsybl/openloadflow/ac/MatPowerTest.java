@@ -7,16 +7,21 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.datasource.FileDataSource;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.NetworkFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.matpower.converter.MatpowerImporter;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.nio.file.Path;
+import java.util.Properties;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -38,7 +43,8 @@ public class MatPowerTest {
     void setUp() {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
-                .setAcSolverType(AcSolverType.KNITRO);
+                .setAcSolverType(AcSolverType.KNITRO)
+                ;
         // Sparse matrix solver only
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         // No OLs
@@ -50,8 +56,16 @@ public class MatPowerTest {
     }
     @Test
     void IEEE14() {
-        Network network = Network.read("C:/Users/jarchambault/Downloads/case14.mat");
+        // Load network from .mat file
+        Properties properties = new Properties();
+        // We want base voltages to be taken into account
+//        properties.put("matpower.import.ignore-base-voltage", false);
+        Network network = new MatpowerImporter().importData(
+                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case14"),
+                NetworkFactory.findDefault(), properties);
+        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case14"));
         LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
+
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
         assertVoltageEquals(1.06, network.getBusView().getBus("VL-1_0"));
         assertVoltageEquals(1.045, network.getBusView().getBus("VL-2_0"));
@@ -81,5 +95,50 @@ public class MatPowerTest {
         assertAngleEquals(-15.075584, network.getBusView().getBus("VL-12_0"));
         assertAngleEquals(-15.156276, network.getBusView().getBus("VL-13_0"));
         assertAngleEquals(-16.033644, network.getBusView().getBus("VL-14_0"));
+    }
+
+    @Test
+    void case1951Rte() {
+        // Load network from .mat file
+        Properties properties = new Properties();
+        // We want base voltages to be taken into account
+        properties.put("matpower.import.ignore-base-voltage", false);
+        Network network = new MatpowerImporter().importData(
+                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case1951rte"),
+                NetworkFactory.findDefault(), properties);
+        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case1951rte"));
+        LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
+    }
+
+    @Test
+    void case57() {
+        // Load network from .mat file
+        Properties properties = new Properties();
+        // We want base voltages to be taken into account
+        properties.put("matpower.import.ignore-base-voltage", false);
+        Network network = new MatpowerImporter().importData(
+                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case57"),
+                NetworkFactory.findDefault(), properties);
+        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case57"));
+        LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
+    }
+
+    @Test
+    void case1888Rte() {
+        // Load network from .mat file
+        Properties properties = new Properties();
+        // We want base voltages to be taken into account
+        properties.put("matpower.import.ignore-base-voltage", false);
+        Network network = new MatpowerImporter().importData(
+                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case1888rte"),
+                NetworkFactory.findDefault(), properties);
+        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case1888rte"));
+        LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
     }
 }

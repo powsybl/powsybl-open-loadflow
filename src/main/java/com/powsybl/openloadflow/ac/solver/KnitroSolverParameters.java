@@ -16,7 +16,7 @@ import java.util.Objects;
 
 public class KnitroSolverParameters {
 
-    public static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 2; // Knitro computes gradients by forward finite differences
+    public static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 1 ; // user provides a routine for computing the exact gradients
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
 
