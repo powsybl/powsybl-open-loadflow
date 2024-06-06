@@ -57,6 +57,7 @@ import java.util.stream.Stream;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -3184,5 +3185,25 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.9, limitViolations.get(0).getLimitReduction(), 0.0001);
         assertEquals(1000., limitViolations.get(0).getLimit(), 0.0001);
         assertEquals(945.51416, limitViolations.get(0).getValue(), 0.0001);
+    }
+
+    @Test
+    void testWithFictitiousLoad() {
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+        network.getLoad("l1").setFictitious(true);
+        network.getLoad("l4").setFictitious(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("l4", new LoadContingency("l4")));
+
+        LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
+
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(1, result.getPostContingencyResults().size());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
     }
 }
