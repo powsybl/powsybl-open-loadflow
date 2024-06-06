@@ -200,4 +200,18 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             ReferenceTerminals.addTerminal(generator.getTerminal());
         }
     }
+
+    @Override
+    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
+        return getGenerator().isFictitious() ?
+                true :
+                super.checkIfGeneratorStartedForVoltageControl(report);
+    }
+
+    @Override
+    protected boolean checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        return getGenerator().isFictitious() ?
+                true :
+                super.checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
+    }
 }
