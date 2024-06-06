@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.MatrixUtil;
+import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,14 +164,16 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             private final List<Integer> listNonZerosCts;
             private final List<Integer> listNonZerosVars;
             private final List<Integer> listNonLinearConsts;
+            private final List<Integer> listVarChecker;
             private final LfNetwork network;
             private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-            private CallbackEvalG(JacobianMatrix<AcVariableType, AcEquationType> oldMatrix, List<Integer> listNonZerosCts, List<Integer> listNonZerosVars, List<Integer> listNonLinearConsts, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+            private CallbackEvalG(JacobianMatrix<AcVariableType, AcEquationType> oldMatrix, List<Integer> listNonZerosCts, List<Integer> listNonZerosVars, List<Integer> listNonLinearConsts, List<Integer> listVarChecker, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
                 this.oldMatrix = oldMatrix;
                 this.listNonZerosCts = listNonZerosCts;
                 this.listNonZerosVars = listNonZerosVars;
                 this.listNonLinearConsts = listNonLinearConsts;
+                this.listVarChecker = listVarChecker;
                 this.network = network;
                 this.equationSystem = equationSystem;
             }
@@ -199,7 +202,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 //                    }
 //                }
 
-                for (int index=0; index<listNonZerosCts.size(); index++) {
+                for (int index = 0; index < listNonZerosCts.size(); index++) {
                     try {
                         double value = denseOldMatrix.get(listNonZerosVars.get(index), listNonZerosCts.get(index));
                         jac.set(index, value);  // Jacobian needs to be transposed
@@ -211,6 +214,53 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     }
                 }
 
+
+                List<Double> jac1 = new ArrayList<>();
+                List<Double> jac2 = new ArrayList<>();
+                List<Double> jacDiff = new ArrayList<>();
+
+                // JAC 1
+                for (int ct : listNonLinearConsts) {
+                    for (int var = 0; var < getNumVars(); var++) { //TODO CHANGER
+                        try {
+                            jac1.add(denseOldMatrix.get(var, ct));  // Jacobian needs to be transposed
+                        } catch (Exception e) {
+                            LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", var, ct);
+                            LOGGER.error(e.getMessage());
+                            throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
+                        }
+                    }
+                }
+
+                // JAC 2
+                for (int index = 0; index < listNonZerosCts.size(); index++) {
+                    try {
+                        double value = denseOldMatrix.get(listNonZerosVars.get(index), listNonZerosCts.get(index));
+                        jac2.add(value);  // Jacobian needs to be transposed
+//                        jac.set(index, denseOldMatrix.get(listNonZerosCts.get(index),listNonZerosVars.get(index)));  // Jacobian needs to be transposed
+                    } catch (Exception e) {
+                        LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars.get(index), listNonZerosCts.get(index));
+                        LOGGER.error(e.getMessage());
+                        throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
+                    }
+                }
+
+                // JAC DIFF
+                int id2 = 0;
+                for (int i = 0; i < jac1.size(); i++) {
+                    if (listVarChecker.get(i) != -1) {
+                        jacDiff.add(jac1.get(i) - jac2.get(id2));
+                        id2 += 1;
+                    } else {
+                        jacDiff.add(jac1.get(i));
+                    }
+                }
+
+                for (double value : jacDiff) {
+                    if (value >= 0.00001) {
+                        System.out.println("Les deux Jacobiennes sont censées être équivalentes, mais elles le sont pas!!!");
+                    }
+                }
                 //TODO a reprendre car valeurs de la jacobienne visiblement fausses
             }
         }
@@ -366,19 +416,34 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             List<Integer> listNonZerosCts = new ArrayList<>();
             List<Integer> listNonZerosVars = new ArrayList<>();
+            List<Integer> listVarChecker = new ArrayList<>();
             for (Integer ct : listNonLinearConsts) {
                 Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(ct);
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
                 List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
-//                forterms.get(0).getVariables().get(0).getRow();
+//                for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
+//                    for (Variable variable : term.getVariables()) {
+//                        listNonZerosVarsCurrentCt.add(variable.getRow());
+//                    }
+//                }
+//                List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list
+//                listNonZerosVars.addAll(uniqueListVarsCurrentCt);
+
                 for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
                     for (Variable variable : term.getVariables()) {
                         listNonZerosVarsCurrentCt.add(variable.getRow());
                     }
                 }
-
                 List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list
                 listNonZerosVars.addAll(uniqueListVarsCurrentCt);
+                for (int var=0; var<sortedVariables.size(); var++) {
+                    if (uniqueListVarsCurrentCt.contains(var)) {
+                        listVarChecker.add(var);
+                    } else {
+                        listVarChecker.add(-1);
+                    }
+                }
+
 //                for (int i=0; i<uniqueListVarsCurrentCt.size(); i++) {
 //                    listNonZerosCts.add(ct);
 //                }
@@ -386,7 +451,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             }
 
             setJacNnzPattern(listNonZerosCts,listNonZerosVars);
-            setGradEvalCallback(new CallbackEvalG(jacobianMatrix,listNonZerosCts, listNonZerosVars, listNonLinearConsts, lfNetwork, equationSystem));
+            setGradEvalCallback(new CallbackEvalG(jacobianMatrix,listNonZerosCts, listNonZerosVars, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
         }
 
     }
@@ -395,8 +460,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         solver.setParam(KNConstants.KN_PARAM_GRADOPT, knitroParameters.getGradientComputationMode());
         DefaultKnitroSolverStoppingCriteria knitroSolverStoppingCriteria = (DefaultKnitroSolverStoppingCriteria) knitroParameters.getStoppingCriteria();
         solver.setParam(KNConstants.KN_PARAM_FEASTOL, knitroSolverStoppingCriteria.convEpsPerEq);
-        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK,1);
-        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL,0.0001);
+//        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK,1);
+//        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL,0.00001);
     }
 
     @Override
