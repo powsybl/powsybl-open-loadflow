@@ -22,6 +22,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.ac.solver.AcSolverType;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.network.*;
@@ -248,7 +249,7 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
-    void testAlwaysUpdateNetwork() {
+    void testAlwaysUpdateNetworkNewtonRaphson() {
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setTransformerVoltageControlOn(true)
                 .setDistributedSlack(false);
@@ -256,7 +257,7 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(2); // Force final status of following run to be MAX_ITERATION_REACHED
-        assertFalse(olfParameters.isAlwaysUpdateNetwork()); // Default value of alwaysUpdateNetwork
+        assertFalse(olfParameters.isAlwaysUpdateNetworkNewtonRaphson()); // Default value of alwaysUpdateNetwork
 
         // Check the network is not updated if alwaysUpdateNetwork = false and final status = MAX_ITERATION_REACHED
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
@@ -266,12 +267,43 @@ class OpenLoadFlowParametersTest {
         assertTrue(Double.isNaN(nload.getV()));
 
         // Check the network is updated if alwaysUpdateNetwork = true and final status = MAX_ITERATION_REACHED
-        olfParameters.setAlwaysUpdateNetwork(true);
-        assertTrue(olfParameters.isAlwaysUpdateNetwork());
+        olfParameters.setAlwaysUpdateNetworkNewtonRaphson(true);
+        assertTrue(olfParameters.isAlwaysUpdateNetworkNewtonRaphson());
 
         loadFlowRunner.run(network, parameters);
         assertVoltageEquals(158, nload);
     }
+
+    @Test //TODO test for Knitro is always update network
+    void testAlwaysUpdateNetworkKnitroSolver() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parameters.setDistributedSlack(false)
+                .setUseReactiveLimits(false);
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setSvcVoltageMonitoring(false);
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setAcSolverType(AcSolverType.KNITRO)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        assertFalse(parametersExt.isAlwaysUpdateNetworkKnitroSolver()); // Default value of alwaysUpdateNetwork
+//
+        // TODO a reprendre, ajouter paramètre max iters dans KnitroSolver
+//        // Check the network is not updated if alwaysUpdateNetwork = false and final status = MAX_ITERATION_REACHED
+//        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+//        var nload = network.getBusBreakerView().getBus("NLOAD");
+//        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+//        loadFlowRunner.run(network, parameters);
+//        assertTrue(Double.isNaN(nload.getV()));
+//
+//        // Check the network is updated if alwaysUpdateNetwork = true and final status = MAX_ITERATION_REACHED
+//        olfParameters.setAlwaysUpdateNetworkNewtonRaphson(true);
+//        assertTrue(olfParameters.isAlwaysUpdateNetworkNewtonRaphson());
+//
+//        loadFlowRunner.run(network, parameters);
+//        assertVoltageEquals(158, nload);
+    }
+
 
     @Test
     void testUpdateParameters() {
