@@ -134,9 +134,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                             term.setStateVector(currentState);
                             if (term.isActive()) {
                                 valueConst += term.eval();
-                                if (LOGGER.isTraceEnabled()) {
-                                    LOGGER.trace("Term of equation n° {} was evaluated at {}", equationId, term.eval()); //TODO a reprendre pour log le nom du terme également
-                                }
+                                //if (LOGGER.isTraceEnabled()) {
+                                    //LOGGER.trace("Term of equation n° {} was evaluated at {}", equationId, term.eval()); //TODO a reprendre pour log le nom du terme également
+                                //}
                             }
                         }
                         try {
@@ -505,6 +505,16 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 equationSystem.getStateVector().set(toArray(solution.getX()));
                 AcSolverUtil.updateNetwork(network, equationSystem);
             }
+
+            if (acStatus == AcSolverStatus.CONVERGED || knitroParameters.isAlwaysUpdateNetwork()) {
+                equationSystem.getStateVector().set(toArray(solution.getX()));
+                AcSolverUtil.updateNetwork(network, equationSystem);
+            }
+//
+//            // update network state variable
+//            if (acStatus == AcSolverStatus.CONVERGED && isStateUnrealistic(reportNode)) {
+//                status = AcSolverStatus.UNREALISTIC_STATE;
+//            }
 
         } catch (KNException e) {
             LOGGER.error("Exception found while trying to solve with Knitro");

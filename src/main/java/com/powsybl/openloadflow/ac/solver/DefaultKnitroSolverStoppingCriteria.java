@@ -26,11 +26,4 @@ public class DefaultKnitroSolverStoppingCriteria implements KnitroSolverStopping
         return convEpsPerEq;
     }
 
-//    @Override
-//    public TestResult test(double[] fx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-//        // calculate norm L2 of equations mismatch vector
-//        double norm = Vectors.norm2(fx);
-//        boolean stop = norm < FastMath.sqrt(convEpsPerEq * convEpsPerEq * fx.length);
-//        return new TestResult(stop, norm);
-//    }
 }
