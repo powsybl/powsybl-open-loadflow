@@ -62,11 +62,11 @@ public interface LfHvdc extends LfElement {
             return feedingSide;
         }
 
-        void setAcEmulationStatus(AcEmulationStatus status) {
+        public void setAcEmulationStatus(AcEmulationStatus status) {
             acEmulationStatus = status;
         }
 
-        void setFeedingSide(TwoSides side) {
+        public void setFeedingSide(TwoSides side) {
             feedingSide = side;
         }
     }
