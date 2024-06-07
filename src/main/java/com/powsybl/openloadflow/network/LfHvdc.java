@@ -17,11 +17,17 @@ import com.powsybl.openloadflow.util.PerUnit;
 public interface LfHvdc extends LfElement {
 
     class AcEmulationControl {
+        public enum AcEmulationStatus {
+            FREE,
+            BOUNDED_SIDE_ONE,
+            BOUNDED_SIDE_TWO,
+            NULL;
+        }
         private final double droop;
         private final double p0;
         private final double pMaxFromCS1toCS2;
         private final double pMaxFromCS2toCS1;
-        private boolean activated = true;
+        private AcEmulationStatus acEmulationStatus = AcEmulationStatus.FREE;
         private TwoSides feedingSide;
 
         public AcEmulationControl(double droop, double p0, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1) {
@@ -48,16 +54,16 @@ public interface LfHvdc extends LfElement {
             return pMaxFromCS2toCS1 / PerUnit.SB;
         }
 
-        public boolean isActivated() {
-            return activated;
+        public AcEmulationStatus getAcEmulationStatus() {
+            return acEmulationStatus;
         }
 
         public TwoSides getFeedingSide() {
             return feedingSide;
         }
 
-        void setActivated(boolean activated) {
-            this.activated = activated;
+        void setAcEmulationStatus(AcEmulationStatus status) {
+            acEmulationStatus = status;
         }
 
         void setFeedingSide(TwoSides side) {

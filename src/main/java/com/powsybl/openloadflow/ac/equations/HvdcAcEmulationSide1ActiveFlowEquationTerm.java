@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
@@ -23,30 +24,31 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
         super(hvdc, bus1, bus2, variableSet);
     }
 
+    private double getSide1LossMultiplier() {
+        return element.getAcEmulationControl().getFeedingSide() == TwoSides.ONE ? 1 : getVscLossMultiplier();
+    }
+
     private double p1(double ph1, double ph2) {
-        double rawP = rawP(p0, k, ph1, ph2);
-        return (isController(rawP) ? 1 : getVscLossMultiplier()) * rawP;
+        double boundedP = switch (element.getAcEmulationControl().getAcEmulationStatus()) {
+            case FREE -> rawP(p0, k, ph1, ph2);
+            case BOUNDED_SIDE_ONE -> pMaxFromCS1toCS2;
+            case BOUNDED_SIDE_TWO -> -pMaxFromCS2toCS1;
+            default -> 0;
+        };
+        return getSide1LossMultiplier() * boundedP;
     }
 
-    private static boolean isController(double rawP) {
-        return rawP >= 0;
-    }
-
-    private boolean isInOperatingRange(double rawP) {
-        return rawP < pMaxFromCS1toCS2 && rawP > -pMaxFromCS2toCS1;
-    }
-
-    protected double dp1dph1(double ph1, double ph2) {
-        double rawP = rawP(p0, k, ph1, ph2);
-        if (isInOperatingRange(rawP)) {
-            return (isController(rawP) ? 1 : getVscLossMultiplier()) * k;
-        } else {
+    protected double dp1dph1() {
+        if (element.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.FREE) {
+            return getSide1LossMultiplier() * k;
+        }
+        else {
             return 0;
         }
     }
 
-    protected double dp1dph2(double ph1, double ph2) {
-        return -dp1dph1(ph1, ph2);
+    protected double dp1dph2() {
+        return -dp1dph1();
     }
 
     @Override
@@ -58,9 +60,9 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
-            return dp1dph1(ph1(), ph2());
+            return dp1dph1();
         } else if (variable.equals(ph2Var)) {
-            return dp1dph2(ph1(), ph2());
+            return dp1dph2();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
