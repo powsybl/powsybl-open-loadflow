@@ -204,7 +204,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME = "phaseShifterControlMode";
 
-    private static final String ALWAYS_UPDATE_NETWORK_PARAM_NAME = "alwaysUpdateNetwork";
+    private static final String ALWAYS_UPDATE_NETWORK_PARAM_NAME_NEWTON_RAPHSON = "alwaysUpdateNetworkNewtonRaphson";
+
+    private static final String ALWAYS_UPDATE_NETWORK_PARAM_NAME_KNITRO_SOLVER = "alwaysUpdateNetworkKnitroSolver";
 
     private static final String MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME = "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile";
 
@@ -454,7 +456,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private PhaseShifterControlMode phaseShifterControlMode = PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE;
 
-    private boolean alwaysUpdateNetwork = NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
+    private boolean alwaysUpdateNetworkNewtonRaphson = NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
+
+    private boolean alwaysUpdateNetworkKnitroSolver = KnitroSolverParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
     private double mostMeshedSlackBusSelectorMaxNominalVoltagePercentile = MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE;
 
@@ -978,15 +982,23 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean isAlwaysUpdateNetwork() {
-        return alwaysUpdateNetwork;
+    public boolean isAlwaysUpdateNetworkNewtonRaphson() {
+        return alwaysUpdateNetworkNewtonRaphson;
     }
 
-    public OpenLoadFlowParameters setAlwaysUpdateNetwork(boolean alwaysUpdateNetwork) {
-        this.alwaysUpdateNetwork = alwaysUpdateNetwork;
+    public OpenLoadFlowParameters setAlwaysUpdateNetworkNewtonRaphson(boolean alwaysUpdateNetworkNewtonRaphson) {
+        this.alwaysUpdateNetworkNewtonRaphson = alwaysUpdateNetworkNewtonRaphson;
         return this;
     }
 
+    public boolean isAlwaysUpdateNetworkKnitroSolver() {
+        return alwaysUpdateNetworkKnitroSolver;
+    }
+
+    public OpenLoadFlowParameters setAlwaysUpdateNetworkKnitroSolver(boolean alwaysUpdateNetworkKnitroSolver) {
+        this.alwaysUpdateNetworkKnitroSolver = alwaysUpdateNetworkKnitroSolver;
+        return this;
+    }
     public double getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() {
         return mostMeshedSlackBusSelectorMaxNominalVoltagePercentile;
     }
@@ -1252,7 +1264,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
                 .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV_DEFAULT_VALUE))
                 .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
-                .setAlwaysUpdateNetwork(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME, NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE))
+                .setAlwaysUpdateNetworkNewtonRaphson(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME_NEWTON_RAPHSON, NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE))
+                .setAlwaysUpdateNetworkKnitroSolver(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME_KNITRO_SOLVER, KnitroSolverParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE))
                 .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(config.getDoubleProperty(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE))
                 .setReportedFeatures(config.getEnumSetProperty(REPORTED_FEATURES_PARAM_NAME, ReportedFeatures.class, REPORTED_FEATURES_DEFAULT_VALUE))
                 .setSlackBusCountryFilter(config.getEnumSetProperty(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, Country.class, LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE))
@@ -1377,8 +1390,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setReactiveLimitsMaxPqPvSwitch(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setPhaseShifterControlMode(PhaseShifterControlMode.valueOf(prop)));
-        Optional.ofNullable(properties.get(ALWAYS_UPDATE_NETWORK_PARAM_NAME))
-                .ifPresent(prop -> this.setAlwaysUpdateNetwork(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(ALWAYS_UPDATE_NETWORK_PARAM_NAME_NEWTON_RAPHSON))
+                .ifPresent(prop -> this.setAlwaysUpdateNetworkNewtonRaphson(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(ALWAYS_UPDATE_NETWORK_PARAM_NAME_KNITRO_SOLVER))
+                .ifPresent(prop -> this.setAlwaysUpdateNetworkKnitroSolver(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME))
                 .ifPresent(prop -> this.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REPORTED_FEATURES_PARAM_NAME))
@@ -1479,7 +1494,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, secondaryVoltageControl);
         map.put(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, reactiveLimitsMaxPqPvSwitch);
         map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
-        map.put(ALWAYS_UPDATE_NETWORK_PARAM_NAME, alwaysUpdateNetwork);
+        map.put(ALWAYS_UPDATE_NETWORK_PARAM_NAME_NEWTON_RAPHSON, alwaysUpdateNetworkNewtonRaphson);
+        map.put(ALWAYS_UPDATE_NETWORK_PARAM_NAME_KNITRO_SOLVER, alwaysUpdateNetworkKnitroSolver);
         map.put(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile);
         map.put(REPORTED_FEATURES_PARAM_NAME, reportedFeatures);
         map.put(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, slackBusCountryFilter);
@@ -1696,7 +1712,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLineSearchStateVectorScalingStepFold(parametersExt.getLineSearchStateVectorScalingStepFold())
                 .setMaxVoltageChangeStateVectorScalingMaxDv(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDv())
                 .setMaxVoltageChangeStateVectorScalingMaxDphi(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDphi())
-                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
+                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetworkNewtonRaphson());
 
         NewtonKrylovParameters newtonKrylovParameters = new NewtonKrylovParameters()
                 .setLineSearch(parametersExt.isNewtonKrylovLineSearch())
@@ -1705,7 +1721,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         var knitroSolverParameters = new KnitroSolverParameters()
                 .setStoppingCriteria(createKnitroSolverStoppingCriteria(parametersExt))
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltageKnitroSolver())
-                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltageKnitroSolver());
+                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltageKnitroSolver())
+                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetworkKnitroSolver());
 
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 
@@ -1861,7 +1878,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
                 extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
-                extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork() &&
+                extension1.isAlwaysUpdateNetworkNewtonRaphson() == extension2.isAlwaysUpdateNetworkNewtonRaphson() &&
+                extension1.isAlwaysUpdateNetworkKnitroSolver() == extension2.isAlwaysUpdateNetworkKnitroSolver() &&
                 extension1.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() == extension2.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() &&
                 extension1.getReportedFeatures().equals(extension2.getReportedFeatures()) &&
                 extension1.getSlackBusCountryFilter().equals(extension2.getSlackBusCountryFilter()) &&
@@ -1954,7 +1972,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
                     .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
                     .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
-                    .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork())
+                    .setAlwaysUpdateNetworkNewtonRaphson(extension.isAlwaysUpdateNetworkNewtonRaphson())
+                    .setAlwaysUpdateNetworkKnitroSolver(extension.isAlwaysUpdateNetworkKnitroSolver())
                     .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(extension.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile())
                     .setReportedFeatures(extension.getReportedFeatures())
                     .setSlackBusCountryFilter(new HashSet<>(extension.getSlackBusCountryFilter()))

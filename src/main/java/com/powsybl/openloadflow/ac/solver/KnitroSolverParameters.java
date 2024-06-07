@@ -19,6 +19,7 @@ public class KnitroSolverParameters {
     public static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 1 ; // user provides a routine for computing the exact gradients
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
+    public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
 
     public KnitroSolverParameters() {
     }
@@ -30,6 +31,8 @@ public class KnitroSolverParameters {
     private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
 
     private KnitroSolverStoppingCriteria stoppingCriteria = new DefaultKnitroSolverStoppingCriteria();
+
+    private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
     public int getGradientComputationMode() {
         return gradientComputationMode;
@@ -78,6 +81,16 @@ public class KnitroSolverParameters {
         return this;
     }
 
+    public boolean isAlwaysUpdateNetwork() {
+        return alwaysUpdateNetwork;
+    }
+
+    public KnitroSolverParameters setAlwaysUpdateNetwork(boolean alwaysUpdateNetwork) {
+        this.alwaysUpdateNetwork = alwaysUpdateNetwork;
+        return this;
+    }
+
+
     @Override
     public String toString() {
         return "KnitroSolverParameters(" +
@@ -85,6 +98,7 @@ public class KnitroSolverParameters {
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
+                ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
                 ')';
     }
 }
