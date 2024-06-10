@@ -165,3 +165,8 @@ def replace_versions(intersphinx_mapping, file):
     return intersphinx_mapping
 
 intersphinx_mapping = replace_versions(intersphinx_mapping, file_with_version)
+
+# This parameter might already be present, just add the new value
+intersphinx_mapping = {
+    "powsyblcore": ("https://powsybl-core.readthedocs.io/en/latest/", None),
+}
