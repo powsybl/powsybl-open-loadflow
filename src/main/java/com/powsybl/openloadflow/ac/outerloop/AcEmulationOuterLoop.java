@@ -39,7 +39,7 @@ public class AcEmulationOuterLoop implements AcOuterLoop {
             modeSwitchCount.computeIfAbsent(hvdcId, k -> new MutableInt(0))
                     .increment();
         }
-        
+
         void incrementFeedingSideSwitchCount(String hvdcId) {
             feedingSideSwitchCount.computeIfAbsent(hvdcId, k -> new MutableInt(0))
                     .increment();
@@ -72,45 +72,89 @@ public class AcEmulationOuterLoop implements AcOuterLoop {
         return NAME;
     }
 
-    private void processHvdc(LfHvdc hvdc, ContextData contextData) {
+    private boolean checkFeedingSide(LfHvdc hvdc, ContextData contextData) {
         String hvdcId = hvdc.getId();
-        if(contextData.getFeedingSideSwitchCount(hvdcId) < maxFeedingSideSwitch && contextData.getModeSwitchCount(hvdcId) < maxModeSwitch) {
-            LfHvdc.AcEmulationControl acEmulationControl = hvdc.getAcEmulationControl();
+        LfHvdc.AcEmulationControl acEmulationControl = hvdc.getAcEmulationControl();
 
-            // Check feeding side
-            if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
-                if (hvdc.getP1().eval() < 0) {
-                    // Switch feeding side
-                    LOGGER.trace("Switching feeding side from One to Two for Hvdc: " + hvdcId);
-                    contextData.incrementFeedingSideSwitchCount(hvdcId);
-                    acEmulationControl.setFeedingSide(TwoSides.TWO);
-                    if (contextData.getFeedingSideSwitchCount(hvdcId) == maxFeedingSideSwitch) {
-                        LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: " + hvdcId);
-                        acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
-                    }
+        if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
+            if (hvdc.getP1().eval() < 0) {
+                // Switch feeding side
+                LOGGER.trace("Switching feeding side from One to Two for Hvdc: " + hvdcId);
+                contextData.incrementFeedingSideSwitchCount(hvdcId);
+                acEmulationControl.setFeedingSide(TwoSides.TWO);
+                if (contextData.getFeedingSideSwitchCount(hvdcId) == maxFeedingSideSwitch) {
+                    LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: " + hvdcId);
+                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
                 }
-            } else {
-                if (hvdc.getP2().eval() < 0) {
-                    // Switch feeding side
-                    LOGGER.trace("Switching feeding side from Two to One for Hvdc: " + hvdcId);
-                    contextData.incrementFeedingSideSwitchCount(hvdcId);
-                    acEmulationControl.setFeedingSide(TwoSides.ONE);
-                    if (contextData.getFeedingSideSwitchCount(hvdcId) == maxFeedingSideSwitch) {
-                        LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: " + hvdcId);
-                        acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
-                    }
-                }
-
+                return true;
             }
-
-            // Check Pmax
-            // TODO HG
-            if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
-
-            } else {
-
+        } else {
+            if (hvdc.getP2().eval() < 0) {
+                // Switch feeding side
+                LOGGER.trace("Switching feeding side from Two to One for Hvdc: " + hvdcId);
+                contextData.incrementFeedingSideSwitchCount(hvdcId);
+                acEmulationControl.setFeedingSide(TwoSides.ONE);
+                if (contextData.getFeedingSideSwitchCount(hvdcId) == maxFeedingSideSwitch) {
+                    LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: " + hvdcId);
+                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
+                }
+                return true;
             }
         }
+        return false;
+    }
+
+    private boolean checkMode(LfHvdc hvdc, ContextData contextData) {
+        String hvdcId = hvdc.getId();
+        LfHvdc.AcEmulationControl acEmulationControl = hvdc.getAcEmulationControl();
+
+        // Check for mode switch between FREE and BOUNDED
+        if (acEmulationControl.getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.FREE) {
+            // Check Pmax
+            if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
+                if (hvdc.getP1().eval() > acEmulationControl.getPMaxFromCS1toCS2()) {
+                    // Switch mode
+                    LOGGER.trace("Bound Hvdc flow to Pmax from CS1 to CS2 for Hvdc: " + hvdcId);
+                    contextData.incrementModeSwitchCount(hvdcId);
+                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
+                    if (contextData.getModeSwitchCount(hvdcId) == maxModeSwitch) {
+                        LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS1 to CS2) for Hvdc: " + hvdcId);
+                    }
+                    return true;
+                }
+            } else {
+                if (hvdc.getP2().eval() > acEmulationControl.getPMaxFromCS2toCS1()) {
+                    // Switch mode
+                    LOGGER.trace("Bound Hvdc flow to Pmax from CS2 to CS1 for Hvdc: " + hvdcId);
+                    contextData.incrementModeSwitchCount(hvdcId);
+                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
+                    if (contextData.getModeSwitchCount(hvdcId) == maxModeSwitch) {
+                        LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS2 to CS1) for Hvdc: " + hvdcId);
+                    }
+                    return true;
+                }
+            }
+        }
+
+        // Check for mode switch between BOUNDED and FREE
+        if (acEmulationControl.getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED) {
+            if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
+                if (hvdc.getP1().eval() < acEmulationControl.getPMaxFromCS1toCS2()) {
+                    // Switch mode
+                    LOGGER.trace("Set free the Ac Emulation mode for Hvdc: " + hvdcId);
+                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
+                    return true;
+                }
+            } else {
+                if (hvdc.getP2().eval() < acEmulationControl.getPMaxFromCS2toCS1()) {
+                    // Switch mode
+                    LOGGER.trace("Set free the Ac Emulation mode for Hvdc: " + hvdcId);
+                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override
@@ -118,7 +162,19 @@ public class AcEmulationOuterLoop implements AcOuterLoop {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         ContextData contextData = (ContextData) context.getData();
 
-        context.getNetwork().getHvdcs().forEach(hvdc -> processHvdc(hvdc, contextData));
-        return null;
+        for (LfHvdc hvdc : context.getNetwork().getHvdcs()) {
+            String hvdcId = hvdc.getId();
+            if (contextData.getFeedingSideSwitchCount(hvdcId) < maxFeedingSideSwitch && contextData.getModeSwitchCount(hvdcId) < maxModeSwitch) {
+                // First check the feeding side
+                if (checkFeedingSide(hvdc, contextData))
+                    status = OuterLoopStatus.UNSTABLE;
+
+                // Second check for Pmax values
+                if (checkMode(hvdc, contextData))
+                    status = OuterLoopStatus.UNSTABLE;
+            }
+        }
+
+        return new OuterLoopResult(this, status);
     }
 }

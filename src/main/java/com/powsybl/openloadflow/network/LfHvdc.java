@@ -19,8 +19,7 @@ public interface LfHvdc extends LfElement {
     class AcEmulationControl {
         public enum AcEmulationStatus {
             FREE,
-            BOUNDED_SIDE_ONE,
-            BOUNDED_SIDE_TWO,
+            BOUNDED,
             NULL;
         }
         private final double droop;

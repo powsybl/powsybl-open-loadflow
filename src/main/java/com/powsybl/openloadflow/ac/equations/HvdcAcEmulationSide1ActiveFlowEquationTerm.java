@@ -31,8 +31,7 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     private double p1(double ph1, double ph2) {
         double boundedP = switch (element.getAcEmulationControl().getAcEmulationStatus()) {
             case FREE -> rawP(p0, k, ph1, ph2);
-            case BOUNDED_SIDE_ONE -> pMaxFromCS1toCS2;
-            case BOUNDED_SIDE_TWO -> -pMaxFromCS2toCS1;
+            case BOUNDED -> element.getAcEmulationControl().getFeedingSide() == TwoSides.ONE ? pMaxFromCS1toCS2 : -pMaxFromCS2toCS1;
             default -> 0;
         };
         return getSide1LossMultiplier() * boundedP;
