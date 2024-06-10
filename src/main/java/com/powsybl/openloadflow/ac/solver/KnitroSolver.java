@@ -9,12 +9,10 @@ package com.powsybl.openloadflow.ac.solver;
 
 import com.artelys.knitro.api.*;
 import com.artelys.knitro.api.callbacks.*;
-import com.fasterxml.jackson.databind.deser.impl.JavaUtilCollectionsDeserializers;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
-import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -22,13 +20,10 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.MatrixUtil;
-import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 import static com.google.common.primitives.Doubles.toArray;
 
@@ -345,37 +340,46 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
 
-                if (typeEq == AcEquationType.BUS_TARGET_V) {
-                    // get the variable V corresponding to the constraint
-                    int idV = terms.get(0).getVariables().get(0).getRow();
-                    addConstraintLinearPart(equationId, idV, 1.0);
+                if (typeEq == AcEquationType.BUS_TARGET_V || typeEq == AcEquationType.BUS_TARGET_PHI) {
+                    // get the variable V/Theta corresponding to the constraint
+                    int idVar = terms.get(0).getVariables().get(0).getRow();
+                    addConstraintLinearPart(equationId, idVar, 1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idV);
+                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idVar);
                     }
-                } else if (typeEq == AcEquationType.BUS_TARGET_PHI) {
-                    // get the variable Theta corresponding to the constraint
-                    int idTheta = terms.get(0).getVariables().get(0).getRow();
-                    addConstraintLinearPart(equationId, idTheta, 1.0);
+//                } else if (typeEq == AcEquationType.BUS_TARGET_PHI) {
+//                    // get the variable Theta corresponding to the constraint
+//                    int idTheta = terms.get(0).getVariables().get(0).getRow();
+//                    addConstraintLinearPart(equationId, idTheta, 1.0);
+//                    if (LOGGER.isTraceEnabled()) {
+//                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idTheta);
+//                    }
+                } else if (typeEq == AcEquationType.ZERO_V || typeEq == AcEquationType.ZERO_PHI) {
+                    // get the variables Vi and Vj / Thetai and Thetaj corresponding to the constraint
+                    int idVari = terms.get(0).getVariables().get(0).getRow();
+                    int idVarj = terms.get(1).getVariables().get(0).getRow();
+                    addConstraintLinearPart(equationId, idVari, 1.0);
+                    addConstraintLinearPart(equationId, idVarj, -1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idTheta);
+                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variables {} and {}", equationId, typeEq, idVari, idVarj);
                     }
-                } else if (typeEq == AcEquationType.ZERO_V) {
-                    // get the variables Vi and Vj corresponding to the constraint
-                    int idVi = terms.get(0).getVariables().get(0).getRow();
-                    int idVj = terms.get(1).getVariables().get(0).getRow();
-                    addConstraintLinearPart(equationId, idVi, 1.0);
-                    addConstraintLinearPart(equationId, idVj, -1.0);
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variables {} and {}", equationId, typeEq, idVi, idVj);
+//                } else if (typeEq == AcEquationType.ZERO_PHI) {
+//                    // get the variables Thetai and Thetaj corresponding to the constraint
+//                    int idThetai = terms.get(0).getVariables().get(0).getRow();
+//                    int idThetaj = terms.get(1).getVariables().get(0).getRow();
+//                    addConstraintLinearPart(equationId, idThetai, 1.0);
+//                    addConstraintLinearPart(equationId, idThetaj, -1.0);
+//                    if (LOGGER.isTraceEnabled()) {
+//                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variables {} and {}", equationId, typeEq, idThetai, idThetaj);
+//                    }
+                } else if (typeEq == AcEquationType.DISTR_Q) {
+                    // get the variables corresponding to the constraint
+                    for (EquationTerm<AcVariableType, AcEquationType> equationTerm : terms) {
+                        EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> term = (EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) equationTerm;
+                        addConstraintLinearPart(equationId, term.getVariables().get(0).getRow(), term.getScalarSupplier().getAsDouble());
                     }
-                } else if (typeEq == AcEquationType.ZERO_PHI) {
-                    // get the variables Thetai and Thetaj corresponding to the constraint
-                    int idThetai = terms.get(0).getVariables().get(0).getRow();
-                    int idThetaj = terms.get(1).getVariables().get(0).getRow();
-                    addConstraintLinearPart(equationId, idThetai, 1.0);
-                    addConstraintLinearPart(equationId, idThetaj, -1.0);
                     if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variables {} and {}", equationId, typeEq, idThetai, idThetaj);
+                        LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
                     }
                 } else {
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
