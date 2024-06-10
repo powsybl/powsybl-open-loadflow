@@ -41,6 +41,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         return buses.stream()
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getLoads().stream())
+                .filter(load -> !load.isFictitious())
                 .map(load -> new ParticipatingElement(load, getParticipationFactor(load)))
                 .collect(Collectors.toList());
     }

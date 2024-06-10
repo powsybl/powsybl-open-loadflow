@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.Load;
+import com.powsybl.iidm.network.LoadType;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.*;
@@ -71,6 +72,18 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     @Override
     public LfBus getBus() {
         return bus;
+    }
+
+    @Override
+    public boolean isFictitious() {
+        // all Loads must be fictitious to return true
+        for (Ref<Load> loadRef : loadsRefs) {
+            Load load = loadRef.get();
+            if (!isLoadFictitious(load)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -159,6 +172,9 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     private double getAbsVariableTargetP(Load load) {
+        if (isLoadFictitious(load)) {
+            return 0.0;
+        }
         double varP;
         if (distributedOnConformLoad) {
             varP = load.getExtension(LoadDetail.class) == null ? 0 : load.getExtension(LoadDetail.class).getVariableActivePower();
@@ -253,6 +269,10 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private static double getPowerFactor(Load load) {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
+    }
+
+    private static boolean isLoadFictitious(Load load) {
+        return load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType());
     }
 
     @Override

@@ -129,7 +129,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
 
         if (factorGroups.hasMultiVariables() && (!lfContingency.getLostLoads().isEmpty() || !lfContingency.getLostGenerators().isEmpty())) {
-            // FIXME. It does not work with a contingency that breaks connectivity and loose an isolate injection.
+            // FIXME. It does not work with a contingency that breaks connectivity and lose an isolate injection.
             Set<LfBus> affectedBuses = lfContingency.getLoadAndGeneratorBuses();
             rescaleGlsk(factorGroups, affectedBuses);
         }
