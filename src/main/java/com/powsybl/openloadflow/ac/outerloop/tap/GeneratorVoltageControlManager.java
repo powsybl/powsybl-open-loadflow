@@ -20,12 +20,12 @@ import java.util.List;
 /**
  * @author Didier Vidal {@literal <didier.vidal-ext at rte-france.com>}
  */
-public class GroupVoltageControlManager {
+public class GeneratorVoltageControlManager {
 
     private final double minVoltageLimit;
     private final List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
 
-    public GroupVoltageControlManager(LfNetwork network, double limitOverride) {
+    public GeneratorVoltageControlManager(LfNetwork network, double limitOverride) {
         this.minVoltageLimit = limitOverride < 0 ? calculateMaxControlledNominalVoltage(network) : limitOverride;
     }
 

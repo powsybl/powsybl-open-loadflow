@@ -25,7 +25,7 @@ public class TransformerRatioManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransformerRatioManager.class);
 
-    private final boolean stable;
+    private final boolean useInitialTapePosition;
 
     public record ParallelRatioInfo(double rMax, double rMin, double rIni) {
         public ParallelRatioInfo(PiModel piModel) {
@@ -47,8 +47,8 @@ public class TransformerRatioManager {
      * If 'stable' is true then tMax, rMin and rIni are the average valus of the transformers in parallel
      * otherwise the transformer individual values.
      */
-    public TransformerRatioManager(LfNetwork network, boolean stable) {
-        this.stable = stable;
+    public TransformerRatioManager(LfNetwork network, boolean useInitialTapePosition) {
+        this.useInitialTapePosition = useInitialTapePosition;
         for (LfBus bus : network.getControlledBuses(VoltageControl.Type.TRANSFORMER)) {
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
@@ -58,7 +58,7 @@ public class TransformerRatioManager {
                                 .filter(LfBranch::isVoltageControlEnabled)
                                 .toList();
                         if (!controllerBranches.isEmpty()) { // If transformers in parallel control tension
-                            if (stable) {
+                            if (useInitialTapePosition) {
                                 // parallel info
                                 double coefA = 0;
                                 double coefB = 0;
@@ -98,7 +98,7 @@ public class TransformerRatioManager {
     }
 
     /**
-     * If stable is true, for tranformers in parallel, try to keep the initial difference between individual ratio
+     * If useInitialTapePosition is true, for tranformers in parallel, try to keep the initial difference between individual ratio
      * This algorithm maintains the individual tap positions if the tension is correct with initial settings.
      * It can also be seen as an approximate simulation of transformers acting with independent automates.
      * Assumes that all transformers in parallel have the same ratio (should be maintained by
@@ -107,7 +107,7 @@ public class TransformerRatioManager {
      * @return the updated transormer's ratio
      */
     public double updateContinuousRatio(LfBranch transfo) {
-        if (stable) {
+        if (useInitialTapePosition) {
             TransformerRatioManager.TransfoRatioInfo transfoRatioInfo = transfoRatioInfoMap.get(transfo.getId());
             double r1GroupMax = transfoRatioInfo.groupeInfo().rMax();
             double r1GroupMin = transfoRatioInfo.groupeInfo().rMin();

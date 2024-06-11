@@ -45,7 +45,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
             case IncrementalShuntVoltageControlOuterLoop.NAME -> createShuntVoltageControlOuterLoop(parameters,
                                                                                                     OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
             case IncrementalTransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
-                                                                                                                parametersExt.isTransformerVoltageControlStable(),
+                                                                                                                parametersExt.isUseInitialTapPosition(),
                                                                                                                 OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL,
                                                                                                                 parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(),
                                                                                                                 parametersExt.getGeneratorVoltageControlMinNominalVoltage());
@@ -57,12 +57,12 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
             case ShuntVoltageControlOuterLoop.NAME -> createShuntVoltageControlOuterLoop(parameters,
                                                                                          OpenLoadFlowParameters.ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
             case SimpleTransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
-                                                                                                           parametersExt.isTransformerVoltageControlStable(),
+                                                                                                           parametersExt.isUseInitialTapPosition(),
                                                                                                            OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL,
                                                                                                            parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(),
                                                                                                            parametersExt.getGeneratorVoltageControlMinNominalVoltage());
             case TransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
-                                                                                                     parametersExt.isTransformerVoltageControlStable(),
+                                                                                                     parametersExt.isUseInitialTapPosition(),
                                                                                                      OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL,
                                                                                                      parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(),
                                                                                                      parametersExt.getGeneratorVoltageControlMinNominalVoltage());

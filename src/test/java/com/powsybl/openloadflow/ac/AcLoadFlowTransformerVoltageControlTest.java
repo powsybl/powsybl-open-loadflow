@@ -202,7 +202,7 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setRegulationTerminal(t2wt2.getTerminal2())
                 .setTargetV(34.0);
         LoadFlowParameters stableParams = parameters.copy();
-        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlStable(true);
+        stableParams.getExtension(OpenLoadFlowParameters.class).setUseInitialTapPosition(true);
         stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
         result = loadFlowRunner.run(network, stableParams);
         assertTrue(result.isFullyConverged());
@@ -282,7 +282,7 @@ class AcLoadFlowTransformerVoltageControlTest {
     void voltageControlT2wtTestRationAtLimit() {
         LoadFlowParameters stableParams = parameters.copy();
         stableParams.setTransformerVoltageControlOn(true);
-        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlStable(true);
+        stableParams.getExtension(OpenLoadFlowParameters.class).setUseInitialTapPosition(true);
         stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
         stableParams.getExtension(OpenLoadFlowParameters.class).setMinPlausibleTargetVoltage(0.5); // Keep unusual voltage target to force ratio to tap changer limit
 
