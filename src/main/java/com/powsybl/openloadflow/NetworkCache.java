@@ -338,6 +338,7 @@ public enum NetworkCache {
                         return CacheUpdateResult.elementUpdated(context);
                     }
                 }
+                return CacheUpdateResult.elementNotFound();
             } else if ("controlUnitParticipate".equals(attribute)) {
                 ControlUnit.ParticipateEvent event = (ControlUnit.ParticipateEvent) newValue;
                 ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
@@ -353,6 +354,7 @@ public enum NetworkCache {
                         return CacheUpdateResult.elementUpdated(context);
                     }
                 }
+                return CacheUpdateResult.elementNotFound();
             }
             return CacheUpdateResult.unsupportedUpdate();
         }
