@@ -4,9 +4,9 @@
 ## PowSyBl vs PowSyBl Open Load Flow
 
 PowSyBl Open Load Flow provides:
-- An open-source implementation of the [LoadFlow API from PowSyBl Core](inv:powsyblcore:simulation/loadflow/index.md), supporting DC and AC calculations.
-- An open-source implementation of the [SecurityAnalysis API from PowSyBl Core](inv:powsyblcore:simulation/security/index.md), supporting DC and AC calculations.
-- An open-source implementation of the [SensitivityAnalysis API from PowSyBl Core](inv:powsyblcore:simulation/sensitivity/sensitivity.md), supporting DC and AC calculations.
+- An open-source implementation of the [LoadFlow API from PowSyBl Core](inv:powsyblcore:*:*#simulation/loadflow/index), supporting DC and AC calculations.
+- An open-source implementation of the [SecurityAnalysis API from PowSyBl Core](inv:powsyblcore:*:*#simulation/security/index), supporting DC and AC calculations.
+- An open-source implementation of the [SensitivityAnalysis API from PowSyBl Core](inv:powsyblcore:*:*#simulation/sensitivity/index), supporting DC and AC calculations.
 
 Most of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) sparse linear solver.
 Linux, Windows and MacOS are supported. KLU is distributed with license LGPL-2.1+.
@@ -31,7 +31,7 @@ and topology changes involved in contingencies or in remedial actions.
 
 Open Load Flow supports:
 - Generator and static var compensator voltage remote control through PQV bus modelling. It supports any kind of shared voltage control between controllers that can be generators, static var compensators, or VSC converter stations.
-- Static var compensator local voltage control with a slope (support the powsybl-core extension [VoltagePerReactivePowerControl](inv:powsyblcore/grid_model/extensions.md#remote-reactive-power-control).
+- Static var compensator local voltage control with a slope (support the powsybl-core extension [VoltagePerReactivePowerControl](inv:powsyblcore:*:*:#remote-reactive-power-control-extension).
 - Local and remote phase control: phase tap changers can regulate active power flows or limit currents at given terminals.
 - Local and remote voltage control by transformers, including shared controls.
 - Local and remote voltage control by shunts, including shared controls.

@@ -16,6 +16,7 @@ equal to zero and $1$. In case of a branch with voltage or phase control, the $\
 
 ![Pi model](pi-model.svg)
 
+(ac-flow-computing)=
 ## AC flows computing
 
 AC flows computing in OpenLoadFLow relies on solving a system of non-linear squared equations, where unknown are voltage magnitude and phase angle at each bus of the network, implying that there are $2N$ unknown where $N$ is the number of buses. There are two equations per network bus, resulting in $2N$ equations. The nature of these $2$ equations depends on the type of the bus:

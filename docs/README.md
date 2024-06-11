@@ -43,12 +43,23 @@ intersphinx_mapping = {
 }
 ~~~
 
-Then in your documentation file, you can add links to powsybl-core documentation. If you want to link to a whole page,
+Then in your documentation file, you can add links to PowSyBl-Core documentation. If you want to link to a whole page,
 use one of the following example:
 ~~~Markdown
-- Let's talk about the power of {doc}`powsyblcore:simulation/loadflow/loadflow`. 
-- Let's talk about the power of {doc}`loadflow <powsyblcore:simulation/loadflow/loadflow>`.
-- Let's talk about the power of [Load Flow](inv:powsyblcore:std:doc#simulation/loadflow/loadflow).
+- [load flow configuration](inv:powsyblcore:*:*#simulation/loadflow/configuration).
+~~~
+
+If you want to link a specific part of a page, use one of those examples:
+~~~Markdown
+- [load detail extension](inv:powsyblcore:*:*:#load-detail-extension).
+~~~
+*Note: for the last examples to work, there need to be a corresponding reference in the external documentation.
+For those examples, `(load-detail-extension)=` has been added right before the corresponding title
+in the powsybl-core documentation.
+
+*Note²: if the build fails, try with the `-E` option to clear the cache:*
+~~~bash
+sphinx-build -a -E docs ./build-docs
 ~~~
 
 

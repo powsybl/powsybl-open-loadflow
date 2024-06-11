@@ -9,17 +9,17 @@ load-flow:
 ## Specific parameters
 
 **voltageInitModeOverride**  
-Additional voltage init modes of PowSyBl OpenLoadFlow that are not present in [PowSyBl LoadFlow `voltageInitMode` Parameter](inv:powsyblcore/simulation/loadflow/configuration.md):
+Additional voltage init modes of PowSyBl OpenLoadFlow that are not present in [PowSyBl LoadFlow `voltageInitMode` Parameter](inv:powsyblcore:*:*#simulation/loadflow/configuration):
 - `NONE`: no override
-- `VOLTAGE_MAGNITUDE`: specific initializer to initialize voltages magnitudes $$v$$, leaving $$\theta=0$$. Proven useful for
+- `VOLTAGE_MAGNITUDE`: specific initializer to initialize voltages magnitudes $v$, leaving $\theta=0$. Proven useful for
   unusual input data with transformers rated voltages very far away from bus nominal voltages.
-- `FULL_VOLTAGE`: voltages magnitudes $$v$$ initialized using `VOLTAGE_MAGNITUDE` initializer, $$\theta$$ initialized using a DC load flow.
+- `FULL_VOLTAGE`: voltages magnitudes $v$ initialized using `VOLTAGE_MAGNITUDE` initializer, $\theta$ initialized using a DC load flow.
 
 The default value is `NONE`.
 
 **lowImpedanceBranchMode**  
 The `lowImpedanceBranchMode` property is an optional property that defines how to deal with low impedance branches
-(when $$Z$$ is less than the per-unit `lowImpedanceThreshold`, see further below).
+(when $Z$ is less than the per-unit `lowImpedanceThreshold`, see further below).
 Possible values are:
 - Use `REPLACE_BY_ZERO_IMPEDANCE_LINE` if you want to consider low impedance branches as zero impedance branches.
 - Use `REPLACE_BY_MIN_IMPEDANCE_LINE` if you want to consider low impedance branches with a value equal to the `lowImpedanceThreshold`.
@@ -28,8 +28,8 @@ The default value is `REPLACE_BY_ZERO_IMPEDANCE_LINE`.
 
 **lowImpedanceThreshold**  
 The `lowImpedanceThreshold` property is an optional property that defines in per-unit the threshold used to identify low impedance branches
-(when $$Z$$ is less than the `lowImpedanceThreshold` per-unit threshold).  
-The default value is $$10^{-8}$$ and it must be greater than `0`.
+(when $Z$ is less than the `lowImpedanceThreshold` per-unit threshold).  
+The default value is $10^{-8}$ and it must be greater than `0`.
 
 **slackDistributionFailureBehavior**
 This option defines the behavior in case the slack distribution fails. Available options are:
@@ -52,8 +52,8 @@ The `slackBusSelectionMode` property is an optional property that defines how to
 The default value is `MOST_MESHED`.
 
 Note that if you want to choose the slack buses that are defined inside the network with
-a [slack terminal extension](inv:powsyblcore:grid_model/extensions.md#slack-terminal),
-you have to set the [PowSyBl LoadFlow `readSlackBus` Parameter](inv:powsyblcore/simulation/loadflow/configuration.md) to `true`.
+a [slack terminal extension](inv:powsyblcore:*:*:#slack-terminal-extension),
+you have to set the [PowSyBl LoadFlow `readSlackBus` Parameter](inv:powsyblcore:*:*#simulation/loadflow/configuration) to `true`.
 When `readSlackBus` is set to true, `slackBusSelectionMode` is still used and serves as a secondary selection criteria:
 - for e.g. synchronous components where no slack terminal extension is present.
 - for e.g. synchronous components where more than `maxSlackBusCount` slack terminal extensions are present.
@@ -78,32 +78,32 @@ The default value is an empty list (any country can be used for slack bus select
 
 **loadPowerFactorConstant**  
 The `loadPowerFactorConstant ` property is an optional boolean property. This property is used in the outer loop that distributes slack on loads if :
-- `distributedSlack` property is set to true in the [load flow default parameters](inv:powsyblcore/simulation/loadflow/configuration.md),
-- `balanceType` property is set to `PROPORTIONAL_TO_LOAD` or `PROPORTIONAL_TO_CONFORM_LOAD` in the [load flow default parameters](inv:powsyblcore/simulation/loadflow/configuration.md).
+- `distributedSlack` property is set to true in the [load flow default parameters](inv:powsyblcore:*:*#simulation/loadflow/configuration),
+- `balanceType` property is set to `PROPORTIONAL_TO_LOAD` or `PROPORTIONAL_TO_CONFORM_LOAD` in the [load flow default parameters](inv:powsyblcore:*:*#simulation/loadflow/configuration).
 
 The default value is `false`.
 
 If prerequisites fulfilled and `loadPowerFactorConstant` property is set to `true`, the distributed slack outer loop adjusts the load P value and adjusts also the load Q value in order to maintain the power factor as a constant value.
-At the end of the load flow calculation, $$P$$ and $$Q$$ at loads terminals are both updated. Note that the power factor of a load is given by this equation :
+At the end of the load flow calculation, $P$ and $Q$ at loads terminals are both updated. Note that the power factor of a load is given by this equation :
 
 $$
 Power Factor = {\frac {P} {\sqrt {P^2+{Q^2}}}}
 $$
 
-Maintaining the power factor constant from an updated active power $$P^‎\prime$$ means we have to isolate $$Q^‎\prime$$ in this equation :
+Maintaining the power factor constant from an updated active power $P^‎\prime$ means we have to isolate $Q^‎\prime$ in this equation :
 
-> $$
+$$
 {\frac {P} {\sqrt {P^2+{Q^2}}}}={\frac {P^‎\prime} {\sqrt {P^‎\prime^2+{Q^‎\prime^2}}}}
 $$
 
-> Finally, a simple rule of three is implemented in the outer loop :
+Finally, a simple rule of three is implemented in the outer loop :
 
-> $$
+$$
 Q^\prime={\frac {Q P^\prime} {P}}
 $$
 
-If `balanceType` equals to `PROPORTIONAL_TO_LOAD`, the power factor remains constant scaling the global $$P0$$ and $$Q0$$ of the load.
-If `balanceType` equals to `PROPORTIONAL_TO_CONFORM_LOAD`, the power factor remains constant scaling only the variable parts. Thus, we fully rely on [load detail extension](inv:powsyblcore/grid_model/extensions.md#load-detail).
+If `balanceType` equals to `PROPORTIONAL_TO_LOAD`, the power factor remains constant scaling the global $P0$ and $Q0$ of the load.
+If `balanceType` equals to `PROPORTIONAL_TO_CONFORM_LOAD`, the power factor remains constant scaling only the variable parts. Thus, we fully rely on [load detail extension](inv:powsyblcore:*:*:#load-detail-extension).
 
 The default value for `loadPowerFactorConstant` property is `false`.
 
@@ -120,12 +120,12 @@ The default value is `true`.
 
 **voltagePerReactivePowerControl**  
 Whether simulation of static VAR compensators with voltage control enabled and a slope defined should be enabled
-(See [voltage per reactive power control extension](inv:powsyblcore/grid_model/extensions.md#voltage-per-reactive-power-control)).  
+(See [voltage per reactive power control extension](inv:powsyblcore:*:*:#voltage-per-reactive-power-control-extension)).  
 The default value is `false`.
 
 **generatorReactivePowerRemoteControl**  
 Whether simulation of generators reactive power remote control should be enabled
-(See [remote reactive power control](inv:powsyblcore/grid_model/extensions.md#remote-reactive-power-control)).  
+(See [remote reactive power control](inv:powsyblcore:*:*:#remote-reactive-power-control-extension)).  
 The default value is `false`.
 
 **secondaryVoltageControl**  
@@ -145,9 +145,9 @@ The default value is `CONTINUOUS_WITH_DISCRETISATION`.
 
 **transformerVoltageControlMode**  
 This parameter defines which kind of outer loops is used for transformer voltage controls. We have three kinds of outer loops:
-- `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the generator voltage control. The final transformer $$\rho$$ is obtained by rounding to the closest tap position. The control deadband is not taken into account.
-- `AFTER_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed after the generator voltage control. The final transformer $$\rho$$ is obtained by rounding to the closest tap position. The control deadband is taken into account.
-- `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used. $$\rho$$ always corresponds to a tap position. Tap changes using sensitivity computations. The control deadband is taken into account.
+- `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the generator voltage control. The final transformer $\rho$ is obtained by rounding to the closest tap position. The control deadband is not taken into account.
+- `AFTER_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed after the generator voltage control. The final transformer $\rho$ is obtained by rounding to the closest tap position. The control deadband is taken into account.
+- `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used. $\rho$ always corresponds to a tap position. Tap changes using sensitivity computations. The control deadband is taken into account.
 
 The default value is `WITH_GENERATOR_VOLTAGE_CONTROL`.
 
@@ -183,14 +183,14 @@ The default value is `20` and it must be greater or equal to `1`.
 **newtonRaphsonStoppingCriteriaType**  
 Stopping criteria for Newton-Raphson algorithm.
 - `UNIFORM_CRITERIA`: stop when all equation mismatches are below `newtonRaphsonConvEpsPerEq` threshold.
-  `newtonRaphsonConvEpsPerEq` defines the threshold for all equation types, in per-unit with `100 MVA` base. The default value is $$10^{-4} \text{p.u.}$$ and it must be greater than 0.
+  `newtonRaphsonConvEpsPerEq` defines the threshold for all equation types, in per-unit with `100 MVA` base. The default value is $10^{-4} \text{p.u.}$ and it must be greater than 0.
 - `PER_EQUATION_TYPE_CRITERIA`: stop when equation mismatches are below equation type specific thresholds:
-    - `maxActivePowerMismatch`: Defines the threshold for active power equations, in MW. The default value is $$10^{-2} \text{MW}$$ and it must be greater than 0.
-    - `maxReactivePowerMismatch`: Defines the threshold for reactive power equations, in MVAr. The default value is $$10^{-2} \text{MVAr}$$ and it must be greater than 0.
-    - `maxVoltageMismatch`: Defines the threshold for voltage equations, in per-unit. The default value is $$10^{-4} \text{p.u.}$$ and it must be greater than 0.
-    - `maxAngleMismatch`: Defines the threshold for angle equations, in radians. The default value is $$10^{-5} \text{rad}$$ and it must be greater than 0.
-    - `maxRatioMismatch`: Defines the threshold for ratio equations, unitless. The default value is $$10^{-5}$$ and it must be greater than 0.
-    - `maxSusceptanceMismatch`: Defines the threshold for susceptance equations, in per-unit. The default value is $$10^{-4} \text{p.u.}$$ and it must be greater than 0.
+    - `maxActivePowerMismatch`: Defines the threshold for active power equations, in MW. The default value is $10^{-2} \text{MW}$ and it must be greater than 0.
+    - `maxReactivePowerMismatch`: Defines the threshold for reactive power equations, in MVAr. The default value is $10^{-2} \text{MVAr}$ and it must be greater than 0.
+    - `maxVoltageMismatch`: Defines the threshold for voltage equations, in per-unit. The default value is $10^{-4} \text{p.u.}$ and it must be greater than 0.
+    - `maxAngleMismatch`: Defines the threshold for angle equations, in radians. The default value is $10^{-5} \text{rad}$ and it must be greater than 0.
+    - `maxRatioMismatch`: Defines the threshold for ratio equations, unitless. The default value is $10^{-5}$ and it must be greater than 0.
+    - `maxSusceptanceMismatch`: Defines the threshold for susceptance equations, in per-unit. The default value is $10^{-4} \text{p.u.}$ and it must be greater than 0.
 
 The default value is `UNIFORM_CRITERIA`.
 
@@ -243,7 +243,7 @@ The `plausibleActivePowerLimit` property is an optional property that defines a 
 - slack distribution (if `balanceType` equals to any of the `PROPORTIONAL_TO_GENERATION_<any>` types)
 - slack selection (if `slackBusSelectionMode` equals to `LARGEST_GENERATOR`)
 
-The default value is $$5000 MW$$.
+The default value is $5000 MW$.
 
 **minPlausibleTargetVoltage** and **maxPlausibleTargetVoltage**  
 Equipments with voltage regulation target voltage outside these per-unit thresholds
@@ -257,10 +257,10 @@ and its solution status is flagged as failed.
 The default values are `0.5` and `1.5` and they must be greater or equal to `0`.
 
 **reactiveRangeCheckMode**  
-This parameter defines how to check the reactive limits $$MinQ$$ and $$MaxQ$$ of a generator. If the range is too small, the generator is discarded from voltage control.
-- `MIN_MAX` mode checks if the reactive range at $$MaxP$$ is above a threshold and if the reactive range at $$MinP$$ is not zero.
-- `MAX` mode if the reactive range at $$MaxP$$ is above a threshold.
-- `TARGET_P` if the reactive range at $$TargetP$$ is above a threshold
+This parameter defines how to check the reactive limits $MinQ$ and $MaxQ$ of a generator. If the range is too small, the generator is discarded from voltage control.
+- `MIN_MAX` mode checks if the reactive range at $MaxP$ is above a threshold and if the reactive range at $MinP$ is not zero.
+- `MAX` mode if the reactive range at $MaxP$ is above a threshold.
+- `TARGET_P` if the reactive range at $TargetP$ is above a threshold
 
 The default value is `MAX`.
 
@@ -321,12 +321,12 @@ This parameter defines how reactive power is split among generators with control
 It tries to divide reactive power among generators in the order described below.
 `reactivePowerDispatchMode` can be one of:
 - `Q_EQUAL_PROPORTION`
-    1. If all concerned generators have pre-defined reactive keys via the [Coordinated Reactive Control extension](inv:powsyblcore/grid_model/extensions.md#coordinated-reactive-control), then it splits `Q` proportional to reactive keys
+    1. If all concerned generators have pre-defined reactive keys via the [Coordinated Reactive Control extension](inv:powsyblcore:*:*:#coordinated-reactive-control-extension), then it splits `Q` proportional to reactive keys
     2. If they don't, but they have plausible reactive limits, split proportionally to the maximum reactive power range
     3. If they don't, split `Q` equally
 - `K_EQUAL_PROPORTION`
     1. If generators have plausible reactive limits, split `Q` proportionally to `k`, where `k` is defined by
-       $$ k = \frac{2 qToDispatch - qmax1 - qmin1 - qmax2 - qmin2 - ...}{qmax1 - qmin1 + qmax2 - qmin2 + ...} $$
+       $ k = \frac{2 qToDispatch - qmax1 - qmin1 - qmax2 - qmin2 - ...}{qmax1 - qmin1 + qmax2 - qmin2 + ...} $
     2. If they don't, split `Q` equally
 
 The default value is `Q_EQUAL_PROPORTION`.
@@ -349,7 +349,7 @@ This parameter defines how lines ending in different nominal voltages at both si
 The default value is `IMPEDANCE`.
 
 **useLoadModel**  
-When set to `true`, this parameter enables the modeling of the `ZIP` or `EXPONENTIAL` response characteristic of a [Load](inv:powsyblcore/grid_model/network_subnetwork.md#load).
+When set to `true`, this parameter enables the modeling of the `ZIP` or `EXPONENTIAL` response characteristic of a [Load](inv:powsyblcore:*:*:#load).
 
 **dcApproximationType**  
 This parameter defines how resistance is neglected compared to inductance in DC approximation.
@@ -365,12 +365,12 @@ Allows to simulate automation systems that are modeled in the network. For the m
 **referenceBusSelectionMode**  
 The reference bus is the bus where the angle is equal to zero. There are several mode of selection:
 - `FIRST_SLACK`: the angle reference bus is selected as the first slack bus among potentially multiple slacks (in case `maxSlackBusCount` > 1).
-- `GENERATOR_REFERENCE_PRIORITY`: the angle reference bus is selected from generator reference priorities defined via the [Reference Priority extension](inv:powsyblcore/grid_model/extensions.md#reference-priority).
+- `GENERATOR_REFERENCE_PRIORITY`: the angle reference bus is selected from generator reference priorities defined via the [Reference Priority extension](inv:powsyblcore:*:*:#reference-priority-extension).
 
 The default value is `FIRST_SLACK`.
 
 **writeReferenceTerminals**  
-This parameter allows to write to the IIDM network the [Reference Terminals extension](inv:powsyblcore/grid_model/extensions.md#reference-terminals)
+This parameter allows to write to the IIDM network the [Reference Terminals extension](inv:powsyblcore:*:*:#reference-terminals-extension)
 containing the generator terminals used as angle reference in the load flow calculation.
 There is one Terminal created/added in the extension for each calculated Synchronous Component.
 Works only when `referenceBusSelectionMode` is set to `GENERATOR_REFERENCE_PRIORITY`.

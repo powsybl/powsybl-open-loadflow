@@ -128,6 +128,7 @@ todo_include_todos = True
 
 # Links to external documentations : python 3 and pandas
 intersphinx_mapping = {
+    "powsyblcore": ("https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/", None)
 }
 intersphinx_disabled_reftypes = ["*"]
 
@@ -165,8 +166,3 @@ def replace_versions(intersphinx_mapping, file):
     return intersphinx_mapping
 
 intersphinx_mapping = replace_versions(intersphinx_mapping, file_with_version)
-
-# This parameter might already be present, just add the new value
-intersphinx_mapping = {
-    "powsyblcore": ("https://powsybl-core.readthedocs.io/en/latest/", None),
-}
