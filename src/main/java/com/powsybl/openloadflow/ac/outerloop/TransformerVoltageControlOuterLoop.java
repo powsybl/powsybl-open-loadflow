@@ -137,7 +137,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             updateContinuousRatio(network, contextData);
 
             roundVoltageRatios(network);
-            contextData.generatorVoltageControlManager.restartGroupTensionControl();
+            contextData.generatorVoltageControlManager.restartGeneratorTensionControl();
 
             contextData.step = Step.COMPLETE;
         }

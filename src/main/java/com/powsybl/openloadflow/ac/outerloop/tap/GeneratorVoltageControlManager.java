@@ -22,11 +22,11 @@ import java.util.List;
  */
 public class GeneratorVoltageControlManager {
 
-    private final double minVoltageLimit;
+    private final double minNominalVoltageLimit;
     private final List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
 
     public GeneratorVoltageControlManager(LfNetwork network, double limitOverride) {
-        this.minVoltageLimit = limitOverride < 0 ? calculateMaxControlledNominalVoltage(network) : limitOverride;
+        this.minNominalVoltageLimit = limitOverride < 0 ? calculateMaxControlledNominalVoltage(network) : limitOverride;
     }
 
     private static double calculateMaxControlledNominalVoltage(LfNetwork network) {
@@ -65,10 +65,10 @@ public class GeneratorVoltageControlManager {
         boolean result = false;
 
         for (LfBus bus : network.getControlledBuses(VoltageControl.Type.GENERATOR)) {
-            if (bus.getNominalV() < minVoltageLimit) {
+            if (bus.getNominalV() < minNominalVoltageLimit) {
                 var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
                 for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
-                    if (controllerBus.isGeneratorVoltageControlEnabled() && !isBusBehindVeryHighVoltageTransfo(controllerBus, minVoltageLimit)) {
+                    if (controllerBus.isGeneratorVoltageControlEnabled() && !isBusBehindVeryHighVoltageTransfo(controllerBus, minNominalVoltageLimit)) {
                         controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
                         controllerBus.setGeneratorVoltageControlEnabled(false);
                         busesWithVoltageControlDisabled.add(controllerBus);
@@ -80,7 +80,7 @@ public class GeneratorVoltageControlManager {
         return result;
     }
 
-    public void restartGroupTensionControl() {
+    public void restartGeneratorTensionControl() {
         for (LfBus controllerBus : busesWithVoltageControlDisabled) {
             controllerBus.setGenerationTargetQ(0);
             controllerBus.setGeneratorVoltageControlEnabled(true);
