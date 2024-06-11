@@ -180,12 +180,13 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 AcSolverUtil.updateNetwork(network, equationSystem);
                 oldMatrix.forceUpdate();
                 DenseMatrix denseOldMatrix = oldMatrix.getMatrix().toDense();
-                LOGGER.error("Ici : " + getNumVars());
 
                 // Get non-linear Jacobian from original Jacobian
+
+                // FIRST METHOD
 //                int id = 0 ;
 //                for (int ct : listNonLinearConsts) {
-//                    for (int var=0; var<getNumVars(); var++) { //TODO CHANGER
+//                    for (int var=0; var<getNumVars(); var++) { //TODO CHANGER getNumVars()
 //                        try {
 //                            jac.set(id, denseOldMatrix.get(var, ct));  // Jacobian needs to be transposed
 //                            id += 1;
@@ -197,11 +198,13 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 //                    }
 //                }
 
+                // SECOND METHOD
                 for (int index = 0; index < listNonZerosCts.size(); index++) {
                     try {
-                        double value = denseOldMatrix.get(listNonZerosVars.get(index), listNonZerosCts.get(index));
-                        jac.set(index, value);  // Jacobian needs to be transposed
-//                        jac.set(index, denseOldMatrix.get(listNonZerosCts.get(index),listNonZerosVars.get(index)));  // Jacobian needs to be transposed
+                        int var = listNonZerosVars.get(index);
+                        int ct = listNonZerosCts.get(index);
+                        double value = denseOldMatrix.get(var, ct); // Jacobian needs to be transposed
+                        jac.set(index, value);
                     } catch (Exception e) {
                         LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars.get(index), listNonZerosCts.get(index));
                         LOGGER.error(e.getMessage());
@@ -272,14 +275,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         }
 
         // Get Jacobian matrix of Non-Linear constraints only
-
-        private static Matrix getNonLinearJacobian(JacobianMatrix<AcVariableType, AcEquationType> oldMatrix, List<Integer> listNonLinearConsts) {
-            Matrix allCstrsJacobian = oldMatrix.getMatrix(); //get and update old matrix
-            return MatrixUtil.extractRowsAndColumns(allCstrsJacobian,listNonLinearConsts);
-        }
-
+//
 //        private static Matrix getNonLinearJacobian(JacobianMatrix<AcVariableType, AcEquationType> oldMatrix, List<Integer> listNonLinearConsts) {
-//            Matrix allCstrsJacobian = oldMatrix.getMatrix().transpose(); //get, transpose and update old matrix
+//            Matrix allCstrsJacobian = oldMatrix.getMatrix(); //get and update old matrix
 //            return MatrixUtil.extractRowsAndColumns(allCstrsJacobian,listNonLinearConsts);
 //        }
 
@@ -340,7 +338,14 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
 
-                if (typeEq == AcEquationType.BUS_TARGET_V || typeEq == AcEquationType.BUS_TARGET_PHI || typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q) {
+                if (typeEq == AcEquationType.BUS_TARGET_V || typeEq == AcEquationType.BUS_TARGET_PHI ) { // || typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q
+                    // get the variable V/Theta corresponding to the constraint
+                    int idVar = terms.get(0).getVariables().get(0).getRow();
+                    addConstraintLinearPart(equationId, idVar, 1.0);
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idVar);
+                    }
+                } else if (typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q ) {
                     // get the variable V/Theta corresponding to the constraint
                     int idVar = terms.get(0).getVariables().get(0).getRow();
                     addConstraintLinearPart(equationId, idVar, 1.0);
@@ -359,9 +364,16 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 } else if (typeEq == AcEquationType.DISTR_Q) {
                     // get the variables corresponding to the constraint
                     for (EquationTerm<AcVariableType, AcEquationType> equationTerm : terms) {
-                        EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> term = (EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) equationTerm;
-                        addConstraintLinearPart(equationId, term.getVariables().get(0).getRow(), term.getScalarSupplier().getAsDouble());
+                        double scalar = 0.0;
+                        if (((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm() instanceof VariableEquationTerm<?,?>) {
+                            scalar = ((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getScalarSupplier();
+                        } else if (((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm() instanceof EquationTerm.MultiplyByScalarEquationTerm<?,?>) {
+                            scalar = ((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getScalarSupplier();
+                            scalar *= ((EquationTerm.MultiplyByScalarEquationTerm) ((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm()).getScalarSupplier();
+                        }
+                        addConstraintLinearPart(equationId, ((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) equationTerm).getTerm().getVariables().get(0).getRow(), scalar);
                     }
+
                     if (LOGGER.isTraceEnabled()) {
                         LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
                     }
@@ -386,14 +398,16 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             // ----- Jacobian matrix -----
             // Non zero pattern
-//            List<Integer> listNonZerosCts = new ArrayList<>();
+
+            // FIRST METHOD : all non-linear constraints
+//            List<Integer> listNonZerosCts = new ArrayList<>(); //list of constraints to parse to Knitro non-zero pattern
 //            for (Integer value : listNonLinearConsts) {
 //                for (int i = 0; i < numVar; i++) {
 //                    listNonZerosCts.add(value);
 //                }
 //            }
 //
-//            List<Integer> listNonZerosVars = new ArrayList<>();
+//            List<Integer> listNonZerosVars = new ArrayList<>(); //list of variables to parse to Knitro non-zero pattern
 //            List<Integer> listVars = new ArrayList<>();
 //            for (int i = 0; i < numVar; i++) {
 //                listVars.add(i);
@@ -402,6 +416,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 //                listNonZerosVars.addAll(listVars);
 //            }
 
+            // SECOND METHOD : only non-zero constraints
             List<Integer> listNonZerosCts = new ArrayList<>();
             List<Integer> listNonZerosVars = new ArrayList<>();
             List<Integer> listVarChecker = new ArrayList<>();
@@ -409,13 +424,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(ct);
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
                 List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
-//                for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
-//                    for (Variable variable : term.getVariables()) {
-//                        listNonZerosVarsCurrentCt.add(variable.getRow());
-//                    }
-//                }
-//                List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list
-//                listNonZerosVars.addAll(uniqueListVarsCurrentCt);
 
                 for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
                     for (Variable variable : term.getVariables()) {
@@ -432,9 +440,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     }
                 }
 
-//                for (int i=0; i<uniqueListVarsCurrentCt.size(); i++) {
-//                    listNonZerosCts.add(ct);
-//                }
                 listNonZerosCts.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
             }
 
@@ -450,6 +455,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         solver.setParam(KNConstants.KN_PARAM_FEASTOL, knitroSolverStoppingCriteria.convEpsPerEq);
 //        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK,1);
 //        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL,0.00001);
+//        solver.setParam(KNConstants.KN_PARAM_MAXIT, 30);
     }
 
     @Override
@@ -498,9 +504,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 equationSystem.getStateVector().set(toArray(solution.getX()));
                 AcSolverUtil.updateNetwork(network, equationSystem);
             }
-//
-//            // update network state variable
-//            if (acStatus == AcSolverStatus.CONVERGED && isStateUnrealistic(reportNode)) {
+
+//            // update network state variable //TODO later?
+//            if (acStatus == AcSolverStatus.CONVERGED && knitroParameters.is(reportNode)) {
 //                status = AcSolverStatus.UNREALISTIC_STATE;
 //            }
 
