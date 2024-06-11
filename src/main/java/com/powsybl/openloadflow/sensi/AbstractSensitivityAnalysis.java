@@ -1253,6 +1253,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         switch (variable) {
             case INJECTION_ACTIVE_POWER, HVDC_LINE_ACTIVE_POWER:
                 return isFlowFunction(function) && Math.abs(value) < parameters.getFlowFlowSensitivityValueThreshold();
+            case INJECTION_REACTIVE_POWER:
+                // We consider that the magnitude change of reactive injection to V is of the same magnitude as other usqges of FlowVoltage threshold
+                // (used for dV/dQ, dV/dI) and re-use this threshold
+                return function == SensitivityFunctionType.BUS_VOLTAGE && Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
             case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                 return isFlowFunction(function) && Math.abs(value) < parameters.getAngleFlowSensitivityValueThreshold();
             case BUS_TARGET_VOLTAGE:
@@ -1265,7 +1269,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     protected static boolean filterBusTargetVoltageVariable(double value, SensitivityFunctionType function,
                                                             SensitivityAnalysisParameters parameters) {
         return switch (function) {
-            case BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3 -> Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
+            // We consider that the Voltage change to current is approximately of the same magnitude as the voltage change to reactive power
+            // and use the same threshold for filtering
+            case BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3, BUS_REACTIVE_POWER -> Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
             case BUS_VOLTAGE -> Math.abs(value) < parameters.getVoltageVoltageSensitivityValueThreshold();
             default -> false;
         };
