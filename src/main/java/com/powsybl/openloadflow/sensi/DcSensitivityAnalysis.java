@@ -599,6 +599,21 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         injectionRhsModifications, flowRhsModifications, disabledNetworkByPropagatedContingency, Collections.emptySet(), Collections.emptySet(),
                         connectivityData.contingencyElementByBranch(), Collections.emptySet(), resultWriter);
 
+                RhsReader reader = handler -> {
+
+                    DenseMatrix flowsRhs = getPreContingencyFlowRhs(loadFlowContext, participatingElements, new DisabledNetwork());
+
+                    // compute states with +1 -1 to model the contingencies and run connectivity analysis
+                    ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData = ConnectivityBreakAnalysis.run(loadFlowContext, contingencies);
+
+                    // Generate triple PropagatedContingency / preContingency Matrix / post Contingency Matrix
+                    for() {
+                        handler.onRhs(PropagatedContingency, preContingencyMatrix, postContingencyMatrix);
+                    }
+
+                };
+
+                // rhs /
                 // compute pre- and post-contingency flow states
                 WoodburyEngineResult flowResult = engine.run(loadFlowContext, flowsRhs, flowRhsModifications, connectivityData, reportNode);
                 // set function reference values of the factors

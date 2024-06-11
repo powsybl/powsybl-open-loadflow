@@ -217,6 +217,12 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
                                        new SwitchAction("action3", "C2", false));
 
+        //A1 A2 A3 A4
+        //OperatorStrategy O1 :
+        // (A1 + A2) *
+        // A3 *
+        // A4 *
+
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", ContingencyContext.specificContingency("L1"), new AnyViolationCondition(), List.of("action1")),
                                                             new OperatorStrategy("strategyL3", ContingencyContext.specificContingency("L3"), new AnyViolationCondition(), List.of("action3")),
                                                             new OperatorStrategy("strategyL2_1", ContingencyContext.specificContingency("L2"), new AtLeastOneViolationCondition(List.of("L1")), List.of("action1", "action3")),

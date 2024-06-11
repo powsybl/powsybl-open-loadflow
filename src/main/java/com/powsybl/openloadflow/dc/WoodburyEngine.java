@@ -130,6 +130,20 @@ public class WoodburyEngine {
                     contingenciesStates, contingencyElements);
             postContingencyStatesByContingency.put(contingency, postContingencyStates);
         }
+
+        //Reader is passed as a parameter to the engine
+        RhsReader reader = null;
+        List<DenseMatrix> postContingencyStates = new ArrayList<>();
+
+        reader.process((PropagatedContingency contingency, DenseMatrix preContingencyState, DenseMatrix contingenciesState) -> {
+            Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
+                    .filter(element -> !elementsToReconnect.contains(element))
+                    .map(contingencyElementByBranch::get)
+                    .toList();
+            postContingencyStates.add(computePostContingencyStates(loadFlowContext, preContingencyState,
+                    contingenciesState, contingencyElements));
+        });
+
         return postContingencyStatesByContingency;
     }
 
