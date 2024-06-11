@@ -21,6 +21,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.ac.solver.AcSolverType;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -57,7 +58,31 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setWriteSlackBus(false);
-        parametersExt = OpenLoadFlowParameters.create(parameters);
+        parametersExt = OpenLoadFlowParameters.create(parameters)
+//                .setAcSolverType(AcSolverType.KNITRO)
+        ;
+        // No OLs
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parameters.setDistributedSlack(false)
+                .setUseReactiveLimits(false);
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setSvcVoltageMonitoring(false);
+    }
+
+    @Test
+    void twoBusesTest() {
+        Network network = Network.create("TwoBusesWithNonImpedantLine", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        createGenerator(b1, "g1", 2.5, 1);
+        createLoad(b2, "l1", 1.99, 1);
+        Line l12 = createLine(network, b1, b2, "l12", 0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(1, b2);
+
     }
 
     @Test
@@ -76,7 +101,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.858, b2);
         assertVoltageEquals(0.858, b3);
-        assertAngleEquals(13.36967, b1);
+        assertAngleEquals(13.36967, b1); // NR
+//        assertAngleEquals(13.521504, b1); // Knitro
         assertAngleEquals(0, b2);
         assertAngleEquals(0, b3);
 
@@ -337,6 +363,84 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b2);
         assertAngleEquals(0, b3);
     }
+
+
+    @Test
+    void nonImpedantNetworkWithCycleFourBusTest() {
+        Network network = Network.create("FourBusesNetworkWithCycle", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        createGenerator(b1, "g1", 2, 1);
+        createGenerator(b3, "g3", 2, 1);
+        createGenerator(b4, "g4", 2, 1);
+        createLoad(b2, "l2", 6, 3);
+
+        createLine(network, b1, b2, "l12", 0);
+        createLine(network, b2, b3, "l23", 0);
+        createLine(network, b3, b4, "l34", 0);
+        createLine(network, b4, b1, "l41", 0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(1, b2);
+        assertVoltageEquals(1, b3);
+        assertVoltageEquals(1, b4);
+        assertAngleEquals(0, b1);
+        assertAngleEquals(0, b2);
+        assertAngleEquals(0, b3);
+        assertAngleEquals(0, b4);
+        assertActivePowerEquals(4.0, network.getLine("l12").getTerminal1());
+        assertActivePowerEquals(-2.0, network.getLine("l23").getTerminal1());
+        assertActivePowerEquals(0.0, network.getLine("l34").getTerminal1());
+        assertActivePowerEquals(2.0, network.getLine("l41").getTerminal1());
+        assertReactivePowerEquals(2.0, network.getLine("l12").getTerminal1());
+        assertReactivePowerEquals(-1.0, network.getLine("l23").getTerminal1());
+        assertReactivePowerEquals(0.0, network.getLine("l34").getTerminal1());
+        assertReactivePowerEquals(1.0, network.getLine("l41").getTerminal1());
+    }
+
+//    @Test
+//    void nonImpedantNetworkWithCycleAndImpendantLineTest() {
+//        Network network = Network.create("FiveBusesNetworkWithCycleAndImpendantLine", "code");
+//        Bus b1 = createBus(network, "b1");
+//        Bus b2 = createBus(network, "b2");
+//        Bus b3 = createBus(network, "b3");
+//        Bus b4 = createBus(network, "b4");
+//        Bus b5 = createBus(network, "b5");
+//        createGenerator(b1, "g1", 2, 1);
+//        createGenerator(b3, "g3", 2, 1);
+//        createLoad(b2, "l2", 6, 3);
+//        createGenerator(b4, "g4", 2, 1);
+//        createLine(network, b1, b2, "l12", 0);
+//        createLine(network, b2, b3, "l23", 0);
+//        createLine(network, b3, b4, "l34", 0);
+//        createLine(network, b4, b1, "l41", 0);
+//
+//        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+//
+//        assertTrue(result.isFullyConverged());
+//        assertVoltageEquals(1, b1);
+//        assertVoltageEquals(1, b2);
+//        assertVoltageEquals(1, b3);
+//        assertVoltageEquals(1, b4);
+//        assertAngleEquals(0, b1);
+//        assertAngleEquals(0, b2);
+//        assertAngleEquals(0, b3);
+//        assertAngleEquals(0, b4);
+//        assertActivePowerEquals(4.0, network.getLine("l12").getTerminal1());
+//        assertActivePowerEquals(-2.0, network.getLine("l23").getTerminal1());
+//        assertActivePowerEquals(0.0, network.getLine("l34").getTerminal1());
+//        assertActivePowerEquals(2.0, network.getLine("l41").getTerminal1());
+//        assertReactivePowerEquals(2.0, network.getLine("l12").getTerminal1());
+//        assertReactivePowerEquals(-1.0, network.getLine("l23").getTerminal1());
+//        assertReactivePowerEquals(0.0, network.getLine("l34").getTerminal1());
+//        assertReactivePowerEquals(1.0, network.getLine("l41").getTerminal1());
+//    }
+
 
     @Test
     void securityAnalysisTest() {
