@@ -32,6 +32,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
     }
 
+
     class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
         private final EquationTerm<V, E> term;
@@ -47,6 +48,10 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
             this.scalarSupplier = Objects.requireNonNull(scalarSupplier);
             term.setSelf(this);
         }
+
+        public double getScalarSupplier() { return scalarSupplier.getAsDouble(); }
+
+        public EquationTerm<V, E> getTerm() {return term;}
 
         @Override
         public List<EquationTerm<V, E>> getChildren() {
