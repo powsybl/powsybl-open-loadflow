@@ -23,7 +23,7 @@ import java.util.List;
 public class GeneratorVoltageControlManager {
 
     private final double minNominalVoltageLimit;
-    private final List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
+    private final List<LfBus> disabledControllerBuses = new ArrayList<>();
 
     public GeneratorVoltageControlManager(LfNetwork network, double limitOverride) {
         this.minNominalVoltageLimit = limitOverride < 0 ? calculateMaxControlledNominalVoltage(network) : limitOverride;
@@ -57,13 +57,9 @@ public class GeneratorVoltageControlManager {
     }
 
     /**
-     *  Disables the voltage control of generators with nominal voltage below the limit
-     * @return true if at least one generator is disabled. False if the model is not modified
+     * Disables the voltage control of generators if controlled bus nominal voltage is under the limit.
      */
-    public boolean stopTensionControlBelowLimit(LfNetwork network) {
-
-        boolean result = false;
-
+    public void disableGeneratorVoltageControlsUnderMaxControlledNominalVoltage(LfNetwork network) {
         for (LfBus bus : network.getControlledBuses(VoltageControl.Type.GENERATOR)) {
             if (bus.getNominalV() < minNominalVoltageLimit) {
                 var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
@@ -71,17 +67,18 @@ public class GeneratorVoltageControlManager {
                     if (controllerBus.isGeneratorVoltageControlEnabled() && !isBusBehindVeryHighVoltageTransfo(controllerBus, minNominalVoltageLimit)) {
                         controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
                         controllerBus.setGeneratorVoltageControlEnabled(false);
-                        busesWithVoltageControlDisabled.add(controllerBus);
-                        result = true;
+                        disabledControllerBuses.add(controllerBus);
                     }
                 }
             }
         }
-        return result;
     }
 
-    public void restartGeneratorTensionControl() {
-        for (LfBus controllerBus : busesWithVoltageControlDisabled) {
+    /**
+     * Enables the voltage control of generators if controlled bus nominal voltage is under the limit.
+     */
+    public void enableGeneratorVoltageControlsUnderMaxControlledNominalVoltage() {
+        for (LfBus controllerBus : disabledControllerBuses) {
             controllerBus.setGenerationTargetQ(0);
             controllerBus.setGeneratorVoltageControlEnabled(true);
         }

@@ -41,13 +41,12 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         private GeneratorVoltageControlManager generatorVoltageControlManager;
 
         private Step step = Step.INITIAL;
-
     }
 
-    private final boolean useInitialTapePosition;
+    private final boolean useInitialTapPosition;
 
-    public TransformerVoltageControlOuterLoop(boolean useInitialTapePosition, double maxControlledNominalVoltageOverride) {
-        this.useInitialTapePosition = useInitialTapePosition;
+    public TransformerVoltageControlOuterLoop(boolean useInitialTapPosition, double maxControlledNominalVoltageOverride) {
+        this.useInitialTapPosition = useInitialTapPosition;
         this.maxControlledNominalVoltageOverride = maxControlledNominalVoltageOverride;
     }
 
@@ -56,11 +55,11 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         ContextData contextData = new ContextData();
         context.setData(contextData);
 
+        // All transformer voltage control are disabled for the first equation system resolution.
         for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             controllerBranch.setVoltageControlEnabled(false);
         }
 
-        // All transformer voltage control are disabled for the first equation system resolution.
         contextData.generatorVoltageControlManager = new GeneratorVoltageControlManager(context.getNetwork(), maxControlledNominalVoltageOverride);
     }
 
@@ -83,9 +82,9 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     }
 
     /**
-     * At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
-     * the set controlledNominalVoltages are disabled.
-     * The transformer voltage controls are enabled ant their continuous ratio is computed$
+     * At first outer loop iteration, the voltage control of generators that controlled under the max controlled nominal
+     * voltage are disabled (automatic detection or parameter).
+     * The transformer voltage controls are enabled and their continuous ratio is computed.
      * @return a stable status if all taps are already tuned for tension control, unstable otherwise
      */
     private OuterLoopResult initStep(LfNetwork network, ContextData contextData) {
@@ -104,15 +103,14 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             }
         }
 
-        contextData.transformerRatioManager = new TransformerRatioManager(network, useInitialTapePosition);
+        contextData.transformerRatioManager = new TransformerRatioManager(network, useInitialTapPosition);
 
         if (!needRun) {
             contextData.step = Step.COMPLETE;
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
-        contextData.generatorVoltageControlManager.stopTensionControlBelowLimit(network);
+        contextData.generatorVoltageControlManager.disableGeneratorVoltageControlsUnderMaxControlledNominalVoltage(network);
 
-        // In stable mode, Group maintaining tension but in PQ mode are ignored
         network.fixTransformerVoltageControls();
 
         contextData.step = Step.CONTROL;
@@ -120,8 +118,8 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     }
 
     /**
-     * During control step, transformers with ratio outside of range are discretized. Iterate until all transformers
-     * with continuous ratio are within their operating range , discretize then  switch to COMPLETE state
+     * During control step, transformers with ratio outside of range are rounded. We iterate until all transformers
+     * with continuous ratio are within their operating range, rounded then and switch them to COMPLETE.
      */
     private OuterLoopResult controlStep(LfNetwork network, ContextData contextData) {
         boolean outOfBoundTap = false;
@@ -133,15 +131,14 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         }
 
         if (!outOfBoundTap) {
-            // No out of bound tap -  descretize
             updateContinuousRatio(network, contextData);
 
             roundVoltageRatios(network);
-            contextData.generatorVoltageControlManager.restartGeneratorTensionControl();
+            contextData.generatorVoltageControlManager.enableGeneratorVoltageControlsUnderMaxControlledNominalVoltage();
 
             contextData.step = Step.COMPLETE;
         }
-        // In any case the loop must run again
+        // In any case, the loop must run again.
         return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
     }
 
@@ -157,5 +154,4 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                     });
         }
     }
-
 }
