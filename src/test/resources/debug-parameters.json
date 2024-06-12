@@ -85,7 +85,7 @@
         "referenceBusSelectionMode" : "FIRST_SLACK",
         "writeReferenceTerminals" : true,
         "voltageTargetPriorities" : [ "GENERATOR", "TRANSFORMER", "SHUNT" ],
-        "useInitialTapPosition" : false,
+        "transformerVoltageControlUseInitialTapPosition" : false,
         "generatorVoltageControlMinNominalVoltage" : -1.0
       }
     }
