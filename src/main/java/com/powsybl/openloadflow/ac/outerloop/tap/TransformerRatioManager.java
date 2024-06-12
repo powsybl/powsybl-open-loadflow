@@ -25,7 +25,7 @@ public class TransformerRatioManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransformerRatioManager.class);
 
-    private final boolean useInitialTapePosition;
+    private final boolean useInitialTapPosition;
 
     public record ParallelRatioInfo(double rMax, double rMin, double rIni) {
         public ParallelRatioInfo(PiModel piModel) {
@@ -48,7 +48,7 @@ public class TransformerRatioManager {
      * otherwise the transformer individual values.
      */
     public TransformerRatioManager(LfNetwork network, boolean useInitialTapePosition) {
-        this.useInitialTapePosition = useInitialTapePosition;
+        this.useInitialTapPosition = useInitialTapePosition;
         for (LfBus bus : network.getControlledBuses(VoltageControl.Type.TRANSFORMER)) {
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
@@ -106,23 +106,23 @@ public class TransformerRatioManager {
      * If stable is false, the transformer is not modified and keeps its computed ratio.
      * @return the updated transormer's ratio
      */
-    public double updateContinuousRatio(LfBranch transfo) {
-        if (useInitialTapePosition) {
-            TransformerRatioManager.TransfoRatioInfo transfoRatioInfo = transfoRatioInfoMap.get(transfo.getId());
+    public double updateContinuousRatio(LfBranch branch) {
+        if (useInitialTapPosition) {
+            TransformerRatioManager.TransfoRatioInfo transfoRatioInfo = transfoRatioInfoMap.get(branch.getId());
             double r1GroupMax = transfoRatioInfo.groupeInfo().rMax();
             double r1GroupMin = transfoRatioInfo.groupeInfo().rMin();
             double r1GroupIni = transfoRatioInfo.groupeInfo().rIni();
-            double computedR = transfo.getPiModel().getR1(); // equations provide the same R for all branches
+            double computedR = branch.getPiModel().getR1(); // equations provide the same R for all branches
             double r1Ini = transfoRatioInfo.rIni();
             double updatedR = computedR >= r1GroupIni ?
-                    r1Ini + (computedR - r1GroupIni) * (transfo.getPiModel().getMaxR1() - r1Ini) / (r1GroupMax - r1GroupIni)
+                    r1Ini + (computedR - r1GroupIni) * (branch.getPiModel().getMaxR1() - r1Ini) / (r1GroupMax - r1GroupIni)
                     :
-                    r1Ini - (r1GroupIni - computedR) * (r1Ini - transfo.getPiModel().getMinR1()) / (r1GroupIni - r1GroupMin);
-            transfo.getPiModel().setR1(updatedR);
+                    r1Ini - (r1GroupIni - computedR) * (r1Ini - branch.getPiModel().getMinR1()) / (r1GroupIni - r1GroupMin);
+            branch.getPiModel().setR1(updatedR);
             return updatedR;
         } else {
             // Do Nothing - keep computed R1
-            return transfo.getPiModel().getR1();
+            return branch.getPiModel().getR1();
         }
     }
 
@@ -150,5 +150,4 @@ public class TransformerRatioManager {
         }
         return false;
     }
-
 }
