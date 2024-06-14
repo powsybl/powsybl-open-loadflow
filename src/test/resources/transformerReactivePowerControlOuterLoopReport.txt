@@ -255,8 +255,8 @@
          Outer loop DistributedSlack
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
-         Outer loop AcEmulation
          + Outer loop IncrementalTransformerReactivePowerControl
             + Outer loop iteration 5
                1 reactive power-controlled branches are outside of their target deadbands
+         Outer loop AcEmulation
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
