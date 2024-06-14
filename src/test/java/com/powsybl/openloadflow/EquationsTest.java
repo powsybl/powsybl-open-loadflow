@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
@@ -64,7 +65,13 @@ class EquationsTest {
     private static final double LOSS_FACTOR_1 = 0.01100000023841858;
     private static final double LOSS_FACTOR_2 = 0.02400453453002384;
     private static final double G_SHUNT = 0.0000372472384299244;
-    private static final LfHvdc.AcEmulationControl AC_EMULATION_CONTROL = new LfHvdc.AcEmulationControl(DROOP * PerUnit.SB, P_0 * PerUnit.SB, Double.MAX_VALUE, Double.MAX_VALUE);
+
+    private static LfHvdc.AcEmulationControl buildAcEmulationControl() {
+        LfHvdc.AcEmulationControl acEmulationControl = new LfHvdc.AcEmulationControl(DROOP * PerUnit.SB, P_0 * PerUnit.SB, Double.MAX_VALUE, Double.MAX_VALUE);
+        acEmulationControl.setFeedingSide(TwoSides.TWO);
+        return acEmulationControl;
+    }
+    private static final LfHvdc.AcEmulationControl AC_EMULATION_CONTROL = buildAcEmulationControl();
 
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] eval(EquationTerm<V, E> term, List<Variable<V>> variables, StateVector sv) {
         term.setStateVector(sv);
