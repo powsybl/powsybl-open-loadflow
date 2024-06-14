@@ -9,28 +9,35 @@
          + Pre-contingency simulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
+            Outer loop AcEmulation
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'L1'
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
+            Outer loop AcEmulation
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
             + Operator strategy simulation 'strategyL1'
                Outer loop VoltageMonitoring
                Outer loop ReactiveLimits
+               Outer loop AcEmulation
                AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'L3'
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
+            Outer loop AcEmulation
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
             + Operator strategy simulation 'strategyL3'
                Outer loop VoltageMonitoring
                Outer loop ReactiveLimits
+               Outer loop AcEmulation
                AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'L2'
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
+            Outer loop AcEmulation
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
             + Operator strategy simulation 'strategyL2'
                Outer loop VoltageMonitoring
                Outer loop ReactiveLimits
+               Outer loop AcEmulation
                AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

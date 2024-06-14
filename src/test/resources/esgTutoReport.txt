@@ -14,6 +14,7 @@
          Outer loop DistributedSlack
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
+         Outer loop AcEmulation
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
    + Sensitivity analysis on network 'sim1'
       + Network CC0 SC0
@@ -24,4 +25,5 @@
             Slack bus: VLLOAD_0
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
+         Outer loop AcEmulation
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

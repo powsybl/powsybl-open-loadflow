@@ -66,4 +66,5 @@
                   Bus injection: 607.0001563589107 MW, 225.40357009583855 MVar
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
+         Outer loop AcEmulation
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
