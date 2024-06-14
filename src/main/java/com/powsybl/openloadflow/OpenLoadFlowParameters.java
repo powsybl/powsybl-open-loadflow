@@ -497,7 +497,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private List<String> voltageTargetPriorities = LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
-    private boolean useInitialTapPosition = LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE;
+    private boolean transformerVoltageControlUseInitialTapPosition = LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE;
 
     private double generatorVoltageControlMinNominalVoltage = GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE;
 
@@ -1165,12 +1165,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean isUseInitialTapPosition() {
-        return useInitialTapPosition;
+    public boolean isTransformerVoltageControlUseInitialTapPosition() {
+        return transformerVoltageControlUseInitialTapPosition;
     }
 
-    public OpenLoadFlowParameters setUseInitialTapPosition(boolean useInitialTapPosition) {
-        this.useInitialTapPosition = useInitialTapPosition;
+    public OpenLoadFlowParameters setTransformerVoltageControlUseInitialTapPosition(boolean transformerVoltageControlUseInitialTapPosition) {
+        this.transformerVoltageControlUseInitialTapPosition = transformerVoltageControlUseInitialTapPosition;
         return this;
     }
 
@@ -1262,7 +1262,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReferenceBusSelectionMode(config.getEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class, ReferenceBusSelector.DEFAULT_MODE))
                 .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE))
                 .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE))
-                .setUseInitialTapPosition(config.getBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE))
+                .setTransformerVoltageControlUseInitialTapPosition(config.getBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE))
                 .setGeneratorVoltageControlMinNominalVoltage(config.getDoubleProperty(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE)));
         return parameters;
     }
@@ -1413,7 +1413,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Optional.ofNullable(properties.get(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME))
                 .ifPresent(prop -> this.setVoltageTargetPriorities(parseStringListProp(prop)));
         Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME))
-                .ifPresent(prop -> this.setUseInitialTapPosition(Boolean.parseBoolean(prop)));
+                .ifPresent(prop -> this.setTransformerVoltageControlUseInitialTapPosition(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorVoltageControlMinNominalVoltage(Double.parseDouble(prop)));
         return this;
@@ -1486,7 +1486,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, referenceBusSelectionMode);
         map.put(WRITE_REFERENCE_TERMINALS_PARAM_NAME, writeReferenceTerminals);
         map.put(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, voltageTargetPriorities);
-        map.put(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, useInitialTapPosition);
+        map.put(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, transformerVoltageControlUseInitialTapPosition);
         map.put(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, generatorVoltageControlMinNominalVoltage);
         return map;
     }
@@ -1863,7 +1863,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxSusceptanceMismatch() == extension2.getMaxSusceptanceMismatch() &&
                 extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
                 Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities()) &&
-                extension1.isUseInitialTapPosition() == extension2.isUseInitialTapPosition() &&
+                extension1.isTransformerVoltageControlUseInitialTapPosition() == extension2.isTransformerVoltageControlUseInitialTapPosition() &&
                 extension1.getGeneratorVoltageControlMinNominalVoltage() == extension2.getGeneratorVoltageControlMinNominalVoltage();
     }
 
@@ -1955,7 +1955,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setNewtonRaphsonStoppingCriteriaType(extension.getNewtonRaphsonStoppingCriteriaType())
                     .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
                     .setVoltageTargetPriorities(extension.getVoltageTargetPriorities())
-                    .setUseInitialTapPosition(extension.isUseInitialTapPosition())
+                    .setTransformerVoltageControlUseInitialTapPosition(extension.isTransformerVoltageControlUseInitialTapPosition())
                     .setGeneratorVoltageControlMinNominalVoltage(extension.getGeneratorVoltageControlMinNominalVoltage());
 
             if (extension2 != null) {
