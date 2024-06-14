@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.VoltageControl;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,28 +28,26 @@ public class TransformerRatioManager {
 
     private final boolean useInitialTapPosition;
 
-    public record ParallelRatioInfo(double rMax, double rMin, double rIni) {
-        public ParallelRatioInfo(PiModel piModel) {
+    public record SharedControl(double maxR1, double minR1, double initialR1) {
+
+        public SharedControl(PiModel piModel) {
             this(piModel.getMaxR1(), piModel.getMinR1(), piModel.getR1());
         }
 
-        public ParallelRatioInfo(double rMax, double rMin, double coefA, double coefB, int count) {
-            this(rMax, rMin, (rMin * coefA + rMax * coefB) / count);
+        public SharedControl(double maxR1, double minR1, double a, double b, int count) {
+            this(maxR1, minR1, (minR1 * a + maxR1 * b) / count);
         }
     }
 
-    public record TransfoRatioInfo(double rIni, ParallelRatioInfo groupeInfo) {
-    }
-
-    private final Map<String, TransfoRatioInfo> transfoRatioInfoMap = new HashMap<>();
+    private final Map<String, Pair<Double, SharedControl>> sharedControlByBranchId = new HashMap<>();
 
     /**
-     * Initializes the ratio states. In particular rMax, rMin and rIni.
-     * If 'stable' is true then tMax, rMin and rIni are the average valus of the transformers in parallel
-     * otherwise the transformer individual values.
+     * Initializes the ratios. In particular maxR1, minR1 and initialR1.
+     * If 'useInitialTapPosition' is true then maxR1, minR1 and initialR1 are the average value of the transformers of the same
+     * control otherwise the transformer individual values.
      */
-    public TransformerRatioManager(LfNetwork network, boolean useInitialTapePosition) {
-        this.useInitialTapPosition = useInitialTapePosition;
+    public TransformerRatioManager(LfNetwork network, boolean useInitialTapPosition) {
+        this.useInitialTapPosition = useInitialTapPosition;
         for (LfBus bus : network.getControlledBuses(VoltageControl.Type.TRANSFORMER)) {
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
@@ -57,94 +56,82 @@ public class TransformerRatioManager {
                                 .filter(b -> !b.isDisabled())
                                 .filter(LfBranch::isVoltageControlEnabled)
                                 .toList();
-                        if (!controllerBranches.isEmpty()) { // If transformers in parallel control tension
-                            if (useInitialTapePosition) {
-                                // parallel info
-                                double coefA = 0;
-                                double coefB = 0;
-                                for (LfBranch transfo : controllerBranches) {
-                                    PiModel piModel = transfo.getPiModel();
+                        if (!controllerBranches.isEmpty()) {
+                            if (useInitialTapPosition) {
+                                // shared behavior
+                                double a = 0;
+                                double b = 0;
+                                for (LfBranch branch : controllerBranches) {
+                                    PiModel piModel = branch.getPiModel();
                                     double r1 = piModel.getR1();
-                                    double r1Max = piModel.getMaxR1();
-                                    double r1Min = piModel.getMinR1();
-                                    if (r1Max != r1Min) {
-                                        coefA += (r1Max - r1) / (r1Max - r1Min);
-                                        coefB += (r1 - r1Min) / (r1Max - r1Min);
+                                    double maxR1 = piModel.getMaxR1();
+                                    double minR1 = piModel.getMinR1();
+                                    if (maxR1 != minR1) {
+                                        a += (maxR1 - r1) / (maxR1 - minR1);
+                                        b += (r1 - minR1) / (maxR1 - minR1);
                                     } else {
-                                        coefA += 1;
-                                        coefB += 1;
+                                        a += 1;
+                                        b += 1;
                                     }
                                 }
-                                ParallelRatioInfo parallelRatioInfo = new ParallelRatioInfo(
-                                        controllerBranches.stream().mapToDouble(b -> b.getPiModel().getMaxR1()).average().orElseThrow(),
-                                        controllerBranches.stream().mapToDouble(b -> b.getPiModel().getMinR1()).average().orElseThrow(),
-                                        coefA,
-                                        coefB,
+                                SharedControl sharedControl = new SharedControl(
+                                        controllerBranches.stream().mapToDouble(branch -> branch.getPiModel().getMaxR1()).average().orElseThrow(),
+                                        controllerBranches.stream().mapToDouble(branch -> branch.getPiModel().getMinR1()).average().orElseThrow(),
+                                        a,
+                                        b,
                                         controllerBranches.size());
-                                controllerBranches.forEach(b -> transfoRatioInfoMap.put(b.getId(), new TransfoRatioInfo(b.getPiModel().getR1(), parallelRatioInfo)));
+                                controllerBranches.forEach(branch -> sharedControlByBranchId.put(branch.getId(), Pair.of(branch.getPiModel().getR1(), sharedControl)));
                             } else {
-                                // individual info
-                                controllerBranches.forEach(b -> transfoRatioInfoMap.put(b.getId(),
-                                        new TransfoRatioInfo(b.getPiModel().getR1(), new ParallelRatioInfo(b.getPiModel()))));
+                                // individual behavior
+                                controllerBranches.forEach(branch -> sharedControlByBranchId.put(branch.getId(), Pair.of(branch.getPiModel().getR1(), new SharedControl(branch.getPiModel()))));
                             }
-
                         }
                     });
         }
     }
 
-    public TransfoRatioInfo getInfo(LfBranch transformer) {
-        return transfoRatioInfoMap.get(transformer.getId());
-    }
-
     /**
-     * If useInitialTapePosition is true, for tranformers in parallel, try to keep the initial difference between individual ratio
-     * This algorithm maintains the individual tap positions if the tension is correct with initial settings.
-     * It can also be seen as an approximate simulation of transformers acting with independent automates.
-     * Assumes that all transformers in parallel have the same ratio (should be maintained by
-     * ACEquationSystemCreator.createR1DistributionEquations)
-     * If stable is false, the transformer is not modified and keeps its computed ratio.
-     * @return the updated transormer's ratio
+     * If 'useInitialTapePosition' is true, for transformers of the same control, we try to keep the initial difference
+     * between individual ratios. This algorithm maintains the individual tap positions if the voltage is correct with initial
+     * state. It can also be seen as an approximate simulation of transformers acting with independent automation systems.
+     * Assumes that all transformers of the same control have the same ratio (should be maintained by
+     * ACEquationSystemCreator.createR1DistributionEquations).
+     * If 'useInitialTapePosition' is false, the transformer is not modified and keeps its computed R1.
      */
-    public double updateContinuousRatio(LfBranch branch) {
+    public void updateContinuousRatio(LfBranch branch) {
         if (useInitialTapPosition) {
-            TransformerRatioManager.TransfoRatioInfo transfoRatioInfo = transfoRatioInfoMap.get(branch.getId());
-            double r1GroupMax = transfoRatioInfo.groupeInfo().rMax();
-            double r1GroupMin = transfoRatioInfo.groupeInfo().rMin();
-            double r1GroupIni = transfoRatioInfo.groupeInfo().rIni();
-            double computedR = branch.getPiModel().getR1(); // equations provide the same R for all branches
-            double r1Ini = transfoRatioInfo.rIni();
-            double updatedR = computedR >= r1GroupIni ?
-                    r1Ini + (computedR - r1GroupIni) * (branch.getPiModel().getMaxR1() - r1Ini) / (r1GroupMax - r1GroupIni)
+            double individualInitialR1 = sharedControlByBranchId.get(branch.getId()).getLeft();
+            SharedControl sharedControl = sharedControlByBranchId.get(branch.getId()).getRight();
+            double maxR1 = sharedControl.maxR1();
+            double minR1 = sharedControl.minR1();
+            double initialR1 = sharedControl.initialR1();
+            double computedR1 = branch.getPiModel().getR1(); // equations provide the same R1 for all branches
+            double updatedR1 = computedR1 >= initialR1 ?
+                    individualInitialR1 + (computedR1 - initialR1) * (branch.getPiModel().getMaxR1() - individualInitialR1) / (maxR1 - individualInitialR1)
                     :
-                    r1Ini - (r1GroupIni - computedR) * (r1Ini - branch.getPiModel().getMinR1()) / (r1GroupIni - r1GroupMin);
-            branch.getPiModel().setR1(updatedR);
-            return updatedR;
-        } else {
-            // Do Nothing - keep computed R1
-            return branch.getPiModel().getR1();
+                    individualInitialR1 - (initialR1 - computedR1) * (individualInitialR1 - branch.getPiModel().getMinR1()) / (individualInitialR1 - minR1);
+            branch.getPiModel().setR1(updatedR1);
         }
     }
 
     /**
-     *  freezes the transformer to its limit if the ratio of a group of parallel transformers is above the max
-     *  (or below the min) of the group
-     * If stable mode is false, considers the max of the individual transformer.
+     * Freezes the transformer to its limit if the common ratio of transformers of the same shared control is above the max
+     * (or below the min) of the group.
      * @return true if the transformer has been frozen and false it voltage control remains disabled
      */
-    public boolean freezeIfGroupAtBounds(LfBranch transfo) {
-        if (transfo.isVoltageControlEnabled() && !transfo.isDisabled()) {
+    public boolean freezeAtExtremeTapPosition(LfBranch branch) {
+        if (branch.isVoltageControlEnabled() && !branch.isDisabled()) {
             // round the rho shift to the closest tap
-            PiModel piModel = transfo.getPiModel();
+            PiModel piModel = branch.getPiModel();
             double r1 = piModel.getR1();
-            TransformerRatioManager.TransfoRatioInfo transfoRatioInfo = getInfo(transfo);
-            double r1GroupMin = transfoRatioInfo.groupeInfo().rMin();
-            double r1GroupMax = transfoRatioInfo.groupeInfo().rMax();
-            if (r1 < r1GroupMin || r1 > r1GroupMax) {
-                LOGGER.info("Transformer " + transfo.getId() + " tap frozen");
-                piModel.setR1(r1 > r1GroupMax ? r1GroupMax : r1GroupMin);
+            SharedControl sharedControl = sharedControlByBranchId.get(branch.getId()).getRight();
+            double minR1 = sharedControl.minR1();
+            double maxR1 = sharedControl.maxR1();
+            if (r1 < minR1 || r1 > maxR1) {
+                LOGGER.info("Transformer {} with voltage control frozen: rounded at extreme tap position", branch.getId());
+                piModel.setR1(r1 > maxR1 ? maxR1 : minR1);
                 piModel.roundR1ToClosestTap();
-                transfo.setVoltageControlEnabled(false);
+                branch.setVoltageControlEnabled(false);
                 return true;
             }
         }

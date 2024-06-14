@@ -125,7 +125,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         boolean outOfBoundTap = false;
 
         for (LfBranch controllerBranch : network.<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
-            if (contextData.transformerRatioManager.freezeIfGroupAtBounds(controllerBranch)) {
+            if (contextData.transformerRatioManager.freezeAtExtremeTapPosition(controllerBranch)) {
                 outOfBoundTap = true;
             }
         }
@@ -146,12 +146,11 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         for (LfBus bus : network.getControlledBuses(VoltageControl.Type.TRANSFORMER)) {
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> {
+                    .ifPresent(voltageControl ->
                         voltageControl.getMergedControllerElements().stream()
                                 .filter(b -> !b.isDisabled())
                                 .filter(LfBranch::isVoltageControlEnabled)
-                                .forEach(b -> contextData.transformerRatioManager.updateContinuousRatio(b));
-                    });
+                                .forEach(b -> contextData.transformerRatioManager.updateContinuousRatio(b)));
         }
     }
 }
