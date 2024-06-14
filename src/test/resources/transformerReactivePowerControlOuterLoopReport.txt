@@ -211,6 +211,7 @@
                   Bus Id: VL_1_0 (nominalVoltage=132.0kV)
                   Bus V: 1.0227272727272727 pu, 0.011772577480572114 rad
                   Bus injection: 22.111739596487254 MW, 7.223626593973918 MVar
+         Outer loop AcEmulation
          + Outer loop DistributedSlack
             + Outer loop iteration 4
                Slack bus active power (2.379902997164196 MW) distributed in 1 distribution iteration(s)
@@ -246,12 +247,15 @@
                   Bus injection: 24.491420280899572 MW, 7.284141028025306 MVar
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
+         Outer loop AcEmulation
          + Outer loop IncrementalTransformerReactivePowerControl
             + Outer loop iteration 5
                1 reactive power-controlled branches are outside of their target deadbands
+         Outer loop AcEmulation
          Outer loop DistributedSlack
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
+         Outer loop AcEmulation
          + Outer loop IncrementalTransformerReactivePowerControl
             + Outer loop iteration 5
                1 reactive power-controlled branches are outside of their target deadbands

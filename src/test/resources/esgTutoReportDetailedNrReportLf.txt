@@ -223,10 +223,12 @@
          + Outer loop IncrementalTransformerVoltageControl
             + Outer loop iteration 2
                1 voltage-controlled buses are outside of their target deadbands
+         Outer loop AcEmulation
          Outer loop DistributedSlack
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          + Outer loop IncrementalTransformerVoltageControl
             + Outer loop iteration 2
                1 voltage-controlled buses are outside of their target deadbands
+         Outer loop AcEmulation
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

@@ -8,4 +8,5 @@
             Angle reference bus: VLGEN_0
             Slack bus: VLGEN_0
          Outer loop VoltageMonitoring
+         Outer loop AcEmulation
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
