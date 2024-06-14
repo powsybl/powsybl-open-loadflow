@@ -40,8 +40,7 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     private double dp2dph1() {
         if (element.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.FREE) {
             return getSide2LossMultiplier() * k;
-        }
-        else {
+        } else {
             return 0;
         }
     }

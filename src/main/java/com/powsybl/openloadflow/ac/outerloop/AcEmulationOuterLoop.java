@@ -28,8 +28,8 @@ public class AcEmulationOuterLoop implements AcOuterLoop {
     private static final Logger LOGGER = LoggerFactory.getLogger(AcEmulationOuterLoop.class);
     public static final String NAME = "AcEmulation";
 
-    private static final int maxModeSwitch = 2;
-    private static final int maxFeedingSideSwitch = 2;
+    private static final int MAX_MODE_SWITCH = 2;
+    private static final int MAX_FEEDING_SIDE_SWITCH = 2;
 
     private static final class ContextData {
         private final Map<String, MutableInt> modeSwitchCount = new HashMap<>();
@@ -82,7 +82,7 @@ public class AcEmulationOuterLoop implements AcOuterLoop {
                 LOGGER.trace("Switching feeding side from One to Two for Hvdc: " + hvdcId);
                 contextData.incrementFeedingSideSwitchCount(hvdcId);
                 acEmulationControl.setFeedingSide(TwoSides.TWO);
-                if (contextData.getFeedingSideSwitchCount(hvdcId) == maxFeedingSideSwitch) {
+                if (contextData.getFeedingSideSwitchCount(hvdcId) == MAX_FEEDING_SIDE_SWITCH) {
                     LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: " + hvdcId);
                     acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
                 }
@@ -94,7 +94,7 @@ public class AcEmulationOuterLoop implements AcOuterLoop {
                 LOGGER.trace("Switching feeding side from Two to One for Hvdc: " + hvdcId);
                 contextData.incrementFeedingSideSwitchCount(hvdcId);
                 acEmulationControl.setFeedingSide(TwoSides.ONE);
-                if (contextData.getFeedingSideSwitchCount(hvdcId) == maxFeedingSideSwitch) {
+                if (contextData.getFeedingSideSwitchCount(hvdcId) == MAX_FEEDING_SIDE_SWITCH) {
                     LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: " + hvdcId);
                     acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
                 }
@@ -117,7 +117,7 @@ public class AcEmulationOuterLoop implements AcOuterLoop {
                     LOGGER.trace("Bound Hvdc flow to Pmax from CS1 to CS2 for Hvdc: " + hvdcId);
                     contextData.incrementModeSwitchCount(hvdcId);
                     acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
-                    if (contextData.getModeSwitchCount(hvdcId) == maxModeSwitch) {
+                    if (contextData.getModeSwitchCount(hvdcId) == MAX_MODE_SWITCH) {
                         LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS1 to CS2) for Hvdc: " + hvdcId);
                     }
                     return true;
@@ -128,7 +128,7 @@ public class AcEmulationOuterLoop implements AcOuterLoop {
                     LOGGER.trace("Bound Hvdc flow to Pmax from CS2 to CS1 for Hvdc: " + hvdcId);
                     contextData.incrementModeSwitchCount(hvdcId);
                     acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
-                    if (contextData.getModeSwitchCount(hvdcId) == maxModeSwitch) {
+                    if (contextData.getModeSwitchCount(hvdcId) == MAX_MODE_SWITCH) {
                         LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS2 to CS1) for Hvdc: " + hvdcId);
                     }
                     return true;
@@ -164,14 +164,16 @@ public class AcEmulationOuterLoop implements AcOuterLoop {
 
         for (LfHvdc hvdc : context.getNetwork().getHvdcs()) {
             String hvdcId = hvdc.getId();
-            if (contextData.getFeedingSideSwitchCount(hvdcId) < maxFeedingSideSwitch && contextData.getModeSwitchCount(hvdcId) < maxModeSwitch) {
+            if (contextData.getFeedingSideSwitchCount(hvdcId) < MAX_FEEDING_SIDE_SWITCH && contextData.getModeSwitchCount(hvdcId) < MAX_MODE_SWITCH) {
                 // First check the feeding side
-                if (checkFeedingSide(hvdc, contextData))
+                if (checkFeedingSide(hvdc, contextData)) {
                     status = OuterLoopStatus.UNSTABLE;
+                }
 
                 // Second check for Pmax values
-                if (checkMode(hvdc, contextData))
+                if (checkMode(hvdc, contextData)) {
                     status = OuterLoopStatus.UNSTABLE;
+                }
             }
         }
 
