@@ -68,6 +68,59 @@ public class AcEmulationOuterLoop
         return false;
     }
 
+    private boolean checkMode(LfHvdc hvdc, ContextData contextData) {
+        String hvdcId = hvdc.getId();
+        LfHvdc.AcEmulationControl acEmulationControl = hvdc.getAcEmulationControl();
+
+        // Check for mode switch between FREE and BOUNDED
+        if (acEmulationControl.getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.FREE) {
+            // Check Pmax
+            if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
+                if (hvdc.getP1().eval() > acEmulationControl.getPMaxFromCS1toCS2()) {
+                    // Switch mode
+                    LOGGER.trace("Bound Hvdc flow to Pmax from CS1 to CS2 for Hvdc: " + hvdcId);
+                    contextData.incrementModeSwitchCount(hvdcId);
+                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
+                    if (contextData.getModeSwitchCount(hvdcId) == MAX_MODE_SWITCH) {
+                        LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS1 to CS2) for Hvdc: " + hvdcId);
+                    }
+                    return true;
+                }
+            } else {
+                if (hvdc.getP2().eval() > acEmulationControl.getPMaxFromCS2toCS1()) {
+                    // Switch mode
+                    LOGGER.trace("Bound Hvdc flow to Pmax from CS2 to CS1 for Hvdc: " + hvdcId);
+                    contextData.incrementModeSwitchCount(hvdcId);
+                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
+                    if (contextData.getModeSwitchCount(hvdcId) == MAX_MODE_SWITCH) {
+                        LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS2 to CS1) for Hvdc: " + hvdcId);
+                    }
+                    return true;
+                }
+            }
+        }
+
+        // Check for mode switch between BOUNDED and FREE
+        if (acEmulationControl.getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED) {
+            if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
+                if (computeRawP1(hvdc) < acEmulationControl.getPMaxFromCS1toCS2()) {
+                    // Switch mode
+                    LOGGER.trace("Set free the Ac Emulation mode for Hvdc: " + hvdcId);
+                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
+                    return true;
+                }
+            } else {
+                if (computeRawP2(hvdc) < acEmulationControl.getPMaxFromCS2toCS1()) {
+                    // Switch mode
+                    LOGGER.trace("Set free the Ac Emulation mode for Hvdc: " + hvdcId);
+                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
@@ -85,7 +138,7 @@ public class AcEmulationOuterLoop
                 }
 
                 // Second check for Pmax values
-                if (checkMode(hvdc, contextData, LOGGER)) {
+                if (checkMode(hvdc, contextData)) {
                     status = OuterLoopStatus.UNSTABLE;
                 }
             }

@@ -29,11 +29,11 @@ public class HvdcAcEmulationSide2DCFlowEquationTerm extends AbstractHvdcAcEmulat
 
     @Override
     public double eval() {
-        return switch (element.getAcEmulationControl().getAcEmulationStatus()) {
-            case FREE -> -rawP(p0, k, ph1(), ph2());
-            case BOUNDED -> element.getAcEmulationControl().getFeedingSide() == TwoSides.TWO ? pMaxFromCS2toCS1 : -pMaxFromCS1toCS2;
-            default -> 0;
-        };
+        if (element.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED) {
+            return element.getAcEmulationControl().getFeedingSide() == TwoSides.TWO ? pMaxFromCS2toCS1 : -pMaxFromCS1toCS2;
+        } else { // free
+            return -rawP(p0, k, ph1(), ph2());
+        }
     }
 
     @Override
@@ -58,10 +58,10 @@ public class HvdcAcEmulationSide2DCFlowEquationTerm extends AbstractHvdcAcEmulat
 
     @Override
     public double rhs() {
-        return switch (element.getAcEmulationControl().getAcEmulationStatus()) {
-            case FREE -> -p0;
-            case BOUNDED -> element.getAcEmulationControl().getFeedingSide() == TwoSides.TWO ? pMaxFromCS2toCS1 : -pMaxFromCS1toCS2;
-            default -> 0;
-        };
+        if (element.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED) {
+            return element.getAcEmulationControl().getFeedingSide() == TwoSides.TWO ? pMaxFromCS2toCS1 : -pMaxFromCS1toCS2;
+        } else { // free
+            return -p0;
+        }
     }
 }

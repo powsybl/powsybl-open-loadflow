@@ -11,13 +11,11 @@ package com.powsybl.openloadflow.lf.outerloop;
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
  */
 
-import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfHvdc;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.slf4j.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -62,61 +60,20 @@ public abstract class AbstractAcEmulationOuterLoop <V extends Enum<V> & Quantity
         }
     }
 
-    public void initialize(OuterLoopContext context) {
-        context.setData(new ContextData());
+    protected double computeRawP1(LfHvdc hvdc) {
+        double ph1 = hvdc.getBus1().getAngle();
+        double ph2 = hvdc.getBus1().getAngle();
+        double p0 = hvdc.getAcEmulationControl().getP0();
+        double k = hvdc.getAcEmulationControl().getDroop();
+        return p0 + k * (ph1 - ph2);
     }
 
-    protected boolean checkMode(LfHvdc hvdc, ContextData contextData, Logger logger) {
-        String hvdcId = hvdc.getId();
-        LfHvdc.AcEmulationControl acEmulationControl = hvdc.getAcEmulationControl();
+    protected double computeRawP2(LfHvdc hvdc) {
+        return -computeRawP1(hvdc);
+    }
 
-        // Check for mode switch between FREE and BOUNDED
-        if (acEmulationControl.getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.FREE) {
-            // Check Pmax
-            if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
-                if (hvdc.getP1().eval() > acEmulationControl.getPMaxFromCS1toCS2()) {
-                    // Switch mode
-                    logger.trace("Bound Hvdc flow to Pmax from CS1 to CS2 for Hvdc: " + hvdcId);
-                    contextData.incrementModeSwitchCount(hvdcId);
-                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
-                    if (contextData.getModeSwitchCount(hvdcId) == MAX_MODE_SWITCH) {
-                        logger.debug("Two many mode switches (flow blocked to Pmax from CS1 to CS2) for Hvdc: " + hvdcId);
-                    }
-                    return true;
-                }
-            } else {
-                if (hvdc.getP2().eval() > acEmulationControl.getPMaxFromCS2toCS1()) {
-                    // Switch mode
-                    logger.trace("Bound Hvdc flow to Pmax from CS2 to CS1 for Hvdc: " + hvdcId);
-                    contextData.incrementModeSwitchCount(hvdcId);
-                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
-                    if (contextData.getModeSwitchCount(hvdcId) == MAX_MODE_SWITCH) {
-                        logger.debug("Two many mode switches (flow blocked to Pmax from CS2 to CS1) for Hvdc: " + hvdcId);
-                    }
-                    return true;
-                }
-            }
-        }
-
-        // Check for mode switch between BOUNDED and FREE
-        if (acEmulationControl.getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED) {
-            if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
-                if (hvdc.getP1().eval() < acEmulationControl.getPMaxFromCS1toCS2()) {
-                    // Switch mode
-                    logger.trace("Set free the Ac Emulation mode for Hvdc: " + hvdcId);
-                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
-                    return true;
-                }
-            } else {
-                if (hvdc.getP2().eval() < acEmulationControl.getPMaxFromCS2toCS1()) {
-                    // Switch mode
-                    logger.trace("Set free the Ac Emulation mode for Hvdc: " + hvdcId);
-                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
-                    return true;
-                }
-            }
-        }
-        return false;
+    public void initialize(OuterLoopContext context) {
+        context.setData(new ContextData());
     }
 
 }

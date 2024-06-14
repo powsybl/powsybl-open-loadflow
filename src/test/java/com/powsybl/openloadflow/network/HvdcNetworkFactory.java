@@ -582,7 +582,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *     Initially, g1 is on. g2 is off.
      * @return
      */
-    public static Network createHvdcInAcEmulationInSymetricNetwork() {
+    public static Network createHvdcInAcEmulationInSymmetricNetwork() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
