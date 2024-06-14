@@ -71,6 +71,7 @@ class EquationsTest {
         acEmulationControl.setFeedingSide(TwoSides.TWO);
         return acEmulationControl;
     }
+
     private static final LfHvdc.AcEmulationControl AC_EMULATION_CONTROL = buildAcEmulationControl();
 
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] eval(EquationTerm<V, E> term, List<Variable<V>> variables, StateVector sv) {
