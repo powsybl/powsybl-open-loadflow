@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
@@ -28,15 +29,23 @@ public class HvdcAcEmulationSide1DCFlowEquationTerm extends AbstractHvdcAcEmulat
 
     @Override
     public double eval() {
-        return k * (ph1() - ph2()) + hvdc.getAcEmulationControl().getP0();
+        return switch (element.getAcEmulationControl().getAcEmulationStatus()) {
+            case FREE -> rawP(p0, k, ph1(), ph2());
+            case BOUNDED -> element.getAcEmulationControl().getFeedingSide() == TwoSides.ONE ? pMaxFromCS1toCS2 : -pMaxFromCS2toCS1;
+            default -> 0;
+        };
     }
 
     @Override
     public double der(Variable<DcVariableType> variable) {
+        double der = 0;
+        if (element.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.FREE) {
+            der = k;
+        }
         if (variable.equals(ph1Var)) {
-            return k;
+            return der;
         } else if (variable.equals(ph2Var)) {
-            return -k;
+            return -der;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -49,6 +58,10 @@ public class HvdcAcEmulationSide1DCFlowEquationTerm extends AbstractHvdcAcEmulat
 
     @Override
     public double rhs() {
-        return hvdc.getAcEmulationControl().getP0();
+        return switch (element.getAcEmulationControl().getAcEmulationStatus()) {
+            case FREE -> p0;
+            case BOUNDED -> element.getAcEmulationControl().getFeedingSide() == TwoSides.ONE ? pMaxFromCS1toCS2 : -pMaxFromCS2toCS1;
+            default -> 0;
+        };
     }
 }
