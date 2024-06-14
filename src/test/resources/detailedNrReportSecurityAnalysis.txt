@@ -68,6 +68,7 @@
             Outer loop DistributedSlack
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
+            Outer loop AcEmulation
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'L2'
             + Newton Raphson on Network CC0 SC0
@@ -163,7 +164,9 @@
                      Bus injection: 608.3346737740034 MW, 234.0235926831469 MVar
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
+            Outer loop AcEmulation
             Outer loop DistributedSlack
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
+            Outer loop AcEmulation
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

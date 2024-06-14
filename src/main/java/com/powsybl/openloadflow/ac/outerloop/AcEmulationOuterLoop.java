@@ -163,7 +163,7 @@ public class AcEmulationOuterLoop implements AcOuterLoop {
         ContextData contextData = (ContextData) context.getData();
 
         for (LfHvdc hvdc : context.getNetwork().getHvdcs()) {
-            if (!hvdc.isAcEmulation() || hvdc.getBus1().isDisabled() || hvdc.getBus2().isDisabled()) {
+            if (!hvdc.isAcEmulation() || hvdc.getBus1().isDisabled() || hvdc.getBus2().isDisabled() || hvdc.isDisabled()) {
                 continue;
             }
             String hvdcId = hvdc.getId();
