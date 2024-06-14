@@ -247,7 +247,6 @@
                   Bus injection: 24.491420280899572 MW, 7.284141028025306 MVar
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
-         Outer loop AcEmulation
          + Outer loop IncrementalTransformerReactivePowerControl
             + Outer loop iteration 5
                1 reactive power-controlled branches are outside of their target deadbands
