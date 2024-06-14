@@ -394,10 +394,10 @@ class DcLoadFlowTest {
 
     @Test
     void testDcAcEmulation() {
-        Network network = HvdcNetworkFactory.createHvdcInAcEmulationInSymmetricNetwork();
-        network.getHvdcLine("hvdc12").setMaxP(2.);
+        Network network = HvdcNetworkFactory.createHvdcInAcEmulation3BusesNetwork();
+        network.getHvdcLine("hvdc23").setMaxP(2.);
         loadFlowRunner.run(network, parameters);
-        assertEquals(2.0, network.getHvdcLine("hvdc12").getConverterStation1().getTerminal().getP(), 0.01);
-        assertEquals(1.0, network.getLine("l12").getTerminal1().getP(), 0.01);
+        assertEquals(2.0, network.getHvdcLine("hvdc23").getConverterStation1().getTerminal().getP(), 0.01);
+        assertEquals(1.0, network.getLine("l13").getTerminal1().getP(), 0.01);
     }
 }

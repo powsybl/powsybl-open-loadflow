@@ -43,11 +43,11 @@ public class AcEmulationOuterLoop
         if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
             if (hvdc.getP1().eval() < 0) {
                 // Switch feeding side
-                LOGGER.trace("Switching feeding side from One to Two for Hvdc: " + hvdcId);
+                LOGGER.trace("Switching feeding side from One to Two for Hvdc: {}", hvdcId);
                 contextData.incrementFeedingSideSwitchCount(hvdcId);
                 hvdc.updateFeedingSide(TwoSides.TWO);
                 if (contextData.getFeedingSideSwitchCount(hvdcId) == MAX_FEEDING_SIDE_SWITCH) {
-                    LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: " + hvdcId);
+                    LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: {}", hvdcId);
                     hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
                 }
                 return true;
@@ -55,11 +55,11 @@ public class AcEmulationOuterLoop
         } else {
             if (hvdc.getP2().eval() < 0) {
                 // Switch feeding side
-                LOGGER.trace("Switching feeding side from Two to One for Hvdc: " + hvdcId);
+                LOGGER.trace("Switching feeding side from Two to One for Hvdc: {}", hvdcId);
                 contextData.incrementFeedingSideSwitchCount(hvdcId);
                 hvdc.updateFeedingSide(TwoSides.ONE);
                 if (contextData.getFeedingSideSwitchCount(hvdcId) == MAX_FEEDING_SIDE_SWITCH) {
-                    LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: " + hvdcId);
+                    LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: {}", hvdcId);
                     hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
                 }
                 return true;
@@ -78,22 +78,22 @@ public class AcEmulationOuterLoop
             if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
                 if (hvdc.getP1().eval() > acEmulationControl.getPMaxFromCS1toCS2()) {
                     // Switch mode
-                    LOGGER.trace("Bound Hvdc flow to Pmax from CS1 to CS2 for Hvdc: " + hvdcId);
+                    LOGGER.trace("Bound Hvdc flow to Pmax from CS1 to CS2 for Hvdc: {}", hvdcId);
                     contextData.incrementModeSwitchCount(hvdcId);
                     hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
                     if (contextData.getModeSwitchCount(hvdcId) == MAX_MODE_SWITCH) {
-                        LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS1 to CS2) for Hvdc: " + hvdcId);
+                        LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS1 to CS2) for Hvdc: {}", hvdcId);
                     }
                     return true;
                 }
             } else {
                 if (hvdc.getP2().eval() > acEmulationControl.getPMaxFromCS2toCS1()) {
                     // Switch mode
-                    LOGGER.trace("Bound Hvdc flow to Pmax from CS2 to CS1 for Hvdc: " + hvdcId);
+                    LOGGER.trace("Bound Hvdc flow to Pmax from CS2 to CS1 for Hvdc: {}", hvdcId);
                     contextData.incrementModeSwitchCount(hvdcId);
                     hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
                     if (contextData.getModeSwitchCount(hvdcId) == MAX_MODE_SWITCH) {
-                        LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS2 to CS1) for Hvdc: " + hvdcId);
+                        LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS2 to CS1) for Hvdc: {}", hvdcId);
                     }
                     return true;
                 }
@@ -105,14 +105,14 @@ public class AcEmulationOuterLoop
             if (acEmulationControl.getFeedingSide() == TwoSides.ONE) {
                 if (computeRawP1(hvdc) < acEmulationControl.getPMaxFromCS1toCS2()) {
                     // Switch mode
-                    LOGGER.trace("Set free the Ac Emulation mode for Hvdc: " + hvdcId);
+                    LOGGER.trace("Set free the Ac Emulation mode for Hvdc: {}", hvdcId);
                     hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
                     return true;
                 }
             } else {
                 if (computeRawP2(hvdc) < acEmulationControl.getPMaxFromCS2toCS1()) {
                     // Switch mode
-                    LOGGER.trace("Set free the Ac Emulation mode for Hvdc: " + hvdcId);
+                    LOGGER.trace("Set free the Ac Emulation mode for Hvdc: {}", hvdcId);
                     hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
                     return true;
                 }
