@@ -397,6 +397,7 @@ class DcLoadFlowTest {
         Network network = HvdcNetworkFactory.createHvdcInAcEmulationInSymmetricNetwork();
         network.getHvdcLine("hvdc12").setMaxP(2.);
         loadFlowRunner.run(network, parameters);
-        int a = 0;
+        assertEquals(2.0, network.getHvdcLine("hvdc12").getConverterStation1().getTerminal().getP(), 0.01);
+        assertEquals(1.0, network.getLine("l12").getTerminal1().getP(), 0.01);
     }
 }

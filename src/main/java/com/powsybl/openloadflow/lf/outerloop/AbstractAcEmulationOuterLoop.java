@@ -62,7 +62,7 @@ public abstract class AbstractAcEmulationOuterLoop <V extends Enum<V> & Quantity
 
     protected double computeRawP1(LfHvdc hvdc) {
         double ph1 = hvdc.getBus1().getAngle();
-        double ph2 = hvdc.getBus1().getAngle();
+        double ph2 = hvdc.getBus2().getAngle();
         double p0 = hvdc.getAcEmulationControl().getP0();
         double k = hvdc.getAcEmulationControl().getDroop();
         return p0 + k * (ph1 - ph2);

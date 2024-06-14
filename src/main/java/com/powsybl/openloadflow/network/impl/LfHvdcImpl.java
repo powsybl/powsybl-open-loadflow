@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.HvdcLine;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRange;
 import com.powsybl.openloadflow.network.*;
@@ -146,6 +147,22 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public AcEmulationControl getAcEmulationControl() {
         return acEmulationControl;
+    }
+
+    @Override
+    public void updateAcEmulationStatus(AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+        acEmulationControl.setAcEmulationStatus(acEmulationStatus);
+        for (LfNetworkListener listener : network.getListeners()) {
+            listener.onAcEmulationStatusChange(this, acEmulationStatus);
+        }
+    }
+
+    @Override
+    public void updateFeedingSide(TwoSides side) {
+        acEmulationControl.setFeedingSide(side);
+        for (LfNetworkListener listener : network.getListeners()) {
+            listener.onAcEmulationFeedingSideChange(this, side);
+        }
     }
 
     @Override

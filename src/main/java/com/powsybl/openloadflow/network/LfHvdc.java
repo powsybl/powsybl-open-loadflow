@@ -98,5 +98,9 @@ public interface LfHvdc extends LfElement {
 
     AcEmulationControl getAcEmulationControl();
 
+    void updateAcEmulationStatus(AcEmulationControl.AcEmulationStatus acEmulationStatus);
+
+    void updateFeedingSide(TwoSides side);
+
     void updateState();
 }

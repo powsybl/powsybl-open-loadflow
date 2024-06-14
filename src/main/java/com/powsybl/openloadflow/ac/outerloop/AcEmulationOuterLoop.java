@@ -45,10 +45,10 @@ public class AcEmulationOuterLoop
                 // Switch feeding side
                 LOGGER.trace("Switching feeding side from One to Two for Hvdc: " + hvdcId);
                 contextData.incrementFeedingSideSwitchCount(hvdcId);
-                acEmulationControl.setFeedingSide(TwoSides.TWO);
+                hvdc.updateFeedingSide(TwoSides.TWO);
                 if (contextData.getFeedingSideSwitchCount(hvdcId) == MAX_FEEDING_SIDE_SWITCH) {
                     LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: " + hvdcId);
-                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
+                    hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
                 }
                 return true;
             }
@@ -57,10 +57,10 @@ public class AcEmulationOuterLoop
                 // Switch feeding side
                 LOGGER.trace("Switching feeding side from Two to One for Hvdc: " + hvdcId);
                 contextData.incrementFeedingSideSwitchCount(hvdcId);
-                acEmulationControl.setFeedingSide(TwoSides.ONE);
+                hvdc.updateFeedingSide(TwoSides.ONE);
                 if (contextData.getFeedingSideSwitchCount(hvdcId) == MAX_FEEDING_SIDE_SWITCH) {
                     LOGGER.debug("Two many feeding side switches (flow blocked to 0 MW) for Hvdc: " + hvdcId);
-                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
+                    hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.NULL);
                 }
                 return true;
             }
@@ -80,7 +80,7 @@ public class AcEmulationOuterLoop
                     // Switch mode
                     LOGGER.trace("Bound Hvdc flow to Pmax from CS1 to CS2 for Hvdc: " + hvdcId);
                     contextData.incrementModeSwitchCount(hvdcId);
-                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
+                    hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
                     if (contextData.getModeSwitchCount(hvdcId) == MAX_MODE_SWITCH) {
                         LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS1 to CS2) for Hvdc: " + hvdcId);
                     }
@@ -91,7 +91,7 @@ public class AcEmulationOuterLoop
                     // Switch mode
                     LOGGER.trace("Bound Hvdc flow to Pmax from CS2 to CS1 for Hvdc: " + hvdcId);
                     contextData.incrementModeSwitchCount(hvdcId);
-                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
+                    hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.BOUNDED);
                     if (contextData.getModeSwitchCount(hvdcId) == MAX_MODE_SWITCH) {
                         LOGGER.debug("Two many mode switches (flow blocked to Pmax from CS2 to CS1) for Hvdc: " + hvdcId);
                     }
@@ -106,14 +106,14 @@ public class AcEmulationOuterLoop
                 if (computeRawP1(hvdc) < acEmulationControl.getPMaxFromCS1toCS2()) {
                     // Switch mode
                     LOGGER.trace("Set free the Ac Emulation mode for Hvdc: " + hvdcId);
-                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
+                    hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
                     return true;
                 }
             } else {
                 if (computeRawP2(hvdc) < acEmulationControl.getPMaxFromCS2toCS1()) {
                     // Switch mode
                     LOGGER.trace("Set free the Ac Emulation mode for Hvdc: " + hvdcId);
-                    acEmulationControl.setAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
+                    hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.FREE);
                     return true;
                 }
             }

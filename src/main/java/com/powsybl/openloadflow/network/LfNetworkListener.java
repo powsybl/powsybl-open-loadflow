@@ -55,4 +55,8 @@ public interface LfNetworkListener {
     void onSlackBusChange(LfBus bus, boolean slack);
 
     void onReferenceBusChange(LfBus bus, boolean reference);
+
+    void onAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus);
+
+    void onAcEmulationFeedingSideChange(LfHvdc hvdc, TwoSides side);
 }
