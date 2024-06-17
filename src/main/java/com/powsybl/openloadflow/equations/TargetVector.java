@@ -68,6 +68,15 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         public void onShuntSusceptanceChange(LfShunt shunt, double b) {
             invalidateValues();
         }
+
+        @Override
+        public void onDisableChange(LfElement element, boolean disabled) {
+            for (var equationTerm : equationSystem.getEquationTerms(element.getType(), element.getNum())) {
+                if (equationTerm.hasRhs()) {
+                    invalidateValues();
+                }
+            }
+        }
     };
 
     public TargetVector(LfNetwork network, EquationSystem<V, E> equationSystem, Initializer<V, E> initializer) {
