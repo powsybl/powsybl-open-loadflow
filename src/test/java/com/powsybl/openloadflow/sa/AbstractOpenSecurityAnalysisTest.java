@@ -30,7 +30,6 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.security.*;
-import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
@@ -136,7 +135,6 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                                                        SecurityAnalysisParameters saParameters, ReportNode reportNode) {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
-                .setDetector(new DefaultLimitViolationDetector())
                 .setFilter(new LimitViolationFilter())
                 .setComputationManager(computationManager)
                 .setSecurityAnalysisParameters(saParameters)
@@ -154,7 +152,6 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                                                          List<LimitReduction> limitReductions, SecurityAnalysisParameters saParameters) {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
-                .setDetector(new DefaultLimitViolationDetector())
                 .setFilter(new LimitViolationFilter())
                 .setComputationManager(computationManager)
                 .setSecurityAnalysisParameters(saParameters)
@@ -173,7 +170,6 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                                                          List<Action> actions, ReportNode reportNode) {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
-                .setDetector(new DefaultLimitViolationDetector())
                 .setFilter(new LimitViolationFilter())
                 .setComputationManager(computationManager)
                 .setSecurityAnalysisParameters(saParameters)

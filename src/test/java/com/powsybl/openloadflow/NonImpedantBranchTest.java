@@ -28,7 +28,6 @@ import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisParameters;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
 import com.powsybl.security.*;
-import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -365,7 +364,6 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
-                .setDetector(new DefaultLimitViolationDetector())
                 .setFilter(new LimitViolationFilter())
                 .setComputationManager(LocalComputationManager.getDefault())
                 .setSecurityAnalysisParameters(new SecurityAnalysisParameters());
@@ -403,7 +401,6 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                 Set.of("b0_vl", "b1_vl", "b2_vl", "b3_vl", "b4_vl", "b5_vl"),
                 Collections.emptySet()));
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
-                .setDetector(new DefaultLimitViolationDetector())
                 .setFilter(new LimitViolationFilter())
                 .setComputationManager(LocalComputationManager.getDefault())
                 .setSecurityAnalysisParameters(securityAnalysisParameters)
