@@ -639,6 +639,12 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b1", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
         assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b3", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
         assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
+        assertEquals(3, result.getValues().size());
+
+        sensiParameters.setFlowVoltageSensitivityValueThreshold(0.1);
+
+        result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0, result.getValues().size());
     }
 
     @Test
@@ -656,6 +662,15 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // Other sensi should be null
         assertEquals(0, result.getSensitivityValue("g1", "b2", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
         assertEquals(0, result.getSensitivityValue("g1", "b3", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
+        assertEquals(3, result.getValues().size());
+
+        sensiParameters.setFlowVoltageSensitivityValueThreshold(0.1);
+        result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0, result.getValues().size());
+
+        sensiParameters.setFlowVoltageSensitivityValueThreshold(0.05);
+        result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(1, result.getValues().size());
     }
 
     @Test
