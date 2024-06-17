@@ -13,8 +13,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
-import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -190,6 +188,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
                     controllerBus.getId(), controlledBus.getId(), busesId, controllerTargetV * controlledBus.getNominalV(),
                     voltageControlTargetV * controlledBus.getNominalV());
+            Reports.reportBusAlreadyControlledWithDifferentTargetV(controllerBus.getNetwork().getReportNode(), controllerBus.getId(), controlledBus.getId(), busesId, controllerTargetV * controlledBus.getNominalV(),
+                    voltageControlTargetV * controlledBus.getNominalV());
         }
     }
 
@@ -200,6 +200,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             String generatorIds = controller.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: {} (kept) and {} (rejected)",
                     generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+            Reports.reportNotUniqueControlledBus(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
             return false;
         }
         return true;
@@ -211,6 +212,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
                 generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
+            Reports.reportNotUniqueTargetVControllerBus(controllerBus.getNetwork().getReportNode(), generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
         }
     }
 
@@ -290,6 +292,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!side.equals(generatorReactivePowerControl.getControlledSide())) {
             LOGGER.error("Controlled branch '{}' is controlled at both sides. Controlled side {} (kept) {} (rejected).",
                     generatorReactivePowerControl.getControlledBranch().getId(), generatorReactivePowerControl.getControlledSide(), side);
+            Reports.reportBranchControlledAtBothSides(generatorReactivePowerControl.getControlledBranch().getNetwork().getReportNode(),
+                    generatorReactivePowerControl.getControlledBranch().getId(), generatorReactivePowerControl.getControlledSide().name(), side.name());
             return false;
         }
         return true;
@@ -396,7 +400,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
 
         if (!shuntCompensators.isEmpty()) {
-            lfBus.setShuntCompensators(shuntCompensators, parameters, topoConfig);
+            lfBus.setShuntCompensators(shuntCompensators, parameters, topoConfig, report);
         }
 
         return lfBus;
@@ -623,6 +627,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
         Double targetDeadband = rtc.getTargetDeadband() > 0 ? rtc.getTargetDeadband() / regulatingTerminalNominalV : null;
 
+        if (!VoltageControl.checkTargetV(targetValue, controlledBus.getNominalV(), parameters)) {
+            LOGGER.trace("RatioTapChanger on transformer '{}' has an inconsistent target voltage: {} pu: transformer voltage control discarded", controllerBranchId, targetValue);
+            if (report != null) {
+                report.transformersWithInconsistentTargetVoltage++;
+            }
+            return;
+        }
+
         controlledBus.getTransformerVoltageControl().ifPresentOrElse(vc -> {
             LOGGER.trace("Controlled bus '{}' already has a transformer voltage control: a shared control is created", controlledBus.getId());
             if (FastMath.abs(vc.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
@@ -701,53 +713,55 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
             return;
         }
-        LfShunt controllerShunt = controllerBus.getControllerShunt().orElseThrow();
-        LfBus controlledBus = getLfBus(shuntCompensator.getRegulatingTerminal(), lfNetwork, parameters.isBreakers());
-        if (controlledBus == null) {
-            LOGGER.warn("Regulating terminal of voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
-            controllerShunt.setVoltageControlCapability(false);
-            return;
-        }
-        if (controllerShunt.getVoltageControl().isPresent()) {
-            // if a controller shunt is already in a shunt voltage control, the number of equations will not equal the
-            // number of variables. We have only one B variable for more than one bus target V equations.
-            if (!controllerShunt.getVoltageControl().orElseThrow().getControlledBus().getId().equals(controlledBus.getId())) {
-                LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
+        controllerBus.getControllerShunt().ifPresent(controllerShunt -> {
+            LfBus controlledBus = getLfBus(shuntCompensator.getRegulatingTerminal(), lfNetwork, parameters.isBreakers());
+            if (controlledBus == null) {
+                LOGGER.warn("Regulating terminal of voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
+                controllerShunt.setVoltageControlCapability(false);
+                return;
             }
-            return;
-        }
-
-        double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
-        double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
-        Double targetDeadband = shuntCompensator.getTargetDeadband() > 0 ? shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV : null;
-
-        controlledBus.getShuntVoltageControl().ifPresentOrElse(voltageControl -> {
-            LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
-            if (FastMath.abs(voltageControl.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
-                LOGGER.warn("Controlled bus {} already has a shunt voltage control with a different target voltage: {} and {}",
-                        controlledBus.getId(), voltageControl.getTargetValue(), targetValue);
+            if (controllerShunt.getVoltageControl().isPresent()) {
+                // if a controller shunt is already in a shunt voltage control, the number of equations will not equal the
+                // number of variables. We have only one B variable for more than one bus target V equations.
+                if (!controllerShunt.getVoltageControl().orElseThrow().getControlledBus().getId().equals(controlledBus.getId())) {
+                    LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
+                    Reports.reportControllerShuntAlreadyInVoltageControl(controllerBus.getNetwork().getReportNode(), controllerShunt.getId(), controlledBus.getId());
+                }
+                return;
             }
-            if (!voltageControl.getControllerElements().contains(controllerShunt)) {
-                voltageControl.addControllerElement(controllerShunt);
-                controllerShunt.setVoltageControl(voltageControl);
-                controlledBus.setShuntVoltageControl(voltageControl);
-                if (targetDeadband != null) {
-                    Double oldTargetDeadband = voltageControl.getTargetDeadband().orElse(null);
-                    if (oldTargetDeadband == null) {
-                        voltageControl.setTargetDeadband(targetDeadband);
-                    } else {
-                        // merge target deadbands by taking minimum
-                        voltageControl.setTargetDeadband(Math.min(oldTargetDeadband, targetDeadband));
+
+            double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
+            double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
+            Double targetDeadband = shuntCompensator.getTargetDeadband() > 0 ? shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV : null;
+
+            controlledBus.getShuntVoltageControl().ifPresentOrElse(voltageControl -> {
+                LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
+                if (FastMath.abs(voltageControl.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
+                    LOGGER.warn("Controlled bus {} already has a shunt voltage control with a different target voltage: {} and {}",
+                            controlledBus.getId(), voltageControl.getTargetValue(), targetValue);
+                }
+                if (!voltageControl.getControllerElements().contains(controllerShunt)) {
+                    voltageControl.addControllerElement(controllerShunt);
+                    controllerShunt.setVoltageControl(voltageControl);
+                    controlledBus.setShuntVoltageControl(voltageControl);
+                    if (targetDeadband != null) {
+                        Double oldTargetDeadband = voltageControl.getTargetDeadband().orElse(null);
+                        if (oldTargetDeadband == null) {
+                            voltageControl.setTargetDeadband(targetDeadband);
+                        } else {
+                            // merge target deadbands by taking minimum
+                            voltageControl.setTargetDeadband(Math.min(oldTargetDeadband, targetDeadband));
+                        }
                     }
                 }
-            }
-        }, () -> {
+            }, () -> {
                 // we create a new shunt voltage control.
                 ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, parameters.getVoltageTargetPriority(VoltageControl.Type.SHUNT), targetValue, targetDeadband);
                 voltageControl.addControllerElement(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);
             });
+        });
     }
 
     private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork, boolean breakers) {
@@ -838,15 +852,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Network {}: {} branches have been discarded because connected to same bus at both ends",
                     lfNetwork, report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
         }
-        if (report.linesWithDifferentNominalVoltageAtBothEnds > 0) {
-            LOGGER.warn("Network {}: {} lines have a different nominal voltage at both ends: a ratio has been added",
-                    lfNetwork, report.linesWithDifferentNominalVoltageAtBothEnds);
-        }
         if (report.nonImpedantBranches > 0) {
             LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork, report.nonImpedantBranches);
         }
 
         if (report.generatorsWithInconsistentTargetVoltage > 0) {
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.generatorsWithInconsistentTargetVoltage);
             LOGGER.warn("Network {}: {} generators have an inconsistent target voltage and have been discarded from voltage control",
                     lfNetwork, report.generatorsWithInconsistentTargetVoltage);
         }
@@ -862,8 +873,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen > 0) {
-            LOGGER.warn("Network {}: {} ratio tap changer reactive power controls have been discarded because controller branch is open",
+            LOGGER.warn("Network {}: {} transformer reactive power controls have been discarded because controller branch is open",
                     lfNetwork, report.transformerReactivePowerControlDiscardedBecauseControllerBranchIsOpen);
+        }
+
+        if (report.transformersWithInconsistentTargetVoltage > 0) {
+            Reports.reportTransformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.transformersWithInconsistentTargetVoltage);
+            LOGGER.warn("Network {}: {} transformer voltage controls have an inconsistent target voltage and have been discarded from voltage control",
+                    lfNetwork, report.transformersWithInconsistentTargetVoltage);
+        }
+
+        if (report.shuntsWithInconsistentTargetVoltage > 0) {
+            Reports.reportShuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.shuntsWithInconsistentTargetVoltage);
+            LOGGER.warn("Network {}: {} shunt voltage controls have an inconsistent target voltage and have been discarded from voltage control",
+                    lfNetwork, report.shuntsWithInconsistentTargetVoltage);
         }
 
         if (parameters.getDebugDir() != null) {
@@ -973,28 +996,55 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
     }
 
+    private static String getTrippingLfBranchId(OverloadManagementSystem.Tripping tripping) {
+        String branchToOperateId = null;
+        if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+            OverloadManagementSystem.SwitchTripping switchTripping = (OverloadManagementSystem.SwitchTripping) tripping;
+            branchToOperateId = switchTripping.getSwitchToOperateId();
+        } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
+            OverloadManagementSystem.BranchTripping branchTripping = (OverloadManagementSystem.BranchTripping) tripping;
+            branchToOperateId = branchTripping.getBranchToOperateId();
+        }
+        return branchToOperateId;
+    }
+
+    private static void addTripping(LfNetwork lfNetwork, LfOverloadManagementSystem lfOverloadManagementSystem, OverloadManagementSystem.Tripping tripping) {
+        String branchToOperateId = getTrippingLfBranchId(tripping);
+        LfBranch lfBranchToOperate = lfNetwork.getBranchById(branchToOperateId);
+        if (lfBranchToOperate != null) {
+            LfBus bus = lfOverloadManagementSystem.getMonitoredSide().equals(TwoSides.ONE) ?
+                    lfOverloadManagementSystem.getMonitoredBranch().getBus1() : lfOverloadManagementSystem.getMonitoredBranch().getBus2();
+            double threshold = tripping.getCurrentLimit() / PerUnit.ib(bus.getNominalV());
+            lfOverloadManagementSystem.addLfBranchTripping(lfBranchToOperate, tripping.isOpenAction(), threshold);
+        } else {
+            LOGGER.warn("Invalid overload management system: branch to operate is '{}'", branchToOperateId);
+        }
+    }
+
     private static void createOverloadManagementSystem(LfNetwork lfNetwork, OverloadManagementSystem system) {
         if (system.isEnabled()) {
-            LfBranch lfLineToMonitor = lfNetwork.getBranchById(system.getMonitoredLineId());
-            LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(system.getSwitchIdToOperate());
-            if (lfLineToMonitor != null && lfSwitchToOperate != null) {
-                LfBus bus = lfLineToMonitor.getBus1() != null ? lfLineToMonitor.getBus1() : lfLineToMonitor.getBus2();
-                double threshold = system.getThreshold() / PerUnit.ib(bus.getNominalV());
-                lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, threshold, lfSwitchToOperate, system.isSwitchOpen()));
+            LfBranch lfMonitoredElement = lfNetwork.getBranchById(system.getMonitoredElementId());
+            if (system.getTrippings().stream().map(OverloadManagementSystem.Tripping::getType)
+                    .anyMatch(type -> type == OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING)) {
+                LOGGER.warn("Unsupported overload management system {}: three windings transformer tripping supported", system.getId());
+                return;
+            }
+            if (lfMonitoredElement != null) {
+                LfOverloadManagementSystem lfOverloadManagementSystem = new LfOverloadManagementSystem(lfMonitoredElement, system.getMonitoredSide().toTwoSides());
+                system.getTrippings().forEach(tripping -> addTripping(lfNetwork, lfOverloadManagementSystem, tripping));
+                if (!lfOverloadManagementSystem.getBranchTrippingList().isEmpty()) {
+                    lfNetwork.addOverloadManagementSystem(lfOverloadManagementSystem);
+                }
             } else {
-                LOGGER.warn("Invalid overload management system: line to monitor is '{}', switch to operate is '{}'",
-                        system.getMonitoredLineId(), system.getSwitchIdToOperate());
+                LOGGER.warn("Invalid overload management system: element to monitor is '{}'", system.getMonitoredElementId());
             }
         }
     }
 
     private void createAutomationSystems(Network network, LfNetwork lfNetwork) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
-            if (systems != null) {
-                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
-                    createOverloadManagementSystem(lfNetwork, system);
-                }
+            for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
+                createOverloadManagementSystem(lfNetwork, system);
             }
         }
     }
@@ -1047,7 +1097,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
                     return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                            parameters, Reports.createLfNetworkReporter(reportNode, numCc, numSc));
+                            parameters, Reports.createRootLfNetworkReportNode(numCc, numSc));
                 })
                 .collect(Collectors.toList());
 

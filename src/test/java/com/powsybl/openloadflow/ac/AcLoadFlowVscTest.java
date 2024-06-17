@@ -330,7 +330,7 @@ class AcLoadFlowVscTest {
         Line l34 = network.getLine("l34");
         l34.getTerminals().stream().forEach(Terminal::disconnect);
         result = loadFlowRunner.run(network);
-        assertTrue(result.isPartiallyConverged()); // for LCC test, no PV bus in the small component -> FAILED
+        assertTrue(result.isFullyConverged()); // note that for LCC test the smaller component is flagged as NO_CALCULATION
 
         assertActivePowerEquals(-300.00, network.getGenerator("g1").getTerminal());
         assertActivePowerEquals(300.00, network.getLoad("l4").getTerminal());

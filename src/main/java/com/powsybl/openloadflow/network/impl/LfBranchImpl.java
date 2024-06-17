@@ -11,17 +11,20 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfBranchImpl extends AbstractImpedantLfBranch {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
     private final Ref<Branch<?>> branchRef;
 
@@ -230,15 +233,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type) {
+    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, branch.getActivePowerLimits1().orElse(null));
+                return getLimits1(type, branch.getActivePowerLimits1().orElse(null), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, branch.getApparentPowerLimits1().orElse(null));
+                return getLimits1(type, branch.getApparentPowerLimits1().orElse(null), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, branch.getCurrentLimits1().orElse(null));
+                return getLimits1(type, branch.getCurrentLimits1().orElse(null), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -246,26 +249,102 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type) {
+    public List<LfLimit> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
         var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, branch.getActivePowerLimits2().orElse(null));
+                return getLimits2(type, branch.getActivePowerLimits2().orElse(null), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits2(type, branch.getApparentPowerLimits2().orElse(null));
+                return getLimits2(type, branch.getApparentPowerLimits2().orElse(null), limitReductionManager);
             case CURRENT:
-                return getLimits2(type, branch.getCurrentLimits2().orElse(null));
+                return getLimits2(type, branch.getCurrentLimits2().orElse(null), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
     }
 
+    /**
+     * <p>Create the list of the limit reductions to use for each limit:
+     * <ul>
+     *  <li>the value for the permanent limit is stored at index 0, values for the temporary limits are stored from index 1;</li>
+     *  <li>if no reduction is detected for a limit, the corresponding value is set to 1;</li>
+     *  <li>if several LimitReductions are applicable for the same limit, the last one is used;</li>
+     * </ul></p>
+     * <p>This method may return an empty list when no reduction apply.</p>
+     */
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters) {
+    public double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+        if (limits == null) {
+            return new double[] {};
+        }
+        if (limits.getLimitType() != LimitType.CURRENT) {
+            return new double[] {};
+        }
+        if (limitReductionManager == null || limitReductionManager.isEmpty()) {
+            return new double[] {};
+        }
+        // Initialize the array of the reductions with 1s
+        double[] limitReductions = new double[limits.getTemporaryLimits().size() + 1];
+        Arrays.fill(limitReductions, 1.);
+        double nominalV = branchRef.get().getTerminal(side).getVoltageLevel().getNominalV();
+        for (LimitReductionManager.TerminalLimitReduction terminalLimitReduction : limitReductionManager.getTerminalLimitReductions()) {
+            if (terminalLimitReduction.nominalV().contains(nominalV)) {
+                if (terminalLimitReduction.isPermanent()) {
+                    limitReductions[0] = terminalLimitReduction.reduction();
+                }
+                if (terminalLimitReduction.acceptableDuration() != null) {
+                    int i = 1; // temporary limit's reductions will be stored starting from index 1
+                    for (LoadingLimits.TemporaryLimit temporaryLimit : limits.getTemporaryLimits()) {
+                        if (terminalLimitReduction.acceptableDuration().contains(temporaryLimit.getAcceptableDuration())) {
+                            limitReductions[i] = terminalLimitReduction.reduction();
+                        }
+                        i++;
+                    }
+                }
+            }
+        }
+        return limitReductions;
+    }
+
+    @Override
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
         var branch = getBranch();
 
-        updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
+        if (isDisabled()) {
+            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
+        } else {
+            updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
+        }
+
+        // in case of automation system simulation we might need to update IIDM terminals connection status
+        if (parameters.isSimulateAutomationSystems()) {
+            boolean connectedSide1Before = branch.getTerminal1().isConnected();
+            boolean connectedSide2Before = branch.getTerminal2().isConnected();
+            boolean connectedSide1After = !isDisabled() && isConnectedSide1();
+            boolean connectedSide2After = !isDisabled() && isConnectedSide2();
+
+            if (connectedSide1Before && !connectedSide1After) {
+                LOGGER.warn("Disconnect terminal 1 of branch '{}'", branch.getId());
+                branch.getTerminal1().disconnect();
+                updateReport.disconnectedBranchSide1Count++;
+            }
+            if (!connectedSide1Before && connectedSide1After) {
+                LOGGER.warn("Connect terminal 1 of branch '{}'", branch.getId());
+                branch.getTerminal1().connect();
+                updateReport.connectedBranchSide1Count++;
+            }
+            if (connectedSide2Before && !connectedSide2After) {
+                LOGGER.warn("Disconnect terminal 2 of branch '{}'", branch.getId());
+                branch.getTerminal2().disconnect();
+                updateReport.disconnectedBranchSide2Count++;
+            }
+            if (!connectedSide2Before && connectedSide2After) {
+                LOGGER.warn("Connect terminal 2 of branch '{}'", branch.getId());
+                branch.getTerminal2().connect();
+                updateReport.connectedBranchSide2Count++;
+            }
+        }
 
         if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that branch

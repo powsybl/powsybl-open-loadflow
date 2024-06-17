@@ -28,7 +28,7 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiPredicate;
+import java.util.function.BiFunction;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -121,27 +121,43 @@ public enum NetworkCache {
                     .map(bus -> context.getNetwork().getBusById(bus.getId()));
         }
 
-        private boolean onInjectionUpdate(Injection<?> injection, String attribute, BiPredicate<AcLoadFlowContext, LfBus> handler) {
-            boolean found = false;
-            for (AcLoadFlowContext context : contexts) {
-                found |= getLfBus(injection, context)
-                        .map(lfBus -> {
-                            boolean done = handler.test(context, lfBus);
-                            if (done) {
-                                context.setNetworkUpdated(true);
-                            }
-                            return done;
-                        })
-                        .orElse(Boolean.FALSE);
-            }
-            if (!found) {
-                LOGGER.warn("Cannot update attribute {} of injection '{}'", attribute, injection.getId());
-            }
-            return found;
+        enum CacheUpdateStatus {
+            UNSUPPORTED_UPDATE,
+            ELEMENT_UPDATED,
+            IGNORE_UPDATE,
+            ELEMENT_NOT_FOUND
         }
 
-        private boolean onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
-            return onInjectionUpdate(generator, attribute, (context, lfBus) -> {
+        record CacheUpdateResult(CacheUpdateStatus status, AcLoadFlowContext context) {
+            static CacheUpdateResult unsupportedUpdate() {
+                return new CacheUpdateResult(CacheUpdateStatus.UNSUPPORTED_UPDATE, null);
+            }
+
+            static CacheUpdateResult elementUpdated(AcLoadFlowContext context) {
+                return new CacheUpdateResult(CacheUpdateStatus.ELEMENT_UPDATED, context);
+            }
+
+            static CacheUpdateResult ignoreUpdate() {
+                return new CacheUpdateResult(CacheUpdateStatus.IGNORE_UPDATE, null);
+            }
+
+            static CacheUpdateResult elementNotFound() {
+                return new CacheUpdateResult(CacheUpdateStatus.ELEMENT_NOT_FOUND, null);
+            }
+        }
+
+        private CacheUpdateResult onInjectionUpdate(Injection<?> injection, BiFunction<AcLoadFlowContext, LfBus, CacheUpdateResult> handler) {
+            for (AcLoadFlowContext context : contexts) {
+                LfBus lfBus = getLfBus(injection, context).orElse(null);
+                if (lfBus != null) {
+                    return handler.apply(context, lfBus);
+                }
+            }
+            return CacheUpdateResult.elementNotFound();
+        }
+
+        private CacheUpdateResult onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
+            return onInjectionUpdate(generator, (context, lfBus) -> {
                 if (attribute.equals("targetV")) {
                     double valueShift = (double) newValue - (double) oldValue;
                     GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
@@ -157,43 +173,39 @@ public enum NetworkCache {
                         }
                     }
                     context.getNetwork().validate(LoadFlowModel.AC, null);
-                    return true;
+                    return CacheUpdateResult.elementUpdated(context);
                 }
-                return false;
+                return CacheUpdateResult.unsupportedUpdate();
             });
         }
 
-        private boolean onShuntUpdate(ShuntCompensator shunt, String attribute) {
-            return onInjectionUpdate(shunt, attribute, (context, lfBus) -> {
+        private CacheUpdateResult onShuntUpdate(ShuntCompensator shunt, String attribute) {
+            return onInjectionUpdate(shunt, (context, lfBus) -> {
                 if (attribute.equals("sectionCount")) {
                     if (lfBus.getControllerShunt().isEmpty()) {
                         LfShunt lfShunt = lfBus.getShunt().orElseThrow();
                         lfShunt.reInit();
-                        return true;
+                        return CacheUpdateResult.elementUpdated(context);
                     } else {
                         LOGGER.info("Shunt compensator {} is controlling voltage or connected to a bus containing a shunt compensator" +
                                 "with an active voltage control: not supported", shunt.getId());
+                        return CacheUpdateResult.unsupportedUpdate();
                     }
                 }
-                return false;
+                return CacheUpdateResult.unsupportedUpdate();
             });
         }
 
-        private boolean onSwitchUpdate(String switchId, boolean open) {
-            boolean found = false;
+        private CacheUpdateResult onSwitchUpdate(String switchId, boolean open) {
             for (AcLoadFlowContext context : contexts) {
                 LfNetwork lfNetwork = context.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
                     updateSwitch(open, lfNetwork, lfBranch);
-                    context.setNetworkUpdated(true);
-                    found = true;
+                    return CacheUpdateResult.elementUpdated(context);
                 }
             }
-            if (!found) {
-                LOGGER.warn("Cannot open switch '{}'", switchId);
-            }
-            return found;
+            return CacheUpdateResult.elementNotFound();
         }
 
         private static void updateSwitch(boolean open, LfNetwork lfNetwork, LfBranch lfBranch) {
@@ -211,39 +223,38 @@ public enum NetworkCache {
             }
         }
 
-        private boolean onTransformerTargetVoltageUpdate(String twtId, double newValue) {
-            boolean found = false;
+        private CacheUpdateResult onTransformerTargetVoltageUpdate(String twtId, double newValue) {
             for (AcLoadFlowContext context : contexts) {
                 LfNetwork lfNetwork = context.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(twtId);
                 if (lfBranch != null) {
                     var vc = lfBranch.getVoltageControl().orElseThrow();
                     vc.setTargetValue(newValue / vc.getControlledBus().getNominalV());
-                    context.setNetworkUpdated(true);
-                    found = true;
+                    return CacheUpdateResult.elementUpdated(context);
                 }
             }
-            if (!found) {
-                LOGGER.warn("Cannot update voltage target of transformer '{}'", twtId);
-            }
-            return found;
+            return CacheUpdateResult.elementNotFound();
         }
 
-        private boolean onTransformerTapPositionUpdate(String twtId, int newTapPosition) {
-            boolean found = false;
+        private CacheUpdateResult onTransformerTapPositionUpdate(String twtId, int newTapPosition) {
             for (AcLoadFlowContext context : contexts) {
                 LfNetwork lfNetwork = context.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(twtId);
                 if (lfBranch != null) {
                     lfBranch.getPiModel().setTapPosition(newTapPosition);
-                    context.setNetworkUpdated(true);
-                    found = true;
+                    return CacheUpdateResult.elementUpdated(context);
                 }
             }
-            if (!found) {
-                LOGGER.warn("Cannot update tap position of transformer '{}'", twtId);
+            return CacheUpdateResult.elementNotFound();
+        }
+
+        void processUpdateResult(Identifiable<?> identifiable, String attribute, CacheUpdateResult result) {
+            switch (result.status) {
+                case UNSUPPORTED_UPDATE -> reset();
+                case ELEMENT_UPDATED -> result.context.setNetworkUpdated(true);
+                case IGNORE_UPDATE -> { /* nothing to do */ }
+                case ELEMENT_NOT_FOUND -> LOGGER.warn("Cannot update attribute '{}' of element '{}' (type={})", attribute, identifiable.getId(), identifiable.getType());
             }
-            return found;
         }
 
         @Override
@@ -251,7 +262,7 @@ public enum NetworkCache {
             if (contexts == null || pause) {
                 return;
             }
-            boolean done = false;
+            CacheUpdateResult result = CacheUpdateResult.unsupportedUpdate(); // by default to be safe
             switch (attribute) {
                 case "v",
                      "angle",
@@ -262,42 +273,34 @@ public enum NetworkCache {
                      "p2",
                      "q2",
                      "p3",
-                     "q3" -> done = true; // ignore because it is related to state update and won't affect LF calculation
+                     "q3" -> result = CacheUpdateResult.ignoreUpdate(); // ignore because it is related to state update and won't affect LF calculation
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
-                        if (attribute.equals("targetV")
-                                && onGeneratorUpdate(generator, attribute, oldValue, newValue)) {
-                            done = true;
+                        if (attribute.equals("targetV")) {
+                            result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
                         ShuntCompensator shunt = (ShuntCompensator) identifiable;
-                        if (attribute.equals("sectionCount")
-                                && onShuntUpdate(shunt, attribute)) {
-                            done = true;
+                        if (attribute.equals("sectionCount")) {
+                            result = onShuntUpdate(shunt, attribute);
                         }
                     } else if (identifiable.getType() == IdentifiableType.SWITCH
                             && attribute.equals("open")) {
-                        if (onSwitchUpdate(identifiable.getId(), (boolean) newValue)) {
-                            done = true;
-                        }
+                        result = onSwitchUpdate(identifiable.getId(), (boolean) newValue);
                     } else if (identifiable.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER) {
-                        if (attribute.equals("ratioTapChanger.regulationValue")
-                                && onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue)) {
-                            done = true;
-                        } else if (attribute.equals("ratioTapChanger.tapPosition")
-                                && onTransformerTapPositionUpdate(identifiable.getId(), (int) newValue)) {
-                            done = true;
+                        if (attribute.equals("ratioTapChanger.regulationValue")) {
+                            result = onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue);
+                        } else if (attribute.equals("ratioTapChanger.tapPosition")) {
+                            result = onTransformerTapPositionUpdate(identifiable.getId(), (int) newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.THREE_WINDINGS_TRANSFORMER) {
                         for (ThreeSides side : ThreeSides.values()) {
-                            if (attribute.equals("ratioTapChanger" + side.getNum() + ".regulationValue")
-                                    && onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (double) newValue)) {
-                                done = true;
+                            if (attribute.equals("ratioTapChanger" + side.getNum() + ".regulationValue")) {
+                                result = onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (double) newValue);
                                 break;
-                            } else if (attribute.equals("ratioTapChanger" + side.getNum() + ".tapPosition")
-                                    && onTransformerTapPositionUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (int) newValue)) {
-                                done = true;
+                            } else if (attribute.equals("ratioTapChanger" + side.getNum() + ".tapPosition")) {
+                                result = onTransformerTapPositionUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (int) newValue);
                                 break;
                             }
                         }
@@ -305,9 +308,7 @@ public enum NetworkCache {
                 }
             }
 
-            if (!done) {
-                reset();
-            }
+            processUpdateResult(identifiable, attribute, result);
         }
 
         @Override
@@ -316,47 +317,46 @@ public enum NetworkCache {
                 return;
             }
 
-            boolean[] done = new boolean[1];
+            CacheUpdateResult result = CacheUpdateResult.unsupportedUpdate();
             if ("secondaryVoltageControl".equals(extension.getName())) {
                 SecondaryVoltageControl svc = (SecondaryVoltageControl) extension;
-                onSecondaryVoltageControlExtensionUpdate(svc, attribute, newValue, done);
+                result = onSecondaryVoltageControlExtensionUpdate(svc, attribute, newValue);
             }
 
-            if (!done[0]) {
-                reset();
-            }
+            processUpdateResult((Identifiable<?>) extension.getExtendable(), attribute, result);
         }
 
-        private void onSecondaryVoltageControlExtensionUpdate(SecondaryVoltageControl svc, String attribute, Object newValue, boolean[] done) {
+        private CacheUpdateResult onSecondaryVoltageControlExtensionUpdate(SecondaryVoltageControl svc, String attribute, Object newValue) {
             if ("pilotPointTargetV".equals(attribute)) {
                 PilotPoint.TargetVoltageEvent event = (PilotPoint.TargetVoltageEvent) newValue;
                 ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
                 for (AcLoadFlowContext context : contexts) {
                     LfNetwork lfNetwork = context.getNetwork();
-                    lfNetwork.getSecondaryVoltageControl(controlZone.getName())
-                            .ifPresent(lfSvc -> {
-                                lfSvc.setTargetValue(event.value() / lfSvc.getPilotBus().getNominalV());
-                                context.setNetworkUpdated(true);
-                                done[0] = true;
-                            });
+                    var lfSvc = lfNetwork.getSecondaryVoltageControl(controlZone.getName()).orElse(null);
+                    if (lfSvc != null) {
+                        lfSvc.setTargetValue(event.value() / lfSvc.getPilotBus().getNominalV());
+                        return CacheUpdateResult.elementUpdated(context);
+                    }
                 }
+                return CacheUpdateResult.elementNotFound();
             } else if ("controlUnitParticipate".equals(attribute)) {
                 ControlUnit.ParticipateEvent event = (ControlUnit.ParticipateEvent) newValue;
                 ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
                 for (AcLoadFlowContext context : contexts) {
                     LfNetwork lfNetwork = context.getNetwork();
-                    lfNetwork.getSecondaryVoltageControl(controlZone.getName())
-                            .ifPresent(lfSvc -> {
-                                if (event.value()) {
-                                    lfSvc.getParticipatingControlUnitIds().add(event.controlUnitId());
-                                } else {
-                                    lfSvc.getParticipatingControlUnitIds().remove(event.controlUnitId());
-                                }
-                                context.setNetworkUpdated(true);
-                                done[0] = true;
-                            });
+                    var lfSvc = lfNetwork.getSecondaryVoltageControl(controlZone.getName()).orElse(null);
+                    if (lfSvc != null) {
+                        if (event.value()) {
+                            lfSvc.addParticipatingControlUnit(event.controlUnitId());
+                        } else {
+                            lfSvc.removeParticipatingControlUnit(event.controlUnitId());
+                        }
+                        return CacheUpdateResult.elementUpdated(context);
+                    }
                 }
+                return CacheUpdateResult.elementNotFound();
             }
+            return CacheUpdateResult.unsupportedUpdate();
         }
 
         private void onPropertyChange() {

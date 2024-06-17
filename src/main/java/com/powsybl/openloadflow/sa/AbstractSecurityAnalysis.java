@@ -38,6 +38,7 @@ import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;
 import com.powsybl.security.condition.TrueCondition;
+import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.*;
@@ -89,13 +90,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     public CompletableFuture<SecurityAnalysisReport> run(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters,
                                                          ContingenciesProvider contingenciesProvider, ComputationManager computationManager,
-                                                         List<OperatorStrategy> operatorStrategies, List<Action> actions) {
+                                                         List<OperatorStrategy> operatorStrategies, List<Action> actions, List<LimitReduction> limitReductions) {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
         return CompletableFutureTask.runAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingVariantId);
-            return runSync(securityAnalysisParameters, contingenciesProvider, operatorStrategies, actions);
+            return runSync(securityAnalysisParameters, contingenciesProvider, operatorStrategies, actions, limitReductions);
         }, computationManager.getExecutor());
     }
 
@@ -106,7 +107,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected abstract P createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers);
 
     SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
-                                   List<OperatorStrategy> operatorStrategies, List<Action> actions) {
+                                   List<OperatorStrategy> operatorStrategies, List<Action> actions, List<LimitReduction> limitReductions) {
         var saReportNode = createSaRootReportNode();
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -148,8 +149,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, parameters.getNetworkParameters(), topoConfig, saReportNode)) {
             // run simulation on largest network
-            SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
-                    .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions))
+            SecurityAnalysisResult result = lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
+                    .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
                     .orElse(createNoResult());
 
             stopwatch.stop();
@@ -395,7 +396,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, P acParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                    List<Action> actions) {
+                                                    List<Action> actions, List<LimitReduction> limitReductions) {
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
@@ -416,7 +417,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     .run();
 
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.isSuccess();
-            var preContingencyLimitViolationManager = new LimitViolationManager();
+            var preContingencyLimitViolationManager = new LimitViolationManager(limitReductions);
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
             var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
@@ -448,30 +449,35 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                 distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
                                 var postContingencyResult = runPostContingencySimulation(lfNetwork, context, propagatedContingency.getContingency(),
-                                        lfContingency, preContingencyLimitViolationManager,
-                                        securityAnalysisParameters.getIncreasedViolationsParameters(),
-                                        preContingencyNetworkResult, createResultExtension);
+                                                                                         lfContingency, preContingencyLimitViolationManager,
+                                                                                         securityAnalysisParameters.getIncreasedViolationsParameters(),
+                                                                                         preContingencyNetworkResult, createResultExtension, limitReductions);
                                 postContingencyResults.add(postContingencyResult);
 
                                 List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(lfContingency.getId());
                                 if (operatorStrategiesForThisContingency != null) {
                                     // we have at least an operator strategy for this contingency.
                                     if (operatorStrategiesForThisContingency.size() == 1) {
+                                        OperatorStrategy operatorStrategy = operatorStrategiesForThisContingency.get(0);
+                                        ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
+                                        lfNetwork.setReportNode(osSimReportNode);
                                         runActionSimulation(lfNetwork, context,
-                                                operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
+                                                operatorStrategy, preContingencyLimitViolationManager,
                                                 securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
                                                 createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
-                                                acParameters.getNetworkParameters())
+                                                acParameters.getNetworkParameters(), limitReductions)
                                                 .ifPresent(operatorStrategyResults::add);
                                     } else {
                                         // save post contingency state for later restoration after action
                                         NetworkState postContingencyNetworkState = NetworkState.save(lfNetwork);
                                         for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
+                                            ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
+                                            lfNetwork.setReportNode(osSimReportNode);
                                             runActionSimulation(lfNetwork, context,
                                                     operatorStrategy, preContingencyLimitViolationManager,
                                                     securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
                                                     createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
-                                                    acParameters.getNetworkParameters())
+                                                    acParameters.getNetworkParameters(), limitReductions)
                                                     .ifPresent(result -> {
                                                         operatorStrategyResults.add(result);
                                                         postContingencyNetworkState.restore();
@@ -490,7 +496,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
             return new SecurityAnalysisResult(
                     new PreContingencyResult(
-                            preContingencyLoadFlowResult.toComponentResultStatus(),
+                            preContingencyLoadFlowResult.toComponentResultStatus().status(),
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),
@@ -502,13 +508,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                  Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
-                                                                 LimitViolationsResult postContingencyLimitViolations, LfNetworkParameters networkParameters) {
+                                                                 LimitViolationsResult postContingencyLimitViolations, LfNetworkParameters networkParameters,
+                                                                 List<LimitReduction> limitReductions) {
         OperatorStrategyResult operatorStrategyResult = null;
 
         List<String> actionIds = checkCondition(operatorStrategy, postContingencyLimitViolations);
         if (!actionIds.isEmpty()) {
             operatorStrategyResult = runActionSimulation(network, context, operatorStrategy, actionIds, preContingencyLimitViolationManager,
-                    violationsParameters, lfActionById, createResultExtension, contingency, networkParameters);
+                    violationsParameters, lfActionById, createResultExtension, contingency, networkParameters, limitReductions);
         }
 
         return Optional.ofNullable(operatorStrategyResult);
@@ -517,7 +524,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected PostContingencyResult runPostContingencySimulation(LfNetwork network, C context, Contingency contingency, LfContingency lfContingency,
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                                                 PreContingencyNetworkResult preContingencyNetworkResult, boolean createResultExtension) {
+                                                                 PreContingencyNetworkResult preContingencyNetworkResult, boolean createResultExtension,
+                                                                 List<LimitReduction> limitReductions) {
         LOGGER.info("Start post contingency '{}' simulation on network {}", lfContingency.getId(), network);
         LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift {} loads",
                 lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranchesStatus(),
@@ -527,7 +535,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         // restart LF on post contingency equation system
         PostContingencyComputationStatus status = runActionLoadFlow(context); // FIXME: change name.
-        var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
+        var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
         var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
@@ -560,7 +568,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          LimitViolationManager preContingencyLimitViolationManager,
                                                          SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                          Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
-                                                         LfNetworkParameters networkParameters) {
+                                                         LfNetworkParameters networkParameters, List<LimitReduction> limitReductions) {
         LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
                 operatorStrategy.getContingencyContext().getContingencyId(), network);
 
@@ -578,7 +586,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         // restart LF on post contingency and post actions equation system
         PostContingencyComputationStatus status = runActionLoadFlow(context);
-        var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
+        var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
         var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {

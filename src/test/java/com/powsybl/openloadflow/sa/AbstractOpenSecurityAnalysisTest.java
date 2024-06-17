@@ -34,6 +34,7 @@ import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisReport;
 import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
+import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
@@ -123,7 +124,7 @@ public abstract class AbstractOpenSecurityAnalysisTest {
      * Runs a security analysis with default parameters + most meshed slack bus selection
      */
     protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
-                                                       LoadFlowParameters lfParameters) {
+                                                         LoadFlowParameters lfParameters) {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
         return runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
@@ -150,6 +151,26 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                 monitors,
                 Collections.emptyList(),
                 reportNode)
+                .join();
+        return report.getResult();
+    }
+
+    protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
+                                                         List<LimitReduction> limitReductions, SecurityAnalysisParameters saParameters) {
+        ContingenciesProvider provider = n -> contingencies;
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network,
+                        network.getVariantManager().getWorkingVariantId(),
+                        new DefaultLimitViolationDetector(),
+                        new LimitViolationFilter(),
+                        computationManager,
+                        saParameters,
+                        provider,
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        monitors,
+                        limitReductions,
+                        ReportNode.NO_OP)
                 .join();
         return report.getResult();
     }
