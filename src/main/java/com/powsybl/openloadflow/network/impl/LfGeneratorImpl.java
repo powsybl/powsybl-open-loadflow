@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -40,9 +41,12 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private Double qPercent;
 
+    private final boolean voltageControlAlways;
+
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
+        voltageControlAlways = generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.ALWAYS;
         participating = true;
         droop = DEFAULT_DROOP;
 
@@ -203,14 +207,14 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
-        return getGenerator().isFictitious() ?
+        return voltageControlAlways ?
                 true :
                 super.checkIfGeneratorStartedForVoltageControl(report);
     }
 
     @Override
     protected boolean checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        return getGenerator().isFictitious() ?
+        return voltageControlAlways ?
                 true :
                 super.checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
     }
