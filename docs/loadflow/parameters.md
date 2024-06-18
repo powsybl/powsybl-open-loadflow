@@ -396,6 +396,10 @@ If the user specifies only a sub-list of priorities, this sub-list is completed 
 order defined by default. Thus, if the user specifies only `["TRANSFORMER"]`,
 it will be completed to `["TRANSFORMER", "GENERATOR", "SHUNT"]`.
 
+**fictitiousGeneratorVoltageControlMode**  
+Specificies how fictitious generators can voltage. Possible modes are 'always' and 'normal'. 'always', the default, means that voltage 
+is controlled even if targetP is outside the minP - maxP interval.
+
 ## Configuration file example
 See below an extract of a config file that could help:
 
