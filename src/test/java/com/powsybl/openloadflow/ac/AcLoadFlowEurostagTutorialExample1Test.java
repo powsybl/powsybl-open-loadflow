@@ -415,8 +415,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .add();
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
-        assertActivePowerEquals(Double.NaN, gen.getTerminal());
-        assertReactivePowerEquals(Double.NaN, gen.getTerminal());
+        assertTrue(Double.isNaN(gen.getTerminal().getP()));
+        assertTrue(Double.isNaN(gen.getTerminal().getQ()));
     }
 
     @Test

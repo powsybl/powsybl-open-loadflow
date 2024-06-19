@@ -70,10 +70,10 @@ class DcLoadFlowTest {
         Line line1 = network.getLine("NHV1_NHV2_1");
         Line line2 = network.getLine("NHV1_NHV2_2");
 
-        assertEquals(Double.NaN, line1.getTerminal1().getP(), 0);
-        assertEquals(Double.NaN, line1.getTerminal2().getP(), 0);
-        assertEquals(Double.NaN, line2.getTerminal1().getP(), 0);
-        assertEquals(Double.NaN, line2.getTerminal2().getP(), 0);
+        assertTrue(Double.isNaN(line1.getTerminal1().getP()));
+        assertTrue(Double.isNaN(line1.getTerminal2().getP()));
+        assertTrue(Double.isNaN(line2.getTerminal1().getP()));
+        assertTrue(Double.isNaN(line2.getTerminal2().getP()));
 
         loadFlowRunner.run(network, parameters);
 

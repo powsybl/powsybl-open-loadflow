@@ -454,7 +454,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         l34.getTerminal2().disconnect();
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
-        assertReactivePowerEquals(Double.NaN, l34.getTerminal(TwoSides.TWO));
+        assertTrue(Double.isNaN(l34.getTerminal(TwoSides.TWO).getQ()));
     }
 
     @Test

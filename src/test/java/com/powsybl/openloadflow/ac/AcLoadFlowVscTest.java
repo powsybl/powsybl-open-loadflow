@@ -230,8 +230,8 @@ class AcLoadFlowVscTest {
         assertAngleEquals(0.18116, bus2);
 
         Bus bus3 = network.getBusView().getBus("vl3_0");
-        assertVoltageEquals(Double.NaN, bus3);
-        assertAngleEquals(Double.NaN, bus3);
+        assertTrue(Double.isNaN(bus3.getV()));
+        assertTrue(Double.isNaN(bus3.getAngle()));
 
         Generator g1 = network.getGenerator("g1");
         assertActivePowerEquals(-102.56, g1.getTerminal());
@@ -242,8 +242,8 @@ class AcLoadFlowVscTest {
         assertReactivePowerEquals(614.750, cs2.getTerminal());
 
         VscConverterStation cs3 = network.getVscConverterStation("cs3");
-        assertActivePowerEquals(Double.NaN, cs3.getTerminal());
-        assertReactivePowerEquals(Double.NaN, cs3.getTerminal());
+        assertTrue(Double.isNaN(cs3.getTerminal().getP()));
+        assertTrue(Double.isNaN(cs3.getTerminal().getQ()));
 
         Line l12 = network.getLine("l12");
         assertActivePowerEquals(52.65, l12.getTerminal1());

@@ -878,7 +878,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
 
         assertEquals(0., result.getBranchFlow1SensitivityValue("glsk", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1")));
     }
 
     @Test
@@ -897,7 +897,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
 
         assertEquals(0., result.getBranchFlow1SensitivityValue("glsk", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1")));
     }
 
     @Test

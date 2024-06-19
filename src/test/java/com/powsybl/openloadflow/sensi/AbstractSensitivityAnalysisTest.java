@@ -446,8 +446,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("glsk", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l56"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("glsk", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("l56")));
     }
 
     protected void testGlskPartiallyOutsideMainComponent(boolean dc) {

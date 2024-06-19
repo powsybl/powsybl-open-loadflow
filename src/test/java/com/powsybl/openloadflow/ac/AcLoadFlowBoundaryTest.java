@@ -181,6 +181,6 @@ class AcLoadFlowBoundaryTest {
         LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
         assertTrue(result3.isFullyConverged());
         assertActivePowerEquals(101.0, dl1.getTerminal());
-        assertReactivePowerEquals(Double.NaN, dl1.getTerminal());
+        assertTrue(Double.isNaN(dl1.getTerminal().getQ()));
     }
 }

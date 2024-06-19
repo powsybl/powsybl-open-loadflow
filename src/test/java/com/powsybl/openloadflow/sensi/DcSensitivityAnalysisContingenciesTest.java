@@ -267,10 +267,10 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "g6", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "g6", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "g6", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
 
         assertEquals(-4d / 3d, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-5d / 3d, result.getBranchFlow1FunctionReferenceValue("l34", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -303,10 +303,10 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "g6", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "g6", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "g6", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
     }
 
     @Test
@@ -340,10 +340,10 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "g6", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "g6", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "g6", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
     }
 
     @Test
@@ -379,29 +379,29 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l57", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l67", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l48", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l810", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l910", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l57", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l67", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l48", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l810", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g6", "l910", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
 
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l57", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l67", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l57", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l67", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
         // FIXME: Next line is not working with EvenShiloach, it feels like the connectivity check is wrong (in the predefinedResults definition)
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l48", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l810", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l910", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l48", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l810", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l48", "g10", "l910", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
     }
 
     @Test
@@ -433,11 +433,11 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l57", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l67", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l57", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l45", "g6", "l67", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
     }
 
     @Test
@@ -471,24 +471,24 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l78", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l78", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g6", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
 
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l78", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l78", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l47", "g9", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
     }
 
     @Test
@@ -566,10 +566,10 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "l56", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "l56", "l13", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "l56", "l23", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "l56", "l34", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "l56", "l45", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "l56", "l46", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34", "l56", "l56", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "l56", "l34", SensitivityVariableType.TRANSFORMER_PHASE)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "l56", "l45", SensitivityVariableType.TRANSFORMER_PHASE)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "l56", "l46", SensitivityVariableType.TRANSFORMER_PHASE)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34", "l56", "l56", SensitivityVariableType.TRANSFORMER_PHASE)));
     }
 
     @Test
@@ -593,7 +593,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l56", "l56", "l34", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l56", "l56", "l45", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l56", "l56", "l46", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l56", "l56", "l56", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l56", "l56", "l56", SensitivityVariableType.TRANSFORMER_PHASE)));
     }
 
     @Test
@@ -737,10 +737,10 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1.333, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.666, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l13"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.666, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l23"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l25"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l45"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l46"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("hvdc34", "l25")));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("hvdc34", "l45")));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("hvdc34", "l46")));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("hvdc34", "l56")));
     }
 
     @Test
@@ -767,7 +767,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         assertEquals(2d, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l13"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("hvdc34", "l23")));
     }
 
     @Test
@@ -796,11 +796,11 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         assertEquals(2d, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l13"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l23"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l25"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l45"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l46"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("hvdc34", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("hvdc34", "l23")));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("hvdc34", "l25")));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("hvdc34", "l45")));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("hvdc34", "l46")));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("hvdc34", "l56")));
     }
 
     @Test
@@ -884,11 +884,11 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l24", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l35", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l24", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l35", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l24+l35", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
     }
 
     @Test
@@ -915,8 +915,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34+l27+l58", "g2", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER));
 
         // Components that are not linked to slack should be NaN
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l27+l58", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER));
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l34+l27+l58", "g9", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l27+l58", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l34+l27+l58", "g9", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
     }
 
     @Test
@@ -955,31 +955,31 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l18", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l18", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l27", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l39", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l78", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l27", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l39", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l78", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g6", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
 
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l18", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l18", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l27", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l39", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l78", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l27", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l39", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l78", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l79", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l27+l18+l39+l14", "g9", "l89", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
     }
 
     @Test
@@ -1227,7 +1227,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         assertEquals(11, result.getValues(contingency1Id).size());
         for (Line line : network.getLines()) {
-            assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue(contingency1Id, variableId, line.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+            assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue(contingency1Id, variableId, line.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER)));
         }
     }
 
@@ -1408,7 +1408,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(5d / 3d, result.getBranchFlow1FunctionReferenceValue("l56", "l23"), LoadFlowAssert.DELTA_POWER);
         assertEquals(1d, result.getBranchFlow1FunctionReferenceValue("l56", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(2d, result.getBranchFlow1FunctionReferenceValue("l56", "l45"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l56", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("l56", "l56")));
         assertEquals(-2d, result.getBranchFlow1FunctionReferenceValue("l56", "l46"), LoadFlowAssert.DELTA_POWER);
     }
 
@@ -1431,8 +1431,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1FunctionReferenceValue("l48+l67", "l45"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-4d, result.getBranchFlow1FunctionReferenceValue("l48+l67", "l56"), LoadFlowAssert.DELTA_POWER);
         assertEquals(2d, result.getBranchFlow1FunctionReferenceValue("l48+l67", "l57"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l48+l67", "l89"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l48+l67", "l67"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("l48+l67", "l89")));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("l48+l67", "l67")));
     }
 
     @Test
@@ -1456,8 +1456,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1FunctionReferenceValue("l48+l67", "l45"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-4d, result.getBranchFlow1FunctionReferenceValue("l48+l67", "l56"), LoadFlowAssert.DELTA_POWER);
         assertEquals(2d, result.getBranchFlow1FunctionReferenceValue("l48+l67", "l57"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l48+l67", "l89"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l48+l67", "l67"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("l48+l67", "l89")));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("l48+l67", "l67")));
     }
 
     @Test
@@ -1825,7 +1825,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0, result.getBranchFlow1SensitivityValue("glsk", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
 
         assertEquals(100.0, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l12", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("l12", "l12")));
     }
 
     @Test
@@ -1847,7 +1847,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0, result.getBranchFlow1SensitivityValue("glsk", "additionnalline_0", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
 
         assertEquals(0, result.getBranchFlow1FunctionReferenceValue("additionnalline_0"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("additionnalline_0", "additionnalline_0"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("additionnalline_0", "additionnalline_0")));
     }
 
     @Test
@@ -1869,7 +1869,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0, result.getBranchFlow1SensitivityValue("glsk", "additionnalline_10", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
 
         assertEquals(0, result.getBranchFlow1FunctionReferenceValue("additionnalline_10"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("additionnalline_0", "additionnalline_10"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("additionnalline_0", "additionnalline_10")));
     }
 
     @Test
@@ -1948,7 +1948,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         assertEquals(1, result.getPreContingencyValues().size());
         assertEquals(0.0, result.getBranchFlow1SensitivityValue("GEN_1", "T2wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("T2wT"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("T2wT")));
     }
 
     @Test
@@ -1975,8 +1975,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
         assertEquals(1, result.getPreContingencyValues().size());
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("LOAD_3", "T2wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("T2wT"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("LOAD_3", "T2wT", SensitivityVariableType.INJECTION_ACTIVE_POWER)));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("T2wT")));
     }
 
     @Test
@@ -2118,7 +2118,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1, result.getValues("l34+l12").size());
 
         assertEquals(0.0, result.getBranchFlow1SensitivityValue("l34+l12", "g3", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l34+l12", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("l34+l12", "l12")));
         assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getContingencyStatus("l34+l12"));
     }
 
@@ -2255,7 +2255,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = Collections.singletonList(new Contingency("l23", new BranchContingency("l23")));
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
         assertEquals(0, result.getBranchFlow1SensitivityValue("l23", "l23", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l23", "l23", "l23", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1SensitivityValue("l23", "l23", "l23", SensitivityVariableType.TRANSFORMER_PHASE)));
     }
 
     @Test
@@ -2447,8 +2447,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(300.0, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("NLOAD", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         // Isolated slack bus, supported in DC.
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER); // isolated slack bus, supported.
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NHV1", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV1_NHV2_1"))); // isolated slack bus, supported.
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("NHV1", "NGEN_NHV1")));
         assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getContingencyStatus("NHV1"));
         assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("NHV2", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
         // FIXME
@@ -2486,7 +2486,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 new Contingency("l67+l57", new BranchContingency("l67"), new BranchContingency("l57")));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
-        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l67+l57+l56", "l56"));
+        assertTrue(Double.isNaN(result.getBranchFlow1FunctionReferenceValue("l67+l57+l56", "l56")));
         assertEquals(-0.296, result.getBranchFlow1FunctionReferenceValue("l67+l57", "l56"), LoadFlowAssert.DELTA_POWER);
     }
 }

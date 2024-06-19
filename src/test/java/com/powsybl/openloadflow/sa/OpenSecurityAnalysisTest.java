@@ -448,7 +448,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 Collections.emptyList(), Collections.emptyList(), ReportNode.NO_OP);
         BranchResult preContingencyBranchResult = result.getPreContingencyResult().getNetworkResult().getBranchResult("dl1");
-        assertEquals(Double.NaN, preContingencyBranchResult.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(preContingencyBranchResult.getFlowTransfer()));
         assertEquals(91.293, preContingencyBranchResult.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-91.000, preContingencyBranchResult.getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(260.511, preContingencyBranchResult.getI1(), LoadFlowAssert.DELTA_POWER);
@@ -456,7 +456,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(149.751, preContingencyBranchResult.getQ1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-150.000, preContingencyBranchResult.getQ2(), LoadFlowAssert.DELTA_POWER);
         BranchResult postContingencyBranchResult = getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("dl1");
-        assertEquals(Double.NaN, postContingencyBranchResult.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(postContingencyBranchResult.getFlowTransfer()));
         assertEquals(91.293, postContingencyBranchResult.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-91.000, postContingencyBranchResult.getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(260.488, postContingencyBranchResult.getI1(), LoadFlowAssert.DELTA_POWER);
@@ -2283,10 +2283,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors2, securityAnalysisParameters);
         BranchResult dl1Result = result2.getPreContingencyResult().getNetworkResult().getBranchResult("h1");
         assertEquals(35.0, dl1Result.getP1(), DELTA_POWER);
-        assertEquals(Double.NaN, dl1Result.getP2());
+        assertTrue(Double.isNaN(dl1Result.getP2()));
         BranchResult dl2Result = result2.getPreContingencyResult().getNetworkResult().getBranchResult("h2");
         assertEquals(-35.0, dl2Result.getP1(), DELTA_POWER);
-        assertEquals(Double.NaN, dl2Result.getP2());
+        assertTrue(Double.isNaN(dl2Result.getP2()));
     }
 
     @Test
