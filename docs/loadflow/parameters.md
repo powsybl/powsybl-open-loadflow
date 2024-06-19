@@ -257,10 +257,19 @@ and its solution status is flagged as failed.
 The default values are `0.5` and `1.5` and they must be greater or equal to `0`.
 
 **reactiveRangeCheckMode**  
-This parameter defines how to check the reactive limits $MinQ$ and $MaxQ$ of a generator. If the range is too small, the generator is discarded from voltage control.
-- `MIN_MAX` mode checks if the reactive range at $MaxP$ is above a threshold and if the reactive range at $MinP$ is not zero.
-- `MAX` mode if the reactive range at $MaxP$ is above a threshold.
-- `TARGET_P` if the reactive range at $TargetP$ is above a threshold
+OpenLoadFlow discards voltage control for generators with a too small reactive power range, because in practice a too
+small reactive power ranger means limited to zero voltage control capability.
+
+For a given active power output, the reactive power range is defined as $MaxQ - MinQ$ (always a positive value).  
+The *maximum* and *minimum* reactive range of a generator is:
+- for generators without reactive limits: infinity 
+- for generators with reactive limits defined by a pair of [min/max values](inv:powsyblcore:*:*:#min-max-reactive-limits), both minimum and maximum reactive range are equal to $MaxQ - MinQ$ 
+- for generators with reactive limits defined by a [reactive capability curve](inv:powsyblcore:*:*:#reactive-capability-curve), the minimum (resp. maximum) reactive range is obtained by finding the curve point having the minimum (resp. maximum) $MaxQ - MinQ$.
+
+The `reactiveRangeCheckMode` parameter defines how generator reactive power range is to be tested:
+- `MIN_MAX` mode tests if the minimum reactive range is not `0 MVAr` and if the maximum reactive range is above `1 MVAr`.
+- `MAX` mode tests if the maximum reactive range is above `1 MVAr`.
+- `TARGET_P` tests if the reactive range at $TargetP$ is above `1 MVAr`.
 
 The default value is `MAX`.
 
