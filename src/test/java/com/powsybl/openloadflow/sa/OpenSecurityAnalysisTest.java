@@ -2290,6 +2290,22 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testDuplicatedNetworkResultsIssueWithTieLineContingency() {
+        Network network = BoundaryFactory.createWithTieLine();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setCreateResultExtension(true));
+        Set<String> allBranchIds = network.getDanglingLineStream(DanglingLineFilter.PAIRED).map(Identifiable::getId).collect(Collectors.toSet());
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
+        List<Contingency> contingencies = List.of(Contingency.branch("l34"));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        assertEquals(List.of("t12", "h1", "h2"), result.getPostContingencyResults().get(0).getNetworkResult().getBranchResults().stream().map(BranchResult::getBranchId).toList());
+        Set<String> allBranchIds2 = Set.of("t12", "h1");
+        List<StateMonitor> monitors2 = List.of(new StateMonitor(ContingencyContext.all(), allBranchIds2, Collections.emptySet(), Collections.emptySet()));
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors2, securityAnalysisParameters);
+        assertEquals(List.of("t12", "h1", "h2"), result2.getPostContingencyResults().get(0).getNetworkResult().getBranchResults().stream().map(BranchResult::getBranchId).toList());
+    }
+
+    @Test
     void testWithTieLineContingency2() {
         // using one of the two dangling line ids.
         Network network = BoundaryFactory.createWithTieLine();
