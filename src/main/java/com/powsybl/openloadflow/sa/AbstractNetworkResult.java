@@ -52,6 +52,7 @@ public abstract class AbstractNetworkResult {
                         for (String originalId : lfBranch.getOriginalIds()) {
                             if (monitor.getBranchIds().contains(originalId)) {
                                 branchConsumer.accept(lfBranch);
+                                break; // only generate result at first original ID match
                             }
                         }
                     });
