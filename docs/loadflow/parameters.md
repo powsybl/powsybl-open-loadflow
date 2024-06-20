@@ -31,7 +31,7 @@ The `lowImpedanceThreshold` property is an optional property that defines in per
 (when $Z$ is less than the `lowImpedanceThreshold` per-unit threshold).  
 The default value is $10^{-8}$ and it must be greater than `0`.
 
-**slackDistributionFailureBehavior**
+**slackDistributionFailureBehavior**  
 This option defines the behavior in case the slack distribution fails. Available options are:
 - `THROW` if you want an exception to be thrown in case of failure
 - `FAIL` if you want the OuterLoopStatus to be `FAILED` in case of failure
@@ -41,7 +41,7 @@ This option defines the behavior in case the slack distribution fails. Available
 
 The default value is `LEAVE_ON_SLACK_BUS`.
 
-**slackBusSelectionMode**  
+**slackBusSelectionMode**    
 The `slackBusSelectionMode` property is an optional property that defines how to select the slack bus. The three options are available through the configuration file:
 - `FIRST` if you want to choose the first bus of all the network buses.
 - `NAME` if you want to choose a specific bus as the slack bus. In that case, the `slackBusesIds` property has to be filled.
@@ -58,25 +58,25 @@ When `readSlackBus` is set to true, `slackBusSelectionMode` is still used and se
 - for e.g. synchronous components where no slack terminal extension is present.
 - for e.g. synchronous components where more than `maxSlackBusCount` slack terminal extensions are present.
 
-**mostMeshedSlackBusSelectorMaxNominalVoltagePercentile**
+**mostMeshedSlackBusSelectorMaxNominalVoltagePercentile**  
 This option is used when `slackBusSelectionMode` is set to `MOST_MESHED`. It sets the maximum nominal voltage percentile.
 The default value is `95` and it must be inside the interval [`0`, `100`].
 
-**maxSlackBusCount**  
+**maxSlackBusCount**    
 Number of slack buses to be selected. Setting a value above 1 can help convergence on very large networks with large initial imbalances,
 where it might be difficult to find a single slack with sufficient branches connected and able to absorb or evacuate the slack power.  
 The default value is `1`.
 
-**slackBusesIds**  
+**slackBusesIds**    
 The `slackBusesIds` property is a required property if you choose `NAME` for property `slackBusSelectionMode`.
 It defines a prioritized list of buses or voltage levels to be chosen for slack bus selection (as an array, or as a comma or semicolon separated string).
 
-**slackBusCountryFilter**  
+**slackBusCountryFilter**    
 The `slackBusCountryFilter` defines a list of countries where slack bus should be selected (as an array, or as a comma or semicolon separated string).  
 Countries are specified by their alpha 2 code (e.g. `FR`, `BE`, `DE`, ...).  
 The default value is an empty list (any country can be used for slack bus selection).
 
-**loadPowerFactorConstant**  
+**loadPowerFactorConstant**    
 The `loadPowerFactorConstant ` property is an optional boolean property. This property is used in the outer loop that distributes slack on loads if :
 - `distributedSlack` property is set to true in the [load flow default parameters](inv:powsyblcore:*:*#simulation/loadflow/configuration),
 - `balanceType` property is set to `PROPORTIONAL_TO_LOAD` or `PROPORTIONAL_TO_CONFORM_LOAD` in the [load flow default parameters](inv:powsyblcore:*:*#simulation/loadflow/configuration).
@@ -107,43 +107,43 @@ If `balanceType` equals to `PROPORTIONAL_TO_CONFORM_LOAD`, the power factor rema
 
 The default value for `loadPowerFactorConstant` property is `false`.
 
-**slackBusPMaxMismatch**  
+**slackBusPMaxMismatch**    
 When slack distribution is enabled (`distributedSlack` set to `true` in LoadFlowParameters), this is the threshold below which slack power
 is considered to be distributed.  
 The default value is `1 MW` and it must be greater or equal to `0 MW`.
 
-**voltageRemoteControl**  
+**voltageRemoteControl**    
 The `voltageRemoteControl` property is an optional property that defines if the remote control for voltage controllers has to be modeled.
 If set to false, any existing voltage remote control is converted to a local control, rescaling the target voltage
 according to the nominal voltage ratio between the remote regulated bus and the equipment terminal bus.  
 The default value is `true`.
 
-**voltagePerReactivePowerControl**  
+**voltagePerReactivePowerControl**    
 Whether simulation of static VAR compensators with voltage control enabled and a slope defined should be enabled
 (See [voltage per reactive power control extension](inv:powsyblcore:*:*:#voltage-per-reactive-power-control-extension)).  
 The default value is `false`.
 
-**generatorReactivePowerRemoteControl**  
+**generatorReactivePowerRemoteControl**    
 Whether simulation of generators reactive power remote control should be enabled
 (See [remote reactive power control](inv:powsyblcore:*:*:#remote-reactive-power-control-extension)).  
 The default value is `false`.
 
-**secondaryVoltageControl**  
+**secondaryVoltageControl**    
 Whether simulation of secondary voltage control should be enabled.  
 The default value is `false`.
 
-**reactiveLimitsMaxPqPvSwitch**  
+**reactiveLimitsMaxPqPvSwitch**    
 When `useReactiveLimits` is set to `true`, this parameter is used to limit the number of times an equipment performing voltage control
 is switching from PQ to PV type. After this number of PQ/PV type switch, the equipment will not change PV/PQ type anymore.  
 The default value is `3` and it must be greater or equal to `0`.
 
-**phaseShifterControlMode**
+**phaseShifterControlMode**  
 - `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the Newton-Raphson inner-loop.
 - `INCREMENTAL`: phase shifter control is solved in the outer-loop
 
 The default value is `CONTINUOUS_WITH_DISCRETISATION`.
 
-**transformerVoltageControlMode**  
+**transformerVoltageControlMode**    
 This parameter defines which kind of outer loops is used for transformer voltage controls. We have three kinds of outer loops:
 - `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the generator voltage control. The final transformer $\rho$ is obtained by rounding to the closest tap position. The control deadband is not taken into account.
 - `AFTER_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed after the generator voltage control. The final transformer $\rho$ is obtained by rounding to the closest tap position. The control deadband is taken into account.
@@ -151,36 +151,36 @@ This parameter defines which kind of outer loops is used for transformer voltage
 
 The default value is `WITH_GENERATOR_VOLTAGE_CONTROL`.
 
-**transformerReactivePowerControl**
+**transformerReactivePowerControl**  
 This parameter enables the reactive power control of transformer through a dedicated incremental reactive power control outer loop. The default value is `false`.
 
-**incrementalTransformerRatioTapControlOuterLoopMaxTapShift**  
+**incrementalTransformerRatioTapControlOuterLoopMaxTapShift**    
 Maximum number of tap position change during a single iteration of the incremental voltage and or reactive power control outer loop.
 Applies when `transformerVoltageControlMode` is set to `INCREMENTAL_VOLTAGE_CONTROL` and or when `transformerReactivePowerControl` is enabled (`true`). The default value is `3`.
 
-**shuntVoltageControlMode**  
+**shuntVoltageControlMode**    
 This parameter defines which kind of outer loops is used for the shunt voltage control. We have two kinds of outer loops:
 - `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the generator voltage control. Susceptance is finally rounded to the closest section for shunt that are controlling voltage. The control deadband is not taken into account.
 - `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used. Susceptance always corresponds to a section. Section changes using sensitivity computations. The control deadband is taken into account.
 
 The default value is `WITH_GENERATOR_VOLTAGE_CONTROL`.
 
-**svcVoltageMonitoring**  
+**svcVoltageMonitoring**    
 Whether simulation of static VAR compensators voltage monitoring should be enabled.  
 The default value is `true`.
 
-**acSolverType**  
+**acSolverType**    
 AC load flow solver engine. Currently, it can be one of:
 - `NEWTON_RAPHSON` is the standard Newton-Raphson algorithm for load flow. Solves linear systems via Sparse LU decomposition (by [SuiteSparse](https://people.engr.tamu.edu/davis/suitesparse.html));
 - `NEWTON_KRYLOV` is also the standard Newton-Raphson algorithm for load flow. Solves linear systems via Krylov subspace methods for indefinite non-symmetric matrices (by [Kinsol](https://computing.llnl.gov/projects/sundials/kinsol)).
 
 The default value is `NEWTON_RAPHSON`.
 
-**maxOuterLoopIterations**  
+**maxOuterLoopIterations**    
 Maximum number of iterations for Newton-Raphson outer loop.  
 The default value is `20` and it must be greater or equal to `1`.
 
-**newtonRaphsonStoppingCriteriaType**  
+**newtonRaphsonStoppingCriteriaType**    
 Stopping criteria for Newton-Raphson algorithm.
 - `UNIFORM_CRITERIA`: stop when all equation mismatches are below `newtonRaphsonConvEpsPerEq` threshold.
   `newtonRaphsonConvEpsPerEq` defines the threshold for all equation types, in per-unit with `100 MVA` base. The default value is $10^{-4} \text{p.u.}$ and it must be greater than 0.
@@ -194,17 +194,17 @@ Stopping criteria for Newton-Raphson algorithm.
 
 The default value is `UNIFORM_CRITERIA`.
 
-**maxNewtonRaphsonIterations**  
+**maxNewtonRaphsonIterations**    
 Only applies if **acSolverType** is `NEWTON_RAPHSON`.
 Maximum number of iterations for Newton-Raphson inner loop.  
 The default value is `15` and it must be greater or equal to `1`.
 
-**maxNewtonKrylovIterations**  
+**maxNewtonKrylovIterations**    
 Only applies if **acSolverType** is `NEWTON_KRYLOV`.
 Maximum number of iterations for Newton-Raphson inner loop.
 The default value is `100` and it must be greater or equal to `1`.
 
-**stateVectorScalingMode**  
+**stateVectorScalingMode**    
 Only applies if **acSolverType** is `NEWTON_RAPHSON`.
 This parameter 'slows down' the Newton-Raphson by scaling the state vector between iterations. Can help convergence in some cases.
 - `NONE`: no scaling is made
@@ -213,50 +213,50 @@ This parameter 'slows down' the Newton-Raphson by scaling the state vector betwe
 
 The default value is `NONE`.
 
-**lineSearchStateVectorScalingMaxIteration**  
+**lineSearchStateVectorScalingMaxIteration**    
 Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`.  
 Maximum iterations for a vector scaling when applying a line search strategy.  
 The default value is `10` and it must be greater or equal to `1`.
 
-**lineSearchStateVectorScalingStepFold**  
+**lineSearchStateVectorScalingStepFold**    
 Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`.  
 At the iteration $i$ of vector scaling with the line search strategy, with this parameter having the value $s$ , the step size will be $ \mu  = \frac{1}{s^i}$ .   
 The default value is `4/3 = 1.333` and it must be greater than `1`.
 
-**maxVoltageChangeStateVectorScalingMaxDv**  
+**maxVoltageChangeStateVectorScalingMaxDv**    
 Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`.  
 Maximum amplitude p.u. for a voltage change.  
 The default value is `0.1 p.u.` and it must be greater than `0`.
 
-**maxVoltageChangeStateVectorScalingMaxDphi**  
+**maxVoltageChangeStateVectorScalingMaxDphi**    
 Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`.  
 Maximum angle for a voltage change.  
 The default value is `0.174533 radians` (`10°`) and it must be greater than `0`.
 
-**newtonKrylovLineSearch**  
+**newtonKrylovLineSearch**    
 Only applies if **acSolverType** is `NEWTON_KRYLOV`.
 Activates or deactivates line search for the Newton-Raphson Kinsol solver.
 The default value is `false`.
 
-**plausibleActivePowerLimit**  
+**plausibleActivePowerLimit**    
 The `plausibleActivePowerLimit` property is an optional property that defines a maximal active power limit for generators to be considered as participating elements for:
 - slack distribution (if `balanceType` equals to any of the `PROPORTIONAL_TO_GENERATION_<any>` types)
 - slack selection (if `slackBusSelectionMode` equals to `LARGEST_GENERATOR`)
 
 The default value is $5000 MW$.
 
-**minPlausibleTargetVoltage** and **maxPlausibleTargetVoltage**  
+**minPlausibleTargetVoltage** and **maxPlausibleTargetVoltage**    
 Equipments with voltage regulation target voltage outside these per-unit thresholds
 are considered suspect and are discarded from regulation prior to load flow resolution.  
 The default values are `0.8` and `1.2` and they must be greater or equal to `0`.
 
-**minRealisticVoltage** and **maxRealisticVoltage**  
+**minRealisticVoltage** and **maxRealisticVoltage**    
 These parameters are used to identify if Newton-Raphson has converged to an unrealistic state.
 For any component where a bus voltage is solved outside these per-unit thresholds, the component solution is deemed unrealistic
 and its solution status is flagged as failed.  
 The default values are `0.5` and `1.5` and they must be greater or equal to `0`.
 
-**reactiveRangeCheckMode**  
+**reactiveRangeCheckMode**    
 OpenLoadFlow discards voltage control for generators with a too small reactive power range, because in practice a too
 small reactive power ranger means limited to zero voltage control capability.
 
@@ -273,7 +273,7 @@ The `reactiveRangeCheckMode` parameter defines how generator reactive power rang
 
 The default value is `MAX`.
 
-**reportedFeatures**  
+**reportedFeatures**    
 This parameter allows to define a set of features which should generate additional reports (as an array, or as a comma or semicolon separated string).
 In current version this parameter can be used to request Newton-Raphson iterations report:
 - `NEWTON_RAPHSON_LOAD_FLOW`: report Newton-Raphson iteration log for load flow calculations.
@@ -291,7 +291,7 @@ Newton-Raphson iterations report consist in reporting:
 
 The default value is an empty set of features to report.
 
-**networkCacheEnabled**  
+**networkCacheEnabled**    
 This parameter is used to run fast simulations by applying incremental modifications on the network directly to the OpenLoadFlow internal modelling.
 The cache mode allows faster runs when modifications on the network are light.
 Not all modifications types are supported yet, currently supported modifications are:
@@ -300,32 +300,32 @@ Not all modifications types are supported yet, currently supported modifications
 
 The default value is `false`.
 
-**actionableSwitchesIds**  
+**actionableSwitchesIds**    
 This parameter list is used if `networkCachedEnabled` is activated. It defines a list of switches that might be modified (as an array, or as a comma or semicolon separated string). When one of the switches changes its status (open/close) and a load flow is run just after, the cache will be used to a faster resolution. Note that in the implementation, all the switches of that list will be considered as retained, leading to a size increase of the Jacobian matrix. The list should have a reasonable size, otherwise the simulation without cache use should be preferred.
 
-**alwaysUpdateNetwork**  
+**alwaysUpdateNetwork**    
 Update the iIDM network state even in case of non-convergence.  
 The default value is `false`.
 
-**debugDir**  
+**debugDir**    
 Allows to dump debug files to a specific directory.  
 The default value is undefined (`null`), disabling any debug files writing.
 
-**asymmetrical**  
+**asymmetrical**    
 Allows to run asymmetrical calculations. The default value is `false`.
 
-**useActiveLimits**  
+**useActiveLimits**    
 Allows to ignore active power limits during calculations. Active power limits are mainly involved in slack distribution on generators. The default value is `true`.
 
-**disableVoltageControlOfGeneratorsOutsideActivePowerLimits**  
+**disableVoltageControlOfGeneratorsOutsideActivePowerLimits**    
 Disables voltage control for generators with `targetP` outside the interval [`minP`, `maxP`]. The default value is `false`.
 
-**minNominalVoltageTargetVoltageCheck**  
+**minNominalVoltageTargetVoltageCheck**    
 This parameter defines the minimal nominal voltage to check the target of voltage control in per-unit.
 The default value is `20 kV`, meaning that under the controlled buses of voltage levels under this value are ignored from the check.
 It must be greater or equal to `0 kV`.
 
-**reactivePowerDispatchMode**  
+**reactivePowerDispatchMode**    
 This parameter defines how reactive power is split among generators with controls (voltage or reactive power).
 It tries to divide reactive power among generators in the order described below.
 `reactivePowerDispatchMode` can be one of:
@@ -340,16 +340,16 @@ It tries to divide reactive power among generators in the order described below.
 
 The default value is `Q_EQUAL_PROPORTION`.
 
-**disableVoltageControlOfGeneratorsOutsideActivePowerLimits**  
+**disableVoltageControlOfGeneratorsOutsideActivePowerLimits**    
 This parameter allows to disable the voltage control of generators which `targetP` is lower than `minP` or greater than `maxP`. The default value is `false`.
 
-**outerLoopNames**  
+**outerLoopNames**    
 This parameter allows to configure both the list of outer loops that can be executed and their explicit execution order.
 Each outer loop name specified in the list must be unique and match the `NAME` attribute of the respective outer loop.
 
 By default, this parameter is set to `null`, and the activated outer loops are executed in a default order (defined in DefaultAcOuterLoopConfig).
 
-**linePerUnitMode**  
+**linePerUnitMode**    
 This parameter defines how lines ending in different nominal voltages at both sides are perunit-ed.
 `linePerUnitMode` can be one of:
 - `IMPEDANCE`: handle difference in nominal voltage via impedance correction
@@ -357,10 +357,10 @@ This parameter defines how lines ending in different nominal voltages at both si
 
 The default value is `IMPEDANCE`.
 
-**useLoadModel**  
+**useLoadModel**    
 When set to `true`, this parameter enables the modeling of the `ZIP` or `EXPONENTIAL` response characteristic of a [Load](inv:powsyblcore:*:*:#load).
 
-**dcApproximationType**  
+**dcApproximationType**    
 This parameter defines how resistance is neglected compared to inductance in DC approximation.
 `dcApproximationType` can be one of:
 - `IGNORE_R`: consider that r << x
@@ -368,23 +368,23 @@ This parameter defines how resistance is neglected compared to inductance in DC 
 
 The default value is `IGNORE_R`.
 
-**simulateAutomationSystems**  
+**simulateAutomationSystems**    
 Allows to simulate automation systems that are modeled in the network. For the moment, the grid model only supports overload management systems. The default behaviour is `false`.
 
-**referenceBusSelectionMode**  
+**referenceBusSelectionMode**    
 The reference bus is the bus where the angle is equal to zero. There are several mode of selection:
 - `FIRST_SLACK`: the angle reference bus is selected as the first slack bus among potentially multiple slacks (in case `maxSlackBusCount` > 1).
 - `GENERATOR_REFERENCE_PRIORITY`: the angle reference bus is selected from generator reference priorities defined via the [Reference Priority extension](inv:powsyblcore:*:*:#reference-priority-extension).
 
 The default value is `FIRST_SLACK`.
 
-**writeReferenceTerminals**  
+**writeReferenceTerminals**    
 This parameter allows to write to the IIDM network the [Reference Terminals extension](inv:powsyblcore:*:*:#reference-terminals-extension)
 containing the generator terminals used as angle reference in the load flow calculation.
 There is one Terminal created/added in the extension for each calculated Synchronous Component.
 Works only when `referenceBusSelectionMode` is set to `GENERATOR_REFERENCE_PRIORITY`.
 
-**voltageTargetPriorities**  
+**voltageTargetPriorities**    
 When multiple equipment regulate the same bus with different voltage targets,
 this parameter enables configuring priority to resolve inconsistencies by aligning the voltage targets.
 Priority is determined by equipment type order; the voltage target of the equipment type listed first takes precedence over those listed later.
