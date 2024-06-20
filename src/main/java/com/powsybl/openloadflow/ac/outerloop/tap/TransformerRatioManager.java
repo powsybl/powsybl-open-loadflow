@@ -107,9 +107,9 @@ public class TransformerRatioManager {
             double initialR1 = sharedControl.initialR1();
             double computedR1 = branch.getPiModel().getR1(); // equations provide the same R1 for all branches
             double updatedR1 = computedR1 >= initialR1 ?
-                    individualInitialR1 + (computedR1 - initialR1) * (branch.getPiModel().getMaxR1() - individualInitialR1) / (maxR1 - individualInitialR1)
+                    individualInitialR1 + (computedR1 - initialR1) * (branch.getPiModel().getMaxR1() - individualInitialR1) / (maxR1 - initialR1)
                     :
-                    individualInitialR1 - (initialR1 - computedR1) * (individualInitialR1 - branch.getPiModel().getMinR1()) / (individualInitialR1 - minR1);
+                    individualInitialR1 - (initialR1 - computedR1) * (individualInitialR1 - branch.getPiModel().getMinR1()) / (initialR1 - minR1);
             branch.getPiModel().setR1(updatedR1);
         }
     }
