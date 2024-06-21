@@ -26,19 +26,19 @@ public class GeneratorVoltageControlManager {
     private final List<LfBus> disabledControllerBuses = new ArrayList<>();
 
     public GeneratorVoltageControlManager(LfNetwork network, double limitOverride) {
-        this.minNominalVoltageLimit = limitOverride < 0 ? calculateMaxControlledNominalVoltage(network) : limitOverride;
+        this.minNominalVoltageLimit = limitOverride < 0 ? computeDefaultMinNominalVoltageLimit(network) : limitOverride;
     }
 
-    private static double calculateMaxControlledNominalVoltage(LfNetwork network) {
-        double maxControlledNominalVoltage = Double.MIN_VALUE;
+    private static double computeDefaultMinNominalVoltageLimit(LfNetwork network) {
+        double defaultMinNominalVoltage = Double.MIN_VALUE;
         for (LfBus bus : network.getBuses()) {
             if (!bus.isDisabled()
                     && bus.isTransformerVoltageControlled()
                     && isTransformerVoltageControlsValidForMaxControlledNominalVoltageCalculation(bus.getTransformerVoltageControl().orElse(null))) {
-                maxControlledNominalVoltage = Math.max(maxControlledNominalVoltage, bus.getNominalV());
+                defaultMinNominalVoltage = Math.max(defaultMinNominalVoltage, bus.getNominalV());
             }
         }
-        return maxControlledNominalVoltage;
+        return defaultMinNominalVoltage;
     }
 
     private static boolean isTransformerVoltageControlsValidForMaxControlledNominalVoltageCalculation(TransformerVoltageControl transformerVoltageControl) {
