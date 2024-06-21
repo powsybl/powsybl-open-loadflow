@@ -34,14 +34,14 @@ public class GeneratorVoltageControlManager {
         for (LfBus bus : network.getBuses()) {
             if (!bus.isDisabled()
                     && bus.isTransformerVoltageControlled()
-                    && isTransformerVoltageControlsValidForMaxControlledNominalVoltageCalculation(bus.getTransformerVoltageControl().orElse(null))) {
+                    && isVoltageControllingTransformerChangingVoltageLevel(bus.getTransformerVoltageControl().orElse(null))) {
                 defaultMinNominalVoltage = Math.max(defaultMinNominalVoltage, bus.getNominalV());
             }
         }
         return defaultMinNominalVoltage;
     }
 
-    private static boolean isTransformerVoltageControlsValidForMaxControlledNominalVoltageCalculation(TransformerVoltageControl transformerVoltageControl) {
+    private static boolean isVoltageControllingTransformerChangingVoltageLevel(TransformerVoltageControl transformerVoltageControl) {
         // are removed from this automatic algorithm the transformer voltage control that are between two nominal
         // voltages equivalents.
         if (transformerVoltageControl != null) {
@@ -87,18 +87,31 @@ public class GeneratorVoltageControlManager {
     }
 
     private boolean isBusBehindVeryHighVoltageTransfo(LfBus bus, double limit) {
-        if (bus.getBranches().size() != 1) {
+        // The criteria detects the following cases at this point
+        // The bus is connected to a VSC station
+        // or
+        // the bus is connected to a generator and to transfomers that all step up to a tension above nominal voltage
+        //
+
+        if (bus.getGenerators().isEmpty()) {
             return false;
         }
-        LfBranch b = bus.getBranches().get(0);
-        if (!b.isConnectedAtBothSides()) {
-            return false;
-        }
+
         // Always keep VSC stations
         if (bus.getGenerators().stream().anyMatch(LfVscConverterStation.class::isInstance)) {
             return true;
         }
 
-        return Math.max(b.getBus1().getNominalV(), b.getBus2().getNominalV()) >= limit;
+        double startingNominalVoltage = bus.getNominalV();
+
+        double minConnectedVoltageLevel = bus.getBranches().stream()
+                .filter(b -> b.isConnectedAtBothSides())
+                .mapToDouble(b -> Math.max(b.getBus1().getNominalV(), b.getBus2().getNominalV()))
+                .min()
+                .orElse(-1);
+
+        // ALl branches should be step up transformers arriving to a voltage higher than limit
+        return minConnectedVoltageLevel > startingNominalVoltage && minConnectedVoltageLevel > limit;
+
     }
 }
