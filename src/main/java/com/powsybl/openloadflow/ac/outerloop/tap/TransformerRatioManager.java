@@ -91,12 +91,12 @@ public class TransformerRatioManager {
     }
 
     /**
-     * If 'useInitialTapePosition' is true, for transformers of the same control, we try to keep the initial difference
+     * If 'useInitialTapPosition' is true, for transformers of the same control, we try to keep the initial difference
      * between individual ratios. This algorithm maintains the individual tap positions if the voltage is correct with initial
      * state. It can also be seen as an approximate simulation of transformers acting with independent automation systems.
      * Assumes that all transformers of the same control have the same ratio (should be maintained by
      * ACEquationSystemCreator.createR1DistributionEquations).
-     * If 'useInitialTapePosition' is false, the transformer is not modified and keeps its computed R1.
+     * If 'useInitialTapPosition' is false, the transformer is not modified and keeps its computed R1.
      */
     public void updateContinuousRatio(LfBranch branch) {
         if (useInitialTapPosition) {
