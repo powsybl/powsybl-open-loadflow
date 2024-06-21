@@ -60,6 +60,8 @@ public class GeneratorVoltageControlManager {
      * Disables the voltage control of generators if controlled bus nominal voltage is under the limit.
      */
     public void disableGeneratorVoltageControlsUnderMaxControlledNominalVoltage(LfNetwork network) {
+        disabledControllerBuses.clear(); // (in case someone wants to call this multiple time in instance lifecycle
+                                         // although this class as not designed nor tested with this use case in mind)
         for (LfBus bus : network.getControlledBuses(VoltageControl.Type.GENERATOR)) {
             if (bus.getNominalV() < minNominalVoltageLimit) {
                 var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
