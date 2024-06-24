@@ -41,7 +41,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     public static final String NAME = "IncrementalShuntVoltageControl";
 
     // Maximum number of directional inversions for each controller during incremental outer loop
-    private static final int MAX_DIRECTION_CHANGE = 2;
+    private static final int MAX_DIRECTION_CHANGE = 3;
 
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 

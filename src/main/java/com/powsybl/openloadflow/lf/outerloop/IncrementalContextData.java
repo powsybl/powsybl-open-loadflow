@@ -41,7 +41,7 @@ public class IncrementalContextData {
         }
 
         public void updateAllowedDirection(Direction direction) {
-            if (directionChangeCount.getValue() <= maxDirectionChange) {
+            if (directionChangeCount.getValue() < maxDirectionChange) {
                 if (currentDirection != null && currentDirection != direction) {
                     directionChangeCount.increment();
                 }
