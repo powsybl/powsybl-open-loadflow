@@ -31,7 +31,7 @@ The `lowImpedanceThreshold` property is an optional property that defines in per
 (when $Z$ is less than the `lowImpedanceThreshold` per-unit threshold).  
 The default value is $10^{-8}$ and it must be greater than `0`.
 
-**slackDistributionFailureBehavior**
+**slackDistributionFailureBehavior**  
 This option defines the behavior in case the slack distribution fails. Available options are:
 - `THROW` if you want an exception to be thrown in case of failure
 - `FAIL` if you want the OuterLoopStatus to be `FAILED` in case of failure
@@ -58,7 +58,7 @@ When `readSlackBus` is set to true, `slackBusSelectionMode` is still used and se
 - for e.g. synchronous components where no slack terminal extension is present.
 - for e.g. synchronous components where more than `maxSlackBusCount` slack terminal extensions are present.
 
-**mostMeshedSlackBusSelectorMaxNominalVoltagePercentile**
+**mostMeshedSlackBusSelectorMaxNominalVoltagePercentile**  
 This option is used when `slackBusSelectionMode` is set to `MOST_MESHED`. It sets the maximum nominal voltage percentile.
 The default value is `95` and it must be inside the interval [`0`, `100`].
 
@@ -137,7 +137,7 @@ When `useReactiveLimits` is set to `true`, this parameter is used to limit the n
 is switching from PQ to PV type. After this number of PQ/PV type switch, the equipment will not change PV/PQ type anymore.  
 The default value is `3` and it must be greater or equal to `0`.
 
-**phaseShifterControlMode**
+**phaseShifterControlMode**  
 - `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the Newton-Raphson inner-loop.
 - `INCREMENTAL`: phase shifter control is solved in the outer-loop
 
@@ -151,7 +151,7 @@ This parameter defines which kind of outer loops is used for transformer voltage
 
 The default value is `WITH_GENERATOR_VOLTAGE_CONTROL`.
 
-**transformerReactivePowerControl**
+**transformerReactivePowerControl**  
 This parameter enables the reactive power control of transformer through a dedicated incremental reactive power control outer loop. The default value is `false`.
 
 **incrementalTransformerRatioTapControlOuterLoopMaxTapShift**  
@@ -257,10 +257,20 @@ and its solution status is flagged as failed.
 The default values are `0.5` and `1.5` and they must be greater or equal to `0`.
 
 **reactiveRangeCheckMode**  
-This parameter defines how to check the reactive limits $MinQ$ and $MaxQ$ of a generator. If the range is too small, the generator is discarded from voltage control.
-- `MIN_MAX` mode checks if the reactive range at $MaxP$ is above a threshold and if the reactive range at $MinP$ is not zero.
-- `MAX` mode if the reactive range at $MaxP$ is above a threshold.
-- `TARGET_P` if the reactive range at $TargetP$ is above a threshold
+OpenLoadFlow discards voltage control for generators with a too small reactive power range, because in practice a too
+small reactive power ranger means limited to zero voltage control capability.
+
+For a given active power output, the reactive power range is defined as $MaxQ - MinQ$ (always a positive value).  
+The *maximum* and *minimum* reactive range of a generator is:
+- for generators without reactive limits: infinity 
+- for generators with reactive limits defined by a pair of [min/max values](inv:powsyblcore:*:*:#min-max-reactive-limits), both minimum and maximum reactive range are equal to $MaxQ - MinQ$ 
+- for generators with reactive limits defined by a [reactive capability curve](inv:powsyblcore:*:*:#reactive-capability-curve), the minimum (resp. maximum) reactive range is obtained by finding the curve point having the minimum (resp. maximum) $MaxQ - MinQ$.
+
+The `reactiveRangeCheckMode` parameter defines how generator reactive power range is to be tested. If the test does not pass,
+meaning the reactive power range is too small, then the voltage control is disabled:
+- `MIN_MAX` mode tests if the minimum reactive range is not `0 MVAr` and if the maximum reactive range is above `1 MVAr`.
+- `MAX` mode tests if the maximum reactive range is above `1 MVAr`.
+- `TARGET_P` tests if the reactive range at $TargetP$ is above `1 MVAr`.
 
 The default value is `MAX`.
 
