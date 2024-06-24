@@ -141,4 +141,20 @@ public class MatPowerTest {
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
     }
+
+    @Test
+    void caseImported() {
+        // Load network from .mat file
+        Properties properties = new Properties();
+        // We want base voltages to be taken into account
+        properties.put("matpower.import.ignore-base-voltage", false);
+        Network network = new MatpowerImporter().importData(
+                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case1951rte"),
+                NetworkFactory.findDefault(), properties);
+        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case1951rte" +
+                ""));
+        LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
+    }
 }
