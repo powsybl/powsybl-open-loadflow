@@ -20,9 +20,11 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 //import com.powsybl.openloadflow.util.MatrixUtil;
+import com.powsybl.openloadflow.ac.solver.SolverUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.cert.X509Certificate;
 import java.util.*;
 
 import static com.google.common.primitives.Doubles.toArray;
@@ -331,51 +333,24 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Integer> listNonLinearConsts = new ArrayList<>();
             LOGGER.info("Defining {} active constraints", numConst);
 
-            // ----- Linear constraints in V and Phi -----
+            // ----- Linear constraints -----
             for (int equationId = 0; equationId < numConst; equationId++) {
                 Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
 
-                if (typeEq == AcEquationType.BUS_TARGET_V || typeEq == AcEquationType.BUS_TARGET_PHI || typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q ) { // || typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q
-                    // get the variable V/Theta corresponding to the constraint
-                    int idVar = terms.get(0).getVariables().get(0).getRow();
-                    addConstraintLinearPart(equationId, idVar, 1.0);
-//                    if (LOGGER.isTraceEnabled()) {
-//                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idVar);
-//                    }
-//                } else if (typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q ) {
-//                    // get the variable V/Theta corresponding to the constraint
-//                    int idVar = terms.get(0).getVariables().get(0).getRow();
-//                    addConstraintLinearPart(equationId, idVar, 1.0);
-//                    if (LOGGER.isTraceEnabled()) {
-//                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idVar);
-//                    }
-                } else if (typeEq == AcEquationType.ZERO_V || typeEq == AcEquationType.ZERO_PHI) {
-                    // get the variables Vi and Vj / Thetai and Thetaj corresponding to the constraint
-                    int idVari = terms.get(0).getVariables().get(0).getRow();
-                    int idVarj = terms.get(1).getVariables().get(0).getRow();
-                    addConstraintLinearPart(equationId, idVari, 1.0);
-                    addConstraintLinearPart(equationId, idVarj, -1.0);
-//                    if (LOGGER.isTraceEnabled()) {
-//                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variables {} and {}", equationId, typeEq, idVari, idVarj);
-//                    }
-                } else if (typeEq == AcEquationType.DISTR_Q) {
-                    // get the variables corresponding to the constraint
-                    for (EquationTerm<AcVariableType, AcEquationType> equationTerm : terms) {
-                        double scalar = 0.0;
-                        if (((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm() instanceof VariableEquationTerm<?,?>) {
-                            scalar = ((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getScalarSupplier();
-                        } else if (((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm() instanceof EquationTerm.MultiplyByScalarEquationTerm<?,?>) {
-                            scalar = ((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getScalarSupplier();
-                            scalar *= ((EquationTerm.MultiplyByScalarEquationTerm) ((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm()).getScalarSupplier();
-                        }
-                        addConstraintLinearPart(equationId, ((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) equationTerm).getTerm().getVariables().get(0).getRow(), scalar);
+                if (typeEq == AcEquationType.BUS_TARGET_V || typeEq == AcEquationType.BUS_TARGET_PHI || typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q || typeEq == AcEquationType.ZERO_V || typeEq == AcEquationType.ZERO_PHI || typeEq == AcEquationType.DISTR_Q) {
+                    SolverUtils solverUtils = new SolverUtils();
+                    List<Integer> listVar = new ArrayList<>();
+                    List<Double> listCoef = new ArrayList<>();
+                    listVar = solverUtils.addConstraint(typeEq, equationId, terms).getIdVar();
+                    listCoef = solverUtils.addConstraint(typeEq, equationId, terms).getCoef();
+
+                    for (int i=0; i < listVar.size();i++) {
+                        addConstraintLinearPart(equationId, listVar.get(i), listCoef.get(i));
                     }
-//
-//                    if (LOGGER.isTraceEnabled()) {
-//                        LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
-//                    }
+                    LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
+
                 } else {
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
                 }
@@ -443,8 +418,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             }
 
 //            setJacNnzPattern(listNonZerosCts,listNonZerosVars);
-            setJacNnzPattern(listNonZerosCts2,listNonZerosVars2);
-            setGradEvalCallback(new CallbackEvalG(jacobianMatrix,listNonZerosCts, listNonZerosVars, listNonZerosCts2,listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
+//            setJacNnzPattern(listNonZerosCts2,listNonZerosVars2);
+//            setGradEvalCallback(new CallbackEvalG(jacobianMatrix,listNonZerosCts, listNonZerosVars, listNonZerosCts2,listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
         }
 
     }
