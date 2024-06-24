@@ -339,7 +339,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
                 SolverUtils solverUtils = new SolverUtils();
-                System.out.println("d");
                 if (SolverUtils.getLinearConstraintsTypes().contains(typeEq)) {
                     List<Integer> listVar = new ArrayList<>();
                     List<Double> listCoef = new ArrayList<>();
@@ -356,7 +355,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 }
             }
 
-            // ----- Non-linear constraints in P and Q -----
+            // ----- Non-linear constraints -----
             setMainCallbackCstIndexes(listNonLinearConsts);
 
             // ----- RHS : targets -----

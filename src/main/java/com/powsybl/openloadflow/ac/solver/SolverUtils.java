@@ -10,9 +10,7 @@ package com.powsybl.openloadflow.ac.solver;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.equations.VariableEquationTerm;
-import com.powsybl.openloadflow.network.ElementType;
 
 import java.util.*;
 
@@ -31,32 +29,6 @@ public final class SolverUtils {
             AcEquationType.ZERO_PHI,
             AcEquationType.DISTR_Q
     ));
-//        BUS_TARGET_V("bus_target_v", ElementType.BUS),
-//        BUS_TARGET_PHI("bus_target_\u03C6", ElementType.BUS),
-//        DUMMY_TARGET_P("dummy_target_p", ElementType.BRANCH),
-//        DUMMY_TARGET_Q("dummy_target_q", ElementType.BRANCH),
-//        ZERO_V("zero_v", ElementType.BRANCH),
-//        ZERO_PHI("zero_\u03C6", ElementType.BRANCH),
-//        DISTR_Q("distr_q", ElementType.BUS);
-//
-//        private final String symbol;
-//
-//        private final ElementType elementType;
-//
-//        AcEquationType(String symbol, ElementType elementType) {
-//            this.symbol = symbol;
-//            this.elementType = elementType;
-//        }
-//
-//        @Override
-//        public String getSymbol() {
-//            return symbol;
-//        }
-//
-//        @Override
-//        public ElementType getElementType() {
-//            return elementType;
-//        }
 
     public static List<AcEquationType> getLinearConstraintsTypes() {
         return linearConstraintsTypes;
