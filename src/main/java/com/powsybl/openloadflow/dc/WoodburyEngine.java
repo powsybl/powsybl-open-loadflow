@@ -110,39 +110,44 @@ public class WoodburyEngine {
      * Compute post-contingency states values for each contingency of a list.
      */
     private Map<PropagatedContingency, DenseMatrix> computeStatesForContingencyList(DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates, WoodburyEngineRhsModifications rhsModifications,
-                                                                                                            DenseMatrix contingenciesStates, Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                                                                            Set<String> elementsToReconnect, ReportNode reporter) {
+                                                                                    DenseMatrix contingenciesStates, Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                                                    Set<String> elementsToReconnect, ReportNode reporter, WoodburyEngineRhsReader reader) {
 
         HashMap<PropagatedContingency, DenseMatrix> postContingencyStatesByContingency = new HashMap<>();
-        for (PropagatedContingency contingency : contingencies) {
-            Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                    .filter(element -> !elementsToReconnect.contains(element))
-                    .map(contingencyElementByBranch::get)
-                    .toList();
-
-            DenseMatrix preContingencyStatesOverride = preContingencyStates;
-            if (rhsModifications.getRhsOverrideByPropagatedContingency(contingency).isPresent()) {
-                preContingencyStatesOverride = rhsModifications.getRhsOverrideByPropagatedContingency(contingency).orElseThrow();
-                solveRhs(loadFlowContext, preContingencyStatesOverride, reporter);
+        if (reader != null) {
+            reader.process((PropagatedContingency contingency, DenseMatrix rhsOverride) -> {
+                Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
+                        .filter(element -> !elementsToReconnect.contains(element))
+                        .map(contingencyElementByBranch::get)
+                        .toList();
+                DenseMatrix postContingencyStates;
+                // a rhs override is given by the handler
+                if (!Objects.isNull(rhsOverride)) {
+                    solveRhs(loadFlowContext, rhsOverride, reporter);
+                    postContingencyStates = computePostContingencyStates(loadFlowContext, rhsOverride, contingenciesStates, contingencyElements);
+                } else {
+                    postContingencyStates = computePostContingencyStates(loadFlowContext, preContingencyStates, contingenciesStates, contingencyElements);
+                }
+                postContingencyStatesByContingency.put(contingency, postContingencyStates);
+            });
+            return postContingencyStatesByContingency;
+        // case of contingency breaking connectivity for now
+        } else {
+            for (PropagatedContingency contingency : contingencies) {
+                Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
+                        .filter(element -> !elementsToReconnect.contains(element))
+                        .map(contingencyElementByBranch::get)
+                        .toList();
+                DenseMatrix preContingencyStatesOverride = preContingencyStates;
+                if (rhsModifications.getRhsOverrideByPropagatedContingency(contingency).isPresent()) {
+                    preContingencyStatesOverride = rhsModifications.getRhsOverrideByPropagatedContingency(contingency).orElseThrow();
+                    solveRhs(loadFlowContext, preContingencyStatesOverride, reporter);
+                }
+                DenseMatrix postContingencyStates = computePostContingencyStates(loadFlowContext, preContingencyStatesOverride,
+                        contingenciesStates, contingencyElements);
+                postContingencyStatesByContingency.put(contingency, postContingencyStates);
             }
-
-            DenseMatrix postContingencyStates = computePostContingencyStates(loadFlowContext, preContingencyStatesOverride,
-                    contingenciesStates, contingencyElements);
-            postContingencyStatesByContingency.put(contingency, postContingencyStates);
         }
-
-        //Reader is passed as a parameter to the engine
-        RhsReader reader = null;
-        List<DenseMatrix> postContingencyStates = new ArrayList<>();
-
-        reader.process((PropagatedContingency contingency, DenseMatrix preContingencyState, DenseMatrix contingenciesState) -> {
-            Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                    .filter(element -> !elementsToReconnect.contains(element))
-                    .map(contingencyElementByBranch::get)
-                    .toList();
-            postContingencyStates.add(computePostContingencyStates(loadFlowContext, preContingencyState,
-                    contingenciesState, contingencyElements));
-        });
 
         return postContingencyStatesByContingency;
     }
@@ -154,6 +159,22 @@ public class WoodburyEngine {
                                                                                                                      WoodburyEngineRhsModifications rhsModification, DenseMatrix contingenciesStates, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                                                                                      ReportNode reporter) {
         // null and unused if slack bus is not distributed
+//        WoodburyEngineRhsReader reader = null;
+//        HashMap<PropagatedContingency, DenseMatrix> postContingencyStatesForAConnectivity = new HashMap<>();
+//        reader.process((PropagatedContingency contingency, DenseMatrix rhsOverride) -> {
+//            // TODO : not sure this function is useful anymore. should may be send the matrix whatever
+//            if (!Objects.isNull(rhsOverride)) {
+//                solveRhs(loadFlowContext, rhsOverride, reporter);
+//                postContingencyStatesForAConnectivity.putAll(computeStatesForContingencyList(loadFlowContext, rhsOverride, rhsModification, contingenciesStates,
+//                        connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, connectivityAnalysisResult.getElementsToReconnect(), reporter)); // TODO : solve me
+//            } else {
+//                postContingencyStatesForAConnectivity.putAll(computeStatesForContingencyList(loadFlowContext, preContingencyStates, rhsModification, contingenciesStates,
+//                        connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, connectivityAnalysisResult.getElementsToReconnect(), reporter));
+//            }
+//        });
+//        return postContingencyStatesForAConnectivity;
+
+        // null and unused if slack bus is not distributed
         DenseMatrix preContingencyStatesOverrideForThisConnectivity = preContingencyStates;
         if (rhsModification.getRhsOverrideForAConnectivity(connectivityAnalysisResult).isPresent()) {
             preContingencyStatesOverrideForThisConnectivity = rhsModification.getRhsOverrideForAConnectivity(connectivityAnalysisResult).orElseThrow();
@@ -161,7 +182,15 @@ public class WoodburyEngine {
         }
 
         return computeStatesForContingencyList(loadFlowContext, preContingencyStatesOverrideForThisConnectivity, rhsModification, contingenciesStates,
-                connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, connectivityAnalysisResult.getElementsToReconnect(), reporter);
+                connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, connectivityAnalysisResult.getElementsToReconnect(), reporter, null);
+
+//        DenseMatrix preContingencyStatesOverrideForThisConnectivity = preContingencyStates;
+//        if (rhsModification.getRhsOverrideForAConnectivity(connectivityAnalysisResult).isPresent()) {
+//            preContingencyStatesOverrideForThisConnectivity = rhsModification.getRhsOverrideForAConnectivity(connectivityAnalysisResult).orElseThrow();
+//            solveRhs(loadFlowContext, preContingencyStatesOverrideForThisConnectivity, reporter);
+//        }
+//        return computeStatesForContingencyList(loadFlowContext, preContingencyStatesOverrideForThisConnectivity, rhsModification, contingenciesStates,
+//                connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, connectivityAnalysisResult.getElementsToReconnect(), reporter);
     }
 
     /**
@@ -176,7 +205,8 @@ public class WoodburyEngine {
      * @return pre- and post-contingency angle states.
      */
     public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, DenseMatrix rhs, WoodburyEngineRhsModifications rhsModifications,
-                                    ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults, ReportNode reporter) {
+                                    ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults, ReportNode reporter,
+                                    WoodburyEngineRhsReader reader) {
 
         // compute pre-contingency states, they are now in rhs
         solveRhs(loadFlowContext, rhs, reporter);
@@ -192,7 +222,7 @@ public class WoodburyEngine {
         // calculate state values for contingencies with no connectivity break
         Map<PropagatedContingency, DenseMatrix> postContingencyStates = computeStatesForContingencyList(loadFlowContext, rhs, rhsModifications,
                 contingenciesStates, connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies(), contingencyElementByBranch,
-                Collections.emptySet(), reporter);
+                Collections.emptySet(), reporter, reader);
 
         LOGGER.info("Processing contingencies with connectivity break");
 
