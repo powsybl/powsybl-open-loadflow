@@ -20,7 +20,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class AbstractAcEmulationOuterLoop <V extends Enum<V> & Quantity,
+public abstract class AbstractHvdcAcEmulationOuterLoop<V extends Enum<V> & Quantity,
                                                     E extends Enum<E> & Quantity,
                                                     P extends AbstractLoadFlowParameters,
                                                     C extends LoadFlowContext<V, E, P>,

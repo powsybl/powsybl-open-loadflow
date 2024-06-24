@@ -117,12 +117,12 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+    public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
         // empty
     }
 
     @Override
-    public void onAcEmulationFeedingSideChange(LfHvdc hvdc, TwoSides side) {
+    public void onHvdcAcEmulationFeedingSideChange(LfHvdc hvdc, TwoSides side) {
         // empty
     }
 }

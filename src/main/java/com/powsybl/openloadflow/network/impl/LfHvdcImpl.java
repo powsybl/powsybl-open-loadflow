@@ -153,7 +153,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     public void updateAcEmulationStatus(AcEmulationControl.AcEmulationStatus acEmulationStatus) {
         acEmulationControl.setAcEmulationStatus(acEmulationStatus);
         for (LfNetworkListener listener : network.getListeners()) {
-            listener.onAcEmulationStatusChange(this, acEmulationStatus);
+            listener.onHvdcAcEmulationStatusChange(this, acEmulationStatus);
         }
     }
 
@@ -161,7 +161,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     public void updateFeedingSide(TwoSides side) {
         acEmulationControl.setFeedingSide(side);
         for (LfNetworkListener listener : network.getListeners()) {
-            listener.onAcEmulationFeedingSideChange(this, side);
+            listener.onHvdcAcEmulationFeedingSideChange(this, side);
         }
     }
 

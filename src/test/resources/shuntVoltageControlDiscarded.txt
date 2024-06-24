@@ -8,13 +8,13 @@
             Angle reference bus: vl2_0
             Slack bus: vl2_0
          Outer loop DistributedSlack
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop ShuntVoltageControl
-         Outer loop AcEmulation
          Outer loop DistributedSlack
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop ShuntVoltageControl
-         Outer loop AcEmulation
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

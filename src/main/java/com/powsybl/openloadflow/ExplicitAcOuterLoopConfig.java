@@ -36,7 +36,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                      TransformerVoltageControlOuterLoop.NAME,
                                                      AutomationSystemOuterLoop.NAME,
                                                      IncrementalTransformerReactivePowerControlOuterLoop.NAME,
-                                                     AcEmulationOuterLoop.NAME);
+                                                     AcHvdcAcEmulationOuterLoop.NAME);
 
     private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return switch (name) {
@@ -66,7 +66,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                                                                      parametersExt.getGeneratorVoltageControlMinNominalVoltage());
             case AutomationSystemOuterLoop.NAME -> createAutomationSystemOuterLoop(parametersExt);
             case IncrementalTransformerReactivePowerControlOuterLoop.NAME -> createTransformerReactivePowerControlOuterLoop(parametersExt);
-            case AcEmulationOuterLoop.NAME -> createAcEmulationOuterLoop(parameters);
+            case AcHvdcAcEmulationOuterLoop.NAME -> createAcHvdcAcEmulationOuterLoop(parameters);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "'");
         };
     }

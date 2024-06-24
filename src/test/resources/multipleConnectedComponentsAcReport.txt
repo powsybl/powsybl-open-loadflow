@@ -7,9 +7,9 @@
             Angle reference bus: b1_vl_0
             Slack bus: b1_vl_0
          Outer loop DistributedSlack
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
-         Outer loop AcEmulation
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
       + Network CC1 SC1
          + Network info

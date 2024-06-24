@@ -66,9 +66,9 @@
                      Bus V: 0.995 pu, 8.551939024446748E-22 rad
                      Bus injection: 603.7693866643697 MW, 121.9404027609291 MVar
             Outer loop DistributedSlack
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
-            Outer loop AcEmulation
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'L2'
             + Newton Raphson on Network CC0 SC0
@@ -162,11 +162,11 @@
                      Bus Id: VL1_0 (nominalVoltage=400.0kV)
                      Bus V: 0.995 pu, 2.3836834369535747E-26 rad
                      Bus injection: 608.3346737740034 MW, 234.0235926831469 MVar
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
-            Outer loop AcEmulation
             Outer loop DistributedSlack
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
-            Outer loop AcEmulation
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

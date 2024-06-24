@@ -101,7 +101,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
     }
 
-    private boolean runOuterLoops(DcIncrementalPhaseControlOuterLoop phaseControlOuterLoop, DcOuterLoopContext phaseControlContext, DcAcEmulationOuterLoop acEmulationOuterLoop, DcOuterLoopContext acEmulationContext, LfNetworkParameters parameters) {
+    private boolean runOuterLoops(DcIncrementalPhaseControlOuterLoop phaseControlOuterLoop, DcOuterLoopContext phaseControlContext, DcHvdcAcEmulationOuterLoop acEmulationOuterLoop, DcOuterLoopContext acEmulationContext, LfNetworkParameters parameters) {
         int outerLoopsIterations = 0;
         OuterLoopStatus outerLoopsStatus;
         phaseControlContext.setIteration(0);
@@ -184,7 +184,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         if (parameters.getNetworkParameters().isPhaseControl()) {
             phaseShifterControlOuterLoop.initialize(phaseControlOuterLoopContext);
         }
-        DcAcEmulationOuterLoop acEmulationOuterLoop = new DcAcEmulationOuterLoop();
+        DcHvdcAcEmulationOuterLoop acEmulationOuterLoop = new DcHvdcAcEmulationOuterLoop();
         DcOuterLoopContext acEmulationLoopContext = new DcOuterLoopContext(network);
         if (parameters.getNetworkParameters().isHvdcAcEmulation()) {
             acEmulationOuterLoop.initialize(acEmulationLoopContext);

@@ -80,12 +80,12 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         }
 
         @Override
-        public void onAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+        public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
             invalidateValues();
         }
 
         @Override
-        public void onAcEmulationFeedingSideChange(LfHvdc hvdc, TwoSides side) {
+        public void onHvdcAcEmulationFeedingSideChange(LfHvdc hvdc, TwoSides side) {
             invalidateValues();
         }
     };

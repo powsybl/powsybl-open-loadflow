@@ -53,6 +53,7 @@
                   Bus V: 0.975 pu, 0.0010125504427887688 rad
                   Bus injection: 101.36618622358611 MW, 150.64984395641986 MVar
          Outer loop DistributedSlack
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          + Outer loop IncrementalShuntVoltageControl
@@ -104,10 +105,9 @@
                   Bus Id: vl1_0 (nominalVoltage=400.0kV)
                   Bus V: 0.975 pu, 0.002014826586019094 rad
                   Bus injection: 101.3664080925296 MW, -2.165165450231683 MVar
-         Outer loop AcEmulation
          Outer loop DistributedSlack
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop IncrementalShuntVoltageControl
-         Outer loop AcEmulation
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

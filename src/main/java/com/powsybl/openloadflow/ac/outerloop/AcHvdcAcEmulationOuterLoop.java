@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.lf.outerloop.AbstractAcEmulationOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.AbstractHvdcAcEmulationOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfHvdc;
@@ -24,12 +24,12 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
  */
-public class AcEmulationOuterLoop
-        extends AbstractAcEmulationOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
+public class AcHvdcAcEmulationOuterLoop
+        extends AbstractHvdcAcEmulationOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
         implements AcOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AcEmulationOuterLoop.class);
-    public static final String NAME = "AcEmulation";
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcHvdcAcEmulationOuterLoop.class);
+    public static final String NAME = "AcHvdcAcEmulation";
 
     @Override
     public String getName() {

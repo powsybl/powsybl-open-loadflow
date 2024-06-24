@@ -11,7 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.lf.outerloop.AbstractAcEmulationOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.AbstractHvdcAcEmulationOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfHvdc;
@@ -21,10 +21,10 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
  */
-public class DcAcEmulationOuterLoop extends AbstractAcEmulationOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> {
+public class DcHvdcAcEmulationOuterLoop extends AbstractHvdcAcEmulationOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DcAcEmulationOuterLoop.class);
-    public static final String NAME = "DcAcEmulation";
+    private static final Logger LOGGER = LoggerFactory.getLogger(DcHvdcAcEmulationOuterLoop.class);
+    public static final String NAME = "DcHvdcAcEmulation";
 
     @Override
     public String getName() {

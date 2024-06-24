@@ -169,14 +169,14 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
-    public void onAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
-        LOGGER.trace("onAcEmulationStatusChange(hvdc={}, status={})", hvdc, acEmulationStatus);
-        delegate.onAcEmulationStatusChange(hvdc, acEmulationStatus);
+    public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+        LOGGER.trace("onHvdcAcEmulationStatusChange(hvdc={}, status={})", hvdc, acEmulationStatus);
+        delegate.onHvdcAcEmulationStatusChange(hvdc, acEmulationStatus);
     }
 
     @Override
-    public void onAcEmulationFeedingSideChange(LfHvdc hvdc, TwoSides side) {
-        LOGGER.trace("onAcEmulationFeedingSideChange(hvdc={}, side={})", hvdc, side);
-        delegate.onAcEmulationFeedingSideChange(hvdc, side);
+    public void onHvdcAcEmulationFeedingSideChange(LfHvdc hvdc, TwoSides side) {
+        LOGGER.trace("onHvdcAcEmulationFeedingSideChange(hvdc={}, side={})", hvdc, side);
+        delegate.onHvdcAcEmulationFeedingSideChange(hvdc, side);
     }
 }
