@@ -338,9 +338,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
-
-                if (typeEq == AcEquationType.BUS_TARGET_V || typeEq == AcEquationType.BUS_TARGET_PHI || typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q || typeEq == AcEquationType.ZERO_V || typeEq == AcEquationType.ZERO_PHI || typeEq == AcEquationType.DISTR_Q) {
-                    SolverUtils solverUtils = new SolverUtils();
+                SolverUtils solverUtils = new SolverUtils();
+                System.out.println("d");
+                if (SolverUtils.getLinearConstraintsTypes().contains(typeEq)) {
                     List<Integer> listVar = new ArrayList<>();
                     List<Double> listCoef = new ArrayList<>();
                     listVar = solverUtils.addConstraint(typeEq, equationId, terms).getIdVar();
