@@ -698,12 +698,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     lfNetwork.reportSize(networkReport);
                     lfNetwork.reportBalance(networkReport);
                     Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfNetwork.getReferenceBus().getId(), lfNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
-                    lfNetwork.setReportNode(Reports.createLfNetworkReportNode(reportNode, lfNetwork.getReportNode(), lfNetwork.getNumCC(), lfNetwork.getNumCC()));
+                    lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }
                 case INVALID_NO_GENERATOR_VOLTAGE_CONTROL -> {
                     LOGGER.info("Network {} is invalid, no calculation will be done", lfNetwork);
                     // we want to report this
-                    lfNetwork.setReportNode(Reports.createLfNetworkReportNode(reportNode, lfNetwork.getReportNode(), lfNetwork.getNumCC(), lfNetwork.getNumCC()));
+                    lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }
                 case INVALID_NO_GENERATOR -> deadComponentsCount++; // will be reported later on altogether
             }
