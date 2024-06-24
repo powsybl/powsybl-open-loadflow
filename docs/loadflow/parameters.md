@@ -266,7 +266,8 @@ The *maximum* and *minimum* reactive range of a generator is:
 - for generators with reactive limits defined by a pair of [min/max values](inv:powsyblcore:*:*:#min-max-reactive-limits), both minimum and maximum reactive range are equal to $MaxQ - MinQ$ 
 - for generators with reactive limits defined by a [reactive capability curve](inv:powsyblcore:*:*:#reactive-capability-curve), the minimum (resp. maximum) reactive range is obtained by finding the curve point having the minimum (resp. maximum) $MaxQ - MinQ$.
 
-The `reactiveRangeCheckMode` parameter defines how generator reactive power range is to be tested:
+The `reactiveRangeCheckMode` parameter defines how generator reactive power range is to be tested. If the test does not pass,
+meaning the reactive power range is too small, then the voltage control is disabled:
 - `MIN_MAX` mode tests if the minimum reactive range is not `0 MVAr` and if the maximum reactive range is above `1 MVAr`.
 - `MAX` mode tests if the maximum reactive range is above `1 MVAr`.
 - `TARGET_P` tests if the reactive range at $TargetP$ is above `1 MVAr`.
