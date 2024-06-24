@@ -7,6 +7,11 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import org.checkerframework.checker.units.qual.N;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,7 +25,7 @@ public class KnitroSolverParametersTest {
     void testGradientComputationMode() {
         KnitroSolverParameters parametersKnitro = new KnitroSolverParameters();
         // default value
-        assertEquals(2, parametersKnitro.getGradientComputationMode());
+        assertEquals(1, parametersKnitro.getGradientComputationMode());
 
         // set other value
         parametersKnitro.setGradientComputationMode(3);
@@ -54,35 +59,45 @@ public class KnitroSolverParametersTest {
         assertEquals("Realistic voltage upper bounds must greater then lower bounds", e3.getMessage());
     }
 
-// TODO a transferer dans le fichier adéquat
-//    @Test
-//    void testSetAndGetConvEpsPerEq() {
-//        /*
-//         * Checks Knitro's parameter convEpsPerEq default value, setting it to other value and trying to set it to wrong value
-//         */
-//        KnitroSolverParameters parametersKnitro = new KnitroSolverParameters();
-//
-//        // check default value
-//        assertEquals(parametersKnitro.getConvEpsPerEq(),Math.pow(10,-6));
-//
-//        // set other value
-//        parametersKnitro.setConvEpsPerEq(Math.pow(10,-2));
-//        assertEquals(Math.pow(10,-2),parametersKnitro.getConvEpsPerEq());
-//
-//        // wrong values
-//        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setConvEpsPerEq(Math.pow(-10,-3)));
-//        assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e.getMessage());
-//        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setConvEpsPerEq(0));
-//        assertEquals("Knitro final relative stopping tolerance for the feasibility error must be strictly greater than 0",e2.getMessage());
-//    }
+    @Test
+    void testSetAndGetConvEpsPerEq() {
+        /* OpenLoadFlowParameters */
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters();
+
+        // check default value
+        assertEquals(Math.pow(10,-6),olfParameters.getKnitroSolverConvEpsPerEq());
+
+        // set other value
+        olfParameters.setKnitroSolverConvEpsPerEq(Math.pow(10,-2));
+        assertEquals(Math.pow(10,-2),olfParameters.getKnitroSolverConvEpsPerEq());
+
+        // wrong values
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setKnitroSolverConvEpsPerEq(Math.pow(-10,-3)));
+        assertEquals("Invalid value for parameter knitroConvEpsPerEq: -0.001",e.getMessage());
+        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> olfParameters.setKnitroSolverConvEpsPerEq(0));
+        assertEquals("Invalid value for parameter knitroConvEpsPerEq: 0.0",e2.getMessage());
+
+        /* DefaultKnitroSolverStoppingCriteria */
+        DefaultKnitroSolverStoppingCriteria defaultKnitroSolverStoppingCriteria = new DefaultKnitroSolverStoppingCriteria();
+
+        // check default value
+        assertEquals(Math.pow(10,-6),defaultKnitroSolverStoppingCriteria.getConvEpsPerEq());
+
+        // set other value
+        DefaultKnitroSolverStoppingCriteria newValue = new DefaultKnitroSolverStoppingCriteria(Math.pow(10,-2));
+        assertEquals(Math.pow(10,-2),newValue.getConvEpsPerEq());
+
+    }
 
     @Test
     void testToString() {
         KnitroSolverParameters parameters = new KnitroSolverParameters();
-        assertEquals("KnitroSolverParameters(gradientComputationMode=2, " +
+        assertEquals("KnitroSolverParameters(gradientComputationMode=1, " +
 //                "convEpsPerEq=1.0E-6, " +
                 "stoppingCriteria=DefaultKnitroSolverStoppingCriteria, " +
                 "minRealisticVoltage=0.5, " +
-                "maxRealisticVoltage=1.5)", parameters.toString());
+                "maxRealisticVoltage=1.5, " +
+                "alwaysUpdateNetwork=false" +
+                ")", parameters.toString());
     }
 }

@@ -104,19 +104,19 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             @Override
             public void evaluateFC(final List<Double> x, final List<Double> obj, final List<Double> c) {
-                if (LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("============ Knitro evaluating callback function ============");
-                }
+//                if (LOGGER.isTraceEnabled()) {
+//                     LOGGER.trace("============ Knitro evaluating callback function ============");
+//                }
 
                 // =============== Objective ===============
 
                 // =============== Non-linear constraints in P and Q ===============
                 // Update current state
                 StateVector currentState = new StateVector(toArray(x));
-                if (LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("Current state vector {}", currentState.get());
-                    LOGGER.trace("Evaluating {} non-linear constraints", listNonLinearConsts.size());
-                }
+//                if (LOGGER.isTraceEnabled()) {
+//                    LOGGER.trace("Current state vector {}", currentState.get());
+//                    LOGGER.trace("Evaluating {} non-linear constraints", listNonLinearConsts.size());
+//                }
                 // Add non-linear constraints
                 int indexNonLinearCst = 0;
                 for (int equationId : listNonLinearConsts) {
@@ -133,9 +133,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         }
                         try {
                             c.set(indexNonLinearCst, valueConst);
-                            if (LOGGER.isTraceEnabled()) {
-                                LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
-                            }
+//                            if (LOGGER.isTraceEnabled()) {
+//                                LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
+//                            }
                         } catch (Exception e) {
                             LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
                             LOGGER.error(e.getMessage());
@@ -337,29 +337,29 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
 
-                if (typeEq == AcEquationType.BUS_TARGET_V || typeEq == AcEquationType.BUS_TARGET_PHI ) { // || typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q
+                if (typeEq == AcEquationType.BUS_TARGET_V || typeEq == AcEquationType.BUS_TARGET_PHI || typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q ) { // || typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q
                     // get the variable V/Theta corresponding to the constraint
                     int idVar = terms.get(0).getVariables().get(0).getRow();
                     addConstraintLinearPart(equationId, idVar, 1.0);
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idVar);
-                    }
-                } else if (typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q ) {
-                    // get the variable V/Theta corresponding to the constraint
-                    int idVar = terms.get(0).getVariables().get(0).getRow();
-                    addConstraintLinearPart(equationId, idVar, 1.0);
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idVar);
-                    }
+//                    if (LOGGER.isTraceEnabled()) {
+//                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idVar);
+//                    }
+//                } else if (typeEq == AcEquationType.DUMMY_TARGET_P || typeEq == AcEquationType.DUMMY_TARGET_Q ) {
+//                    // get the variable V/Theta corresponding to the constraint
+//                    int idVar = terms.get(0).getVariables().get(0).getRow();
+//                    addConstraintLinearPart(equationId, idVar, 1.0);
+//                    if (LOGGER.isTraceEnabled()) {
+//                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variable {}", equationId, typeEq, idVar);
+//                    }
                 } else if (typeEq == AcEquationType.ZERO_V || typeEq == AcEquationType.ZERO_PHI) {
                     // get the variables Vi and Vj / Thetai and Thetaj corresponding to the constraint
                     int idVari = terms.get(0).getVariables().get(0).getRow();
                     int idVarj = terms.get(1).getVariables().get(0).getRow();
                     addConstraintLinearPart(equationId, idVari, 1.0);
                     addConstraintLinearPart(equationId, idVarj, -1.0);
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variables {} and {}", equationId, typeEq, idVari, idVarj);
-                    }
+//                    if (LOGGER.isTraceEnabled()) {
+//                        LOGGER.trace("Adding linear constraint n° {} of type {}, with variables {} and {}", equationId, typeEq, idVari, idVarj);
+//                    }
                 } else if (typeEq == AcEquationType.DISTR_Q) {
                     // get the variables corresponding to the constraint
                     for (EquationTerm<AcVariableType, AcEquationType> equationTerm : terms) {
@@ -372,10 +372,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         }
                         addConstraintLinearPart(equationId, ((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) equationTerm).getTerm().getVariables().get(0).getRow(), scalar);
                     }
-
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
-                    }
+//
+//                    if (LOGGER.isTraceEnabled()) {
+//                        LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
+//                    }
                 } else {
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
                 }
@@ -400,9 +400,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             // FIRST METHOD : all non-linear constraints
             List<Integer> listNonZerosCts = new ArrayList<>(); //list of constraints to parse to Knitro non-zero pattern
-            for (Integer value : listNonLinearConsts) {
+            for (Integer idCt : listNonLinearConsts) {
                 for (int i = 0; i < numVar; i++) {
-                    listNonZerosCts.add(value);
+                    listNonZerosCts.add(idCt);
                 }
             }
 
