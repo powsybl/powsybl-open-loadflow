@@ -115,9 +115,9 @@ public class WoodburyEngine {
 
         HashMap<PropagatedContingency, DenseMatrix> postContingencyStatesByContingency = new HashMap<>();
         if (reader != null) {
-            reader.process((PropagatedContingency contingency, DenseMatrix rhsOverride) -> {
+            reader.process((PropagatedContingency contingency, DenseMatrix rhsOverride, Set<String> elementsToReconnect2) -> {
                 Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                        .filter(element -> !elementsToReconnect.contains(element))
+                        .filter(element -> !elementsToReconnect2.contains(element))
                         .map(contingencyElementByBranch::get)
                         .toList();
                 DenseMatrix postContingencyStates;
@@ -206,7 +206,7 @@ public class WoodburyEngine {
      */
     public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, DenseMatrix rhs, WoodburyEngineRhsModifications rhsModifications,
                                     ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults, ReportNode reporter,
-                                    WoodburyEngineRhsReader reader) {
+                                    WoodburyEngineRhsReader reader, boolean tempo) {
 
         // compute pre-contingency states, they are now in rhs
         solveRhs(loadFlowContext, rhs, reporter);
@@ -226,12 +226,30 @@ public class WoodburyEngine {
 
         LOGGER.info("Processing contingencies with connectivity break");
 
-        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
-            // calculate state values for a group of contingency breaking connectivity
-            Map<PropagatedContingency, DenseMatrix> postContingencyBreakingConnectivityStates = processContingenciesBreakingConnectivity(connectivityAnalysisResult,
-                    loadFlowContext, rhs, rhsModifications, contingenciesStates, contingencyElementByBranch, reporter);
-            postContingencyStates.putAll(postContingencyBreakingConnectivityStates);
+        if (tempo) {
+            for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
+                // calculate state values for a group of contingency breaking connectivity
+                Map<PropagatedContingency, DenseMatrix> postContingencyBreakingConnectivityStates;
+                postContingencyBreakingConnectivityStates = processContingenciesBreakingConnectivity(connectivityAnalysisResult,
+                        loadFlowContext, rhs, rhsModifications, contingenciesStates, contingencyElementByBranch, reporter);
+                postContingencyStates.putAll(postContingencyBreakingConnectivityStates);
+            }
         }
+
+//        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
+//            // calculate state values for a group of contingency breaking connectivity
+//            Map<PropagatedContingency, DenseMatrix> postContingencyBreakingConnectivityStates;
+//            if (!tempo) {
+//                Set<String> elementToReconnect = connectivityAnalysisResult.getElementsToReconnect();
+//                postContingencyBreakingConnectivityStates = computeStatesForContingencyList(loadFlowContext, rhs, rhsModifications,
+//                        contingenciesStates, connectivityAnalysisResult.getContingencies(), contingencyElementByBranch,
+//                        elementToReconnect, reporter, reader);
+//            } else {
+//                postContingencyBreakingConnectivityStates = processContingenciesBreakingConnectivity(connectivityAnalysisResult,
+//                        loadFlowContext, rhs, rhsModifications, contingenciesStates, contingencyElementByBranch, reporter);
+//            }
+//            postContingencyStates.putAll(postContingencyBreakingConnectivityStates);
+//        }
 
         return new WoodburyEngineResult(rhs, postContingencyStates);
     }
