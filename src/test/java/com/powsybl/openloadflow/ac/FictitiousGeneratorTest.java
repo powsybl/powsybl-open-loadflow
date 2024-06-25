@@ -25,6 +25,7 @@ public class FictitiousGeneratorTest {
     LoadFlow.Runner runner;
     Bus b1;
     Bus b2;
+    VoltageLevel vl2;
 
     @BeforeEach
     public void setUp() {
@@ -52,7 +53,7 @@ public class FictitiousGeneratorTest {
                 .setTargetV(221)
                 .setVoltageRegulatorOn(true)
                 .add();
-        VoltageLevel vl2 = s.newVoltageLevel()
+        vl2 = s.newVoltageLevel()
                 .setId("vl2")
                 .setNominalV(220)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
@@ -62,6 +63,8 @@ public class FictitiousGeneratorTest {
                 .setId("b2")
                 .add();
 
+        // A fictitious generator gan generate poer
+        // but always controls voltage even hen not started
         vl2.newGenerator()
                 .setId("g2")
                 .setBus("b2")
@@ -123,5 +126,45 @@ public class FictitiousGeneratorTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(221, b1);
         assertVoltageEquals(220.18, b2);  // No voltage control on bus - voltage decreases with active power transport
+
+    }
+
+    @Test
+    public void testCondenser() {
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParams = OpenLoadFlowParameters.create(parameters);
+
+        // A condenser controls voltage but generatoes no power
+        network.getGenerator("g2").remove();
+        vl2.newGenerator()
+                .setId("condenser")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(0)
+                .setTargetP(0)
+                .setTargetV(224)
+                .setVoltageRegulatorOn(true)
+                .setCondenser(true)
+                .add();
+
+
+        LoadFlowResult result = runner.run(network, parameters);
+
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(221, b1);
+        assertVoltageEquals(224, b2);  // No voltage control on bus - voltage decreases with active power transport
+
+        // This parameter has no effect on condensers
+        olfParams.setFictitiousGeneratorVoltageControlMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.NORMAL);
+
+        result = runner.run(network, parameters);
+
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(221, b1);
+        assertVoltageEquals(224, b2);  // No voltage control on bus - voltage decreases with active power transport
+
     }
 }
