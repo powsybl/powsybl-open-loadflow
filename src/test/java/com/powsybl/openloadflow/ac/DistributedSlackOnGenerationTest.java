@@ -362,7 +362,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void generatorWithNegativeTargetP() {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setTargetP(-607);
         network.getLoad("LOAD").setP0(-600);
@@ -374,7 +374,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void generatorWithMaxPEqualsToMinP() {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setMinP(1000);
         network.getGenerator("GEN").setTargetP(1000);
@@ -403,7 +403,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void generatorWithTargetPLowerThanMinP() {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setMinP(200);
         network.getGenerator("GEN").setTargetP(100);
@@ -436,11 +436,11 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void batteryTest() {
-        Network network = DistributedSlackNetworkFactory.createWithBattery();
-        Generator g1 = network.getGenerator("g1");
-        Generator g2 = network.getGenerator("g2");
-        Generator g3 = network.getGenerator("g3");
-        Generator g4 = network.getGenerator("g4");
+        network = DistributedSlackNetworkFactory.createWithBattery();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
         Battery bat1 = network.getBattery("bat1");
         Battery bat2 = network.getBattery("bat2");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -458,11 +458,11 @@ class DistributedSlackOnGenerationTest {
     @Test
     @SuppressWarnings("unchecked")
     void batteryTestProportionalToParticipationFactor() {
-        Network network = DistributedSlackNetworkFactory.createWithBattery();
-        Generator g1 = network.getGenerator("g1");
-        Generator g2 = network.getGenerator("g2");
-        Generator g3 = network.getGenerator("g3");
-        Generator g4 = network.getGenerator("g4");
+        network = DistributedSlackNetworkFactory.createWithBattery();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
         Battery bat1 = network.getBattery("bat1");
         Battery bat2 = network.getBattery("bat2");
         g1.getExtension(ActivePowerControl.class).setParticipationFactor(Double.NaN);
@@ -485,11 +485,11 @@ class DistributedSlackOnGenerationTest {
     @Test
     void testDistributedActivePower() {
         parameters.setUseReactiveLimits(true).getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
-        Network network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
-        Generator g1 = network.getGenerator("g1");
-        Generator g2 = network.getGenerator("g2");
-        Generator g3 = network.getGenerator("g3");
-        Generator g4 = network.getGenerator("g4");
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         // we were getting 132.47279 when computing distributedActivePower as initial NR slack - final NR slack, while difference targetP - P was only 120.1961
@@ -505,7 +505,7 @@ class DistributedSlackOnGenerationTest {
     @Test
     void testDistributedActivePowerSlackDistributionDisabled() {
         parameters.setUseReactiveLimits(true).setDistributedSlack(false);
-        Network network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         // we were getting 12.307 when computing distributedActivePower as initial NR slack - final NR slack, expecting zero here
@@ -515,14 +515,18 @@ class DistributedSlackOnGenerationTest {
     @Test
     void testSlackMismatchChangingSign() {
         parameters.setUseReactiveLimits(true).getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
-        Network network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
-        Generator g1 = network.getGenerator("g1");
-        Generator g2 = network.getGenerator("g2");
-        Generator g3 = network.getGenerator("g3");
-        Generator g4 = network.getGenerator("g4");
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
 
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR);
-        network.getGeneratorStream().map(g -> (ActivePowerControl) g.getExtension(ActivePowerControl.class)).forEach(e -> e.setParticipationFactor(1.0));
+        for (var g : network.getGenerators()) {
+            ActivePowerControl<Generator> ext = g.getExtension(ActivePowerControl.class);
+            ext.setParticipationFactor(1.0);
+        }
+
         g1.setMaxP(110.0);
         g3.setMaxP(110.0);
         g4.setMaxP(110.0);
@@ -533,7 +537,7 @@ class DistributedSlackOnGenerationTest {
         assertEquals(120.1976, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
         assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
 
-        // All generators have the same participation factor, and should increase generation by 120.1988 MW
+        // All generators have the same participation factor, and should increase generation by 120.1976 MW
         // generator | targetP | maxP
         // ----------|---------|-------
         //   g1      |  100    |  110  --> expected to hit limit 110MW with 10MW distributed
