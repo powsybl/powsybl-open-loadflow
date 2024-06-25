@@ -20,11 +20,9 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 //import com.powsybl.openloadflow.util.MatrixUtil;
-import com.powsybl.openloadflow.ac.solver.SolverUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.cert.X509Certificate;
 import java.util.*;
 
 import static com.google.common.primitives.Doubles.toArray;
@@ -126,23 +124,25 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     AcEquationType typeEq = equation.getType();
                     double valueConst = 0;
 
-                    if (typeEq == AcEquationType.BUS_TARGET_P || typeEq == AcEquationType.BUS_TARGET_Q) {
-                        for (EquationTerm term : equation.getTerms()) {
-                            term.setStateVector(currentState);
-                            if (term.isActive()) {
-                                valueConst += term.eval();
-                            }
+                    if (!SolverUtils.getNonLinearConstraintsTypes().contains(typeEq)) {
+                        LOGGER.debug("Equation of type {} is linear, and should be considered in the main function of Knitro, not in the callback function", typeEq);
+                    }
+
+                    for (EquationTerm term : equation.getTerms()) {
+                        term.setStateVector(currentState);
+                        if (term.isActive()) {
+                            valueConst += term.eval();
                         }
-                        try {
-                            c.set(indexNonLinearCst, valueConst);
+                    }
+                    try {
+                        c.set(indexNonLinearCst, valueConst);
 //                            if (LOGGER.isTraceEnabled()) {
 //                                LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
 //                            }
-                        } catch (Exception e) {
-                            LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
-                            LOGGER.error(e.getMessage());
-                            throw new PowsyblException("Exception found while trying to add non-linear constraint");
-                        }
+                    } catch (Exception e) {
+                        LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
+                        LOGGER.error(e.getMessage());
+                        throw new PowsyblException("Exception found while trying to add non-linear constraint");
                     }
                     indexNonLinearCst += 1;
                 }
@@ -186,7 +186,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
                 // Get non-linear Jacobian from original Jacobian
 
-//                // FIRST METHOD
+                // FIRST METHOD
 //                int id = 0 ;
 //                for (int ct : listNonLinearConsts) {
 //                    for (int var=0; var<getNumVars(); var++) { //TODO CHANGER getNumVars()
@@ -200,6 +200,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 //                        }
 //                    }
 //                }
+
 
                 // SECOND METHOD
                 for (int index = 0; index < listNonZerosCts2.size(); index++) {
@@ -236,7 +237,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     try {
                         double value = denseOldMatrix.get(listNonZerosVars2.get(index), listNonZerosCts2.get(index));
                         jac2.add(value);  // Jacobian needs to be transposed
-//                        jac.set(index, denseOldMatrix.get(listNonZerosCts.get(index),listNonZerosVars.get(index)));  // Jacobian needs to be transposed
                     } catch (Exception e) {
                         LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars2.get(index), listNonZerosCts2.get(index));
                         LOGGER.error(e.getMessage());
@@ -260,7 +260,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         System.out.println("Les deux Jacobiennes sont censées être équivalentes, mais elles le sont pas!!! ; erreur " + value);
                     }
                 }
-                //TODO a reprendre car valeurs de la jacobienne visiblement fausses
             }
         }
 
@@ -339,11 +338,14 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
                 SolverUtils solverUtils = new SolverUtils();
+                if (typeEq==AcEquationType.SHUNT_TARGET_B){
+                    System.out.println("Youhou on y est");
+                }
                 if (SolverUtils.getLinearConstraintsTypes().contains(typeEq)) {
                     List<Integer> listVar = new ArrayList<>();
                     List<Double> listCoef = new ArrayList<>();
-                    listVar = solverUtils.addConstraint(typeEq, equationId, terms).getIdVar();
-                    listCoef = solverUtils.addConstraint(typeEq, equationId, terms).getCoef();
+                    listVar = solverUtils.addConstraint(typeEq, equationId, terms).getListIdVar();
+                    listCoef = solverUtils.addConstraint(typeEq, equationId, terms).getListCoef();
 
                     for (int i=0; i < listVar.size();i++) {
                         addConstraintLinearPart(equationId, listVar.get(i), listCoef.get(i));
@@ -417,8 +419,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             }
 
 //            setJacNnzPattern(listNonZerosCts,listNonZerosVars);
-//            setJacNnzPattern(listNonZerosCts2,listNonZerosVars2);
-//            setGradEvalCallback(new CallbackEvalG(jacobianMatrix,listNonZerosCts, listNonZerosVars, listNonZerosCts2,listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
+            setJacNnzPattern(listNonZerosCts2,listNonZerosVars2);
+            setGradEvalCallback(new CallbackEvalG(jacobianMatrix,listNonZerosCts, listNonZerosVars, listNonZerosCts2,listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
         }
 
     }
