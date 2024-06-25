@@ -27,6 +27,14 @@ public abstract class AbstractLfInjection extends AbstractPropertyBag {
         return initialTargetP;
     }
 
+    public void setInitialTargetP(double initialTargetP) {
+        this.initialTargetP = initialTargetP;
+    }
+
+    public void setInitialTargetPToTargetP() {
+        initialTargetP = targetP;
+    }
+
     public double getTargetP() {
         return targetP;
     }

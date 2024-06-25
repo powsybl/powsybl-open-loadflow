@@ -74,6 +74,16 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     }
 
     @Override
+    public void setInitialTargetP(double initialTargetP) {
+        // no-op
+    }
+
+    @Override
+    public void setInitialTargetPToTargetP() {
+        // no-op
+    }
+
+    @Override
     public double getLossFactor() {
         return lossFactor;
     }
