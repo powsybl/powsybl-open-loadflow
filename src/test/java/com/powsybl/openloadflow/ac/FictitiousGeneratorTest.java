@@ -150,7 +150,6 @@ public class FictitiousGeneratorTest {
                 .setCondenser(true)
                 .add();
 
-
         LoadFlowResult result = runner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());

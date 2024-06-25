@@ -47,8 +47,9 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         // voltageControlAlways for condensers, or for fictitious generators if FictitiousGeneratorVoltageControlMode set to ALAWYS
-        voltageControlAlways = generator.isCondenser() ||
-                (generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.ALWAYS);
+        voltageControlAlways = generator.isCondenser() ? true   // USing ? : syntax because style checker forbids parenthesis in a pure boolean equation condenser || (fictif and param)
+                :
+                generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.ALWAYS;
         participating = true;
         droop = DEFAULT_DROOP;
 
