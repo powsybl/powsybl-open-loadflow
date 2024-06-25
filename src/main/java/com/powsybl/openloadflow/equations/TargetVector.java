@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
@@ -76,6 +77,16 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
                     invalidateValues();
                 }
             }
+        }
+
+        @Override
+        public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+            invalidateValues();
+        }
+
+        @Override
+        public void onHvdcAcEmulationFeedingSideChange(LfHvdc hvdc, TwoSides side) {
+            invalidateValues();
         }
     };
 

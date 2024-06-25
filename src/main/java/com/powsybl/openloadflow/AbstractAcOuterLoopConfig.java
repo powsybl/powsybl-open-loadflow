@@ -112,6 +112,13 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return createPhaseControlOuterLoop(parameters, parametersExt.getPhaseShifterControlMode());
     }
 
+    protected static Optional<AcOuterLoop> createAcHvdcAcEmulationOuterLoop(LoadFlowParameters parameters) {
+        if (parameters.isHvdcAcEmulation()) {
+            return Optional.of(new AcHvdcAcEmulationOuterLoop());
+        }
+        return Optional.empty();
+    }
+
     protected static Optional<AcOuterLoop> createAutomationSystemOuterLoop(OpenLoadFlowParameters parametersExt) {
         if (parametersExt.isSimulateAutomationSystems()) {
             return Optional.of(new AutomationSystemOuterLoop());

@@ -115,4 +115,14 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onReferenceBusChange(LfBus bus, boolean reference) {
         // empty
     }
+
+    @Override
+    public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+        // empty
+    }
+
+    @Override
+    public void onHvdcAcEmulationFeedingSideChange(LfHvdc hvdc, TwoSides side) {
+        // empty
+    }
 }

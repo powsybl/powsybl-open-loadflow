@@ -218,12 +218,14 @@
                   Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
                   Bus V: 1.0208333333333333 pu, 0.04059595665621846 rad
                   Bus injection: 605.5584900201209 MW, 225.2825348319027 MVar
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          + Outer loop IncrementalTransformerVoltageControl
             + Outer loop iteration 2
                1 voltage-controlled buses are outside of their target deadbands
          Outer loop DistributedSlack
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          + Outer loop IncrementalTransformerVoltageControl

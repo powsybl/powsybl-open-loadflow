@@ -1279,7 +1279,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     @Test
     void testVSCLossAcEmulation() {
-        // contingency leads to the lost of one converter station.
+        // contingency leads to the loss of one converter station.
         // contingency leads to zero active power transmission in the hvdc line.
         // but other converter station keeps its voltage control capability.
         // remedial action re-enables the ac emulation of the hvdc line.

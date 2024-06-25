@@ -8,6 +8,7 @@
             Angle reference bus: b1_vl_0
             Slack bus: b1_vl_0
          Outer loop DistributedSlack
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop SimpleTransformerVoltageControl

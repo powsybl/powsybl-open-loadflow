@@ -10,9 +10,11 @@
             + Outer loop DistributedSlack
                + Outer loop iteration 1
                   Slack bus active power (-1.4404045651219555 MW) distributed in 1 distribution iteration(s)
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
@@ -20,9 +22,11 @@
             + Outer loop DistributedSlack
                + Outer loop iteration 1
                   Slack bus active power (5.803741102800952 MW) distributed in 1 distribution iteration(s)
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
@@ -30,9 +34,11 @@
             + Outer loop DistributedSlack
                + Outer loop iteration 1
                   Slack bus active power (5.803741102800952 MW) distributed in 1 distribution iteration(s)
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
@@ -43,9 +49,11 @@
             + Outer loop DistributedSlack
                + Outer loop iteration 1
                   Slack bus active power (-5.4942194604343655 MW) distributed in 1 distribution iteration(s)
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
+            Outer loop AcHvdcAcEmulation
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

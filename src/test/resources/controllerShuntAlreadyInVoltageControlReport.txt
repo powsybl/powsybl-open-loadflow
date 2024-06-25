@@ -8,10 +8,12 @@
             Angle reference bus: vl2_0
             Slack bus: vl2_0
          Outer loop DistributedSlack
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop ShuntVoltageControl
          Outer loop DistributedSlack
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop ShuntVoltageControl

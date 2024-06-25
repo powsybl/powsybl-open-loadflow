@@ -31,4 +31,8 @@ public class DcOuterLoopContext extends AbstractOuterLoopContext<DcVariableType,
     public void setIteration(int iteration) {
         this.iteration = iteration;
     }
+
+    public void incrementIteration() {
+        this.iteration = iteration + 1;
+    }
 }

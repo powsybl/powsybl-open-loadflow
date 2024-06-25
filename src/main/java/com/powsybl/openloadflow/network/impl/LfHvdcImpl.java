@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.HvdcLine;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRange;
 import com.powsybl.openloadflow.network.*;
@@ -33,19 +34,13 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private Evaluable p2 = NAN;
 
-    private double droop = Double.NaN;
-
-    private double p0 = Double.NaN;
-
     private LfVscConverterStation converterStation1;
 
     private LfVscConverterStation converterStation2;
 
     private boolean acEmulation;
 
-    private final double pMaxFromCS1toCS2;
-
-    private final double pMaxFromCS2toCS1;
+    AcEmulationControl acEmulationControl;
 
     public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine, boolean acEmulation) {
         super(network);
@@ -53,18 +48,12 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         this.bus1 = bus1;
         this.bus2 = bus2;
         HvdcAngleDroopActivePowerControl droopControl = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
+        HvdcOperatorActivePowerRange powerRange = hvdcLine.getExtension(HvdcOperatorActivePowerRange.class);
+        double pMaxFromCS1toCS2 = (powerRange != null) ? powerRange.getOprFromCS1toCS2() : hvdcLine.getMaxP();
+        double pMaxFromCS2toCS1 = (powerRange != null) ? powerRange.getOprFromCS2toCS1() : hvdcLine.getMaxP();
         this.acEmulation = acEmulation && droopControl != null && droopControl.isEnabled();
         if (this.acEmulation) {
-            droop = droopControl.getDroop();
-            p0 = droopControl.getP0();
-        }
-        HvdcOperatorActivePowerRange powerRange = hvdcLine.getExtension(HvdcOperatorActivePowerRange.class);
-        if (powerRange != null) {
-            pMaxFromCS1toCS2 = powerRange.getOprFromCS1toCS2();
-            pMaxFromCS2toCS1 = powerRange.getOprFromCS2toCS1();
-        } else {
-            pMaxFromCS2toCS1 = hvdcLine.getMaxP();
-            pMaxFromCS1toCS2 = hvdcLine.getMaxP();
+            acEmulationControl = new AcEmulationControl(droopControl.getDroop(), droopControl.getP0(), pMaxFromCS1toCS2, pMaxFromCS2toCS1);
         }
     }
 
@@ -124,16 +113,6 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public double getDroop() {
-        return droop / PerUnit.SB;
-    }
-
-    @Override
-    public double getP0() {
-        return p0 / PerUnit.SB;
-    }
-
-    @Override
     public boolean isAcEmulation() {
         return acEmulation;
     }
@@ -166,20 +145,31 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
+    public AcEmulationControl getAcEmulationControl() {
+        return acEmulationControl;
+    }
+
+    @Override
+    public void updateAcEmulationStatus(AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+        acEmulationControl.setAcEmulationStatus(acEmulationStatus);
+        for (LfNetworkListener listener : network.getListeners()) {
+            listener.onHvdcAcEmulationStatusChange(this, acEmulationStatus);
+        }
+    }
+
+    @Override
+    public void updateFeedingSide(TwoSides side) {
+        acEmulationControl.setFeedingSide(side);
+        for (LfNetworkListener listener : network.getListeners()) {
+            listener.onHvdcAcEmulationFeedingSideChange(this, side);
+        }
+    }
+
+    @Override
     public void updateState() {
         if (acEmulation) {
             ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
             ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
         }
-    }
-
-    @Override
-    public double getPMaxFromCS1toCS2() {
-        return Double.isNaN(pMaxFromCS1toCS2) ? Double.MAX_VALUE : pMaxFromCS1toCS2 / PerUnit.SB;
-    }
-
-    @Override
-    public double getPMaxFromCS2toCS1() {
-        return Double.isNaN(pMaxFromCS1toCS2) ? Double.MAX_VALUE : pMaxFromCS2toCS1 / PerUnit.SB;
     }
 }

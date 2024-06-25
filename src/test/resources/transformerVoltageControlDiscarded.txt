@@ -10,10 +10,12 @@
          + Outer loop DistributedSlack
             + Outer loop iteration 1
                Slack bus active power (-2.8882610545475753 MW) distributed in 1 distribution iteration(s)
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop SimpleTransformerVoltageControl
          Outer loop DistributedSlack
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop SimpleTransformerVoltageControl

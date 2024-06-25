@@ -391,4 +391,13 @@ class DcLoadFlowTest {
         assertEquals(307.436, line2.getTerminal1().getP(), 0.01);
         assertEquals(-307.436, line2.getTerminal2().getP(), 0.01);
     }
+
+    @Test
+    void testDcAcEmulation() {
+        Network network = HvdcNetworkFactory.createHvdcInAcEmulation3BusesNetwork();
+        network.getHvdcLine("hvdc23").setMaxP(2.);
+        loadFlowRunner.run(network, parameters);
+        assertEquals(2.0, network.getHvdcLine("hvdc23").getConverterStation1().getTerminal().getP(), 0.01);
+        assertEquals(1.0, network.getLine("l13").getTerminal1().getP(), 0.01);
+    }
 }

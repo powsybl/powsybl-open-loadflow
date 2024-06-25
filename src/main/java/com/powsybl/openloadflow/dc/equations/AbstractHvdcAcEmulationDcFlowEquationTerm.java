@@ -26,6 +26,9 @@ public abstract class AbstractHvdcAcEmulationDcFlowEquationTerm extends Abstract
     protected final List<Variable<DcVariableType>> variables;
     protected final LfHvdc hvdc;
     protected final double k;
+    protected final double p0;
+    protected final double pMaxFromCS1toCS2;
+    protected final double pMaxFromCS2toCS1;
 
     protected AbstractHvdcAcEmulationDcFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet) {
         super(hvdc);
@@ -33,12 +36,19 @@ public abstract class AbstractHvdcAcEmulationDcFlowEquationTerm extends Abstract
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
         variables = List.of(ph1Var, ph2Var);
         this.hvdc = hvdc;
-        k = this.hvdc.getDroop() * 180 / Math.PI;
+        k = this.hvdc.getAcEmulationControl().getDroop() * 180 / Math.PI;
+        p0 = hvdc.getAcEmulationControl().getP0();
+        pMaxFromCS1toCS2 = hvdc.getAcEmulationControl().getPMaxFromCS1toCS2();
+        pMaxFromCS2toCS1 = hvdc.getAcEmulationControl().getPMaxFromCS2toCS1();
     }
 
     @Override
     public List<Variable<DcVariableType>> getVariables() {
         return variables;
+    }
+
+    protected double rawP(double p0, double k, double ph1, double ph2) {
+        return p0 + k * (ph1 - ph2);
     }
 
     protected double ph1() {

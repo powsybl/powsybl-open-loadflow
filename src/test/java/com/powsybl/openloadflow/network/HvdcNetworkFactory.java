@@ -582,7 +582,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *     Initially, g1 is on. g2 is off.
      * @return
      */
-    public static Network createHvdcInAcEmulationInSymetricNetwork() {
+    public static Network createHvdcInAcEmulationInSymmetricNetwork() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -595,6 +595,39 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         HvdcConverterStation cs1 = createVsc(b1, "cs1", 1.2d, 0d);
         HvdcConverterStation cs2 = createVsc(b2, "cs2", 1.2d, 0d);
         createHvdcLine(network, "hvdc12", cs1, cs2, 400, 0.1, 2)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(1)
+                .withP0(0)
+                .withEnabled(true)
+                .add();
+        return network;
+    }
+
+    /**
+     *       ------------l12---------------
+     *      |                             |
+     * g1--b1--b2---vsc1--hvdc12--vsc2----b3--g3
+     *     |                              |
+     *     l1                            l3
+     *
+     *     Initially, g1 is on. g2 is off.
+     * @return
+     */
+    public static Network createHvdcInAcEmulation3BusesNetwork() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 5).setMaxP(10);
+        createGenerator(b3, "g3", 0).setMaxP(10);
+        createLoad(b1, "l1", 3);
+        createLoad(b3, "l3", 3);
+        createLine(network, b1, b2, "l12", 0.001f);
+        createLine(network, b1, b3, "l13", 0.1f);
+
+        HvdcConverterStation cs1 = createVsc(b2, "cs2", 1.2d, 0d);
+        HvdcConverterStation cs2 = createVsc(b3, "cs3", 1.2d, 0d);
+        createHvdcLine(network, "hvdc23", cs1, cs2, 400, 0.1, 2)
                 .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
                 .withDroop(1)
                 .withP0(0)

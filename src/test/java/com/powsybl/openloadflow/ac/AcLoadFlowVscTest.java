@@ -275,7 +275,7 @@ class AcLoadFlowVscTest {
 
     @Test
     void testHvdcDirectionChangeAcEmulation() {
-        Network network = HvdcNetworkFactory.createHvdcInAcEmulationInSymetricNetwork();
+        Network network = HvdcNetworkFactory.createHvdcInAcEmulationInSymmetricNetwork();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
         assertTrue(result.isFullyConverged());

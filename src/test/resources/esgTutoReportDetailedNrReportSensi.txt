@@ -64,6 +64,7 @@
                   Bus Id: VLGEN_0 (nominalVoltage=24.0kV)
                   Bus V: 1.0208333333333333 pu, 0.04069359966489529 rad
                   Bus injection: 607.0001563589107 MW, 225.40357009583855 MVar
+         Outer loop AcHvdcAcEmulation
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

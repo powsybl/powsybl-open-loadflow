@@ -23,6 +23,8 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         List<AcOuterLoop> outerLoops = new ArrayList<>(5);
         // primary frequency control
         createDistributedSlackOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
+        // AC emulation
+        createAcHvdcAcEmulationOuterLoop(parameters).ifPresent(outerLoops::add);
         // secondary voltage control
         createSecondaryVoltageControlOuterLoop(parametersExt).ifPresent(outerLoops::add);
         // primary voltage control
