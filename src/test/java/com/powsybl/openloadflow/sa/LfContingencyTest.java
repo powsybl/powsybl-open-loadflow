@@ -92,7 +92,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         }
 
         try (InputStream is = Files.newInputStream(file)) {
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/lfc.json")), is);
+            ComparisonUtils.assertTxtEquals(Objects.requireNonNull(getClass().getResourceAsStream("/lfc.json")), is);
         }
     }
 
