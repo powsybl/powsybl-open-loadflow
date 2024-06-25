@@ -27,13 +27,26 @@ public final class SolverUtils {
             AcEquationType.DUMMY_TARGET_Q,
             AcEquationType.ZERO_V,
             AcEquationType.ZERO_PHI,
-            AcEquationType.DISTR_Q
+            AcEquationType.DISTR_Q,
+            AcEquationType.SHUNT_TARGET_B,
+            AcEquationType.BRANCH_TARGET_P,
+            AcEquationType.BRANCH_TARGET_Q,
+            AcEquationType.BRANCH_TARGET_ALPHA1,
+            AcEquationType.BRANCH_TARGET_RHO1
     ));
 
     public static List<AcEquationType> getLinearConstraintsTypes() {
         return linearConstraintsTypes;
     }
 
+    public static List<AcEquationType> nonLinearConstraintsTypes = new ArrayList<>(Arrays.asList(
+            AcEquationType.BUS_TARGET_P,
+            AcEquationType.BUS_TARGET_Q
+    ));
+
+    public static List<AcEquationType> getNonLinearConstraintsTypes() {
+        return nonLinearConstraintsTypes;
+    }
 
     public VarAndCoefList addConstraint(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
         List<Integer> listVar = new ArrayList<>();
@@ -44,8 +57,13 @@ public final class SolverUtils {
             case BUS_TARGET_PHI:
             case DUMMY_TARGET_P:
             case DUMMY_TARGET_Q:
-                listVar = addConstraintTargetVPhiDummyPQ(typeEq, equationId, terms).listIdVar;
-                listCoef = addConstraintTargetVPhiDummyPQ(typeEq, equationId, terms).listCoef;
+            case SHUNT_TARGET_B:
+//            case BRANCH_TARGET_P:
+//            case BRANCH_TARGET_Q:
+            case BRANCH_TARGET_ALPHA1:
+            case BRANCH_TARGET_RHO1:
+                listVar = addConstraintTarget(typeEq, equationId, terms).listIdVar;
+                listCoef = addConstraintTarget(typeEq, equationId, terms).listCoef;
                 break;
             case ZERO_V:
             case ZERO_PHI:
@@ -69,17 +87,17 @@ public final class SolverUtils {
             this.listCoef = listCoef;
         }
 
-        public List<Integer> getIdVar() {
+        public List<Integer> getListIdVar() {
             return listIdVar;
         }
 
-        public List<Double> getCoef() {
+        public List<Double> getListCoef() {
             return listCoef;
         }
     }
 
-    public VarAndCoefList addConstraintTargetVPhiDummyPQ(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
-        // get the variable V/Theta/DummyP/DummyQ corresponding to the constraint
+    public VarAndCoefList addConstraintTarget(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+        // get the variable V/Theta/DummyP/DummyQ/... corresponding to the constraint
         int idVar = terms.get(0).getVariables().get(0).getRow();
         double coef = 1.0;
         return new VarAndCoefList(Arrays.asList(idVar), Arrays.asList(coef));
