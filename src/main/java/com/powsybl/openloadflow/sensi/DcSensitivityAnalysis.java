@@ -583,21 +583,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // compute states with +1 -1 to model the contingencies and run connectivity analysis
                 ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData = ConnectivityBreakAnalysis.run(loadFlowContext, contingencies);
 
-                // storage of modifications that must be applied on rhs members, due to GLSK and/or slack bus participation
-                WoodburyEngineRhsModifications injectionRhsModifications = new WoodburyEngineRhsModifications();
-                WoodburyEngineRhsModifications flowRhsModifications = new WoodburyEngineRhsModifications();
-
                 // storage of disabled network by propagated contingencies, for sensitivity calculation
                 HashMap<PropagatedContingency, DisabledNetwork> disabledNetworkByPropagatedContingency = new HashMap<>();
-
-                // compute rhs modifications for contingencies breaking connectivity
-//                buildRhsModificationsForContingenciesBreakingConnectivity(loadFlowContext, lfParametersExt, connectivityData, factorGroups, participatingElements,
-//                        injectionRhsModifications, flowRhsModifications, disabledNetworkByPropagatedContingency, resultWriter);
-
-                // compute rhs modifications for contingencies with no connectivity break
-//                buildRhsModificationsForContingencies(loadFlowContext, lfParametersExt, factorGroups, connectivityData.nonBreakingConnectivityContingencies(), participatingElements,
-//                        injectionRhsModifications, flowRhsModifications, disabledNetworkByPropagatedContingency, Collections.emptySet(), Collections.emptySet(),
-//                        connectivityData.contingencyElementByBranch(), Collections.emptySet(), resultWriter);
 
                 WoodburyEngineRhsReader injectionReader = handler -> {
                     for (PropagatedContingency contingency : contingencies) {
@@ -759,12 +746,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 };
 
                 // compute pre- and post-contingency flow states
-                WoodburyEngineResult flowResult = engine.run(loadFlowContext, flowsRhs, flowRhsModifications, connectivityData, reportNode, flowReader, false);
+                WoodburyEngineResult flowResult = engine.run(loadFlowContext, flowsRhs, flowReader, connectivityData, reportNode);
                 // set function reference values of the factors
                 setFunctionReference(validLfFactors, flowResult.getPreContingencyStates());
 
                 // compute pre- and post-contingency injection states
-                WoodburyEngineResult injectionResult = engine.run(loadFlowContext, injectionRhs, injectionRhsModifications, connectivityData, reportNode, injectionReader, true);
+                WoodburyEngineResult injectionResult = engine.run(loadFlowContext, injectionRhs, injectionReader, connectivityData, reportNode);
                 // set base case values of the factors
                 setBaseCaseSensitivityValues(factorGroups, injectionResult.getPreContingencyStates());
 
