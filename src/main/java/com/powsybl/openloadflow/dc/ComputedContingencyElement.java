@@ -11,8 +11,10 @@ import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Collection;
@@ -84,5 +86,15 @@ public final class ComputedContingencyElement {
         for (ComputedContingencyElement element : elements) {
             element.setLocalIndex(index++);
         }
+    }
+
+    static void applyToConnectivity(LfNetwork lfNetwork, GraphConnectivity<LfBus, LfBranch> connectivity, Collection<ComputedContingencyElement> breakingConnectivityElements) {
+        breakingConnectivityElements.stream()
+                .map(ComputedContingencyElement::getElement)
+                .map(ContingencyElement::getId)
+                .distinct()
+                .map(lfNetwork::getBranchById)
+                .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                .forEach(connectivity::removeEdge);
     }
 }

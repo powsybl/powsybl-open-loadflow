@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
-import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
@@ -161,30 +160,35 @@ public final class ConnectivityBreakAnalysis {
         for (Map.Entry<Set<ComputedContingencyElement>, List<PropagatedContingency>> e : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
             Set<ComputedContingencyElement> breakingConnectivityCandidates = e.getKey();
             List<PropagatedContingency> contingencyList = e.getValue();
-            connectivity.startTemporaryChanges();
-            breakingConnectivityCandidates.stream()
-                    .map(ComputedContingencyElement::getElement)
-                    .map(ContingencyElement::getId)
-                    .distinct()
-                    .map(lfNetwork::getBranchById)
-                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                    .forEach(connectivity::removeEdge);
 
-            // filter the branches that really impacts connectivity
-            Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream()
-                    .filter(element -> isBreakingConnectivity(connectivity, element))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            Set<ComputedContingencyElement> breakingConnectivityElements;
+            connectivity.startTemporaryChanges();
+            try {
+                ComputedContingencyElement.applyToConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates);
+                // filter the branches that really impacts connectivity
+                breakingConnectivityElements = breakingConnectivityCandidates.stream()
+                        .filter(element -> isBreakingConnectivity(connectivity, element))
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+            } finally {
+                connectivity.undoTemporaryChanges();
+            }
+
             if (breakingConnectivityElements.isEmpty()) {
                 // we did not break any connectivity
                 nonLosingConnectivityContingencies.addAll(contingencyList);
             } else {
-                ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult = connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, k -> {
-                    Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
-                    return new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
-                });
-                connectivityAnalysisResult.getContingencies().addAll(contingencyList);
+                connectivity.startTemporaryChanges();
+                try {
+                    ComputedContingencyElement.applyToConnectivity(lfNetwork, connectivity, breakingConnectivityElements);
+                    ConnectivityAnalysisResult connectivityAnalysisResult = connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, k -> {
+                        Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
+                        return new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
+                    });
+                    connectivityAnalysisResult.getContingencies().addAll(contingencyList);
+                } finally {
+                    connectivity.undoTemporaryChanges();
+                }
             }
-            connectivity.undoTemporaryChanges();
         }
         return new ArrayList<>(connectivityAnalysisResults.values());
     }
