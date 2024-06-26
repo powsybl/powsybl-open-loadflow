@@ -12,4 +12,7 @@ public interface WoodburyEngineRhsReader {
     }
 
     void process(Handler handler);
+
+//    void computeRhsForContingencyBreakingConnectivity(Handler handler);
+
 }

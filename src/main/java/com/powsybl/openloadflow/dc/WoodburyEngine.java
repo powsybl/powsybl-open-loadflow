@@ -144,6 +144,11 @@ public class WoodburyEngine {
      */
     public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, DenseMatrix rhs, WoodburyEngineRhsReader reader,
                                     ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults, ReportNode reporter) {
+        Objects.requireNonNull(loadFlowContext);
+        Objects.requireNonNull(rhs);
+        Objects.requireNonNull(reader);
+        Objects.requireNonNull(connectivityBreakAnalysisResults);
+        Objects.requireNonNull(reporter);
 
         // compute pre-contingency states, they are now in rhs
         solveRhs(loadFlowContext, rhs, reporter);
@@ -153,9 +158,6 @@ public class WoodburyEngine {
 
         // get states with +1 -1 to model the contingencies
         DenseMatrix contingenciesStates = connectivityBreakAnalysisResults.contingenciesStates();
-
-        // TODO : prepare logger
-//        LOGGER.info("Processing contingencies with no connectivity break");
 
         // calculate state values for contingencies with no connectivity break
         Map<PropagatedContingency, DenseMatrix> postContingencyStates = computeStatesForContingencyList(loadFlowContext, rhs,
