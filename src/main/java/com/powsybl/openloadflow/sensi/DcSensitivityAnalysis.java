@@ -458,189 +458,194 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // storage of disabled network by propagated contingencies, for sensitivity calculation
                 HashMap<PropagatedContingency, DisabledNetwork> disabledNetworkByPropagatedContingency = new HashMap<>();
 
-                WoodburyEngineRhsReader injectionReader = handler -> {
-                    for (PropagatedContingency contingency : contingencies) {
-                        DenseMatrix preContingencyStatesOverride = null;
-                        Set<String> elementsToReconnect = Collections.emptySet();
-                        Set<LfBus> disabledBuses = Collections.emptySet();
-                        Set<LfBranch> partialDisabledBranches = Collections.emptySet();
-                        List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
+                WoodburyEngineRhsReader injectionReader = new WoodburyEngineRhsReader() {
+                    @Override
+                    public void process(Handler handler) {
+                        for (PropagatedContingency contingency : contingencies) {
+                            DenseMatrix preContingencyStatesOverride = null;
+                            Set<String> elementsToReconnect = Collections.emptySet();
+                            Set<LfBus> disabledBuses = Collections.emptySet();
+                            Set<LfBranch> partialDisabledBranches = Collections.emptySet();
+                            List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
 
-                        // determine if the contingency breaks the connectivity, and if so recompute right member
-                        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
-                            if (connectivityAnalysisResult.getContingencies().contains(contingency)) {
-                                disabledBuses = connectivityAnalysisResult.getDisabledBuses();
+                            // determine if the contingency breaks the connectivity, and if so recompute right member
+                            for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
+                                if (connectivityAnalysisResult.getContingencies().contains(contingency)) {
+                                    disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
-                                // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
-                                // if one bus of the line is lost.
-                                processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
+                                    // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
+                                    // if one bus of the line is lost.
+                                    DcSensitivityAnalysis.this.processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
 
-                                // null and unused if slack bus is not distributed
-                                boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK
-                                if (lfParameters.isDistributedSlack()) {
-                                    Set<LfBus> finalDisabledBuses = disabledBuses;
-                                    rhsChanged = participatingElementsForThisConnectivity.stream().anyMatch(element -> finalDisabledBuses.contains(element.getLfBus()));
+                                    // null and unused if slack bus is not distributed
+                                    boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK
+                                    if (lfParameters.isDistributedSlack()) {
+                                        Set<LfBus> finalDisabledBuses = disabledBuses;
+                                        rhsChanged = participatingElementsForThisConnectivity.stream().anyMatch(element -> finalDisabledBuses.contains(element.getLfBus()));
+                                    }
+                                    if (factorGroups.hasMultiVariables()) {
+                                        // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
+                                        rhsChanged |= DcSensitivityAnalysis.this.rescaleGlsk(factorGroups, disabledBuses);
+                                    }
+                                    // we need to recompute the injection rhs because the connectivity changed
+                                    if (rhsChanged) {
+                                        participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
+                                                ? DcSensitivityAnalysis.this.getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
+                                                : Collections.emptyList());
+                                        preContingencyStatesOverride = getPreContingencyInjectionRhs(loadFlowContext, factorGroups, participatingElementsForThisConnectivity);
+                                    }
+                                    elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
+                                    partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
                                 }
-                                if (factorGroups.hasMultiVariables()) {
-                                    // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-                                    rhsChanged |= rescaleGlsk(factorGroups, disabledBuses);
-                                }
-                                // we need to recompute the injection rhs because the connectivity changed
-                                if (rhsChanged) {
-                                    participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
-                                            ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
-                                            : Collections.emptyList());
-                                    preContingencyStatesOverride = getPreContingencyInjectionRhs(loadFlowContext, factorGroups, participatingElementsForThisConnectivity);
-                                }
-                                elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
-                                partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
                             }
-                        }
 
-                        Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
-                        disabledBranches.addAll(partialDisabledBranches);
-                        DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
-                        disabledNetworkByPropagatedContingency.put(contingency, disabledNetwork);
+                            Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
+                            disabledBranches.addAll(partialDisabledBranches);
+                            DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
+                            disabledNetworkByPropagatedContingency.put(contingency, disabledNetwork);
 
-                        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
-                            resultWriter.writeContingencyStatus(contingency.getIndex(), contingency.hasNoImpact() ? SensitivityAnalysisResult.Status.NO_IMPACT : SensitivityAnalysisResult.Status.SUCCESS);
-                        } else {
-                            // if we have a contingency including the loss of a DC line or a generator or a load
-                            // save base state for later restoration after each contingency
-                            LfNetwork lfNetwork2 = loadFlowContext.getNetwork();
-                            NetworkState networkState = NetworkState.save(lfNetwork2);
-                            LfContingency lfContingency = contingency.toLfContingency(lfNetwork2).orElse(null);
-                            if (lfContingency != null) {
-                                DcLoadFlowParameters lfParameters2 = loadFlowContext.getParameters();
-                                lfContingency.apply(lfParameters2.getBalanceType());
-                                List<ParticipatingElement> modifiedParticipatingElements = participatingElements;
-                                boolean rhsChanged = isDistributedSlackOnGenerators(loadFlowContext.getParameters()) && !contingency.getGeneratorIdsToLose().isEmpty()
-                                        || isDistributedSlackOnLoads(loadFlowContext.getParameters()) && !contingency.getLoadIdsToLoose().isEmpty();
-                                if (rhsChanged) {
-                                    modifiedParticipatingElements = getNewNormalizedParticipationFactors(loadFlowContext, lfParametersExt, lfContingency, modifiedParticipatingElements);
-                                }
-                                if (factorGroups.hasMultiVariables()) {
-                                    Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
-                                    rhsChanged |= rescaleGlsk(factorGroups, impactedBuses);
-                                }
-                                if (rhsChanged) {
-                                    preContingencyStatesOverride = getPreContingencyInjectionRhs(loadFlowContext, factorGroups, modifiedParticipatingElements);
-                                }
-                                // write contingency status
-                                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+                            if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
+                                resultWriter.writeContingencyStatus(contingency.getIndex(), contingency.hasNoImpact() ? SensitivityAnalysisResult.Status.NO_IMPACT : SensitivityAnalysisResult.Status.SUCCESS);
                             } else {
-                                // write contingency status
-                                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+                                // if we have a contingency including the loss of a DC line or a generator or a load
+                                // save base state for later restoration after each contingency
+                                LfNetwork lfNetwork2 = loadFlowContext.getNetwork();
+                                NetworkState networkState = NetworkState.save(lfNetwork2);
+                                LfContingency lfContingency = contingency.toLfContingency(lfNetwork2).orElse(null);
+                                if (lfContingency != null) {
+                                    DcLoadFlowParameters lfParameters2 = loadFlowContext.getParameters();
+                                    lfContingency.apply(lfParameters2.getBalanceType());
+                                    List<ParticipatingElement> modifiedParticipatingElements = participatingElements;
+                                    boolean rhsChanged = isDistributedSlackOnGenerators(loadFlowContext.getParameters()) && !contingency.getGeneratorIdsToLose().isEmpty()
+                                            || isDistributedSlackOnLoads(loadFlowContext.getParameters()) && !contingency.getLoadIdsToLoose().isEmpty();
+                                    if (rhsChanged) {
+                                        modifiedParticipatingElements = DcSensitivityAnalysis.this.getNewNormalizedParticipationFactors(loadFlowContext, lfParametersExt, lfContingency, modifiedParticipatingElements);
+                                    }
+                                    if (factorGroups.hasMultiVariables()) {
+                                        Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
+                                        rhsChanged |= DcSensitivityAnalysis.this.rescaleGlsk(factorGroups, impactedBuses);
+                                    }
+                                    if (rhsChanged) {
+                                        preContingencyStatesOverride = getPreContingencyInjectionRhs(loadFlowContext, factorGroups, modifiedParticipatingElements);
+                                    }
+                                    // write contingency status
+                                    resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+                                } else {
+                                    // write contingency status
+                                    resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+                                }
+                                networkState.restore();
                             }
-                            networkState.restore();
+
+                            if (!Objects.isNull(preContingencyStatesOverride)) {
+                                solveMultipleTargets(preContingencyStatesOverride, loadFlowContext.getJacobianMatrix(), reportNode);
+                            } else {
+                                preContingencyStatesOverride = injectionRhs;
+                            }
+
+                            Set<String> finalElementsToReconnect1 = elementsToReconnect;
+                            Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
+                                    .filter(element -> !finalElementsToReconnect1.contains(element))
+                                    .map(connectivityData.contingencyElementByBranch()::get)
+                                    .toList();
+
+                            handler.onContingency(contingency, contingencyElements, preContingencyStatesOverride);
                         }
-
-                        if (!Objects.isNull(preContingencyStatesOverride)) {
-                            solveMultipleTargets(preContingencyStatesOverride, loadFlowContext.getJacobianMatrix(), reportNode);
-                        } else {
-                            preContingencyStatesOverride = injectionRhs;
-                        }
-
-                        Set<String> finalElementsToReconnect1 = elementsToReconnect;
-                        Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                                .filter(element -> !finalElementsToReconnect1.contains(element))
-                                .map(connectivityData.contingencyElementByBranch()::get)
-                                .toList();
-
-                        handler.onContingency(contingency, contingencyElements, preContingencyStatesOverride);
                     }
                 };
 
-                WoodburyEngineRhsReader flowReader = handler -> {
+                WoodburyEngineRhsReader flowReader = new WoodburyEngineRhsReader() {
+                    @Override
+                    public void process(Handler handler) {
+                        for (PropagatedContingency contingency : contingencies) {
+                            DenseMatrix preContingencyStatesOverride = null;
+                            Set<String> elementsToReconnect = Collections.emptySet();
+                            Set<LfBus> disabledBuses = Collections.emptySet();
+                            Set<LfBranch> partialDisabledBranches = Collections.emptySet();
+                            List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
 
-                    for (PropagatedContingency contingency : contingencies) {
-                        DenseMatrix preContingencyStatesOverride = null;
-                        Set<String> elementsToReconnect = Collections.emptySet();
-                        Set<LfBus> disabledBuses = Collections.emptySet();
-                        Set<LfBranch> partialDisabledBranches = Collections.emptySet();
-                        List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
+                            // determine if the contingency breaks the connectivity, and if so recompute right member
+                            for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
+                                if (connectivityAnalysisResult.getContingencies().contains(contingency)) {
+                                    disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
-                        // determine if the contingency breaks the connectivity, and if so recompute right member
-                        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
-                            if (connectivityAnalysisResult.getContingencies().contains(contingency)) {
-                                disabledBuses = connectivityAnalysisResult.getDisabledBuses();
+                                    // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
+                                    // if one bus of the line is lost.
+                                    processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
 
-                                // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
-                                // if one bus of the line is lost.
-                                processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
+                                    // null and unused if slack bus is not distributed
+                                    boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK
+                                    if (lfParameters.isDistributedSlack()) {
+                                        Set<LfBus> finalDisabledBuses = disabledBuses;
+                                        rhsChanged = participatingElementsForThisConnectivity.stream().anyMatch(element -> finalDisabledBuses.contains(element.getLfBus()));
+                                    }
+                                    // we need to recompute the injection rhs because the connectivity changed
+                                    if (rhsChanged) {
+                                        participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
+                                                ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
+                                                : Collections.emptyList());
+                                    }
 
-                                // null and unused if slack bus is not distributed
-                                boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK
-                                if (lfParameters.isDistributedSlack()) {
-                                    Set<LfBus> finalDisabledBuses = disabledBuses;
-                                    rhsChanged = participatingElementsForThisConnectivity.stream().anyMatch(element -> finalDisabledBuses.contains(element.getLfBus()));
+                                    DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, Collections.emptySet());
+                                    preContingencyStatesOverride = getPreContingencyFlowRhs(loadFlowContext, participatingElementsForThisConnectivity, disabledNetwork);
+                                    elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
+                                    partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
                                 }
-                                // we need to recompute the injection rhs because the connectivity changed
-                                if (rhsChanged) {
-                                    participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
-                                            ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
-                                            : Collections.emptyList());
-                                }
-
-                                DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, Collections.emptySet());
-                                preContingencyStatesOverride = getPreContingencyFlowRhs(loadFlowContext, participatingElementsForThisConnectivity, disabledNetwork);
-                                elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
-                                partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
                             }
-                        }
 
-                        // in case a phase tap changer is lost, flow rhs must be updated
-                        Set<String> finalElementsToReconnect = elementsToReconnect;
-                        Set<LfBranch> disabledPhaseTapChangers = contingency.getBranchIdsToOpen().keySet().stream()
-                                .filter(element -> !finalElementsToReconnect.contains(element))
-                                .map(connectivityData.contingencyElementByBranch()::get)
-                                .map(ComputedContingencyElement::getLfBranch)
-                                .filter(LfBranch::hasPhaseControllerCapability)
-                                .collect(Collectors.toSet());
-                        if (!disabledPhaseTapChangers.isEmpty()) {
-                            preContingencyStatesOverride = getPreContingencyFlowRhs(loadFlowContext, participatingElementsForThisConnectivity,
-                                    new DisabledNetwork(disabledBuses, disabledPhaseTapChangers));
-                        }
+                            // in case a phase tap changer is lost, flow rhs must be updated
+                            Set<String> finalElementsToReconnect = elementsToReconnect;
+                            Set<LfBranch> disabledPhaseTapChangers = contingency.getBranchIdsToOpen().keySet().stream()
+                                    .filter(element -> !finalElementsToReconnect.contains(element))
+                                    .map(connectivityData.contingencyElementByBranch()::get)
+                                    .map(ComputedContingencyElement::getLfBranch)
+                                    .filter(LfBranch::hasPhaseControllerCapability)
+                                    .collect(Collectors.toSet());
+                            if (!disabledPhaseTapChangers.isEmpty()) {
+                                preContingencyStatesOverride = getPreContingencyFlowRhs(loadFlowContext, participatingElementsForThisConnectivity,
+                                        new DisabledNetwork(disabledBuses, disabledPhaseTapChangers));
+                            }
 
-                        Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
-                        disabledBranches.addAll(partialDisabledBranches);
-                        DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
+                            Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
+                            disabledBranches.addAll(partialDisabledBranches);
+                            DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 //                        disabledNetworkByPropagatedContingency.put(contingency, disabledNetwork);
-                        if (!(contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty())) {
-                            // if we have a contingency including the loss of a DC line or a generator or a load
-                            // save base state for later restoration after each contingency
-                            LfNetwork lfNetwork2 = loadFlowContext.getNetwork();
-                            NetworkState networkState = NetworkState.save(lfNetwork2);
-                            LfContingency lfContingency = contingency.toLfContingency(lfNetwork2).orElse(null);
-                            List<ParticipatingElement> newParticipatingElements = participatingElementsForThisConnectivity;
-                            if (lfContingency != null) {
-                                List<ParticipatingElement> modifiedParticipatingElements = participatingElementsForThisConnectivity;
-                                lfContingency.apply(lfParameters.getBalanceType());
-                                boolean rhsChanged = isDistributedSlackOnGenerators(loadFlowContext.getParameters()) && !contingency.getGeneratorIdsToLose().isEmpty()
-                                        || isDistributedSlackOnLoads(loadFlowContext.getParameters()) && !contingency.getLoadIdsToLoose().isEmpty();
-                                if (rhsChanged) {
-                                    modifiedParticipatingElements = getNewNormalizedParticipationFactors(loadFlowContext, lfParametersExt, lfContingency, modifiedParticipatingElements);
+                            if (!(contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty())) {
+                                // if we have a contingency including the loss of a DC line or a generator or a load
+                                // save base state for later restoration after each contingency
+                                LfNetwork lfNetwork2 = loadFlowContext.getNetwork();
+                                NetworkState networkState = NetworkState.save(lfNetwork2);
+                                LfContingency lfContingency = contingency.toLfContingency(lfNetwork2).orElse(null);
+                                List<ParticipatingElement> newParticipatingElements = participatingElementsForThisConnectivity;
+                                if (lfContingency != null) {
+                                    List<ParticipatingElement> modifiedParticipatingElements = participatingElementsForThisConnectivity;
+                                    lfContingency.apply(lfParameters.getBalanceType());
+                                    boolean rhsChanged = isDistributedSlackOnGenerators(loadFlowContext.getParameters()) && !contingency.getGeneratorIdsToLose().isEmpty()
+                                            || isDistributedSlackOnLoads(loadFlowContext.getParameters()) && !contingency.getLoadIdsToLoose().isEmpty();
+                                    if (rhsChanged) {
+                                        modifiedParticipatingElements = getNewNormalizedParticipationFactors(loadFlowContext, lfParametersExt, lfContingency, modifiedParticipatingElements);
+                                    }
+                                    newParticipatingElements = modifiedParticipatingElements;
                                 }
-                                newParticipatingElements = modifiedParticipatingElements;
+
+                                preContingencyStatesOverride = getPreContingencyFlowRhs(loadFlowContext, newParticipatingElements, disabledNetwork);
+                                networkState.restore();
                             }
 
-                            preContingencyStatesOverride = getPreContingencyFlowRhs(loadFlowContext, newParticipatingElements, disabledNetwork);
-                            networkState.restore();
+                            if (!Objects.isNull(preContingencyStatesOverride)) {
+                                solveMultipleTargets(preContingencyStatesOverride, loadFlowContext.getJacobianMatrix(), reportNode);
+                            } else {
+                                preContingencyStatesOverride = flowsRhs;
+                            }
+
+                            Set<String> finalElementsToReconnect1 = elementsToReconnect;
+                            Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
+                                    .filter(element -> !finalElementsToReconnect1.contains(element))
+                                    .map(connectivityData.contingencyElementByBranch()::get)
+                                    .toList();
+
+                            handler.onContingency(contingency, contingencyElements, preContingencyStatesOverride);
                         }
-
-                        if (!Objects.isNull(preContingencyStatesOverride)) {
-                            solveMultipleTargets(preContingencyStatesOverride, loadFlowContext.getJacobianMatrix(), reportNode);
-                        } else {
-                            preContingencyStatesOverride = flowsRhs;
-                        }
-
-                        Set<String> finalElementsToReconnect1 = elementsToReconnect;
-                        Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                                .filter(element -> !finalElementsToReconnect1.contains(element))
-                                .map(connectivityData.contingencyElementByBranch()::get)
-                                .toList();
-
-                        handler.onContingency(contingency, contingencyElements, preContingencyStatesOverride);
                     }
                 };
 
