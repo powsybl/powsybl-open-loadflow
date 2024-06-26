@@ -226,15 +226,15 @@ public class WoodburyEngine {
 
         LOGGER.info("Processing contingencies with connectivity break");
 
-        if (tempo) {
-            for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
-                // calculate state values for a group of contingency breaking connectivity
-                Map<PropagatedContingency, DenseMatrix> postContingencyBreakingConnectivityStates;
-                postContingencyBreakingConnectivityStates = processContingenciesBreakingConnectivity(connectivityAnalysisResult,
-                        loadFlowContext, rhs, rhsModifications, contingenciesStates, contingencyElementByBranch, reporter);
-                postContingencyStates.putAll(postContingencyBreakingConnectivityStates);
-            }
-        }
+//        if (tempo) {
+//            for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
+//                // calculate state values for a group of contingency breaking connectivity
+//                Map<PropagatedContingency, DenseMatrix> postContingencyBreakingConnectivityStates;
+//                postContingencyBreakingConnectivityStates = processContingenciesBreakingConnectivity(connectivityAnalysisResult,
+//                        loadFlowContext, rhs, rhsModifications, contingenciesStates, contingencyElementByBranch, reporter);
+//                postContingencyStates.putAll(postContingencyBreakingConnectivityStates);
+//            }
+//        }
 
 //        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
 //            // calculate state values for a group of contingency breaking connectivity
