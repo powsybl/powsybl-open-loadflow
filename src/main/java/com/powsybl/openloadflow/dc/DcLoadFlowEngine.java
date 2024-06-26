@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
@@ -153,6 +154,19 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         } catch (MatrixException e) {
             Reports.reportDcLfSolverFailure(reportNode, e.getMessage());
             LOGGER.error("Failed to solve linear system for DC load flow", e);
+            return false;
+        }
+    }
+
+    public static boolean solveMultipleTargets(DenseMatrix targetMatrix,
+                                               JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix,
+                                               ReportNode reporter) {
+        try {
+            jacobianMatrix.solveTransposed(targetMatrix);
+            return true;
+        } catch (MatrixException e) {
+            Reports.reportDcLfSolverFailure(reporter, e.getMessage());
+            LOGGER.error("Failed to solve linear system for DC load flow on multiple right hand sides", e);
             return false;
         }
     }

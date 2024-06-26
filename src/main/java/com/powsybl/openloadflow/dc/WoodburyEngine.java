@@ -6,19 +6,14 @@
  */
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
-import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.util.Reports;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ObjDoubleConsumer;
@@ -28,17 +23,6 @@ import java.util.function.ObjDoubleConsumer;
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
 public class WoodburyEngine {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(WoodburyEngine.class);
-
-    private void solveRhs(DcLoadFlowContext loadFlowContext, DenseMatrix rhs, ReportNode reporter) {
-        try {
-            loadFlowContext.getJacobianMatrix().solveTransposed(rhs);
-        } catch (MatrixException e) {
-            Reports.reportWoodburyEngineFailure(reporter, e.getMessage());
-            LOGGER.error("Failed to solve linear system for Woodbury engine", e);
-        }
-    }
 
     /**
      * Compute the flow transfer factors needed to calculate the post-contingency state values.
@@ -109,24 +93,16 @@ public class WoodburyEngine {
     /**
      * Compute post-contingency states values for each contingency of a list.
      */
-    private Map<PropagatedContingency, DenseMatrix> computeStatesForContingencyList(DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates, DenseMatrix contingenciesStates,
-                                                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch, WoodburyEngineRhsReader reader,
-                                                                                    ReportNode reporter) {
+    private Map<PropagatedContingency, DenseMatrix> computeStatesForContingencyList(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates,
+                                                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch, WoodburyEngineRhsReader reader) {
 
         HashMap<PropagatedContingency, DenseMatrix> postContingencyStatesByContingency = new HashMap<>();
-        reader.process((PropagatedContingency contingency, DenseMatrix rhsOverride, Set<String> elementsToReconnect) -> {
+        reader.process((PropagatedContingency contingency, DenseMatrix preContingencyStates, Set<String> elementsToReconnect) -> {
             Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
                 .toList();
-            DenseMatrix postContingencyStates;
-            // a rhs override is given by the handler
-            if (!Objects.isNull(rhsOverride)) {
-                solveRhs(loadFlowContext, rhsOverride, reporter);
-                postContingencyStates = computePostContingencyStates(loadFlowContext, rhsOverride, contingenciesStates, contingencyElements);
-            } else {
-                postContingencyStates = computePostContingencyStates(loadFlowContext, preContingencyStates, contingenciesStates, contingencyElements);
-            }
+            DenseMatrix postContingencyStates = computePostContingencyStates(loadFlowContext, preContingencyStates, contingenciesStates, contingencyElements);
             postContingencyStatesByContingency.put(contingency, postContingencyStates);
         });
         return postContingencyStatesByContingency;
@@ -142,16 +118,11 @@ public class WoodburyEngine {
      * @param connectivityBreakAnalysisResults the results of a connectivity break analysis (with groups of contingencies breaking connectivity identified).
      * @return pre- and post-contingency angle states.
      */
-    public WoodburyEngineResult run(DcLoadFlowContext loadFlowContext, DenseMatrix rhs, WoodburyEngineRhsReader reader,
-                                    ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults, ReportNode reporter) {
+    public Map<PropagatedContingency, DenseMatrix> run(DcLoadFlowContext loadFlowContext, DenseMatrix rhs, WoodburyEngineRhsReader reader,
+                                    ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults) {
         Objects.requireNonNull(loadFlowContext);
-        Objects.requireNonNull(rhs);
         Objects.requireNonNull(reader);
         Objects.requireNonNull(connectivityBreakAnalysisResults);
-        Objects.requireNonNull(reporter);
-
-        // compute pre-contingency states, they are now in rhs
-        solveRhs(loadFlowContext, rhs, reporter);
 
         // get contingency elements indexed by branch id
         Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityBreakAnalysisResults.contingencyElementByBranch();
@@ -159,10 +130,7 @@ public class WoodburyEngine {
         // get states with +1 -1 to model the contingencies
         DenseMatrix contingenciesStates = connectivityBreakAnalysisResults.contingenciesStates();
 
-        // calculate state values for contingencies with no connectivity break
-        Map<PropagatedContingency, DenseMatrix> postContingencyStates = computeStatesForContingencyList(loadFlowContext, rhs,
-                contingenciesStates, contingencyElementByBranch, reader, reporter);
-
-        return new WoodburyEngineResult(rhs, postContingencyStates);
+        return computeStatesForContingencyList(loadFlowContext,
+                contingenciesStates, contingencyElementByBranch, reader);
     }
 }

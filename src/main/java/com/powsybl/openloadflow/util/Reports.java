@@ -560,12 +560,4 @@ public final class Reports {
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add());
     }
-
-    public static void reportWoodburyEngineFailure(ReportNode reportNode, String errorMessage) {
-        reportNode.newReportNode()
-                .withMessageTemplate("woodburyEngineFailure", "Failed to solve linear system for Woodbury engine: ${errorMessage}")
-                .withUntypedValue("errorMessage", errorMessage)
-                .withSeverity(TypedValue.ERROR_SEVERITY)
-                .add();
-    }
 }
