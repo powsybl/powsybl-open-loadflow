@@ -241,6 +241,14 @@ public class VoltageControl<T extends LfElement> extends Control {
         }
     }
 
+    public static boolean checkTargetV(double targetV, double nominalV, LfNetworkParameters parameters) {
+        return nominalV <= parameters.getMinNominalVoltageTargetVoltageCheck() || isTargetVoltagePlausible(targetV, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage());
+    }
+
+    public static boolean isTargetVoltagePlausible(double targetV, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+        return targetV >= minPlausibleTargetVoltage && targetV <= maxPlausibleTargetVoltage;
+    }
+
     @Override
     public String toString() {
         return "VoltageControl(type=" + type

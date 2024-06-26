@@ -24,6 +24,10 @@ public final class Reports {
     private static final String ITERATION = "iteration";
     private static final String NETWORK_ID = "networkId";
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
+
+    private static final String IMPACTED_TRANSFORMER_COUNT = "impactedTransformerCount";
+
+    private static final String IMPACTED_SHUNT_COUNT = "impactedShuntCount";
     private static final String BUS_ID = "busId";
     private static final String CONTROLLER_BUS_ID = "controllerBusId";
     private static final String CONTROLLED_BUS_ID = "controlledBusId";
@@ -294,6 +298,30 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedGeneratorCount} generators have been discarded from voltage control because targetV is inconsistent")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedTransformerCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedTransformerCount} transformers have been discarded from voltage control because targetV is inconsistent")
+                .withUntypedValue(IMPACTED_TRANSFORMER_COUNT, impactedTransformerCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportShuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedShuntCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("shuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedShuntCount} shunt compensators have been discarded from voltage control because targetV is inconsistent")
+                .withUntypedValue(IMPACTED_SHUNT_COUNT, impactedShuntCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
     public static void reportAcLfComplete(ReportNode reportNode, boolean success, String solverStatus, String outerloopStatus) {
         TypedValue severity = success ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
         String successText = success ? "successfully" : "with error";
@@ -320,14 +348,9 @@ public final class Reports {
                 .build();
     }
 
-    public static ReportNode createLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode, int networkNumCc, int networkNumSc) {
-        ReportNode newReportNode = reportNode.newReportNode()
-                .withMessageTemplate("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}")
-                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
-                .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
-                .add();
-        newReportNode.include(lfNetworkReportNode);
-        return newReportNode;
+    public static ReportNode includeLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode) {
+        reportNode.include(lfNetworkReportNode);
+        return lfNetworkReportNode;
     }
 
     public static ReportNode createNetworkInfoReporter(ReportNode reportNode) {
@@ -381,6 +404,13 @@ public final class Reports {
         return reportNode.newReportNode()
                 .withMessageTemplate("postContingencySimulation", "Post-contingency simulation '${contingencyId}'")
                 .withUntypedValue("contingencyId", contingencyId)
+                .add();
+    }
+
+    public static ReportNode createOperatorStrategySimulation(ReportNode reportNode, String operatorStrategyId) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("operatorStrategySimulation", "Operator strategy simulation '${operatorStrategyId}'")
+                .withUntypedValue("operatorStrategyId", operatorStrategyId)
                 .add();
     }
 

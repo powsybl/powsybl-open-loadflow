@@ -340,12 +340,12 @@ class AcLoadFlowTransformerReactivePowerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(7.436, network.getLine("LINE_12").getTerminal1());
-        assertReactivePowerEquals(-6.891, network.getLine("LINE_12").getTerminal2());
-        assertReactivePowerEquals(-3.070, t2wt.getTerminal1());
-        assertReactivePowerEquals(2.665, t2wt.getTerminal2());
-        assertReactivePowerEquals(2.462, t2wt2.getTerminal1());
-        assertReactivePowerEquals(-2.665, t2wt2.getTerminal2());
+        assertReactivePowerEquals(7.419, network.getLine("LINE_12").getTerminal1());
+        assertReactivePowerEquals(-6.876, network.getLine("LINE_12").getTerminal2());
+        assertReactivePowerEquals(-3.077, t2wt.getTerminal1());
+        assertReactivePowerEquals(2.672, t2wt.getTerminal2());
+        assertReactivePowerEquals(2.455, t2wt2.getTerminal1());
+        assertReactivePowerEquals(-2.660, t2wt2.getTerminal2());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
         assertEquals(3, t2wt2.getRatioTapChanger().getTapPosition());
     }

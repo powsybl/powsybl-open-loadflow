@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.VoltageControl;
 import org.apache.commons.lang3.mutable.MutableObject;
 
@@ -25,6 +26,8 @@ import java.util.List;
 public class TransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
     public static final String NAME = "TransformerVoltageControl";
+
+    private final double maxControlledNominalVoltageOverride;
 
     private static final class ContextData {
 
@@ -45,6 +48,37 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         }
     }
 
+    public TransformerVoltageControlOuterLoop(double maxControlledNominalVoltageOverride) {
+        this.maxControlledNominalVoltageOverride = maxControlledNominalVoltageOverride;
+    }
+
+    private static boolean isTransformerVoltageControlsValidForMaxControlledNominalVoltageCalculation(TransformerVoltageControl transformerVoltageControl) {
+        // are removed from this automatic algorithm the transformer voltage control that are between two nominal
+        // voltages equivalents.
+        if (transformerVoltageControl != null) {
+            for (LfBranch branch : transformerVoltageControl.getControllerElements()) {
+                if (!branch.isConnectedAtBothSides()
+                        || branch.getBus1().getNominalV() == branch.getBus2().getNominalV()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static double calculateMaxControlledNominalVoltage(AcOuterLoopContext context) {
+        double maxControlledNominalVoltage = Double.MIN_VALUE;
+        for (LfBus bus : context.getNetwork().getBuses()) {
+            if (!bus.isDisabled()
+                    && bus.isTransformerVoltageControlled()
+                    && isTransformerVoltageControlsValidForMaxControlledNominalVoltageCalculation(bus.getTransformerVoltageControl().orElse(null))) {
+                maxControlledNominalVoltage = Math.max(maxControlledNominalVoltage, bus.getNominalV());
+            }
+        }
+        return maxControlledNominalVoltage;
+    }
+
     @Override
     public void initialize(AcOuterLoopContext context) {
         context.setData(new ContextData());
@@ -53,15 +87,9 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             controllerBranch.setVoltageControlEnabled(false);
         }
 
-        // All transformer voltage control are disabled for the first equation system resolution.
-        double[] maxControlledNominalVoltage = new double[1];
-        maxControlledNominalVoltage[0] = Double.MIN_VALUE;
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            if (!bus.isDisabled() && bus.isTransformerVoltageControlled()) {
-                maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], bus.getNominalV());
-            }
-        }
-        ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxControlledNominalVoltage[0]);
+        // all transformer voltage control are disabled for the first equation system resolution.
+        double maxControlledNominalVoltage = maxControlledNominalVoltageOverride < 0 ? calculateMaxControlledNominalVoltage(context) : maxControlledNominalVoltageOverride;
+        ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxControlledNominalVoltage);
     }
 
     @Override
