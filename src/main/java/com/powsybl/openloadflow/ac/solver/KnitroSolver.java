@@ -126,23 +126,24 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
                     if (!SolverUtils.getNonLinearConstraintsTypes().contains(typeEq)) {
                         LOGGER.debug("Equation of type {} is linear, and should be considered in the main function of Knitro, not in the callback function", typeEq);
-                    }
-
-                    for (EquationTerm term : equation.getTerms()) {
-                        term.setStateVector(currentState);
-                        if (term.isActive()) {
-                            valueConst += term.eval();
+                        throw new IllegalArgumentException("Equation of type " + typeEq + " is linear, and should be considered in the main function of Knitro, not in the callback function");
+                    } else {
+                        for (EquationTerm term : equation.getTerms()) {
+                            term.setStateVector(currentState);
+                            if (term.isActive()) {
+                                valueConst += term.eval();
+                            }
                         }
-                    }
-                    try {
-                        c.set(indexNonLinearCst, valueConst);
-//                            if (LOGGER.isTraceEnabled()) {
-//                                LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
-//                            }
-                    } catch (Exception e) {
-                        LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
-                        LOGGER.error(e.getMessage());
-                        throw new PowsyblException("Exception found while trying to add non-linear constraint");
+                        try {
+                            c.set(indexNonLinearCst, valueConst);
+                            //                            if (LOGGER.isTraceEnabled()) {
+                            //                                LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
+                            //                            }
+                        } catch (Exception e) {
+                            LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
+                            LOGGER.error(e.getMessage());
+                            throw new PowsyblException("Exception found while trying to add non-linear constraint");
+                        }
                     }
                     indexNonLinearCst += 1;
                 }
@@ -338,9 +339,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
                 SolverUtils solverUtils = new SolverUtils();
-                if (typeEq==AcEquationType.SHUNT_TARGET_B){
-                    System.out.println("Youhou on y est");
-                }
                 if (SolverUtils.getLinearConstraintsTypes().contains(typeEq)) {
                     List<Integer> listVar = new ArrayList<>();
                     List<Double> listCoef = new ArrayList<>();
@@ -419,8 +417,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             }
 
 //            setJacNnzPattern(listNonZerosCts,listNonZerosVars);
-            setJacNnzPattern(listNonZerosCts2,listNonZerosVars2);
-            setGradEvalCallback(new CallbackEvalG(jacobianMatrix,listNonZerosCts, listNonZerosVars, listNonZerosCts2,listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
+//            setJacNnzPattern(listNonZerosCts2,listNonZerosVars2);
+//            setGradEvalCallback(new CallbackEvalG(jacobianMatrix,listNonZerosCts, listNonZerosVars, listNonZerosCts2,listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
         }
 
     }
