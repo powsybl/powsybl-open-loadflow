@@ -541,7 +541,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             preContingencyStatesOverride = injectionRhs;
                         }
 
-                        handler.onRhs(contingency, preContingencyStatesOverride, elementsToReconnect);
+                        Set<String> finalElementsToReconnect1 = elementsToReconnect;
+                        Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
+                                .filter(element -> !finalElementsToReconnect1.contains(element))
+                                .map(connectivityData.contingencyElementByBranch()::get)
+                                .toList();
+
+                        handler.onContingency(contingency, contingencyElements, preContingencyStatesOverride);
                     }
                 };
 
@@ -628,17 +634,23 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             preContingencyStatesOverride = flowsRhs;
                         }
 
-                        handler.onRhs(contingency, preContingencyStatesOverride, elementsToReconnect);
+                        Set<String> finalElementsToReconnect1 = elementsToReconnect;
+                        Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
+                                .filter(element -> !finalElementsToReconnect1.contains(element))
+                                .map(connectivityData.contingencyElementByBranch()::get)
+                                .toList();
+
+                        handler.onContingency(contingency, contingencyElements, preContingencyStatesOverride);
                     }
                 };
 
                 // compute pre- and post-contingency flow states
-                List<DenseMatrix> flowResult = engine.run(loadFlowContext, flowReader, connectivityData);
+                List<DenseMatrix> flowResult = engine.run(loadFlowContext, flowReader, connectivityData.contingenciesStates());
                 // set function reference values of the factors
                 setFunctionReference(validLfFactors, flowsRhs);
 
                 // compute pre- and post-contingency injection states
-                List<DenseMatrix> injectionResult = engine.run(loadFlowContext, injectionReader, connectivityData);
+                List<DenseMatrix> injectionResult = engine.run(loadFlowContext, injectionReader, connectivityData.contingenciesStates());
                 // set base case values of the factors
                 setBaseCaseSensitivityValues(factorGroups, injectionRhs);
 
