@@ -43,7 +43,8 @@ public final class SolverUtils {
             AcEquationType.BUS_TARGET_P,
             AcEquationType.BUS_TARGET_Q,
             AcEquationType.BRANCH_TARGET_P,
-            AcEquationType.BRANCH_TARGET_Q
+            AcEquationType.BRANCH_TARGET_Q,
+            AcEquationType.BUS_DISTR_SLACK_P
     ));
 
     public static List<AcEquationType> getNonLinearConstraintsTypes() {
