@@ -69,18 +69,18 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
     void setTargetP(double targetP);
 
     /**
-     * The minimum P for active power operations (can be different from minP if overridden in the ActivePowerOperation extension)
+     * The minimum target P for active power operations (can be different from minP if minTargetP is set in the ActivePowerControl extension)
      * This limit is taken into account in the compensation.
      */
-    default double getActivePowerOperationMinP() {
+    default double getMinTargetP() {
         return getMinP();
     }
 
     /**
-     * The maximum P for active power operations (can be different from maxP if overridden in the ActivePowerOperation extension)
+     * The maximum target P for active power operations (can be different from maxP if maxTargetP is set in the ActivePowerControl extension)
      * This limit is taken into account in the compensation.
      */
-    default double getActivePowerOperationMaxP() {
+    default double getMaxTargetP() {
         return getMaxP();
     }
 

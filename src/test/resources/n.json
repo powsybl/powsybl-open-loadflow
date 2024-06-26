@@ -10,8 +10,8 @@
       "voltageControl" : true,
       "minP" : -99.9999,
       "maxP" : 49.99,
-      "activePowerOperationMinP" : -99.9999,
-      "activePowerOperationMaxP" : 49.99
+      "minTargetP" : -99.9999,
+      "maxTargetP" : 49.99
     } ]
   }, {
     "id" : "VLHV1_0",

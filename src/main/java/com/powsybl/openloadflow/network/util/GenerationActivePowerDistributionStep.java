@@ -74,24 +74,24 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
             LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
             double factor = participatingGenerator.getFactor();
 
-            double minP = useActiveLimits ? generator.getActivePowerOperationMinP() : -Double.MAX_VALUE;
-            double maxP = useActiveLimits ? generator.getActivePowerOperationMaxP() : Double.MAX_VALUE;
+            double minTargetP = useActiveLimits ? generator.getMinTargetP() : -Double.MAX_VALUE;
+            double maxTargetP = useActiveLimits ? generator.getMaxTargetP() : Double.MAX_VALUE;
             double targetP = generator.getTargetP();
 
             // we don't want to change the generation sign
             if (targetP < 0) {
-                maxP = Math.min(maxP, 0);
+                maxTargetP = Math.min(maxTargetP, 0);
             } else {
-                minP = Math.max(minP, 0);
+                minTargetP = Math.max(minTargetP, 0);
             }
 
             double newTargetP = targetP + remainingMismatch * factor;
-            if (remainingMismatch > 0 && newTargetP > maxP) {
-                newTargetP = maxP;
+            if (remainingMismatch > 0 && newTargetP > maxTargetP) {
+                newTargetP = maxTargetP;
                 generatorsAtMax++;
                 it.remove();
-            } else if (remainingMismatch < 0 && newTargetP < minP) {
-                newTargetP = minP;
+            } else if (remainingMismatch < 0 && newTargetP < minTargetP) {
+                newTargetP = minTargetP;
                 generatorsAtMin++;
                 it.remove();
             }
@@ -114,10 +114,10 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
 
     private double getParticipationFactor(LfGenerator generator) {
         return switch (participationType) {
-            case MAX -> generator.getActivePowerOperationMaxP() / generator.getDroop();
+            case MAX -> generator.getMaxTargetP() / generator.getDroop();
             case TARGET -> Math.abs(generator.getTargetP());
             case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
-            case REMAINING_MARGIN -> Math.max(0.0, generator.getActivePowerOperationMaxP() - generator.getTargetP());
+            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxTargetP() - generator.getTargetP());
         };
     }
 

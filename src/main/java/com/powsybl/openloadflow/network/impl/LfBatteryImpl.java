@@ -50,7 +50,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         }
 
         if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMinP(), battery.getMaxP(),
-                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report, activePowerControl)) {
             participating = false;
         }
 
@@ -94,17 +94,17 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public double getActivePowerOperationMinP() {
+    public double getMinTargetP() {
         Battery battery = getBattery();
         ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
-        return activePowerControl == null ? getMinP() : activePowerControl.getMinPOverride().orElse(battery.getMinP()) / PerUnit.SB;
+        return activePowerControl == null ? getMinP() : activePowerControl.getMinTargetP().orElse(battery.getMinP()) / PerUnit.SB;
     }
 
     @Override
-    public double getActivePowerOperationMaxP() {
+    public double getMaxTargetP() {
         Battery battery = getBattery();
         ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
-        return activePowerControl == null ? getMaxP() : activePowerControl.getMaxPOverride().orElse(battery.getMaxP()) / PerUnit.SB;
+        return activePowerControl == null ? getMaxP() : activePowerControl.getMaxTargetP().orElse(battery.getMaxP()) / PerUnit.SB;
     }
 
     @Override

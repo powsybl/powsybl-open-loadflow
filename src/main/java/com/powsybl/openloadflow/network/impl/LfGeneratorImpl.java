@@ -61,7 +61,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
 
         if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report, activePowerControl)) {
             participating = false;
         }
 
@@ -166,17 +166,17 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public double getActivePowerOperationMinP() {
+    public double getMinTargetP() {
         Generator generator = getGenerator();
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
-        return activePowerControl == null ? getMinP() : activePowerControl.getMinPOverride().orElse(generator.getMinP()) / PerUnit.SB;
+        return activePowerControl == null ? getMinP() : activePowerControl.getMinTargetP().orElse(generator.getMinP()) / PerUnit.SB;
     }
 
     @Override
-    public double getActivePowerOperationMaxP() {
+    public double getMaxTargetP() {
         Generator generator = getGenerator();
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
-        return activePowerControl == null ? getMaxP() : activePowerControl.getMaxPOverride().orElse(generator.getMaxP()) / PerUnit.SB;
+        return activePowerControl == null ? getMaxP() : activePowerControl.getMaxTargetP().orElse(generator.getMaxP()) / PerUnit.SB;
     }
 
     @Override

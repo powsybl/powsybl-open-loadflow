@@ -99,10 +99,10 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    void testProportionalToPWithOverride() {
+    void testProportionalToPWithTargetLimit() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(105);
-        g1.getExtension(ActivePowerControl.class).setMaxPOverride(103);
+        g1.getExtension(ActivePowerControl.class).setMaxTargetP(103);
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
@@ -123,8 +123,8 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-75.000, g3.getTerminal());
         assertActivePowerEquals(-75.000, g4.getTerminal());
 
-        // With a pMin temporary limit for g1
-        g1.getExtension(ActivePowerControl.class).setMinPOverride(85);
+        // With a minTargetP for g1
+        g1.getExtension(ActivePowerControl.class).setMinTargetP(85);
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());

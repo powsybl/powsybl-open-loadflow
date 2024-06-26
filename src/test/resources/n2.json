@@ -12,8 +12,8 @@
       "voltageControl" : true,
       "minP" : 0.5,
       "maxP" : 1.5,
-      "activePowerOperationMinP" : 0.5,
-      "activePowerOperationMaxP" : 1.5
+      "minTargetP" : 0.5,
+      "maxTargetP" : 1.5
     } ]
   }, {
     "id" : "VL2_0",
