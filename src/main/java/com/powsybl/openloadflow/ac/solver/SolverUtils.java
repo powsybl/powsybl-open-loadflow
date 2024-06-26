@@ -28,9 +28,9 @@ public final class SolverUtils {
             AcEquationType.ZERO_V,
             AcEquationType.ZERO_PHI,
             AcEquationType.DISTR_Q,
+            AcEquationType.DISTR_SHUNT_B,
+            AcEquationType.DISTR_RHO,
             AcEquationType.SHUNT_TARGET_B,
-            AcEquationType.BRANCH_TARGET_P,
-            AcEquationType.BRANCH_TARGET_Q,
             AcEquationType.BRANCH_TARGET_ALPHA1,
             AcEquationType.BRANCH_TARGET_RHO1
     ));
@@ -41,7 +41,9 @@ public final class SolverUtils {
 
     public static List<AcEquationType> nonLinearConstraintsTypes = new ArrayList<>(Arrays.asList(
             AcEquationType.BUS_TARGET_P,
-            AcEquationType.BUS_TARGET_Q
+            AcEquationType.BUS_TARGET_Q,
+            AcEquationType.BRANCH_TARGET_P,
+            AcEquationType.BRANCH_TARGET_Q
     ));
 
     public static List<AcEquationType> getNonLinearConstraintsTypes() {
@@ -58,22 +60,25 @@ public final class SolverUtils {
             case DUMMY_TARGET_P:
             case DUMMY_TARGET_Q:
             case SHUNT_TARGET_B:
-//            case BRANCH_TARGET_P:
-//            case BRANCH_TARGET_Q:
+            case BRANCH_TARGET_P:
+            case BRANCH_TARGET_Q:
             case BRANCH_TARGET_ALPHA1:
             case BRANCH_TARGET_RHO1:
                 listVar = addConstraintTarget(typeEq, equationId, terms).listIdVar;
                 listCoef = addConstraintTarget(typeEq, equationId, terms).listCoef;
+                break;
+            case DISTR_Q:
+            case DISTR_SHUNT_B:
+            case DISTR_RHO:
+                listVar = addConstraintDistrQ(typeEq, equationId, terms).listIdVar;
+                listCoef = addConstraintDistrQ(typeEq, equationId, terms).listCoef;
                 break;
             case ZERO_V:
             case ZERO_PHI:
                 listVar = addConstraintZero(typeEq, equationId, terms).listIdVar;
                 listCoef = addConstraintZero(typeEq, equationId, terms).listCoef;
                 break;
-            case DISTR_Q:
-                listVar = addConstraintDistrQ(typeEq, equationId, terms).listIdVar;
-                listCoef = addConstraintDistrQ(typeEq, equationId, terms).listCoef;
-                break;
+
         }
         return new VarAndCoefList(listVar,listCoef);
     }
