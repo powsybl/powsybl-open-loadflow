@@ -93,17 +93,17 @@ public class WoodburyEngine {
     /**
      * Compute post-contingency states values for each contingency of a list.
      */
-    private Map<PropagatedContingency, DenseMatrix> computeStatesForContingencyList(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates,
+    private List<DenseMatrix> computeStatesForContingencyList(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates,
                                                                                     Map<String, ComputedContingencyElement> contingencyElementByBranch, WoodburyEngineRhsReader reader) {
 
-        HashMap<PropagatedContingency, DenseMatrix> postContingencyStatesByContingency = new HashMap<>();
+        List<DenseMatrix> postContingencyStatesByContingency = new ArrayList<>();
         reader.process((PropagatedContingency contingency, DenseMatrix preContingencyStates, Set<String> elementsToReconnect) -> {
             Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
                 .toList();
             DenseMatrix postContingencyStates = computePostContingencyStates(loadFlowContext, preContingencyStates, contingenciesStates, contingencyElements);
-            postContingencyStatesByContingency.put(contingency, postContingencyStates);
+            postContingencyStatesByContingency.add(contingency.getIndex(), postContingencyStates);
         });
         return postContingencyStatesByContingency;
     }
@@ -114,11 +114,10 @@ public class WoodburyEngine {
      * breaking connectivity) changes it (for example, in the case of a lost GLSK member).
      *
      * @param loadFlowContext the dc load flow context in which is the network.
-     * @param rhs the pre-contingency right hand side.
      * @param connectivityBreakAnalysisResults the results of a connectivity break analysis (with groups of contingencies breaking connectivity identified).
      * @return pre- and post-contingency angle states.
      */
-    public Map<PropagatedContingency, DenseMatrix> run(DcLoadFlowContext loadFlowContext, DenseMatrix rhs, WoodburyEngineRhsReader reader,
+    public List<DenseMatrix> run(DcLoadFlowContext loadFlowContext, WoodburyEngineRhsReader reader,
                                     ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults) {
         Objects.requireNonNull(loadFlowContext);
         Objects.requireNonNull(reader);

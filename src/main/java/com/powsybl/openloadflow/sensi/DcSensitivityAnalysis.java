@@ -84,13 +84,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void createBranchPostContingenciesSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup,
-                                                               List<PropagatedContingency> contingencies, Map<PropagatedContingency, DenseMatrix> injectionResult, Map<PropagatedContingency, DenseMatrix> flowResult,
+                                                               List<PropagatedContingency> contingencies, List<DenseMatrix> injectionResult, List<DenseMatrix> flowResult,
                                                                HashMap<PropagatedContingency, DisabledNetwork> disabledNetworksByPropagatedContingencies,
                                                                SensitivityResultWriter resultWriter) {
         Derivable<DcVariableType> p1 = factor.getFunctionEquationTerm();
         for (PropagatedContingency contingency : contingencies) {
-            DenseMatrix postContingencyInjectionStates = injectionResult.get(contingency);
-            DenseMatrix postContingencyFlowStates = flowResult.get(contingency);
+            DenseMatrix postContingencyInjectionStates = injectionResult.get(contingency.getIndex());
+            DenseMatrix postContingencyFlowStates = flowResult.get(contingency.getIndex());
             DisabledNetwork disabledNetwork = disabledNetworksByPropagatedContingencies.get(contingency);
 
             Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledNetwork, contingency);
@@ -156,7 +156,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     /**
      * Calculate sensitivity values for post-contingency state.
      */
-    private void calculateSensitivityValues(Map<PropagatedContingency, DenseMatrix> injectionResult, Map<PropagatedContingency, DenseMatrix> flowResult, HashMap<PropagatedContingency, DisabledNetwork> disabledNetworksByPropagatedContingencies,
+    private void calculateSensitivityValues(List<DenseMatrix> injectionResult, List<DenseMatrix> flowResult, HashMap<PropagatedContingency, DisabledNetwork> disabledNetworksByPropagatedContingencies,
                                             List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors, List<PropagatedContingency> contingencies,
                                             SensitivityResultWriter resultWriter) {
         if (lfFactors.isEmpty()) {
@@ -633,12 +633,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 };
 
                 // compute pre- and post-contingency flow states
-                Map<PropagatedContingency, DenseMatrix> flowResult = engine.run(loadFlowContext, flowsRhs, flowReader, connectivityData);
+                List<DenseMatrix> flowResult = engine.run(loadFlowContext, flowReader, connectivityData);
                 // set function reference values of the factors
                 setFunctionReference(validLfFactors, flowsRhs);
 
                 // compute pre- and post-contingency injection states
-                Map<PropagatedContingency, DenseMatrix> injectionResult = engine.run(loadFlowContext, injectionRhs, injectionReader, connectivityData);
+                List<DenseMatrix> injectionResult = engine.run(loadFlowContext, injectionReader, connectivityData);
                 // set base case values of the factors
                 setBaseCaseSensitivityValues(factorGroups, injectionRhs);
 
