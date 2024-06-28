@@ -41,15 +41,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private Double qPercent;
 
-    private final boolean voltageControlAlways;
+    private final boolean forceVoltageControl;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
-        // voltageControlAlways for condensers, or for fictitious generators if FictitiousGeneratorVoltageControlMode set to ALAWYS
-        voltageControlAlways = generator.isCondenser() ? true   // USing ? : syntax because style checker forbids parenthesis in a pure boolean equation condenser || (fictif and param)
-                :
-                generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.ALWAYS;
+        // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
+        forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.FORCED;
         participating = true;
         droop = DEFAULT_DROOP;
 
@@ -210,15 +208,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
-        return voltageControlAlways ?
-                true :
-                super.checkIfGeneratorStartedForVoltageControl(report);
+        return forceVoltageControl ? true : super.checkIfGeneratorStartedForVoltageControl(report);
     }
 
     @Override
     protected boolean checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        return voltageControlAlways ?
-                true :
-                super.checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
+        return forceVoltageControl ? true : super.checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
     }
 }

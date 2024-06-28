@@ -397,8 +397,12 @@ order defined by default. Thus, if the user specifies only `["TRANSFORMER"]`,
 it will be completed to `["TRANSFORMER", "GENERATOR", "SHUNT"]`.
 
 **fictitiousGeneratorVoltageControlMode**  
-Specificies how fictitious generators can voltage. Possible modes are 'always' and 'normal'. 'always', the default, means that voltage 
-is controlled even if targetP is outside the minP - maxP interval.
+Specifies the active power checks exemption only for fictitious generators. These checks are:
+- if targetP equals zero, voltage control is disabled.
+- if parameter `disableVoltageControlOfGeneratorsOutsideActivePowerLimits` is enabled, for a generator with a `targetP` is lower
+than `minP` or greater than `maxP`, voltage control is disabled. 
+There are two different modes: use mode `FORCED` for an exemption of these two previous checks. Use mode `NORMAL` for none 
+exemption at all. The default mode is `FORCED`.
 
 ## Configuration file example
 See below an extract of a config file that could help:

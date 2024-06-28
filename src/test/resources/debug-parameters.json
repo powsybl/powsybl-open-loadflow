@@ -86,7 +86,7 @@
         "writeReferenceTerminals" : true,
         "voltageTargetPriorities" : [ "GENERATOR", "TRANSFORMER", "SHUNT" ],
         "generatorVoltageControlMinNominalVoltage" : -1.0,
-        "fictitiousGeneratorVoltageControlMode" : "ALWAYS"
+        "fictitiousGeneratorVoltageControlMode" : "FORCED"
       }
     }
   },

@@ -138,7 +138,7 @@ public class LfNetworkParameters {
 
     private List<String> voltageTargetPriorities = VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
-    private OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode fictitiousGeneratorVoltageControlMode = OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.ALWAYS;
+    private OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode fictitiousGeneratorVoltageControlMode = OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.FORCED;
 
     public LfNetworkParameters() {
     }
@@ -607,7 +607,7 @@ public class LfNetworkParameters {
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
                 ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
                 ", voltageTargetPriorities=" + voltageTargetPriorities +
-                ", fictitiousGeneratorVoltageControlMode" + fictitiousGeneratorVoltageControlMode +
+                ", fictitiousGeneratorVoltageControlMode=" + fictitiousGeneratorVoltageControlMode +
                 ')';
     }
 }

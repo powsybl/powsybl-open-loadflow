@@ -104,7 +104,7 @@ public class FictitiousGeneratorTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters olfParams = OpenLoadFlowParameters.create(parameters);
 
-        assertEquals(olfParams.getFictitiousGeneratorVoltageControlMode(), OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.ALWAYS);
+        assertEquals(olfParams.getFictitiousGeneratorVoltageControlMode(), OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.FORCED);
 
         LoadFlowResult result = runner.run(network, parameters);
 

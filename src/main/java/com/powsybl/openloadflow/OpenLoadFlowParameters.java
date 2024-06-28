@@ -121,11 +121,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     protected static final double GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE = -1d;
 
     public enum FictitiousGeneratorVoltageControlMode {
-        ALWAYS,
+        FORCED,
         NORMAL
     };
 
-    protected static final FictitiousGeneratorVoltageControlMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = FictitiousGeneratorVoltageControlMode.ALWAYS;
+    protected static final FictitiousGeneratorVoltageControlMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = FictitiousGeneratorVoltageControlMode.FORCED;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -332,7 +332,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE),
         new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class)),
         new Parameter(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Nominal voltage under which generator voltage controls are disabled during transformer voltage control outer loop of mode AFTER_GENERATOR_VOLTAGE_CONTROL, < 0 means automatic detection", OpenLoadFlowParameters.GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE),
-        new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE, ParameterType.STRING, "Specificies how fictitious generators can voltage. Possible modes are 'always' and 'normal'. 'always', the default, means that voltage is controlled even if targetP is outside outside the minP - maxP interval.", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlMode.class))
+        new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlMode.class))
     );
 
     public enum VoltageInitModeOverride {
