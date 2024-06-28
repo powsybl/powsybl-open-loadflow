@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2024, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.Bus;
@@ -19,13 +26,19 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class FictitiousGeneratorTest {
+/**
+ * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
+ */
+class FictitiousGeneratorTest {
 
-    Network network;
-    LoadFlow.Runner runner;
-    Bus b1;
-    Bus b2;
-    VoltageLevel vl2;
+    private Network network;
+    private LoadFlow.Runner loadFlowRunner;
+    private Bus b1;
+    private Bus b2;
+    private VoltageLevel vl2;
+
+    private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     public void setUp() {
@@ -63,8 +76,8 @@ public class FictitiousGeneratorTest {
                 .setId("b2")
                 .add();
 
-        // A fictitious generator gan generate poer
-        // but always controls voltage even hen not started
+        // A fictitious generator can generate power
+        // but always controls voltage even when not started
         vl2.newGenerator()
                 .setId("g2")
                 .setBus("b2")
@@ -95,18 +108,18 @@ public class FictitiousGeneratorTest {
                 .setX(1)
                 .add();
 
-        runner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+
+        parameters = new LoadFlowParameters();
+        parametersExt = OpenLoadFlowParameters.create(parameters);
     }
 
     @Test
-    public void testFictitiousGeneratorWithDefaultParameters() {
+    void testFictitiousGeneratorWithDefaultParameters() {
 
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters olfParams = OpenLoadFlowParameters.create(parameters);
+        assertEquals(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.FORCED, parametersExt.getFictitiousGeneratorVoltageControlMode());
 
-        assertEquals(olfParams.getFictitiousGeneratorVoltageControlMode(), OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.FORCED);
-
-        LoadFlowResult result = runner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(221, b1);
@@ -114,28 +127,22 @@ public class FictitiousGeneratorTest {
     }
 
     @Test
-    public void testFictitiousGeneratorNormalMode() {
+    void testFictitiousGeneratorNormalMode() {
 
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters olfParams = OpenLoadFlowParameters.create(parameters);
+        parametersExt.setFictitiousGeneratorVoltageControlMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.NORMAL);
 
-        olfParams.setFictitiousGeneratorVoltageControlMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.NORMAL);
-
-        LoadFlowResult result = runner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(221, b1);
-        assertVoltageEquals(220.18, b2);  // No voltage control on bus - voltage decreases with active power transport
+        assertVoltageEquals(220.18, b2);  // No voltage control on bus - voltage decreases with active power flow
 
     }
 
     @Test
-    public void testCondenser() {
+    void testCondenser() {
 
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters olfParams = OpenLoadFlowParameters.create(parameters);
-
-        // A condenser controls voltage but generatoes no power
+        // A condenser controls voltage but generates no power
         network.getGenerator("g2").remove();
         vl2.newGenerator()
                 .setId("condenser")
@@ -150,20 +157,20 @@ public class FictitiousGeneratorTest {
                 .setCondenser(true)
                 .add();
 
-        LoadFlowResult result = runner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(221, b1);
-        assertVoltageEquals(224, b2);  // No voltage control on bus - voltage decreases with active power transport
+        assertVoltageEquals(224, b2);  // No voltage control on bus - voltage decreases with active power flow
 
         // This parameter has no effect on condensers
-        olfParams.setFictitiousGeneratorVoltageControlMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.NORMAL);
+        parametersExt.setFictitiousGeneratorVoltageControlMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.NORMAL);
 
-        result = runner.run(network, parameters);
+        result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(221, b1);
-        assertVoltageEquals(224, b2);  // No voltage control on bus - voltage decreases with active power transport
+        assertVoltageEquals(224, b2);  // No voltage control on bus - voltage decreases with active power flow
 
     }
 }

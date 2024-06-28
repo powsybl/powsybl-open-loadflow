@@ -208,11 +208,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
-        return forceVoltageControl ? true : super.checkIfGeneratorStartedForVoltageControl(report);
+        return forceVoltageControl || super.checkIfGeneratorStartedForVoltageControl(report);
     }
 
     @Override
     protected boolean checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        return forceVoltageControl ? true : super.checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
+        return forceVoltageControl || super.checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
     }
 }
