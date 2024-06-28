@@ -441,7 +441,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 DenseMatrix preContingencyFlowStates = getPreContingencyFlowRhs(loadFlowContext, participatingElements, new DisabledNetwork());
                 solveMultipleTargets(preContingencyFlowStates, loadFlowContext.getJacobianMatrix(), reportNode);
 
-                WoodburyEngineReader flowReader = new AbstractWoodburyEngineReader() {
+                WoodburyEngineInputReader flowInputReader = new AbstractWoodburyEngineInputReader() {
 
                     Set<LfBranch> getDisabledPhaseTapChangers(PropagatedContingency contingency, Set<String> elementsToReconnect) {
                         return contingency.getBranchIdsToOpen().keySet().stream()
@@ -548,7 +548,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // pre-contingency injection states
                 DenseMatrix preContingencyInjectionStates = getPreContingencyInjectionRhs(loadFlowContext, factorGroups, participatingElements);
                 solveMultipleTargets(preContingencyInjectionStates, loadFlowContext.getJacobianMatrix(), reportNode);
-                WoodburyEngineReader injectionReader = new AbstractWoodburyEngineReader() {
+                WoodburyEngineInputReader injectionInputReader = new AbstractWoodburyEngineInputReader() {
 
                     boolean hasRhsChangedDueToConnectivityBreak(LoadFlowParameters lfParameters, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
                                                                 Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements) {
@@ -656,12 +656,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 };
 
                 // compute pre- and post-contingency flow states
-                Map<PropagatedContingency, DenseMatrix> flowResult = engine.run(loadFlowContext, flowReader, connectivityData.contingenciesStates());
+                Map<PropagatedContingency, DenseMatrix> flowResult = engine.run(loadFlowContext, flowInputReader, connectivityData.contingenciesStates());
                 // set function reference values of the factors
                 setFunctionReference(validLfFactors, preContingencyFlowStates);
 
                 // compute pre- and post-contingency injection states
-                Map<PropagatedContingency, DenseMatrix> injectionResult = engine.run(loadFlowContext, injectionReader, connectivityData.contingenciesStates());
+                Map<PropagatedContingency, DenseMatrix> injectionResult = engine.run(loadFlowContext, injectionInputReader, connectivityData.contingenciesStates());
                 // set base case values of the factors
                 setBaseCaseSensitivityValues(factorGroups, preContingencyInjectionStates);
 

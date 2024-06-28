@@ -9,7 +9,7 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import java.util.List;
 import java.util.Set;
 
-public abstract class AbstractWoodburyEngineReader implements WoodburyEngineReader {
+public abstract class AbstractWoodburyEngineInputReader implements WoodburyEngineInputReader {
 
     public boolean hasRhsChangedDueToDisabledSlackBus(LoadFlowParameters lfParameters, Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements) {
         return lfParameters.isDistributedSlack() && participatingElements.stream().anyMatch(element -> disabledBuses.contains(element.getLfBus()));

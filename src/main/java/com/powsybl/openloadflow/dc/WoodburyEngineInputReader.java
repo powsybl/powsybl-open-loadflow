@@ -16,7 +16,7 @@ import java.util.Collection;
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  */
-public interface WoodburyEngineReader {
+public interface WoodburyEngineInputReader {
 
     interface Handler {
         void onContingency(PropagatedContingency contingency, Collection<ComputedContingencyElement> contingencyElements, DenseMatrix preContingencyStates);

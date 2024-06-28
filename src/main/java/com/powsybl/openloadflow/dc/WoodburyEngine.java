@@ -102,7 +102,7 @@ public class WoodburyEngine {
      * @param contingenciesStates TODO
      * @return post-contingency angle states.
      */
-    public Map<PropagatedContingency, DenseMatrix> run(DcLoadFlowContext loadFlowContext, WoodburyEngineReader reader, DenseMatrix contingenciesStates) {
+    public Map<PropagatedContingency, DenseMatrix> run(DcLoadFlowContext loadFlowContext, WoodburyEngineInputReader reader, DenseMatrix contingenciesStates) {
         Objects.requireNonNull(loadFlowContext);
         Objects.requireNonNull(reader);
         Objects.requireNonNull(contingenciesStates);
