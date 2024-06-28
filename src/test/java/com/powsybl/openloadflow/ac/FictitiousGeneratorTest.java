@@ -157,7 +157,7 @@ class FictitiousGeneratorTest {
 
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(221, b1);
-        assertVoltageEquals(224, b2);  // No voltage control on bus - voltage decreases with active power flow
+        assertVoltageEquals(224, b2);
 
         // This parameter has no effect on condensers
         parametersExt.setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.NORMAL);
@@ -166,6 +166,6 @@ class FictitiousGeneratorTest {
 
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(221, b1);
-        assertVoltageEquals(224, b2);  // No voltage control on bus - voltage decreases with active power flow
+        assertVoltageEquals(224, b2);
     }
 }
