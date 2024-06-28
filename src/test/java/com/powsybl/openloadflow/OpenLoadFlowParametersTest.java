@@ -304,7 +304,6 @@ class OpenLoadFlowParametersTest {
 //        assertVoltageEquals(158, nload);
     }
 
-
     @Test
     void testUpdateParameters() {
         Map<String, String> parametersMap = new HashMap<>();

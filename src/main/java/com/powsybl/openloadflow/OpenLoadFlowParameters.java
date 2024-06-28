@@ -1000,6 +1000,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         this.alwaysUpdateNetworkKnitroSolver = alwaysUpdateNetworkKnitroSolver;
         return this;
     }
+
     public double getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() {
         return mostMeshedSlackBusSelectorMaxNominalVoltagePercentile;
     }

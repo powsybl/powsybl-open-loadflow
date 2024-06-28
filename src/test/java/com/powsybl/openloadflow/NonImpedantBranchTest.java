@@ -59,8 +59,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setWriteSlackBus(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
-//                .setAcSolverType(AcSolverType.KNITRO)
-        ;
+                .setAcSolverType(AcSolverType.KNITRO);
         // No OLs
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parameters.setDistributedSlack(false)
@@ -364,7 +363,6 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b3);
     }
 
-
     @Test
     void nonImpedantNetworkWithCycleFourBusTest() {
         Network network = Network.create("FourBusesNetworkWithCycle", "code");
@@ -440,7 +438,6 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 //        assertReactivePowerEquals(0.0, network.getLine("l34").getTerminal1());
 //        assertReactivePowerEquals(1.0, network.getLine("l41").getTerminal1());
 //    }
-
 
     @Test
     void securityAnalysisTest() {

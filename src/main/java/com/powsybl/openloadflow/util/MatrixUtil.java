@@ -9,14 +9,10 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.math.matrix.*;
-import org.tukaani.xz.check.None;
-
 import java.util.List;
-
 
 /**
  * TODO: move theses features to core.
- *
  * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
  */
@@ -51,7 +47,7 @@ public final class MatrixUtil {
         int newRowCount = listRowsAndColumnsToKeep.size();
         int newColumnCount = listRowsAndColumnsToKeep.size();
         MatrixFactory factory = new SparseMatrixFactory();
-        Matrix newMatrix = factory.create(newRowCount, newColumnCount, listRowsAndColumnsToKeep.size()*2);
+        Matrix newMatrix = factory.create(newRowCount, newColumnCount, listRowsAndColumnsToKeep.size() * 2);
 
         originalMatrix.iterateNonZeroValue(new Matrix.ElementHandler() {
             @Override

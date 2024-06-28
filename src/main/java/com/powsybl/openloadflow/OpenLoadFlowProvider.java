@@ -105,9 +105,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
         try {
             boolean isAlwaysUpdateNetwork = false;
-            if (parametersExt.getAcSolverType()== AcSolverType.NEWTON_RAPHSON) {
+            if (parametersExt.getAcSolverType() == AcSolverType.NEWTON_RAPHSON) {
                 isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetworkNewtonRaphson();
-            } else if (parametersExt.getAcSolverType()==AcSolverType.KNITRO) {
+            } else if (parametersExt.getAcSolverType() == AcSolverType.KNITRO) {
                 isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetworkKnitroSolver();
             }
             // update network state
@@ -157,9 +157,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         // we reset the state if at least one component needs a network update.
         boolean atLeastOneComponentHasToBeUpdated = results.stream().anyMatch(AcLoadFlowResult::isWithNetworkUpdate);
         boolean isAlwaysUpdateNetwork = false;
-        if (parametersExt.getAcSolverType()== AcSolverType.NEWTON_RAPHSON) {
+        if (parametersExt.getAcSolverType() == AcSolverType.NEWTON_RAPHSON) {
             isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetworkNewtonRaphson();
-        } else if (parametersExt.getAcSolverType()==AcSolverType.KNITRO) {
+        } else if (parametersExt.getAcSolverType() == AcSolverType.KNITRO) {
             isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetworkKnitroSolver();
         }
         // update network state

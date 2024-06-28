@@ -61,8 +61,6 @@ public final class SolverUtils {
             case DUMMY_TARGET_P:
             case DUMMY_TARGET_Q:
             case SHUNT_TARGET_B:
-            case BRANCH_TARGET_P:
-            case BRANCH_TARGET_Q:
             case BRANCH_TARGET_ALPHA1:
             case BRANCH_TARGET_RHO1:
                 listVar = addConstraintTarget(typeEq, equationId, terms).listIdVar;
@@ -81,14 +79,14 @@ public final class SolverUtils {
                 break;
 
         }
-        return new VarAndCoefList(listVar,listCoef);
+        return new VarAndCoefList(listVar, listCoef);
     }
 
     public class VarAndCoefList {
         private List<Integer> listIdVar;
         private List<Double> listCoef;
 
-        public VarAndCoefList(List<Integer> listIdVar,  List<Double> listCoef) {
+        public VarAndCoefList(List<Integer> listIdVar, List<Double> listCoef) {
             this.listIdVar = listIdVar;
             this.listCoef = listCoef;
         }
@@ -113,7 +111,7 @@ public final class SolverUtils {
         // get the variables Vi and Vj / Thetai and Thetaj corresponding to the constraint
         int idVari = terms.get(0).getVariables().get(0).getRow();
         int idVarj = terms.get(1).getVariables().get(0).getRow();
-        return new VarAndCoefList(Arrays.asList(idVari, idVarj), Arrays.asList(1.0,-1.0));
+        return new VarAndCoefList(Arrays.asList(idVari, idVarj), Arrays.asList(1.0, -1.0));
     }
 
     public VarAndCoefList addConstraintDistrQ(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
@@ -122,15 +120,15 @@ public final class SolverUtils {
         List<Double> listCoef = new ArrayList<>();
         for (EquationTerm<AcVariableType, AcEquationType> equationTerm : terms) {
             double scalar = 0.0;
-            if (((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm() instanceof VariableEquationTerm<?,?>) {
+            if (((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm() instanceof VariableEquationTerm<?, ?>) {
                 scalar = ((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getScalarSupplier();
-            } else if (((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm() instanceof EquationTerm.MultiplyByScalarEquationTerm<?,?>) {
+            } else if (((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm() instanceof EquationTerm.MultiplyByScalarEquationTerm<?, ?>) {
                 scalar = ((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getScalarSupplier();
                 scalar *= ((EquationTerm.MultiplyByScalarEquationTerm) ((EquationTerm.MultiplyByScalarEquationTerm) equationTerm).getTerm()).getScalarSupplier();
             }
             listVar.add(((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) equationTerm).getTerm().getVariables().get(0).getRow());
             listCoef.add(scalar);
         }
-        return new VarAndCoefList(listVar,listCoef);
+        return new VarAndCoefList(listVar, listCoef);
     }
 }
