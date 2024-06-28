@@ -54,8 +54,7 @@ class MultipleSlackBusesTest {
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setMaxSlackBusCount(2)
-                .setAcSolverType(AcSolverType.KNITRO)
-                ;
+                .setAcSolverType(AcSolverType.KNITRO);
     }
 
     static Stream<Arguments> allStoppingCriteriaTypes() {

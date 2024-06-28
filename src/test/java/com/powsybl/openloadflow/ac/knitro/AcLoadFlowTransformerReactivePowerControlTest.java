@@ -49,8 +49,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         parameters.setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcSolverType(AcSolverType.KNITRO)
-        ;
+                .setAcSolverType(AcSolverType.KNITRO);
     }
 
     @Test
@@ -221,7 +220,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(7.618, network.getLine("LINE_12").getTerminal1());
         assertReactivePowerEquals(-7.318, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(-0.181, t2wt.getTerminal1());
-        assertReactivePowerEquals(7.06*Math.pow(10,-7), t2wt.getTerminal2());
+        assertReactivePowerEquals(7.06 * Math.pow(10, -7), t2wt.getTerminal2());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -265,7 +264,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(7.285, network.getLine("LINE_12").getTerminal1()); // FIXME shouldn't be 7.285 ?
         assertReactivePowerEquals(-6.927, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(-0.572, t2wt.getTerminal1());
-        assertReactivePowerEquals(8.566*Math.pow(10,-7), t2wt.getTerminal2());
+        assertReactivePowerEquals(8.566 * Math.pow(10, -7), t2wt.getTerminal2());
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -410,8 +409,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(7.816, network.getLine("LINE_12").getTerminal1());
         assertReactivePowerEquals(-7.535, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(0.035, t3wt.getLeg1().getTerminal());
-        assertReactivePowerEquals(1.231*Math.pow(10,-5), t3wt.getLeg2().getTerminal());
-        assertReactivePowerEquals(1.228*Math.pow(10,-4), t3wt.getLeg3().getTerminal());
+        assertReactivePowerEquals(1.231 * Math.pow(10, -5), t3wt.getLeg2().getTerminal());
+        assertReactivePowerEquals(1.228 * Math.pow(10, -4), t3wt.getLeg3().getTerminal());
     }
 
     @Test
