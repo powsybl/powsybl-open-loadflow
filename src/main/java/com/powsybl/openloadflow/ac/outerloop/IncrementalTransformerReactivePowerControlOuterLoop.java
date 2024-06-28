@@ -42,7 +42,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
 
     public static final String NAME = "IncrementalTransformerReactivePowerControl";
 
-    private static final int MAX_DIRECTION_CHANGE = 2;
+    private static final int MAX_DIRECTION_CHANGE = 3;
 
     private final int maxTapShift;
 
