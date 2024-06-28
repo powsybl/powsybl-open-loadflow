@@ -138,6 +138,8 @@ public class LfNetworkParameters {
 
     private List<String> voltageTargetPriorities = VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
+    private OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
+
     public LfNetworkParameters() {
     }
 
@@ -181,6 +183,7 @@ public class LfNetworkParameters {
         this.simulateAutomationSystems = other.simulateAutomationSystems;
         this.referenceBusSelector = other.referenceBusSelector;
         this.voltageTargetPriorities = new ArrayList<>(other.voltageTargetPriorities);
+        this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -420,6 +423,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
+        return fictitiousGeneratorVoltageControlCheckMode;
+    }
+
+    public LfNetworkParameters setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
+        this.fictitiousGeneratorVoltageControlCheckMode = fictitiousGeneratorVoltageControlCheckMode;
+        return this;
+    }
+
     public boolean isSvcVoltageMonitoring() {
         return svcVoltageMonitoring;
     }
@@ -595,6 +607,7 @@ public class LfNetworkParameters {
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
                 ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
                 ", voltageTargetPriorities=" + voltageTargetPriorities +
+                ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
                 ')';
     }
 }
