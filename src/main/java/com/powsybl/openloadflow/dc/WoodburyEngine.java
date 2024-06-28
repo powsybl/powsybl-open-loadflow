@@ -102,15 +102,15 @@ public class WoodburyEngine {
      * @param contingenciesStates TODO
      * @return post-contingency angle states.
      */
-    public List<DenseMatrix> run(DcLoadFlowContext loadFlowContext, WoodburyEngineReader reader, DenseMatrix contingenciesStates) {
+    public Map<PropagatedContingency, DenseMatrix> run(DcLoadFlowContext loadFlowContext, WoodburyEngineReader reader, DenseMatrix contingenciesStates) {
         Objects.requireNonNull(loadFlowContext);
         Objects.requireNonNull(reader);
         Objects.requireNonNull(contingenciesStates);
 
-        List<DenseMatrix> postContingencyStatesByContingency = new ArrayList<>();
+        Map<PropagatedContingency, DenseMatrix> postContingencyStatesByContingency = new HashMap<>();
         reader.process((PropagatedContingency contingency, Collection<ComputedContingencyElement> contingencyElements, DenseMatrix preContingencyStates) -> {
             DenseMatrix postContingencyStates = computePostContingencyStates(loadFlowContext, preContingencyStates, contingenciesStates, contingencyElements);
-            postContingencyStatesByContingency.add(contingency.getIndex(), postContingencyStates);
+            postContingencyStatesByContingency.put(contingency, postContingencyStates);
         });
 
         return postContingencyStatesByContingency;
