@@ -158,11 +158,11 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
     }
 
-    public static boolean solveMultipleTargets(DenseMatrix targetMatrix,
-                                               JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix,
-                                               ReportNode reporter) {
+    public static boolean solve(DenseMatrix targetVectorsMatrix,
+                                JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix,
+                                ReportNode reporter) {
         try {
-            jacobianMatrix.solveTransposed(targetMatrix);
+            jacobianMatrix.solveTransposed(targetVectorsMatrix);
             return true;
         } catch (MatrixException e) {
             Reports.reportDcLfSolverFailure(reporter, e.getMessage());
