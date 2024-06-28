@@ -123,7 +123,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum FictitiousGeneratorVoltageControlCheckMode {
         FORCED,
         NORMAL
-    };
+    }
 
     protected static final FictitiousGeneratorVoltageControlCheckMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE = FictitiousGeneratorVoltageControlCheckMode.FORCED;
 
