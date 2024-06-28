@@ -563,14 +563,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 WoodburyEngineInputReader injectionInputReader = new AbstractWoodburyEngineInputReader() {
 
                     /**
-                     * @return True if the disabled buses change the slack distribution or the GLSK, False otherwise.
+                     * @return True if the disabled buses change the slack distribution or the GLSK. False otherwise.
                      */
                     boolean hasRhsChangedDueToConnectivityBreak(LoadFlowParameters lfParameters, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
                                                                 Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements) {
                         boolean rhsChanged = hasRhsChangedDueToDisabledSlackBus(lfParameters, disabledBuses, participatingElements);
                         if (factorGroups.hasMultiVariables()) {
                             // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-                            rhsChanged |= DcSensitivityAnalysis.this.rescaleGlsk(factorGroups, disabledBuses);
+                            rhsChanged |= rescaleGlsk(factorGroups, disabledBuses);
                         }
                         return rhsChanged;
                     }
