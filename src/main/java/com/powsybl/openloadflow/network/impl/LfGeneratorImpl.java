@@ -47,7 +47,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
-        forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.FORCED;
+        forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
         participating = true;
         droop = DEFAULT_DROOP;
 

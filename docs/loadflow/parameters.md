@@ -396,7 +396,7 @@ If the user specifies only a sub-list of priorities, this sub-list is completed 
 order defined by default. Thus, if the user specifies only `["TRANSFORMER"]`,
 it will be completed to `["TRANSFORMER", "GENERATOR", "SHUNT"]`.
 
-**fictitiousGeneratorVoltageControlMode**  
+**fictitiousGeneratorVoltageControlCheckMode**  
 Specifies the active power checks exemption only for fictitious generators. These checks are:
 - if targetP equals zero, voltage control is disabled.
 - if parameter `disableVoltageControlOfGeneratorsOutsideActivePowerLimits` is enabled, for a generator with a `targetP` is lower

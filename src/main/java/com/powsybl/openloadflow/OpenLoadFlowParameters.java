@@ -120,12 +120,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     protected static final double GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE = -1d;
 
-    public enum FictitiousGeneratorVoltageControlMode {
+    public enum FictitiousGeneratorVoltageControlCheckMode {
         FORCED,
         NORMAL
     };
 
-    protected static final FictitiousGeneratorVoltageControlMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = FictitiousGeneratorVoltageControlMode.FORCED;
+    protected static final FictitiousGeneratorVoltageControlCheckMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE = FictitiousGeneratorVoltageControlCheckMode.FORCED;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -259,7 +259,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME = "generatorVoltageControlMinNominalVoltage";
 
-    public static final String FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE = "fictitiousGeneratorVoltageControlMode";
+    public static final String FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE = "fictitiousGeneratorVoltageControlCheckMode";
 
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -332,7 +332,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE),
         new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class)),
         new Parameter(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Nominal voltage under which generator voltage controls are disabled during transformer voltage control outer loop of mode AFTER_GENERATOR_VOLTAGE_CONTROL, < 0 means automatic detection", OpenLoadFlowParameters.GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE),
-        new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlMode.class))
+        new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class))
     );
 
     public enum VoltageInitModeOverride {
@@ -506,7 +506,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double generatorVoltageControlMinNominalVoltage = GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE;
 
-    private FictitiousGeneratorVoltageControlMode fictitiousGeneratorVoltageControlMode = FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
+    private FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1186,12 +1186,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return generatorVoltageControlMinNominalVoltage;
     }
 
-    public FictitiousGeneratorVoltageControlMode getFictitiousGeneratorVoltageControlMode() {
-        return fictitiousGeneratorVoltageControlMode;
+    public FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
+        return fictitiousGeneratorVoltageControlCheckMode;
     }
 
-    public OpenLoadFlowParameters setFictitiousGeneratorVoltageControlMode(FictitiousGeneratorVoltageControlMode fictitiousGeneratorVoltageControlMode) {
-        this.fictitiousGeneratorVoltageControlMode = Objects.requireNonNull(fictitiousGeneratorVoltageControlMode);
+    public OpenLoadFlowParameters setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
+        this.fictitiousGeneratorVoltageControlCheckMode = Objects.requireNonNull(fictitiousGeneratorVoltageControlCheckMode);
         return this;
     }
 
@@ -1420,8 +1420,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setVoltageTargetPriorities(parseStringListProp(prop)));
         Optional.ofNullable(properties.get(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorVoltageControlMinNominalVoltage(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE))
-                .ifPresent(prop -> this.setFictitiousGeneratorVoltageControlMode(FictitiousGeneratorVoltageControlMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE))
+                .ifPresent(prop -> this.setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode.valueOf(prop)));
         return this;
     }
 
@@ -1493,7 +1493,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(WRITE_REFERENCE_TERMINALS_PARAM_NAME, writeReferenceTerminals);
         map.put(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, voltageTargetPriorities);
         map.put(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, generatorVoltageControlMinNominalVoltage);
-        map.put(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_MODE, fictitiousGeneratorVoltageControlMode);
+        map.put(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, fictitiousGeneratorVoltageControlCheckMode);
         return map;
     }
 
@@ -1622,7 +1622,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSimulateAutomationSystems(parametersExt.isSimulateAutomationSystems())
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
                 .setVoltageTargetPriorities(parametersExt.getVoltageTargetPriorities())
-                .setFictitiousGeneratorVoltageControlMode(parametersExt.getFictitiousGeneratorVoltageControlMode());
+                .setFictitiousGeneratorVoltageControlCheckMode(parametersExt.getFictitiousGeneratorVoltageControlCheckMode());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1871,7 +1871,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
                 Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities()) &&
                 extension1.getGeneratorVoltageControlMinNominalVoltage() == extension2.getGeneratorVoltageControlMinNominalVoltage() &&
-                extension1.getFictitiousGeneratorVoltageControlMode() == extension2.getFictitiousGeneratorVoltageControlMode();
+                extension1.getFictitiousGeneratorVoltageControlCheckMode() == extension2.getFictitiousGeneratorVoltageControlCheckMode();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1963,7 +1963,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
                     .setVoltageTargetPriorities(extension.getVoltageTargetPriorities())
                     .setGeneratorVoltageControlMinNominalVoltage(extension.getGeneratorVoltageControlMinNominalVoltage())
-                    .setFictitiousGeneratorVoltageControlMode(extension.getFictitiousGeneratorVoltageControlMode());
+                    .setFictitiousGeneratorVoltageControlCheckMode(extension.getFictitiousGeneratorVoltageControlCheckMode());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

@@ -104,7 +104,7 @@ public class FictitiousGeneratorTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters olfParams = OpenLoadFlowParameters.create(parameters);
 
-        assertEquals(olfParams.getFictitiousGeneratorVoltageControlMode(), OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.FORCED);
+        assertEquals(olfParams.getFictitiousGeneratorVoltageControlCheckMode(), OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED);
 
         LoadFlowResult result = runner.run(network, parameters);
 
@@ -119,7 +119,7 @@ public class FictitiousGeneratorTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters olfParams = OpenLoadFlowParameters.create(parameters);
 
-        olfParams.setFictitiousGeneratorVoltageControlMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.NORMAL);
+        olfParams.setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.NORMAL);
 
         LoadFlowResult result = runner.run(network, parameters);
 
@@ -157,7 +157,7 @@ public class FictitiousGeneratorTest {
         assertVoltageEquals(224, b2);  // No voltage control on bus - voltage decreases with active power transport
 
         // This parameter has no effect on condensers
-        olfParams.setFictitiousGeneratorVoltageControlMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.NORMAL);
+        olfParams.setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.NORMAL);
 
         result = runner.run(network, parameters);
 

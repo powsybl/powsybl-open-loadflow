@@ -138,7 +138,7 @@ public class LfNetworkParameters {
 
     private List<String> voltageTargetPriorities = VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
-    private OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode fictitiousGeneratorVoltageControlMode = OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode.FORCED;
+    private OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
 
     public LfNetworkParameters() {
     }
@@ -183,7 +183,7 @@ public class LfNetworkParameters {
         this.simulateAutomationSystems = other.simulateAutomationSystems;
         this.referenceBusSelector = other.referenceBusSelector;
         this.voltageTargetPriorities = new ArrayList<>(other.voltageTargetPriorities);
-        this.fictitiousGeneratorVoltageControlMode = other.fictitiousGeneratorVoltageControlMode;
+        this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -423,12 +423,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode getFictitiousGeneratorVoltageControlMode() {
-        return fictitiousGeneratorVoltageControlMode;
+    public OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
+        return fictitiousGeneratorVoltageControlCheckMode;
     }
 
-    public LfNetworkParameters setFictitiousGeneratorVoltageControlMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlMode fictitiousGeneratorVoltageControlMode) {
-        this.fictitiousGeneratorVoltageControlMode = fictitiousGeneratorVoltageControlMode;
+    public LfNetworkParameters setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
+        this.fictitiousGeneratorVoltageControlCheckMode = fictitiousGeneratorVoltageControlCheckMode;
         return this;
     }
 
@@ -607,7 +607,7 @@ public class LfNetworkParameters {
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
                 ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
                 ", voltageTargetPriorities=" + voltageTargetPriorities +
-                ", fictitiousGeneratorVoltageControlMode=" + fictitiousGeneratorVoltageControlMode +
+                ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
                 ')';
     }
 }
