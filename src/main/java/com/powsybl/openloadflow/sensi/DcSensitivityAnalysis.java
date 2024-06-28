@@ -441,8 +441,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 DenseMatrix preContingencyFlowStates = getPreContingencyFlowRhs(loadFlowContext, participatingElements, new DisabledNetwork());
                 solveMultipleTargets(preContingencyFlowStates, loadFlowContext.getJacobianMatrix(), reportNode);
 
-                WoodburyEngineInputReader flowInputReader = new AbstractWoodburyEngineInputReader() {
+                // set function reference values of the factors
+                setFunctionReference(validLfFactors, preContingencyFlowStates);
 
+                WoodburyEngineInputReader flowInputReader = new AbstractWoodburyEngineInputReader() {
                     Set<LfBranch> getDisabledPhaseTapChangers(PropagatedContingency contingency, Set<String> elementsToReconnect) {
                         return contingency.getBranchIdsToOpen().keySet().stream()
                                 .filter(element -> !elementsToReconnect.contains(element))
@@ -453,47 +455,46 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     }
 
                     Optional<DenseMatrix> getPreContingencyFlowRhsOverride(PropagatedContingency contingency, Set<LfBus> disabledBuses, Set<LfBranch> partialDisabledBranches,
-                                                                           Set<String> elementsToReconnect, List<ParticipatingElement> participatingElementsForThisConnectivity) {
-                        DenseMatrix preContingencyStatesOverride = null;
+                                                                           Set<String> elementsToReconnect, List<ParticipatingElement> participatingElements) {
+                        if (!contingency.getGeneratorIdsToLose().isEmpty() || !contingency.getLoadIdsToLoose().isEmpty()) {
+                            Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
+                            disabledBranches.addAll(partialDisabledBranches);
+                            DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 
-                        // in case a phase tap changer is lost, flow rhs must be updated
-                        Set<LfBranch> disabledPhaseTapChangers = getDisabledPhaseTapChangers(contingency, elementsToReconnect);
-                        if (!disabledPhaseTapChangers.isEmpty()) {
-                            preContingencyStatesOverride = getPreContingencyFlowRhs(loadFlowContext, participatingElementsForThisConnectivity,
-                                    new DisabledNetwork(disabledBuses, disabledPhaseTapChangers));
-                        }
-
-                        Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
-                        disabledBranches.addAll(partialDisabledBranches);
-                        DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
-                        if (!(contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty())) {
                             // if we have a contingency including the loss of a DC line or a generator or a load
-                            // save base state for later restoration after each contingency
-                            LfNetwork lfNetwork2 = loadFlowContext.getNetwork();
-                            NetworkState networkState = NetworkState.save(lfNetwork2);
-                            LfContingency lfContingency = contingency.toLfContingency(lfNetwork2).orElse(null);
-                            List<ParticipatingElement> newParticipatingElements = participatingElementsForThisConnectivity;
+                            // save base state for later restoration
+                            LfNetwork lfNetwork = loadFlowContext.getNetwork();
+                            NetworkState networkState = NetworkState.save(lfNetwork);
+                            LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
+                            List<ParticipatingElement> newParticipatingElements = participatingElements;
                             if (lfContingency != null) {
-                                List<ParticipatingElement> modifiedParticipatingElements = participatingElementsForThisConnectivity;
                                 lfContingency.apply(lfParameters.getBalanceType());
-                                boolean rhsChanged = isDistributedSlackOnGenerators(loadFlowContext.getParameters()) && !contingency.getGeneratorIdsToLose().isEmpty()
-                                        || isDistributedSlackOnLoads(loadFlowContext.getParameters()) && !contingency.getLoadIdsToLoose().isEmpty();
-                                if (rhsChanged) {
-                                    modifiedParticipatingElements = getNewNormalizedParticipationFactors(loadFlowContext, lfParametersExt, lfContingency, modifiedParticipatingElements);
+                                // if participating elements are changed
+                                if (isDistributedSlackOnGenerators(loadFlowContext.getParameters()) && !contingency.getGeneratorIdsToLose().isEmpty()
+                                        || isDistributedSlackOnLoads(loadFlowContext.getParameters()) && !contingency.getLoadIdsToLoose().isEmpty()) {
+                                    newParticipatingElements = getNewNormalizedParticipationFactors(loadFlowContext, lfParametersExt, lfContingency, newParticipatingElements);
                                 }
-                                newParticipatingElements = modifiedParticipatingElements;
                             }
-
-                            preContingencyStatesOverride = getPreContingencyFlowRhs(loadFlowContext, newParticipatingElements, disabledNetwork);
+                            DenseMatrix preContingencyFlowRhsOverride = getPreContingencyFlowRhs(loadFlowContext, newParticipatingElements, disabledNetwork);
                             networkState.restore();
+                            return Optional.of(preContingencyFlowRhsOverride);
+                        } else {
+                            // in case a phase tap changer is lost, flow rhs must be updated
+                            Set<LfBranch> disabledPhaseTapChangers = getDisabledPhaseTapChangers(contingency, elementsToReconnect);
+                            if (!disabledPhaseTapChangers.isEmpty()) {
+                                return Optional.of(getPreContingencyFlowRhs(loadFlowContext, participatingElements,
+                                        new DisabledNetwork(disabledBuses, disabledPhaseTapChangers)));
+                            } else {
+                                // no override is needed
+                                return Optional.empty();
+                            }
                         }
-
-                        return Optional.ofNullable(preContingencyStatesOverride);
                     }
 
                     @Override
                     public void process(Handler handler) {
 
+                        Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityData.contingencyElementByBranch();
                         for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
                             List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
                             Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
@@ -502,7 +503,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             // if one bus of the line is lost.
                             processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
 
-                            // we need to recompute the injection if rhs because the connectivity changed
+                            // we need to recompute the rhs because the connectivity changed
                             boolean rhsChanged = hasRhsChangedDueToDisabledSlackBus(lfParameters, disabledBuses, participatingElementsForThisConnectivity);
                             if (rhsChanged) {
                                 participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
@@ -514,13 +515,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             DenseMatrix preContingencyStatesOverrideConnectivityBreak = getPreContingencyFlowRhs(loadFlowContext, participatingElementsForThisConnectivity, disabledNetwork);
                             solveMultipleTargets(preContingencyStatesOverrideConnectivityBreak, loadFlowContext.getJacobianMatrix(), reportNode);
 
+                            Set<String> elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
+                            Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
                             for (PropagatedContingency contingency : connectivityAnalysisResult.getContingencies()) {
-                                Optional<DenseMatrix> preContingencyStatesOverride = getPreContingencyFlowRhsOverride(contingency, disabledBuses, connectivityAnalysisResult.getPartialDisabledBranches(),
-                                        connectivityAnalysisResult.getElementsToReconnect(), participatingElementsForThisConnectivity);
                                 Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                                        .filter(element -> !connectivityAnalysisResult.getElementsToReconnect().contains(element))
-                                        .map(connectivityData.contingencyElementByBranch()::get)
+                                        .filter(element -> !elementsToReconnect.contains(element))
+                                        .map(contingencyElementByBranch::get)
                                         .toList();
+                                Optional<DenseMatrix> preContingencyStatesOverride = getPreContingencyFlowRhsOverride(contingency, disabledBuses, partialDisabledBranches,
+                                        elementsToReconnect, participatingElementsForThisConnectivity);
                                 preContingencyStatesOverride.ifPresentOrElse(override -> {
                                     solveMultipleTargets(override, loadFlowContext.getJacobianMatrix(), reportNode);
                                     handler.onContingency(contingency, contingencyElements, override);
@@ -529,11 +532,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         }
 
                         for (PropagatedContingency contingency : connectivityData.nonBreakingConnectivityContingencies()) {
-                            Optional<DenseMatrix> preContingencyStatesOverride = getPreContingencyFlowRhsOverride(contingency, Collections.emptySet(), Collections.emptySet(),
-                                    Collections.emptySet(), participatingElements);
                             Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                                    .map(connectivityData.contingencyElementByBranch()::get)
+                                    .map(contingencyElementByBranch::get)
                                     .toList();
+                            Optional<DenseMatrix> preContingencyStatesOverride = getPreContingencyFlowRhsOverride(contingency, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), participatingElements);
                             preContingencyStatesOverride.ifPresentOrElse(override -> {
                                 solveMultipleTargets(override, loadFlowContext.getJacobianMatrix(), reportNode);
                                 handler.onContingency(contingency, contingencyElements, override);
@@ -542,12 +544,19 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     }
                 };
 
+                // compute post-contingency flow states
+                Map<PropagatedContingency, DenseMatrix> flowResult = engine.run(loadFlowContext, flowInputReader, connectivityData.contingenciesStates());
+
                 // storage of disabled network by propagated contingencies, for sensitivity calculation
                 HashMap<PropagatedContingency, DisabledNetwork> disabledNetworkByPropagatedContingency = new HashMap<>();
 
                 // pre-contingency injection states
                 DenseMatrix preContingencyInjectionStates = getPreContingencyInjectionRhs(loadFlowContext, factorGroups, participatingElements);
                 solveMultipleTargets(preContingencyInjectionStates, loadFlowContext.getJacobianMatrix(), reportNode);
+
+                // set base case values of the factors
+                setBaseCaseSensitivityValues(factorGroups, preContingencyInjectionStates);
+
                 WoodburyEngineInputReader injectionInputReader = new AbstractWoodburyEngineInputReader() {
 
                     boolean hasRhsChangedDueToConnectivityBreak(LoadFlowParameters lfParameters, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
@@ -573,17 +582,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         } else {
                             // if we have a contingency including the loss of a DC line or a generator or a load
                             // save base state for later restoration after each contingency
-                            LfNetwork lfNetwork2 = loadFlowContext.getNetwork();
-                            NetworkState networkState = NetworkState.save(lfNetwork2);
-                            LfContingency lfContingency = contingency.toLfContingency(lfNetwork2).orElse(null);
+                            LfNetwork lfNetwork = loadFlowContext.getNetwork();
+                            NetworkState networkState = NetworkState.save(lfNetwork);
+                            LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
                             if (lfContingency != null) {
-                                DcLoadFlowParameters lfParameters2 = loadFlowContext.getParameters();
-                                lfContingency.apply(lfParameters2.getBalanceType());
+                                DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
+                                lfContingency.apply(lfParameters.getBalanceType());
                                 List<ParticipatingElement> modifiedParticipatingElements = participatingElements;
                                 boolean rhsChanged = isDistributedSlackOnGenerators(loadFlowContext.getParameters()) && !contingency.getGeneratorIdsToLose().isEmpty()
                                         || isDistributedSlackOnLoads(loadFlowContext.getParameters()) && !contingency.getLoadIdsToLoose().isEmpty();
                                 if (rhsChanged) {
-                                    modifiedParticipatingElements = DcSensitivityAnalysis.this.getNewNormalizedParticipationFactors(loadFlowContext, lfParametersExt, lfContingency, modifiedParticipatingElements);
+                                    modifiedParticipatingElements = getNewNormalizedParticipationFactors(loadFlowContext, lfParametersExt, lfContingency, modifiedParticipatingElements);
                                 }
                                 if (factorGroups.hasMultiVariables()) {
                                     Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
@@ -607,16 +616,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     @Override
                     public void process(Handler handler) {
 
+                        Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityData.contingencyElementByBranch();
                         for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
                             Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
                             List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
-                            DenseMatrix preContingencyStatesOverrideConnectivityBreak;
 
                             // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
                             // if one bus of the line is lost.
                             processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
 
                             // we need to recompute the injection rhs because the connectivity changed
+                            DenseMatrix preContingencyStatesOverrideConnectivityBreak;
                             boolean rhsChanged = hasRhsChangedDueToConnectivityBreak(lfParameters, factorGroups, disabledBuses, participatingElementsForThisConnectivity);
                             if (rhsChanged) {
                                 participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
@@ -625,15 +635,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                 preContingencyStatesOverrideConnectivityBreak = getPreContingencyInjectionRhs(loadFlowContext, factorGroups, participatingElementsForThisConnectivity);
                                 solveMultipleTargets(preContingencyStatesOverrideConnectivityBreak, loadFlowContext.getJacobianMatrix(), reportNode);
                             } else {
-                                // TODO : remove this hack
                                 preContingencyStatesOverrideConnectivityBreak = preContingencyInjectionStates;
                             }
 
+                            Set<String> elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
                             for (PropagatedContingency contingency : connectivityAnalysisResult.getContingencies()) {
                                 Optional<DenseMatrix> preContingencyInjectionStatesOverride = getPreContingencyInjectionRhsOverride(contingency, disabledBuses, connectivityAnalysisResult.getPartialDisabledBranches());
                                 Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                                        .filter(element -> !connectivityAnalysisResult.getElementsToReconnect().contains(element))
-                                        .map(connectivityData.contingencyElementByBranch()::get)
+                                        .filter(element -> !elementsToReconnect.contains(element))
+                                        .map(contingencyElementByBranch::get)
                                         .toList();
                                 preContingencyInjectionStatesOverride.ifPresentOrElse(override -> {
                                     solveMultipleTargets(override, loadFlowContext.getJacobianMatrix(), reportNode);
@@ -645,7 +655,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         for (PropagatedContingency contingency : connectivityData.nonBreakingConnectivityContingencies()) {
                             Optional<DenseMatrix> preContingencyStatesOverride = getPreContingencyInjectionRhsOverride(contingency, Collections.emptySet(), Collections.emptySet());
                             Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                                    .map(connectivityData.contingencyElementByBranch()::get)
+                                    .map(contingencyElementByBranch::get)
                                     .toList();
                             preContingencyStatesOverride.ifPresentOrElse(override -> {
                                 solveMultipleTargets(override, loadFlowContext.getJacobianMatrix(), reportNode);
@@ -655,15 +665,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     }
                 };
 
-                // compute pre- and post-contingency flow states
-                Map<PropagatedContingency, DenseMatrix> flowResult = engine.run(loadFlowContext, flowInputReader, connectivityData.contingenciesStates());
-                // set function reference values of the factors
-                setFunctionReference(validLfFactors, preContingencyFlowStates);
-
                 // compute pre- and post-contingency injection states
                 Map<PropagatedContingency, DenseMatrix> injectionResult = engine.run(loadFlowContext, injectionInputReader, connectivityData.contingenciesStates());
-                // set base case values of the factors
-                setBaseCaseSensitivityValues(factorGroups, preContingencyInjectionStates);
 
                 // compute the sensibilities with Woodbury computed states (pre- and post- contingency), and computed disabledNetworks
                 calculateSensitivityValues(injectionResult, flowResult, disabledNetworkByPropagatedContingency, validFactorHolder.getAllFactors(), contingencies, resultWriter);
