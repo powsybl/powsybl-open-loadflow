@@ -457,7 +457,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                         // Changer pour d'abord iterer sur les non breaking, puis sur les breaking
 
-
                         for (PropagatedContingency contingency : contingencies) {
                             DenseMatrix preContingencyStatesOverride = null;
                             Set<String> elementsToReconnect = Collections.emptySet();
@@ -595,7 +594,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 //                                    disabledNetworksByPropagatedContingencies, disabledBuses, connectivityAnalysisResult.getPartialDisabledBranches(), connectivityDataResult.contingencyElementByBranch(),
 //                                    connectivityAnalysisResult.getElementsToReconnect(), resultWriter);
 //                        }
-
 
                         for (PropagatedContingency contingency : contingencies) {
                             DenseMatrix preContingencyStatesOverride = null;
