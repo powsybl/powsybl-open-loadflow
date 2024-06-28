@@ -64,7 +64,7 @@ public class GeneratorVoltageControlManager {
         // although this class as not designed nor tested with this use case in mind.
         disabledControllerBuses.clear();
         for (LfBus bus : network.getControlledBuses(VoltageControl.Type.GENERATOR)) {
-            if (bus.getNominalV() < minNominalVoltageLimit) {
+            if (bus.getNominalV() <= minNominalVoltageLimit) {
                 var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
                 for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
                     if (controllerBus.isGeneratorVoltageControlEnabled() && !hasStepUpTransformers(controllerBus, minNominalVoltageLimit)) {
