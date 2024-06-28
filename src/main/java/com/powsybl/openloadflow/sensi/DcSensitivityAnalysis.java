@@ -565,36 +565,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     @Override
                     public void process(Handler handler) {
 
-//                        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
-//                            Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
-//
-//                            // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
-//                            // if one bus of the line is lost.
-//                            processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
-//
-//                            // null and unused if slack bus is not distributed
-//                            List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
-//                            boolean rhsChanged = hasRhsChangedDueToConnectivityBreak()
-//                            // we need to recompute the injection rhs because the connectivity changed
-//                            if (rhsChanged) {
-//                                participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
-//                                        ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
-//                                        : Collections.emptyList());
-//                                DenseMatrix injectionRhsOverrideForThisConnectivity = getPreContingencyInjectionRhs(loadFlowContext, factorGroups, participatingElementsForThisConnectivity);
-//                                injectionRhsModifications.addRhsOverrideForAConnectivity(connectivityAnalysisResult, injectionRhsOverrideForThisConnectivity);
-//                            }
-//
-//                            DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, Collections.emptySet());
-//                            // recompute the flow rhs
-//                            DenseMatrix flowRhsOverride = getPreContingencyFlowRhs(loadFlowContext, participatingElementsForThisConnectivity, disabledNetwork);
-//                            flowRhsModifications.addRhsOverrideForAConnectivity(connectivityAnalysisResult, flowRhsOverride);
-//
-//                            // Build rhs modifications for each contingency bringing this connectivity schema
-//                            buildRhsModificationsForContingencies(loadFlowContext, lfParametersExt, factorGroups, connectivityAnalysisResult.getContingencies(), participatingElementsForThisConnectivity, injectionRhsModifications, flowRhsModifications,
-//                                    disabledNetworksByPropagatedContingencies, disabledBuses, connectivityAnalysisResult.getPartialDisabledBranches(), connectivityDataResult.contingencyElementByBranch(),
-//                                    connectivityAnalysisResult.getElementsToReconnect(), resultWriter);
-//                        }
-
                         for (PropagatedContingency contingency : contingencies) {
                             DenseMatrix preContingencyStatesOverride = null;
                             Set<String> elementsToReconnect = Collections.emptySet();
