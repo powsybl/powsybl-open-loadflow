@@ -92,14 +92,16 @@ public class WoodburyEngine {
 
     /**
      * TODO : update
-     * Compute pre- and post-contingency angle states of a network, using Woodbury formula, and for a given connectivity break analysis.
-     * Right hand side overrides should be provided when a contingency or a connectivity analysis result (group of contingencies
+     * Compute post-contingency angle states of a network, using Woodbury formula, and for a given WoodburyEngineReader.
+     * This reader provides pre-contingency states, for a predefined set of contingencies.
+     * These states are override when a contingency or a connectivity analysis result (group of contingencies
      * breaking connectivity) changes it (for example, in the case of a lost GLSK member).
      *
      * @param loadFlowContext the dc load flow context in which is the network.
-     * @return pre- and post-contingency angle states.
+     * @param reader the reader providing pre-contingency states overrides.
+     * @return post-contingency angle states.
      */
-    public List<DenseMatrix> run(DcLoadFlowContext loadFlowContext, WoodburyEngineRhsReader reader, DenseMatrix contingenciesStates) {
+    public List<DenseMatrix> run(DcLoadFlowContext loadFlowContext, WoodburyEngineReader reader, DenseMatrix contingenciesStates) {
         Objects.requireNonNull(loadFlowContext);
         Objects.requireNonNull(reader);
         Objects.requireNonNull(contingenciesStates);
