@@ -74,7 +74,7 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     /**
      * The minimum target P for active power operations (can be different from minP if minTargetP is set in the ActivePowerControl extension)
-     * This limit is taken into account in the compensation.
+     * This limit is taken into account in the slack distribution.
      */
     default double getMinTargetP() {
         return getMinP();
@@ -82,7 +82,7 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     /**
      * The maximum target P for active power operations (can be different from maxP if maxTargetP is set in the ActivePowerControl extension)
-     * This limit is taken into account in the compensation.
+     * This limit is taken into account in the slack distribution.
      */
     default double getMaxTargetP() {
         return getMaxP();
