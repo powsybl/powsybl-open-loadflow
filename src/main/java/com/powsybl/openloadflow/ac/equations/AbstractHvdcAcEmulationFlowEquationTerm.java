@@ -38,6 +38,10 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected final double pMaxFromCS2toCS1;
 
+    protected final double tetaMax;
+    protected final double tetaMin;
+    protected final double tetaZero;
+
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
@@ -49,9 +53,12 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
         pMaxFromCS1toCS2 = hvdc.getPMaxFromCS1toCS2();
         pMaxFromCS2toCS1 = hvdc.getPMaxFromCS2toCS1();
+        tetaMax = (pMaxFromCS1toCS2 - p0) / k;
+        tetaMin = (-pMaxFromCS2toCS1 - p0) / k;
+        tetaZero = -p0 / k;
     }
 
-    protected double rawP(double p0, double k, double ph1, double ph2) {
+    protected double rawP(double ph1, double ph2) {
         return p0 + k * (ph1 - ph2);
     }
 
@@ -64,6 +71,28 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         } else {
             return Math.max(rawP, -pMaxFromCS2toCS1);
         }
+    }
+
+    /**
+     * Returns a "corrected value for k that is
+     *     the droop factor between tetaMin and tetaMax
+     *     0 in a resonable range above tetaMin and tetaMax
+     *     the slot between pMax and P0 for larger angle differences to help convergence
+     * @param ph1
+     * @param ph2
+     * @return
+     */
+    protected double dummySlope(double rawP, double ph1, double ph2) {
+        double boundedP = boundedP(rawP);
+        double factor = k;
+        double teta = ph1 - ph2;
+        // for large values of teta return a value that helps convergence
+        if (teta > tetaMax) {
+            factor = teta < tetaMax * 2 ? 0 : boundedP / (teta - tetaZero);
+        } else if (teta < tetaMin) {
+            factor = teta > tetaMin * 2 ? 0 : boundedP / (teta - tetaZero);
+        }
+        return factor;
     }
 
     protected double ph1() {
