@@ -32,11 +32,18 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private double participationFactor;
 
+    private double maxTargetP;
+
+    private double minTargetP;
+
     private LfBatteryImpl(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, battery.getTargetP() / PerUnit.SB);
         this.batteryRef = Ref.create(battery, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
+        minTargetP = battery.getMinP();
+        maxTargetP = battery.getMaxP();
+
         // get participation factor from extension
         ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
@@ -46,6 +53,12 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
             }
             if (activePowerControl.getParticipationFactor() > 0) {
                 participationFactor = activePowerControl.getParticipationFactor();
+            }
+            if (activePowerControl.getMinTargetP().isPresent()) {
+                minTargetP = activePowerControl.getMinTargetP().getAsDouble();
+            }
+            if (activePowerControl.getMaxTargetP().isPresent()) {
+                maxTargetP = activePowerControl.getMaxTargetP().getAsDouble();
             }
         }
 
@@ -95,16 +108,12 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     @Override
     public double getMinTargetP() {
-        Battery battery = getBattery();
-        ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
-        return activePowerControl == null ? getMinP() : activePowerControl.getMinTargetP().orElse(battery.getMinP()) / PerUnit.SB;
+        return minTargetP / PerUnit.SB;
     }
 
     @Override
     public double getMaxTargetP() {
-        Battery battery = getBattery();
-        ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
-        return activePowerControl == null ? getMaxP() : activePowerControl.getMaxTargetP().orElse(battery.getMaxP()) / PerUnit.SB;
+        return maxTargetP / PerUnit.SB;
     }
 
     @Override

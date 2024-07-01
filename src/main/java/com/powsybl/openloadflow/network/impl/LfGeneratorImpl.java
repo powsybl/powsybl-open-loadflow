@@ -43,6 +43,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private final boolean forceVoltageControl;
 
+    private double maxTargetP;
+
+    private double minTargetP;
+
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
@@ -50,6 +54,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
         participating = true;
         droop = DEFAULT_DROOP;
+        minTargetP = getGenerator().getMinP();
+        maxTargetP = getGenerator().getMaxP();
 
         setReferencePriority(ReferencePriority.get(generator));
 
@@ -62,6 +68,12 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             }
             if (activePowerControl.getParticipationFactor() > 0) {
                 participationFactor = activePowerControl.getParticipationFactor();
+            }
+            if (activePowerControl.getMinTargetP().isPresent()) {
+                minTargetP = activePowerControl.getMinTargetP().getAsDouble();
+            }
+            if (activePowerControl.getMaxTargetP().isPresent()) {
+                maxTargetP = activePowerControl.getMaxTargetP().getAsDouble();
             }
         }
 
@@ -172,16 +184,12 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getMinTargetP() {
-        Generator generator = getGenerator();
-        ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
-        return activePowerControl == null ? getMinP() : activePowerControl.getMinTargetP().orElse(generator.getMinP()) / PerUnit.SB;
+        return minTargetP / PerUnit.SB;
     }
 
     @Override
     public double getMaxTargetP() {
-        Generator generator = getGenerator();
-        ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
-        return activePowerControl == null ? getMaxP() : activePowerControl.getMaxTargetP().orElse(generator.getMaxP()) / PerUnit.SB;
+        return maxTargetP / PerUnit.SB;
     }
 
     @Override
