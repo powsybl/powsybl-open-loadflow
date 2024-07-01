@@ -92,6 +92,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final double MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE = 1e-4;
 
+    public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = false;
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
     public static final boolean SVC_VOLTAGE_MONITORING_DEFAULT_VALUE = true;
@@ -161,6 +162,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME = "slackBusPMaxMismatch";
 
+    public static final String AREA_INTERCHANGE_CONTROL_PARAM_NAME = "areaInterchangeControl";
     public static final String VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME = "voltagePerReactivePowerControl";
 
     public static final String MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME = "maxNewtonRaphsonIterations";
@@ -276,6 +278,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, ParameterType.BOOLEAN, "Load power factor is constant", LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE),
         new Parameter(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, ParameterType.DOUBLE, "Plausible active power limit", LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE),
         new Parameter(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Slack bus max active power mismatch", SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE),
+        new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Area interchange control", AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE),
         new Parameter(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Voltage per reactive power slope", VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE),
         new Parameter(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Generator remote reactive power control", GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE),
         new Parameter(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Transformer reactive power control", TRANSFORMER_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE),
@@ -401,6 +404,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double slackBusPMaxMismatch = SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE;
 
+    private boolean areaInterchangeControl = AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
     private boolean voltagePerReactivePowerControl = VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE;
 
     private boolean generatorReactivePowerRemoteControl = GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE;
@@ -616,6 +620,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public boolean isVoltagePerReactivePowerControl() {
         return voltagePerReactivePowerControl;
+    }
+
+    public OpenLoadFlowParameters setAreaInterchangeControl(boolean areaInterchangeControl) {
+        this.areaInterchangeControl = areaInterchangeControl;
+        return this;
     }
 
     public OpenLoadFlowParameters setVoltagePerReactivePowerControl(boolean voltagePerReactivePowerControl) {
@@ -1232,6 +1241,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxRatioMismatch(config.getDoubleProperty(MAX_RATIO_MISMATCH_PARAM_NAME, MAX_RATIO_MISMATCH_DEFAULT_VALUE))
                 .setMaxSusceptanceMismatch(config.getDoubleProperty(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE))
                 .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
+                .setAreaInterchangeControl(config.getBooleanProperty(AREA_INTERCHANGE_CONTROL_PARAM_NAME, AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE))
                 .setVoltagePerReactivePowerControl(config.getBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE))
                 .setGeneratorReactivePowerRemoteControl(config.getBooleanProperty(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
                 .setTransformerReactivePowerControl(config.getBooleanProperty(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, TRANSFORMER_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
@@ -1330,6 +1340,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMaxSusceptanceMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME))
                 .ifPresent(prop -> this.setSlackBusPMaxMismatch(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(AREA_INTERCHANGE_CONTROL_PARAM_NAME))
+                .ifPresent(prop -> this.setAreaInterchangeControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setVoltagePerReactivePowerControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME))
@@ -1459,6 +1471,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(MAX_ANGLE_MISMATCH_PARAM_NAME, maxAngleMismatch);
         map.put(MAX_RATIO_MISMATCH_PARAM_NAME, maxRatioMismatch);
         map.put(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, maxSusceptanceMismatch);
+        map.put(AREA_INTERCHANGE_CONTROL_PARAM_NAME, areaInterchangeControl);
         map.put(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, voltagePerReactivePowerControl);
         map.put(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, generatorReactivePowerRemoteControl);
         map.put(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, transformerReactivePowerControl);
