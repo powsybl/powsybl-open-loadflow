@@ -132,7 +132,6 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-165.790, g2.getTerminal());
         assertActivePowerEquals(-74.605, g3.getTerminal());
         assertActivePowerEquals(-74.605, g4.getTerminal());
-
     }
 
     @Test
