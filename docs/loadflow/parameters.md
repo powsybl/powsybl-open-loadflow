@@ -396,6 +396,20 @@ If the user specifies only a sub-list of priorities, this sub-list is completed 
 order defined by default. Thus, if the user specifies only `["TRANSFORMER"]`,
 it will be completed to `["TRANSFORMER", "GENERATOR", "SHUNT"]`.
 
+**fictitiousGeneratorVoltageControlCheckMode**  
+Specifies the active power checks exemption for fictitious generators voltage control.
+
+PowSyBl open-loadflow performs these checks on generators:
+- if `targetP` equals zero, voltage control is disabled.
+- if parameter `disableVoltageControlOfGeneratorsOutsideActivePowerLimits` is enabled, a generator with a `targetP` lower
+than `minP` or greater than `maxP`, voltage control is disabled.
+
+The `fictitiousGeneratorVoltageControlCheckMode` option controls whether the above checks must be performed for fictitious generators: 
+- use mode `FORCED` for an exemption of the two previous checks for fictitious generators.
+- Use mode `NORMAL` for no exemption at all, i.e. fictitious generators are processed identically to real generators.
+ 
+The default mode is `FORCED`.
+
 ## Configuration file example
 See below an extract of a config file that could help:
 

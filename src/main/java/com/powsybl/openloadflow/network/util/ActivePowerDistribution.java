@@ -13,7 +13,10 @@ import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -25,15 +28,13 @@ public final class ActivePowerDistribution {
      */
     public static final double P_RESIDUE_EPS = Math.pow(10, -5);
 
-    public record StepResult(double done, boolean movedBuses) { }
-
     public interface Step {
 
         String getElementType();
 
         List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses);
 
-        StepResult run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
+        double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
     }
 
     public record Result(int iteration, double remainingMismatch, boolean movedBuses) { }
@@ -54,24 +55,25 @@ public final class ActivePowerDistribution {
 
     public Result run(Collection<LfBus> buses, double activePowerMismatch) {
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
+        final Map<ParticipatingElement, Double> initialP = participatingElements.stream()
+                .collect(Collectors.toUnmodifiableMap(Function.identity(), ParticipatingElement::getTargetP));
 
         int iteration = 0;
         double remainingMismatch = activePowerMismatch;
-        boolean movedBuses = false;
         while (!participatingElements.isEmpty()
                 && Math.abs(remainingMismatch) > P_RESIDUE_EPS) {
 
             if (ParticipatingElement.participationFactorNorm(participatingElements) > 0.0) {
-                StepResult stepResult = step.run(participatingElements, iteration, remainingMismatch);
-                remainingMismatch -= stepResult.done();
-                if (stepResult.movedBuses()) {
-                    movedBuses = true;
-                }
+                double done = step.run(participatingElements, iteration, remainingMismatch);
+                remainingMismatch -= done;
             } else {
                 break;
             }
             iteration++;
         }
+
+        final boolean movedBuses = initialP.entrySet().stream()
+                .anyMatch(e -> Math.abs(e.getKey().getTargetP() - e.getValue()) > P_RESIDUE_EPS);
 
         return new Result(iteration, remainingMismatch, movedBuses);
     }

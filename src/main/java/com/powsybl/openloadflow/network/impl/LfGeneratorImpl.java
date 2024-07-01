@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -40,9 +41,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private Double qPercent;
 
+    private final boolean forceVoltageControl;
+
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
+        // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
+        forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
         participating = true;
         droop = DEFAULT_DROOP;
 
@@ -213,5 +218,15 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         if (parameters.isWriteReferenceTerminals() && isReference()) {
             ReferenceTerminals.addTerminal(generator.getTerminal());
         }
+    }
+
+    @Override
+    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
+        return forceVoltageControl || super.checkIfGeneratorStartedForVoltageControl(report);
+    }
+
+    @Override
+    protected boolean checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        return forceVoltageControl || super.checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
     }
 }

@@ -64,6 +64,10 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     double getInitialTargetP();
 
+    void setInitialTargetP(double initialTargetP);
+
+    void setInitialTargetPToTargetP();
+
     double getTargetP();
 
     void setTargetP(double targetP);
