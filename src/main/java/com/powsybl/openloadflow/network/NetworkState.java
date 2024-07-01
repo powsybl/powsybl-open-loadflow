@@ -43,6 +43,7 @@ public class NetworkState {
     public static NetworkState save(LfNetwork network) {
         Objects.requireNonNull(network);
         LOGGER.trace("Saving network state");
+        network.getBuses().stream().flatMap(b -> b.getGenerators().stream()).forEach(LfGenerator::setInitialTargetPToTargetP);
         List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
         List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
         List<HvdcState> hvdcStates = ElementState.save(network.getHvdcs(), HvdcState::save);
