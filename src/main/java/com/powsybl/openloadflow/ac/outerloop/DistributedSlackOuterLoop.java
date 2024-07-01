@@ -56,7 +56,8 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         double slackBusActivePowerMismatch = context.getLastSolverResult().getSlackBusActivePowerMismatch();
-        boolean shouldDistributeSlack = Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB;
+        double absMismatch = Math.abs(slackBusActivePowerMismatch);
+        boolean shouldDistributeSlack = absMismatch > slackBusPMaxMismatch / PerUnit.SB && absMismatch > ActivePowerDistribution.P_RESIDUE_EPS;
 
         if (!shouldDistributeSlack) {
             LOGGER.debug("Already balanced");
