@@ -624,8 +624,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                         Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityData.contingencyElementByBranch();
                         for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
-                            Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
                             List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
+                            Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
                             // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
                             // if one bus of the line is lost.
@@ -647,11 +647,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                             Set<String> elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
                             for (PropagatedContingency contingency : connectivityAnalysisResult.getContingencies()) {
-                                Optional<DenseMatrix> preContingencyInjectionStatesOverride = getPreContingencyInjectionRhsOverride(contingency, disabledBuses, connectivityAnalysisResult.getPartialDisabledBranches());
                                 Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                                         .filter(element -> !elementsToReconnect.contains(element))
                                         .map(contingencyElementByBranch::get)
                                         .toList();
+                                Optional<DenseMatrix> preContingencyInjectionStatesOverride = getPreContingencyInjectionRhsOverride(contingency, disabledBuses, connectivityAnalysisResult.getPartialDisabledBranches());
                                 preContingencyInjectionStatesOverride.ifPresentOrElse(override -> {
                                     // compute pre-contingency states values override
                                     solve(override, loadFlowContext.getJacobianMatrix(), reportNode);
@@ -661,10 +661,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         }
 
                         for (PropagatedContingency contingency : connectivityData.nonBreakingConnectivityContingencies()) {
-                            Optional<DenseMatrix> preContingencyStatesOverride = getPreContingencyInjectionRhsOverride(contingency, Collections.emptySet(), Collections.emptySet());
                             Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                                     .map(contingencyElementByBranch::get)
                                     .toList();
+                            Optional<DenseMatrix> preContingencyStatesOverride = getPreContingencyInjectionRhsOverride(contingency, Collections.emptySet(), Collections.emptySet());
                             preContingencyStatesOverride.ifPresentOrElse(override -> {
                                 // compute pre-contingency states values override
                                 solve(override, loadFlowContext.getJacobianMatrix(), reportNode);
