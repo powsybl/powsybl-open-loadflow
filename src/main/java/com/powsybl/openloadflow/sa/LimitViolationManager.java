@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -19,6 +20,7 @@ import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.security.strategy.OperationalLimitOverride;
 import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -42,17 +44,25 @@ public class LimitViolationManager {
 
     private final Map<Object, LimitViolation> violations = new LinkedHashMap<>();
 
+    private final List<OperationalLimitOverride> limitsToOverride;
+    //private final Map<String, List<OperationalLimitOverride>> limitsToOverridePerElementId = new LinkedHashMap<>();
+
     public LimitViolationManager(LimitViolationManager reference, List<LimitReduction> limitReductions,
+                                 List<OperationalLimitOverride> limitsToOverride,
                                  SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
         this.reference = reference;
         if (reference != null) {
             this.parameters = Objects.requireNonNull(parameters);
         }
         this.limitReductionManager = LimitReductionManager.create(limitReductions);
+        this.limitsToOverride = limitsToOverride;
+        /*for (OperationalLimitOverride limitToOverride: limitsToOverride) {
+            this.limitsToOverridePerElementId.computeIfAbsent(limitToOverride.getNetworkElementId(), k -> new ArrayList<>()).add(limitToOverride);
+        }*/
     }
 
-    public LimitViolationManager(List<LimitReduction> limitReductions) {
-        this(null, limitReductions, null);
+    public LimitViolationManager(List<LimitReduction> limitReductions, List<OperationalLimitOverride> limitsToOverride) {
+        this(null, limitReductions, limitsToOverride, null);
     }
 
     public List<LimitViolation> getLimitViolations() {
@@ -111,7 +121,7 @@ public class LimitViolationManager {
                                             Function<LfBranch, Evaluable> pGetter,
                                             ToDoubleFunction<LfBranch> sGetter,
                                             TwoSides side) {
-        List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT, limitReductionManager);
+        List<LfBranch.LfLimit> limits = getLimits(branch, side, LimitType.CURRENT, limitReductionManager, limitsGetter);
         if (!limits.isEmpty()) {
             double i = iGetter.apply(branch).eval();
             limits.stream()
@@ -121,7 +131,7 @@ public class LimitViolationManager {
                     .ifPresent(this::addBranchLimitViolation);
         }
 
-        limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
+        limits = getLimits(branch, side, LimitType.ACTIVE_POWER, limitReductionManager, limitsGetter);
         if (!limits.isEmpty()) {
             double p = pGetter.apply(branch).eval();
             limits.stream()
@@ -131,7 +141,7 @@ public class LimitViolationManager {
                     .ifPresent(this::addBranchLimitViolation);
         }
 
-        limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
+        limits = getLimits(branch, side, LimitType.APPARENT_POWER, limitReductionManager, limitsGetter);
         if (!limits.isEmpty()) {
             //Apparent power is not relevant for fictitious branches and may be NaN
             double s = sGetter.applyAsDouble(branch);
@@ -145,6 +155,15 @@ public class LimitViolationManager {
         }
     }
 
+    private List<LfBranch.LfLimit> getLimits(LfBranch branch, TwoSides branchSide, LimitType type, LimitReductionManager limitReductionManager, TriFunction<LfBranch, LimitType, LimitReductionManager, List<LfBranch.LfLimit>> limitsGetter) {
+        for (OperationalLimitOverride limitToOverride : this.limitsToOverride) {
+            if (Objects.equals(limitToOverride.getNetworkElementId(), branch.getId()) && limitToOverride.getSide().map(side -> side.toTwoSides() == branchSide).orElse(true) && limitToOverride.getType() == type) {
+                return List.of(new LfBranch.LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, limitToOverride.getMaxValue(), 1)); // TODO compute reduction
+            }
+        }
+        return limitsGetter.apply(branch, type, limitReductionManager);
+    }
+
     /**
      * Detect violation limits on one branch and add them to the given list
      * @param branch branch of interest
@@ -155,7 +174,6 @@ public class LimitViolationManager {
         if (branch.getBus1() != null) {
             detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, TwoSides.ONE);
         }
-
         if (branch.getBus2() != null) {
             detectBranchSideViolations(branch, branch.getBus2(), LfBranch::getLimits2, LfBranch::getI2, LfBranch::getP2, LfBranch::computeApparentPower2, TwoSides.TWO);
         }
