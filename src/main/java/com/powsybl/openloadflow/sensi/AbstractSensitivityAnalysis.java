@@ -640,7 +640,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return new SensitivityFactorGroupList<>(new ArrayList<>(groupIndexedById.values()));
     }
 
-    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
+    static List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
@@ -713,7 +713,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return Pair.of(Optional.ofNullable(sensitivityValuePredefinedResult), Optional.ofNullable(functionPredefinedResult));
     }
 
-    protected boolean rescaleGlsk(SensitivityFactorGroupList<V, E> factorGroups, Set<LfBus> nonConnectedBuses) {
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> boolean rescaleGlsk(SensitivityFactorGroupList<V, E> factorGroups, Set<LfBus> nonConnectedBuses) {
         boolean rescaled = false;
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup<V, E> factorGroup : factorGroups.getList()) {
