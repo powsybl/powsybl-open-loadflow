@@ -412,6 +412,21 @@ detection of the minimal nominal voltage based on an analysis of nominal voltage
 value of this parameter is $-1$: with this value the parameter is ignored and the outer loop relies only on the automatic
 detection.
 
+**fictitiousGeneratorVoltageControlCheckMode**  
+Specifies the active power checks exemption for fictitious generators voltage control.
+
+PowSyBl open-loadflow performs these checks on generators:
+- if `targetP` equals zero, voltage control is disabled.
+- if parameter `disableVoltageControlOfGeneratorsOutsideActivePowerLimits` is enabled, a generator with a `targetP` lower
+than `minP` or greater than `maxP`, voltage control is disabled.
+
+The `fictitiousGeneratorVoltageControlCheckMode` option controls whether the above checks must be performed for fictitious generators: 
+- use mode `FORCED` for an exemption of the two previous checks for fictitious generators.
+- Use mode `NORMAL` for no exemption at all, i.e. fictitious generators are processed identically to real generators.
+ 
+The default mode is `FORCED`.
+
+
 ## Configuration file example
 See below an extract of a config file that could help:
 
