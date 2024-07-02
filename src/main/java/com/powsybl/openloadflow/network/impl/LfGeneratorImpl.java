@@ -35,50 +35,34 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private boolean participating;
 
-    private double droop;
+    private final double droop;
 
-    private double participationFactor;
+    private final double participationFactor;
 
     private Double qPercent;
 
     private final boolean forceVoltageControl;
 
-    private double maxTargetP;
+    private final double maxTargetP;
 
-    private double minTargetP;
+    private final double minTargetP;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
         forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
-        participating = true;
-        droop = DEFAULT_DROOP;
-        minTargetP = getGenerator().getMinP();
-        maxTargetP = getGenerator().getMaxP();
+        var apcHelper = ActivePowerControlHelper.create(generator, generator.getMinP(), generator.getMaxP());
+        participating = apcHelper.participating();
+        participationFactor = apcHelper.participationFactor();
+        droop = apcHelper.droop();
+        minTargetP = apcHelper.minTargetP();
+        maxTargetP = apcHelper.maxTargetP();
 
         setReferencePriority(ReferencePriority.get(generator));
 
-        // get participation factor and droop from extension
-        ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
-        if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate();
-            if (!Double.isNaN(activePowerControl.getDroop())) {
-                droop = activePowerControl.getDroop();
-            }
-            if (activePowerControl.getParticipationFactor() > 0) {
-                participationFactor = activePowerControl.getParticipationFactor();
-            }
-            if (activePowerControl.getMinTargetP().isPresent()) {
-                minTargetP = activePowerControl.getMinTargetP().getAsDouble();
-            }
-            if (activePowerControl.getMaxTargetP().isPresent()) {
-                maxTargetP = activePowerControl.getMaxTargetP().getAsDouble();
-            }
-        }
-
-        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report, activePowerControl)) {
+        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMaxP(), minTargetP, maxTargetP,
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }
 

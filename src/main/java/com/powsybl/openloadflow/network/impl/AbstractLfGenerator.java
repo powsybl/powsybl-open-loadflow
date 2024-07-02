@@ -62,6 +62,37 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         this.network = Objects.requireNonNull(network);
     }
 
+    protected record ActivePowerControlHelper(boolean participating, double participationFactor, double droop, double minTargetP, double maxTargetP) {
+
+        @SuppressWarnings("unchecked")
+        static ActivePowerControlHelper create(Injection<?> injection, double minP, double maxP) {
+            boolean participating = true;
+            double participationFactor = 0;
+            double droop = DEFAULT_DROOP;
+            double minTargetP = minP;
+            double maxTargetP = maxP;
+
+            var activePowerControl = injection.getExtension(ActivePowerControl.class);
+            if (activePowerControl != null) {
+                participating = activePowerControl.isParticipate();
+                if (!Double.isNaN(activePowerControl.getDroop())) {
+                    droop = activePowerControl.getDroop();
+                }
+                if (activePowerControl.getParticipationFactor() > 0) {
+                    participationFactor = activePowerControl.getParticipationFactor();
+                }
+                if (activePowerControl.getMinTargetP().isPresent()) {
+                    minTargetP = activePowerControl.getMinTargetP().getAsDouble();
+                }
+                if (activePowerControl.getMaxTargetP().isPresent()) {
+                    maxTargetP = activePowerControl.getMaxTargetP().getAsDouble();
+                }
+            }
+
+            return new ActivePowerControlHelper(participating, participationFactor, droop, minTargetP, maxTargetP);
+        }
+    }
+
     @Override
     public String getOriginalId() {
         return getId();
@@ -327,8 +358,9 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         // nothing to do
     }
 
-    public static boolean checkActivePowerControl(String generatorId, double targetP, double minP, double maxP, double plausibleActivePowerLimit,
-                                                  boolean useActiveLimits, LfNetworkLoadingReport report, ActivePowerControl<?> activePowerControl) {
+    public static boolean checkActivePowerControl(String generatorId, double targetP, double maxP,
+                                                  double minTargetP, double maxTargetP, double plausibleActivePowerLimit,
+                                                  boolean useActiveLimits, LfNetworkLoadingReport report) {
         boolean participating = true;
         if (Math.abs(targetP) < POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({} MW) equals 0",
@@ -353,8 +385,6 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             // if active power limits are not to be enforced, we can skip the rest of the checks
             return participating;
         }
-        double maxTargetP = activePowerControl == null ? maxP : activePowerControl.getMaxTargetP().orElse(maxP);
-        double minTargetP = activePowerControl == null ? minP : activePowerControl.getMinTargetP().orElse(minP);
         if (targetP > maxTargetP) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({} MW) > maxTargetP ({} MW)",
                     generatorId, targetP, maxTargetP);
