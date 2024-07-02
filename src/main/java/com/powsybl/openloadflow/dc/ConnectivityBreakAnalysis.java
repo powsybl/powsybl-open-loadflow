@@ -313,5 +313,4 @@ public final class ConnectivityBreakAnalysis {
 
         return new ConnectivityBreakAnalysisResults(nonBreakingConnectivityContingencies, connectivityAnalysisResults, contingenciesStates, contingencyElementByBranch);
     }
-
 }

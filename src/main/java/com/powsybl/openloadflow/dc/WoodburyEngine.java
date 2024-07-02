@@ -25,7 +25,7 @@ import java.util.function.ObjDoubleConsumer;
 public class WoodburyEngine {
 
     /**
-     * Compute the flow transfer factors needed to calculate the post-contingency state values.
+     * Compute the flow transfer factors needed to calculate post-contingency states.
      */
     private static void setAlphas(DcLoadFlowContext loadFlowContext, Collection<ComputedContingencyElement> contingencyElements, DenseMatrix states,
                                   DenseMatrix contingenciesStates, int columnState, ObjDoubleConsumer<ComputedContingencyElement> setValue) {
@@ -72,7 +72,7 @@ public class WoodburyEngine {
     }
 
     /**
-     * Calculate post-contingency states values using pre-contingency states values and some flow transfer factors (alphas).
+     * Calculate post-contingency states using pre-contingency angle values and some flow transfer factors (alphas).
      */
     private DenseMatrix computePostContingencyStates(DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates, DenseMatrix contingenciesStates, Collection<ComputedContingencyElement> contingencyElements) {
         // fill the post contingency matrices
@@ -91,7 +91,7 @@ public class WoodburyEngine {
     }
 
     /**
-     * Compute post-contingency angle values of a network, using Woodbury formula, and for a given {@link WoodburyEngineInputReader}.
+     * Compute post-contingency states of a network, using Woodbury formula, and for a given {@link WoodburyEngineInputReader}.
      * This reader provides the contingency elements and the pre-contingency angle values on which is applied the formula.
      *
      * @return a map with post-contingency angle states, indexed by contingencies.
@@ -106,7 +106,6 @@ public class WoodburyEngine {
             DenseMatrix postContingencyStates = computePostContingencyStates(loadFlowContext, preContingencyStates, contingenciesStates, contingencyElements);
             postContingencyStatesByContingency.put(contingency, postContingencyStates);
         });
-
         return postContingencyStatesByContingency;
     }
 }
