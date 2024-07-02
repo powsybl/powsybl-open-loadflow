@@ -7,9 +7,9 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.VoltageControl;
@@ -32,9 +32,9 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements AcOu
         return TYPE;
     }
 
-    protected OuterLoopStatus roundVoltageRatios(AcOuterLoopContext context) {
+    protected OuterLoopStatus roundVoltageRatios(LfNetwork network) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
-        for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
+        for (LfBranch controllerBranch : network.<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             controllerBranch.setVoltageControlEnabled(false);
 
             // round the rho shift to the closest tap
