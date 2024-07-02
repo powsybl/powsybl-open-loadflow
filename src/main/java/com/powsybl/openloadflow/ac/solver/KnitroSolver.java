@@ -12,14 +12,12 @@ import com.artelys.knitro.api.callbacks.*;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
-//import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-//import com.powsybl.openloadflow.util.MatrixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,26 +102,23 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             @Override
             public void evaluateFC(final List<Double> x, final List<Double> obj, final List<Double> c) {
-//                if (LOGGER.isTraceEnabled()) {
-//                     LOGGER.trace("============ Knitro evaluating callback function ============");
-//                }
+                LOGGER.trace("============ Knitro evaluating callback function ============");
 
                 // =============== Objective ===============
 
                 // =============== Non-linear constraints in P and Q ===============
+
                 // Update current state
                 StateVector currentState = new StateVector(toArray(x));
-//                if (LOGGER.isTraceEnabled()) {
-//                    LOGGER.trace("Current state vector {}", currentState.get());
-//                    LOGGER.trace("Evaluating {} non-linear constraints", listNonLinearConsts.size());
-//                }
+                LOGGER.trace("Current state vector {}", currentState.get());
+                LOGGER.trace("Evaluating {} non-linear constraints", listNonLinearConsts.size());
+
                 // Add non-linear constraints
                 int indexNonLinearCst = 0;
                 for (int equationId : listNonLinearConsts) {
                     Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                     AcEquationType typeEq = equation.getType();
                     double valueConst = 0;
-
                     if (!SolverUtils.getNonLinearConstraintsTypes().contains(typeEq)) {
                         LOGGER.debug("Equation of type {} is linear, and should be considered in the main function of Knitro, not in the callback function", typeEq);
                         throw new IllegalArgumentException("Equation of type " + typeEq + " is linear, and should be considered in the main function of Knitro, not in the callback function");
@@ -136,9 +131,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         }
                         try {
                             c.set(indexNonLinearCst, valueConst);
-                            //                            if (LOGGER.isTraceEnabled()) {
-                            //                                LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
-                            //                            }
+                            LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
                         } catch (Exception e) {
                             LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
                             LOGGER.error(e.getMessage());
@@ -327,7 +320,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
 
             int numConst = sortedEquationsToSolve.size();
-            List<Integer> listNonLinearConsts = new ArrayList<>();
+            List<Integer> listNonLinearConsts = new ArrayList<>(); // list of indexes of non-linear constraints
             LOGGER.info("Defining {} active constraints", numConst);
 
             // ----- Linear constraints -----
@@ -348,16 +341,28 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
 
                 } else {
+                    // ----- Non-linear constraints -----
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
+//                    if (typeEq == AcEquationType.BUS_TARGET_P || typeEq == AcEquationType.BUS_TARGET_Q) { //TODO a reprendre avec des variables binaires pour modéliser les changements PQ<->PV
+//                        System.out.println("youhou");
+//                        int busId = equation.getElementNum();
+//                        LfBus bus = lfNetwork.getBus(busId);
+//                        double maxP = bus.getMaxP();
+//                        double minQ = bus.getMinQ();
+//                        double maxQ = bus.getMaxQ();
+//                        setConUpBnds(Collections.singletonList(equationId), Collections.singletonList(maxP));
+//                        setConLoBnds(Collections.singletonList(equationId), Collections.singletonList(minQ));
+//                        setConUpBnds(Collections.singletonList(equationId), Collections.singletonList(maxQ));
+//                    }
                 }
             }
 
             // ----- Non-linear constraints -----
+            // Callback
             setMainCallbackCstIndexes(listNonLinearConsts);
 
             // ----- RHS : targets -----
-            List<Double> listTarget = Arrays.stream(targetVector.getArray()).boxed().toList();
-            setConEqBnds(listTarget);
+            setConEqBnds(Arrays.stream(targetVector.getArray()).boxed().toList());
 
             // =============== Objective ==============
             setObjConstPart(0.0);
@@ -377,7 +382,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 }
             }
 
-            List<Integer> listNonZerosVars = new ArrayList<>(); //list of variables to parse to Knitro non-zero pattern
+            List<Integer> listNonZerosVars = new ArrayList<>(); //list of variables to pass to Knitro non-zero pattern
             List<Integer> listVars = new ArrayList<>();
             for (int i = 0; i < numVar; i++) {
                 listVars.add(i);
