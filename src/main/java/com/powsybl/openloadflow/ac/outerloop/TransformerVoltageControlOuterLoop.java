@@ -125,7 +125,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         boolean outOfBoundTap = false;
 
         for (LfBranch controllerBranch : network.<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
-            if (contextData.transformerRatioManager.freezeAtExtremeTapPosition(controllerBranch)) {
+            if (contextData.transformerRatioManager.roundR1ToExtremeTapPosition(controllerBranch)) {
                 outOfBoundTap = true;
             }
         }
