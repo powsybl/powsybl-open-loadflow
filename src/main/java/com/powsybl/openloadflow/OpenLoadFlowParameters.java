@@ -257,6 +257,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String VOLTAGE_TARGET_PRIORITIES_PARAM_NAME = "voltageTargetPriorities";
 
+    public static final String TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME = "transformerVoltageControlUseInitialTapPosition";
+
     public static final String GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME = "generatorVoltageControlMinNominalVoltage";
 
     public static final String FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE = "fictitiousGeneratorVoltageControlCheckMode";
@@ -331,6 +333,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Reference bus selection mode", ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class)),
         new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE),
         new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class)),
+        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, ParameterType.BOOLEAN, "Maintain initial tap position if possible", LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE),
         new Parameter(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Nominal voltage under which generator voltage controls are disabled during transformer voltage control outer loop of mode AFTER_GENERATOR_VOLTAGE_CONTROL, < 0 means automatic detection", OpenLoadFlowParameters.GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE),
         new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class))
     );
@@ -503,6 +506,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean writeReferenceTerminals = WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE;
 
     private List<String> voltageTargetPriorities = LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
+
+    private boolean transformerVoltageControlUseInitialTapPosition = LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE;
 
     private double generatorVoltageControlMinNominalVoltage = GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE;
 
@@ -1172,6 +1177,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isTransformerVoltageControlUseInitialTapPosition() {
+        return transformerVoltageControlUseInitialTapPosition;
+    }
+
+    public OpenLoadFlowParameters setTransformerVoltageControlUseInitialTapPosition(boolean transformerVoltageControlUseInitialTapPosition) {
+        this.transformerVoltageControlUseInitialTapPosition = transformerVoltageControlUseInitialTapPosition;
+        return this;
+    }
+
     /**
      * Only if transformer voltage control is active and with mode `AFTER_GENERATOR_VOLTAGE_CONTROL`. Set the nominal
      * voltage under which the generator voltage control are disabled during outer loop. This parameter overrides the
@@ -1269,6 +1283,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReferenceBusSelectionMode(config.getEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class, ReferenceBusSelector.DEFAULT_MODE))
                 .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE))
                 .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE))
+                .setTransformerVoltageControlUseInitialTapPosition(config.getBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE))
                 .setGeneratorVoltageControlMinNominalVoltage(config.getDoubleProperty(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE)));
         return parameters;
     }
@@ -1418,6 +1433,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setWriteReferenceTerminals(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME))
                 .ifPresent(prop -> this.setVoltageTargetPriorities(parseStringListProp(prop)));
+        Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME))
+                .ifPresent(prop -> this.setTransformerVoltageControlUseInitialTapPosition(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorVoltageControlMinNominalVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE))
@@ -1492,6 +1509,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, referenceBusSelectionMode);
         map.put(WRITE_REFERENCE_TERMINALS_PARAM_NAME, writeReferenceTerminals);
         map.put(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, voltageTargetPriorities);
+        map.put(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, transformerVoltageControlUseInitialTapPosition);
         map.put(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, generatorVoltageControlMinNominalVoltage);
         map.put(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, fictitiousGeneratorVoltageControlCheckMode);
         return map;
@@ -1870,6 +1888,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxSusceptanceMismatch() == extension2.getMaxSusceptanceMismatch() &&
                 extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
                 Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities()) &&
+                extension1.isTransformerVoltageControlUseInitialTapPosition() == extension2.isTransformerVoltageControlUseInitialTapPosition() &&
                 extension1.getGeneratorVoltageControlMinNominalVoltage() == extension2.getGeneratorVoltageControlMinNominalVoltage() &&
                 extension1.getFictitiousGeneratorVoltageControlCheckMode() == extension2.getFictitiousGeneratorVoltageControlCheckMode();
     }
@@ -1962,6 +1981,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setNewtonRaphsonStoppingCriteriaType(extension.getNewtonRaphsonStoppingCriteriaType())
                     .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
                     .setVoltageTargetPriorities(extension.getVoltageTargetPriorities())
+                    .setTransformerVoltageControlUseInitialTapPosition(extension.isTransformerVoltageControlUseInitialTapPosition())
                     .setGeneratorVoltageControlMinNominalVoltage(extension.getGeneratorVoltageControlMinNominalVoltage())
                     .setFictitiousGeneratorVoltageControlCheckMode(extension.getFictitiousGeneratorVoltageControlCheckMode());
 
