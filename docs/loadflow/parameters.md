@@ -396,6 +396,22 @@ If the user specifies only a sub-list of priorities, this sub-list is completed 
 order defined by default. Thus, if the user specifies only `["TRANSFORMER"]`,
 it will be completed to `["TRANSFORMER", "GENERATOR", "SHUNT"]`.
 
+**transformerVoltageControlUseInitialTapPosition**  
+This parameter is only used if the transformer voltage control is enabled and of mode `AFTER_GENERATOR_VOLTAGE_CONTROL`.
+If this parameter is set to `true`, transformers of the same voltage control (meaning controlling the same bus) are merged
+and the algorithm tries to maintain the initial difference between rhos. If the voltage at controlled bus is closed to the
+target voltage at initial step of the outer loop, the algorithm blocks transformers at their initial tap positions.
+The default value of this parameter is `false`.
+
+**generatorVoltageControlMinNominalVoltage**
+This parameter is only used if the transformer voltage control is enabled and of mode `AFTER_GENERATOR_VOLTAGE_CONTROL`.
+In this mode, at the first step of the outer loop, the transformers that controlled voltage are disabled, only generators
+are participating to voltage control. At second step, generators controlling voltage at a controlled bus above
+`generatorVoltageControlMinNominalVoltage` have their voltage control disabled. This parameter overrides an automatic
+detection of the minimal nominal voltage based on an analysis of nominal voltages controlled by transformers. The default
+value of this parameter is $-1$: with this value the parameter is ignored and the outer loop relies only on the automatic
+detection.
+
 **fictitiousGeneratorVoltageControlCheckMode**  
 Specifies the active power checks exemption for fictitious generators voltage control.
 
@@ -409,6 +425,7 @@ The `fictitiousGeneratorVoltageControlCheckMode` option controls whether the abo
 - Use mode `NORMAL` for no exemption at all, i.e. fictitious generators are processed identically to real generators.
  
 The default mode is `FORCED`.
+
 
 ## Configuration file example
 See below an extract of a config file that could help:
