@@ -115,11 +115,11 @@ public class TransformerRatioManager {
     }
 
     /**
-     * Freezes the transformer to its limit if the common ratio of transformers of the same shared control is above the max
+     * Rounds the transformer at min or max tap position if the ratio of transformers of the same shared control is above the max
      * (or below the min) of the group.
      * @return true if the transformer has been frozen and false it voltage control remains disabled
      */
-    public boolean freezeAtExtremeTapPosition(LfBranch branch) {
+    public boolean roundR1ToExtremeTapPosition(LfBranch branch) {
         if (branch.isVoltageControlEnabled() && !branch.isDisabled()) {
             // round the rho shift to the closest tap
             PiModel piModel = branch.getPiModel();
