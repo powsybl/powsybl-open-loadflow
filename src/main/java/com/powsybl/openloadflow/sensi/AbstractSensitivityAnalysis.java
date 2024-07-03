@@ -16,8 +16,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.InjectionDerivable;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -26,8 +24,6 @@ import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.*;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -640,13 +636,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return new SensitivityFactorGroupList<>(new ArrayList<>(groupIndexedById.values()));
     }
 
-    static List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
-        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
-        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
-        ParticipatingElement.normalizeParticipationFactors(participatingElements);
-        return participatingElements;
-    }
-
     static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
@@ -1171,18 +1160,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             }
         });
         return Pair.of(hasBusTargetVoltage.get(), hasTransformerBusTargetVoltage.get());
-    }
-
-    protected static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
-        return lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
-                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
-    }
-
-    protected static boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
-        return lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
-                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 
     /**

@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2020, RTE (http://www.rte-france.com)
+ * Copyright (c) 2024, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.report.ReportNode;
@@ -17,33 +25,26 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.solve;
+import static com.powsybl.openloadflow.dc.DcUtils.*;
 
+/**
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
+ * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
+ */
 class InjectionInputReader extends AbstractWoodburyEngineInputReader {
 
-    private final LfNetwork lfNetwork;
     private final Map<PropagatedContingency, DisabledNetwork> disabledNetworkByPropagatedContingency;
     private final SensitivityResultWriter resultWriter;
-    private final DcLoadFlowContext loadFlowContext;
-    private final List<ParticipatingElement> participatingElements;
-    private final OpenLoadFlowParameters lfParametersExt;
     private final AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups;
-    private final ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData;
-    private final LoadFlowParameters lfParameters;
-    private final ReportNode reportNode;
-    private final DenseMatrix preContingencyInjectionStates;
 
-    public InjectionInputReader(LfNetwork lfNetwork, Map<PropagatedContingency, DisabledNetwork> disabledNetworkByPropagatedContingency, SensitivityResultWriter resultWriter, DcLoadFlowContext loadFlowContext, List<ParticipatingElement> participatingElements, OpenLoadFlowParameters lfParametersExt, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData, LoadFlowParameters lfParameters, ReportNode reportNode, DenseMatrix preContingencyInjectionStates) {
-        this.lfNetwork = lfNetwork;
+    public InjectionInputReader(Map<PropagatedContingency, DisabledNetwork> disabledNetworkByPropagatedContingency, SensitivityResultWriter resultWriter, DcLoadFlowContext loadFlowContext,
+                                List<ParticipatingElement> participatingElements, OpenLoadFlowParameters lfParametersExt, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType,
+            DcEquationType> factorGroups, ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData, LoadFlowParameters lfParameters, ReportNode reportNode,
+                                DenseMatrix preContingencyInjectionStates) {
+        super(connectivityData, loadFlowContext, lfParameters, lfParametersExt, participatingElements, reportNode, preContingencyInjectionStates);
         this.disabledNetworkByPropagatedContingency = disabledNetworkByPropagatedContingency;
         this.resultWriter = resultWriter;
-        this.loadFlowContext = loadFlowContext;
-        this.participatingElements = participatingElements;
-        this.lfParametersExt = lfParametersExt;
         this.factorGroups = factorGroups;
-        this.connectivityData = connectivityData;
-        this.lfParameters = lfParameters;
-        this.reportNode = reportNode;
-        this.preContingencyInjectionStates = preContingencyInjectionStates;
     }
 
     /**
@@ -59,7 +60,14 @@ class InjectionInputReader extends AbstractWoodburyEngineInputReader {
         return rhsChanged;
     }
 
-    Optional<DenseMatrix> getPreContingencyInjectionRhsOverride(PropagatedContingency contingency, Set<LfBus> disabledBuses, Set<LfBranch> partialDisabledBranches) {
+    @Override
+    protected Optional<DenseMatrix> getPreContingencyRhsOverride(PropagatedContingency contingency, Set<LfBus> disabledBuses, Set<LfBranch> partialDisabledBranches,
+                                                                 Set<String> elementsToReconnect, List<ParticipatingElement> participatingElements) {
+        return getPreContingencyRhsOverride(contingency, disabledBuses, partialDisabledBranches);
+    }
+
+    @Override
+    protected Optional<DenseMatrix> getPreContingencyRhsOverride(PropagatedContingency contingency, Set<LfBus> disabledBuses, Set<LfBranch> partialDisabledBranches) {
         DenseMatrix preContingencyStatesOverride = null;
 
         Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
@@ -78,10 +86,10 @@ class InjectionInputReader extends AbstractWoodburyEngineInputReader {
                 DcLoadFlowParameters dcLoadFlowParameters = loadFlowContext.getParameters();
                 lfContingency.apply(dcLoadFlowParameters.getBalanceType());
                 List<ParticipatingElement> modifiedParticipatingElements = participatingElements;
-                boolean rhsChanged = AbstractSensitivityAnalysis.isDistributedSlackOnGenerators(loadFlowContext.getParameters()) && !contingency.getGeneratorIdsToLose().isEmpty()
-                        || AbstractSensitivityAnalysis.isDistributedSlackOnLoads(loadFlowContext.getParameters()) && !contingency.getLoadIdsToLoose().isEmpty();
+                boolean rhsChanged = isDistributedSlackOnGenerators(loadFlowContext.getParameters()) && !contingency.getGeneratorIdsToLose().isEmpty()
+                        || isDistributedSlackOnLoads(loadFlowContext.getParameters()) && !contingency.getLoadIdsToLoose().isEmpty();
                 if (rhsChanged) {
-                    modifiedParticipatingElements = DcSensitivityAnalysis.getNewNormalizedParticipationFactors(loadFlowContext, lfParametersExt, lfContingency, modifiedParticipatingElements);
+                    modifiedParticipatingElements = getNewNormalizedParticipationFactors(loadFlowContext, lfParametersExt, lfContingency, modifiedParticipatingElements);
                 }
                 if (factorGroups.hasMultiVariables()) {
                     Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
@@ -104,11 +112,10 @@ class InjectionInputReader extends AbstractWoodburyEngineInputReader {
 
     @Override
     public void process(Handler handler) {
-
         Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityData.contingencyElementByBranch();
         for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
-            Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
             List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
+            Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
             // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
             // if one bus of the line is lost.
@@ -119,40 +126,18 @@ class InjectionInputReader extends AbstractWoodburyEngineInputReader {
             boolean rhsChanged = hasRhsChangedDueToConnectivityBreak(lfParameters, factorGroups, disabledBuses, participatingElementsForThisConnectivity);
             if (rhsChanged) {
                 participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
-                        ? AbstractSensitivityAnalysis.getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
+                        ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
                         : Collections.emptyList());
                 preContingencyStatesOverrideConnectivityBreak = DcSensitivityAnalysis.getPreContingencyInjectionRhs(loadFlowContext, factorGroups, participatingElementsForThisConnectivity);
                 // compute pre-contingency states values override
                 solve(preContingencyStatesOverrideConnectivityBreak, loadFlowContext.getJacobianMatrix(), reportNode);
             } else {
-                preContingencyStatesOverrideConnectivityBreak = preContingencyInjectionStates;
+                preContingencyStatesOverrideConnectivityBreak = preContingencyStates;
             }
 
-            Set<String> elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
-            for (PropagatedContingency contingency : connectivityAnalysisResult.getContingencies()) {
-                Optional<DenseMatrix> preContingencyInjectionStatesOverride = getPreContingencyInjectionRhsOverride(contingency, disabledBuses, connectivityAnalysisResult.getPartialDisabledBranches());
-                Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                        .filter(element -> !elementsToReconnect.contains(element))
-                        .map(contingencyElementByBranch::get)
-                        .toList();
-                preContingencyInjectionStatesOverride.ifPresentOrElse(override -> {
-                    // compute pre-contingency states values override
-                    solve(override, loadFlowContext.getJacobianMatrix(), reportNode);
-                    handler.onContingency(contingency, contingencyElements, override);
-                }, () -> handler.onContingency(contingency, contingencyElements, preContingencyStatesOverrideConnectivityBreak));
-            }
+            extracted2(handler, connectivityAnalysisResult, contingencyElementByBranch, disabledBuses, Collections.emptyList(), preContingencyStatesOverrideConnectivityBreak);
         }
 
-        for (PropagatedContingency contingency : connectivityData.nonBreakingConnectivityContingencies()) {
-            Optional<DenseMatrix> preContingencyStatesOverride = getPreContingencyInjectionRhsOverride(contingency, Collections.emptySet(), Collections.emptySet());
-            Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                    .map(contingencyElementByBranch::get)
-                    .toList();
-            preContingencyStatesOverride.ifPresentOrElse(override -> {
-                // compute pre-contingency states values override
-                solve(override, loadFlowContext.getJacobianMatrix(), reportNode);
-                handler.onContingency(contingency, contingencyElements, override);
-            }, () -> handler.onContingency(contingency, contingencyElements, preContingencyInjectionStates));
-        }
+        extracted(handler, contingencyElementByBranch);
     }
 }

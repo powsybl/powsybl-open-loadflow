@@ -38,6 +38,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.dc.DcUtils.getParticipatingElements;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
