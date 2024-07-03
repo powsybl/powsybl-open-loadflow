@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.VoltageRegulation;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -28,28 +27,25 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private boolean participating;
 
-    private double droop;
+    private final double droop;
 
-    private double participationFactor;
+    private final double participationFactor;
+
+    private final double maxTargetP;
+
+    private final double minTargetP;
 
     private LfBatteryImpl(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, battery.getTargetP() / PerUnit.SB);
         this.batteryRef = Ref.create(battery, parameters.isCacheEnabled());
-        participating = true;
-        droop = DEFAULT_DROOP;
-        // get participation factor from extension
-        ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
-        if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate();
-            if (!Double.isNaN(activePowerControl.getDroop())) {
-                droop = activePowerControl.getDroop();
-            }
-            if (activePowerControl.getParticipationFactor() > 0) {
-                participationFactor = activePowerControl.getParticipationFactor();
-            }
-        }
+        var apcHelper = ActivePowerControlHelper.create(battery, battery.getMinP(), battery.getMaxP());
+        participating = apcHelper.participating();
+        participationFactor = apcHelper.participationFactor();
+        droop = apcHelper.droop();
+        minTargetP = apcHelper.minTargetP();
+        maxTargetP = apcHelper.maxTargetP();
 
-        if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMinP(), battery.getMaxP(),
+        if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMaxP(), minTargetP, maxTargetP,
                 parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }
@@ -91,6 +87,16 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     @Override
     public double getMaxP() {
         return getBattery().getMaxP() / PerUnit.SB;
+    }
+
+    @Override
+    public double getMinTargetP() {
+        return minTargetP / PerUnit.SB;
+    }
+
+    @Override
+    public double getMaxTargetP() {
+        return maxTargetP / PerUnit.SB;
     }
 
     @Override

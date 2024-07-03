@@ -527,6 +527,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         jsonGenerator.writeBooleanField("voltageControl", generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE);
         jsonGenerator.writeNumberField("minP", generator.getMinP());
         jsonGenerator.writeNumberField("maxP", generator.getMaxP());
+        jsonGenerator.writeNumberField("minTargetP", generator.getMinTargetP());
+        jsonGenerator.writeNumberField("maxTargetP", generator.getMaxTargetP());
     }
 
     public void writeJson(Writer writer) {
