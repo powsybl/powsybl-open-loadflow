@@ -31,7 +31,7 @@ public class FlowInputReader extends AbstractWoodburyEngineInputReader {
     public FlowInputReader(ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData, DcLoadFlowContext loadFlowContext,
                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, List<ParticipatingElement> participatingElements,
                            ReportNode reportNode, DenseMatrix preContingencyFlowStates) {
-        super(connectivityData, loadFlowContext, lfParameters, lfParametersExt, participatingElements, reportNode, preContingencyFlowStates);
+        super(loadFlowContext, lfParameters, lfParametersExt, participatingElements, preContingencyFlowStates, connectivityData, reportNode);
     }
 
     Set<LfBranch> getDisabledPhaseTapChangers(PropagatedContingency contingency, Set<String> elementsToReconnect) {
@@ -81,32 +81,21 @@ public class FlowInputReader extends AbstractWoodburyEngineInputReader {
     }
 
     @Override
-    public void process(Handler handler) {
-        Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityData.contingencyElementByBranch();
-        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
-            List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
-            Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
-
-            // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
-            // if one bus of the line is lost.
-            processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
-
-            // we need to recompute the rhs because the connectivity changed
-            boolean rhsChanged = hasRhsChangedDueToDisabledSlackBus(lfParameters, disabledBuses, participatingElementsForThisConnectivity);
-            if (rhsChanged) {
-                participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
-                        ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
-                        : Collections.emptyList());
-            }
-
-            DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, Collections.emptySet());
-            DenseMatrix preContingencyStatesOverrideConnectivityBreak = getPreContingencyFlowRhs(loadFlowContext, participatingElementsForThisConnectivity, disabledNetwork);
-            // compute pre-contingency states values override
-            solve(preContingencyStatesOverrideConnectivityBreak, loadFlowContext.getJacobianMatrix(), reportNode);
-
-            extracted2(handler, connectivityAnalysisResult, contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity, preContingencyStatesOverrideConnectivityBreak);
+    protected Overrides getOverrides(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult,
+                                     Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements) {
+        List<ParticipatingElement> participatingElementsOverride = participatingElements;
+        // we need to recompute the rhs because the connectivity changed
+        boolean rhsChanged = hasRhsChangedDueToDisabledSlackBus(lfParameters, disabledBuses, participatingElementsOverride);
+        if (rhsChanged) {
+            participatingElementsOverride = new ArrayList<>(lfParameters.isDistributedSlack()
+                    ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
+                    : Collections.emptyList());
         }
 
-        extracted(handler, contingencyElementByBranch);
+        DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, Collections.emptySet());
+        DenseMatrix preContingencyStatesOverride = getPreContingencyFlowRhs(loadFlowContext, participatingElementsOverride, disabledNetwork);
+        // compute pre-contingency states values override
+        solve(preContingencyStatesOverride, loadFlowContext.getJacobianMatrix(), reportNode);
+        return new Overrides(participatingElementsOverride, preContingencyStatesOverride);
     }
 }

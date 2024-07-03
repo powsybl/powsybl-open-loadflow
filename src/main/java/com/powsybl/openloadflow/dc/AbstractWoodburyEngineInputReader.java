@@ -25,24 +25,29 @@ import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.solve;
  */
 public abstract class AbstractWoodburyEngineInputReader implements WoodburyEngineInputReader {
 
-    protected final ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData;
     protected final LfNetwork lfNetwork;
     protected final DcLoadFlowContext loadFlowContext;
     protected final LoadFlowParameters lfParameters;
     protected final OpenLoadFlowParameters lfParametersExt;
     protected final List<ParticipatingElement> participatingElements;
-    protected final ReportNode reportNode;
     protected final DenseMatrix preContingencyStates; // flow or injection
+    protected final ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData;
+    protected final ReportNode reportNode;
 
-    protected AbstractWoodburyEngineInputReader(ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData, DcLoadFlowContext loadFlowContext, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, List<ParticipatingElement> participatingElements, ReportNode reportNode, DenseMatrix preContingencyStates) {
-        this.connectivityData = connectivityData;
-        this.loadFlowContext = loadFlowContext;
+    public record Overrides(List<ParticipatingElement> participatingElementsOverride, DenseMatrix preContingencyStatesOverride) {
+    }
+
+    protected AbstractWoodburyEngineInputReader(DcLoadFlowContext loadFlowContext, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
+                                                List<ParticipatingElement> participatingElements, DenseMatrix preContingencyStates,
+                                                ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData, ReportNode reportNode) {
         this.lfNetwork = loadFlowContext.getNetwork();
+        this.loadFlowContext = loadFlowContext;
         this.lfParameters = lfParameters;
         this.lfParametersExt = lfParametersExt;
         this.participatingElements = participatingElements;
-        this.reportNode = reportNode;
         this.preContingencyStates = preContingencyStates;
+        this.connectivityData = connectivityData;
+        this.reportNode = reportNode;
     }
 
     /**
@@ -70,8 +75,13 @@ public abstract class AbstractWoodburyEngineInputReader implements WoodburyEngin
         return getPreContingencyRhsOverride(contingency, disabledBuses, partialDisabledBranches, Collections.emptySet(), Collections.emptyList());
     }
 
+    // FixME: name is too generic.
+    protected abstract Overrides getOverrides(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult,
+                                              Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements);
+
+    // FIXME: find a functional name.
     protected void extracted2(Handler handler, ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, Map<String, ComputedContingencyElement> contingencyElementByBranch, Set<LfBus> disabledBuses,
-                              List<ParticipatingElement> participatingElementsForThisConnectivity, DenseMatrix preContingencyStatesOverrideConnectivityBreak) {
+                              List<ParticipatingElement> participatingElementsOverride, DenseMatrix preContingencyStatesOverrideConnectivityBreak) {
         Set<String> elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
         for (PropagatedContingency contingency : connectivityAnalysisResult.getContingencies()) {
             Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
@@ -79,7 +89,7 @@ public abstract class AbstractWoodburyEngineInputReader implements WoodburyEngin
                     .map(contingencyElementByBranch::get)
                     .toList();
             Optional<DenseMatrix> preContingencyStatesOverride = getPreContingencyRhsOverride(contingency, disabledBuses, connectivityAnalysisResult.getPartialDisabledBranches(),
-                    elementsToReconnect, participatingElementsForThisConnectivity); // specific to flow
+                    elementsToReconnect, participatingElementsOverride); // specific to flow
             preContingencyStatesOverride.ifPresentOrElse(override -> {
                 // compute pre-contingency states values override
                 solve(override, loadFlowContext.getJacobianMatrix(), reportNode);
@@ -88,7 +98,7 @@ public abstract class AbstractWoodburyEngineInputReader implements WoodburyEngin
         }
     }
 
-    protected void extracted(Handler handler, Map<String, ComputedContingencyElement> contingencyElementByBranch) {
+    protected void handleNonBreakingConnectivityContingencies(Handler handler, Map<String, ComputedContingencyElement> contingencyElementByBranch) {
         for (PropagatedContingency contingency : connectivityData.nonBreakingConnectivityContingencies()) {
             Optional<DenseMatrix> preContingencyStatesOverride = getPreContingencyRhsOverride(contingency, Collections.emptySet(), Collections.emptySet());
             Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
@@ -100,5 +110,24 @@ public abstract class AbstractWoodburyEngineInputReader implements WoodburyEngin
                 handler.onContingency(contingency, contingencyElements, override);
             }, () -> handler.onContingency(contingency, contingencyElements, preContingencyStates));
         }
+    }
+
+    @Override
+    public void process(Handler handler) {
+        Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityData.contingencyElementByBranch();
+        // First process contingencies with connectivity break.
+        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
+            // we get the disabled buses (because connectivity break).
+            Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
+            // we have to reset active power flow of hvdc lines if one bus of the line is lost.
+            processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
+            // FIXME: these two steps have to be clearly explained.
+            // it seems that the rhs is overridden in two steps.
+            Overrides overrides = getOverrides(connectivityAnalysisResult, disabledBuses, participatingElements);
+            extracted2(handler, connectivityAnalysisResult, contingencyElementByBranch, disabledBuses, overrides.participatingElementsOverride(), overrides.preContingencyStatesOverride());
+        }
+
+        // then process contingencies with no connectivity break.
+        handleNonBreakingConnectivityContingencies(handler, contingencyElementByBranch);
     }
 }

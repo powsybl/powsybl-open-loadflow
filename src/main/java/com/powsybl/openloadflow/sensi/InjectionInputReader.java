@@ -41,7 +41,7 @@ class InjectionInputReader extends AbstractWoodburyEngineInputReader {
                                 List<ParticipatingElement> participatingElements, OpenLoadFlowParameters lfParametersExt, AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType,
             DcEquationType> factorGroups, ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData, LoadFlowParameters lfParameters, ReportNode reportNode,
                                 DenseMatrix preContingencyInjectionStates) {
-        super(connectivityData, loadFlowContext, lfParameters, lfParametersExt, participatingElements, reportNode, preContingencyInjectionStates);
+        super(loadFlowContext, lfParameters, lfParametersExt, participatingElements, preContingencyInjectionStates, connectivityData, reportNode);
         this.disabledNetworkByPropagatedContingency = disabledNetworkByPropagatedContingency;
         this.resultWriter = resultWriter;
         this.factorGroups = factorGroups;
@@ -63,6 +63,7 @@ class InjectionInputReader extends AbstractWoodburyEngineInputReader {
     @Override
     protected Optional<DenseMatrix> getPreContingencyRhsOverride(PropagatedContingency contingency, Set<LfBus> disabledBuses, Set<LfBranch> partialDisabledBranches,
                                                                  Set<String> elementsToReconnect, List<ParticipatingElement> participatingElements) {
+        // Note that elementsToReconnect and participatingElements are not used for injections.
         return getPreContingencyRhsOverride(contingency, disabledBuses, partialDisabledBranches);
     }
 
@@ -111,33 +112,19 @@ class InjectionInputReader extends AbstractWoodburyEngineInputReader {
     }
 
     @Override
-    public void process(Handler handler) {
-        Map<String, ComputedContingencyElement> contingencyElementByBranch = connectivityData.contingencyElementByBranch();
-        for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityData.connectivityAnalysisResults()) {
-            List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
-            Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
-
-            // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
-            // if one bus of the line is lost.
-            processHvdcLinesWithDisconnection(loadFlowContext, disabledBuses, connectivityAnalysisResult);
-
-            // we need to recompute the injection rhs because the connectivity changed
-            DenseMatrix preContingencyStatesOverrideConnectivityBreak;
-            boolean rhsChanged = hasRhsChangedDueToConnectivityBreak(lfParameters, factorGroups, disabledBuses, participatingElementsForThisConnectivity);
-            if (rhsChanged) {
-                participatingElementsForThisConnectivity = new ArrayList<>(lfParameters.isDistributedSlack()
-                        ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
-                        : Collections.emptyList());
-                preContingencyStatesOverrideConnectivityBreak = DcSensitivityAnalysis.getPreContingencyInjectionRhs(loadFlowContext, factorGroups, participatingElementsForThisConnectivity);
-                // compute pre-contingency states values override
-                solve(preContingencyStatesOverrideConnectivityBreak, loadFlowContext.getJacobianMatrix(), reportNode);
-            } else {
-                preContingencyStatesOverrideConnectivityBreak = preContingencyStates;
-            }
-
-            extracted2(handler, connectivityAnalysisResult, contingencyElementByBranch, disabledBuses, Collections.emptyList(), preContingencyStatesOverrideConnectivityBreak);
+    protected Overrides getOverrides(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult,
+                                     Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements) {
+        DenseMatrix preContingencyStatesOverride = preContingencyStates;
+        List<ParticipatingElement> participatingElementsOverride = participatingElements;
+        boolean rhsChanged = hasRhsChangedDueToConnectivityBreak(lfParameters, factorGroups, disabledBuses, participatingElementsOverride);
+        if (rhsChanged) {
+            participatingElementsOverride = new ArrayList<>(lfParameters.isDistributedSlack()
+                    ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
+                    : Collections.emptyList());
+            preContingencyStatesOverride = DcSensitivityAnalysis.getPreContingencyInjectionRhs(loadFlowContext, factorGroups, participatingElementsOverride);
+            // compute pre-contingency states values override
+            solve(preContingencyStatesOverride, loadFlowContext.getJacobianMatrix(), reportNode);
         }
-
-        extracted(handler, contingencyElementByBranch);
+        return new Overrides(participatingElementsOverride, preContingencyStatesOverride);
     }
 }
