@@ -1053,9 +1053,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals("Too many factors groups 3333333, maximum is 2684 for a system with 100000 equations", e.getMessage());
 
         LfNetwork network = Mockito.mock(LfNetwork.class);
-        List<DcSensitivityAnalysis.ComputedContingencyElement> contingencyElements = Mockito.mock(List.class);
+        List<ComputedContingencyElement> contingencyElements = Mockito.mock(List.class);
         Mockito.when(contingencyElements.size()).thenReturn(999999);
-        e = assertThrows(PowsyblException.class, () -> DcSensitivityAnalysis.initContingencyRhs(network, equationSystem, contingencyElements));
+        e = assertThrows(PowsyblException.class, () -> ConnectivityBreakAnalysis.initContingencyRhs(network, equationSystem, contingencyElements));
         assertEquals("Too many contingency elements 999999, maximum is 2684 for a system with 100000 equations", e.getMessage());
     }
 }
