@@ -97,6 +97,7 @@ public class BusState extends BusDcState {
             element.getSvcShunt().orElseThrow().setB(svcShuntB);
         }
         element.getGenerators().forEach(g -> g.setGeneratorControlType(generatorsControlType.get(g.getId())));
+        element.setQLimitType(null);
     }
 
     public static BusState save(LfBus bus) {
