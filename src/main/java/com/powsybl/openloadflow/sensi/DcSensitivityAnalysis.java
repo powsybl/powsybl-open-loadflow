@@ -478,7 +478,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                           ReportNode reportNode) {
         DenseMatrix modifiedFlowStates = flowStates;
 
-        List<String> contingenciesIds = connectivityAnalysisResult.getContingencies().stream().map(c -> c.getContingency().getId()).collect(Collectors.toList());
+        List<String> contingenciesIds = List.of(connectivityAnalysisResult.getContingency().getContingency().getId()); // FIXME
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies = validFactorHolder.getFactorsForContingencies(contingenciesIds);
 
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
@@ -488,10 +488,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // if one bus of the line is lost.
         for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
             if (Networks.isIsolatedBusForHvdc(hvdc.getBus1(), disabledBuses) ^ Networks.isIsolatedBusForHvdc(hvdc.getBus2(), disabledBuses)) {
-                connectivityAnalysisResult.getContingencies().forEach(contingency -> {
-                    contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation1().getId());
-                    contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation2().getId());
-                });
+                PropagatedContingency contingency = connectivityAnalysisResult.getContingency();
+                contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation1().getId());
+                contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation2().getId());
             }
         }
 
@@ -524,7 +523,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         calculateSensitivityValuesForContingencyList(loadFlowContext, lfParametersExt,
                 validFactorHolder, factorGroups, factorStateForThisConnectivity, contingenciesStates, modifiedFlowStates,
-                connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity,
+                List.of(connectivityAnalysisResult.getContingency()), contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity,
                 connectivityAnalysisResult.getElementsToReconnect(), resultWriter, reportNode, partialDisabledBranches);
 
         if (rhsChanged) {
@@ -699,8 +698,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // process contingencies with connectivity break
                 for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
                     processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
-                            validFactorHolder, factorGroups, participatingElements,
-                            connectivityBreakAnalysisResults.contingencyElementByBranch(), flowStates, factorsStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, reportNode);
+                            validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
+                            flowStates, factorsStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, reportNode);
                 }
             }
 
