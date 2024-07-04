@@ -16,7 +16,8 @@ import java.util.Objects;
 
 public class KnitroSolverParameters {
 
-    public static final int GRADIENT_COMPUTATION_MODE_DEFAULT = 1; // user provides a routine for computing the exact gradients
+    public static final int DEFAULT_GRADIENT_COMPUTATION_MODE = 1; // user provides a routine for computing the exact gradients
+    public static final int DEFAULT_GRADIENT_USER_ROUTINE = 2; // user routine for computing the exact gradients
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
     public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
@@ -24,7 +25,9 @@ public class KnitroSolverParameters {
     public KnitroSolverParameters() {
     }
 
-    private int gradientComputationMode = GRADIENT_COMPUTATION_MODE_DEFAULT;
+    private int gradientComputationMode = DEFAULT_GRADIENT_COMPUTATION_MODE;
+
+    private int gradientUserRoutine = DEFAULT_GRADIENT_USER_ROUTINE;
 
     private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
 
@@ -38,12 +41,26 @@ public class KnitroSolverParameters {
         return gradientComputationMode;
     }
 
-    public void setGradientComputationMode(int gradientComputationMode) {
+    public KnitroSolverParameters setGradientComputationMode(int gradientComputationMode) {
         if (gradientComputationMode < 1 || gradientComputationMode > 3) {
             throw new IllegalArgumentException("Knitro gradient computation mode must be between 1 and 3");
         }
         this.gradientComputationMode = gradientComputationMode;
+        return this;
     }
+
+    public int getGradientUserRoutine() {
+        return gradientUserRoutine;
+    }
+
+    public KnitroSolverParameters setGradientUserRoutine(int gradientUserRoutine) {
+        if (gradientUserRoutine < 1 || gradientUserRoutine > 2){
+            throw new IllegalArgumentException("User routine must be between 1 and 2");
+        }
+        this.gradientUserRoutine = gradientUserRoutine;
+        return this;
+    }
+
 
     public double getMinRealisticVoltage() {
         return minRealisticVoltage;

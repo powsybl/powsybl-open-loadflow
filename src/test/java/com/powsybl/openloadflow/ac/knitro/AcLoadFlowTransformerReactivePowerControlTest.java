@@ -49,6 +49,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         parameters.setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setGradientComputationModeKnitro(2)
                 .setAcSolverType(AcSolverType.KNITRO);
     }
 

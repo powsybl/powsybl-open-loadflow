@@ -256,6 +256,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String VOLTAGE_TARGET_PRIORITIES_PARAM_NAME = "voltageTargetPriorities";
 
+    public static final String GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME = "gradientComputationModeKnitro";
+
+    public static final String GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME = "gradientUserRoutineKnitro";
+;
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -329,7 +333,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE),
         new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Reference bus selection mode", ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class)),
         new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE),
-        new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class))
+        new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class)),
+        new Parameter(GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME, ParameterType.INTEGER, "Gradient computation mode", KnitroSolverParameters.DEFAULT_GRADIENT_COMPUTATION_MODE),
+        new Parameter(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME, ParameterType.INTEGER, "Gradient user routine", KnitroSolverParameters.DEFAULT_GRADIENT_USER_ROUTINE)
     );
 
     public enum VoltageInitModeOverride {
@@ -508,6 +514,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean writeReferenceTerminals = WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE;
 
     private List<String> voltageTargetPriorities = LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
+
+    private int gradientComputationModeKnitro = KnitroSolverParameters.DEFAULT_GRADIENT_COMPUTATION_MODE;
+
+    private int gradientUserRoutineKnitro = KnitroSolverParameters.DEFAULT_GRADIENT_USER_ROUTINE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1215,6 +1225,30 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public int getGradientComputationModeKnitro() {
+        return gradientComputationModeKnitro;
+    }
+
+    public OpenLoadFlowParameters setGradientComputationModeKnitro(int gradientComputationModeKnitro) {
+        this.gradientComputationModeKnitro = checkParameterValue(gradientComputationModeKnitro,
+                gradientComputationModeKnitro >= 1 &&
+                        gradientComputationModeKnitro <= 3,
+                GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME);
+        return this;
+    }
+
+    public int getGradientUserRoutineKnitro() {
+        return gradientUserRoutineKnitro;
+    }
+
+    public OpenLoadFlowParameters setGradientUserRoutineKnitro(int gradientUserRoutineKnitro) {
+        this.gradientUserRoutineKnitro = checkParameterValue(gradientUserRoutineKnitro,
+                gradientUserRoutineKnitro >= 1 &&
+                        gradientUserRoutineKnitro <= 2,
+                GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1292,7 +1326,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setNewtonKrylovLineSearch(config.getBooleanProperty(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE))
                 .setReferenceBusSelectionMode(config.getEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class, ReferenceBusSelector.DEFAULT_MODE))
                 .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE))
-                .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE)));
+                .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE))
+                .setGradientComputationModeKnitro(config.getIntProperty(GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME, KnitroSolverParameters.DEFAULT_GRADIENT_COMPUTATION_MODE))
+                .setGradientUserRoutineKnitro(config.getIntProperty(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME, KnitroSolverParameters.DEFAULT_GRADIENT_USER_ROUTINE)));
         return parameters;
     }
 
@@ -1449,6 +1485,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setWriteReferenceTerminals(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME))
                 .ifPresent(prop -> this.setVoltageTargetPriorities(parseStringListProp(prop)));
+        Optional.ofNullable(properties.get(GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME))
+                .ifPresent(prop -> this.setGradientComputationModeKnitro(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME))
+                .ifPresent(prop -> this.setGradientUserRoutineKnitro(Integer.parseInt(prop)));
         return this;
     }
 
@@ -1523,6 +1563,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, referenceBusSelectionMode);
         map.put(WRITE_REFERENCE_TERMINALS_PARAM_NAME, writeReferenceTerminals);
         map.put(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, voltageTargetPriorities);
+        map.put(GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME, gradientComputationModeKnitro);
+        map.put(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME, gradientUserRoutineKnitro);
         return map;
     }
 
@@ -1724,7 +1766,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setStoppingCriteria(createKnitroSolverStoppingCriteria(parametersExt))
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltageKnitroSolver())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltageKnitroSolver())
-                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetworkKnitroSolver());
+                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetworkKnitroSolver())
+                .setGradientComputationMode(parametersExt.getGradientComputationModeKnitro())
+                .setGradientUserRoutine(parametersExt.getGradientUserRoutineKnitro());
 
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 
@@ -1913,7 +1957,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxRatioMismatch() == extension2.getMaxRatioMismatch() &&
                 extension1.getMaxSusceptanceMismatch() == extension2.getMaxSusceptanceMismatch() &&
                 extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
+                extension1.getGradientComputationModeKnitro() == extension2.getGradientComputationModeKnitro() &&
+                extension1.getGradientUserRoutineKnitro() == extension2.getGradientUserRoutineKnitro() &&
                 Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities());
+
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -2007,7 +2054,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxSusceptanceMismatch(extension.getMaxSusceptanceMismatch())
                     .setNewtonRaphsonStoppingCriteriaType(extension.getNewtonRaphsonStoppingCriteriaType())
                     .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
-                    .setVoltageTargetPriorities(extension.getVoltageTargetPriorities());
+                    .setVoltageTargetPriorities(extension.getVoltageTargetPriorities())
+                    .setGradientComputationModeKnitro(extension.getGradientComputationModeKnitro())
+                    .setGradientUserRoutineKnitro(extension.getGradientUserRoutineKnitro())
+                    ;
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

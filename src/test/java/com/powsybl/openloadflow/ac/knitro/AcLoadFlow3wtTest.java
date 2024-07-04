@@ -50,6 +50,7 @@ class AcLoadFlow3wtTest {
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setGradientComputationModeKnitro(2)
                 .setAcSolverType(AcSolverType.KNITRO);
     }
 

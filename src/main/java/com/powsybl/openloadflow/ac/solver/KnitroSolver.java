@@ -33,7 +33,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KnitroSolver.class);
 
-    protected final KnitroSolverParameters knitroParameters;
+    protected static KnitroSolverParameters knitroParameters = new KnitroSolverParameters();
 
     public KnitroSolver(LfNetwork network, KnitroSolverParameters knitroParameters,
                            EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
@@ -179,79 +179,81 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
                 // Get non-linear Jacobian from original Jacobian
 
-                // FIRST METHOD
-                int id = 0;
-                for (int ct : listNonLinearConsts) {
-                    for (int var = 0; var < getNumVars(); var++) { //TODO CHANGER getNumVars()
+                if (knitroParameters.getGradientUserRoutine() == 1) {
+                    // FIRST METHOD
+                    int id = 0;
+                    for (int ct : listNonLinearConsts) {
+                        for (int var = 0; var < getNumVars(); var++) { //TODO CHANGER getNumVars()
+                            try {
+                                jac.set(id, denseOldMatrix.get(var, ct)); // Jacobian needs to be transposed
+                                id += 1;
+                            } catch (Exception e) {
+                                LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", var, ct);
+                                LOGGER.error(e.getMessage());
+                                throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
+                            }
+                        }
+                    }
+                } else if (knitroParameters.getGradientUserRoutine() == 2) {
+                    //SECOND METHOD
+                    for (int index = 0; index < listNonZerosCts2.size(); index++) {
                         try {
-                            jac.set(id, denseOldMatrix.get(var, ct)); // Jacobian needs to be transposed
-                            id += 1;
+                            int var = listNonZerosVars2.get(index);
+                            int ct = listNonZerosCts2.get(index);
+                            double value = denseOldMatrix.get(var, ct); // Jacobian needs to be transposed
+                            jac.set(index, value);
                         } catch (Exception e) {
-                            LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", var, ct);
+                            LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars2.get(index), listNonZerosCts2.get(index));
                             LOGGER.error(e.getMessage());
-                            throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
                         }
                     }
                 }
 
-                // SECOND METHOD
+//                List<Double> jac1 = new ArrayList<>();
+//                List<Double> jac2 = new ArrayList<>();
+//                List<Double> jacDiff = new ArrayList<>();
+//
+//                // JAC 1 all non linear constraints
+//                for (int ct : listNonLinearConsts) {
+//                    for (int var = 0; var < equationSystem.getVariableSet().getVariables().size(); var++) { //TODO CHANGER
+//                        try {
+//                            jac1.add(denseOldMatrix.get(var, ct));  // Jacobian needs to be transposed
+//                        } catch (Exception e) {
+//                            LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", var, ct);
+//                            LOGGER.error(e.getMessage());
+//                            throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
+//                        }
+//                    }
+//                }
+//
+//                // JAC 2 only non zeros
 //                for (int index = 0; index < listNonZerosCts2.size(); index++) {
 //                    try {
-//                        int var = listNonZerosVars2.get(index);
-//                        int ct = listNonZerosCts2.get(index);
-//                        double value = denseOldMatrix.get(var, ct); // Jacobian needs to be transposed
-//                        jac.set(index, value);
+//                        double value = denseOldMatrix.get(listNonZerosVars2.get(index), listNonZerosCts2.get(index));
+//                        jac2.add(value);  // Jacobian needs to be transposed
 //                    } catch (Exception e) {
 //                        LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars2.get(index), listNonZerosCts2.get(index));
 //                        LOGGER.error(e.getMessage());
+//                        throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
 //                    }
 //                }
 
-                List<Double> jac1 = new ArrayList<>();
-                List<Double> jac2 = new ArrayList<>();
-                List<Double> jacDiff = new ArrayList<>();
-
-                // JAC 1 all non linear constraints
-                for (int ct : listNonLinearConsts) {
-                    for (int var = 0; var < equationSystem.getVariableSet().getVariables().size(); var++) { //TODO CHANGER
-                        try {
-                            jac1.add(denseOldMatrix.get(var, ct));  // Jacobian needs to be transposed
-                        } catch (Exception e) {
-                            LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", var, ct);
-                            LOGGER.error(e.getMessage());
-                            throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
-                        }
-                    }
-                }
-
-                // JAC 2 only non zeros
-                for (int index = 0; index < listNonZerosCts2.size(); index++) {
-                    try {
-                        double value = denseOldMatrix.get(listNonZerosVars2.get(index), listNonZerosCts2.get(index));
-                        jac2.add(value);  // Jacobian needs to be transposed
-                    } catch (Exception e) {
-                        LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars2.get(index), listNonZerosCts2.get(index));
-                        LOGGER.error(e.getMessage());
-                        throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
-                    }
-                }
-
-                // JAC DIFF
-                int id2 = 0;
-                for (int i = 0; i < jac1.size(); i++) {
-                    if (listVarChecker.get(i) != -1) {
-                        jacDiff.add(jac1.get(i) - jac2.get(id2));
-                        id2 += 1;
-                    } else {
-                        jacDiff.add(jac1.get(i));
-                    }
-                }
-
-                for (double value : jacDiff) {
-                    if (value >= 0.00001) {
-                        System.out.println("Les deux Jacobiennes sont censées être équivalentes, mais elles le sont pas!!! ; erreur " + value);
-                    }
-                }
+//                // JAC DIFF
+//                int id2 = 0;
+//                for (int i = 0; i < jac1.size(); i++) {
+//                    if (listVarChecker.get(i) != -1) {
+//                        jacDiff.add(jac1.get(i) - jac2.get(id2));
+//                        id2 += 1;
+//                    } else {
+//                        jacDiff.add(jac1.get(i));
+//                    }
+//                }
+//
+//                for (double value : jacDiff) {
+//                    if (value >= 0.00001) {
+//                        System.out.println("Les deux Jacobiennes sont censées être équivalentes, mais elles le sont pas!!! ; erreur " + value);
+//                    }
+//                }
             }
         }
 
@@ -308,6 +310,13 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // Initial state
             List<Double> listXInitial = new ArrayList<>(numVar);
             AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer); // Initialize state vector
+
+//            Random random = new Random();
+//            for (int i = 0; i < 1000; i ++) {
+//                double x = random.nextDouble() * 10;
+//                equationSystem.getStateVector().set(random.nextInt(numVar), x);
+//            }
+//            equationSystem.getStateVector().set(numVar);
             for (int i = 0; i < numVar; i++) {
                 listXInitial.add(equationSystem.getStateVector().get(i));
             }
@@ -418,9 +427,13 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 listNonZerosCts2.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
             }
 
-            setJacNnzPattern(listNonZerosCts, listNonZerosVars);
-//            setJacNnzPattern(listNonZerosCts2, listNonZerosVars2);
-            setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCts, listNonZerosVars, listNonZerosCts2, listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
+            if (knitroParameters.getGradientComputationMode() == 1){ // User routine to compute the Jacobian
+                if (knitroParameters.getGradientUserRoutine() == 1) {
+                    setJacNnzPattern(listNonZerosCts, listNonZerosVars);
+                } else if (knitroParameters.getGradientUserRoutine() == 2) {
+                    setJacNnzPattern(listNonZerosCts2, listNonZerosVars2);}
+                setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCts, listNonZerosVars, listNonZerosCts2, listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
+            }
         }
 
     }
@@ -432,6 +445,11 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         solver.setParam(KNConstants.KN_PARAM_DERIVCHECK, 1);
         solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL, 0.0001);
 //        solver.setParam(KNConstants.KN_PARAM_MAXIT, 30);
+        solver.setParam(KNConstants.KN_PARAM_OUTLEV,3);
+        solver.setParam(KNConstants.KN_PARAM_MS_ENABLE, 0); // multi-start
+//        solver.setParam(KNConstants.KN_PARAM_MS_NUMTHREADS, 1);
+        solver.setParam(KNConstants.KN_PARAM_CONCURRENT_EVALS, 0); //pas d'évaluations de callbacks concurrentes
+        solver.setParam(KNConstants.KN_PARAM_NUMTHREADS, 8);
     }
 
     @Override
@@ -460,15 +478,15 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             LOGGER.info("Optimal objective value  = {}", solution.getObjValue());
             LOGGER.info("Feasibility violation    = {}", solver.getAbsFeasError());
             LOGGER.info("Optimality violation     = {}", solver.getAbsOptError());
-
-            LOGGER.debug("Optimal x");
-            for (int i = 0; i < solution.getX().size(); i++) {
-                LOGGER.debug(" x[{}] = {}", i, solution.getX().get(i));
-            }
-            LOGGER.debug("Optimal constraint values (with corresponding multiplier)");
-            for (int i = 0; i < instance.getNumCons(); i++) {
-                LOGGER.debug(" c[{}] = {} (lambda = {} )", i, constraintValues.get(i), solution.getLambda().get(i));
-            }
+//
+//            LOGGER.debug("Optimal x");
+//            for (int i = 0; i < solution.getX().size(); i++) {
+//                LOGGER.debug(" x[{}] = {}", i, solution.getX().get(i));
+//            }
+//            LOGGER.debug("Optimal constraint values (with corresponding multiplier)");
+//            for (int i = 0; i < instance.getNumCons(); i++) {
+//                LOGGER.debug(" c[{}] = {} (lambda = {} )", i, constraintValues.get(i), solution.getLambda().get(i));
+//            }
 
             // Load results in the network
 

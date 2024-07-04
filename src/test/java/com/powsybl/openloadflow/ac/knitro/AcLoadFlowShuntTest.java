@@ -61,6 +61,7 @@ class AcLoadFlowShuntTest {
                 .setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setGradientComputationModeKnitro(2)
                 .setAcSolverType(AcSolverType.KNITRO);
     }
 

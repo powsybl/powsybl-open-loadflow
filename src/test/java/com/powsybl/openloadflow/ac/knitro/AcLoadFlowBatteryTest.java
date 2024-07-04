@@ -56,6 +56,7 @@ class AcLoadFlowBatteryTest {
                 .setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setGradientComputationModeKnitro(2)
                 .setAcSolverType(AcSolverType.KNITRO);
     }
 
@@ -69,7 +70,7 @@ class AcLoadFlowBatteryTest {
         assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(401, genBus);
-        LoadFlowAssert.assertAngleEquals(5.916573, genBus);
+        LoadFlowAssert.assertAngleEquals(5.916585, genBus);
         assertVoltageEquals(397.660, batBus);
         LoadFlowAssert.assertAngleEquals(0.0, batBus);
     }
@@ -85,7 +86,7 @@ class AcLoadFlowBatteryTest {
         assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(417.328, genBus);
-        LoadFlowAssert.assertAngleEquals(5.468356, genBus);
+        LoadFlowAssert.assertAngleEquals(5.468361, genBus);
         assertVoltageEquals(401.0, batBus);
         LoadFlowAssert.assertAngleEquals(0.0, batBus);
     }
