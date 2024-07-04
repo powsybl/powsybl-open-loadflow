@@ -340,7 +340,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     /**
      * Calculate sensitivity values for a post-contingency state.
-     * When a contingency involves the loss of a load or a generator, the slack distribution could changed
+     * When a contingency involves the loss of a load or a generator, the slack distribution could be changed
      * or the sensitivity factors in case of GLSK.
      */
     private void calculateContingencySensitivityValues(PropagatedContingency contingency, SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, DenseMatrix factorStates, DenseMatrix contingenciesStates,
@@ -478,17 +478,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                           ReportNode reportNode) {
         DenseMatrix modifiedFlowStates = flowStates;
 
-        List<String> contingenciesIds = List.of(connectivityAnalysisResult.getContingency().getContingency().getId()); // FIXME
-        List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies = validFactorHolder.getFactorsForContingencies(contingenciesIds);
+        PropagatedContingency contingency = connectivityAnalysisResult.getPropagatedContingency();
+        List<String> contingencyId = List.of(contingency.getContingency().getId());
+        List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies = validFactorHolder.getFactorsForContingencies(contingencyId);
 
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
 
-        // as we are processing contingencies with connectivity break, we have to reset active power flow of a hvdc line
+        // as we are processing a contingency with connectivity break, we have to reset active power flow of a hvdc line
         // if one bus of the line is lost.
         for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
             if (Networks.isIsolatedBusForHvdc(hvdc.getBus1(), disabledBuses) ^ Networks.isIsolatedBusForHvdc(hvdc.getBus2(), disabledBuses)) {
-                PropagatedContingency contingency = connectivityAnalysisResult.getContingency();
                 contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation1().getId());
                 contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation2().getId());
             }
@@ -523,7 +523,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         calculateSensitivityValuesForContingencyList(loadFlowContext, lfParametersExt,
                 validFactorHolder, factorGroups, factorStateForThisConnectivity, contingenciesStates, modifiedFlowStates,
-                List.of(connectivityAnalysisResult.getContingency()), contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity,
+                List.of(contingency), contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity,
                 connectivityAnalysisResult.getElementsToReconnect(), resultWriter, reportNode, partialDisabledBranches);
 
         if (rhsChanged) {

@@ -62,11 +62,11 @@ public final class ConnectivityBreakAnalysis {
             partialDisabledBranches = connectivity.getEdgesRemovedFromMainComponent();
         }
 
-        public PropagatedContingency getContingency() {
+        public PropagatedContingency getPropagatedContingency() {
             return contingency;
         }
 
-        public void setContingency(PropagatedContingency contingency) {
+        public void setPropagatedContingency(PropagatedContingency contingency) {
             this.contingency = contingency;
         }
 
@@ -169,7 +169,7 @@ public final class ConnectivityBreakAnalysis {
                     if (!lfFactors.isEmpty()) {
                         Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
                         ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
-                        connectivityAnalysisResult.setContingency(contingency);
+                        connectivityAnalysisResult.setPropagatedContingency(contingency);
                         connectivityAnalysisResults.add(connectivityAnalysisResult);
                     } else {
                         // write contingency status
