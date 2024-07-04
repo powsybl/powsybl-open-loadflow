@@ -16,7 +16,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.dc.ComputedContingencyElement;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
@@ -1056,7 +1055,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         LfNetwork network = Mockito.mock(LfNetwork.class);
         List<ComputedContingencyElement> contingencyElements = Mockito.mock(List.class);
         Mockito.when(contingencyElements.size()).thenReturn(999999);
-        e = assertThrows(PowsyblException.class, () -> DcSensitivityAnalysis.initContingencyRhs(network, equationSystem, contingencyElements));
+        e = assertThrows(PowsyblException.class, () -> ConnectivityBreakAnalysis.initContingencyRhs(network, equationSystem, contingencyElements));
         assertEquals("Too many contingency elements 999999, maximum is 2684 for a system with 100000 equations", e.getMessage());
     }
 }
