@@ -101,8 +101,8 @@ public final class ConnectivityBreakAnalysis {
     private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
                                                          Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                          EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                                         Collection<PropagatedContingency> nonLosingConnectivityContingencies,
-                                                         Collection<PropagatedContingency> losingConnectivityContingencies) {
+                                                         List<PropagatedContingency> nonLosingConnectivityContingencies,
+                                                         List<PropagatedContingency> losingConnectivityContingencies) {
         for (PropagatedContingency contingency : contingencies) {
             List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
             if (isGroupOfElementsBreakingConnectivity(lfNetwork, states, contingencyElements, equationSystem)) { // connectivity broken
@@ -114,7 +114,7 @@ public final class ConnectivityBreakAnalysis {
     }
 
     private static boolean isGroupOfElementsBreakingConnectivity(LfNetwork lfNetwork, DenseMatrix contingenciesStates,
-                                                                 Collection<ComputedContingencyElement> contingencyElements,
+                                                                 List<ComputedContingencyElement> contingencyElements,
                                                                  EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         // use a sensitivity-criterion to detect the loss of connectivity after a contingency
         // we consider a +1 -1 on a line, and we observe the sensitivity of these injections on the other contingency elements
