@@ -27,6 +27,7 @@ public class BusState extends BusDcState {
     private final double controllerShuntG;
     private final double svcShuntB;
     private final Map<String, LfGenerator.GeneratorControlType> generatorsControlType;
+    private final LfBus.QLimitType qLimitType;
 
     private static class LoadState extends LoadDcState {
 
@@ -63,6 +64,7 @@ public class BusState extends BusDcState {
         LfShunt svcShunt = bus.getSvcShunt().orElse(null);
         svcShuntB = svcShunt != null ? svcShunt.getB() : Double.NaN;
         this.generatorsControlType = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getGeneratorControlType));
+        qLimitType = bus.getQLimitType().orElse(null);
     }
 
     @Override
@@ -97,7 +99,7 @@ public class BusState extends BusDcState {
             element.getSvcShunt().orElseThrow().setB(svcShuntB);
         }
         element.getGenerators().forEach(g -> g.setGeneratorControlType(generatorsControlType.get(g.getId())));
-        element.setQLimitType(null);
+        element.setQLimitType(qLimitType);
     }
 
     public static BusState save(LfBus bus) {
