@@ -139,8 +139,8 @@ public final class ConnectivityBreakAnalysis {
     }
 
     private static List<ConnectivityAnalysisResult> computeConnectivityData(LfNetwork lfNetwork, AbstractSensitivityAnalysis.SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder,
-                                                                                                  Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity,
-                                                                                                  List<PropagatedContingency> nonLosingConnectivityContingencies, SensitivityResultWriter resultWriter) {
+                                                                            Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity,
+                                                                            List<PropagatedContingency> nonLosingConnectivityContingencies, SensitivityResultWriter resultWriter) {
         if (contingenciesByGroupOfElementsBreakingConnectivity.isEmpty()) {
             return Collections.emptyList();
         }
@@ -253,7 +253,7 @@ public final class ConnectivityBreakAnalysis {
         return contingencyElementByBranch;
     }
 
-    static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
+    public static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
         int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
@@ -300,7 +300,6 @@ public final class ConnectivityBreakAnalysis {
         }
     }
 
-    // TODO : expose the method to be accessible from dc security analysis
     public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, AbstractSensitivityAnalysis.SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder,
                                                        List<PropagatedContingency> contingencies, SensitivityResultWriter resultWriter) {
         // index contingency elements by branch id
@@ -334,5 +333,4 @@ public final class ConnectivityBreakAnalysis {
 
         return new ConnectivityBreakAnalysisResults(nonBreakingConnectivityContingencies, connectivityAnalysisResults, contingenciesStates, contingencyElementByBranch);
     }
-
 }
