@@ -159,31 +159,25 @@ public final class ConnectivityBreakAnalysis {
                 breakingConnectivityElements = breakingConnectivityCandidates.stream()
                         .filter(element -> isBreakingConnectivity(connectivity, element))
                         .collect(Collectors.toCollection(LinkedHashSet::new));
-            } finally {
-                connectivity.undoTemporaryChanges();
-            }
 
-            if (breakingConnectivityElements.isEmpty()) {
-                // we did not break any connectivity
-                nonLosingConnectivityContingencies.add(contingency);
-            } else {
-                // only compute for factors that have to be computed for this contingency lost
-                List<AbstractSensitivityAnalysis.LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(List.of(contingency.getContingency().getId()));
-                if (!lfFactors.isEmpty()) {
-                    connectivity.startTemporaryChanges(); // FIXME, not necessary anymore, connectivity has not changed
-                    try {
-                        ComputedContingencyElement.applyToConnectivity(lfNetwork, connectivity, breakingConnectivityElements);
+                if (breakingConnectivityElements.isEmpty()) {
+                    // we did not break any connectivity
+                    nonLosingConnectivityContingencies.add(contingency);
+                } else {
+                    // only compute for factors that have to be computed for this contingency lost
+                    List<AbstractSensitivityAnalysis.LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(List.of(contingency.getContingency().getId()));
+                    if (!lfFactors.isEmpty()) {
                         Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
                         ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
                         connectivityAnalysisResult.setContingency(contingency);
                         connectivityAnalysisResults.add(connectivityAnalysisResult);
-                    } finally {
-                        connectivity.undoTemporaryChanges();
+                    } else {
+                        // write contingency status
+                        resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
                     }
-                } else {
-                    // write contingency status
-                    resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
                 }
+            } finally {
+                connectivity.undoTemporaryChanges();
             }
         }
         return connectivityAnalysisResults;
