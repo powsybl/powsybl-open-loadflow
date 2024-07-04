@@ -11,7 +11,6 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.BranchContingency;
-import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -19,6 +18,7 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.ComputedContingencyElement;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -56,91 +56,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
     private static final double FUNCTION_REFERENCE_ZER0_THRESHOLD = 1e-13;
-
-    static final class ComputedContingencyElement {
-
-        private int contingencyIndex = -1; // index of the element in the rhs for +1-1
-        private int localIndex = -1; // local index of the element : index of the element in the matrix used in the setAlphas method
-        private double alphaForSensitivityValue = Double.NaN;
-        private double alphaForFunctionReference = Double.NaN;
-        private final ContingencyElement element;
-        private final LfBranch lfBranch;
-        private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
-
-        private ComputedContingencyElement(final ContingencyElement element, LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-            this.element = element;
-            lfBranch = lfNetwork.getBranchById(element.getId());
-            branchEquation = equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-        }
-
-        private int getContingencyIndex() {
-            return contingencyIndex;
-        }
-
-        private void setContingencyIndex(final int index) {
-            this.contingencyIndex = index;
-        }
-
-        private int getLocalIndex() {
-            return localIndex;
-        }
-
-        private void setLocalIndex(final int index) {
-            this.localIndex = index;
-        }
-
-        private double getAlphaForSensitivityValue() {
-            return alphaForSensitivityValue;
-        }
-
-        private void setAlphaForSensitivityValue(final double alpha) {
-            this.alphaForSensitivityValue = alpha;
-        }
-
-        private double getAlphaForFunctionReference() {
-            return alphaForFunctionReference;
-        }
-
-        private void setAlphaForFunctionReference(final double alpha) {
-            this.alphaForFunctionReference = alpha;
-        }
-
-        private ContingencyElement getElement() {
-            return element;
-        }
-
-        private LfBranch getLfBranch() {
-            return lfBranch;
-        }
-
-        private ClosedBranchSide1DcFlowEquationTerm getLfBranchEquation() {
-            return branchEquation;
-        }
-
-        private static void setContingencyIndexes(Collection<ComputedContingencyElement> elements) {
-            int index = 0;
-            for (ComputedContingencyElement element : elements) {
-                element.setContingencyIndex(index++);
-            }
-        }
-
-        private static void setLocalIndexes(Collection<ComputedContingencyElement> elements) {
-            int index = 0;
-            for (ComputedContingencyElement element : elements) {
-                element.setLocalIndex(index++);
-            }
-        }
-
-        static void applyToConnectivity(LfNetwork lfNetwork, GraphConnectivity<LfBus, LfBranch> connectivity, Collection<ComputedContingencyElement> breakingConnectivityElements) {
-            breakingConnectivityElements.stream()
-                    .map(ComputedContingencyElement::getElement)
-                    .map(ContingencyElement::getId)
-                    .distinct()
-                    .map(lfNetwork::getBranchById)
-                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                    .forEach(connectivity::removeEdge);
-        }
-    }
 
     private static final class PhaseTapChangerContingenciesIndexing {
 
@@ -630,13 +545,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     /**
      * Given the elements breaking the connectivity, extract the minimum number of elements which reconnect all connected components together
      */
-    private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity, Set<DcSensitivityAnalysis.ComputedContingencyElement> breakingConnectivityElements) {
+    private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity, Set<ComputedContingencyElement> breakingConnectivityElements) {
         Set<String> elementsToReconnect = new LinkedHashSet<>();
 
         // We suppose we're reconnecting one by one each element breaking connectivity.
         // At each step we look if the reconnection was needed on the connectivity level by maintaining a list of grouped connected components.
         List<Set<Integer>> reconnectedCc = new ArrayList<>();
-        for (DcSensitivityAnalysis.ComputedContingencyElement element : breakingConnectivityElements) {
+        for (ComputedContingencyElement element : breakingConnectivityElements) {
             int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
             int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
 
