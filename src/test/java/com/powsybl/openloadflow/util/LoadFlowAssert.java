@@ -108,4 +108,10 @@ public final class LoadFlowAssert {
         String logExport = normalizeLineSeparator(sw.toString());
         assertEquals(refLogExport, logExport);
     }
+
+    public static void assertKnitroComparisonToNewtonRaphson(LoadFlowResult result) {
+        assertTrue(result.isFullyConverged());
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertEquals(1, componentResult.getIterationCount());
+    }
 }

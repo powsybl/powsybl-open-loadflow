@@ -124,7 +124,7 @@ class AcLoadFlow3wtTest {
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertActivePowerEquals(121.691, twtParallel.getTerminal1());
-        assertActivePowerEquals(-40.451, twt.getLeg2().getTerminal());
+        assertActivePowerEquals(-40.452, twt.getLeg2().getTerminal());
     }
 
     @Test

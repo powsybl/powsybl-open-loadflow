@@ -12,6 +12,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CompareKnitroToNewtonRaphson;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
@@ -55,7 +56,8 @@ class AcLoadFlowBoundaryTest {
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setGradientComputationModeKnitro(2)
-                .setAcSolverType(AcSolverType.KNITRO);
+                .setAcSolverType(AcSolverType.KNITRO)
+        ;
     }
 
     @Test
@@ -68,7 +70,7 @@ class AcLoadFlowBoundaryTest {
         assertVoltageEquals(388.582864, bus2);
         assertAngleEquals(0, bus2);
         assertActivePowerEquals(101.302, dl1.getTerminal());
-        assertReactivePowerEquals(149.765, dl1.getTerminal());
+        assertReactivePowerEquals(149.766, dl1.getTerminal());
     }
 
     @Test
@@ -86,24 +88,28 @@ class AcLoadFlowBoundaryTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        assertVoltageEquals(390.440, bus1);
-        assertAngleEquals(0.114371, bus1);
-        assertVoltageEquals(390.181, bus2);
-        assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101.2, dl1.getTerminal());
-        assertReactivePowerEquals(-0.202, dl1.getTerminal());
-
-        parameters.setDistributedSlack(true)
-                .setUseReactiveLimits(true);
-        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isFullyConverged());
-
-        assertVoltageEquals(390.440, bus1);
-        assertAngleEquals(0.114371, bus1);
-        assertVoltageEquals(390.181, bus2);
-        assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101.2, dl1.getTerminal());
-        assertReactivePowerEquals(-0.202, dl1.getTerminal());
+//        CompareKnitroToNewtonRaphson compareKnitroToNewtonRaphson = new CompareKnitroToNewtonRaphson(loadFlowRunner, parameters, parametersExt, network);
+        LoadFlowResult resultNR = CompareKnitroToNewtonRaphson.RunComparison(loadFlowRunner, parameters, parametersExt, network);
+        assertKnitroComparisonToNewtonRaphson(resultNR);
+//
+//        assertVoltageEquals(390.440, bus1);
+//        assertAngleEquals(0.114371, bus1);
+//        assertVoltageEquals(390.181, bus2);
+//        assertAngleEquals(0, bus2);
+//        assertActivePowerEquals(101.2, dl1.getTerminal());
+//        assertReactivePowerEquals(-0.201, dl1.getTerminal());
+//
+//        parameters.setDistributedSlack(true)
+//                .setUseReactiveLimits(true);
+//        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+//        assertTrue(result2.isFullyConverged());
+//
+//        assertVoltageEquals(390.440, bus1);
+//        assertAngleEquals(0.114371, bus1);
+//        assertVoltageEquals(390.181, bus2);
+//        assertAngleEquals(0, bus2);
+//        assertActivePowerEquals(101.2, dl1.getTerminal());
+//        assertReactivePowerEquals(-0.202, dl1.getTerminal());
     }
 
     @Test

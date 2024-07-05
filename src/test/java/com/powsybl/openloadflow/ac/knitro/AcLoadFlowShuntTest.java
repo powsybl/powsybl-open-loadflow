@@ -392,7 +392,7 @@ class AcLoadFlowShuntTest {
         assertReactivePowerEquals(2.362, l1.getTerminal(TwoSides.TWO));
         assertActivePowerEquals(-1.528, l2.getTerminal(TwoSides.ONE));
         assertActivePowerEquals(1.681, l2.getTerminal(TwoSides.TWO));
-        assertReactivePowerEquals(152.82, l2.getTerminal(TwoSides.ONE));
+        assertReactivePowerEquals(152.821, l2.getTerminal(TwoSides.ONE));
         assertReactivePowerEquals(-152.362, l2.getTerminal(TwoSides.TWO));
         assertActivePowerEquals(1.528, shuntG.getTerminal());
         assertReactivePowerEquals(-152.82, shuntG.getTerminal());

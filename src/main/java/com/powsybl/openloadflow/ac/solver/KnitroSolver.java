@@ -446,10 +446,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL, 0.0001);
 //        solver.setParam(KNConstants.KN_PARAM_MAXIT, 30);
         solver.setParam(KNConstants.KN_PARAM_OUTLEV,3);
-        solver.setParam(KNConstants.KN_PARAM_MS_ENABLE, 0); // multi-start
+//        solver.setParam(KNConstants.KN_PARAM_MS_ENABLE, 0); // multi-start
 //        solver.setParam(KNConstants.KN_PARAM_MS_NUMTHREADS, 1);
-        solver.setParam(KNConstants.KN_PARAM_CONCURRENT_EVALS, 0); //pas d'évaluations de callbacks concurrentes
-        solver.setParam(KNConstants.KN_PARAM_NUMTHREADS, 8);
+//        solver.setParam(KNConstants.KN_PARAM_CONCURRENT_EVALS, 0); //pas d'évaluations de callbacks concurrentes
+//        solver.setParam(KNConstants.KN_PARAM_NUMTHREADS, 8);
     }
 
     @Override
@@ -478,15 +478,15 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             LOGGER.info("Optimal objective value  = {}", solution.getObjValue());
             LOGGER.info("Feasibility violation    = {}", solver.getAbsFeasError());
             LOGGER.info("Optimality violation     = {}", solver.getAbsOptError());
-//
-//            LOGGER.debug("Optimal x");
-//            for (int i = 0; i < solution.getX().size(); i++) {
-//                LOGGER.debug(" x[{}] = {}", i, solution.getX().get(i));
-//            }
-//            LOGGER.debug("Optimal constraint values (with corresponding multiplier)");
-//            for (int i = 0; i < instance.getNumCons(); i++) {
-//                LOGGER.debug(" c[{}] = {} (lambda = {} )", i, constraintValues.get(i), solution.getLambda().get(i));
-//            }
+
+            LOGGER.debug("Optimal x");
+            for (int i = 0; i < solution.getX().size(); i++) {
+                LOGGER.debug(" x[{}] = {}", i, solution.getX().get(i));
+            }
+            LOGGER.debug("Optimal constraint values (with corresponding multiplier)");
+            for (int i = 0; i < instance.getNumCons(); i++) {
+                LOGGER.debug(" c[{}] = {} (lambda = {} )", i, constraintValues.get(i), solution.getLambda().get(i));
+            }
 
             // Load results in the network
 
