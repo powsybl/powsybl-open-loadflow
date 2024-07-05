@@ -102,11 +102,11 @@ public final class ConnectivityBreakAnalysis {
                                                          Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                          EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                                          List<PropagatedContingency> nonLosingConnectivityContingencies,
-                                                         List<PropagatedContingency> losingConnectivityContingencies) {
+                                                         List<PropagatedContingency> potentiallyLosingConnectivityContingencies) {
         for (PropagatedContingency contingency : contingencies) {
             List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
             if (isGroupOfElementsBreakingConnectivity(lfNetwork, states, contingencyElements, equationSystem)) { // connectivity broken
-                losingConnectivityContingencies.add(contingency);
+                potentiallyLosingConnectivityContingencies.add(contingency);
             } else {
                 nonLosingConnectivityContingencies.add(contingency);
             }
