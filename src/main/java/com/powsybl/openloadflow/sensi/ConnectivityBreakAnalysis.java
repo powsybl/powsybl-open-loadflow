@@ -101,14 +101,14 @@ public final class ConnectivityBreakAnalysis {
     private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
                                                          Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                          EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                                         List<PropagatedContingency> nonLosingConnectivityContingencies,
-                                                         List<PropagatedContingency> potentiallyLosingConnectivityContingencies) {
+                                                         List<PropagatedContingency> nonBreakingConnectivityContingencies,
+                                                         List<PropagatedContingency> potentiallyBreakingConnectivityContingencies) {
         for (PropagatedContingency contingency : contingencies) {
             List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
             if (isGroupOfElementsBreakingConnectivity(lfNetwork, states, contingencyElements, equationSystem)) { // connectivity broken
-                potentiallyLosingConnectivityContingencies.add(contingency);
+                potentiallyBreakingConnectivityContingencies.add(contingency);
             } else {
-                nonLosingConnectivityContingencies.add(contingency);
+                nonBreakingConnectivityContingencies.add(contingency);
             }
         }
     }
@@ -138,7 +138,7 @@ public final class ConnectivityBreakAnalysis {
 
     private static List<ConnectivityAnalysisResult> computeConnectivityData(LfNetwork lfNetwork, AbstractSensitivityAnalysis.SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder,
                                                                             List<PropagatedContingency> potentiallyBreakingConnectivityContingencies, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                                            List<PropagatedContingency> nonLosingConnectivityContingencies,
+                                                                            List<PropagatedContingency> nonBreakingConnectivityContingencies,
                                                                             SensitivityResultWriter resultWriter) {
         if (potentiallyBreakingConnectivityContingencies.isEmpty()) {
             return Collections.emptyList();
@@ -162,7 +162,7 @@ public final class ConnectivityBreakAnalysis {
 
                 if (breakingConnectivityElements.isEmpty()) {
                     // we did not break any connectivity
-                    nonLosingConnectivityContingencies.add(contingency);
+                    nonBreakingConnectivityContingencies.add(contingency);
                 } else {
                     // only compute for factors that have to be computed for this contingency lost
                     List<AbstractSensitivityAnalysis.LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(List.of(contingency.getContingency().getId()));
