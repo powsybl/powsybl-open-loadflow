@@ -328,8 +328,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
-            DenseMatrix newFlowStates = flowStates;
             DenseMatrix newFactorStates = factorStates;
+            DenseMatrix newFlowStates = flowStates;
+
+            // we need to recompute the factor states because the connectivity changed
+            if (hasRhsChangedDueToConnectivityBreak) {
+                newFactorStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
+            }
 
             if (!factors.isEmpty()) {
                 Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().keySet().stream()
@@ -346,13 +351,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 }
             }
 
-            // we need to recompute the factor states because the connectivity changed
-            if (hasRhsChangedDueToConnectivityBreak) {
-                newFactorStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
-            }
-
             calculateSensitivityValues(loadFlowContext, factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements,
                     contingency, resultWriter, disabledNetwork);
+
+            if (hasRhsChangedDueToConnectivityBreak) {
+                setBaseCaseSensitivityValues(factorGroups, factorStates); // we modified the rhs, we need to restore previous state
+            }
+
             // write contingency status
             if (contingency.hasNoImpact()) {
                 resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
@@ -409,8 +414,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     contingency, resultWriter, disabledNetwork);
 
             networkState.restore();
-            if (participatingElementsChanged || rhsChanged) {
-                setBaseCaseSensitivityValues(factorGroups, factorStates);
+            if (participatingElementsChanged || rhsChanged || hasRhsChangedDueToConnectivityBreak) {
+                setBaseCaseSensitivityValues(factorGroups, factorStates); // we modified the rhs, we need to restore previous state
             }
         }
     }
@@ -460,10 +465,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 validFactorHolder, factorGroups, factorsStates, contingenciesStates, flowStates,
                 contingency, contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity,
                 connectivityAnalysisResult.getElementsToReconnect(), resultWriter, reportNode, partialDisabledBranches, rhsChanged);
-
-        if (rhsChanged) {
-            setBaseCaseSensitivityValues(factorGroups, factorsStates); // we modified the rhs, we need to restore previous state
-        }
     }
 
     protected void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
