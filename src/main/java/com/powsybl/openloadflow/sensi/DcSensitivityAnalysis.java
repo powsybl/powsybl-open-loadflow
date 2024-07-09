@@ -327,67 +327,97 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         disabledBranches.addAll(partialDisabledBranches);
         DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 
-        DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
-        NetworkState networkState = NetworkState.save(lfNetwork);
-        LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
-        DenseMatrix newFactorStates = factorStates;
-        List<ParticipatingElement> newParticipatingElements = participatingElements;
-        boolean participatingElementsChanged = false;
-        boolean rhsChanged = false;
-        if (lfContingency != null) {
-            lfContingency.apply(lfParameters.getBalanceType());
-            participatingElementsChanged = isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()
-                    || isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty();
-            if (factorGroups.hasMultiVariables()) {
-                Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
-                impactedBuses.addAll(disabledBuses);
-                rhsChanged = rescaleGlsk(factorGroups, impactedBuses);
+        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
+            DenseMatrix newFactorStates = factorStates;
+            DenseMatrix newFlowStates = flowStates;
+
+            // we need to recompute the factor states because the connectivity changed
+            if (hasRhsChangedDueToConnectivityBreak) {
+                newFactorStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
             }
-            if (participatingElementsChanged) {
-                if (isDistributedSlackOnGenerators(lfParameters)) {
-                    // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
-                    Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
-                    newParticipatingElements = participatingElements.stream()
-                            .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
-                            .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
-                            .collect(Collectors.toList());
-                    normalizeParticipationFactors(newParticipatingElements);
-                } else { // slack distribution on loads
-                    newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+
+            if (!factors.isEmpty()) {
+                Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().keySet().stream()
+                        .filter(element -> !elementsToReconnect.contains(element))
+                        .map(contingencyElementByBranch::get)
+                        .map(ComputedContingencyElement::getLfBranch)
+                        .filter(LfBranch::hasPhaseControllerCapability)
+                        .collect(Collectors.toSet());
+
+                // if a phase tap changer is lost or if connectivity changed, recompute load flows
+                if (!disabledBuses.isEmpty() || !lostTransformers.isEmpty()) {
+                    DisabledNetwork disabledNetworkWithPstLost = new DisabledNetwork(disabledBuses, lostTransformers);
+                    newFlowStates = calculateActivePowerFlows(loadFlowContext, factors, participatingElements, disabledNetworkWithPstLost, reportNode);
                 }
             }
+
+            calculateSensitivityValues(loadFlowContext, factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements,
+                    contingency, resultWriter, disabledNetwork);
+
+            if (hasRhsChangedDueToConnectivityBreak) {
+                setBaseCaseSensitivityValues(factorGroups, factorStates); // we modified the rhs, we need to restore previous state
+            }
+
             // write contingency status
-            resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+            if (contingency.hasNoImpact()) {
+                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+            } else {
+                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+            }
         } else {
-            // write contingency status
-            resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
-        }
+            // if we have a contingency including the loss of a DC line or a generator or a load
+            // save base state for later restoration after each contingency
+            DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
+            NetworkState networkState = NetworkState.save(lfNetwork);
+            LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
+            DenseMatrix newFactorStates = factorStates;
+            List<ParticipatingElement> newParticipatingElements = participatingElements;
+            boolean participatingElementsChanged = false;
+            boolean rhsChanged = false;
+            if (lfContingency != null) {
+                lfContingency.apply(lfParameters.getBalanceType());
+                participatingElementsChanged = isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()
+                        || isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty();
+                if (factorGroups.hasMultiVariables()) {
+                    Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
+                    rhsChanged = rescaleGlsk(factorGroups, impactedBuses);
+                }
+                if (participatingElementsChanged) {
+                    if (isDistributedSlackOnGenerators(lfParameters)) {
+                        // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
+                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
+                        newParticipatingElements = participatingElements.stream()
+                                .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
+                                .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
+                                .collect(Collectors.toList());
+                        normalizeParticipationFactors(newParticipatingElements);
+                    } else { // slack distribution on loads
+                        newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+                    }
+                }
+                // write contingency status
+                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+            } else {
+                // write contingency status
+                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+            }
 
-        // we need to recompute the factor states because the rhs has changed or
-        if (participatingElementsChanged || rhsChanged || hasRhsChangedDueToConnectivityBreak) {
-            newFactorStates = calculateFactorStates(loadFlowContext, factorGroups, newParticipatingElements);
-        }
+            // we need to recompute the factor states because the rhs has changed or
+            if (participatingElementsChanged || rhsChanged || hasRhsChangedDueToConnectivityBreak) {
+                newFactorStates = calculateFactorStates(loadFlowContext, factorGroups, newParticipatingElements);
+            }
 
-        Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().keySet().stream()
-                .filter(element -> !elementsToReconnect.contains(element))
-                .map(contingencyElementByBranch::get)
-                .map(ComputedContingencyElement::getLfBranch)
-                .filter(LfBranch::hasPhaseControllerCapability)
-                .collect(Collectors.toSet());
-        DenseMatrix newFlowStates = flowStates;
-        if (!contingency.getLoadIdsToLoose().isEmpty() || !contingency.getGeneratorIdsToLose().isEmpty() ||
-                !disabledBuses.isEmpty() || !lostTransformers.isEmpty()) {
-            newFlowStates = calculateActivePowerFlows(loadFlowContext, factors, newParticipatingElements, disabledNetwork, reportNode);
-        }
+            DenseMatrix newFlowStates = calculateActivePowerFlows(loadFlowContext, factors,
+                    newParticipatingElements, disabledNetwork, reportNode);
 
-        calculateSensitivityValues(loadFlowContext, factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements,
-                contingency, resultWriter, disabledNetwork);
+            calculateSensitivityValues(loadFlowContext, factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements,
+                    contingency, resultWriter, disabledNetwork);
 
-        networkState.restore();
-        if (participatingElementsChanged || rhsChanged || hasRhsChangedDueToConnectivityBreak) {
-            setBaseCaseSensitivityValues(factorGroups, factorStates); // we modified the rhs, we need to restore previous state
+            networkState.restore();
+            if (participatingElementsChanged || rhsChanged || hasRhsChangedDueToConnectivityBreak) {
+                setBaseCaseSensitivityValues(factorGroups, factorStates); // we modified the rhs, we need to restore previous state
+            }
         }
-//        }
     }
 
     private void processContingenciesBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
@@ -429,11 +459,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             participatingElementsForThisConnectivity = lfParameters.isDistributedSlack()
                     ? getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt) // will also be used to recompute the loadflow
                     : Collections.emptyList();
-
-            // calcul de l'injection
         }
-
-        // calcul du flow
 
         calculateSensitivityValuesForAContingency(loadFlowContext, lfParametersExt,
                 validFactorHolder, factorGroups, factorsStates, contingenciesStates, flowStates,
