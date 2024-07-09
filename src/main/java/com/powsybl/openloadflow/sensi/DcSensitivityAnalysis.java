@@ -402,7 +402,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
             }
 
-            // we need to recompute the factor states because the rhs has changed or
+            // we need to recompute the factor states because the rhs or the participating elements have changed
             if (participatingElementsChanged || rhsChanged || hasRhsChangedDueToConnectivityBreak) {
                 newFactorStates = calculateFactorStates(loadFlowContext, factorGroups, newParticipatingElements);
             }
