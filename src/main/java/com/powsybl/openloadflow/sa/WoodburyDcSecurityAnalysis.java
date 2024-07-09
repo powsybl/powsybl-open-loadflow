@@ -11,8 +11,6 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.*;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -42,7 +40,7 @@ import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.updateNetwork;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.getPreContingencyFlowRhs;
 
-public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcLoadFlowResult> {
+public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     protected WoodburyDcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                  List<StateMonitor> stateMonitors, ReportNode reportNode) {
@@ -52,37 +50,6 @@ public class WoodburyDcSecurityAnalysis extends AbstractSecurityAnalysis<DcVaria
     @Override
     protected ReportNode createSaRootReportNode() {
         return Reports.createWoodburyDcSecurityAnalysis(reportNode, network.getId());
-    }
-
-    @Override
-    protected boolean isShuntCompensatorVoltageControlOn(LoadFlowParameters lfParameters) {
-        return false;
-    }
-
-    @Override
-    protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
-        var dcParameters = OpenLoadFlowParameters.createDcParameters(network, lfParameters,
-                lfParametersExt, matrixFactory, connectivityFactory, false);
-        dcParameters.getNetworkParameters()
-                .setBreakers(breakers)
-                .setCacheEnabled(false) // force not caching as not supported in secu analysis
-                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
-        return dcParameters;
-    }
-
-    @Override
-    protected DcLoadFlowContext createLoadFlowContext(LfNetwork lfNetwork, DcLoadFlowParameters parameters) {
-        return new DcLoadFlowContext(lfNetwork, parameters);
-    }
-
-    @Override
-    protected DcLoadFlowEngine createLoadFlowEngine(DcLoadFlowContext context) {
-        return new DcLoadFlowEngine(context);
-    }
-
-    @Override
-    protected PostContingencyComputationStatus postContingencyStatusFromLoadFlowResult(DcLoadFlowResult result) {
-        return result.isSuccess() ? PostContingencyComputationStatus.CONVERGED : PostContingencyComputationStatus.FAILED;
     }
 
     // TODO : remove this method after woodbury refactoring
