@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
-import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -99,10 +98,9 @@ public class WoodburyEngine {
      *
      * @return a map with post-contingency angle states, indexed by contingencies.
      */
-    public DenseMatrix run(DcLoadFlowContext loadFlowContext, PropagatedContingency contingency, DenseMatrix contingenciesStates,
+    public DenseMatrix run(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates,
                                                        Collection<ComputedContingencyElement> contingencyElements, DenseMatrix preContingencyStates) {
         Objects.requireNonNull(loadFlowContext);
-        Objects.requireNonNull(contingency);
         Objects.requireNonNull(contingenciesStates);
         Objects.requireNonNull(contingencyElements);
         Objects.requireNonNull(preContingencyStates);
