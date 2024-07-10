@@ -58,20 +58,6 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return p0 + k * (ph1 - ph2);
     }
 
-    protected double rawPWithLoss(double rawP, double loss1, double loss2, double v, double r) {
-        // Computing P with rectifier loss but without cable loss yet
-        double p = Math.abs((1 - loss1) * rawP);
-        // Computing cable loss
-        // v1*v1 - v2*v1 - r*p = 0 with v1 being the voltage at the rectifier output
-        //                              v2 being the voltage at the inverter input (which is the nominal voltage v)
-        //                              p being the power at the rectifier output (after rectifier converter loss)
-        // v1 is the positive solution of the 2nd degree equation : v1 = v + sqrt(v*v + 4*r*p)
-        // jouleLoss = (v1 - v2) * (v1 - v2) / r
-        double jouleLoss = r == 0 ? 0 : Math.pow(Math.sqrt(v * v + 4 * r * p) - v, 2) / (4 * r);
-        // Adding inverter loss to the output
-        return (1 - loss2) * (p - jouleLoss) * (rawP > 0 ? 1 : -1);
-    }
-
     protected double boundedP(double rawP) {
         // If there is a maximal active power
         // it is applied at the entry of the controller VSC station
@@ -93,6 +79,16 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected double getVscLossMultiplier() {
         return (1 - lossFactor1) * (1 - lossFactor2);
+    }
+
+    protected static double getHvdcLineLosses(double rectifierPDc, double nominalV, double r) {
+        // This method computes the losses due to the HVDC line.
+        // The active power value on rectifier DC side is known as the HVDC active power set point minus the losses related
+        // to AC/DC conversion (rectifier conversion), the voltage is approximated to the nominal voltage as attribute of the HVDC line.
+        // In an HVDC, as a branch with two sides, the difference between pDc1 and pDc2 can be computed with the assumptions:
+        // I = (V1 - V2) / R and pDc1 = I * V1 and pDc2 = I * V2 and V1 = nominalV
+        // we simply obtain that the absolute value of the difference is equal to R * pDc1 * pDc1 / (V1 * V1) if side 1 is rectifier side.
+        return r * rectifierPDc * rectifierPDc / (nominalV * nominalV);
     }
 
     @Override
