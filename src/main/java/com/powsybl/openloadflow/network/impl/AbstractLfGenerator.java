@@ -144,6 +144,11 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     }
 
     @Override
+    public boolean hasVoltageControl() {
+        return generatorControlType == GeneratorControlType.VOLTAGE;
+    }
+
+    @Override
     public OptionalDouble getRemoteControlReactiveKey() {
         return OptionalDouble.empty();
     }

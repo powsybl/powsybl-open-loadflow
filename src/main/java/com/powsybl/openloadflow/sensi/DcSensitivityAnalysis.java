@@ -148,7 +148,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
         if (parameters.isDistributedSlack()) {
-            DcLoadFlowEngine.distributeSlack(remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
+            DcLoadFlowEngine.distributeSlack(remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits(), parameters.getNetworkParameters().isSlackDistributionGeneratorsVoltageControlOnly());
         }
 
         // we need to copy the target array because:

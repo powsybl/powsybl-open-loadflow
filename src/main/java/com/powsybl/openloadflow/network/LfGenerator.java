@@ -50,6 +50,8 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     boolean isFictitious();
 
+    boolean hasVoltageControl();
+
     boolean hasRemoteReactivePowerControl();
 
     GeneratorControlType getGeneratorControlType();

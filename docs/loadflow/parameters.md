@@ -112,6 +112,21 @@ When slack distribution is enabled (`distributedSlack` set to `true` in LoadFlow
 is considered to be distributed.  
 The default value is `1 MW` and it must be greater or equal to `0 MW`.
 
+**slackDistributionGeneratorsVoltageControlOnly**  
+When set to `true`, only generators on voltage control will participate in slack distribution.
+
+Notes:
+* Effective only when in LoadFlowParameters:
+  1. `distributedSlack` is set to `true`, and,
+  2. `balanceType` is set to a mode distributing on generators
+* If a generator voltage control is enabled in input data but internally disabled due to a consistency check,
+(see e.g. `reactiveRangeCheckMode` and `disableVoltageControlOfGeneratorsOutsideActivePowerLimits`), 
+then no slack distribution will occur for that generator.
+* For clarity: In AC Load Flow, a generator hitting a reactive limit is still considered as being under voltage control,
+i.e. any slack distributed to the generator switching from PV to PQ type is not discarded.
+
+The default value is `false`.
+
 **voltageRemoteControl**  
 The `voltageRemoteControl` property is an optional property that defines if the remote control for voltage controllers has to be modeled.
 If set to false, any existing voltage remote control is converted to a local control, rescaling the target voltage

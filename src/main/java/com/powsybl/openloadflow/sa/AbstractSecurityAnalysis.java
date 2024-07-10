@@ -382,7 +382,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters,
                                            OpenLoadFlowParameters openLoadFlowParameters) {
         if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits(), openLoadFlowParameters.isSlackDistributionGeneratorsVoltageControlOnly());
             activePowerDistribution.run(network, mismatch);
         }
     }
