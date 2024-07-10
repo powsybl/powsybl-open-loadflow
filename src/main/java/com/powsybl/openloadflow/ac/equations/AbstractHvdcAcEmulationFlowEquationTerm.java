@@ -81,6 +81,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return (1 - lossFactor1) * (1 - lossFactor2);
     }
 
+    // FIXME: This method is a copy of HvdcUtils.getHvdcLineLosses() from powsybl-core but it cannot be used yet because this static method is private
     protected static double getHvdcLineLosses(double rectifierPDc, double nominalV, double r) {
         // This method computes the losses due to the HVDC line.
         // The active power value on rectifier DC side is known as the HVDC active power set point minus the losses related
