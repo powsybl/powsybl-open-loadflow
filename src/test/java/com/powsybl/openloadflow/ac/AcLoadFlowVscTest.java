@@ -307,7 +307,18 @@ class AcLoadFlowVscTest {
         assertTrue(pcs2 < 0, "Power delivered by cs2");
         assertTrue(Math.abs(pcs1) > Math.abs(pcs2), "Loss at HVDC output");
 
+        // Test if removing line resistance increases the power transit
+        network.getHvdcLine("hvdc12").setR(0d) ;
+        result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
+        double pcs1_r0 = network.getVscConverterStation("cs1").getTerminal().getP();
+        double pcs2_r0 = network.getVscConverterStation("cs2").getTerminal().getP();
+        assertTrue(pcs1_r0 < pcs1);
+        assertTrue(pcs2_r0 < pcs2);
+        assertTrue(pcs1_r0-pcs2_r0 < pcs1-pcs2);
+
         // Reverse power flow direction
+        network.getHvdcLine("hvdc12").setR(0.1d) ;
         network.getGenerator("g2").setTargetP(5);
         network.getGenerator("g1").setTargetP(0);
         result = loadFlowRunner.run(network, new LoadFlowParameters());
@@ -326,6 +337,16 @@ class AcLoadFlowVscTest {
         assertTrue(pcs2 > 0, "Power enters at cs2");
         assertTrue(pcs1 < 0, "Power delivered by cs1");
         assertTrue(Math.abs(pcs2) > Math.abs(pcs1), "Loss at HVDC output");
+
+        // Test if removing line resistance increases the power transit in symetric network
+        network.getHvdcLine("hvdc12").setR(0d) ;
+        result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
+        pcs1_r0 = network.getVscConverterStation("cs1").getTerminal().getP();
+        pcs2_r0 = network.getVscConverterStation("cs2").getTerminal().getP();
+        assertTrue(pcs1_r0 > pcs1);
+        assertTrue(pcs2_r0 > pcs2);
+        assertTrue(pcs2_r0-pcs1_r0 < pcs2-pcs1);
     }
 
     @Test
