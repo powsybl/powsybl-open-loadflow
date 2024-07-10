@@ -1284,6 +1284,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // but other converter station keeps its voltage control capability.
         // remedial action re-enables the ac emulation of the hvdc line.
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        network.getHvdcLine("hvdc23").setR(0d); //Removing resistance to ignore cable loss
         List<Contingency> contingencies = List.of(new Contingency("contingency", new LineContingency("l12")));
         List<Action> actions = List.of(new SwitchAction("action", "s2", false));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy",
@@ -1330,6 +1331,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<StateMonitor> monitors = createNetworkMonitors(network);
 
         // with AC emulation first
+        network.getHvdcLine("hvdc23").setR(0d); //Removing resistance to ignore cable loss in AC emulation
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
                 operatorStrategies, actions, ReportNode.NO_OP);
 
@@ -1349,6 +1351,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // without AC emulation
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
         parameters.getLoadFlowParameters().setHvdcAcEmulation(false);
+        network.getHvdcLine("hvdc23").setR(0.1d); //Putting back resistance of the cable to keep same old behaviour
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, parameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
 

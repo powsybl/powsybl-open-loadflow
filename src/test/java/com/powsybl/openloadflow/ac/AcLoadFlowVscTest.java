@@ -267,6 +267,20 @@ class AcLoadFlowVscTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
         assertTrue(result.isFullyConverged());
+        // AC Emulation takes into account cable loss
+        assertActivePowerEquals(198.158, network.getHvdcConverterStation("cs2").getTerminal());
+        assertActivePowerEquals(-193.799, network.getHvdcConverterStation("cs3").getTerminal());
+        assertActivePowerEquals(-304.359, network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(300.0, network.getLoad("l4").getTerminal());
+    }
+
+    @Test
+    void testHvdcPowerAcEmulationWithoutR() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch();
+        network.getHvdcLine("hvdc23").setR(0d); //Removing resistance to ignore cable loss
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
+        assertTrue(result.isFullyConverged());
         assertActivePowerEquals(198.158, network.getHvdcConverterStation("cs2").getTerminal());
         assertActivePowerEquals(-193.822, network.getHvdcConverterStation("cs3").getTerminal());
         assertActivePowerEquals(-304.335, network.getGenerator("g1").getTerminal());
@@ -450,6 +464,7 @@ class AcLoadFlowVscTest {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
         // without limit p=195
         network.getHvdcLine("hvdc23")
+                .setR(0d) //Removing resistance to ignore cable loss
                 .newExtension(HvdcOperatorActivePowerRangeAdder.class)
                 .withOprFromCS2toCS1(180)
                 .withOprFromCS1toCS2(170)
@@ -482,6 +497,7 @@ class AcLoadFlowVscTest {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
         // without limit p=195
         network.getHvdcLine("hvdc23")
+                .setR(0d) //Removing resistance to ignore cable loss
                 .setMaxP(170);
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
