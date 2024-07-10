@@ -641,7 +641,12 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
-        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits(), openLoadFlowParameters.isSlackDistributionGeneratorsVoltageControlOnly());
+        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(
+                balanceType,
+                openLoadFlowParameters.isLoadPowerFactorConstant(),
+                openLoadFlowParameters.isUseActiveLimits(),
+                openLoadFlowParameters.isSlackDistributionGeneratorsVoltageControlOnly()
+        );
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
         return participatingElements;

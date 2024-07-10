@@ -106,7 +106,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                            int contingencyIndex, SensitivityResultWriter resultWriter,
                                                            boolean hasTransformerBusTargetVoltage) {
         if (lfParameters.isDistributedSlack() && Math.abs(lfContingency.getActivePowerLoss()) > 0) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(lfParameters.getBalanceType(), lfParametersExt.isLoadPowerFactorConstant(), lfParametersExt.isUseActiveLimits(), lfParametersExt.isSlackDistributionGeneratorsVoltageControlOnly());
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(
+                    lfParameters.getBalanceType(),
+                    lfParametersExt.isLoadPowerFactorConstant(),
+                    lfParametersExt.isUseActiveLimits(),
+                    lfParametersExt.isSlackDistributionGeneratorsVoltageControlOnly()
+            );
             activePowerDistribution.run(lfNetwork, lfContingency.getActivePowerLoss());
         }
 

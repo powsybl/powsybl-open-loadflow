@@ -53,7 +53,12 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
     public static void distributeSlack(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, boolean useActiveLimits, boolean slackDistributionGeneratorsVoltageControlOnly) {
         double mismatch = getActivePowerMismatch(buses);
-        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits, slackDistributionGeneratorsVoltageControlOnly);
+        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(
+                balanceType,
+                false,
+                useActiveLimits,
+                slackDistributionGeneratorsVoltageControlOnly
+        );
         activePowerDistribution.run(buses, mismatch);
     }
 
@@ -174,7 +179,11 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         if (parameters.isDistributedSlack()) {
-            distributeSlack(network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits(), parameters.getNetworkParameters().isSlackDistributionGeneratorsVoltageControlOnly());
+            distributeSlack(network.getBuses(),
+                    parameters.getBalanceType(),
+                    parameters.getNetworkParameters().isUseActiveLimits(),
+                    parameters.getNetworkParameters().isSlackDistributionGeneratorsVoltageControlOnly()
+            );
         }
 
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
