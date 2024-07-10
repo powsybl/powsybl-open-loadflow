@@ -30,6 +30,8 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected final double p0;
 
+    protected final double r;
+
     protected final double lossFactor1;
 
     protected final double lossFactor2;
@@ -45,6 +47,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         variables = List.of(ph1Var, ph2Var);
         k = hvdc.getDroop() * 180 / Math.PI;
         p0 = hvdc.getP0();
+        r = hvdc.getR();
         lossFactor1 = hvdc.getConverterStation1().getLossFactor() / 100;
         lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
         pMaxFromCS1toCS2 = hvdc.getPMaxFromCS1toCS2();
@@ -53,6 +56,20 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected double rawP(double p0, double k, double ph1, double ph2) {
         return p0 + k * (ph1 - ph2);
+    }
+
+    protected double rawPWithLoss(double rawP, double loss1, double loss2, double v, double r) {
+        // Computing P with rectifier loss but without cable loss yet
+        double p = Math.abs((1 - loss1) * rawP);
+        // Computing cable loss
+        // v1*v1 - v2*v1 - r*p = 0 with v1 being the voltage at the rectifier output
+        //                              v2 being the voltage at the inverter input (which is the nominal voltage v)
+        //                              p being the power at the rectifier output (after rectifier converter loss)
+        // v1 is the positive solution of the 2nd degree equation : v1 = v + sqrt(v*v + 4*r*p)
+        // jouleLoss = (v1 - v2) * (v1 - v2) / r
+        double jouleLoss = r == 0 ? 0 : Math.pow(Math.sqrt(v * v + 4 * r * p) - v, 2) / (4 * r);
+        // Adding inverter loss to the output
+        return (1 - loss2) * (p - jouleLoss) * (rawP > 0 ? 1 : -1);
     }
 
     protected double boundedP(double rawP) {
