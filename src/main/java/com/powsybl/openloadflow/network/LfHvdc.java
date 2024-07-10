@@ -30,7 +30,7 @@ public interface LfHvdc extends LfElement {
 
     double getDroop();
 
-    double get();
+    double getR();
 
     double getP0();
 
