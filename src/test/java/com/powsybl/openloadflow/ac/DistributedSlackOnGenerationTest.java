@@ -25,6 +25,8 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.EnumSet;
 import java.util.concurrent.CompletionException;
@@ -584,5 +586,35 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-270.1976, g2.getTerminal());
         assertActivePowerEquals(-110.000, g3.getTerminal());
         assertActivePowerEquals(-110.000, g4.getTerminal());
+    }
+
+    @ParameterizedTest(name = "testSlackDistributionGeneratorsVoltageControlOnly dc={0}")
+    @ValueSource(booleans = {false, true})
+    void testSlackDistributionGeneratorsVoltageControlOnly(boolean dc) {
+        // network is lossless, therefore should have same slack distribution results in both AC and DC
+        parameters.setDc(dc);
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setSlackDistributionGeneratorsVoltageControlOnly(true);
+
+        // only on g1 and g2
+        g1.setTargetV(400.).setVoltageRegulatorOn(true);
+        g2.setTargetV(400.).setVoltageRegulatorOn(true);
+        g3.setTargetV(400.).setVoltageRegulatorOn(false);
+        g4.setTargetV(400.).setVoltageRegulatorOn(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-130.0, g1.getTerminal());
+        assertActivePowerEquals(-290.0, g2.getTerminal());
+        assertActivePowerEquals(-90.0, g3.getTerminal()); // no slack distributed
+        assertActivePowerEquals(-90.0, g4.getTerminal()); // no slack distributed
+
+        // set g3 on voltage control
+        g3.setVoltageRegulatorOn(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-124.0, g1.getTerminal());
+        assertActivePowerEquals(-272.0, g2.getTerminal());
+        assertActivePowerEquals(-114.0, g3.getTerminal());
+        assertActivePowerEquals(-90.0, g4.getTerminal()); // no slack distributed
     }
 }
