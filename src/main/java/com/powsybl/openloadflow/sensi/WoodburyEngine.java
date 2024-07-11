@@ -94,7 +94,7 @@ public class WoodburyEngine {
 
     /**
      * Compute the post-contingency angle values of a network, using Woodbury formula,
-     * and for given contingency elements.
+     * and for given pre-contingency angle values and contingency elements.
      *
      * @return a matrix of post-contingency angle states.
      */
