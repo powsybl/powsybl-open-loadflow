@@ -24,11 +24,17 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
 
     private boolean contingencyPropagation = CONTINGENCY_PROPAGATION_DEFAULT_VALUE;
 
+    private boolean dcFastMode = DC_FAST_MODE_DEFAULT_VALUE;
+
     public static final String CREATE_RESULT_EXTENSION_PARAM_NAME = "createResultExtension";
     public static final boolean CREATE_RESULT_EXTENSION_DEFAULT_VALUE = false;
     public static final String CONTINGENCY_PROPAGATION_PARAM_NAME = "contingencyPropagation";
     public static final boolean CONTINGENCY_PROPAGATION_DEFAULT_VALUE = true;
-    public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(CREATE_RESULT_EXTENSION_PARAM_NAME, CONTINGENCY_PROPAGATION_PARAM_NAME);
+    public static final String DC_FAST_MODE_PARAM_NAME = "dcFastMode";
+    public static final boolean DC_FAST_MODE_DEFAULT_VALUE = false;
+    public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(CREATE_RESULT_EXTENSION_PARAM_NAME,
+            CONTINGENCY_PROPAGATION_PARAM_NAME,
+            DC_FAST_MODE_PARAM_NAME);
 
     @Override
     public String getName() {
@@ -53,6 +59,15 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
         return this;
     }
 
+    public boolean isDcFastMode() {
+        return dcFastMode;
+    }
+
+    public OpenSecurityAnalysisParameters setDcFastMode(boolean dcFastMode) {
+        this.dcFastMode = dcFastMode;
+        return this;
+    }
+
     public static OpenSecurityAnalysisParameters getOrDefault(SecurityAnalysisParameters parameters) {
         OpenSecurityAnalysisParameters parametersExt = parameters.getExtension(OpenSecurityAnalysisParameters.class);
         if (parametersExt == null) {
@@ -70,7 +85,8 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
         platformConfig.getOptionalModuleConfig("open-security-analysis-default-parameters")
                 .ifPresent(config -> parameters
                         .setCreateResultExtension(config.getBooleanProperty(CREATE_RESULT_EXTENSION_PARAM_NAME, CREATE_RESULT_EXTENSION_DEFAULT_VALUE))
-                        .setContingencyPropagation(config.getBooleanProperty(CONTINGENCY_PROPAGATION_PARAM_NAME, CONTINGENCY_PROPAGATION_DEFAULT_VALUE)));
+                        .setContingencyPropagation(config.getBooleanProperty(CONTINGENCY_PROPAGATION_PARAM_NAME, CONTINGENCY_PROPAGATION_DEFAULT_VALUE))
+                        .setDcFastMode(config.getBooleanProperty(DC_FAST_MODE_PARAM_NAME, DC_FAST_MODE_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -84,6 +100,8 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
                 .ifPresent(value -> this.setCreateResultExtension(Boolean.parseBoolean(value)));
         Optional.ofNullable(properties.get(CONTINGENCY_PROPAGATION_PARAM_NAME))
                 .ifPresent(value -> this.setContingencyPropagation(Boolean.parseBoolean(value)));
+        Optional.ofNullable(properties.get(DC_FAST_MODE_PARAM_NAME))
+                .ifPresent(value -> this.setDcFastMode(Boolean.parseBoolean(value)));
         return this;
     }
 }
