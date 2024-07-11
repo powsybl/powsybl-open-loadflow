@@ -303,8 +303,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 newFlowStates = calculateActivePowerFlows(loadFlowContext, factors, participatingElements, disabledNetwork, reportNode);
             }
 
-            DenseMatrix postContingencyFlowStates = engine.run(loadFlowContext, contingenciesStates, contingencyElements, newFlowStates);
-            DenseMatrix postContingencyFactorStates = engine.run(loadFlowContext, contingenciesStates, contingencyElements, newFactorStates);
+            DenseMatrix postContingencyFlowStates = engine.run(loadFlowContext, newFlowStates, contingenciesStates, contingencyElements);
+            DenseMatrix postContingencyFactorStates = engine.run(loadFlowContext, newFactorStates, contingenciesStates, contingencyElements);
             calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
 
             if (rhsChangedAfterConnectivityBreak) {
@@ -362,8 +362,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             DenseMatrix newFlowStates = calculateActivePowerFlows(loadFlowContext, factors, newParticipatingElements, disabledNetwork, reportNode);
 
-            DenseMatrix postContingencyFlowStates = engine.run(loadFlowContext, contingenciesStates, contingencyElements, newFlowStates);
-            DenseMatrix postContingencyFactorStates = engine.run(loadFlowContext, contingenciesStates, contingencyElements, newFactorStates);
+            DenseMatrix postContingencyFlowStates = engine.run(loadFlowContext, newFlowStates, contingenciesStates, contingencyElements);
+            DenseMatrix postContingencyFactorStates = engine.run(loadFlowContext, newFactorStates, contingenciesStates, contingencyElements);
             calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
 
             networkState.restore();

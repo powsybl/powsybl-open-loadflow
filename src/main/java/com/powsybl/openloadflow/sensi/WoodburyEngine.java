@@ -93,17 +93,17 @@ public class WoodburyEngine {
     }
 
     /**
-     * Compute post-contingency angle values of a network, using Woodbury formula, and for a given TODO
-     * This reader provides the contingency elements and the pre-contingency angle values on which is applied the formula.
+     * Compute the post-contingency angle values of a network, using Woodbury formula,
+     * and for given contingency elements.
      *
-     * @return a map with post-contingency angle states, indexed by contingencies.
+     * @return a matrix of post-contingency angle states.
      */
-    public DenseMatrix run(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates,
-                                                       Collection<ComputedContingencyElement> contingencyElements, DenseMatrix preContingencyStates) {
+    public DenseMatrix run(DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates, DenseMatrix contingenciesStates,
+                                                       Collection<ComputedContingencyElement> contingencyElements) {
         Objects.requireNonNull(loadFlowContext);
+        Objects.requireNonNull(preContingencyStates);
         Objects.requireNonNull(contingenciesStates);
         Objects.requireNonNull(contingencyElements);
-        Objects.requireNonNull(preContingencyStates);
         return computePostContingencyStates(loadFlowContext, preContingencyStates, contingenciesStates, contingencyElements);
     }
 }
