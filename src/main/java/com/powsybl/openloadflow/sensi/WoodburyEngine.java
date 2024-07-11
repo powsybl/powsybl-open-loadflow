@@ -93,10 +93,10 @@ public class WoodburyEngine {
     }
 
     /**
-     * Compute the post-contingency angle values of a network, using Woodbury formula,
-     * and for given pre-contingency angle values and contingency elements.
+     * Compute the post-contingency voltage angle values of a network, using Woodbury formula,
+     * and for given pre-contingency voltage angle values and contingency elements.
      *
-     * @return a matrix of post-contingency angle states.
+     * @return a matrix of post-contingency voltage angle states.
      */
     public DenseMatrix run(DcLoadFlowContext loadFlowContext, DenseMatrix preContingencyStates, DenseMatrix contingenciesStates,
                                                        Collection<ComputedContingencyElement> contingencyElements) {

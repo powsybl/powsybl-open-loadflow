@@ -154,8 +154,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     /**
-     * Get the sensitivity value for pre-contingency state and calculate the sensitivity value for a post-contingency state if asked.
-     * The sensitivity value is written in the SensitivityResultWriter.
+     * Calculate flow and sensitivity values from pre-contingency states or post-contingency states.
+     * Write the flow and sensitivity values for a LfSensitivityFactor in the SensitivityResultWriter.
      */
     private void createBranchSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup,
                                               DenseMatrix flowStates, DenseMatrix factorStates, PropagatedContingency contingency, SensitivityResultWriter resultWriter,
@@ -228,8 +228,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     /**
-     * Calculate sensitivity values for pre-contingency state or a post-contingency state using the pre-contingency sensitivity
-     * value and some flow transfer factors (alphas).
+     * Create branch flow and sensitivity values from a pre-contingency state or a post-contingency state.
      */
     private void calculateSensitivityValues(List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors, DenseMatrix factorStates, DenseMatrix flowStates,
                                             PropagatedContingency contingency, SensitivityResultWriter resultWriter, DisabledNetwork disabledNetwork) {
