@@ -35,6 +35,8 @@
         "maxRatioMismatch" : 1.0E-5,
         "maxSusceptanceMismatch" : 1.0E-4,
         "slackBusPMaxMismatch" : 1.0,
+        "areaInterchangeControl" : false,
+        "areaInterchangeControlAreaType" : "ControlArea",
         "voltagePerReactivePowerControl" : false,
         "generatorReactivePowerRemoteControl" : false,
         "transformerReactivePowerControl" : false,

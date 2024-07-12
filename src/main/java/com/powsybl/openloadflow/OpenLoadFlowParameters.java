@@ -1924,6 +1924,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxAngleMismatch() == extension2.getMaxAngleMismatch() &&
                 extension1.getMaxRatioMismatch() == extension2.getMaxRatioMismatch() &&
                 extension1.getMaxSusceptanceMismatch() == extension2.getMaxSusceptanceMismatch() &&
+                extension1.isAreaInterchangeControl() == extension2.isAreaInterchangeControl() &&
+                Objects.equals(extension1.getAreaInterchangeControlAreaType(), extension2.getAreaInterchangeControlAreaType()) &&
                 extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
                 Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities()) &&
                 extension1.isTransformerVoltageControlUseInitialTapPosition() == extension2.isTransformerVoltageControlUseInitialTapPosition() &&
@@ -2016,6 +2018,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxAngleMismatch(extension.getMaxAngleMismatch())
                     .setMaxRatioMismatch(extension.getMaxRatioMismatch())
                     .setMaxSusceptanceMismatch(extension.getMaxSusceptanceMismatch())
+                    .setAreaInterchangeControl(extension.isAreaInterchangeControl())
+                    .setAreaInterchangeControlAreaType(extension.getAreaInterchangeControlAreaType())
                     .setNewtonRaphsonStoppingCriteriaType(extension.getNewtonRaphsonStoppingCriteriaType())
                     .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
                     .setVoltageTargetPriorities(extension.getVoltageTargetPriorities())
