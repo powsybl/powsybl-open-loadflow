@@ -1677,6 +1677,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setUseLoadModel(parametersExt.isUseLoadModel())
                 .setSimulateAutomationSystems(parametersExt.isSimulateAutomationSystems())
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
+                .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
                 .setVoltageTargetPriorities(parametersExt.getVoltageTargetPriorities())
                 .setFictitiousGeneratorVoltageControlCheckMode(parametersExt.getFictitiousGeneratorVoltageControlCheckMode());
     }
