@@ -307,10 +307,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     /**
-     * Calculate sensitivity values for a post-contingency state.
-     * In case of connectivity break, a pre-computation has been done to get a first version of the new participating
-     * elements, that can be overridden in this method.
-     * TODO Pierre: better description here
+     * Calculate sensitivity values for a contingency.
+     * In case of connectivity break, a pre-computation has been done in {@link #processContingenciesBreakingConnectivity}
+     * to get a first version of the new participating elements, that can be overridden in this method, and to indicate
+     * if the factorsStates should be overridden or not in this method.
+     * If connectivity, a generator, a load or a phase tap changer is lost due to the contingency,
+     * the flowStates are overridden.
      */
     private void calculateSensitivityValuesForAContingency(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorHolder<DcVariableType, DcEquationType> validFactorHolder,
                                                            SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, DenseMatrix factorStates, DenseMatrix contingenciesStates, DenseMatrix flowStates,
@@ -425,7 +427,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     /**
-     * TODO Pierre: add a description here
+     * Calculate sensitivity values for a contingency breaking connectivity.
+     * It determines if the right hand side has been changed due to the contingency, e.g. when the slack distribution is
+     * impacted by the disabled buses. If so, factorsStates will be overridden in {@link #calculateSensitivityValuesForAContingency}.
      */
     private void processContingenciesBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
                                                           LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
