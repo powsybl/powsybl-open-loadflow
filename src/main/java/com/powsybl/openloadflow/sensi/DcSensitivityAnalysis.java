@@ -49,7 +49,6 @@ import static com.powsybl.openloadflow.network.util.ParticipatingElement.normali
  */
 public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariableType, DcEquationType> {
     private static final double FUNCTION_REFERENCE_ZER0_THRESHOLD = 1e-13;
-    private final WoodburyEngine engine = new WoodburyEngine();
 
     public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
         super(matrixFactory, connectivityFactory, parameters);
@@ -302,8 +301,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 newFlowStates = calculateActivePowerFlows(loadFlowContext, factors, participatingElements, disabledNetwork, reportNode);
             }
 
-            DenseMatrix postContingencyFlowStates = engine.run(loadFlowContext, newFlowStates, contingenciesStates, contingencyElements);
-            DenseMatrix postContingencyFactorStates = engine.run(loadFlowContext, newFactorStates, contingenciesStates, contingencyElements);
+            WoodburyEngine engine = new WoodburyEngine(loadFlowContext);
+            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates, contingenciesStates, contingencyElements);
+            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates, contingenciesStates, contingencyElements);
             calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
 
             if (rhsChangedAfterConnectivityBreak) {
@@ -361,8 +361,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             DenseMatrix newFlowStates = calculateActivePowerFlows(loadFlowContext, factors, newParticipatingElements, disabledNetwork, reportNode);
 
-            DenseMatrix postContingencyFlowStates = engine.run(loadFlowContext, newFlowStates, contingenciesStates, contingencyElements);
-            DenseMatrix postContingencyFactorStates = engine.run(loadFlowContext, newFactorStates, contingenciesStates, contingencyElements);
+            WoodburyEngine engine = new WoodburyEngine(loadFlowContext);
+            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates, contingenciesStates, contingencyElements);
+            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates, contingenciesStates, contingencyElements);
             calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
 
             networkState.restore();
