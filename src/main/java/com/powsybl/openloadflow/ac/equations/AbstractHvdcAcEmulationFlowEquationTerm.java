@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfHvdc;
 
-import com.powsybl.iidm.network.util.HvdcUtils ;
+import com.powsybl.iidm.network.util.HvdcUtils;
 
 import java.util.List;
 
@@ -84,7 +84,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
     }
 
     protected static double getHvdcLineLosses(double rectifierPDc, double r) {
-        return HvdcUtils.getHvdcLineLosses(rectifierPDc,1,r) ;
+        return HvdcUtils.getHvdcLineLosses(rectifierPDc, 1, r);
     }
 
     @Override
