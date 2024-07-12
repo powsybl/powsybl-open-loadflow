@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.DebugUtil;
+import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
@@ -55,6 +56,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         private final Set<ShuntCompensator> shuntSet = new LinkedHashSet<>();
 
         private final Set<HvdcLine> hvdcLineSet = new LinkedHashSet<>();
+
+        private final Map<Terminal, LfControlArea> controlAreaBoundaries = new HashMap<>();
     }
 
     private final Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier;
@@ -316,6 +319,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<ShuntCompensator> shuntCompensators = new ArrayList<>();
 
+        updateControlArea(bus, lfBus, lfNetwork, parameters, loadingContext, report);
+
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
             private void visitBranch(Branch<?> branch) {
@@ -428,6 +433,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
             LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, topoConfig, parameters);
             addBranch(lfNetwork, lfBranch, report);
+            updateControlAreaBoundaryP(branch.getTerminal1(), loadingContext, lfBranch::getP1);
+            updateControlAreaBoundaryP(branch.getTerminal2(), loadingContext, lfBranch::getP2);
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
@@ -439,6 +446,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBus lfBus2 = getLfBus(tieLine.getDanglingLine2().getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
                     addBranch(lfNetwork, lfBranch, report);
+                    updateControlAreaBoundaryP(tieLine.getTerminal1(), loadingContext, lfBranch::getP2);
+                    updateControlAreaBoundaryP(tieLine.getTerminal2(), loadingContext, lfBranch::getP1);
                     postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
                     visitedDanglingLinesIds.add(tieLine.getDanglingLine1().getId());
                     visitedDanglingLinesIds.add(tieLine.getDanglingLine2().getId());
@@ -450,6 +459,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
                     addBranch(lfNetwork, lfBranch, report);
+                    updateControlAreaBoundaryP(danglingLine.getTerminal(), loadingContext, lfBranch::getP2);
                     postProcessors.forEach(pp -> {
                         pp.onBusAdded(danglingLine, lfBus2);
                         pp.onBranchAdded(danglingLine, lfBranch);
@@ -500,6 +510,40 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             } else {
                 LOGGER.warn("The converter stations of hvdc line {} are not in the same synchronous component: no hvdc link created to model active power flow.", hvdcLine.getId());
             }
+        }
+    }
+
+    private static void updateControlArea(Bus bus, LfBus lfBus, LfNetwork network, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetworkLoadingReport report) {
+        Optional<Area> areaOpt = bus.getVoltageLevel().getArea(parameters.getAreaInterchangeControlAreaType());
+        areaOpt.ifPresent(area -> {
+            LfControlArea controlArea = network.getControlAreaById(area.getId());
+            if (controlArea == null) {
+                controlArea = createControlArea(area, parameters, loadingContext, network);
+            }
+            controlArea.addBus(lfBus);
+        });
+    }
+
+    private static LfControlArea createControlArea(Area area, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetwork network) {
+        LfControlArea lfControlArea = LfControlAreaImpl.create(area, network, parameters);
+        network.addControlArea(lfControlArea);
+        area.getAreaBoundaryStream().forEach(areaBoundary -> {
+            if (areaBoundary.getTerminal().isPresent()) {
+                Terminal terminal = areaBoundary.getTerminal().get();
+                loadingContext.controlAreaBoundaries.put(terminal, lfControlArea);
+            }
+            if (areaBoundary.getBoundary().isPresent()) {
+                DanglingLine danglingLine = areaBoundary.getBoundary().get().getDanglingLine();
+                loadingContext.controlAreaBoundaries.put(danglingLine.getTerminal(), lfControlArea);
+            }
+        });
+        return lfControlArea;
+    }
+
+    private static void updateControlAreaBoundaryP(Terminal terminal, LoadingContext loadingContext, Supplier<Evaluable> getP) {
+        LfControlArea controlArea = loadingContext.controlAreaBoundaries.get(terminal);
+        if (controlArea != null) {
+            controlArea.addBoundaryP(getP.get());
         }
     }
 
