@@ -29,7 +29,7 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
             return rawP;
         } else {
             double rectifierPDc = (1 - lossFactor1) * rawP;
-            return (1 - lossFactor2) * (rectifierPDc - getHvdcLineLosses(rectifierPDc, 1, r));
+            return (1 - lossFactor2) * (rectifierPDc - getHvdcLineLosses(rectifierPDc, r));
         }
     }
 

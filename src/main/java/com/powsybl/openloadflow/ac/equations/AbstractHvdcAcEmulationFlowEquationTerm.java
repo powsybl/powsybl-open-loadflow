@@ -13,6 +13,8 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfHvdc;
 
+import com.powsybl.iidm.network.util.HvdcUtils ;
+
 import java.util.List;
 
 /**
@@ -81,15 +83,8 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return (1 - lossFactor1) * (1 - lossFactor2);
     }
 
-    // FIXME: This method is a copy of HvdcUtils.getHvdcLineLosses() from powsybl-core but it cannot be used yet because this static method is private
-    protected static double getHvdcLineLosses(double rectifierPDc, double nominalV, double r) {
-        // This method computes the losses due to the HVDC line.
-        // The active power value on rectifier DC side is known as the HVDC active power set point minus the losses related
-        // to AC/DC conversion (rectifier conversion), the voltage is approximated to the nominal voltage as attribute of the HVDC line.
-        // In an HVDC, as a branch with two sides, the difference between pDc1 and pDc2 can be computed with the assumptions:
-        // I = (V1 - V2) / R and pDc1 = I * V1 and pDc2 = I * V2 and V1 = nominalV
-        // we simply obtain that the absolute value of the difference is equal to R * pDc1 * pDc1 / (V1 * V1) if side 1 is rectifier side.
-        return r * rectifierPDc * rectifierPDc / (nominalV * nominalV);
+    protected static double getHvdcLineLosses(double rectifierPDc, double r) {
+        return HvdcUtils.getHvdcLineLosses(rectifierPDc,1,r) ;
     }
 
     @Override
