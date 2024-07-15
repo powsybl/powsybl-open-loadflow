@@ -86,10 +86,10 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
     protected double getActivePowerWithLosses(double boundedP) {
         if (boundedP < 0) { // converterStation1 is the rectifier and converterStation2 is the inverter
             double rectifierPDc = (1 - lossFactor1) * boundedP;
-            return (1 - lossFactor2) * (rectifierPDc - getHvdcLineLosses(rectifierPDc, r));
+            return -(1 - lossFactor2) * (rectifierPDc - getHvdcLineLosses(rectifierPDc, r));
         } else { // converterStation2 is the rectifier and converterStation1 is the inverter
-            double rectifierPDc = -(1 - lossFactor2) * boundedP;
-            return (1 - lossFactor1) * (rectifierPDc + getHvdcLineLosses(rectifierPDc, r));
+            double rectifierPDc = (1 - lossFactor2) * boundedP;
+            return (1 - lossFactor1) * (rectifierPDc - getHvdcLineLosses(rectifierPDc, r));
         }
     }
 
