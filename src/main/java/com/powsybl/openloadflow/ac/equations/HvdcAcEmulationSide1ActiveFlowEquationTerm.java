@@ -24,13 +24,8 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private double p1(double ph1, double ph2) {
-        double rawP = boundedP(rawP(p0, k, ph1, ph2));
-        if (isController(rawP)) {
-            return rawP;
-        } else {
-            double rectifierPDc = (1 - lossFactor1) * rawP;
-            return (1 - lossFactor2) * (rectifierPDc - getHvdcLineLosses(rectifierPDc, r));
-        }
+        double boundedP = boundedP(rawP(ph1, ph2));
+        return isController(boundedP) ? boundedP : getActivePowerWithLosses(boundedP);
     }
 
     private static boolean isController(double rawP) {
@@ -42,7 +37,7 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     protected double dp1dph1(double ph1, double ph2) {
-        double rawP = rawP(p0, k, ph1, ph2);
+        double rawP = rawP(ph1, ph2);
         if (isInOperatingRange(rawP)) {
             return (isController(rawP) ? 1 : getVscLossMultiplier()) * k;
         } else {

@@ -56,7 +56,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         pMaxFromCS2toCS1 = hvdc.getPMaxFromCS2toCS1();
     }
 
-    protected double rawP(double p0, double k, double ph1, double ph2) {
+    protected double rawP(double ph1, double ph2) {
         return p0 + k * (ph1 - ph2);
     }
 
@@ -81,6 +81,16 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected double getVscLossMultiplier() {
         return (1 - lossFactor1) * (1 - lossFactor2);
+    }
+
+    protected double getActivePowerWithLosses(double boundedP) {
+        if (boundedP < 0) { // converterStation1 is the rectifier and converterStation2 is the inverter
+            double rectifierPDc = (1 - lossFactor1) * boundedP;
+            return (1 - lossFactor2) * (rectifierPDc - getHvdcLineLosses(rectifierPDc, r));
+        } else { // converterStation2 is the rectifier and converterStation1 is the inverter
+            double rectifierPDc = -(1 - lossFactor2) * boundedP;
+            return (1 - lossFactor1) * (rectifierPDc + getHvdcLineLosses(rectifierPDc, r));
+        }
     }
 
     protected static double getHvdcLineLosses(double rectifierPDc, double r) {
