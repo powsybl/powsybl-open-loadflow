@@ -313,6 +313,8 @@ class AcLoadFlowVscTest {
         assertTrue(result.isFullyConverged());
         double pcs1r0 = network.getVscConverterStation("cs1").getTerminal().getP();
         double pcs2r0 = network.getVscConverterStation("cs2").getTerminal().getP();
+        assertTrue(pcs1r0 > 0, "Power enters at cs1");
+        assertTrue(pcs2r0 < 0, "Power delivered by cs2");
         assertTrue(pcs1r0 - pcs2r0 < pcs1 - pcs2); // Check that loss with R=0 is lower than loss with R!=0
 
         // Reverse power flow direction
@@ -342,6 +344,8 @@ class AcLoadFlowVscTest {
         assertTrue(result.isFullyConverged());
         pcs1r0 = network.getVscConverterStation("cs1").getTerminal().getP();
         pcs2r0 = network.getVscConverterStation("cs2").getTerminal().getP();
+        assertTrue(pcs2r0 > 0, "Power enters at cs2");
+        assertTrue(pcs1r0 < 0, "Power delivered by cs1");
         assertTrue(pcs2r0 - pcs1r0 < pcs2 - pcs1); // Check that loss with R=0 is lower than loss with R!=0
     }
 
