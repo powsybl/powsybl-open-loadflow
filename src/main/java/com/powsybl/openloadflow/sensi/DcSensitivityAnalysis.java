@@ -306,11 +306,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
             calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
 
-            if (rhsChangedAfterConnectivityBreak) {
-                // we modified the rhs, we need to restore previous state
-                setBaseCaseSensitivityValues(factorGroups, factorStates);
-            }
-
             // write contingency status
             if (contingency.hasNoImpact()) {
                 resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
@@ -367,10 +362,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
 
             networkState.restore();
-            if (participatingElementsChanged || rhsChangedAfterGlskRescaling || rhsChangedAfterConnectivityBreak) {
-                // we modified the rhs, we need to restore previous state
-                setBaseCaseSensitivityValues(factorGroups, factorStates);
-            }
         }
     }
 
@@ -570,7 +561,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // run DC load on pre-contingency network
                 DenseMatrix flowStates = calculateActivePowerFlows(loadFlowContext, validLfFactors, participatingElements, new DisabledNetwork(), reportNode);
 
-                // compute the pre-contingency sensitivity values
+                // compute the pre-contingency factor states
                 DenseMatrix factorsStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
 
                 // calculate sensitivity values for pre-contingency network
