@@ -270,7 +270,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             return;
         }
 
-        Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
+        List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
@@ -301,9 +301,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 newFlowStates = calculateActivePowerFlows(loadFlowContext, factors, participatingElements, disabledNetwork, reportNode);
             }
 
-            WoodburyEngine engine = new WoodburyEngine(loadFlowContext);
-            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates, contingenciesStates, contingencyElements);
-            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates, contingenciesStates, contingencyElements);
+            WoodburyEngine engine = new WoodburyEngine(loadFlowContext, contingencyElements, contingenciesStates);
+            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
+            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
             calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
 
             if (rhsChangedAfterConnectivityBreak) {
@@ -361,9 +361,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             DenseMatrix newFlowStates = calculateActivePowerFlows(loadFlowContext, factors, newParticipatingElements, disabledNetwork, reportNode);
 
-            WoodburyEngine engine = new WoodburyEngine(loadFlowContext);
-            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates, contingenciesStates, contingencyElements);
-            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates, contingenciesStates, contingencyElements);
+            WoodburyEngine engine = new WoodburyEngine(loadFlowContext, contingencyElements, contingenciesStates);
+            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
+            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
             calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
 
             networkState.restore();

@@ -16,9 +16,8 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
-import java.util.function.ObjDoubleConsumer;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -28,15 +27,27 @@ public class WoodburyEngine {
 
     final DcLoadFlowContext loadFlowContext;
 
-    public WoodburyEngine(DcLoadFlowContext loadFlowContext) {
+    final List<ComputedContingencyElement> contingencyElements;
+
+    final DenseMatrix contingenciesStates;
+
+    public WoodburyEngine(DcLoadFlowContext loadFlowContext, List<ComputedContingencyElement> contingencyElements,
+                          DenseMatrix contingenciesStates) {
         this.loadFlowContext = Objects.requireNonNull(loadFlowContext);
+        this.contingencyElements = Objects.requireNonNull(contingencyElements); // require non null?
+        this.contingenciesStates = Objects.requireNonNull(contingenciesStates); // TODO: ask Pierre
+    }
+
+    private double calculatePower(LfBranch lfBranch) {
+        PiModel piModel = lfBranch.getPiModel();
+        DcEquationSystemCreationParameters creationParameters = loadFlowContext.getParameters().getEquationSystemCreationParameters();
+        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
     /**
      * Compute the flow transfer factors needed to calculate the post-contingency state values.
      */
-    private void setAlphas(Collection<ComputedContingencyElement> contingencyElements, DenseMatrix states,
-                                  DenseMatrix contingenciesStates, int columnState, ObjDoubleConsumer<ComputedContingencyElement> setValue) {
+    private void setAlphas(DenseMatrix states, int columnState) {
         if (contingencyElements.size() == 1) {
             ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
@@ -45,7 +56,7 @@ public class WoodburyEngine {
             double a = 1d / calculatePower(lfBranch) - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getContingencyIndex())
                     - contingenciesStates.get(p1.getPh2Var().getRow(), element.getContingencyIndex()));
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState);
-            setValue.accept(element, b / a);
+            element.setAlphaForPostContingencyState(b / a);
         } else {
             ComputedContingencyElement.setLocalIndexes(contingencyElements);
             DenseMatrix rhs = new DenseMatrix(contingencyElements.size(), 1);
@@ -69,47 +80,30 @@ public class WoodburyEngine {
             try (LUDecomposition lu = matrix.decomposeLU()) {
                 lu.solve(rhs); // rhs now contains state matrix
             }
-            contingencyElements.forEach(element -> setValue.accept(element, rhs.get(element.getLocalIndex(), 0)));
+            contingencyElements.forEach(element -> element.setAlphaForPostContingencyState(rhs.get(element.getLocalIndex(), 0)));
         }
-    }
-
-    private double calculatePower(LfBranch lfBranch) {
-        PiModel piModel = lfBranch.getPiModel();
-        DcEquationSystemCreationParameters creationParameters = loadFlowContext.getParameters().getEquationSystemCreationParameters();
-        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
     /**
      * Calculate post-contingency states values using pre-contingency states values and some flow transfer factors (alphas).
+     * @return a matrix of post-contingency voltage angle states.
      */
-    private DenseMatrix computePostContingencyStates(DenseMatrix preContingencyStates, DenseMatrix contingenciesStates, Collection<ComputedContingencyElement> contingencyElements) {
+    public DenseMatrix run(DenseMatrix preContingencyStates) {
+        Objects.requireNonNull(preContingencyStates);
         // fill the post contingency matrices
         DenseMatrix postContingencyStates = new DenseMatrix(preContingencyStates.getRowCount(), preContingencyStates.getColumnCount());
         for (int columnIndex = 0; columnIndex < preContingencyStates.getColumnCount(); columnIndex++) {
-            setAlphas(contingencyElements, preContingencyStates, contingenciesStates, columnIndex, ComputedContingencyElement::setAlphaForPostContingencyState);
+            setAlphas(preContingencyStates, columnIndex);
             for (int rowIndex = 0; rowIndex < preContingencyStates.getRowCount(); rowIndex++) {
                 double postContingencyValue = preContingencyStates.get(rowIndex, columnIndex);
                 for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                    postContingencyValue += contingencyElement.getAlphaForPostContingencyState() * contingenciesStates.get(rowIndex, contingencyElement.getContingencyIndex());
+                    postContingencyValue += contingencyElement.getAlphaForPostContingencyState()
+                            * contingenciesStates.get(rowIndex, contingencyElement.getContingencyIndex());
                 }
                 postContingencyStates.set(rowIndex, columnIndex, postContingencyValue);
             }
         }
         return postContingencyStates;
-    }
-
-    /**
-     * Compute the post-contingency voltage angle values of a network, using Woodbury formula,
-     * and for given pre-contingency voltage angle values and contingency elements.
-     *
-     * @return a matrix of post-contingency voltage angle states.
-     */
-    public DenseMatrix run(DenseMatrix preContingencyStates, DenseMatrix contingenciesStates,
-                           Collection<ComputedContingencyElement> contingencyElements) {
-        Objects.requireNonNull(preContingencyStates);
-        Objects.requireNonNull(contingenciesStates);
-        Objects.requireNonNull(contingencyElements);
-        return computePostContingencyStates(preContingencyStates, contingenciesStates, contingencyElements);
     }
 }
 
