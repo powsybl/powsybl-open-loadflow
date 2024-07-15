@@ -22,7 +22,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -76,8 +75,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      * Calculate the active power flows for pre-contingency or a post-contingency state and set the factor function reference.
      * The interesting disabled branches are only phase shifters.
      */
-    private DenseMatrix calculateActivePowerFlows(DcLoadFlowContext loadFlowContext,
-                                                  List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, List<ParticipatingElement> participatingElements,
+    private DenseMatrix calculateActivePowerFlows(DcLoadFlowContext loadFlowContext, List<ParticipatingElement> participatingElements,
                                                   DisabledNetwork disabledNetwork,
                                                   ReportNode reportNode) {
         List<BusState> busStates = Collections.emptyList();
@@ -89,8 +87,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
 
         double[] dx = runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
-
-        StateVector sv = new StateVector(dx);
 
         if (parameters.isDistributedSlack()) {
             ElementState.restore(busStates);
@@ -283,7 +279,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             // if a phase tap changer is lost or if the connectivity have changed, we must recompute load flows
             if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty()) {
-                newFlowStates = calculateActivePowerFlows(loadFlowContext, factors, participatingElements, disabledNetwork, reportNode);
+                newFlowStates = calculateActivePowerFlows(loadFlowContext, participatingElements, disabledNetwork, reportNode);
             }
 
             WoodburyEngine engine = new WoodburyEngine(loadFlowContext, contingencyElements, contingenciesStates);
@@ -339,7 +335,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 newFactorStates = calculateFactorStates(loadFlowContext, factorGroups, newParticipatingElements);
             }
 
-            DenseMatrix newFlowStates = calculateActivePowerFlows(loadFlowContext, factors, newParticipatingElements, disabledNetwork, reportNode);
+            DenseMatrix newFlowStates = calculateActivePowerFlows(loadFlowContext, newParticipatingElements, disabledNetwork, reportNode);
 
             WoodburyEngine engine = new WoodburyEngine(loadFlowContext, contingencyElements, contingenciesStates);
             DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
@@ -544,7 +540,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         : Collections.emptyList();
 
                 // run DC load on pre-contingency network
-                DenseMatrix flowStates = calculateActivePowerFlows(loadFlowContext, validLfFactors, participatingElements, new DisabledNetwork(), reportNode);
+                DenseMatrix flowStates = calculateActivePowerFlows(loadFlowContext, participatingElements, new DisabledNetwork(), reportNode);
 
                 // compute the pre-contingency factor states
                 DenseMatrix factorsStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
