@@ -222,7 +222,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         DenseMatrix factorStates = initFactorsRhs(loadFlowContext.getEquationSystem(), factorGroups, slackParticipationByBus);
         loadFlowContext.getJacobianMatrix().solveTransposed(factorStates); // states for the sensitivity factors
-        setBaseCaseSensitivityValues(factorGroups, factorStates); // use this state to compute the base sensitivity (without +1-1)
         return factorStates;
     }
 
@@ -563,6 +562,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // compute the pre-contingency factor states
                 DenseMatrix factorsStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
+                setBaseCaseSensitivityValues(factorGroups, factorsStates);
 
                 // calculate sensitivity values for pre-contingency network
                 calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorsStates, flowStates, null, resultWriter, new DisabledNetwork());
