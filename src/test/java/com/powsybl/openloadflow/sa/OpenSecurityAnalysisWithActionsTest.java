@@ -1284,7 +1284,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // but other converter station keeps its voltage control capability.
         // remedial action re-enables the ac emulation of the hvdc line.
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
-        network.getHvdcLine("hvdc23").setR(0d); //Removing resistance to ignore cable loss
+        network.getHvdcLine("hvdc23");
         List<Contingency> contingencies = List.of(new Contingency("contingency", new LineContingency("l12")));
         List<Action> actions = List.of(new SwitchAction("action", "s2", false));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy",
@@ -1294,9 +1294,9 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<StateMonitor> monitors = createNetworkMonitors(network);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
                 operatorStrategies, actions, ReportNode.NO_OP);
-        assertEquals(193.822, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(193.799, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(193.822, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(193.799, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1331,7 +1331,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<StateMonitor> monitors = createNetworkMonitors(network);
 
         // with AC emulation first
-        network.getHvdcLine("hvdc23").setR(0d); //Removing resistance to ignore cable loss in AC emulation
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
                 operatorStrategies, actions, ReportNode.NO_OP);
 
@@ -1345,13 +1344,12 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategyL1");
         assertEquals(198.158, operatorStrategyResult.getNetworkResult().getBranchResult("l12Bis").getP1(), DELTA_POWER);
-        assertEquals(193.822, operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), DELTA_POWER);
-        assertEquals(106.177, operatorStrategyResult.getNetworkResult().getBranchResult("l14").getP1(), DELTA_POWER);
+        assertEquals(193.799, operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), DELTA_POWER);
+        assertEquals(106.201, operatorStrategyResult.getNetworkResult().getBranchResult("l14").getP1(), DELTA_POWER);
 
         // without AC emulation
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
         parameters.getLoadFlowParameters().setHvdcAcEmulation(false);
-        network.getHvdcLine("hvdc23").setR(0.1d); //Putting back resistance of the cable to keep same old behaviour
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, parameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
 

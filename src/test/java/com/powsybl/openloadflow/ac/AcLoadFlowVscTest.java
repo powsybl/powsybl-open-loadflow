@@ -481,7 +481,6 @@ class AcLoadFlowVscTest {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
         // without limit p=195
         network.getHvdcLine("hvdc23")
-                .setR(0d) //Removing resistance to ignore cable loss
                 .newExtension(HvdcOperatorActivePowerRangeAdder.class)
                 .withOprFromCS2toCS1(180)
                 .withOprFromCS1toCS2(170)
@@ -496,7 +495,7 @@ class AcLoadFlowVscTest {
 
         // Active flow capped at limit. Output has losses (due to VSC stations)
         assertEquals(170, network.getHvdcConverterStation("cs2").getTerminal().getP(), DELTA_POWER);
-        assertEquals(-166.280, network.getHvdcConverterStation("cs3").getTerminal().getP(), DELTA_POWER);
+        assertEquals(-166.263, network.getHvdcConverterStation("cs3").getTerminal().getP(), DELTA_POWER);
 
         // now invert power direction
         HvdcAngleDroopActivePowerControl activePowerControl = network.getHvdcLine("hvdc23").getExtension(HvdcAngleDroopActivePowerControl.class);
@@ -505,7 +504,7 @@ class AcLoadFlowVscTest {
         assertTrue(result.isFullyConverged());
 
         // Active flow capped at other direction's limit. Output has losses (due to VSC stations)
-        assertEquals(-176.062, network.getHvdcConverterStation("cs2").getTerminal().getP(), DELTA_POWER);
+        assertEquals(-176.081, network.getHvdcConverterStation("cs2").getTerminal().getP(), DELTA_POWER);
         assertEquals(180, network.getHvdcConverterStation("cs3").getTerminal().getP(), DELTA_POWER);
     }
 
@@ -514,7 +513,6 @@ class AcLoadFlowVscTest {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
         // without limit p=195
         network.getHvdcLine("hvdc23")
-                .setR(0d) //Removing resistance to ignore cable loss
                 .setMaxP(170);
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -526,7 +524,7 @@ class AcLoadFlowVscTest {
 
         // Active flow capped at limit. Output has losses (due to VSC stations)
         assertActivePowerEquals(170, network.getHvdcConverterStation("cs2").getTerminal());
-        assertActivePowerEquals(-166.280, network.getHvdcConverterStation("cs3").getTerminal());
+        assertActivePowerEquals(-166.263, network.getHvdcConverterStation("cs3").getTerminal());
 
         // now invert power direction
         HvdcAngleDroopActivePowerControl activePowerControl = network.getHvdcLine("hvdc23").getExtension(HvdcAngleDroopActivePowerControl.class);
@@ -534,7 +532,7 @@ class AcLoadFlowVscTest {
         result = loadFlowRunner.run(network, p);
         assertTrue(result.isFullyConverged());
 
-        assertActivePowerEquals(-166.280, network.getHvdcConverterStation("cs2").getTerminal());
+        assertActivePowerEquals(-166.298, network.getHvdcConverterStation("cs2").getTerminal());
         assertActivePowerEquals(170, network.getHvdcConverterStation("cs3").getTerminal());
     }
 
