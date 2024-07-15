@@ -91,9 +91,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         double[] dx = runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
 
         StateVector sv = new StateVector(dx);
-        for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
-            factor.setFunctionReference(factor.getFunctionEquationTerm().eval(sv)); // pass explicitly the previously calculated state vector
-        }
 
         if (parameters.isDistributedSlack()) {
             ElementState.restore(busStates);
@@ -162,8 +159,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledNetwork, contingency);
         Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
         Optional<Double> functionPredefinedResults = predefinedResults.getRight();
-        double sensitivityValue = sensitivityValuePredefinedResult.orElseGet(factor::getBaseSensitivityValue);
-        double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
+        double sensitivityValue = sensitivityValuePredefinedResult.orElse(0d);
+        double functionValue = functionPredefinedResults.orElse(0d);
         Derivable<DcVariableType> p1 = factor.getFunctionEquationTerm();
 
         if (functionPredefinedResults.isEmpty()) {
@@ -191,17 +188,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             return Math.abs(functionValue) < FUNCTION_REFERENCE_ZER0_THRESHOLD ? 0 : functionValue;
         }
         return functionValue;
-    }
-
-    /**
-     * Calculate the sensitivity value for pre-contingency state only.
-     */
-    private void setBaseCaseSensitivityValues(SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, DenseMatrix factorsState) {
-        for (SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup : factorGroups.getList()) {
-            for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factorGroup.getFactors()) {
-                factor.setBaseCaseSensitivityValue(factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex()));
-            }
-        }
     }
 
     /**
@@ -562,7 +548,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // compute the pre-contingency factor states
                 DenseMatrix factorsStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
-                setBaseCaseSensitivityValues(factorGroups, factorsStates);
 
                 // calculate sensitivity values for pre-contingency network
                 calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorsStates, flowStates, null, resultWriter, new DisabledNetwork());
