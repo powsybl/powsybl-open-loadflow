@@ -34,8 +34,8 @@ public class WoodburyEngine {
     public WoodburyEngine(DcLoadFlowContext loadFlowContext, List<ComputedContingencyElement> contingencyElements,
                           DenseMatrix contingenciesStates) {
         this.loadFlowContext = Objects.requireNonNull(loadFlowContext);
-        this.contingencyElements = Objects.requireNonNull(contingencyElements); // require non null?
-        this.contingenciesStates = Objects.requireNonNull(contingenciesStates); // TODO: ask Pierre
+        this.contingencyElements = Objects.requireNonNull(contingencyElements);
+        this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
     }
 
     private double calculatePower(LfBranch lfBranch) {
