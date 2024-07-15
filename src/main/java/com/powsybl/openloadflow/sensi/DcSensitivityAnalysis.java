@@ -308,24 +308,22 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
             if (lfContingency != null) {
                 lfContingency.apply(lfParameters.getBalanceType());
-                participatingElementsChanged = isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()
-                        || isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty();
+                if (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()) {
+                    // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
+                    Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
+                    newParticipatingElements = participatingElements.stream()
+                            .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
+                            .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
+                            .collect(Collectors.toList());
+                    normalizeParticipationFactors(newParticipatingElements);
+                    participatingElementsChanged = true;
+                } else if (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty()) {
+                    newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+                    participatingElementsChanged = true;
+                }
                 if (factorGroups.hasMultiVariables()) {
                     Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
                     rhsChangedAfterGlskRescaling = rescaleGlsk(factorGroups, impactedBuses);
-                }
-                if (participatingElementsChanged) {
-                    if (isDistributedSlackOnGenerators(lfParameters)) {
-                        // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
-                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
-                        newParticipatingElements = participatingElements.stream()
-                                .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
-                                .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
-                                .collect(Collectors.toList());
-                        normalizeParticipationFactors(newParticipatingElements);
-                    } else { // slack distribution on loads
-                        newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
-                    }
                 }
                 // write contingency status
                 resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
