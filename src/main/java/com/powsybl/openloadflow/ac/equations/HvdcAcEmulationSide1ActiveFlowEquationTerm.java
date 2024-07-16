@@ -24,9 +24,9 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private double p1(double ph1, double ph2) {
-        double boundedP = boundedP(rawP(ph1, ph2));
+        double rawP = rawP(ph1, ph2);
         // if converterStation1 is controller, then p1 is positive, otherwise it is negative
-        return isController(boundedP) ? boundedP : -getAbsActivePowerWithLosses(boundedP, lossFactor1, lossFactor2);
+        return isController(rawP) ? boundedP(rawP) : -getAbsActivePowerWithLosses(boundedP(rawP), lossFactor1, lossFactor2);
     }
 
     private static boolean isController(double rawP) {
