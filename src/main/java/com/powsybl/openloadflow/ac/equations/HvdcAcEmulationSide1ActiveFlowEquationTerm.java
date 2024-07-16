@@ -40,7 +40,7 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     protected double dp1dph1(double ph1, double ph2) {
         double rawP = rawP(ph1, ph2);
         if (isInOperatingRange(rawP)) {
-            return (isController(rawP) ? 1 : getVscLossMultiplier()) * k;
+            return (isController(rawP) ? 1 : getVscLossMultiplier()) * k; // derivative of cable loss is neglected
         } else {
             return 0;
         }

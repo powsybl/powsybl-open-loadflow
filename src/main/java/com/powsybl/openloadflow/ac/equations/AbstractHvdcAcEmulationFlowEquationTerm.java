@@ -83,13 +83,13 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return (1 - lossFactor1) * (1 - lossFactor2);
     }
 
-    protected double getAbsActivePowerWithLosses(double boundedP, double lossRectifier, double lossInverter) {
-        double rectifierPDc = (1 - lossRectifier) * Math.abs(boundedP);
-        return (1 - lossInverter) * (rectifierPDc - getHvdcLineLosses(rectifierPDc, r));
+    protected double getAbsActivePowerWithLosses(double boundedP, double lossController, double lossControlled) {
+        double lineInputPower = (1 - lossController) * Math.abs(boundedP);
+        return (1 - lossControlled) * (lineInputPower - getHvdcLineLosses(lineInputPower, r));
     }
 
-    protected static double getHvdcLineLosses(double rectifierPDc, double r) {
-        return HvdcUtils.getHvdcLineLosses(rectifierPDc, 1, r);
+    protected static double getHvdcLineLosses(double lineInputPower, double r) {
+        return HvdcUtils.getHvdcLineLosses(lineInputPower, 1, r);
     }
 
     @Override
