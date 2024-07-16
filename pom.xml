@@ -20,7 +20,7 @@
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.12.2-SNAPSHOT</version>
+    <version>1.12.2</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
