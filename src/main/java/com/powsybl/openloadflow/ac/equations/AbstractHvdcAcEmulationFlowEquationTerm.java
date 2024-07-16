@@ -83,9 +83,9 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return (1 - lossFactor1) * (1 - lossFactor2);
     }
 
-    protected double getAbsActivePowerWithLosses(double boundedP, double lossController, double lossControlled) {
+    protected double getAbsActivePowerWithLosses(double boundedP, double lossController, double lossNonController) {
         double lineInputPower = (1 - lossController) * Math.abs(boundedP);
-        return (1 - lossControlled) * (lineInputPower - getHvdcLineLosses(lineInputPower, r));
+        return (1 - lossNonController) * (lineInputPower - getHvdcLineLosses(lineInputPower, r));
     }
 
     protected static double getHvdcLineLosses(double lineInputPower, double r) {
