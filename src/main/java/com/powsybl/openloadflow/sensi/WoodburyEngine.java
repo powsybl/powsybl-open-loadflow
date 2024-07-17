@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
-import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -25,22 +24,21 @@ import java.util.Objects;
  */
 public class WoodburyEngine {
 
-    private final DcLoadFlowContext loadFlowContext;
+    private final DcEquationSystemCreationParameters creationParameters;
 
     private final List<ComputedContingencyElement> contingencyElements;
 
     private final DenseMatrix contingenciesStates;
 
-    public WoodburyEngine(DcLoadFlowContext loadFlowContext, List<ComputedContingencyElement> contingencyElements,
+    public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
                           DenseMatrix contingenciesStates) {
-        this.loadFlowContext = Objects.requireNonNull(loadFlowContext);
+        this.creationParameters = Objects.requireNonNull(creationParameters);
         this.contingencyElements = Objects.requireNonNull(contingencyElements);
         this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
     }
 
     private double calculatePower(LfBranch lfBranch) {
         PiModel piModel = lfBranch.getPiModel();
-        DcEquationSystemCreationParameters creationParameters = loadFlowContext.getParameters().getEquationSystemCreationParameters();
         return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 

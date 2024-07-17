@@ -281,7 +281,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 newFlowStates = calculateFlowStates(loadFlowContext, participatingElements, disabledNetwork, reportNode);
             }
 
-            WoodburyEngine engine = new WoodburyEngine(loadFlowContext, contingencyElements, contingenciesStates);
+            WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates);
             DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
             DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
             calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
@@ -334,7 +334,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             DenseMatrix newFlowStates = calculateFlowStates(loadFlowContext, newParticipatingElements, disabledNetwork, reportNode);
 
-            WoodburyEngine engine = new WoodburyEngine(loadFlowContext, contingencyElements, contingenciesStates);
+            WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates);
             DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
             DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
             calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
