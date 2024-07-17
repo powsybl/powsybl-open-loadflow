@@ -367,7 +367,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (TerminalsConnectionAction.NAME.equals(action.getType())) {
                 TerminalsConnectionAction terminalsConnectionAction = (TerminalsConnectionAction) action;
                 if (terminalsConnectionAction.getSide().isEmpty() && !terminalsConnectionAction.isOpen()) {
-                    Branch branch = network.getBranch(terminalsConnectionAction.getElementId());
+                    Branch<?> branch = network.getBranch(terminalsConnectionAction.getElementId());
                     if (branch != null && !(branch instanceof TieLine) &&
                             !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) {
                         // both terminals must be disconnected. If only one is connected, the branch is present
@@ -456,9 +456,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                                 List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(lfContingency.getId());
                                 if (operatorStrategiesForThisContingency != null) {
-                                    // we have at least an operator strategy for this contingency.
+                                    // we have at least one operator strategy for this contingency.
                                     if (operatorStrategiesForThisContingency.size() == 1) {
-                                        lfNetwork.getBuses().stream().flatMap(b -> b.getGenerators().stream()).forEach(LfGenerator::setInitialTargetPToTargetP);
+                                        // only one operator strategy, no need to do a complete save of network state,
+                                        // but need to set generators initialTargetP positions to the current (=postContingency) targetP
+                                        lfNetwork.setGeneratorsInitialTargetPToTargetP();
                                         OperatorStrategy operatorStrategy = operatorStrategiesForThisContingency.get(0);
                                         ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
                                         lfNetwork.setReportNode(osSimReportNode);
@@ -469,7 +471,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                 acParameters.getNetworkParameters(), limitReductions)
                                                 .ifPresent(operatorStrategyResults::add);
                                     } else {
-                                        // save post contingency state for later restoration after action
+                                        // multiple operator strategies, save post contingency state for later restoration after action
                                         NetworkState postContingencyNetworkState = NetworkState.save(lfNetwork);
                                         for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
                                             ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
@@ -579,7 +581,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         List<LfAction> operatorStrategyLfActions = actionsIds.stream()
                 .map(lfActionById::get)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         LfAction.apply(operatorStrategyLfActions, network, contingency, networkParameters);
 
