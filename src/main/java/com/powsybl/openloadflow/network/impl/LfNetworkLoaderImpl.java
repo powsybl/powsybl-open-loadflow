@@ -543,7 +543,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void updateControlAreaBoundaryP(Terminal terminal, LoadingContext loadingContext, Supplier<Evaluable> getP) {
         LfControlArea controlArea = loadingContext.controlAreaBoundaries.get(terminal);
         if (controlArea != null) {
-            controlArea.addBoundaryP(getP.get());
+            controlArea.addBoundaryP(getP);
         }
     }
 

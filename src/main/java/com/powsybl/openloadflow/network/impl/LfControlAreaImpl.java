@@ -6,6 +6,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlArea {
 
@@ -16,7 +17,7 @@ public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlA
 
     private final Set<LfBus> buses;
 
-    private Set<Evaluable> boundariesP;
+    private Set<Supplier<Evaluable>> boundariesP;
 
     public LfControlAreaImpl(Area area, LfNetwork network, LfNetworkParameters parameters) {
         this.network = network;
@@ -46,7 +47,7 @@ public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlA
 
     @Override
     public double getAcInterchange() {
-        return boundariesP.stream().mapToDouble(Evaluable::eval).sum();
+        return boundariesP.stream().map(Supplier::get).mapToDouble(Evaluable::eval).sum();
     }
 
     @Override
@@ -61,8 +62,8 @@ public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlA
     }
 
     @Override
-    public LfControlArea addBoundaryP(Evaluable p) {
-        boundariesP.add(p);
+    public LfControlArea addBoundaryP(Supplier<Evaluable> getP) {
+        boundariesP.add(getP);
         return this;
     }
 
