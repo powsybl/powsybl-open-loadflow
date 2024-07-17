@@ -844,6 +844,66 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         testLoadAction(false);
     }
 
+    @Test
+    void testActionWithGeneratorPostContingencySlackDistrib() {
+
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = FourBusNetworkFactory.create();
+
+        // two contingencies but with the same definition, tripping g1 (2 MW lost).
+        // -> g2 and g4 will move in post contingency state due to slack distribution
+        // g2 and g4 participate in slack distribution as follows: 66.6% for g2 and 33.3% for g4
+        List<Contingency> contingencies = List.of(
+                new Contingency("ctg1", new GeneratorContingency("g1")),
+                new Contingency("ctg2", new GeneratorContingency("g1")) // only differ by contingency ID
+        );
+        // an action on g2 covering 1.0 MW (50%) of the 2 MW which were lost by the contingency,
+        // therefore slack distribution will happen again in OperatorStrategy state, on both g2 and g4
+        List<Action> actions = List.of(
+                new GeneratorActionBuilder().withId("g2action")
+                        .withGeneratorId("g2")
+                        .withActivePowerRelativeValue(false)
+                        .withActivePowerValue(3.0)
+                        .build()
+        );
+
+        // two contingencies and three operator strategies, but all identical
+        List<OperatorStrategy> operatorStrategies = List.of(
+                new OperatorStrategy("ctg1", ContingencyContext.specificContingency("ctg1"), new TrueCondition(), List.of("g2action")),
+                new OperatorStrategy("ctg2 - A", ContingencyContext.specificContingency("ctg2"), new TrueCondition(), List.of("g2action")),
+                new OperatorStrategy("ctg2 - B", ContingencyContext.specificContingency("ctg2"), new TrueCondition(), List.of("g2action"))
+        );
+
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
+                .setDistributedSlack(true);
+        OpenLoadFlowParameters.create(parameters)
+            .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+            .setMaxActivePowerMismatch(1e-3)
+            .setSlackBusPMaxMismatch(1e-3);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+            .setLoadFlowParameters(parameters);
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        // all contingencies - operator strategies are identical and must have the same result
+        List.of(getOperatorStrategyResult(result, "ctg1"),
+                getOperatorStrategyResult(result, "ctg2 - A"),
+                getOperatorStrategyResult(result, "ctg2 - B"))
+                .forEach(osr -> {
+                    assertEquals(-0.6120, osr.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+                    assertEquals(+1.0000, osr.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+                    assertEquals(-0.3881, osr.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+                    assertEquals(+1.6102, osr.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+                    assertEquals(-1.3897, osr.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+                });
+    }
+
     private void testGeneratorAction(boolean dc, LoadFlowParameters.BalanceType balanceType, double deltaG1, double deltaG2,
                                      double targetPG4) {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
