@@ -25,11 +25,11 @@ import java.util.Objects;
  */
 public class WoodburyEngine {
 
-    final DcLoadFlowContext loadFlowContext;
+    private final DcLoadFlowContext loadFlowContext;
 
-    final List<ComputedContingencyElement> contingencyElements;
+    private final List<ComputedContingencyElement> contingencyElements;
 
-    final DenseMatrix contingenciesStates;
+    private final DenseMatrix contingenciesStates;
 
     public WoodburyEngine(DcLoadFlowContext loadFlowContext, List<ComputedContingencyElement> contingencyElements,
                           DenseMatrix contingenciesStates) {
