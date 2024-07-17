@@ -61,14 +61,14 @@ public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlA
     }
 
     @Override
-    public LfNetwork getNetwork() {
-        return network;
-    }
-
-    @Override
     public LfControlArea addBoundaryP(Evaluable p) {
         boundariesP.add(p);
         return this;
+    }
+
+    @Override
+    public LfNetwork getNetwork() {
+        return network;
     }
 
 }

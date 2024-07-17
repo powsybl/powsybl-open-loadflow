@@ -15,8 +15,8 @@ public interface LfControlArea extends PropertyBag {
 
     LfControlArea addBus(LfBus bus);
 
-    LfNetwork getNetwork();
-
     LfControlArea addBoundaryP(Evaluable p);
+
+    LfNetwork getNetwork();
 
 }
