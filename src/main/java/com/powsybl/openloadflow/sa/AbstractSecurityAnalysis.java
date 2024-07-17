@@ -458,6 +458,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                 if (operatorStrategiesForThisContingency != null) {
                                     // we have at least an operator strategy for this contingency.
                                     if (operatorStrategiesForThisContingency.size() == 1) {
+                                        lfNetwork.getBuses().stream().flatMap(b -> b.getGenerators().stream()).forEach(LfGenerator::setInitialTargetPToTargetP);
                                         OperatorStrategy operatorStrategy = operatorStrategiesForThisContingency.get(0);
                                         ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
                                         lfNetwork.setReportNode(osSimReportNode);
