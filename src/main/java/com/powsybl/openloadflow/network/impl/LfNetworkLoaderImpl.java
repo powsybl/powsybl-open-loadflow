@@ -57,7 +57,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         private final Set<HvdcLine> hvdcLineSet = new LinkedHashSet<>();
 
-        private final Map<Terminal, LfControlArea> controlAreaBoundaries = new HashMap<>();
+        private final Map<Terminal, LfArea> controlAreaBoundaries = new HashMap<>();
     }
 
     private final Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier;
@@ -516,7 +516,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void updateControlArea(Bus bus, LfBus lfBus, LfNetwork network, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetworkLoadingReport report) {
         Optional<Area> areaOpt = bus.getVoltageLevel().getArea(parameters.getAreaInterchangeControlAreaType());
         areaOpt.ifPresent(area -> {
-            LfControlArea controlArea = network.getControlAreaById(area.getId());
+            LfArea controlArea = network.getControlAreaById(area.getId());
             if (controlArea == null) {
                 controlArea = createControlArea(area, parameters, loadingContext, network);
             }
@@ -524,24 +524,24 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
     }
 
-    private static LfControlArea createControlArea(Area area, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetwork network) {
-        LfControlArea lfControlArea = LfControlAreaImpl.create(area, network, parameters);
-        network.addControlArea(lfControlArea);
+    private static LfArea createControlArea(Area area, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetwork network) {
+        LfArea lfArea = LfAreaImpl.create(area, network, parameters);
+        network.addControlArea(lfArea);
         area.getAreaBoundaryStream().forEach(areaBoundary -> {
             if (areaBoundary.getTerminal().isPresent()) {
                 Terminal terminal = areaBoundary.getTerminal().get();
-                loadingContext.controlAreaBoundaries.put(terminal, lfControlArea);
+                loadingContext.controlAreaBoundaries.put(terminal, lfArea);
             }
             if (areaBoundary.getBoundary().isPresent()) {
                 DanglingLine danglingLine = areaBoundary.getBoundary().get().getDanglingLine();
-                loadingContext.controlAreaBoundaries.put(danglingLine.getTerminal(), lfControlArea);
+                loadingContext.controlAreaBoundaries.put(danglingLine.getTerminal(), lfArea);
             }
         });
-        return lfControlArea;
+        return lfArea;
     }
 
     private static void updateControlAreaBoundaryP(Terminal terminal, LoadingContext loadingContext, Supplier<Evaluable> getP) {
-        LfControlArea controlArea = loadingContext.controlAreaBoundaries.get(terminal);
+        LfArea controlArea = loadingContext.controlAreaBoundaries.get(terminal);
         if (controlArea != null) {
             controlArea.addBoundaryP(getP);
         }

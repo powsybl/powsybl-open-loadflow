@@ -56,6 +56,8 @@ public class LfNetworkParameters {
 
     public static final boolean SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE = false;
 
+    public static final String AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE = "ControlArea";
+
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
@@ -138,11 +140,11 @@ public class LfNetworkParameters {
 
     private ReferenceBusSelector referenceBusSelector = ReferenceBusSelector.DEFAULT_SELECTOR;
 
-    private String areaInterchangeControlAreaType = OpenLoadFlowParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
-
     private List<String> voltageTargetPriorities = VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
     private OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
+
+    private String areaInterchangeControlAreaType = AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -186,9 +188,9 @@ public class LfNetworkParameters {
         this.useLoadModel = other.useLoadModel;
         this.simulateAutomationSystems = other.simulateAutomationSystems;
         this.referenceBusSelector = other.referenceBusSelector;
-        this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
         this.voltageTargetPriorities = new ArrayList<>(other.voltageTargetPriorities);
         this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
+        this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -543,15 +545,6 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public String getAreaInterchangeControlAreaType() {
-        return areaInterchangeControlAreaType;
-    }
-
-    public LfNetworkParameters setAreaInterchangeControlAreaType(String areaInterchangeControlAreaType) {
-        this.areaInterchangeControlAreaType = areaInterchangeControlAreaType;
-        return this;
-    }
-
     public static List<String> checkVoltageTargetPriorities(List<String> voltageTargetPriorities) {
         Objects.requireNonNull(voltageTargetPriorities);
         for (String type : voltageTargetPriorities) {
@@ -581,6 +574,15 @@ public class LfNetworkParameters {
             throw new IllegalStateException("Missing LfNetworkParameters.voltageTargetPriorities for " + voltageControlType.name());
         }
         return priority;
+    }
+
+    public String getAreaInterchangeControlAreaType() {
+        return areaInterchangeControlAreaType;
+    }
+
+    public LfNetworkParameters setAreaInterchangeControlAreaType(String areaInterchangeControlAreaType) {
+        this.areaInterchangeControlAreaType = areaInterchangeControlAreaType;
+        return this;
     }
 
     @Override
@@ -620,9 +622,9 @@ public class LfNetworkParameters {
                 ", useLoadModel=" + useLoadModel +
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
                 ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
-                ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
                 ", voltageTargetPriorities=" + voltageTargetPriorities +
                 ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
+                ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
                 ')';
     }
 }

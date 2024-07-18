@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
 
-public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlArea {
+public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
 
     private final LfNetwork network;
     private final Ref<Area> areaRef;
@@ -19,7 +19,7 @@ public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlA
 
     private Set<Supplier<Evaluable>> boundariesP;
 
-    public LfControlAreaImpl(Area area, LfNetwork network, LfNetworkParameters parameters) {
+    public LfAreaImpl(Area area, LfNetwork network, LfNetworkParameters parameters) {
         this.network = network;
         this.areaRef = Ref.create(area, parameters.isCacheEnabled());
         this.interchangeTarget = area.getInterchangeTarget().orElse(Double.NaN);
@@ -27,8 +27,8 @@ public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlA
         this.boundariesP = new HashSet<>();
     }
 
-    public static LfControlAreaImpl create(Area area, LfNetwork network, LfNetworkParameters parameters) {
-        return new LfControlAreaImpl(area, network, parameters);
+    public static LfAreaImpl create(Area area, LfNetwork network, LfNetworkParameters parameters) {
+        return new LfAreaImpl(area, network, parameters);
     }
 
     private Area getArea() {
@@ -56,13 +56,13 @@ public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlA
     }
 
     @Override
-    public LfControlArea addBus(LfBus bus) {
+    public LfArea addBus(LfBus bus) {
         buses.add(bus);
         return this;
     }
 
     @Override
-    public LfControlArea addBoundaryP(Supplier<Evaluable> getP) {
+    public LfArea addBoundaryP(Supplier<Evaluable> getP) {
         boundariesP.add(getP);
         return this;
     }

@@ -5,7 +5,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 import java.util.Set;
 import java.util.function.Supplier;
 
-public interface LfControlArea extends PropertyBag {
+public interface LfArea extends PropertyBag {
     String getId();
 
     double getInterchangeTarget();
@@ -14,9 +14,9 @@ public interface LfControlArea extends PropertyBag {
 
     Set<LfBus> getBuses();
 
-    LfControlArea addBus(LfBus bus);
+    LfArea addBus(LfBus bus);
 
-    LfControlArea addBoundaryP(Supplier<Evaluable> p);
+    LfArea addBoundaryP(Supplier<Evaluable> p);
 
     LfNetwork getNetwork();
 
