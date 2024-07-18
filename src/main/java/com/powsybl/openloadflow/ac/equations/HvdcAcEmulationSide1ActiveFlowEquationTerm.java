@@ -24,7 +24,7 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private double p1(double ph1, double ph2) {
-        double rawP = rawP(p0, k, ph1, ph2);
+        double rawP = rawP(ph1, ph2);
         double boundedP = boundedP(rawP);
         return (isController(rawP) ? 1 : getVscLossMultiplier()) * boundedP;
     }
@@ -38,12 +38,12 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     protected double dp1dph1(double ph1, double ph2) {
-        double rawP = rawP(p0, k, ph1, ph2);
-        if (isInOperatingRange(rawP)) {
-            return (isController(rawP) ? 1 : getVscLossMultiplier()) * k;
-        } else {
-            return 0;
-        }
+        // return the exact derivative unless ph1-oh2 us ti large (twice value of P limit)
+        // in this case returns a dummy slope to heo th NR convergence towards desired P
+        double rawP = rawP(ph1, ph2);
+        double factor = dummySlope(rawP, ph1, ph2);
+        return (isController(rawP) ? 1 : getVscLossMultiplier()) * factor;
+
     }
 
     protected double dp1dph2(double ph1, double ph2) {
