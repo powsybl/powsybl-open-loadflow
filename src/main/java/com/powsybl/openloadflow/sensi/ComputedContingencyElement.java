@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.dc;
+package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
@@ -28,7 +28,8 @@ public final class ComputedContingencyElement {
 
     private int contingencyIndex = -1; // index of the element in the rhs for +1-1
     private int localIndex = -1; // local index of the element : index of the element in the matrix used in the setAlphas method
-    private double alphaForPostContingencyState = Double.NaN;
+    private double alphaForSensitivityValue = Double.NaN;
+    private double alphaForFunctionReference = Double.NaN;
     private final ContingencyElement element;
     private final LfBranch lfBranch;
     private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
@@ -51,16 +52,24 @@ public final class ComputedContingencyElement {
         return localIndex;
     }
 
-    public void setLocalIndex(final int index) {
+    private void setLocalIndex(final int index) {
         this.localIndex = index;
     }
 
-    public double getAlphaForPostContingencyState() {
-        return alphaForPostContingencyState;
+    public double getAlphaForSensitivityValue() {
+        return alphaForSensitivityValue;
     }
 
-    public void setAlphaForPostContingencyState(final double alpha) {
-        this.alphaForPostContingencyState = alpha;
+    public void setAlphaForSensitivityValue(final double alpha) {
+        this.alphaForSensitivityValue = alpha;
+    }
+
+    public double getAlphaForFunctionReference() {
+        return alphaForFunctionReference;
+    }
+
+    public void setAlphaForFunctionReference(final double alpha) {
+        this.alphaForFunctionReference = alpha;
     }
 
     public ContingencyElement getElement() {
@@ -89,7 +98,7 @@ public final class ComputedContingencyElement {
         }
     }
 
-    static void applyToConnectivity(LfNetwork lfNetwork, GraphConnectivity<LfBus, LfBranch> connectivity, Collection<ComputedContingencyElement> breakingConnectivityElements) {
+    public static void applyToConnectivity(LfNetwork lfNetwork, GraphConnectivity<LfBus, LfBranch> connectivity, Collection<ComputedContingencyElement> breakingConnectivityElements) {
         breakingConnectivityElements.stream()
                 .map(ComputedContingencyElement::getElement)
                 .map(ContingencyElement::getId)
