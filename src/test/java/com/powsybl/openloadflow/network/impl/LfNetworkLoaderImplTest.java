@@ -120,9 +120,9 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork mainNetwork = lfNetworks.get(0);
-        LfArea controlAreaA = mainNetwork.getControlAreaById("ControlArea_A");
+        LfArea lfArea = mainNetwork.getControlAreaById("ControlArea_A");
         assertNull(mainNetwork.getControlAreaById("Region_AB"));
-        assertEquals(-602.6, controlAreaA.getInterchangeTarget());
+        assertEquals(-602.6, lfArea.getInterchangeTarget());
     }
 
     @Test
