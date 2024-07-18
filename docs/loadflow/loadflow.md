@@ -3,7 +3,11 @@
 ## Grid modelling
 
 OpenLoadFlow computes power flows from IIDM grid model in bus/view topology. From the view, a very simple network, composed
-of only buses and branches is created. In the graph vision, we rely on a $$\Pi$$ model for branches (lines, transformers, dangling lines, etc.):
+of only buses and branches is created. 
+
+### $\Pi$ model
+
+In the graph vision, we rely on a $\Pi$ model for branches (lines, transformers, dangling lines, etc.):
 
 - $R$ and $X$ are respectively the real part (resistance) and the imaginary part (reactance) of the complex impedance ;  
 - $G_1$ and $G_2$ are the real parts (conductance) on respectively side 1 and side 2 of the branch ;
@@ -16,10 +20,14 @@ equal to zero and $1$. In case of a branch with voltage or phase control, the $\
 
 ![Pi model](pi-model.svg)
 
+### HVDC line
+
+A specific type of branch relying on a specific type of model is the HVDC line (High Voltage Direct Current). This line is connected to the rest of the AC network through HVDC converter stations, that can be either LCC (Line-Commutated Converter) or VSC (Voltage-source Converter).
+
 (ac-flow-computing)=
 ## AC flows computing
 
-AC flows computing in OpenLoadFLow relies on solving a system of non-linear squared equations, where unknown are voltage magnitude and phase angle at each bus of the network, implying that there are $2N$ unknown where $N$ is the number of buses. There are two equations per network bus, resulting in $2N$ equations. The nature of these $2$ equations depends on the type of the bus:
+AC flows computing in OpenLoadFLow relies on solving a system of non-linear squared equations, where the unknowns are voltage magnitude and phase angle at each bus of the network, implying that there are $2N$ unknowns where $N$ is the number of buses. There are two equations per network bus, resulting in $2N$ equations. The nature of these $2$ equations depends on the type of the bus:
 - PQ-bus: active and reactive balance are fixed at the bus,
 - PV-bus: active balance and voltage magnitude are fixed at the bus.
 
@@ -91,6 +99,32 @@ $$v_{b_1} + s \cdot q_{svc} = V^{c}_{b_1}$$
 
 Where $s$ is the slope of the static var compensator.
 
+### Computing HVDC power transit
+
+#### LCC converters
+
+TODO
+
+#### VSC converters
+
+VSC converters are self commutated converters that can be assimilated as generators in the loadflow. Each converter station 
+has a fixed loss that impacts the power transit. In addition, Joule effect (due to resistance in cable) implies line loss in the HVDC line. 
+There can be two main active power regulation mode:
+- **Constant power-flow:** When they are in active power set point, on one side of the line is the rectifier station, 
+and on the other side of the line is the inverter station. The power transit from the rectifier station to the inverter 
+station is fixed to a target value $$P$$. The active power transit at each station is given by:
+
+$$P_{rectifier} = P$$
+
+$$P_{inverter} = (1-loss_{inverter})*((1-loss_{rectifier})*(P-loss_{line}))$$
+
+- **AC emulation:** The active power transit between both stations is given by: $$P = P_0 + k~(\theta_1 - \theta_2)$$ 
+with $$\theta_1$$ and $$\theta_2$$ being the voltage angles at both converter stations. These angles define the sign of 
+the power transit and this sign defines the controller station. The active power transit at each station is given by:
+
+$$P_{controller} = P_0 + k~(\theta_1 - \theta_2)$$
+
+$$P_{noncontroller} = (1-loss_{inverter})*((1-loss_{rectifier})*(P_0 + k~(\theta_1 - \theta_2)-loss_{line}))$$
 ## DC flows computing
 
 The DC flows computing relies on several classical assumptions to build a model where the active power flowing through a line depends linearly on the voltage angles at its ends.
