@@ -37,6 +37,10 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private double p0 = Double.NaN;
 
+    private double r = Double.NaN;
+
+    private double nominalV = Double.NaN;
+
     private LfVscConverterStation converterStation1;
 
     private LfVscConverterStation converterStation2;
@@ -52,6 +56,8 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         this.id = Objects.requireNonNull(id);
         this.bus1 = bus1;
         this.bus2 = bus2;
+        this.nominalV = hvdcLine.getNominalV();
+        this.r = hvdcLine.getR();
         HvdcAngleDroopActivePowerControl droopControl = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
         this.acEmulation = acEmulation && droopControl != null && droopControl.isEnabled();
         if (this.acEmulation) {
@@ -126,6 +132,11 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public double getDroop() {
         return droop / PerUnit.SB;
+    }
+
+    @Override
+    public double getR() {
+        return r / PerUnit.zb(nominalV);
     }
 
     @Override
