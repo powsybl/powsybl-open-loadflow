@@ -8,9 +8,9 @@ import java.util.function.Supplier;
 public interface LfControlArea extends PropertyBag {
     String getId();
 
-    double getTargetAcInterchange();
+    double getInterchangeTarget();
 
-    double getAcInterchange();
+    double getInterchange();
 
     Set<LfBus> getBuses();
 

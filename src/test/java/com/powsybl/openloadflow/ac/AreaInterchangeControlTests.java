@@ -8,7 +8,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.BoundaryFactory;
 import org.junit.jupiter.api.Test;
 
-class AICTests {
+class AreaInterchangeControlTests {
 
     @Test
     void oneAreaBaseTest() {
@@ -17,7 +17,7 @@ class AICTests {
                 .setId("a1")
                 .setName("Area 1")
                 .setAreaType("ControlArea")
-                .setAcInterchangeTarget(20)
+                .setInterchangeTarget(20)
                 .addVoltageLevel(network.getVoltageLevel("vl1"))
                 .addVoltageLevel(network.getVoltageLevel("vl2"))
                 .addAreaBoundary(network.getDanglingLine("dl1").getBoundary(), true)

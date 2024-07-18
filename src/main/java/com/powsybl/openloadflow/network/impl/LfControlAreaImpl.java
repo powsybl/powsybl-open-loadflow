@@ -13,7 +13,7 @@ public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlA
     private final LfNetwork network;
     private final Ref<Area> areaRef;
 
-    private final double targetAcInterchange;
+    private final double interchangeTarget;
 
     private final Set<LfBus> buses;
 
@@ -22,7 +22,7 @@ public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlA
     public LfControlAreaImpl(Area area, LfNetwork network, LfNetworkParameters parameters) {
         this.network = network;
         this.areaRef = Ref.create(area, parameters.isCacheEnabled());
-        this.targetAcInterchange = area.getAcInterchangeTarget().orElse(Double.NaN);
+        this.interchangeTarget = area.getInterchangeTarget().orElse(Double.NaN);
         this.buses = new HashSet<>();
         this.boundariesP = new HashSet<>();
     }
@@ -41,12 +41,12 @@ public class LfControlAreaImpl extends AbstractPropertyBag implements LfControlA
     }
 
     @Override
-    public double getTargetAcInterchange() {
-        return targetAcInterchange;
+    public double getInterchangeTarget() {
+        return interchangeTarget;
     }
 
     @Override
-    public double getAcInterchange() {
+    public double getInterchange() {
         return boundariesP.stream().map(Supplier::get).mapToDouble(Evaluable::eval).sum();
     }
 
