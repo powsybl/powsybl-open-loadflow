@@ -114,17 +114,18 @@ There can be two main active power regulation mode:
 and on the other side of the line is the inverter station. The power transit from the rectifier station to the inverter 
 station is fixed to a target value $$P$$. The active power transit at each station is given by:
 
-$$P_{rectifier} = P$$
+$$P_{rectifier}= P$$
 
-$$P_{inverter} = (1-loss_{inverter})*((1-loss_{rectifier})*(P-loss_{line}))$$
+$$P_{inverter}= (1 - loss_{inverter})*((1 - loss_{rectifier}) * (P - loss_{line}))$$
 
-- **AC emulation:** The active power transit between both stations is given by: $$P = P_0 + k~(\theta_1 - \theta_2)$$ 
-with $$\theta_1$$ and $$\theta_2$$ being the voltage angles at both converter stations. These angles define the sign of 
+- **AC emulation:** The active power transit between both stations is given by: $P = P_0 + k~(\theta_1 - \theta_2)$ 
+with $\theta_1$ and $\theta_2$ being the voltage angles at both converter stations. These angles define the sign of 
 the power transit and this sign defines the controller station. The active power transit at each station is given by:
 
 $$P_{controller} = P_0 + k~(\theta_1 - \theta_2)$$
 
-$$P_{noncontroller} = (1-loss_{inverter})*((1-loss_{rectifier})*(P_0 + k~(\theta_1 - \theta_2)-loss_{line}))$$
+$$P_{noncontroller} = (1 - loss_{inverter})*((1 - loss_{rectifier})*(P_0 + k~(\theta_1 - \theta_2) - loss_{line}))$$
+
 ## DC flows computing
 
 The DC flows computing relies on several classical assumptions to build a model where the active power flowing through a line depends linearly on the voltage angles at its ends.
