@@ -6,6 +6,12 @@ load-flow:
   default-impl-name: "OpenLoadFlow"
 ```
 
+## Generic parameters
+
+Generic parameters are documented in [PowSyBl Core](inv:powsyblcore:*:*#simulation/loadflow/configuration).
+
+The next section details the parameters that are specific to PowSyBl Open LoadFLow.
+
 ## Specific parameters
 
 **voltageInitModeOverride**  
