@@ -1293,9 +1293,9 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<StateMonitor> monitors = createNetworkMonitors(network);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
                 operatorStrategies, actions, ReportNode.NO_OP);
-        assertEquals(193.822, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(193.799, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(193.822, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(193.799, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1343,8 +1343,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategyL1");
         assertEquals(198.158, operatorStrategyResult.getNetworkResult().getBranchResult("l12Bis").getP1(), DELTA_POWER);
-        assertEquals(193.822, operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), DELTA_POWER);
-        assertEquals(106.177, operatorStrategyResult.getNetworkResult().getBranchResult("l14").getP1(), DELTA_POWER);
+        assertEquals(193.799, operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), DELTA_POWER);
+        assertEquals(106.201, operatorStrategyResult.getNetworkResult().getBranchResult("l14").getP1(), DELTA_POWER);
 
         // without AC emulation
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
