@@ -107,20 +107,25 @@ TODO
 
 #### VSC converters
 
-VSC converters are self commutated converters that can be assimilated as generators in the loadflow. Each converter station 
-has a fixed loss that impacts the power transit. In addition, Joule effect (due to resistance in cable) implies line loss in the HVDC line. 
+VSC converters are self commutated converters that can be assimilated as generators in the loadflow. 
 There can be two main active power regulation mode:
-- **Constant power-flow:** When they are in active power set point, on one side of the line is the rectifier station, 
+- **Constant power flow:** When they are in active power set point, on one side of the line is the rectifier station, 
 and on the other side of the line is the inverter station. The power transit from the rectifier station to the inverter 
-station is fixed to a target value $$P$$. The active power transit at each station is given by:
+station is fixed to a target value $P$. The active power transit at each station is given by:
   - $P_{rectifier}= P$
-  - $P_{inverter}= (1 - loss_{inverter}) * ((1 - loss_{rectifier}) * (P - loss_{line}))$
+  - $P_{inverter}= (1 - loss_{inverter}) * ((1 - loss_{rectifier}) * (P - P_{LineLoss}))$
 
 - **AC emulation:** The active power transit between both stations is given by: $P = P_0 + k~(\theta_1 - \theta_2)$ 
-with $\theta_1$ and $\theta_2$ being the voltage angles at both converter stations. These angles define the sign of 
-the power transit and this sign defines the controller station. The active power transit at each station is given by:
+with $\theta_1$ and $\theta_2$ being the voltage angles at both converter stations, and $P_0$ and $k$ being fixed values for the HVDC line. 
+These angles define the sign of the power transit and this sign defines which of the converter stations is the controller station. The active power transit at each station is given by:
   - $P_{controller} = P_0 + k~(\theta_1 - \theta_2)$
-  - $P_{noncontroller} = (1 - loss_{inverter}) * ((1 - loss_{rectifier}) * (P_0 + k~(\theta_1 - \theta_2) - loss_{line}))$
+  - $P_{noncontroller} = (1 - loss_{noncontroller}) * ((1 - loss_{controller}) * (P_0 + k~(\theta_1 - \theta_2) - P_{LineLoss}))$
+
+In both regulation modes, the power transits are impacted by losses of the converter stations. In addition, Joule effect (due to resistance in cable) implies line loss in the HVDC line.
+This line loss is calculated with the nominal voltage: $P_{LineLoss} = Ri^2$ with $i = P_1 / V$ with $R$ being the cable resitance, $P_1$ beign the active power at the output of the controller
+station and $V$ being the HVDC nominal voltage (equals 1 per unit).
+
+In addition, in both cases the target value $P$ (either in constant power flow or in AC emulation) is bounded by a maximum power transit $P_max$ that can possibly be different from one direction to another.
 
 ## DC flows computing
 
