@@ -125,7 +125,7 @@ In both regulation modes, the power transits are impacted by losses of the conve
 This line loss is calculated with the nominal voltage: $P_{LineLoss} = Ri^2$ with $i = P_1 / V$ with $R$ being the cable resitance, $P_1$ beign the active power at the output of the controller
 station and $V$ being the HVDC nominal voltage (equals 1 per unit).
 
-In addition, in both cases the target value $P$ (either in constant power flow or in AC emulation) is bounded by a maximum power transit $P_max$ that can possibly be different from one direction to another.
+In addition, in both cases the target value $P$ (either in constant power flow or in AC emulation) is bounded by a maximum power transit $P_{max}$ that can possibly be different from one direction to another.
 
 ## DC flows computing
 
