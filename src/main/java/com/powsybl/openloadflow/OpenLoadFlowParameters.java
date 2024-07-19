@@ -636,6 +636,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return generatorReactivePowerRemoteControl;
     }
 
+    public OpenLoadFlowParameters setVoltagePerReactivePowerControl(boolean voltagePerReactivePowerControl) {
+        this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
+        return this;
+    }
+
     public OpenLoadFlowParameters setGeneratorReactivePowerRemoteControl(boolean generatorReactivePowerRemoteControl) {
         this.generatorReactivePowerRemoteControl = generatorReactivePowerRemoteControl;
         return this;
@@ -1233,11 +1238,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setAreaInterchangeControlAreaType(String areaInterchangeControlAreaType) {
         this.areaInterchangeControlAreaType = Objects.requireNonNull(areaInterchangeControlAreaType);
-        return this;
-    }
-
-    public OpenLoadFlowParameters setVoltagePerReactivePowerControl(boolean voltagePerReactivePowerControl) {
-        this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
         return this;
     }
 

@@ -57,7 +57,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         private final Set<HvdcLine> hvdcLineSet = new LinkedHashSet<>();
 
-        private final Map<Terminal, LfArea> areaBoundaries = new HashMap<>();
+        private final Map<Terminal, LfArea> areaTerminalMap = new HashMap<>();
     }
 
     private final Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier;
@@ -319,7 +319,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<ShuntCompensator> shuntCompensators = new ArrayList<>();
 
-        updateControlArea(bus, lfBus, lfNetwork, parameters, loadingContext, report);
+        updateArea(bus, lfBus, lfNetwork, parameters, loadingContext, report);
 
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
@@ -433,7 +433,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
             LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, topoConfig, parameters);
             addBranch(lfNetwork, lfBranch, report);
-            addLineAreaBoundaries(branch, lfBranch, loadingContext);
+            addBranchAreaBoundaries(branch, lfBranch, loadingContext);
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
@@ -511,28 +511,29 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void updateControlArea(Bus bus, LfBus lfBus, LfNetwork network, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetworkLoadingReport report) {
+    private static void updateArea(Bus bus, LfBus lfBus, LfNetwork network, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetworkLoadingReport report) {
+        // Consider only the area type that should be used for area interchange control
         Optional<Area> areaOpt = bus.getVoltageLevel().getArea(parameters.getAreaInterchangeControlAreaType());
         areaOpt.ifPresent(area -> {
-            LfArea controlArea = network.getControlAreaById(area.getId());
-            if (controlArea == null) {
-                controlArea = createControlArea(area, parameters, loadingContext, network);
+            LfArea lfArea = network.getAreaById(area.getId());
+            if (lfArea == null) {
+                lfArea = createControlArea(area, parameters, loadingContext, network);
             }
-            controlArea.addBus(lfBus);
+            lfArea.addBus(lfBus);
         });
     }
 
     private static LfArea createControlArea(Area area, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetwork network) {
         LfArea lfArea = LfAreaImpl.create(area, network, parameters);
-        network.addControlArea(lfArea);
+        network.addArea(lfArea);
         area.getAreaBoundaryStream().forEach(areaBoundary -> {
             if (areaBoundary.getTerminal().isPresent()) {
                 Terminal terminal = areaBoundary.getTerminal().get();
-                loadingContext.areaBoundaries.put(terminal, lfArea);
+                loadingContext.areaTerminalMap.put(terminal, lfArea);
             }
             if (areaBoundary.getBoundary().isPresent()) {
                 DanglingLine danglingLine = areaBoundary.getBoundary().get().getDanglingLine();
-                loadingContext.areaBoundaries.put(danglingLine.getTerminal(), lfArea);
+                loadingContext.areaTerminalMap.put(danglingLine.getTerminal(), lfArea);
             }
         });
         return lfArea;
@@ -542,7 +543,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
      * Add the terminals active power to the calculation of their Area's interchange (load convention) if they are boundaries.
      * For simple branches (lines, transformers, switches), the terminal declared as the boundary must be the one which active power is used.
      */
-    private static void addLineAreaBoundaries(Branch<?> branch, LfBranch lfBranch, LoadingContext loadingContext) {
+    private static void addBranchAreaBoundaries(Branch<?> branch, LfBranch lfBranch, LoadingContext loadingContext) {
         addAreaBoundary(branch.getTerminal1(), lfBranch::getP1, loadingContext);
         addAreaBoundary(branch.getTerminal2(), lfBranch::getP2, loadingContext);
     }
@@ -565,8 +566,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void addAreaBoundary(Terminal terminal, Supplier<Evaluable> getP, LoadingContext loadingContext) {
-        if (loadingContext.areaBoundaries.containsKey(terminal)) {
-            loadingContext.areaBoundaries.get(terminal).addBoundaryP(getP);
+        if (loadingContext.areaTerminalMap.containsKey(terminal)) {
+            loadingContext.areaTerminalMap.get(terminal).addBoundaryP(getP);
         }
     }
 
