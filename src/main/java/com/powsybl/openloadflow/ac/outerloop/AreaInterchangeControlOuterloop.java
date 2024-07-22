@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfArea;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -119,8 +118,8 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
                         throw new PowsyblException("Failed to distribute interchange active power mismatch, "
                                 + totalRemainingMismatch * PerUnit.SB + " MW remains");
                 case LEAVE_ON_SLACK_BUS -> {
-                    LOGGER.warn("Failed to distribute interchange active power mismatch, {} MW remains"
-                            , totalRemainingMismatch * PerUnit.SB);
+                    LOGGER.warn("Failed to distribute interchange active power mismatch, {} MW remains",
+                            totalRemainingMismatch * PerUnit.SB);
                     return new OuterLoopResult(this, movedBuses ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
                 }
                 case FAIL -> {
@@ -154,7 +153,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     }
 
     private static void reportAndLogSuccess(ReportNode reportNode, double slackBusActivePowerMismatch, int areasCount, int iterationCount) {
-        Reports.reportAreaInterchangeControlSuccess(reportNode,  slackBusActivePowerMismatch * PerUnit.SB, areasCount, iterationCount);
+        Reports.reportAreaInterchangeControlSuccess(reportNode, slackBusActivePowerMismatch * PerUnit.SB, areasCount, iterationCount);
 
         LOGGER.info("Area Interchange total mismatch {} MW distributed in {} distribution iteration(s)",
                 slackBusActivePowerMismatch * PerUnit.SB, iterationCount);
