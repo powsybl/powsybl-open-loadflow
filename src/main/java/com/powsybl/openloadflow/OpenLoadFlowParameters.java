@@ -632,13 +632,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return voltagePerReactivePowerControl;
     }
 
-    public boolean isGeneratorReactivePowerRemoteControl() {
-        return generatorReactivePowerRemoteControl;
-    }
-
     public OpenLoadFlowParameters setVoltagePerReactivePowerControl(boolean voltagePerReactivePowerControl) {
         this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
         return this;
+    }
+
+    public boolean isGeneratorReactivePowerRemoteControl() {
+        return generatorReactivePowerRemoteControl;
     }
 
     public OpenLoadFlowParameters setGeneratorReactivePowerRemoteControl(boolean generatorReactivePowerRemoteControl) {

@@ -3,6 +3,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -22,7 +23,7 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
     public LfAreaImpl(Area area, LfNetwork network, LfNetworkParameters parameters) {
         this.network = network;
         this.areaRef = Ref.create(area, parameters.isCacheEnabled());
-        this.interchangeTarget = area.getInterchangeTarget().orElse(Double.NaN);
+        this.interchangeTarget = area.getInterchangeTarget().orElse(Double.NaN) / PerUnit.SB;
         this.buses = new HashSet<>();
         this.boundariesP = new HashSet<>();
     }
@@ -56,15 +57,13 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
     }
 
     @Override
-    public LfArea addBus(LfBus bus) {
+    public void addBus(LfBus bus) {
         buses.add(bus);
-        return this;
     }
 
     @Override
-    public LfArea addBoundaryP(Supplier<Evaluable> getP) {
+    public void addBoundaryP(Supplier<Evaluable> getP) {
         boundariesP.add(getP);
-        return this;
     }
 
     @Override

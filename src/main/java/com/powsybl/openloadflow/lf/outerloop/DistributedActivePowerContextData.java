@@ -12,7 +12,7 @@ package com.powsybl.openloadflow.lf.outerloop;
  *
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
-public class DistributedSlackContextData {
+public class DistributedActivePowerContextData {
     private double distributedActivePower = 0.0;
 
     public double getDistributedActivePower() {

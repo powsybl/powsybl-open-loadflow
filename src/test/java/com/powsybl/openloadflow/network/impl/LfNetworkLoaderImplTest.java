@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -122,7 +123,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfNetwork mainNetwork = lfNetworks.get(0);
         LfArea lfArea = mainNetwork.getAreaById("ControlArea_A");
         assertNull(mainNetwork.getAreaById("Region_AB"));
-        assertEquals(-602.6, lfArea.getInterchangeTarget());
+        assertEquals(-602.6 / PerUnit.SB, lfArea.getInterchangeTarget());
     }
 
     @Test

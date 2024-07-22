@@ -11,7 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
-import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
+import com.powsybl.openloadflow.lf.outerloop.DistributedActivePowerContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfGenerator;
@@ -49,7 +49,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        var contextData = new DistributedSlackContextData();
+        var contextData = new DistributedActivePowerContextData();
         context.setData(contextData);
     }
 
@@ -68,7 +68,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop {
         ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
         double remainingMismatch = result.remainingMismatch();
         double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;
-        DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
+        DistributedActivePowerContextData contextData = (DistributedActivePowerContextData) context.getData();
         contextData.addDistributedActivePower(distributedActivePower);
         if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
             OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior();

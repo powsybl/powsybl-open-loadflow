@@ -23,9 +23,17 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        if (parameters.isDistributedSlack()) {
+        if (parameters.isDistributedSlack() && !parametersExt.isAreaInterchangeControl()) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));
+        }
+        return Optional.empty();
+    }
+
+    protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isAreaInterchangeControl()) {
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
+            return Optional.of(new AreaInterchangeControlOuterloop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));
         }
         return Optional.empty();
     }

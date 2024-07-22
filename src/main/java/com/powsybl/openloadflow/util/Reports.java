@@ -143,6 +143,26 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportAreaInterchangeControlFailure(ReportNode reportNode, String areaId, double mismatch, int iterationCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlFailure", "Failed to balance area ${areaId} after ${iterationCount} iteration(s), ${mismatch} MW remains")
+                .withUntypedValue("areaId", areaId)
+                .withUntypedValue("iterationCount", iterationCount)
+                .withTypedValue("mismatch", mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaInterchangeControlSuccess(ReportNode reportNode, String areaId, double mismatch, int iterationCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlSuccess", "Area ${areaId} interchange mismatch (${mismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
+                .withUntypedValue("areaId", areaId)
+                .withUntypedValue("iterationCount", iterationCount)
+                .withTypedValue("mismatch", mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
     public static void reportPvToPqBuses(ReportNode reportNode, int pvToPqBusCount, int remainingPvBusCount) {
         reportNode.newReportNode()
                 .withMessageTemplate("switchPvPq", "${pvToPqBusCount} buses switched PV -> PQ (${remainingPvBusCount} buses remain PV)")
