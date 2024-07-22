@@ -27,4 +27,4 @@ Then the following would occur:
   - $initialTargetP(g1, N)$ is `g1` solved value from above.
   - $distributedSlack(g1, cgt1)$ is `g1` contribution to distributed slack for the balancing of the `cgt1` "post-contingency" state.
 - Finally, in the "curative" state of contingency `ctg1`, the generator `g1` will solve to $initialTargetP(g1, ctg1) + 20 MW + distributedSlack(g1, curative1)$,
-where `distributedSlack(g1, curative1)` is `g1` distributed slack contribution for the balancing of the "curative" state.
+where $distributedSlack(g1, curative1)$ is `g1` contribution to distributed slack for the balancing of the "curative" state.
