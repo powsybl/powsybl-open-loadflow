@@ -30,8 +30,8 @@ class AreaInterchangeControlTests {
     void twoAreasTest2() {
         Network network = MultiAreaNetworkFactory.createTwoAreasBase();
 
-        double interchangeTarget1 = -20;
-        double interchangeTarget2 = 20;
+        double interchangeTarget1 = -40;
+        double interchangeTarget2 = 40;
 
         Area area1 = network.getArea("a1");
         Area area2 = network.getArea("a2");
