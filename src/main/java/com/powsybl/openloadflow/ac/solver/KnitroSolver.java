@@ -326,8 +326,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 if (SolverUtils.getLinearConstraintsTypes().contains(typeEq)) {
                     List<Integer> listVar = new ArrayList<>();
                     List<Double> listCoef = new ArrayList<>();
-                    listVar = solverUtils.addConstraint(typeEq, equationId, terms).getListIdVar();
-                    listCoef = solverUtils.addConstraint(typeEq, equationId, terms).getListCoef();
+                    listVar = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListIdVar();
+                    listCoef = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListCoef();
 
                     for (int i = 0; i < listVar.size(); i++) {
                         addConstraintLinearPart(equationId, listVar.get(i), listCoef.get(i));
