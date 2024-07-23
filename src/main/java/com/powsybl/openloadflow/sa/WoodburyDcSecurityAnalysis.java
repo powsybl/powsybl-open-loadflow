@@ -1,7 +1,6 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.action.Action;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -191,9 +190,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     private double[] getAngleStatesAsArray(DenseMatrix angleStates) {
-        if (angleStates.getColumnCount() > 1) {
-            throw new PowsyblException("Angle states should be a DenseMatrix with 1 column");
-        }
         double[] angleStatesArray = new double[angleStates.getRowCount()];
         for (int i = 0; i < angleStatesArray.length; i++) {
             angleStatesArray[i] = angleStates.get(i, 0);
@@ -226,6 +222,44 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 });
     }
 
+    PostContingencyResult computePostContingencyResult(DcLoadFlowContext loadFlowContext, SecurityAnalysisParameters securityAnalysisParameters,
+                                                       LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
+                                                       PropagatedContingency contingency, DenseMatrix postContingencyStates,
+                                                       List<LimitReduction> limitReductions, boolean createResultExtension) {
+
+        LfNetwork lfNetwork = loadFlowContext.getNetwork();
+        LfContingency lfContingency = contingency.toLfContingency(loadFlowContext.getNetwork()).orElseThrow(); // the contingency can not be null
+        lfContingency.apply(loadFlowContext.getParameters().getBalanceType());
+        LOGGER.info("Start post contingency '{}' violations detection on network {}", lfContingency.getId(), network);
+        LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift {} loads",
+                lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranchesStatus(),
+                lfContingency.getLostGenerators(), lfContingency.getShuntsShift(), lfContingency.getLostLoads());
+
+        initStateVector(lfNetwork, loadFlowContext.getEquationSystem(), new UniformValueVoltageInitializer());
+        double[] postContingencyAngleStates = getAngleStatesAsArray(postContingencyStates);
+        loadFlowContext.getEquationSystem().getStateVector().set(postContingencyAngleStates);
+
+        var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency.getContingency());
+        postContingencyNetworkResult.update();
+
+        // detect violations
+        var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
+        postContingencyLimitViolationManager.detectViolations(lfNetwork);
+
+        var connectivityResult = new ConnectivityResult(
+                lfContingency.getCreatedSynchronousComponentsCount(), 0,
+                lfContingency.getDisconnectedLoadActivePower() * PerUnit.SB,
+                lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB,
+                lfContingency.getDisconnectedElementIds());
+
+        return new PostContingencyResult(contingency.getContingency(),
+                PostContingencyComputationStatus.CONVERGED, new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
+                postContingencyNetworkResult.getBranchResults(),
+                postContingencyNetworkResult.getBusResults(),
+                postContingencyNetworkResult.getThreeWindingsTransformerResults(),
+                connectivityResult);
+    }
+
     @Override
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters acParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
@@ -242,9 +276,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // prepare contingencies for connectivity analysis and woodbury engine
             filterPropagatedContingencies(lfNetwork, propagatedContingencies);
-
-            // connectivity analysis
-//            ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData = ConnectivityBreakAnalysis.run(context, null, propagatedContingencies, null);
 
             // no participating element for now
             // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
@@ -280,92 +311,36 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             NetworkState networkState = NetworkState.save(lfNetwork);
 
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-            LOGGER.info("Processing contingencies with no connectivity break");
-            for (PropagatedContingency contingency : connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()) {
-                // TODO : refactor in a method
-                contingency.toLfContingency(lfNetwork)
-                        .ifPresent(lfContingency -> { // only process contingencies that impact the network
+            LOGGER.info("Processing post contingency results for contingencies with no connectivity break");
+            connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()
+                    .forEach(contingency -> {
+                        // only process contingencies that impact the network
+                        if (!contingency.hasNoImpact()) {
                             DenseMatrix postContingencyStates = calculatePostContingencyStatesForAContingency(context, openLoadFlowParameters, connectivityBreakAnalysisResults.contingenciesStates(), new DenseMatrix(preContingencyFlowRhsArray.length, 1, preContingencyFlowRhsArray), contingency,
                                     connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), participatingElements, Collections.emptySet(), reportNode, Collections.emptySet());
-                            LOGGER.info("Start post contingency '{}' violations detection on network {}", lfContingency.getId(), network);
-                            LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift {} loads",
-                                    lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranchesStatus(),
-                                    lfContingency.getLostGenerators(), lfContingency.getShuntsShift(), lfContingency.getLostLoads());
-
-                            lfContingency.apply(loadFlowParameters.getBalanceType());
-
-                            initStateVector(lfNetwork, context.getEquationSystem(), new UniformValueVoltageInitializer());
-                            double[] postContingencyAngleStates = getAngleStatesAsArray(postContingencyStates);
-                            context.getEquationSystem().getStateVector().set(postContingencyAngleStates);
-
-                            var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency.getContingency());
-                            postContingencyNetworkResult.update();
-
-                            // detect violations
-                            var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
-                            postContingencyLimitViolationManager.detectViolations(lfNetwork);
-
-                            var connectivityResult = new ConnectivityResult(
-                                    lfContingency.getCreatedSynchronousComponentsCount(), 0,
-                                    lfContingency.getDisconnectedLoadActivePower() * PerUnit.SB,
-                                    lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB,
-                                    lfContingency.getDisconnectedElementIds());
-
-                            PostContingencyResult postContingencyResult = new PostContingencyResult(contingency.getContingency(),
-                                    PostContingencyComputationStatus.CONVERGED, new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
-                                    postContingencyNetworkResult.getBranchResults(),
-                                    postContingencyNetworkResult.getBusResults(),
-                                    postContingencyNetworkResult.getThreeWindingsTransformerResults(),
-                                    connectivityResult);
+                            PostContingencyResult postContingencyResult = computePostContingencyResult(context, securityAnalysisParameters, preContingencyLimitViolationManager,
+                                    preContingencyNetworkResult, contingency, postContingencyStates, limitReductions, createResultExtension);
                             postContingencyResults.add(postContingencyResult);
-
                             networkState.restore();
-                        });
+                        }
+                    });
 
-            }
+            LOGGER.info("Processing post contingency results for contingencies breaking connectivity");
+            connectivityBreakAnalysisResults.connectivityAnalysisResults()
+                    .forEach(connectivityAnalysisResult -> {
+                        PropagatedContingency contingency = connectivityAnalysisResult.getPropagatedContingency();
 
-            for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
-                // TODO : refactor in a method
-                connectivityAnalysisResult.getPropagatedContingency().toLfContingency(lfNetwork)
-                        .ifPresent(lfContingency -> { // only process contingencies that impact the network
+                        // only process contingencies that impact the network
+                        if (!contingency.hasNoImpact()) {
                             DenseMatrix postContingencyStates = processContingencyBreakingConnectivity(connectivityAnalysisResult, context, loadFlowParameters, openLoadFlowParameters, participatingElements,
                                     connectivityBreakAnalysisResults.contingencyElementByBranch(),
                                     new DenseMatrix(preContingencyFlowRhsArray.length, 1, preContingencyFlowRhsArray), connectivityBreakAnalysisResults.contingenciesStates(), reportNode);
-                            LOGGER.info("Start post contingency '{}' violations detection on network {}", lfContingency.getId(), network);
-                            LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift {} loads",
-                                    lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranchesStatus(),
-                                    lfContingency.getLostGenerators(), lfContingency.getShuntsShift(), lfContingency.getLostLoads());
-
-                            lfContingency.apply(loadFlowParameters.getBalanceType());
-
-                            initStateVector(lfNetwork, context.getEquationSystem(), new UniformValueVoltageInitializer());
-                            double[] postContingencyAngleStates = getAngleStatesAsArray(postContingencyStates);
-                            context.getEquationSystem().getStateVector().set(postContingencyAngleStates);
-
-                            var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, preContingencyNetworkResult, connectivityAnalysisResult.getPropagatedContingency().getContingency());
-                            postContingencyNetworkResult.update();
-
-                            // detect violations
-                            var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
-                            postContingencyLimitViolationManager.detectViolations(lfNetwork);
-
-                            var connectivityResult = new ConnectivityResult(
-                                    lfContingency.getCreatedSynchronousComponentsCount(), 0,
-                                    lfContingency.getDisconnectedLoadActivePower() * PerUnit.SB,
-                                    lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB,
-                                    lfContingency.getDisconnectedElementIds());
-
-                            PostContingencyResult postContingencyResult = new PostContingencyResult(connectivityAnalysisResult.getPropagatedContingency().getContingency(),
-                                    PostContingencyComputationStatus.CONVERGED, new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
-                                    postContingencyNetworkResult.getBranchResults(),
-                                    postContingencyNetworkResult.getBusResults(),
-                                    postContingencyNetworkResult.getThreeWindingsTransformerResults(),
-                                    connectivityResult);
+                            PostContingencyResult postContingencyResult = computePostContingencyResult(context, securityAnalysisParameters, preContingencyLimitViolationManager,
+                                    preContingencyNetworkResult, contingency, postContingencyStates, limitReductions, createResultExtension);
                             postContingencyResults.add(postContingencyResult);
-
                             networkState.restore();
-                        });
-            }
+                        }
+                    });
 
             return new SecurityAnalysisResult(
                     new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED, // if not converge, woodbury whould have throw first
@@ -375,5 +350,4 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     postContingencyResults, new ArrayList<>());
         }
     }
-
 }
