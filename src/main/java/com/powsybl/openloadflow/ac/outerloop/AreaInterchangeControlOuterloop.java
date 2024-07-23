@@ -22,10 +22,7 @@ import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -88,26 +85,30 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
         double totalDistributedActivePower = 0.0;
-        double totalRemainingMismatch = 0.0;
         int totalIterations = 0;
         boolean movedBuses = false;
+        Map<LfArea, Double> areasWithemainingMismatch = new HashMap<>();
         for (LfArea area : areasToBalance) {
             double areaActivePowerMismatch = getInterchangeMismatchWithSlack(area, slackBusActivePowerMismatch);
             ActivePowerDistribution.Result result = activePowerDistribution.run(area.getBuses(), areaActivePowerMismatch);
             double remainingMismatch = result.remainingMismatch();
             double distributedActivePower = areaActivePowerMismatch - remainingMismatch;
             totalDistributedActivePower += distributedActivePower;
-            totalRemainingMismatch += remainingMismatch;
             movedBuses |= result.movedBuses();
             totalIterations += result.iteration();
+            if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
+                areasWithemainingMismatch.put(area, remainingMismatch);
+            }
         }
 
         ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         DistributedActivePowerContextData contextData = (DistributedActivePowerContextData) context.getData();
         contextData.addDistributedActivePower(totalDistributedActivePower);
         int size = areasToBalance.size();
-        if (Math.abs(totalRemainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
-            Reports.reportAreaInterchangeControlFailure(iterationReportNode, totalRemainingMismatch * PerUnit.SB, size, totalIterations);
+        if (!areasWithemainingMismatch.isEmpty()) {
+            final int mismatchAreasCount = areasWithemainingMismatch.size();
+            final double largestRemainingMismatch = areasWithemainingMismatch.values().stream().mapToDouble(Double::doubleValue).max().orElse(0) * PerUnit.SB;
+            Reports.reportAreaInterchangeControlFailure(iterationReportNode, largestRemainingMismatch, mismatchAreasCount, totalIterations);
             OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior();
             if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == slackDistributionFailureBehavior) {
                 LOGGER.error("Distribute on reference generator is not supported in AreaInterchangeControlOuterloop, falling back to FAIL mode");
@@ -115,19 +116,25 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
             }
             switch (slackDistributionFailureBehavior) {
                 case THROW ->
-                        throw new PowsyblException("Failed to distribute interchange active power mismatch, "
-                                + totalRemainingMismatch * PerUnit.SB + " MW remains");
+                    throw new PowsyblException("Failed to distribute interchange active power mismatch in " +
+                            mismatchAreasCount + " area(s), largest remaining mismatch is "
+                            + largestRemainingMismatch + " MW");
+
                 case LEAVE_ON_SLACK_BUS -> {
-                    LOGGER.warn("Failed to distribute interchange active power mismatch, {} MW remains",
-                            totalRemainingMismatch * PerUnit.SB);
+                    areasWithemainingMismatch.forEach((area, remainingMismatch) ->
+                            LOGGER.warn("Failed to distribute interchange active power mismatch in Area {}, {} MW remains",
+                                    area.getId(), remainingMismatch * PerUnit.SB));
                     return new OuterLoopResult(this, movedBuses ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
                 }
                 case FAIL -> {
-                    String statusText = String.format(Locale.US, "Failed to distribute interchange active power mismatch, %.2f MW remains", totalRemainingMismatch * PerUnit.SB);
-                    LOGGER.error("{}", statusText);
+                    areasWithemainingMismatch.forEach((area, remainingMismatch) -> {
+                        String statusText = String.format(Locale.US, "Failed to distribute interchange active power mismatch in area %s, %.2f MW remains", area.getId(), remainingMismatch * PerUnit.SB);
+                        LOGGER.error("{}", statusText);
+                    });
                     // Mismatches reported in LoadFlowResult on slack bus(es) are the mismatches of the last NR run.
                     // Since we will not be re-running an NR, revert distributedActivePower reporting which would otherwise be misleading.
                     // Said differently, we report that we didn't distribute anything, and this is indeed consistent with the network state.
+                    String statusText = String.format(Locale.US, "Failed to distribute interchange active power mismatch in %d areas, %.2f MW remains", mismatchAreasCount, largestRemainingMismatch);
                     contextData.addDistributedActivePower(-totalDistributedActivePower);
                     return new OuterLoopResult(this, OuterLoopStatus.FAILED, statusText);
                 }
@@ -152,10 +159,10 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
         return slackBuses.isEmpty() ? 0 : slackBusActivePowerMismatch / slackBuses.size();
     }
 
-    private static void reportAndLogSuccess(ReportNode reportNode, double slackBusActivePowerMismatch, int areasCount, int iterationCount) {
-        Reports.reportAreaInterchangeControlSuccess(reportNode, slackBusActivePowerMismatch * PerUnit.SB, areasCount, iterationCount);
+    private static void reportAndLogSuccess(ReportNode reportNode, double totalDistributedActivePower, int areasCount, int iterationCount) {
+        Reports.reportAreaInterchangeControlSuccess(reportNode, totalDistributedActivePower * PerUnit.SB, areasCount, iterationCount);
 
         LOGGER.info("Area Interchange total mismatch {} MW distributed in {} distribution iteration(s)",
-                slackBusActivePowerMismatch * PerUnit.SB, iterationCount);
+                totalDistributedActivePower * PerUnit.SB, iterationCount);
     }
 }
