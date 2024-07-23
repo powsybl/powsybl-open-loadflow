@@ -244,7 +244,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             filterPropagatedContingencies(lfNetwork, propagatedContingencies);
 
             // connectivity analysis
-            ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData = ConnectivityBreakAnalysis.run(context, null, propagatedContingencies, null);
+//            ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityData = ConnectivityBreakAnalysis.run(context, null, propagatedContingencies, null);
 
             // no participating element for now
             // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
