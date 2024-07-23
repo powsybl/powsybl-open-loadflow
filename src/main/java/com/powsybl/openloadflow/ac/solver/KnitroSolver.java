@@ -263,17 +263,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         private static class CallbackEvalH extends KNEvalHCallback {
             @Override
             public void evaluateH(final List<Double> x, final double sigma, final List<Double> lambda, List<Double> hess) {
-                // TODO
-                // A voir si obligatoire de passer qqc ou si par défaut la hessienne est null
+                // TODO ?
             }
         }
-
-        // Get Jacobian matrix of Non-Linear constraints only
-//
-//        private static Matrix getNonLinearJacobian(JacobianMatrix<AcVariableType, AcEquationType> oldMatrix, List<Integer> listNonLinearConsts) {
-//            Matrix allCstrsJacobian = oldMatrix.getMatrix(); //get and update old matrix
-//            return MatrixUtil.extractRowsAndColumns(allCstrsJacobian,listNonLinearConsts);
-//        }
 
         private KnitroProblem(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem, TargetVector targetVector, VoltageInitializer voltageInitializer, JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix, KnitroSolverParameters knitroParameters) throws KNException {
 
@@ -310,13 +302,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // Initial state
             List<Double> listXInitial = new ArrayList<>(numVar);
             AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer); // Initialize state vector
-
-//            Random random = new Random();
-//            for (int i = 0; i < 1000; i ++) {
-//                double x = random.nextDouble() * 10;
-//                equationSystem.getStateVector().set(random.nextInt(numVar), x);
-//            }
-//            equationSystem.getStateVector().set(numVar);
             for (int i = 0; i < numVar; i++) {
                 listXInitial.add(equationSystem.getStateVector().get(i));
             }
@@ -352,17 +337,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 } else {
                     // ----- Non-linear constraints -----
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
-//                    if (typeEq == AcEquationType.BUS_TARGET_P || typeEq == AcEquationType.BUS_TARGET_Q) { //TODO a reprendre avec des variables binaires pour modéliser les changements PQ<->PV
-//                        System.out.println("youhou");
-//                        int busId = equation.getElementNum();
-//                        LfBus bus = lfNetwork.getBus(busId);
-//                        double maxP = bus.getMaxP();
-//                        double minQ = bus.getMinQ();
-//                        double maxQ = bus.getMaxQ();
-//                        setConUpBnds(Collections.singletonList(equationId), Collections.singletonList(maxP));
-//                        setConLoBnds(Collections.singletonList(equationId), Collections.singletonList(minQ));
-//                        setConUpBnds(Collections.singletonList(equationId), Collections.singletonList(maxQ));
-//                    }
                 }
             }
 
@@ -445,7 +419,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         solver.setParam(KNConstants.KN_PARAM_DERIVCHECK, 1);
         solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL, 0.0001);
 //        solver.setParam(KNConstants.KN_PARAM_MAXIT, 30);
-        solver.setParam(KNConstants.KN_PARAM_OUTLEV,3);
+//        solver.setParam(KNConstants.KN_PARAM_OUTLEV,4);
+//        solver.setParam(KNConstants.KN_PARAM_OUTMODE,2);
+//        solver.setParam(KNConstants.KN_PARAM_DEBUG ,1);
+
 //        solver.setParam(KNConstants.KN_PARAM_MS_ENABLE, 0); // multi-start
 //        solver.setParam(KNConstants.KN_PARAM_MS_NUMTHREADS, 1);
 //        solver.setParam(KNConstants.KN_PARAM_CONCURRENT_EVALS, 0); //pas d'évaluations de callbacks concurrentes
@@ -494,11 +471,14 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 equationSystem.getStateVector().set(toArray(solution.getX()));
                 AcSolverUtil.updateNetwork(network, equationSystem);
             }
+            equationSystem.getStateVector().set(toArray(solution.getX()));
+            AcSolverUtil.updateNetwork(network, equationSystem);
 
 //            // update network state variable //TODO later?
 //            if (acStatus == AcSolverStatus.CONVERGED && knitroParameters.is(reportNode)) {
 //                status = AcSolverStatus.UNREALISTIC_STATE;
 //            }
+
 
         } catch (KNException e) {
             LOGGER.error("Exception found while trying to solve with Knitro");
@@ -506,6 +486,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             acStatus = AcSolverStatus.NO_CALCULATION;
             throw new PowsyblException("Exception found while trying to solve with Knitro");
         }
+
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
         return new AcSolverResult(acStatus, nbIter, slackBusActivePowerMismatch);
     }
