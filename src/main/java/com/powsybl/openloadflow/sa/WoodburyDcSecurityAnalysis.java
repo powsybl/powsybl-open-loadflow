@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.initStateVector;
 import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.updateNetwork;
+import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 
 public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
@@ -57,7 +58,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
-        ParticipatingElement.normalizeParticipationFactors(participatingElements);
+        normalizeParticipationFactors(participatingElements);
         return participatingElements;
     }
 
@@ -75,14 +76,20 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 
-    // TODO : remove this method after woodbury refactoring
+    /**
+     * Calculate sensitivity values for a contingency.
+     * In case of connectivity break, a pre-computation has been done in TODO
+     * to get a first version of the new participating elements, that can be overridden in this method, and to indicate
+     * if the factorsStates should be overridden or not in this method.
+     * If connectivity, a generator, a load or a phase tap changer is lost due to the contingency,
+     * the flowStates are overridden.
+     */
     private DenseMatrix calculatePostContingencyStatesForAContingency(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, DenseMatrix contingenciesStates, DenseMatrix flowStates,
-                                                           PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                           Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements, Set<String> elementsToReconnect,
-                                                           ReportNode reportNode, Set<LfBranch> partialDisabledBranches) {
+                                                                      PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                                      Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements, Set<String> elementsToReconnect,
+                                                                      ReportNode reportNode, Set<LfBranch> partialDisabledBranches) {
 
-        WoodburyEngine engine = new WoodburyEngine();
-        Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
+        List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
@@ -92,9 +99,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         disabledBranches.addAll(partialDisabledBranches);
         DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 
-        DenseMatrix newFlowStates = flowStates;
+        WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates);
         DenseMatrix postContingencyStates;
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
+            DenseMatrix newFlowStates = flowStates;
 
             // get the lost phase tap changers for this contingency
             Set<LfBranch> lostPhaseControllers = contingency.getBranchIdsToOpen().keySet().stream()
@@ -106,40 +114,38 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // if a phase tap changer is lost or if the connectivity have changed, we must recompute load flows
             if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty()) {
-                double[] tempo = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
-                newFlowStates = new DenseMatrix(tempo.length, 1, tempo);
+                newFlowStates = DcSensitivityAnalysis.calculateFlowStates(loadFlowContext, participatingElements, disabledNetwork, reportNode);
             }
-            postContingencyStates = engine.run(loadFlowContext, newFlowStates, contingenciesStates, contingencyElements);
+            postContingencyStates = engine.run(newFlowStates);
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
             DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
             NetworkState networkState = NetworkState.save(lfNetwork);
-//            List<ParticipatingElement> newParticipatingElements = participatingElements;
-//            boolean participatingElementsChanged;
+            List<ParticipatingElement> newParticipatingElements = participatingElements;
+            boolean participatingElementsChanged;
             LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
             if (lfContingency != null) {
                 lfContingency.apply(lfParameters.getBalanceType());
-//                participatingElementsChanged = isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()
-//                        || isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty();
-//                if (participatingElementsChanged) {
-//                    if (isDistributedSlackOnGenerators(lfParameters)) {
-//                        // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
-//                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
-//                        newParticipatingElements = participatingElements.stream()
-//                                .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
-//                                .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
-//                                .collect(Collectors.toList());
-//                        normalizeParticipationFactors(newParticipatingElements);
-//                    } else { // slack distribution on loads
-//                        newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
-//                    }
-//                }
+                participatingElementsChanged = isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()
+                        || isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty();
+                if (participatingElementsChanged) {
+                    if (isDistributedSlackOnGenerators(lfParameters)) {
+                        // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
+                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
+                        newParticipatingElements = participatingElements.stream()
+                                .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
+                                .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
+                                .collect(Collectors.toList());
+                        normalizeParticipationFactors(newParticipatingElements);
+                    } else { // slack distribution on loads
+                        newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+                    }
+                }
             }
 
-            double[] tempo = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
-            newFlowStates = new DenseMatrix(tempo.length, 1, tempo);
-            postContingencyStates = engine.run(loadFlowContext, newFlowStates, contingenciesStates, contingencyElements);
+            DenseMatrix newFlowStates = DcSensitivityAnalysis.calculateFlowStates(loadFlowContext, newParticipatingElements, disabledNetwork, reportNode);
+            postContingencyStates = engine.run(newFlowStates);
             networkState.restore();
         }
         return postContingencyStates;
