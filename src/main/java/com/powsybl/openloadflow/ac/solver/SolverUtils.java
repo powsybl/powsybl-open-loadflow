@@ -20,6 +20,7 @@ import java.util.*;
 
 public final class SolverUtils {
 
+    // List of linear constraints
     public static List<AcEquationType> linearConstraintsTypes = new ArrayList<>(Arrays.asList(
             AcEquationType.BUS_TARGET_V,
             AcEquationType.BUS_TARGET_PHI,
@@ -39,6 +40,7 @@ public final class SolverUtils {
         return linearConstraintsTypes;
     }
 
+    // List of non-linear constraints
     public static List<AcEquationType> nonLinearConstraintsTypes = new ArrayList<>(Arrays.asList(
             AcEquationType.BUS_TARGET_P,
             AcEquationType.BUS_TARGET_Q,
@@ -51,10 +53,9 @@ public final class SolverUtils {
         return nonLinearConstraintsTypes;
     }
 
-    public VarAndCoefList addConstraint(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
-        List<Integer> listVar = new ArrayList<>();
-        List<Double> listCoef = new ArrayList<>();
-
+    // Return lists of variables and coefficients to pass to Knitro for a linear constraint
+    public VarAndCoefList getLinearConstraint(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+        VarAndCoefList varAndCoefList = null;
         switch (typeEq) {
             case BUS_TARGET_V:
             case BUS_TARGET_PHI:
@@ -63,23 +64,19 @@ public final class SolverUtils {
             case SHUNT_TARGET_B:
             case BRANCH_TARGET_ALPHA1:
             case BRANCH_TARGET_RHO1:
-                listVar = addConstraintTarget(typeEq, equationId, terms).listIdVar;
-                listCoef = addConstraintTarget(typeEq, equationId, terms).listCoef;
+                varAndCoefList = addConstraintConstantTarget(typeEq, equationId, terms);
                 break;
             case DISTR_Q:
             case DISTR_SHUNT_B:
             case DISTR_RHO:
-                listVar = addConstraintDistrQ(typeEq, equationId, terms).listIdVar;
-                listCoef = addConstraintDistrQ(typeEq, equationId, terms).listCoef;
+                varAndCoefList = addConstraintDistrQ(typeEq, equationId, terms);
                 break;
             case ZERO_V:
             case ZERO_PHI:
-                listVar = addConstraintZero(typeEq, equationId, terms).listIdVar;
-                listCoef = addConstraintZero(typeEq, equationId, terms).listCoef;
+                varAndCoefList = addConstraintZero(typeEq, equationId, terms);
                 break;
-
         }
-        return new VarAndCoefList(listVar, listCoef);
+        return varAndCoefList;
     }
 
     public class VarAndCoefList {
@@ -100,11 +97,10 @@ public final class SolverUtils {
         }
     }
 
-    public VarAndCoefList addConstraintTarget(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+    public VarAndCoefList addConstraintConstantTarget(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
         // get the variable V/Theta/DummyP/DummyQ/... corresponding to the constraint
         int idVar = terms.get(0).getVariables().get(0).getRow();
-        double coef = 1.0;
-        return new VarAndCoefList(Arrays.asList(idVar), Arrays.asList(coef));
+        return new VarAndCoefList(List.of(idVar), List.of(1.0));
     }
 
     public VarAndCoefList addConstraintZero(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
