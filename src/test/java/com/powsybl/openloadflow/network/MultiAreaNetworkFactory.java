@@ -62,11 +62,11 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
-     *   g1 100 MW                     load3 10MW
-     *      |                              |
-     *      b1 ---(l12)--- b2 ---(l23)--- b3
+     *   g1 100 MW
      *      |
-     *  load1 60MW
+     *      b1 ---(l12)--- b2 ---(l23)--- b3
+     *      |                             |
+     *  load1 60MW                     load3 10MW
      *   <---------------------->
      *          Area 1
      *
@@ -101,10 +101,9 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("a1")
                 .setName("Area 1")
                 .setAreaType("ControlArea")
-                .setInterchangeTarget(-50)
+                .setInterchangeTarget(-10)
                 .addVoltageLevel(network.getVoltageLevel("vl1"))
                 .addVoltageLevel(network.getVoltageLevel("vl2"))
-                .addAreaBoundary(network.getDanglingLine("dl1").getBoundary(), true)
                 .addAreaBoundary(network.getLine("l23").getTerminal2(), true)
                 .add();
         return network;
@@ -113,7 +112,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
     /**
      *   g1 100 MW                                          gen3 40MW
      *      |                                                    |
-     *      b1 ---(l12)--- b2 ---(l23_A1)--- bx1 ---(l23_A2)--- b3
+     *      b1 ---(l12)--- b2                                    b3
      *      |                                                   |
      *    load1 60MW                                        load3 50MW
      *    <-------------------------------->    <------------------->
@@ -148,6 +147,35 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setMaxP(150)
                 .setVoltageRegulatorOn(true)
                 .add();
+        network.newArea()
+                .setId("a1")
+                .setName("Area 1")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(-110)
+                .addVoltageLevel(network.getVoltageLevel("vl1"))
+                .addVoltageLevel(network.getVoltageLevel("vl2"))
+                .add();
+        network.newArea()
+                .setId("a2")
+                .setName("Area 2")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(110)
+                .addVoltageLevel(network.getVoltageLevel("vl3"))
+                .add();
+        return network;
+    }
+
+    /**
+     *   g1 100 MW                                          gen3 40MW
+     *      |                                                    |
+     *      b1 ---(l12)--- b2 ---(l23_A1)--- bx1 ---(l23_A2)--- b3
+     *      |                                                   |
+     *    load1 60MW                                        load3 50MW
+     *    <-------------------------------->    <------------------->
+     *                Area 1                            Area 2
+     */
+    public static Network createTwoAreasWithXNode() {
+        Network network = createTwoAreasBase();
         Substation sXnode1 = network.newSubstation()
                 .setId("SX1")
                 .add();
@@ -173,28 +201,30 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setR(0)
                 .setX(1)
                 .add();
-        network.newArea()
-                .setId("a1")
-                .setName("Area 1")
-                .setAreaType("ControlArea")
-                .setInterchangeTarget(-110)
-                .addVoltageLevel(network.getVoltageLevel("vl1"))
-                .addVoltageLevel(network.getVoltageLevel("vl2"))
-                .addAreaBoundary(network.getLine("l23_A1").getTerminal2(), true)
+        network.getArea("a1")
+                .newAreaBoundary()
+                .setTerminal(network.getLine("l23_A1").getTerminal2())
+                .setAc(true)
                 .add();
-        network.newArea()
-                .setId("a2")
-                .setName("Area 2")
-                .setAreaType("ControlArea")
-                .setInterchangeTarget(110)
-                .addVoltageLevel(network.getVoltageLevel("vl3"))
-                .addAreaBoundary(network.getLine("l23_A2").getTerminal1(), true)
+        network.getArea("a2")
+                .newAreaBoundary()
+                .setTerminal(network.getLine("l23_A2").getTerminal1())
+                .setAc(true)
                 .add();
         return network;
     }
 
+    /**
+     *   g1 100 MW        dl1 30MW                             gen3 40MW
+     *      |               |                                    |
+     *      b1 ---(l12)--- b2 ---(l23_A1)--- bx1 ---(l23_A2)--- b3
+     *      |                                                   |
+     *    load1 60MW                                        load3 50MW
+     *    <-------------------------------->    <------------------->
+     *                Area 1                            Area 2
+     */
     public static Network createTwoAreasWithDanglingLine() {
-        Network network = createTwoAreasBase();
+        Network network = createTwoAreasWithXNode();
         VoltageLevel vl2 = network.getVoltageLevel("vl2");
         vl2.newDanglingLine()
                 .setId("dl1")
@@ -204,7 +234,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setX(1)
                 .setG(0)
                 .setB(0)
-                .setP0(30)
+                .setP0(20)
                 .setQ0(20)
                 .newGeneration()
                 .setTargetP(0)
@@ -217,6 +247,142 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         a1.newAreaBoundary()
                 .setBoundary(network.getDanglingLine("dl1").getBoundary())
                 .setAc(true)
+                .add();
+        return network;
+    }
+
+    /**
+     *   g1 100 MW                                       gen3 40MW
+     *      |                                                |
+     *      b1 ---(l12)--- b2 ---(dlA1)----< >----(dlA2)--- b3
+ *      |                                                   |
+     *    load1 60MW                                     load3 50MW
+     *    <------------------------------->   <--------------------->
+     *                Area 1                            Area 2
+     */
+    public static Network createTwoAreasWithTieLine() {
+        Network network = createTwoAreasBase();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        DanglingLine dl1 = vl2.newDanglingLine()
+                .setId("dl1")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setR(0)
+                .setX(1)
+                .setG(0)
+                .setB(0)
+                .setP0(0)
+                .setQ0(0)
+                .setPairingKey("tlA1A2")
+                .add();
+        VoltageLevel vl3 = network.getVoltageLevel("vl3");
+        DanglingLine dl2 = vl3.newDanglingLine()
+                .setId("dl2")
+                .setConnectableBus("b3")
+                .setBus("b3")
+                .setR(0)
+                .setX(1)
+                .setG(0)
+                .setB(0)
+                .setP0(0)
+                .setQ0(0)
+                .setPairingKey("tlA1A2")
+                .add();
+        network.newTieLine()
+                .setId("tl1")
+                .setName("Tie Line A1-A2")
+                .setDanglingLine1("dl1")
+                .setDanglingLine2("dl2")
+                .add();
+        network.getArea("a1")
+                .newAreaBoundary()
+                .setBoundary(dl1.getBoundary())
+                .setAc(true)
+                .add();
+        network.getArea("a2")
+                .newAreaBoundary()
+                .setBoundary(dl2.getBoundary())
+                .setAc(true)
+                .add();
+        return network;
+    }
+
+    /**
+     *   g1 100 MW                                       gen3 40MW
+     *      |                                                |
+     *      b1 ---(l12)--- b2 ---(dlA1)----< >----(dlA2)--- b3
+     *      |              |                                |
+     *    load1 60MW       |                           load3 50MW
+     *                     |
+     *                     + ---(dlA1_1)---< >---(dlA1_2)--- b4 -- gen4 5 MW
+     *    <------------------------------->   <--------------------->
+     *                Area 1                            Area 2
+     *
+     *  The secpnd tie line is not considered in Areas's boundaries.
+     */
+    public static Network createTwoAreasWithUnconsideredTieLine() {
+        Network network = createTwoAreasWithTieLine();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        vl2.newDanglingLine()
+                .setId("dlA1_1")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setR(0)
+                .setX(1)
+                .setG(0)
+                .setB(0)
+                .setP0(0)
+                .setQ0(0)
+                .setPairingKey("tlA1A2_2")
+                .add();
+        Substation s4 = network.newSubstation()
+                .setId("S4")
+                .add();
+        VoltageLevel vl4 = s4.newVoltageLevel()
+                .setId("vl4")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl4.getBusBreakerView().newBus()
+                .setId("b4")
+                .add();
+        vl4.newGenerator()
+                .setId("gen4")
+                .setConnectableBus("b4")
+                .setBus("b4")
+                .setTargetP(5)
+                .setTargetQ(0)
+                .setTargetV(400)
+                .setMinP(0)
+                .setMaxP(30)
+                .setVoltageRegulatorOn(true)
+                .add();
+        vl4.newDanglingLine()
+                .setId("dlA1_2")
+                .setConnectableBus("b4")
+                .setBus("b4")
+                .setR(0)
+                .setX(1)
+                .setG(0)
+                .setB(0)
+                .setP0(0)
+                .setQ0(0)
+                .setPairingKey("tlA1A2_2")
+                .add();
+        network.newTieLine()
+                .setId("tl2")
+                .setName("Tie Line A1-A2 2")
+                .setDanglingLine1("dlA1_1")
+                .setDanglingLine2("dlA1_2")
+                .add();
+        network.getArea("a2")
+                        .addVoltageLevel(vl4);
+        network.newLine()
+                .setId("l24")
+                .setBus1("b2")
+                .setBus2("b4")
+                .setR(0)
+                .setX(1)
                 .add();
         return network;
     }
