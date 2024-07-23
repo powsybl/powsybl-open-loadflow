@@ -12,7 +12,7 @@ resulting in the creation of the post-contingency state.
 resulting in the creation of the curative state.
 
 Actions defined in Operators Strategies and involving active power changes (e.g. Load Actions, Generator Actions) can be defined as relative.
-PowSyBl OpenLoadFlow considers that the change is relative to the post-contingency state.
+PowSyBl Open Load Flow considers that the change is relative to the post-contingency state.
 
 For example:
 - slack distribution is performed on generators,

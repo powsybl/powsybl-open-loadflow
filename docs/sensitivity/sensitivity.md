@@ -188,8 +188,8 @@ In case of an outage causing connectivity loss in the post-contingency network, 
 
 #### Return codes in case of uncomputable sensitivities
 
-If an user asks for a sensitivity computation which is not possible to perform, OpenLoadFlow provides different return codes which are listed below:
-- If the user requests a sensitivity involving a variable or a function which does not exist in the network: an error is thrown, OpenLoadFlow terminates.
+If an user asks for a sensitivity computation which is not possible to perform, Open Load Flow provides different return codes which are listed below:
+- If the user requests a sensitivity involving a variable or a function which does not exist in the network: an error is thrown, Open Load Flow terminates.
 - If the user requests a sensitivity involving a variable which does not belong to the main connected component after a connectivity loss: a warning is displayed and the sensitivity is not computed.
 - If the user requests a sensitivity involving a function which does not belong to the main connected component of after a connectivity loss: the sensitivity is equal to $0$. Note that if both variable and function do not belong to the main connected component (where we have the slack bus), the priority is given to the variable: a warning is displayed and the sensitivity is not computed.
 
@@ -402,7 +402,7 @@ Contrary to [DC sensitivity analysis](#contingency-management), computations of 
 
 ### Sensitivity involving voltage magnitudes
 
-OpenLoadFlow allows to compute the sensitivity from an increase of voltage magnitude at a PV-bus to the voltage magnitude at a PQ-bus. This is done using the same formula previously introduced:
+Open Load Flow allows to compute the sensitivity from an increase of voltage magnitude at a PV-bus to the voltage magnitude at a PQ-bus. This is done using the same formula previously introduced:
 
 $ S_{\eta,p}(v,\phi) = g_p^T(v,\phi) + G_{v,\phi}(v,\phi)^TJ(v,\phi)^{-1}f_p(v,\phi). $
 

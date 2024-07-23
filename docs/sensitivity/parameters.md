@@ -1,6 +1,6 @@
 # Configuration
 
-To use PowSyBl OpenLoadFlow for all sensitivity analyses, you have to configure the `sensitivity-analysis` module in your configuration file:
+To use PowSyBl Open Load Flow for all sensitivity analyses, you have to configure the `sensitivity-analysis` module in your configuration file:
 ```yaml
 sensitivity-analysis:
   default-impl-name: OpenLoadFlow
@@ -26,4 +26,4 @@ open-sensitivityanalysis-default-parameters:
   debugDir: /path/to/debug/dir
 ```
 
-At the moment, overriding the parameters by a JSON file is not supported by OpenLoadFlow.
+At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.

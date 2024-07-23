@@ -1,6 +1,6 @@
 # Configuration
 
-To use PowSyBl OpenLoadFlow for all power flow computations, you have to configure the `load-flow` module in your configuration file:
+To use PowSyBl Open Load Flow for all power flow computations, you have to configure the `load-flow` module in your configuration file:
 ```yaml
 load-flow:
   default-impl-name: "OpenLoadFlow"
@@ -15,7 +15,7 @@ The next section details the parameters that are specific to PowSyBl Open LoadFL
 ## Specific parameters
 
 **voltageInitModeOverride**  
-Additional voltage init modes of PowSyBl OpenLoadFlow that are not present in [PowSyBl LoadFlow `voltageInitMode` Parameter](inv:powsyblcore:*:*#simulation/loadflow/configuration):
+Additional voltage init modes of PowSyBl Open Load Flow that are not present in [PowSyBl LoadFlow `voltageInitMode` Parameter](inv:powsyblcore:*:*#simulation/loadflow/configuration):
 - `NONE`: no override
 - `VOLTAGE_MAGNITUDE`: specific initializer to initialize voltages magnitudes $v$, leaving $\theta=0$. Proven useful for
   unusual input data with transformers rated voltages very far away from bus nominal voltages.
@@ -263,7 +263,7 @@ and its solution status is flagged as failed.
 The default values are `0.5` and `1.5` and they must be greater or equal to `0`.
 
 **reactiveRangeCheckMode**  
-OpenLoadFlow discards voltage control for generators with a too small reactive power range, because in practice a too
+Open Load Flow discards voltage control for generators with a too small reactive power range, because in practice a too
 small reactive power ranger means limited to zero voltage control capability.
 
 For a given active power output, the reactive power range is defined as $MaxQ - MinQ$ (always a positive value).  
@@ -299,7 +299,7 @@ Newton-Raphson iterations report consist in reporting:
 The default value is an empty set of features to report.
 
 **networkCacheEnabled**  
-This parameter is used to run fast simulations by applying incremental modifications on the network directly to the OpenLoadFlow internal modelling.
+This parameter is used to run fast simulations by applying incremental modifications on the network directly to the Open Load Flow internal modelling.
 The cache mode allows faster runs when modifications on the network are light.
 Not all modifications types are supported yet, currently supported modifications are:
 - target voltage modification
@@ -446,4 +446,4 @@ open-loadflow-default-parameters:
   loadPowerFactorConstant: true
 ```
 
-At the moment, overriding the parameters by a JSON file is not supported by OpenLoadFlow.
+At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.
