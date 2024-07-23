@@ -62,14 +62,14 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     // TODO : remove this method after woodbury refactoring
-    public static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
+    public boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
         return lfParameters.isDistributedSlack()
                 && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
     }
 
     // TODO : remove this method after woodbury refactoring
-    public static boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
+    public boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
         return lfParameters.isDistributedSlack()
                 && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
@@ -206,9 +206,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         propagatedContingencies.stream()
                 .filter(contingency -> !contingency.getBusIdsToLose().isEmpty())
                 .forEach(contingency -> {
-                    for (String s : contingency.getBusIdsToLose()) {
-                        for (LfBranch disabledBranch : lfNetwork.getBusById(s).getBranches()) {
-                            DisabledBranchStatus status = disabledBranch.getBus1().getId().equals(s) ? DisabledBranchStatus.SIDE_1 : DisabledBranchStatus.SIDE_2;
+                    for (String disabledBus : contingency.getBusIdsToLose()) {
+                        for (LfBranch disabledBranch : lfNetwork.getBusById(disabledBus).getBranches()) {
+                            DisabledBranchStatus status = disabledBranch.getBus1().getId().equals(disabledBus) ? DisabledBranchStatus.SIDE_1
+                                    : DisabledBranchStatus.SIDE_2;
                             contingency.getBranchIdsToOpen().put(disabledBranch.getId(), status);
                         }
                     }
