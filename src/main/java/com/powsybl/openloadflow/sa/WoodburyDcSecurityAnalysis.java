@@ -75,14 +75,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 
-    /**
-     * Calculate sensitivity values for a contingency.
-     * In case of connectivity break, a pre-computation has been done in TODO
-     * to get a first version of the new participating elements, that can be overridden in this method, and to indicate
-     * if the factorsStates should be overridden or not in this method.
-     * If connectivity, a generator, a load or a phase tap changer is lost due to the contingency,
-     * the flowStates are overridden.
-     */
+    // TODO : remove this method after woodbury refactoring
     private DenseMatrix calculatePostContingencyStatesForAContingency(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, DenseMatrix contingenciesStates, DenseMatrix flowStates,
                                                                       PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                                       Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements, Set<String> elementsToReconnect,
@@ -343,7 +336,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     });
 
             return new SecurityAnalysisResult(
-                    new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED, // if not converge, woodbury whould have throw first
+                    new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED,
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),
