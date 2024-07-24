@@ -244,12 +244,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                            Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements, Set<String> elementsToReconnect,
                                                            SensitivityResultWriter resultWriter, ReportNode reportNode, Set<LfBranch> partialDisabledBranches, boolean rhsChangedAfterConnectivityBreak) {
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = validFactorHolder.getFactorsForContingency(contingency.getContingency().getId());
-        if (factors.isEmpty()) {
-            // no factor no more computation
-            resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
-            return;
-        }
-
         List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
@@ -545,8 +539,19 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // calculate sensitivity values for pre-contingency network
                 calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorsStates, flowStates, null, resultWriter, new DisabledNetwork());
 
+                // filter contingencies without factors
+                List<PropagatedContingency> contingenciesWithFactors = new ArrayList<>();
+                contingencies.forEach(contingency -> {
+                    List<AbstractSensitivityAnalysis.LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = validFactorHolder.getFactorsForContingencies(List.of(contingency.getContingency().getId()));
+                    if (!lfFactors.isEmpty()) {
+                        contingenciesWithFactors.add(contingency);
+                    } else {
+                        resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+                    }
+                });
+
                 // compute states with +1 -1 to model the contingencies and run connectivity analysis
-                ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(loadFlowContext, validFactorHolder, contingencies, resultWriter);
+                ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(loadFlowContext, contingenciesWithFactors);
 
                 LOGGER.info("Processing contingencies with no connectivity break");
 
