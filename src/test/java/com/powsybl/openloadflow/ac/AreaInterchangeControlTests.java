@@ -66,6 +66,7 @@ class AreaInterchangeControlTests {
         var result = loadFlowRunner.run(network, parameters);
         var mainComponentResult = result.getComponentResults().get(0);
 
+        assertEquals(-90, network.getGenerator("g1").getTerminal().getP(), 1e-3);
         assertEquals(-10, mainComponentResult.getDistributedActivePower(), 1e-3);
         assertEquals(-20, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
@@ -78,6 +79,7 @@ class AreaInterchangeControlTests {
         var result = loadFlowRunner.run(network, parameters);
         var mainComponentResult = result.getComponentResults().get(0);
 
+        assertEquals(Double.NaN, network.getGenerator("g1").getTerminal().getP(), 1e-3);
         assertEquals(0, mainComponentResult.getDistributedActivePower(), 1e-3);
         assertEquals(-30, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
@@ -90,7 +92,8 @@ class AreaInterchangeControlTests {
         var result = loadFlowRunner.run(network, parameters);
         var mainComponentResult = result.getComponentResults().get(0);
 
-        //falls back to FAIL
+        // falls back to FAIL
+        assertEquals(Double.NaN, network.getGenerator("g1").getTerminal().getP(), 1e-3);
         assertEquals(0, mainComponentResult.getDistributedActivePower(), 1e-3);
         assertEquals(-30, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
