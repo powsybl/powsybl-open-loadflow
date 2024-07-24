@@ -118,9 +118,18 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void networkWithControlAreasTest() {
         network = EurostagTutorialExample1Factory.createWithTieLinesAndAreas();
-        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfNetworkParameters parameters = new LfNetworkParameters();
+
+        List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         assertEquals(1, lfNetworks.size());
         LfNetwork mainNetwork = lfNetworks.get(0);
+        assertTrue(mainNetwork.getAreas().isEmpty());
+
+        parameters.setAreaInterchangeControl(true);
+
+        lfNetworks = Networks.load(network, parameters);
+        assertEquals(1, lfNetworks.size());
+        mainNetwork = lfNetworks.get(0);
         LfArea lfArea = mainNetwork.getAreaById("ControlArea_A");
         assertNull(mainNetwork.getAreaById("Region_AB"));
         assertEquals(-602.6 / PerUnit.SB, lfArea.getInterchangeTarget());

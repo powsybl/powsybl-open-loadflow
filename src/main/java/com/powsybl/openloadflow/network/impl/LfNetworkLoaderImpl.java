@@ -512,15 +512,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void updateArea(Bus bus, LfBus lfBus, LfNetwork network, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetworkLoadingReport report) {
-        // Consider only the area type that should be used for area interchange control
-        Optional<Area> areaOpt = bus.getVoltageLevel().getArea(parameters.getAreaInterchangeControlAreaType());
-        areaOpt.ifPresent(area -> {
-            LfArea lfArea = network.getAreaById(area.getId());
-            if (lfArea == null) {
-                lfArea = createControlArea(area, parameters, loadingContext, network);
-            }
-            lfArea.addBus(lfBus);
-        });
+        if (parameters.isAreaInterchangeControl()) {
+            // Consider only the area type that should be used for area interchange control
+            Optional<Area> areaOpt = bus.getVoltageLevel().getArea(parameters.getAreaInterchangeControlAreaType());
+            areaOpt.ifPresent(area -> {
+                LfArea lfArea = network.getAreaById(area.getId());
+                if (lfArea == null) {
+                    lfArea = createControlArea(area, parameters, loadingContext, network);
+                }
+                lfArea.addBus(lfBus);
+            });
+        }
     }
 
     private static LfArea createControlArea(Area area, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetwork network) {
