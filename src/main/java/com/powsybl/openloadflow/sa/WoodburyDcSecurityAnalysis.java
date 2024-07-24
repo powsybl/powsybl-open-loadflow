@@ -10,11 +10,9 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.action.Action;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -69,16 +67,13 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
 
-        DenseMatrix postContingencyStates;
-
         var lfNetwork = loadFlowContext.getNetwork();
         Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
         disabledBranches.addAll(partialDisabledBranches);
         DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 
-        WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates);
+        DenseMatrix newFlowStates = flowStates;
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
-            DenseMatrix newFlowStates = flowStates;
 
             // get the lost phase tap changers for this contingency
             Set<LfBranch> lostPhaseControllers = contingency.getBranchIdsToOpen().keySet().stream()
@@ -93,23 +88,21 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 double[] newFlowStatesArray = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
                 newFlowStates = new DenseMatrix(newFlowStatesArray.length, 1, newFlowStatesArray);
             }
-            postContingencyStates = engine.run(newFlowStates);
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
             DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
             NetworkState networkState = NetworkState.save(lfNetwork);
-            LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
-            if (lfContingency != null) {
-                lfContingency.apply(lfParameters.getBalanceType());
-            }
+            contingency.toLfContingency(lfNetwork)
+                    .ifPresent(lfContingency -> lfContingency.apply(lfParameters.getBalanceType()));
 
             double[] newFlowStatesArray = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
-            DenseMatrix newFlowStates = new DenseMatrix(newFlowStatesArray.length, 1, newFlowStatesArray);
-            postContingencyStates = engine.run(newFlowStates);
+            newFlowStates = new DenseMatrix(newFlowStatesArray.length, 1, newFlowStatesArray);
             networkState.restore();
         }
-        return postContingencyStates;
+
+        WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates);
+        return engine.run(newFlowStates);
     }
 
     private DenseMatrix calculatePostContingencyStatesForAContingencyBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
@@ -209,8 +202,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters acParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                     List<Action> actions, List<LimitReduction> limitReductions) {
-        LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
-        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
