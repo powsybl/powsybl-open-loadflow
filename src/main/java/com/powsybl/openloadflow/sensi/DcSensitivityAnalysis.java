@@ -76,7 +76,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      * The interesting disabled branches are only phase shifters.
      */
     private DenseMatrix calculateFlowStates(DcLoadFlowContext loadFlowContext, List<ParticipatingElement> participatingElements,
-                                                  DisabledNetwork disabledNetwork, ReportNode reportNode) {
+                                            DisabledNetwork disabledNetwork, ReportNode reportNode) {
         List<BusState> busStates = Collections.emptyList();
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
         if (parameters.isDistributedSlack()) {
