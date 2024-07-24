@@ -174,17 +174,14 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     private PostContingencyResult computePostContingencyResult(DcLoadFlowContext loadFlowContext, SecurityAnalysisParameters securityAnalysisParameters,
-                                                       LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
-                                                       PropagatedContingency contingency, DenseMatrix postContingencyStates,
-                                                       List<LimitReduction> limitReductions, boolean createResultExtension) {
+                                                               LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
+                                                               PropagatedContingency contingency, DenseMatrix postContingencyStates,
+                                                               List<LimitReduction> limitReductions, boolean createResultExtension) {
 
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
-        LfContingency lfContingency = contingency.toLfContingency(loadFlowContext.getNetwork()).orElseThrow(); // the contingency can not be null
+        LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElseThrow(); // the contingency can not be null
         lfContingency.apply(loadFlowContext.getParameters().getBalanceType());
-        LOGGER.info("Start post contingency '{}' violations detection on network {}", lfContingency.getId(), network);
-        LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift {} loads",
-                lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranchesStatus(),
-                lfContingency.getLostGenerators(), lfContingency.getShuntsShift(), lfContingency.getLostLoads());
+        logContingency(lfNetwork, lfContingency);
 
         double[] postContingencyAngleStates = getStatesAsArray(postContingencyStates);
         loadFlowContext.getEquationSystem().getStateVector().set(postContingencyAngleStates);
@@ -223,7 +220,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             ReportNode preContSimReportNode = Reports.createPreContingencySimulation(networkReportNode);
             lfNetwork.setReportNode(preContSimReportNode);
 
-            // prepare contingencies for connectivity analysis and woodbury engine
+            // prepare contingencies for connectivity analysis and Woodbury engine
             filterPropagatedContingencies(lfNetwork, propagatedContingencies);
 
             double[] preContingencyStatesArray = DcSensitivityAnalysis.runDcLoadFlow(context, new DisabledNetwork(), reportNode);
