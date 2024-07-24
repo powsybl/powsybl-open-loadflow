@@ -62,7 +62,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      * to reset active power flow of hvdc lines on which one bus is lost.
      * If connectivity, a generator, a load or a phase tap changer is lost due to the contingency, the pre contingency flowStates are overridden.
      */
-    private DenseMatrix calculatePostContingencyStatesForAContingency(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, DenseMatrix flowStates,
+    private double[] calculatePostContingencyStatesForAContingency(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
                                                                       PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                                       Set<LfBus> disabledBuses, Set<String> elementsToReconnect, ReportNode reportNode, Set<LfBranch> partialDisabledBranches) {
 
@@ -76,7 +76,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         disabledBranches.addAll(partialDisabledBranches);
         DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 
-        DenseMatrix newFlowStates = flowStates;
+        double[] newFlowStates = flowStates;
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
 
             // get the lost phase tap changers for this contingency
@@ -89,8 +89,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // if a phase tap changer is lost or if the connectivity have changed, we must recompute load flows
             if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty()) {
-                double[] newFlowStatesArray = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
-                newFlowStates = new DenseMatrix(newFlowStatesArray.length, 1, newFlowStatesArray);
+                newFlowStates = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
             }
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
@@ -100,8 +99,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             contingency.toLfContingency(lfNetwork)
                     .ifPresent(lfContingency -> lfContingency.apply(lfParameters.getBalanceType()));
 
-            double[] newFlowStatesArray = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
-            newFlowStates = new DenseMatrix(newFlowStatesArray.length, 1, newFlowStatesArray);
+            newFlowStates = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
             networkState.restore();
         }
 
@@ -112,8 +110,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     /**
      * Calculate post contingency states for a contingency breaking connectivity.
      */
-    private DenseMatrix calculatePostContingencyStatesForAContingencyBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
-                                                                                          Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix flowStates, DenseMatrix contingenciesStates,
+    private double[] calculatePostContingencyStatesForAContingencyBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
+                                                                                          Map<String, ComputedContingencyElement> contingencyElementByBranch, double[] flowStates, DenseMatrix contingenciesStates,
                                                                                           ReportNode reportNode) {
 
         PropagatedContingency contingency = connectivityAnalysisResult.getPropagatedContingency();
@@ -131,14 +129,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         return calculatePostContingencyStatesForAContingency(loadFlowContext, contingenciesStates, flowStates,
                 contingency, contingencyElementByBranch, disabledBuses, connectivityAnalysisResult.getElementsToReconnect(), reportNode,
                 connectivityAnalysisResult.getPartialDisabledBranches());
-    }
-
-    private double[] getStatesAsArray(DenseMatrix states) {
-        double[] angleStatesArray = new double[states.getRowCount()];
-        for (int i = 0; i < angleStatesArray.length; i++) {
-            angleStatesArray[i] = states.get(i, 0);
-        }
-        return angleStatesArray;
     }
 
     /**
@@ -175,7 +165,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     private PostContingencyResult computePostContingencyResult(DcLoadFlowContext loadFlowContext, SecurityAnalysisParameters securityAnalysisParameters,
                                                                LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
-                                                               PropagatedContingency contingency, DenseMatrix postContingencyStates,
+                                                               PropagatedContingency contingency, double[] postContingencyStates,
                                                                List<LimitReduction> limitReductions, boolean createResultExtension) {
 
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
@@ -183,8 +173,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         lfContingency.apply(loadFlowContext.getParameters().getBalanceType());
         logContingency(lfNetwork, lfContingency);
 
-        double[] postContingencyAngleStates = getStatesAsArray(postContingencyStates);
-        loadFlowContext.getEquationSystem().getStateVector().set(postContingencyAngleStates);
+        loadFlowContext.getEquationSystem().getStateVector().set(postContingencyStates);
 
         // update network result
         var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency.getContingency());
@@ -223,13 +212,13 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // prepare contingencies for connectivity analysis and Woodbury engine
             filterPropagatedContingencies(lfNetwork, propagatedContingencies);
 
-            double[] preContingencyStatesArray = DcSensitivityAnalysis.runDcLoadFlow(context, new DisabledNetwork(), reportNode);
+            double[] preContingencyStates = DcSensitivityAnalysis.runDcLoadFlow(context, new DisabledNetwork(), reportNode);
 
             // set pre contingency angle states as state vector of equation system
-            context.getEquationSystem().getStateVector().set(preContingencyStatesArray);
+            context.getEquationSystem().getStateVector().set(preContingencyStates);
 
             // Update network voltages with pre contingency states
-            updateNetwork(lfNetwork, context.getEquationSystem(), preContingencyStatesArray);
+            updateNetwork(lfNetwork, context.getEquationSystem(), preContingencyStates);
             if (context.getParameters().isSetVToNan()) {
                 for (LfBus bus : lfNetwork.getBuses()) {
                     bus.setV(Double.NaN);
@@ -250,15 +239,13 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // save base state for later restoration after each contingency
             NetworkState networkState = NetworkState.save(lfNetwork);
 
-            DenseMatrix preContingencyStates = new DenseMatrix(preContingencyStatesArray.length, 1, preContingencyStatesArray);
-
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
             LOGGER.info("Processing post contingency results for contingencies with no connectivity break");
             connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()
                     .forEach(contingency -> {
                         // only process contingencies that impact the network
                         if (!contingency.hasNoImpact()) {
-                            DenseMatrix postContingencyStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), preContingencyStates, contingency,
+                            double[] postContingencyStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), preContingencyStates, contingency,
                                     connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), reportNode, Collections.emptySet());
                             PostContingencyResult postContingencyResult = computePostContingencyResult(context, securityAnalysisParameters, preContingencyLimitViolationManager,
                                     preContingencyNetworkResult, contingency, postContingencyStates, limitReductions, createResultExtension);
@@ -274,7 +261,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
                         // only process contingencies that impact the network
                         if (!contingency.hasNoImpact()) {
-                            DenseMatrix postContingencyStates = calculatePostContingencyStatesForAContingencyBreakingConnectivity(connectivityAnalysisResult, context,
+                            double[] postContingencyStates = calculatePostContingencyStatesForAContingencyBreakingConnectivity(connectivityAnalysisResult, context,
                                     connectivityBreakAnalysisResults.contingencyElementByBranch(), preContingencyStates,
                                     connectivityBreakAnalysisResults.contingenciesStates(), reportNode);
                             PostContingencyResult postContingencyResult = computePostContingencyResult(context, securityAnalysisParameters, preContingencyLimitViolationManager,
