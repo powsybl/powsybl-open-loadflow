@@ -20,8 +20,8 @@ import java.util.*;
 
 public final class SolverUtils {
 
-    // List of linear constraints
-    public static List<AcEquationType> linearConstraintsTypes = new ArrayList<>(Arrays.asList(
+    // List of linear constraints for indirect formulation (Outer Loops are external)
+    public static List<AcEquationType> linearConstraintsTypesIndirectFormulation = new ArrayList<>(Arrays.asList(
             AcEquationType.BUS_TARGET_V,
             AcEquationType.BUS_TARGET_PHI,
             AcEquationType.DUMMY_TARGET_P,
@@ -36,12 +36,12 @@ public final class SolverUtils {
             AcEquationType.BRANCH_TARGET_RHO1
     ));
 
-    public static List<AcEquationType> getLinearConstraintsTypes() {
-        return linearConstraintsTypes;
+    public static List<AcEquationType> getLinearConstraintsTypesIndirectFormulation() {
+        return linearConstraintsTypesIndirectFormulation;
     }
 
-    // List of non-linear constraints
-    public static List<AcEquationType> nonLinearConstraintsTypes = new ArrayList<>(Arrays.asList(
+    // List of non-linear constraints for indirect formulation (Outer Loops are external)
+    public static List<AcEquationType> nonLinearConstraintsTypesIndirectFormulation = new ArrayList<>(Arrays.asList(
             AcEquationType.BUS_TARGET_P,
             AcEquationType.BUS_TARGET_Q,
             AcEquationType.BRANCH_TARGET_P,
@@ -49,12 +49,88 @@ public final class SolverUtils {
             AcEquationType.BUS_DISTR_SLACK_P
     ));
 
-    public static List<AcEquationType> getNonLinearConstraintsTypes() {
-        return nonLinearConstraintsTypes;
+    public static List<AcEquationType> getNonLinearConstraintsTypesIndirectFormulation() {
+        return nonLinearConstraintsTypesIndirectFormulation;
     }
 
-    // Return lists of variables and coefficients to pass to Knitro for a linear constraint
-    public VarAndCoefList getLinearConstraint(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+    // List of quadratic constraints for indirect formulation (Outer Loops are external)
+    public static List<AcEquationType> quadraticConstraintsTypesIndirectFormulation = new ArrayList<>();
+
+    public static List<AcEquationType> getQuadraticConstraintsTypesIndirectFormulation() {
+        return quadraticConstraintsTypesIndirectFormulation;
+    }
+
+
+    // List of linear constraints for direct formulation
+    public static List<AcEquationType> linearConstraintsTypesDirectFormulation = new ArrayList<>(Arrays.asList(
+            AcEquationType.BUS_TARGET_PHI,
+            AcEquationType.DUMMY_TARGET_P,
+            AcEquationType.DUMMY_TARGET_Q,
+            AcEquationType.ZERO_V,
+            AcEquationType.ZERO_PHI,
+            AcEquationType.DISTR_Q,
+            AcEquationType.DISTR_SHUNT_B,
+            AcEquationType.DISTR_RHO,
+            AcEquationType.SHUNT_TARGET_B,
+            AcEquationType.BRANCH_TARGET_ALPHA1,
+            AcEquationType.BRANCH_TARGET_RHO1
+    ));
+
+    public static List<AcEquationType> getLinearConstraintsTypesDirectFormulation() {
+        return linearConstraintsTypesDirectFormulation;
+    }
+
+    // List of non-linear constraints for direct formulation
+    public static List<AcEquationType> nonLinearConstraintsTypesDirectFormulation = new ArrayList<>(Arrays.asList(
+            AcEquationType.BUS_TARGET_P,
+            AcEquationType.BUS_TARGET_Q,
+            AcEquationType.BRANCH_TARGET_P,
+            AcEquationType.BRANCH_TARGET_Q,
+            AcEquationType.BUS_DISTR_SLACK_P
+    ));
+
+    public static List<AcEquationType> getNonLinearConstraintsTypesDirectFormulation() {
+        return nonLinearConstraintsTypesDirectFormulation;
+    }
+
+    // List of non-linear constraints for direct formulation
+    public static List<AcEquationType> quadraticConstraintsTypesDirectFormulation = new ArrayList<>(Arrays.asList(
+            AcEquationType.BUS_TARGET_V
+    ));
+
+    public static List<AcEquationType> getQuadraticConstraintsTypesDirectFormulation() {
+        return quadraticConstraintsTypesDirectFormulation;
+    }
+
+    // Get list of linear constraints
+    public static List<AcEquationType> getLinearConstraintsTypes(KnitroSolverParameters knitroParameters) {
+        if (knitroParameters.isDirectOuterLoopsFormulation()) {
+            return getLinearConstraintsTypesDirectFormulation();
+        } else {
+            return getLinearConstraintsTypesIndirectFormulation();
+        }
+    }
+
+    // Get list of non-linear constraints
+    public static List<AcEquationType> getNonLinearConstraintsTypes(KnitroSolverParameters knitroParameters) {
+        if (knitroParameters.isDirectOuterLoopsFormulation()) {
+            return getNonLinearConstraintsTypesDirectFormulation();
+        } else {
+            return getNonLinearConstraintsTypesIndirectFormulation();
+        }
+    }
+
+    // Get list of quadratic constraints
+    public static List<AcEquationType> getQuadraticConstraintsTypes(KnitroSolverParameters knitroParameters) {
+        if (knitroParameters.isDirectOuterLoopsFormulation()) {
+            return getQuadraticConstraintsTypesDirectFormulation();
+        } else {
+            return getQuadraticConstraintsTypesIndirectFormulation();
+        }
+    }
+
+    //  Get variables and coefficients lists for linear constraints for indirect formulation
+    public VarAndCoefList getLinearConstraintIndirectFormulation(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
         VarAndCoefList varAndCoefList = null;
         switch (typeEq) {
             case BUS_TARGET_V:
@@ -64,24 +140,96 @@ public final class SolverUtils {
             case SHUNT_TARGET_B:
             case BRANCH_TARGET_ALPHA1:
             case BRANCH_TARGET_RHO1:
-                varAndCoefList = addConstraintConstantTarget(typeEq, equationId, terms);
+                varAndCoefList = addConstraintConstantTarget(equationId, terms);
                 break;
             case DISTR_Q:
             case DISTR_SHUNT_B:
             case DISTR_RHO:
-                varAndCoefList = addConstraintDistrQ(typeEq, equationId, terms);
+                varAndCoefList = addConstraintDistrQ(equationId, terms);
                 break;
             case ZERO_V:
             case ZERO_PHI:
-                varAndCoefList = addConstraintZero(typeEq, equationId, terms);
+                varAndCoefList = addConstraintZero(equationId, terms);
                 break;
         }
         return varAndCoefList;
     }
 
-    public class VarAndCoefList {
-        private List<Integer> listIdVar;
-        private List<Double> listCoef;
+    //  Get variables and coefficients lists for linear constraints for direct formulation
+    public VarAndCoefList getLinearConstraintDirectFormulation(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+        VarAndCoefList varAndCoefList = null;
+        switch (typeEq) {
+            case BUS_TARGET_PHI:
+            case DUMMY_TARGET_P:
+            case DUMMY_TARGET_Q:
+            case SHUNT_TARGET_B:
+            case BRANCH_TARGET_ALPHA1:
+            case BRANCH_TARGET_RHO1:
+                varAndCoefList = addConstraintConstantTarget(equationId, terms);
+                break;
+            case DISTR_Q:
+            case DISTR_SHUNT_B:
+            case DISTR_RHO:
+                varAndCoefList = addConstraintDistrQ(equationId, terms);
+                break;
+            case ZERO_V:
+            case ZERO_PHI:
+                varAndCoefList = addConstraintZero(equationId, terms);
+                break;
+        }
+        return varAndCoefList;
+    }
+
+    // Return lists of variables and coefficients to pass to Knitro for a linear constraint
+    public VarAndCoefList getLinearConstraint(KnitroSolverParameters knitroParameters, AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+        if (knitroParameters.isDirectOuterLoopsFormulation()) {
+            return getLinearConstraintDirectFormulation(typeEq,equationId,terms);
+        } else {
+            return getLinearConstraintIndirectFormulation(typeEq,equationId,terms);
+        }
+    }
+
+    //  Get variables and coefficients lists for quadratic constraints for indirect formulation
+    public List<VarAndCoefList> getQuadraticConstraintIndirectFormulation(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+        return Arrays.asList(null,null);
+    }
+
+    //  Get variables and coefficients lists for quadratic constraints for direct formulation
+    public List<VarAndCoefList> getQuadraticConstraintDirectFormulation(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+        VarAndCoefList varAndCoefListLin = null;
+        VarAndCoefList varAndCoefListQuadra = null;
+
+        //TODO
+//        switch (typeEq) {
+//            case BUS_TARGET_V:
+//                int idVar = terms.get(0).getVariables().get(0).getRow();
+//                int idBinaryVar = getBinaryVariableCorrespondingToVariable(idVar); //TODO index du x correspondant
+//
+//                // Quadratic part
+//                varAndCoefListQuadra.listIdVar = Arrays.asList(idVar,idBinaryVar);
+//                varAndCoefListQuadra.listCoef = Collections.singletonList(1.0);
+//
+//                // Linear part
+//                double coefLinear = -1.0*target.get(idVar); //TODO pass target to argument
+//                varAndCoefListLin.listIdVar = Collections.singletonList(idBinaryVar);
+//                varAndCoefListLin.listCoef = Collections.singletonList(coefLinear);
+//        }
+        return Arrays.asList(varAndCoefListQuadra,varAndCoefListLin);
+    }
+
+
+    // Return lists of variables and coefficients to pass to Knitro for a quadratic constraint
+    public List<VarAndCoefList> getQuadraticConstraint(KnitroSolverParameters knitroParameters, AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+        if (knitroParameters.isDirectOuterLoopsFormulation()) {
+            return getQuadraticConstraintDirectFormulation(typeEq,equationId,terms);
+        } else {
+            return getQuadraticConstraintDirectFormulation(typeEq,equationId,terms);
+        }
+    }
+
+    public static class VarAndCoefList {
+        private final List<Integer> listIdVar;
+        private final List<Double> listCoef;
 
         public VarAndCoefList(List<Integer> listIdVar, List<Double> listCoef) {
             this.listIdVar = listIdVar;
@@ -97,22 +245,22 @@ public final class SolverUtils {
         }
     }
 
-    public VarAndCoefList addConstraintConstantTarget(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+    public VarAndCoefList addConstraintConstantTarget(int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
         // get the variable V/Theta/DummyP/DummyQ/... corresponding to the constraint
         int idVar = terms.get(0).getVariables().get(0).getRow();
-        return new VarAndCoefList(List.of(idVar), List.of(1.0));
+        return new VarAndCoefList(Arrays.asList(idVar), Arrays.asList(1.0));
     }
 
-    public VarAndCoefList addConstraintZero(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+    public VarAndCoefList addConstraintZero(int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
         // get the variables Vi and Vj / Thetai and Thetaj corresponding to the constraint
         int idVari = terms.get(0).getVariables().get(0).getRow();
         int idVarj = terms.get(1).getVariables().get(0).getRow();
         return new VarAndCoefList(Arrays.asList(idVari, idVarj), Arrays.asList(1.0, -1.0));
     }
 
-    public VarAndCoefList addConstraintDistrQ(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+    public VarAndCoefList addConstraintDistrQ(int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
         // get the variables corresponding to the constraint
-        List<Integer> listVar = new ArrayList();
+        List<Integer> listVar = new ArrayList<>();
         List<Double> listCoef = new ArrayList<>();
         for (EquationTerm<AcVariableType, AcEquationType> equationTerm : terms) {
             double scalar = 0.0;

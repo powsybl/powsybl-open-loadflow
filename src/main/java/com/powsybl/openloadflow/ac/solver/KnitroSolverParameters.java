@@ -21,6 +21,7 @@ public class KnitroSolverParameters {
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
     public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
+    public static final boolean DIRECT_OUTER_LOOPS_FORMULATION = false; // knitro is used as a replacement for NR inner loops
 
     public KnitroSolverParameters() {
     }
@@ -36,6 +37,8 @@ public class KnitroSolverParameters {
     private KnitroSolverStoppingCriteria stoppingCriteria = new DefaultKnitroSolverStoppingCriteria();
 
     private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
+
+    private boolean directOuterLoopsFormulation = DIRECT_OUTER_LOOPS_FORMULATION;
 
     public int getGradientComputationMode() {
         return gradientComputationMode;
@@ -107,6 +110,15 @@ public class KnitroSolverParameters {
         return this;
     }
 
+    public boolean isDirectOuterLoopsFormulation() {
+        return directOuterLoopsFormulation;
+    }
+
+    public KnitroSolverParameters setDirectOuterLoopsFormulation(boolean directOuterLoopsFormulation) {
+        this.directOuterLoopsFormulation = directOuterLoopsFormulation;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "KnitroSolverParameters(" +
@@ -115,6 +127,7 @@ public class KnitroSolverParameters {
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
+                ", directOuterLoopsFormulationType=" + directOuterLoopsFormulation +
                 ')';
     }
 }

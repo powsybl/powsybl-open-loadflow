@@ -36,9 +36,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
     protected static KnitroSolverParameters knitroParameters = new KnitroSolverParameters();
 
     public KnitroSolver(LfNetwork network, KnitroSolverParameters knitroParameters,
-                           EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
-                           TargetVector<AcVariableType, AcEquationType> targetVector, EquationVector<AcVariableType, AcEquationType> equationVector,
-                           boolean detailedReport) {
+                        EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
+                        TargetVector<AcVariableType, AcEquationType> targetVector, EquationVector<AcVariableType, AcEquationType> equationVector,
+                        boolean detailedReport) {
         super(network, equationSystem, j, targetVector, equationVector, detailedReport);
         this.knitroParameters = knitroParameters;
     }
@@ -50,12 +50,12 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
     // List of all possible Knitro status
     public enum KnitroStatus {
-    CONVERGED_TO_LOCAL_OPTIMUM,
-    CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION,
-    TERMINATED_AT_INFEASIBLE_POINT,
-    PROBLEM_UNBOUNDED,
-    TERMINATED_DUE_TO_PRE_DEFINED_LIMIT,
-    INPUT_OR_NON_STANDARD_ERROR }
+        CONVERGED_TO_LOCAL_OPTIMUM,
+        CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION,
+        TERMINATED_AT_INFEASIBLE_POINT,
+        PROBLEM_UNBOUNDED,
+        TERMINATED_DUE_TO_PRE_DEFINED_LIMIT,
+        INPUT_OR_NON_STANDARD_ERROR }
 
     // Get AcStatus equivalent from Knitro Status, and log Knitro Status
     public AcSolverStatus getAcStatusAndKnitroStatus(int knitroStatus) {
@@ -119,9 +119,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                     AcEquationType typeEq = equation.getType();
                     double valueConst = 0;
-                    if (!SolverUtils.getNonLinearConstraintsTypes().contains(typeEq)) {
-                        LOGGER.debug("Equation of type {} is linear, and should be considered in the main function of Knitro, not in the callback function", typeEq);
-                        throw new IllegalArgumentException("Equation of type " + typeEq + " is linear, and should be considered in the main function of Knitro, not in the callback function");
+                    if (!SolverUtils.getNonLinearConstraintsTypes(knitroParameters).contains(typeEq)) {
+                        LOGGER.debug("Equation of type {} is linear or quadratic, and should be considered in the main function of Knitro, not in the callback function", typeEq);
+                        throw new IllegalArgumentException("Equation of type " + typeEq + " is linear or quadratic, and should be considered in the main function of Knitro, not in the callback function");
                     } else {
                         for (EquationTerm term : equation.getTerms()) {
                             term.setStateVector(currentState);
@@ -271,6 +271,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             // =============== Variables ===============
             // Defining variables
+            //TODO A REPRENDRE POUR AJOUTER LES VARIABLES BINAIRES
             super(equationSystem.getVariableSet().getVariables().size(), equationSystem.getIndex().getSortedEquationsToSolve().size());
             int numVar = equationSystem.getVariableSet().getVariables().size();
             List<Variable<AcVariableType>> sortedVariables = equationSystem.getIndex().getSortedVariablesToFind(); // ordering variables
@@ -323,19 +324,38 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
                 SolverUtils solverUtils = new SolverUtils();
-                if (SolverUtils.getLinearConstraintsTypes().contains(typeEq)) {
+                if (SolverUtils.getLinearConstraintsTypes(knitroParameters).contains(typeEq)) {
+                    // Linear constraints
                     List<Integer> listVar = new ArrayList<>();
                     List<Double> listCoef = new ArrayList<>();
-                    listVar = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListIdVar();
-                    listCoef = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListCoef();
+                    listVar = solverUtils.getLinearConstraint(knitroParameters, typeEq, equationId, terms).getListIdVar();
+                    listCoef = solverUtils.getLinearConstraint(knitroParameters, typeEq, equationId, terms).getListCoef();
 
                     for (int i = 0; i < listVar.size(); i++) {
                         addConstraintLinearPart(equationId, listVar.get(i), listCoef.get(i));
                     }
                     LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
 
+
+                } else if (SolverUtils.getQuadraticConstraintsTypes(knitroParameters).contains(typeEq)) {
+                    // Quadratic constraints
+                    List<Integer> listVarQuadra = new ArrayList<>();
+                    List<Double> listCoefQuadra = new ArrayList<>();
+                    List<Integer> listVarLin = new ArrayList<>();
+                    List<Double> listCoefLin = new ArrayList<>();
+                    listVarQuadra = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms).get(0).getListIdVar();
+                    listCoefQuadra = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms).get(0).getListCoef();
+                    listVarLin = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms).get(1).getListIdVar();
+                    listCoefLin = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms).get(1).getListCoef();
+
+                    // Quadratic part
+                    addConstraintQuadraticPart(equationId, listVarQuadra.get(0),  listVarQuadra.get(1), listCoefQuadra.get(0));
+                    // Linear part
+                    addConstraintLinearPart(equationId, listVarLin.get(0), listCoefLin.get(0));
+                    LOGGER.trace("Adding quadratic constraint n° {} of type {}", equationId, typeEq);
+
                 } else {
-                    // ----- Non-linear constraints -----
+                    // Non-linear constraints
                     listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
                 }
             }
@@ -345,6 +365,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             setMainCallbackCstIndexes(listNonLinearConsts);
 
             // ----- RHS : targets -----
+            //TODO a modifier pour les équations de target en V => on met 0 comme target
             setConEqBnds(Arrays.stream(targetVector.getArray()).boxed().toList());
 
             // =============== Objective ==============
@@ -358,7 +379,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // Non zero pattern
 
             // FIRST METHOD : all non-linear constraints
-            List<Integer> listNonZerosCts = new ArrayList<>(); //list of constraints to parse to Knitro non-zero pattern
+            List<Integer> listNonZerosCts = new ArrayList<>(); //list of constraints to pass to Knitro non-zero pattern
             for (Integer idCt : listNonLinearConsts) {
                 for (int i = 0; i < numVar; i++) {
                     listNonZerosCts.add(idCt);
@@ -471,8 +492,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 equationSystem.getStateVector().set(toArray(solution.getX()));
                 AcSolverUtil.updateNetwork(network, equationSystem);
             }
-            equationSystem.getStateVector().set(toArray(solution.getX()));
-            AcSolverUtil.updateNetwork(network, equationSystem);
+//            equationSystem.getStateVector().set(toArray(solution.getX()));
+//            AcSolverUtil.updateNetwork(network, equationSystem); //TODO
 
 //            // update network state variable //TODO later?
 //            if (acStatus == AcSolverStatus.CONVERGED && knitroParameters.is(reportNode)) {
