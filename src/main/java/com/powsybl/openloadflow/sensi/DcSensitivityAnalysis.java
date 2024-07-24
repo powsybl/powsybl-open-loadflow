@@ -388,7 +388,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 connectivityAnalysisResult.getElementsToReconnect(), resultWriter, reportNode, partialDisabledBranches, rhsChanged);
     }
 
-    protected void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+    // TODO : move this method in PropagatedContingencies in another PR
+    public static void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         for (PropagatedContingency contingency : contingencies) {
             // Elements have already been checked and found in PropagatedContingency, so there is no need to
             // check them again

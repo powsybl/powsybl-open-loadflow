@@ -40,6 +40,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.updateNetwork;
+import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.cleanContingencies;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
@@ -133,8 +134,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     /**
      * Filter the contingencies applied on the given network.
-     * The contingencies on buses are not supported in the {@link ConnectivityBreakAnalysis}, so we must add
-     * the linked branches in the contingency elements.
      * Contingencies on switch are not yet supported in {@link WoodburyDcSecurityAnalysis}.
      */
     private void filterPropagatedContingencies(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies) {
@@ -147,19 +146,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .findAny()
                 .ifPresent(e -> {
                     throw new IllegalArgumentException("Contingencies on switch not yet supported in fast DC Security Analysis");
-                });
-
-        // map contingencies on buses to contingencies on linked branches terminals
-        propagatedContingencies.stream()
-                .filter(contingency -> !contingency.getBusIdsToLose().isEmpty())
-                .forEach(contingency -> {
-                    for (String disabledBus : contingency.getBusIdsToLose()) {
-                        for (LfBranch disabledBranch : lfNetwork.getBusById(disabledBus).getBranches()) {
-                            DisabledBranchStatus status = disabledBranch.getBus1().getId().equals(disabledBus) ? DisabledBranchStatus.SIDE_1
-                                    : DisabledBranchStatus.SIDE_2;
-                            contingency.getBranchIdsToOpen().put(disabledBranch.getId(), status);
-                        }
-                    }
                 });
     }
 
@@ -211,6 +197,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // prepare contingencies for connectivity analysis and Woodbury engine
             filterPropagatedContingencies(lfNetwork, propagatedContingencies);
+            cleanContingencies(lfNetwork, propagatedContingencies);
 
             double[] preContingencyStates = DcSensitivityAnalysis.runDcLoadFlow(context, new DisabledNetwork(), reportNode);
 
