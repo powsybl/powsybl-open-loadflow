@@ -248,7 +248,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             preContingencyLimitViolationManager.detectViolations(lfNetwork);
 
             // compute states with +1 -1 to model the contingencies and run connectivity analysis
-            ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, null, propagatedContingencies, null);
+            ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
 
             // save base state for later restoration after each contingency
             NetworkState networkState = NetworkState.save(lfNetwork);
