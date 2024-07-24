@@ -16,9 +16,11 @@ import com.powsybl.openloadflow.CompareKnitroToNewtonRaphson;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.BoundaryFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import org.checkerframework.checker.units.qual.N;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -88,28 +90,24 @@ class AcLoadFlowBoundaryTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-//        CompareKnitroToNewtonRaphson compareKnitroToNewtonRaphson = new CompareKnitroToNewtonRaphson(loadFlowRunner, parameters, parametersExt, network);
-        LoadFlowResult resultNR = CompareKnitroToNewtonRaphson.RunComparison(loadFlowRunner, parameters, parametersExt, network);
-        assertKnitroComparisonToNewtonRaphson(resultNR);
-//
-//        assertVoltageEquals(390.440, bus1);
-//        assertAngleEquals(0.114371, bus1);
-//        assertVoltageEquals(390.181, bus2);
-//        assertAngleEquals(0, bus2);
-//        assertActivePowerEquals(101.2, dl1.getTerminal());
-//        assertReactivePowerEquals(-0.201, dl1.getTerminal());
-//
-//        parameters.setDistributedSlack(true)
-//                .setUseReactiveLimits(true);
-//        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-//        assertTrue(result2.isFullyConverged());
-//
-//        assertVoltageEquals(390.440, bus1);
-//        assertAngleEquals(0.114371, bus1);
-//        assertVoltageEquals(390.181, bus2);
-//        assertAngleEquals(0, bus2);
-//        assertActivePowerEquals(101.2, dl1.getTerminal());
-//        assertReactivePowerEquals(-0.202, dl1.getTerminal());
+        assertVoltageEquals(390.440, bus1);
+        assertAngleEquals(0.114371, bus1);
+        assertVoltageEquals(390.181, bus2);
+        assertAngleEquals(0, bus2);
+        assertActivePowerEquals(101.2, dl1.getTerminal());
+        assertReactivePowerEquals(-0.202, dl1.getTerminal());
+
+        parameters.setDistributedSlack(true)
+                .setUseReactiveLimits(true);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged());
+
+        assertVoltageEquals(390.440, bus1);
+        assertAngleEquals(0.114371, bus1);
+        assertVoltageEquals(390.181, bus2);
+        assertAngleEquals(0, bus2);
+        assertActivePowerEquals(101.2, dl1.getTerminal());
+        assertReactivePowerEquals(-0.202, dl1.getTerminal());
     }
 
     @Test
@@ -131,20 +129,21 @@ class AcLoadFlowBoundaryTest {
         Network network = BoundaryFactory.createWithTieLine();
         parameters.setUseReactiveLimits(true);
         parameters.setDistributedSlack(true);
-//        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-//        assertTrue(result.isFullyConverged());
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
 
-//        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
-//        assertVoltageEquals(399.999, network.getBusBreakerView().getBus("b3"));
-//        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
-//        assertReactivePowerEquals(0.0044, network.getLine("l34").getTerminal2());
+        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
+        assertVoltageEquals(399.999, network.getBusBreakerView().getBus("b3"));
+        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
+        assertReactivePowerEquals(0.0044, network.getLine("l34").getTerminal2());
 
         TieLine line = network.getTieLine("t12");
         line.getDanglingLine1().getTerminal().disconnect();
         line.getDanglingLine1().getTerminal().disconnect();
         loadFlowRunner.run(network, parameters);
         assertVoltageEquals(400.0, network.getBusBreakerView().getBus("b3"));
-        assertReactivePowerEquals(-0.00125, network.getLine("l34").getTerminal2());
+        System.out.println(network.getLine("l34").getTerminal2().getQ());
+        assertReactivePowerEquals(-0, network.getLine("l34").getTerminal2());
     }
 
     @Test

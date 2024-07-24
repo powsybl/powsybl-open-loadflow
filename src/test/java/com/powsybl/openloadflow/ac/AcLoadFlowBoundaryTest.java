@@ -135,7 +135,7 @@ class AcLoadFlowBoundaryTest {
         line.getDanglingLine1().getTerminal().disconnect();
         loadFlowRunner.run(network, parameters);
         assertVoltageEquals(400.0, network.getBusBreakerView().getBus("b3"));
-        assertReactivePowerEquals(-0.00125, network.getLine("l34").getTerminal2());
+        assertReactivePowerEquals(-0.00125, network.getLine("l34").getTerminal2()); //FIXME : EN DIMINUANT LE SEUIL D'EEREUR TOLEREE, ON A q=0
     }
 
     @Test
