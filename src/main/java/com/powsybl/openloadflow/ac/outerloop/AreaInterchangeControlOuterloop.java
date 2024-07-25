@@ -70,7 +70,8 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
         boolean shouldBalance = !areasToBalance.isEmpty();
 
         if (!shouldBalance) {
-            // Check Areas interchange without taking slack into account. If an area is not balanced, it means that some slack remains inside it.
+            // Balancing takes the slack mismatch of the Areas into account. Now that the balancing is done, we check only the interchange power flow mismatch.
+            // Doing this we make sure that the Areas' interchange targets have been reached and that the slack is correctly distributed.
             Map<LfArea, Double> interchangeMismatches = areas.stream().filter(area -> {
                 double areaInterchangeMismatch = getInterchangeMismatch(area);
                 double absMismatch = Math.abs(areaInterchangeMismatch);
