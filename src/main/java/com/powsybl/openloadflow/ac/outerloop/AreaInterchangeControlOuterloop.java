@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.lf.outerloop.DistributedActivePowerContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfArea;
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -149,13 +148,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     }
 
     private static double getInterchangeMismatchWithSlack(LfArea area, double slackBusActivePowerMismatch) {
-        return area.getInterchange() - area.getInterchangeTarget() + getAreaSlackInjection(area, slackBusActivePowerMismatch);
-    }
-
-    private static double getAreaSlackInjection(LfArea area, double slackBusActivePowerMismatch) {
-        int totalSlackBusCount = (int) area.getNetwork().getSlackBuses().stream().count();
-        int areaSlackBusCount = (int) area.getBuses().stream().filter(LfBus::isSlack).count();
-        return areaSlackBusCount == 0 ? 0 : slackBusActivePowerMismatch * areaSlackBusCount / totalSlackBusCount;
+        return area.getInterchange() - area.getInterchangeTarget() + area.getSlackInjection(slackBusActivePowerMismatch);
     }
 
     private static void reportAndLogSuccess(ReportNode reportNode, double totalDistributedActivePower, int areasCount, int iterationCount) {

@@ -265,7 +265,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *   g1 100 MW                                       gen3 40MW
      *      |                                                |
      *      b1 ---(l12)--- b2 ---(dlA1)----< >----(dlA2)--- b3
- *      |                                                   |
+     *      |                                                |
      *    load1 60MW                                     load3 50MW
      *    <------------------------------->   <--------------------->
      *                Area 1                            Area 2
@@ -327,8 +327,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *                     + ---(dlA1_1)---< >---(dlA1_2)--- b4 -- gen4 5 MW
      *    <------------------------------->   <--------------------->
      *                Area 1                            Area 2
-     *
-     *  The secpnd tie line is not considered in Areas's boundaries.
+     *  The second tie line is not considered in Areas' boundaries.
      */
     public static Network createTwoAreasWithUnconsideredTieLine() {
         Network network = createTwoAreasWithTieLine();
@@ -397,4 +396,93 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    public static Network threeBuses() {
+        Network network = Network.create("areas", "test");
+        createBus(network, "b1");
+        createBus(network, "b2");
+        createBus(network, "b3");
+        return network;
+    }
+
+    /**
+     *      b1 --- b3
+     *             |
+     *      b2-----
+     *    <---->
+     *      A1
+     */
+    public static Network busNoArea1() {
+        Network network = threeBuses();
+        createLine(network, network.getBusBreakerView().getBus("b1"), network.getBusBreakerView().getBus("b3"), "l13", 1);
+        createLine(network, network.getBusBreakerView().getBus("b2"), network.getBusBreakerView().getBus("b3"), "l23", 1);
+        network.newArea()
+                .setId("a1")
+                .setName("Area 1")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(0)
+                .addVoltageLevel(network.getVoltageLevel("b1_vl"))
+                .addVoltageLevel(network.getVoltageLevel("b2_vl"))
+                .addAreaBoundary(network.getLine("l13").getTerminal2(), true)
+                .add();
+        return network;
+    }
+
+    /**
+     *      b1 --- b3
+     *       |
+     *      b2
+     *           <---->
+     *              A1
+     */
+    public static Network busNoArea2() {
+        Network network = threeBuses();
+        createLine(network, network.getBusBreakerView().getBus("b1"), network.getBusBreakerView().getBus("b3"), "l13", 1);
+        createLine(network, network.getBusBreakerView().getBus("b1"), network.getBusBreakerView().getBus("b2"), "l12", 1);
+        network.newArea()
+                .setId("a1")
+                .setName("Area 1")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(0)
+                .addVoltageLevel(network.getVoltageLevel("b3_vl"))
+                .addAreaBoundary(network.getLine("l13").getTerminal1(), true)
+                .add();
+        return network;
+    }
+
+    /**
+     *             A2
+     *             |
+     *     A1 --- bus --- A3
+     *    A2 considers flow through bus for interchange power flow but not A1 and A3
+     */
+    public static Network busNoArea3() {
+        Network network = threeBuses();
+        createBus(network, "bus");
+        createLine(network, network.getBusBreakerView().getBus("b1"), network.getBusBreakerView().getBus("bus"), "l1", 1);
+        createLine(network, network.getBusBreakerView().getBus("b2"), network.getBusBreakerView().getBus("bus"), "l2", 1);
+        createLine(network, network.getBusBreakerView().getBus("b3"), network.getBusBreakerView().getBus("bus"), "l3", 1);
+        network.newArea()
+                .setId("a1")
+                .setName("Area 1")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(0)
+                .addVoltageLevel(network.getVoltageLevel("b1_vl"))
+                .add();
+        network.newArea()
+                .setId("a2")
+                .setName("Area 2")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(0)
+                .addVoltageLevel(network.getVoltageLevel("b2_vl"))
+                .addAreaBoundary(network.getLine("l2").getTerminal2(), true)
+                .add();
+        network.newArea()
+                .setId("a3")
+                .setName("Area 3")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(0)
+                .addVoltageLevel(network.getVoltageLevel("b3_vl"))
+                .add();
+        return network;
+    }
 }

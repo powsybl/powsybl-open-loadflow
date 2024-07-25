@@ -57,6 +57,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         private final Set<HvdcLine> hvdcLineSet = new LinkedHashSet<>();
 
+        private final Map<LfBus, LfArea> areaBusMap = new HashMap<>();
         private final Map<Terminal, LfArea> areaTerminalMap = new HashMap<>();
     }
 
@@ -433,7 +434,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
             LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, topoConfig, parameters);
             addBranch(lfNetwork, lfBranch, report);
-            addBranchAreaBoundaries(branch, lfBranch, loadingContext);
+            addBranchAreaBoundaries(branch, lfBranch, lfBus1, lfBus2, loadingContext);
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
@@ -445,7 +446,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBus lfBus2 = getLfBus(tieLine.getDanglingLine2().getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
                     addBranch(lfNetwork, lfBranch, report);
-                    addTieLineAreaBoundaries(tieLine, lfBranch, loadingContext);
+                    addTieLineAreaBoundaries(tieLine, lfBranch, lfBus1, lfBus2, loadingContext);
                     postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
                     visitedDanglingLinesIds.add(tieLine.getDanglingLine1().getId());
                     visitedDanglingLinesIds.add(tieLine.getDanglingLine2().getId());
@@ -521,6 +522,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfArea = createControlArea(area, parameters, loadingContext, network);
                 }
                 lfArea.addBus(lfBus);
+                loadingContext.areaBusMap.put(lfBus, lfArea);
             });
         }
     }
@@ -545,18 +547,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
      * Add the terminals active power to the calculation of their Area's interchange (load convention) if they are boundaries.
      * For simple branches (lines, transformers, switches), the terminal declared as the boundary must be the one which active power is used.
      */
-    private static void addBranchAreaBoundaries(Branch<?> branch, LfBranch lfBranch, LoadingContext loadingContext) {
-        addAreaBoundary(branch.getTerminal1(), lfBranch::getP1, loadingContext);
-        addAreaBoundary(branch.getTerminal2(), lfBranch::getP2, loadingContext);
+    private static void addBranchAreaBoundaries(Branch<?> branch, LfBranch lfBranch, LfBus lfBus1, LfBus lfBus2, LoadingContext loadingContext) {
+        addAreaBoundary(branch.getTerminal1(), lfBranch::getP1, lfBus1, loadingContext);
+        addAreaBoundary(branch.getTerminal2(), lfBranch::getP2, lfBus2, loadingContext);
     }
 
     /**
      * Adds the dangling lines' active power to the calculation of their Area's interchange (load convention) if they are boundaries.
      * The tie lines are modeled as one single lfBranch, so the equivalent injection for each dangling line is the active power of the opposite side of the tie line lfBranch model.
      */
-    private static void addTieLineAreaBoundaries(TieLine tieLine, LfBranch lfTieLineBranch, LoadingContext loadingContext) {
-        addAreaBoundary(tieLine.getTerminal1(), lfTieLineBranch::getP2, loadingContext);
-        addAreaBoundary(tieLine.getTerminal2(), lfTieLineBranch::getP1, loadingContext);
+    private static void addTieLineAreaBoundaries(TieLine tieLine, LfBranch lfTieLineBranch, LfBus lfBus1, LfBus lfBus2, LoadingContext loadingContext) {
+        addAreaBoundary(tieLine.getTerminal1(), lfTieLineBranch::getP2, lfBus1, loadingContext);
+        addAreaBoundary(tieLine.getTerminal2(), lfTieLineBranch::getP1, lfBus2, loadingContext);
     }
 
     /**
@@ -564,12 +566,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
      * The equivalent injection of the dangling line lfBranch model is P2;
      */
     private static void addDanglingLineAreaBoundary(DanglingLine danglingLine, LfBranch lfDanglingLineBranch, LoadingContext loadingContext) {
-        addAreaBoundary(danglingLine.getTerminal(), lfDanglingLineBranch::getP2, loadingContext);
+        addAreaBoundary(danglingLine.getTerminal(), lfDanglingLineBranch::getP2, null, loadingContext);
     }
 
-    private static void addAreaBoundary(Terminal terminal, Supplier<Evaluable> getP, LoadingContext loadingContext) {
+    private static void addAreaBoundary(Terminal terminal, Supplier<Evaluable> getP, LfBus lfBus, LoadingContext loadingContext) {
         if (loadingContext.areaTerminalMap.containsKey(terminal)) {
-            loadingContext.areaTerminalMap.get(terminal).addBoundaryP(getP);
+            LfArea area = loadingContext.areaTerminalMap.get(terminal);
+            area.addBoundaryP(getP);
+            area.addExternalBusSlackParticipationFactor(lfBus, 0.0); // The slack injection of this bus should not impact area's slack. The interchange control will balance it naturally.
         }
     }
 
@@ -853,6 +857,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, topoConfig, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
+        checkBusesWithNoArea(lfNetwork, parameters, loadingContext);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);
@@ -967,6 +972,52 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         return lfNetwork;
+    }
+
+    /**
+     * If we perform Area Interchange Control, we need all buses to have an Area or to be boundary buses
+     * A boundary bus is connected to one or multiple buses that are all in areas different from each other
+     * If a bus is not in any area, and is not a boundary bus, the area interchange control could not be performed and an exception will be thrown
+     * However, it is possible that the flow through this bus is not considered for the interchange flow of some of the areas it is connected to.
+     * In this case, the slack injection of this bus will be shared between those areas to ensure a correct balancing
+     */
+    // TODO add reports
+    private static void checkBusesWithNoArea(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext) {
+        if (parameters.isAreaInterchangeControl()) {
+            List<LfBus> handledBuses = lfNetwork.getAreas().stream().flatMap(area ->
+                    area.getBuses().stream())
+                    .toList();
+            List<LfBus> unhandledBuses = lfNetwork.getBuses().stream().filter(b -> !handledBuses.contains(b)).toList();
+            for (LfBus unhandledBus : unhandledBuses) {
+                Set<LfArea> connectedAreas = new HashSet<>();
+                unhandledBus.getBranches().forEach(branch ->
+                    List.of(branch.getBus1(), branch.getBus2()).forEach(connectedBus -> {
+                        if (connectedBus == null) {
+                            throwUnHandledBus(unhandledBus);
+                        }
+                        if (connectedBus != unhandledBus) {
+                            LfArea area = loadingContext.areaBusMap.get(connectedBus);
+                            if (area == null || !connectedAreas.add(area)) {
+                                throwUnHandledBus(unhandledBus);
+                            }
+                        }
+                    })
+                );
+
+                // If the flow through this bus is considered for the interchange of some of the connected areas,
+                // then it has already been added to the Area's externalBusesSlackParticipationFactors map with a factor 0.0
+                // Here we want to share the slack injection of this bus between the areas that are not considering the flow through this bus for their interchange power flow
+                Set<LfArea> areasSharingSlack = connectedAreas.stream().filter(area -> !area.getExternalBusesSlackParticipationFactors().containsKey(unhandledBus)).collect(Collectors.toSet());
+                if (!areasSharingSlack.isEmpty()) {
+                    areasSharingSlack.forEach(area -> area.addExternalBusSlackParticipationFactor(unhandledBus, 1.0 / areasSharingSlack.size()));
+                    LOGGER.info("Bus {} is not in any Area and is connected to Areas: {} but the flow through this bus is not considered for their interchange flow. For a correct balancing, its slack injection will be shared between those areas", unhandledBus.getId(), connectedAreas.stream().map(LfArea::getId).toList());
+                }
+            }
+        }
+    }
+
+    private static void throwUnHandledBus(LfBus lfBus) {
+        throw new PowsyblException("Bus " + lfBus.getId() + " is not in any Area, and is not a boundary bus (connected tu buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network");
     }
 
     private static void checkControlZonesAreDisjoints(LfNetwork lfNetwork) {

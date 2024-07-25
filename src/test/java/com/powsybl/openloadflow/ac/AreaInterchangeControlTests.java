@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Area;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
@@ -16,9 +17,11 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -131,6 +134,42 @@ class AreaInterchangeControlTests {
         assertEquals(interchangeTarget1, area1.getInterchange(), 1e-3);
         assertEquals(interchangeTarget2, area2.getInterchange(), 1e-3);
         return result;
+    }
+
+    @Test
+    void busNoArea1() {
+        Network network = MultiAreaNetworkFactory.busNoArea1();
+        LfNetworkParameters parameters = new LfNetworkParameters().setAreaInterchangeControl(true);
+        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, parameters));
+        assertEquals("Bus b3_vl_0 is not in any Area, and is not a boundary bus (connected tu buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network", e.getMessage());
+    }
+
+    @Test
+    void busNoArea2() {
+        Network network = MultiAreaNetworkFactory.busNoArea2();
+        LfNetworkParameters parameters = new LfNetworkParameters().setAreaInterchangeControl(true);
+        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, parameters));
+        assertEquals("Bus b1_vl_0 is not in any Area, and is not a boundary bus (connected tu buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network", e.getMessage());
+    }
+
+    @Test
+    void busNoArea3() {
+        Network network = MultiAreaNetworkFactory.busNoArea3();
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters().setAreaInterchangeControl(true);
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters);
+        assertEquals(1, lfNetworks.size());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        LfArea area1 = mainNetwork.getAreaById("a1");
+        LfArea area2 = mainNetwork.getAreaById("a2");
+        LfArea area3 = mainNetwork.getAreaById("a3");
+
+        assertEquals(1, area1.getExternalBusesSlackParticipationFactors().size());
+        assertEquals(1, area2.getExternalBusesSlackParticipationFactors().size());
+        assertEquals(1, area3.getExternalBusesSlackParticipationFactors().size());
+
+        assertEquals(0.5, area1.getExternalBusesSlackParticipationFactors().get(mainNetwork.getBusById("bus_vl_0")), 1e-3);
+        assertEquals(0, area2.getExternalBusesSlackParticipationFactors().get(mainNetwork.getBusById("bus_vl_0")), 1e-3);
+        assertEquals(0.5, area3.getExternalBusesSlackParticipationFactors().get(mainNetwork.getBusById("bus_vl_0")), 1e-3);
     }
 
 }
