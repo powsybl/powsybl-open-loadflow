@@ -143,12 +143,11 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAreaInterchangeControlFailure(ReportNode reportNode, double largestMismatch, int areasCount, int iterationCount) {
+    public static void reportAreaInterchangeControlFailure(ReportNode reportNode, String areaMismatchesString, int iterationCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("areaInterchangeControlFailure", "Failed to balance ${areasCount} area(s) after ${iterationCount} iteration(s), largest remaining mismatch is ${mismatch} MW")
-                .withUntypedValue("areasCount", areasCount)
+                .withMessageTemplate("areaInterchangeControlFailure", "Failed to distribute interchange active power mismatch in ${iterationCount} iterations. Remaining mismatches: {areaMismatchesString}")
+                .withUntypedValue("areaMismatchesString", areaMismatchesString)
                 .withUntypedValue("iterationCount", iterationCount)
-                .withTypedValue("mismatch", largestMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }

@@ -11,6 +11,8 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
@@ -19,13 +21,19 @@ import java.util.Optional;
  */
 abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAcOuterLoopConfig.class);
+
     protected AbstractAcOuterLoopConfig() {
     }
 
     protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        if (parameters.isDistributedSlack() && !parametersExt.isAreaInterchangeControl()) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
-            return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));
+        if (parameters.isDistributedSlack()) {
+            if (parametersExt.isAreaInterchangeControl()) {
+                LOGGER.warn("DistributedSlack and AreaInterchangeControl outerloops are both enabled. DistributedSlack outerloop will be disabled. Slack will handled by the AreaInterchangeControl outerloop.");
+            } else {
+                ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
+                return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));
+            }
         }
         return Optional.empty();
     }
