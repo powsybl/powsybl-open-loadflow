@@ -98,8 +98,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling and that do not
      * update the state vector and the network at the end (because we don't need it to just evaluate a few equations)
      */
-    public double[] runDcLoadFlow(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork,
-                                  ReportNode reportNode) {
+    public static double[] runDcLoadFlow(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork,
+                                         ReportNode reportNode) {
         Collection<LfBus> remainingBuses;
         if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
@@ -388,7 +388,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 connectivityAnalysisResult.getElementsToReconnect(), resultWriter, reportNode, partialDisabledBranches, rhsChanged);
     }
 
-    protected void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+    // TODO : move this method in PropagatedContingencies in another PR
+    public static void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         for (PropagatedContingency contingency : contingencies) {
             // Elements have already been checked and found in PropagatedContingency, so there is no need to
             // check them again

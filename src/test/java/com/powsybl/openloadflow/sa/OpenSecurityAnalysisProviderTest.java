@@ -46,7 +46,7 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
 
     @Test
     void specificParametersNamesTest() {
-        assertEquals(List.of("createResultExtension", "contingencyPropagation"), provider.getSpecificParametersNames());
+        assertEquals(List.of("createResultExtension", "contingencyPropagation", "dcFastMode"), provider.getSpecificParametersNames());
     }
 
     @Test
@@ -60,6 +60,9 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         assertTrue(parametersExt.isContingencyPropagation());
         parametersExt.setContingencyPropagation(false);
         assertFalse(parametersExt.isContingencyPropagation());
+        assertFalse(parametersExt.isDcFastMode());
+        parametersExt.setDcFastMode(true);
+        assertTrue(parametersExt.isDcFastMode());
     }
 
     @Test
@@ -68,9 +71,11 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         MapModuleConfig moduleConfig = platformConfig.createModuleConfig("open-security-analysis-default-parameters");
         moduleConfig.setStringProperty("createResultExtension", "true");
         moduleConfig.setStringProperty("contingencyPropagation", "false");
+        moduleConfig.setStringProperty("dcFastMode", "true");
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(platformConfig).orElseThrow();
         assertTrue(parametersExt.isCreateResultExtension());
         assertFalse(parametersExt.isContingencyPropagation());
+        assertTrue(parametersExt.isDcFastMode());
     }
 
     @Test
@@ -78,14 +83,16 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(Collections.emptyMap()).orElseThrow();
         assertFalse(parametersExt.isCreateResultExtension());
         assertTrue(parametersExt.isContingencyPropagation());
+        assertFalse(parametersExt.isDcFastMode());
     }
 
     @Test
     void specificParametersFromPropertiesTest() {
-        Map<String, String> properties = Map.of("createResultExtension", "true", "contingencyPropagation", "false");
+        Map<String, String> properties = Map.of("createResultExtension", "true", "contingencyPropagation", "false", "dcFastMode", "true");
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(properties).orElseThrow();
         assertTrue(parametersExt.isCreateResultExtension());
         assertFalse(parametersExt.isContingencyPropagation());
+        assertTrue(parametersExt.isDcFastMode());
     }
 
     @Test
@@ -93,7 +100,8 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
         OpenSecurityAnalysisParameters parametersExt = new OpenSecurityAnalysisParameters()
                 .setCreateResultExtension(true)
-                .setContingencyPropagation(false);
+                .setContingencyPropagation(false)
+                .setDcFastMode(true);
         parameters.addExtension(OpenSecurityAnalysisParameters.class, parametersExt);
         roundTripTest(parameters, JsonSecurityAnalysisParameters::write, JsonSecurityAnalysisParameters::read, "/sa-params.json");
     }
