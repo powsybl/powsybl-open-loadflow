@@ -152,8 +152,9 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     }
 
     private static double getAreaSlackInjection(LfArea area, double slackBusActivePowerMismatch) {
-        List<LfBus> slackBuses = area.getBuses().stream().filter(LfBus::isSlack).toList();
-        return slackBuses.isEmpty() ? 0 : slackBusActivePowerMismatch / slackBuses.size();
+        int totalSlackBusCount = (int) area.getNetwork().getSlackBuses().stream().count();
+        int areaSlackBusCount = (int) area.getBuses().stream().filter(LfBus::isSlack).count();
+        return areaSlackBusCount == 0 ? 0 : slackBusActivePowerMismatch * areaSlackBusCount / totalSlackBusCount;
     }
 
     private static void reportAndLogSuccess(ReportNode reportNode, double totalDistributedActivePower, int areasCount, int iterationCount) {
