@@ -66,6 +66,8 @@ public class LfNetworkParameters {
 
     public static final boolean TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE = false;
 
+    public static final boolean SLACK_DISTRIBUTION_GENERATORS_VOLTAGE_CONTROL_ONLY_DEFAULT_VALUE = false;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -142,6 +144,8 @@ public class LfNetworkParameters {
 
     private OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
 
+    private boolean slackDistributionGeneratorsVoltageControlOnly = SLACK_DISTRIBUTION_GENERATORS_VOLTAGE_CONTROL_ONLY_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -186,6 +190,7 @@ public class LfNetworkParameters {
         this.referenceBusSelector = other.referenceBusSelector;
         this.voltageTargetPriorities = new ArrayList<>(other.voltageTargetPriorities);
         this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
+        this.slackDistributionGeneratorsVoltageControlOnly = other.slackDistributionGeneratorsVoltageControlOnly;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -571,6 +576,15 @@ public class LfNetworkParameters {
         return priority;
     }
 
+    public boolean isSlackDistributionGeneratorsVoltageControlOnly() {
+        return slackDistributionGeneratorsVoltageControlOnly;
+    }
+
+    public LfNetworkParameters setSlackDistributionGeneratorsVoltageControlOnly(boolean slackDistributionGeneratorsVoltageControlOnly) {
+        this.slackDistributionGeneratorsVoltageControlOnly = slackDistributionGeneratorsVoltageControlOnly;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -610,6 +624,7 @@ public class LfNetworkParameters {
                 ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
                 ", voltageTargetPriorities=" + voltageTargetPriorities +
                 ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
+                ", slackDistributionGeneratorsVoltageControlOnly=" + slackDistributionGeneratorsVoltageControlOnly +
                 ')';
     }
 }

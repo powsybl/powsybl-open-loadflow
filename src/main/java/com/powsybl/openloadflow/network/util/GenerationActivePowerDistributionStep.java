@@ -39,9 +39,12 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
 
     private final boolean useActiveLimits;
 
-    public GenerationActivePowerDistributionStep(ParticipationType pParticipationType, boolean useActiveLimits) {
-        this.participationType = pParticipationType;
+    private final boolean onVoltageControlOnly;
+
+    public GenerationActivePowerDistributionStep(ParticipationType participationType, boolean useActiveLimits, boolean onVoltageControlOnly) {
+        this.participationType = participationType;
         this.useActiveLimits = useActiveLimits;
+        this.onVoltageControlOnly = onVoltageControlOnly;
     }
 
     @Override
@@ -134,8 +137,11 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     private boolean isParticipating(LfGenerator generator) {
-        // check first if generator is set to be participating
-        if (!generator.isParticipating()) {
+        // check first if generator:
+        // - is set to be participating
+        // - and if option is set to distribute only on generators on voltage control
+        if (!generator.isParticipating() ||
+                onVoltageControlOnly && !generator.hasVoltageControl()) {
             return false;
         }
         // then depending on participation type, a generator may be found to not participate
