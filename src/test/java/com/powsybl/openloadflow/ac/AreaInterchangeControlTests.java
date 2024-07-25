@@ -114,7 +114,7 @@ class AreaInterchangeControlTests {
         Network network = MultiAreaNetworkFactory.createOneAreaBase();
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
         CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertTrue(thrown.getCause().getMessage().startsWith("Failed to distribute interchange active power mismatch in 1 area(s), largest remaining mismatch is "));
+        assertTrue(thrown.getCause().getMessage().equals("Failed to distribute interchange active power mismatch. Remaining mismatches: [a1: -20.00 MW]"));
     }
 
     private LoadFlowResult runLfTwoAreas(Network network, double interchangeTarget1, double interchangeTarget2, double expectedDistributedP, int expectedIterationCount) {

@@ -110,7 +110,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
             String areaMismatchesString = remainingMismatchMap.entrySet().stream()
                     .map(entry -> String.format(Locale.US, "%s: %.2f MW", entry.getKey().getId(), entry.getValue() * PerUnit.SB))
                     .collect(Collectors.joining(", "));
-            String statusText = MessageFormat.format("Failed to distribute interchange active power mismatch. Remaining mismatches: [{}]",
+            String statusText = MessageFormat.format("Failed to distribute interchange active power mismatch. Remaining mismatches: [{0}]",
                     areaMismatchesString);
             Reports.reportAreaInterchangeControlFailure(iterationReportNode, areaMismatchesString, totalIterations);
 
