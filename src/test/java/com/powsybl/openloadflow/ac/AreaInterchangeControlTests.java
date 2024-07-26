@@ -41,7 +41,8 @@ class AreaInterchangeControlTests {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
-                .setAreaInterchangeControl(true);
+                .setAreaInterchangeControl(true)
+                .setSlackBusPMaxMismatch(1e-3);
     }
 
     @Test
@@ -55,7 +56,7 @@ class AreaInterchangeControlTests {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
         double interchangeTarget1 = -60; // area a1 has a boundary that is an unpaired dangling line with P0 = 20MW
         double interchangeTarget2 = 40;
-        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -9.997, 2);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 3);
     }
 
     @Test
@@ -120,22 +121,6 @@ class AreaInterchangeControlTests {
         assertTrue(thrown.getCause().getMessage().equals("Failed to distribute interchange active power mismatch. Remaining mismatches: [a1: -20.00 MW]"));
     }
 
-    private LoadFlowResult runLfTwoAreas(Network network, double interchangeTarget1, double interchangeTarget2, double expectedDistributedP, int expectedIterationCount) {
-        Area area1 = network.getArea("a1");
-        Area area2 = network.getArea("a2");
-        area1.setInterchangeTarget(interchangeTarget1);
-        area2.setInterchangeTarget(interchangeTarget2);
-
-        var result = loadFlowRunner.run(network, parameters);
-
-        var componentResult = result.getComponentResults().get(0);
-        assertEquals(expectedIterationCount, componentResult.getIterationCount());
-        assertEquals(expectedDistributedP, componentResult.getDistributedActivePower(), 1e-3);
-        assertEquals(interchangeTarget1, area1.getInterchange(), 1e-3);
-        assertEquals(interchangeTarget2, area2.getInterchange(), 1e-3);
-        return result;
-    }
-
     @Test
     void busNoArea1() {
         Network network = MultiAreaNetworkFactory.busNoArea1();
@@ -173,6 +158,30 @@ class AreaInterchangeControlTests {
     }
 
     @Test
+    void slackBusOnBoundaryBus() {
+        // The slack bus is on a boundary bus, and the flow though this boundary bus is considered in the area interchange
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithTwoXNodes();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("bx1_vl_0");
+        var result = runLfTwoAreas(network, -15, 15, -30, 13);
+        List<LoadFlowResult.SlackBusResult> slackBusResults = result.getComponentResults().get(0).getSlackBusResults();
+        assertEquals(1, slackBusResults.size());
+        assertEquals("bx1_vl_0", slackBusResults.get(0).getId());
+    }
+
+    @Test
+    void slackBusOnIgnoredBoundaryBus() {
+        // The slack bus is on a boundary bus, but the flow on this boundary bus is not considered in the area interchange
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithTwoXNodes();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("bx2_vl_0");
+        var result = runLfTwoAreas(network, -15, 15, -30, 13);
+        List<LoadFlowResult.SlackBusResult> slackBusResults = result.getComponentResults().get(0).getSlackBusResults();
+        assertEquals(1, slackBusResults.size());
+        assertEquals("bx2_vl_0", slackBusResults.get(0).getId());
+    }
+
+    @Test
     void duplicateArea() {
         Network network = MultiAreaNetworkFactory.threeBuses();
         network.newArea()
@@ -187,6 +196,23 @@ class AreaInterchangeControlTests {
                 .setAreaInterchangeControl(true).setComputeMainConnectedComponentOnly(false);
         Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, parameters));
         assertEquals("Areas with ids [a1] are present in more than one LfNetwork. Load flow computation with area interchange control is not supported in this case.", e.getMessage());
+    }
+
+    private LoadFlowResult runLfTwoAreas(Network network, double interchangeTarget1, double interchangeTarget2, double expectedDistributedP, int expectedIterationCount) {
+        Area area1 = network.getArea("a1");
+        Area area2 = network.getArea("a2");
+        area1.setInterchangeTarget(interchangeTarget1);
+        area2.setInterchangeTarget(interchangeTarget2);
+
+        var result = loadFlowRunner.run(network, parameters);
+
+        var componentResult = result.getComponentResults().get(0);
+        assertEquals(interchangeTarget1, area1.getInterchange(), 1e-3);
+        assertEquals(interchangeTarget2, area2.getInterchange(), 1e-3);
+        assertEquals(expectedDistributedP, componentResult.getDistributedActivePower(), 1e-3);
+        assertEquals(expectedIterationCount, componentResult.getIterationCount());
+        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+        return result;
     }
 
 }

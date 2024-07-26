@@ -186,31 +186,9 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
      */
     public static Network createTwoAreasWithXNode() {
         Network network = createTwoAreasBase();
-        Substation sXnode1 = network.newSubstation()
-                .setId("SX1")
-                .add();
-        VoltageLevel vlXnode1 = sXnode1.newVoltageLevel()
-                .setId("vlX1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vlXnode1.getBusBreakerView().newBus()
-                .setId("bx1")
-                .add();
-        network.newLine()
-                .setId("l23_A1")
-                .setBus1("b2")
-                .setBus2("bx1")
-                .setR(0)
-                .setX(1)
-                .add();
-        network.newLine()
-                .setId("l23_A2")
-                .setBus1("bx1")
-                .setBus2("b3")
-                .setR(0)
-                .setX(1)
-                .add();
+        Bus bx1 = createBus(network, "bx1", 400);
+        createLine(network, network.getBusBreakerView().getBus("b2"), bx1, "l23_A1", 1);
+        createLine(network, bx1, network.getBusBreakerView().getBus("b3"), "l23_A2", 1);
         network.getArea("a1")
                 .newAreaBoundary()
                 .setTerminal(network.getLine("l23_A1").getTerminal2())
@@ -221,6 +199,26 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setTerminal(network.getLine("l23_A2").getTerminal1())
                 .setAc(true)
                 .add();
+        return network;
+    }
+
+    /**
+     *   g1 100 MW                                          gen3 40MW
+     *      |                                                    |
+     *      b1 ---(l12)--- b2 ---(l23_A1)--- bx1 ---(l23_A2)---  b3 - load3 50MW
+     *      |              |                                     |
+     *   load1 60MW        |                                     |
+     *                     + --(l23_A1_1)--- bx2 ---(l23_A2_1)-- +
+     *    <-------------------------------->    <------------------->
+     *                Area 1                            Area 2
+     *    The second xnode is not considered in Areas' boundaries.
+     */
+
+    public static Network createTwoAreasWithTwoXNodes() {
+        Network network = createTwoAreasWithXNode();
+        Bus bx2 = createBus(network, "bx2", 400);
+        createLine(network, network.getBusBreakerView().getBus("b2"), bx2, "l23_A1_1", 1);
+        createLine(network, bx2, network.getBusBreakerView().getBus("b3"), "l23_A2_1", 1);
         return network;
     }
 
@@ -398,9 +396,15 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
     public static Network threeBuses() {
         Network network = Network.create("areas", "test");
-        createBus(network, "b1");
-        createBus(network, "b2");
-        createBus(network, "b3");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 1);
+        createLoad(b1, "load1", 1);
+        createGenerator(b2, "g2", 1);
+        createLoad(b2, "load2", 1);
+        createGenerator(b3, "g3", 1);
+        createLoad(b3, "load3", 1);
         return network;
     }
 
