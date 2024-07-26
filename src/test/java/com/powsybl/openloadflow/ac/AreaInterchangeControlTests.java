@@ -172,5 +172,22 @@ class AreaInterchangeControlTests {
         assertEquals(0.5, area3.getExternalBusesSlackParticipationFactors().get(mainNetwork.getBusById("bus_vl_0")), 1e-3);
     }
 
+    @Test
+    void duplicateArea() {
+        Network network = MultiAreaNetworkFactory.threeBuses();
+        network.newArea()
+                .setId("a1")
+                .setName("Area 1")
+                .setAreaType("ControlArea")
+                .addVoltageLevel(network.getVoltageLevel("b1_vl"))
+                .addVoltageLevel(network.getVoltageLevel("b2_vl"))
+                .setInterchangeTarget(20)
+                .add();
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setAreaInterchangeControl(true).setComputeMainConnectedComponentOnly(false);
+        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, parameters));
+        assertEquals("Areas with ids [a1] are present in more than one LfNetwork. Load flow computation with area interchange control is not supported in this case.", e.getMessage());
+    }
+
 }
 

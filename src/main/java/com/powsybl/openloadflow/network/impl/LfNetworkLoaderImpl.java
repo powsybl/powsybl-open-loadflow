@@ -1170,6 +1170,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
+    static void checkDuplicatedAreas(List<LfNetwork> lfNetworks) {
+        List<String> duplicatedAreas = lfNetworks.stream()
+                .flatMap(lfNetwork -> lfNetwork.getAreas().stream())
+                .collect(Collectors.groupingBy(LfArea::getId, Collectors.counting()))
+                .entrySet().stream()
+                .filter(e -> e.getValue() > 1)
+                .map(Map.Entry::getKey)
+                .toList();
+        if (!duplicatedAreas.isEmpty()) {
+            throw new PowsyblException("Areas with ids " + duplicatedAreas + " are present in more than one LfNetwork. Load flow computation with area interchange control is not supported in this case.");
+        }
+    }
+
     @Override
     public List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         Objects.requireNonNull(network);
@@ -1221,6 +1234,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                             parameters, Reports.createRootLfNetworkReportNode(numCc, numSc));
                 })
                 .collect(Collectors.toList());
+
+        if (parameters.isAreaInterchangeControl()) {
+            checkDuplicatedAreas(lfNetworks);
+        }
 
         stopwatch.stop();
 
