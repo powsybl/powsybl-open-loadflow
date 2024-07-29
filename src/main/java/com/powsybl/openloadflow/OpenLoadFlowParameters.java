@@ -129,8 +129,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = false;
 
-    public static final String AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE = LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
-
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -345,7 +343,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Nominal voltage under which generator voltage controls are disabled during transformer voltage control outer loop of mode AFTER_GENERATOR_VOLTAGE_CONTROL, < 0 means automatic detection", OpenLoadFlowParameters.GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE),
         new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class)),
         new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Area interchange control", AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE),
-        new Parameter(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, ParameterType.STRING, "Area type for area interchange control", AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE)
+        new Parameter(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, ParameterType.STRING, "Area type for area interchange control", LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -525,7 +523,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean areaInterchangeControl = AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
 
-    private String areaInterchangeControlAreaType = AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
+    private String areaInterchangeControlAreaType = LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1318,7 +1316,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setTransformerVoltageControlUseInitialTapPosition(config.getBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE))
                 .setGeneratorVoltageControlMinNominalVoltage(config.getDoubleProperty(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE))
                 .setAreaInterchangeControl(config.getBooleanProperty(AREA_INTERCHANGE_CONTROL_PARAM_NAME, AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE))
-                .setAreaInterchangeControlAreaType(config.getStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE)));
+                .setAreaInterchangeControlAreaType(config.getStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE)));
         return parameters;
     }
 
