@@ -1,5 +1,5 @@
 ![PowSyBl Logo](_static/logos/logo_lfe_powsybl.svg)
-# Powsybl Open LoadFlow
+# Powsybl Open Load Flow
 
 ## PowSyBl vs PowSyBl Open Load Flow
 
