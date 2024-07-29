@@ -18,7 +18,7 @@ equal to zero and $1$. In case of a branch with voltage or phase control, the $\
 
 ### HVDC line
 
-A specific type of branch relying on a specific type of model is the HVDC line (High Voltage Direct Current). This line is connected to the rest of the AC network through HVDC converter stations, that can be either LCC (Line-Commutated Converter) or VSC (Voltage-source Converter).
+Open Load Flow also supports networks with HVDC lines (High Voltage Direct Current). An HVDC line is connected to the rest of the AC network through HVDC converter stations, that can be either LCC (Line-Commutated Converter) or VSC (Voltage-Source Converter).
 
 (ac-flow-computing)=
 ## AC flows computing
@@ -105,20 +105,20 @@ TODO
 
 VSC converters are self commutated converters that can be assimilated as generators in the loadflow. 
 There can be two main active power regulation mode:
-- **Constant power flow:** When they are in active power set point, on one side of the line is the rectifier station, 
+- **Active Power set point:** When they are in active power set point, on one side of the line is the rectifier station, 
 and on the other side of the line is the inverter station. The power transit from the rectifier station to the inverter 
 station is fixed to a target value $P$. The active power transit at each station is given by:
   - $P_{rectifier}= P$
   - $P_{inverter}= (1 - loss_{inverter}) * ((1 - loss_{rectifier}) * (P - P_{LineLoss}))$
 
-- **AC emulation:** The active power transit between both stations is given by: $P = P_0 + k~(\theta_1 - \theta_2)$ 
-with $\theta_1$ and $\theta_2$ being the voltage angles at both converter stations, and $P_0$ and $k$ being fixed values for the HVDC line. 
+- **AC emulation:** When being controlled in AC emulation, the active power transit between both stations is given by: $P = P_0 + k~(\theta_1 - \theta_2)$ 
+with $\theta_1$ and $\theta_2$ being the voltage angles at the bus connection for each converter station, and $P_0$ and $k$ being fixed values for the HVDC line. 
 These angles define the sign of the power transit and this sign defines which of the converter stations is the controller station. The active power transit at each station is given by:
   - $P_{controller} = P_0 + k~(\theta_1 - \theta_2)$
   - $P_{noncontroller} = (1 - loss_{noncontroller}) * ((1 - loss_{controller}) * (P_0 + k~(\theta_1 - \theta_2) - P_{LineLoss}))$
 
-In both regulation modes, the power transits are impacted by losses of the converter stations. In addition, Joule effect (due to resistance in cable) implies line loss in the HVDC line.
-This line loss is calculated with the nominal voltage: $P_{LineLoss} = Ri^2$ with $i = P_1 / V$ with $R$ being the cable resitance, $P_1$ beign the active power at the output of the controller
+In both control modes, the power transits are impacted by losses of the converter stations. In addition, Joule effect (due to resistance in cable) implies line loss in the HVDC line.
+This line loss is calculated with the nominal voltage: $P_{LineLoss} = Ri^2$ with $i = P_1 / V$ with $R$ being the cable resistance, $P_1$ being the active power at the output of the controller
 station and $V$ being the HVDC nominal voltage (equals 1 per unit).
 
 In addition, in both cases the target value $P$ (either in constant power flow or in AC emulation) is bounded by a maximum power transit $P_{max}$ that can possibly be different from one direction to another.
