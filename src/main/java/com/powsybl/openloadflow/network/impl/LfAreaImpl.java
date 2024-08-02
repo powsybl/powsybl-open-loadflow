@@ -27,7 +27,7 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
     private final LfNetwork network;
     private final Ref<Area> areaRef;
 
-    private final double interchangeTarget;
+    private double interchangeTarget;
 
     private final Set<LfBus> buses;
 
@@ -59,6 +59,11 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
     @Override
     public double getInterchangeTarget() {
         return interchangeTarget;
+    }
+
+    @Override
+    public void setInterchangeTarget(double interchangeTarget) {
+        this.interchangeTarget = interchangeTarget;
     }
 
     @Override

@@ -21,6 +21,8 @@ public interface LfArea extends PropertyBag {
 
     double getInterchangeTarget();
 
+    void setInterchangeTarget(double interchangeTarget);
+
     double getInterchange();
 
     Set<LfBus> getBuses();
