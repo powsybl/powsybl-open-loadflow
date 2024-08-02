@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.ac.outerloop.AreaInterchangeControlOuterloop;
 import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
-import com.powsybl.openloadflow.lf.outerloop.DistributedActivePowerContextData;
+import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -193,7 +193,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
             if (outerLoop instanceof DistributedSlackOuterLoop || outerLoop instanceof AreaInterchangeControlOuterloop) {
-                distributedActivePower = ((DistributedActivePowerContextData) outerLoopContext.getData()).getDistributedActivePower();
+                distributedActivePower = ((DistributedSlackContextData) outerLoopContext.getData()).getDistributedActivePower();
             }
             outerLoop.cleanup(outerLoopContext);
         }

@@ -152,12 +152,12 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAreaInterchangeControlSuccess(ReportNode reportNode, double mismatch, int areasCount, int iterationCount) {
+    public static void reportAreaInterchangeControlSuccess(ReportNode reportNode, String mismatches, int areasCount, int iterationCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("areaInterchangeControlSuccess", "Area interchange total mismatch (${mismatch} MW) from ${areasCount} areas distributed in ${iterationCount} distribution iteration(s)")
+                .withMessageTemplate("areaInterchangeControlSuccess", "Area Interchange mismatches [${mismatches}] distributed in ${iterationCount} distribution iteration(s)")
                 .withUntypedValue("areasCount", areasCount)
                 .withUntypedValue("iterationCount", iterationCount)
-                .withTypedValue("mismatch", mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withUntypedValue("mismatches", mismatches)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
