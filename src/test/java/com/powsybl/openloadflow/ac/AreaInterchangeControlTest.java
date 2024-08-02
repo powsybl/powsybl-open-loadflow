@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-class AreaInterchangeControlTests {
+class AreaInterchangeControlTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
