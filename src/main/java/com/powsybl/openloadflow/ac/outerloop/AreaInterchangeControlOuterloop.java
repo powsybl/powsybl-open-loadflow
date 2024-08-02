@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  */
 public class AreaInterchangeControlOuterloop implements AcOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOuterLoop.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AreaInterchangeControlOuterloop.class);
 
     public static final String NAME = "AreaInterchangeControl";
 
