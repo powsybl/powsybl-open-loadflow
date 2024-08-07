@@ -116,6 +116,16 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
+    public String getIdForLimitViolations() {
+        return getTwt().getId();
+    }
+
+    @Override
+    public Optional<ThreeSides> getOverriddenSideForLimitViolations() {
+        return Optional.of(getLeg().getSide());
+    }
+
+    @Override
     public BranchType getBranchType() {
         var leg = getLeg();
         return switch (leg.getSide()) {

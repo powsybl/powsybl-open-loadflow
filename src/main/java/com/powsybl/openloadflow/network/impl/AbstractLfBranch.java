@@ -76,6 +76,16 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
+    @Override
+    public String getIdForLimitViolations() {
+        return getId();
+    }
+
+    @Override
+    public Optional<ThreeSides> getOverriddenSideForLimitViolations() {
+        return Optional.empty();
+    }
+
     /**
      * Create the list of LfLimits from a LoadingLimits and a list of reductions.
      * The resulting list will contain the permanent limit

@@ -1236,6 +1236,27 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testViolationOnThreeWindingsTransformersLeg() {
+        Network network = T3wtFactory.create();
+        network.getThreeWindingsTransformer("3wt").getLeg2().newCurrentLimits()
+                .setPermanentLimit(400.)
+                .beginTemporaryLimit()
+                .setName("60'")
+                .setAcceptableDuration(60)
+                .setValue(500.)
+                .endTemporaryLimit()
+                .add();
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(), new LoadFlowParameters());
+        assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        LimitViolation expected = new LimitViolation("3wt", null, LimitViolationType.CURRENT, "permanent",
+                60, 400., 1.0F, 435.0831773201809, TwoSides.TWO);
+        int compare = LimitViolations.comparator().compare(expected,
+                result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0));
+        assertEquals(0, compare);
+    }
+
+    @Test
     void testPhaseShifterNecessaryForConnectivity() {
         Network network = PhaseControlFactory.createNetworkWithT2wt();
 
