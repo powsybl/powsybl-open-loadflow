@@ -12,6 +12,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.AreaInterchangeControlOuterloop;
 import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
@@ -191,7 +192,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
-            if (outerLoop instanceof DistributedSlackOuterLoop) {
+            if (outerLoop instanceof DistributedSlackOuterLoop || outerLoop instanceof AreaInterchangeControlOuterloop) {
                 distributedActivePower = ((DistributedSlackContextData) outerLoopContext.getData()).getDistributedActivePower();
             }
             outerLoop.cleanup(outerLoopContext);

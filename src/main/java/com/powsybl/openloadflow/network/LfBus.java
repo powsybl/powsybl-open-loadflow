@@ -215,4 +215,8 @@ public interface LfBus extends LfElement {
     LfAsymBus getAsym();
 
     void setAsym(LfAsymBus asym);
+
+    Optional<LfArea> getArea();
+
+    void setArea(LfArea area);
 }

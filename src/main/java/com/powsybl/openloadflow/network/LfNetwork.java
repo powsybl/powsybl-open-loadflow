@@ -76,6 +76,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final Map<String, LfLoad> loadsById = new HashMap<>();
 
+    private final Map<String, LfArea> areasById = new HashMap<>();
+
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
     private final Map<String, LfHvdc> hvdcsById = new HashMap<>();
@@ -298,6 +300,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         bus.getLoads().forEach(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
     }
 
+    public void addArea(LfArea area) {
+        Objects.requireNonNull(area);
+        areasById.put(area.getId(), area);
+    }
+
     public List<LfBus> getBuses() {
         return busesByIndex;
     }
@@ -363,6 +370,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfLoad getLoadById(String id) {
         Objects.requireNonNull(id);
         return loadsById.get(id);
+    }
+
+    public List<LfArea> getAreas() {
+        return new ArrayList<>(areasById.values());
+    }
+
+    public LfArea getAreaById(String id) {
+        Objects.requireNonNull(id);
+        return areasById.get(id);
     }
 
     public void addHvdc(LfHvdc hvdc) {

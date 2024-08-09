@@ -127,6 +127,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     protected static final FictitiousGeneratorVoltageControlCheckMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE = FictitiousGeneratorVoltageControlCheckMode.FORCED;
 
+    public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = false;
+
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -263,6 +265,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE = "fictitiousGeneratorVoltageControlCheckMode";
 
+    public static final String AREA_INTERCHANGE_CONTROL_PARAM_NAME = "areaInterchangeControl";
+
+    public static final String AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME = "areaInterchangeControlAreaType";
+
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -335,7 +341,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class)),
         new Parameter(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, ParameterType.BOOLEAN, "Maintain initial tap position if possible", LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE),
         new Parameter(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Nominal voltage under which generator voltage controls are disabled during transformer voltage control outer loop of mode AFTER_GENERATOR_VOLTAGE_CONTROL, < 0 means automatic detection", OpenLoadFlowParameters.GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE),
-        new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class))
+        new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class)),
+        new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Area interchange control", AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE),
+        new Parameter(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, ParameterType.STRING, "Area type for area interchange control", LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -512,6 +520,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double generatorVoltageControlMinNominalVoltage = GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE;
 
     private FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE;
+
+    private boolean areaInterchangeControl = AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
+
+    private String areaInterchangeControlAreaType = LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1209,6 +1221,24 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isAreaInterchangeControl() {
+        return areaInterchangeControl;
+    }
+
+    public OpenLoadFlowParameters setAreaInterchangeControl(boolean areaInterchangeControl) {
+        this.areaInterchangeControl = areaInterchangeControl;
+        return this;
+    }
+
+    public String getAreaInterchangeControlAreaType() {
+        return areaInterchangeControlAreaType;
+    }
+
+    public OpenLoadFlowParameters setAreaInterchangeControlAreaType(String areaInterchangeControlAreaType) {
+        this.areaInterchangeControlAreaType = Objects.requireNonNull(areaInterchangeControlAreaType);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1284,7 +1314,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE))
                 .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE))
                 .setTransformerVoltageControlUseInitialTapPosition(config.getBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE))
-                .setGeneratorVoltageControlMinNominalVoltage(config.getDoubleProperty(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE)));
+                .setGeneratorVoltageControlMinNominalVoltage(config.getDoubleProperty(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE))
+                .setAreaInterchangeControl(config.getBooleanProperty(AREA_INTERCHANGE_CONTROL_PARAM_NAME, AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE))
+                .setAreaInterchangeControlAreaType(config.getStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1439,11 +1471,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setGeneratorVoltageControlMinNominalVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE))
                 .ifPresent(prop -> this.setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(AREA_INTERCHANGE_CONTROL_PARAM_NAME))
+                .ifPresent(prop -> this.setAreaInterchangeControl(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME))
+                .ifPresent(this::setAreaInterchangeControlAreaType);
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(66);
+        Map<String, Object> map = new LinkedHashMap<>(70);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
@@ -1512,6 +1548,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, transformerVoltageControlUseInitialTapPosition);
         map.put(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, generatorVoltageControlMinNominalVoltage);
         map.put(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, fictitiousGeneratorVoltageControlCheckMode);
+        map.put(AREA_INTERCHANGE_CONTROL_PARAM_NAME, areaInterchangeControl);
+        map.put(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, areaInterchangeControlAreaType);
         return map;
     }
 
@@ -1640,7 +1678,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSimulateAutomationSystems(parametersExt.isSimulateAutomationSystems())
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
                 .setVoltageTargetPriorities(parametersExt.getVoltageTargetPriorities())
-                .setFictitiousGeneratorVoltageControlCheckMode(parametersExt.getFictitiousGeneratorVoltageControlCheckMode());
+                .setFictitiousGeneratorVoltageControlCheckMode(parametersExt.getFictitiousGeneratorVoltageControlCheckMode())
+                .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
+                .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1890,7 +1930,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities()) &&
                 extension1.isTransformerVoltageControlUseInitialTapPosition() == extension2.isTransformerVoltageControlUseInitialTapPosition() &&
                 extension1.getGeneratorVoltageControlMinNominalVoltage() == extension2.getGeneratorVoltageControlMinNominalVoltage() &&
-                extension1.getFictitiousGeneratorVoltageControlCheckMode() == extension2.getFictitiousGeneratorVoltageControlCheckMode();
+                extension1.getFictitiousGeneratorVoltageControlCheckMode() == extension2.getFictitiousGeneratorVoltageControlCheckMode() &&
+                extension1.isAreaInterchangeControl() == extension2.isAreaInterchangeControl() &&
+                Objects.equals(extension1.getAreaInterchangeControlAreaType(), extension2.getAreaInterchangeControlAreaType());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1983,7 +2025,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setVoltageTargetPriorities(extension.getVoltageTargetPriorities())
                     .setTransformerVoltageControlUseInitialTapPosition(extension.isTransformerVoltageControlUseInitialTapPosition())
                     .setGeneratorVoltageControlMinNominalVoltage(extension.getGeneratorVoltageControlMinNominalVoltage())
-                    .setFictitiousGeneratorVoltageControlCheckMode(extension.getFictitiousGeneratorVoltageControlCheckMode());
+                    .setFictitiousGeneratorVoltageControlCheckMode(extension.getFictitiousGeneratorVoltageControlCheckMode())
+                    .setAreaInterchangeControl(extension.isAreaInterchangeControl())
+                    .setAreaInterchangeControlAreaType(extension.getAreaInterchangeControlAreaType());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

@@ -143,6 +143,25 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportAreaInterchangeControlFailure(ReportNode reportNode, String areaMismatchesString, int iterationCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlFailure", "Failed to distribute interchange active power mismatch in ${iterationCount} iterations. Remaining mismatches: {areaMismatchesString}")
+                .withUntypedValue("areaMismatchesString", areaMismatchesString)
+                .withUntypedValue("iterationCount", iterationCount)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaInterchangeControlSuccess(ReportNode reportNode, String mismatches, int areasCount, int iterationCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlSuccess", "Area Interchange mismatches [${mismatches}] distributed in ${iterationCount} distribution iteration(s)")
+                .withUntypedValue("areasCount", areasCount)
+                .withUntypedValue("iterationCount", iterationCount)
+                .withUntypedValue("mismatches", mismatches)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
     public static void reportPvToPqBuses(ReportNode reportNode, int pvToPqBusCount, int remainingPvBusCount) {
         reportNode.newReportNode()
                 .withMessageTemplate("switchPvPq", "${pvToPqBusCount} buses switched PV -> PQ (${remainingPvBusCount} buses remain PV)")

@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -112,6 +113,26 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfDanglingLineBus = mainNetwork.getBusById("DL_BUS");
         assertTrue(lfDanglingLineBus instanceof LfDanglingLineBus);
         assertEquals("VL", lfDanglingLineBus.getVoltageLevelId());
+    }
+
+    @Test
+    void networkWithControlAreasTest() {
+        network = EurostagTutorialExample1Factory.createWithTieLinesAndAreas();
+        LfNetworkParameters parameters = new LfNetworkParameters();
+
+        List<LfNetwork> lfNetworks = Networks.load(network, parameters);
+        assertEquals(1, lfNetworks.size());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        assertTrue(mainNetwork.getAreas().isEmpty());
+
+        parameters.setAreaInterchangeControl(true);
+
+        lfNetworks = Networks.load(network, parameters);
+        assertEquals(1, lfNetworks.size());
+        mainNetwork = lfNetworks.get(0);
+        LfArea lfArea = mainNetwork.getAreaById("ControlArea_A");
+        assertNull(mainNetwork.getAreaById("Region_AB"));
+        assertEquals(-602.6 / PerUnit.SB, lfArea.getInterchangeTarget());
     }
 
     @Test
