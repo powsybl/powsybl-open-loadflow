@@ -136,6 +136,7 @@ class AcLoadFlowReportTest {
         assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL.toString(), result.getComponentResults().get(1).getStatusText());
         assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(2).getStatus());
         assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR.toString(), result.getComponentResults().get(2).getStatusText());
+        assertEquals(Double.NaN, network.getLoad("d9").getTerminal().getP()); // load on the NO_CALCULATION island connected component
         LoadFlowAssert.assertReportEquals("/multipleConnectedComponentsAcReport.txt", reportNode);
 
         // test in DC
@@ -151,6 +152,7 @@ class AcLoadFlowReportTest {
         assertEquals("Converged", result.getComponentResults().get(1).getStatusText());
         assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(2).getStatus());
         assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR.toString(), result.getComponentResults().get(2).getStatusText());
+        assertEquals(Double.NaN, network.getLoad("d9").getTerminal().getP()); // load on the NO_CALCULATION island connected component
         LoadFlowAssert.assertReportEquals("/multipleConnectedComponentsDcReport.txt", reportNode);
     }
 
