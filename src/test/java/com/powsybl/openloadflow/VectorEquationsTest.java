@@ -60,6 +60,7 @@ class VectorEquationsTest {
     private static final double B_SHUNT = 0.2748383993949494;
     private static final double DROOP = 103.13240312354819;
     private static final double P_0 = 1.9280906677246095;
+    private static final double R_HVDC = 0.001;
     private static final double LOSS_FACTOR_1 = 0.01100000023841858;
     private static final double LOSS_FACTOR_2 = 0.02400453453002384;
     private static final double G_SHUNT = 0.0000372472384299244;
@@ -142,6 +143,7 @@ class VectorEquationsTest {
                                               Variable<AcVariableType> a1Var, Variable<AcVariableType> r1Var) {
         Mockito.doReturn(deriveA1).when(branch).isPhaseController();
         Mockito.doReturn(deriveR1).when(branch).isVoltageController();
+        Mockito.doReturn(false).when(branch).isTransformerReactivePowerController();
         Mockito.doReturn(bus1).when(branch).getBus1();
         Mockito.doReturn(bus2).when(branch).getBus2();
 
@@ -313,6 +315,9 @@ class VectorEquationsTest {
         Mockito.doReturn(false).when(hvdc).isDisabled();
         Mockito.doReturn(DROOP).when(hvdc).getDroop();
         Mockito.doReturn(P_0).when(hvdc).getP0();
+        Mockito.doReturn(R_HVDC).when(hvdc).getR();
+        Mockito.doReturn(Double.MAX_VALUE).when(hvdc).getPMaxFromCS1toCS2();
+        Mockito.doReturn(Double.MAX_VALUE).when(hvdc).getPMaxFromCS2toCS1();
         LfVscConverterStationImpl station1 = Mockito.mock(LfVscConverterStationImpl.class, new RuntimeExceptionAnswer());
         LfVscConverterStationImpl station2 = Mockito.mock(LfVscConverterStationImpl.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(station1).when(hvdc).getConverterStation1();
@@ -337,7 +342,7 @@ class VectorEquationsTest {
 
         var sv = new StateVector(new double[] {PH_1, PH_2, 0});
 
-        assertArrayEquals(new double[] {-144.1554855266458, 5906.983150087268, -5906.983150087268, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {-123.36969198623507, 5906.983150087268, -5906.983150087268, Double.NaN, Double.NaN},
                 eval(new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, bus1, bus2, variableSet), variables, sv));
         assertArrayEquals(new double[] {144.20596034441598, -5909.051430021139, 5909.051430021139, Double.NaN, Double.NaN},
                 eval(new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, bus1, bus2, variableSet), variables, sv));

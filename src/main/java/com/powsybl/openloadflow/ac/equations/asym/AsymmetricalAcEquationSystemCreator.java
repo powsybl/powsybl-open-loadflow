@@ -224,6 +224,6 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
         createTransformerPhaseControlEquations(branch, bus1, bus2, creationContext, deriveA1, deriveR1);
 
-        createTransformerReactivePowerControlEquations(branch, equationSystem);
+        createTransformerReactivePowerControlEquations(branch, creationContext);
     }
 }

@@ -135,10 +135,10 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                     .ifPresent(voltageControl -> creator.recreateReactivePowerDistributionEquations(voltageControl, creationContext));
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(voltageControl, creationContext));
+                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(network.getNetwork(), voltageControl, creationContext));
             bus.getShuntVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateShuntSusceptanceDistributionEquations(voltageControl, creationContext));
+                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateShuntSusceptanceDistributionEquations(network.getNetwork(), voltageControl, creationContext));
         }
     }
 
