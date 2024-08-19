@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.util;
 
@@ -32,6 +33,16 @@ public class ParticipatingElement {
 
     public double getFactor() {
         return factor;
+    }
+
+    public double getTargetP() {
+        if (element instanceof LfGenerator generator) {
+            return generator.getTargetP();
+        } else if (element instanceof LfLoad load) {
+            return load.getTargetP();
+        } else {
+            return Double.NaN;
+        }
     }
 
     public static double participationFactorNorm(List<ParticipatingElement> participatingElements) {

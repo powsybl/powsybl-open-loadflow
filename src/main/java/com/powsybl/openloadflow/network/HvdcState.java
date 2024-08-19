@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -11,11 +12,20 @@ package com.powsybl.openloadflow.network;
  */
 public class HvdcState extends ElementState<LfHvdc> {
 
+    private boolean acEmulation;
+
     public HvdcState(LfHvdc hvdc) {
         super(hvdc);
+        this.acEmulation = hvdc.isAcEmulation();
     }
 
     public static HvdcState save(LfHvdc hvdc) {
         return new HvdcState(hvdc);
+    }
+
+    @Override
+    public void restore() {
+        super.restore();
+        element.setAcEmulation(acEmulation);
     }
 }

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -81,9 +82,10 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         loadsRefs.add(Ref.create(load, parameters.isCacheEnabled()));
         loadsDisablingStatus.put(load.getId(), false);
         double p0 = load.getP0();
+        double q0 = load.getQ0();
         targetP += p0 / PerUnit.SB;
         initialTargetP += p0 / PerUnit.SB;
-        targetQ += load.getQ0() / PerUnit.SB;
+        targetQ += q0 / PerUnit.SB;
         boolean hasVariableActivePower = false;
         if (parameters.isDistributedOnConformLoad()) {
             LoadDetail loadDetail = load.getExtension(LoadDetail.class);
@@ -91,7 +93,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
                 hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
             }
         }
-        if (p0 < 0 || hasVariableActivePower) {
+        boolean reactiveOnlyLoad = p0 == 0 && q0 != 0;
+        if (p0 < 0 || hasVariableActivePower || reactiveOnlyLoad) {
             ensurePowerFactorConstantByLoad = true;
         }
         double absTargetP = getAbsVariableTargetP(load);

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -107,6 +108,16 @@ public class SimplePiModel implements PiModel {
     @Override
     public double getR1() {
         return r1;
+    }
+
+    @Override
+    public double getMinR1() {
+        return getR1();
+    }
+
+    @Override
+    public double getMaxR1() {
+        return getR1();
     }
 
     @Override

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -12,10 +13,8 @@ package com.powsybl.openloadflow.network;
  */
 public class ShuntVoltageControl extends DiscreteVoltageControl<LfShunt> {
 
-    private static final int PRIORITY = 2;
-
-    public ShuntVoltageControl(LfBus controlledBus, double targetValue, Double targetDeadband) {
-        super(controlledBus, Type.SHUNT, PRIORITY, targetValue, targetDeadband);
+    public ShuntVoltageControl(LfBus controlledBus, int targetPriority, double targetValue, Double targetDeadband) {
+        super(controlledBus, Type.SHUNT, targetPriority, targetValue, targetDeadband);
     }
 
     @Override

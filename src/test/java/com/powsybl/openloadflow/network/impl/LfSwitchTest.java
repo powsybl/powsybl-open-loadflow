@@ -3,17 +3,18 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -47,7 +48,7 @@ class LfSwitchTest {
         network = NodeBreakerNetworkFactory.create();
         acLoadFlowParameters = OpenLoadFlowParameters.createAcParameters(network, new LoadFlowParameters(),
                 new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true, false);
-        List<LfNetwork> lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), Reporter.NO_OP);
+        List<LfNetwork> lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), ReportNode.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");
@@ -61,8 +62,8 @@ class LfSwitchTest {
         assertEquals(Double.NaN, lfSwitch.getP2().eval());
         assertEquals(Double.NaN, lfSwitch.getI1().eval());
         assertEquals(Double.NaN, lfSwitch.getI2().eval());
-        assertEquals(Collections.emptyList(), lfSwitch.getLimits1(LimitType.CURRENT));
-        assertEquals(Collections.emptyList(), lfSwitch.getLimits2(LimitType.CURRENT));
+        assertEquals(Collections.emptyList(), lfSwitch.getLimits1(LimitType.CURRENT, null));
+        assertEquals(Collections.emptyList(), lfSwitch.getLimits2(LimitType.CURRENT, null));
     }
 
     @Test

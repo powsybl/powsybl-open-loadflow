@@ -1,24 +1,27 @@
 + Test ESG tutorial report
-  + Load flow on network 'sim1'
-    + Network CC0 SC0
-       AC load flow complete with NR status 'CONVERGED'
-      + Post loading processing
-         Network has 4 buses and 4 branches
-         Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
-      + Outer loop DistributedSlack
-         Iteration 0: slack bus active power (-1.4404045651219555 MW) distributed in 1 iterations
-         Iteration 1: already balanced
-      + Outer loop VoltageMonitoring
-      + Outer loop ReactiveLimits
-      + Outer loop DistributedSlack
-         Iteration 1: already balanced
-      + Outer loop VoltageMonitoring
-      + Outer loop ReactiveLimits
-  + Sensitivity analysis on network 'sim1'
-    + Network CC0 SC0
-       AC load flow complete with NR status 'CONVERGED'
-      + Post loading processing
-         Network has 4 buses and 4 branches
-         Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
-      + Outer loop VoltageMonitoring
-      + Outer loop ReactiveLimits
+   + Load flow on network 'sim1'
+      + Network CC0 SC0
+         + Network info
+            Network has 4 buses and 4 branches
+            Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+            Angle reference bus: VLHV1_0
+            Slack bus: VLHV1_0
+         + Outer loop DistributedSlack
+            + Outer loop iteration 1
+               Slack bus active power (-1.4404045651219555 MW) distributed in 1 distribution iteration(s)
+         Outer loop VoltageMonitoring
+         Outer loop ReactiveLimits
+         Outer loop DistributedSlack
+         Outer loop VoltageMonitoring
+         Outer loop ReactiveLimits
+         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+   + Sensitivity analysis on network 'sim1'
+      + Network CC0 SC0
+         + Network info
+            Network has 4 buses and 4 branches
+            Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+            Angle reference bus: VLLOAD_0
+            Slack bus: VLLOAD_0
+         Outer loop VoltageMonitoring
+         Outer loop ReactiveLimits
+         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

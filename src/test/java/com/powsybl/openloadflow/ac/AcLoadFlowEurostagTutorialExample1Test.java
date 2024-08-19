@@ -3,11 +3,12 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -21,8 +22,11 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -270,26 +274,29 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void noGeneratorTest() {
-        network.getGenerator("GEN").getTerminal().disconnect();
+    void noGeneratorPvTest() {
+        // GEN is only generator with voltage control, disable it
+        network.getGenerator("GEN").setVoltageRegulatorOn(false);
 
-        ReporterModel reporter = new ReporterModel("unitTest", "");
-        LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reporter);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("unitTest", "")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertFalse(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
 
         // also check there is a report added for this error
-        assertEquals(1, reporter.getSubReporters().size());
-        ReporterModel lfReporter = reporter.getSubReporters().get(0);
-        assertEquals(1, lfReporter.getSubReporters().size());
-        ReporterModel createNetworkReporter = lfReporter.getSubReporters().get(0);
-        assertEquals("lfNetwork", createNetworkReporter.getTaskKey());
-        ReporterModel postLoadingReporter = createNetworkReporter.getSubReporters().get(0);
-        assertEquals("postLoadingProcessing", postLoadingReporter.getTaskKey());
-        assertEquals(1, postLoadingReporter.getReports().size());
+        assertEquals(1, reportNode.getChildren().size());
+        ReportNode lfReportNode = reportNode.getChildren().get(0);
+        assertEquals(1, lfReportNode.getChildren().size());
+        ReportNode networkReportNode = lfReportNode.getChildren().get(0);
+        assertEquals("lfNetwork", networkReportNode.getMessageKey());
+        ReportNode networkInfoReportNode = networkReportNode.getChildren().get(0);
+        assertEquals("networkInfo", networkInfoReportNode.getMessageKey());
+        assertEquals(1, networkInfoReportNode.getChildren().size());
         assertEquals("Network must have at least one bus with generator voltage control enabled",
-                postLoadingReporter.getReports().iterator().next().getDefaultMessage());
+                networkInfoReportNode.getChildren().get(0).getMessage());
     }
 
     @Test
@@ -421,7 +428,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMinP(-9999.99D).setMaxP(9999.99D)
                 .setVoltageRegulatorOn(true).setTargetV(24.5D)
                 .setTargetP(607.0D).setTargetQ(301.0D).add();
-        network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(160).add();
+        // GEN1 reactive limits are not plausible => fallback into split Q equally
+        network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(-10000).setMaxQ(10000).add();
         LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(false)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
@@ -437,7 +445,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void testGeneratorsConnectedToSameBusNotControllingSameBus() {
+    void testGeneratorsConnectedToSameBusNotControllingSameBus() throws IOException {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getVoltageLevel("VLGEN").newGenerator()
                 .setId("GEN2")
@@ -450,9 +458,13 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setTargetV(148)
                 .setRegulatingTerminal(network.getLoad("LOAD").getTerminal())
                 .add();
-        loadFlowRunner.run(network);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertVoltageEquals(24.5, network.getBusBreakerView().getBus("NGEN"));
         assertVoltageEquals(147.57, network.getBusBreakerView().getBus("NLOAD"));
+        LoadFlowAssert.assertReportEquals("/generatorsConnectedToSameBusNotControllingSameBusReport.txt", reportNode);
     }
 
     @Test
@@ -463,5 +475,29 @@ class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Reached outer loop max iterations limit. Last outer loop name: DistributedSlack", result.getComponentResults().get(0).getStatusText());
+    }
+
+    @Test
+    void testWriteReadSlackBus() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), "newVariant");
+        LoadFlowParameters parameters = new LoadFlowParameters().setWriteSlackBus(true);
+        OpenLoadFlowParameters openLoadFlowParameters =
+                OpenLoadFlowParameters.create(parameters).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = LoadFlow.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        SlackTerminal slackTerminal = network.getVoltageLevel("VLGEN").getExtension(SlackTerminal.class);
+        assertNotNull(slackTerminal);
+        assertNotNull(slackTerminal.getTerminal());
+        openLoadFlowParameters.setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        LoadFlowResult result2 = LoadFlow.run(network, "newVariant", LocalComputationManager.getDefault(), parameters);
+        assertTrue(result2.isFullyConverged());
+        assertEquals("VLHV1_0", result2.getComponentResults().get(0).getSlackBusResults().get(0).getId());
+        network.getVariantManager().setWorkingVariant("newVariant");
+        assertNull(slackTerminal.getTerminal());
+        LoadFlowResult result3 = LoadFlow.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters);
+        assertTrue(result3.isFullyConverged());
+        assertEquals("VLGEN_0", result3.getComponentResults().get(0).getSlackBusResults().get(0).getId());
     }
 }

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
@@ -45,7 +46,7 @@ class NewtonKrylovTest {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcSolverType(AcSolverType.NEWTOW_KRYLOV)
+                .setAcSolverType(AcSolverType.NEWTON_KRYLOV)
                 .setMaxNewtonKrylovIterations(20);
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory())); // sparse matrix solver only
     }
@@ -86,7 +87,7 @@ class NewtonKrylovTest {
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(7, result.getComponentResults().get(0).getIterationCount());
 
-        parametersExt.setAcSolverType(AcSolverType.NEWTOW_KRYLOV);
+        parametersExt.setAcSolverType(AcSolverType.NEWTON_KRYLOV);
 
         result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());

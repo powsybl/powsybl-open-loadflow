@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.equations;
 
@@ -34,6 +35,11 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         }
 
         @Override
+        public void onTransformerVoltageControlTargetChange(TransformerVoltageControl transformerVoltageControl, double newTargetVoltage) {
+            invalidateValues();
+        }
+
+        @Override
         public void onLoadActivePowerTargetChange(LfLoad load, double oldTargetP, double newTargetP) {
             invalidateValues();
         }
@@ -61,6 +67,15 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         @Override
         public void onShuntSusceptanceChange(LfShunt shunt, double b) {
             invalidateValues();
+        }
+
+        @Override
+        public void onDisableChange(LfElement element, boolean disabled) {
+            for (var equationTerm : equationSystem.getEquationTerms(element.getType(), element.getNum())) {
+                if (equationTerm.hasRhs()) {
+                    invalidateValues();
+                }
+            }
         }
     };
 

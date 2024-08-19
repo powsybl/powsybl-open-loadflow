@@ -3,9 +3,12 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -14,8 +17,11 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -323,7 +329,7 @@ class AcLoadFlowShuntTest {
     }
 
     @Test
-    void testUnsupportedSharedVoltageControl() {
+    void testUnsupportedSharedVoltageControl() throws IOException {
         // in that test case, we test two shunts connected to the same bus, both are in voltage regulation
         // but with a different regulating terminal.
         ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
@@ -348,11 +354,15 @@ class AcLoadFlowShuntTest {
                 .add();
 
         parameters.setShuntCompensatorVoltageControlOn(true);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(391.640, bus3);
         assertEquals(1, shunt.getSectionCount());
         assertEquals(2, shunt2.getSectionCount());
+        LoadFlowAssert.assertReportEquals("/controllerShuntAlreadyInVoltageControlReport.txt", reportNode);
     }
 
     @Test
@@ -423,6 +433,18 @@ class AcLoadFlowShuntTest {
 
         shunt.setSectionCount(0);
         shunt.setTargetDeadband(10);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged());
+        assertVoltageEquals(388.581, bus3);
+        assertEquals(0, shunt.getSectionCount());
+    }
+
+    @Test
+    void testNotPlausibleTargetV() {
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
+        shunt.setTargetV(600);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         assertVoltageEquals(388.581, bus3);

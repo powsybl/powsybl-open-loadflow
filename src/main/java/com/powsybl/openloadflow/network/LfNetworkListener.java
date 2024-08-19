@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -24,6 +25,8 @@ public interface LfNetworkListener {
     void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled);
 
     void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled);
+
+    void onTransformerVoltageControlTargetChange(TransformerVoltageControl transformerVoltageControl, double newTargetVoltage);
 
     void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled);
 
@@ -48,4 +51,8 @@ public interface LfNetworkListener {
     void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel);
 
     void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected);
+
+    void onSlackBusChange(LfBus bus, boolean slack);
+
+    void onReferenceBusChange(LfBus bus, boolean reference);
 }

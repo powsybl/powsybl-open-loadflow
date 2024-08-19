@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -14,7 +15,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -41,8 +41,10 @@ public class LfContingency {
 
     private final Set<String> disconnectedElementIds;
 
+    private final Set<LfHvdc> hvdcsWithoutPower;
+
     public LfContingency(String id, int index, int createdSynchronousComponentsCount, DisabledNetwork disabledNetwork, Map<LfShunt, AdmittanceShift> shuntsShift,
-                         Map<LfLoad, LfLostLoad> lostLoads, Set<LfGenerator> lostGenerators) {
+                         Map<LfLoad, LfLostLoad> lostLoads, Set<LfGenerator> lostGenerators, Set<LfHvdc> hvdcsWithoutPower) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.createdSynchronousComponentsCount = createdSynchronousComponentsCount;
@@ -50,6 +52,7 @@ public class LfContingency {
         this.shuntsShift = Objects.requireNonNull(shuntsShift);
         this.lostLoads = Objects.requireNonNull(lostLoads);
         this.lostGenerators = Objects.requireNonNull(lostGenerators);
+        this.hvdcsWithoutPower = Objects.requireNonNull(hvdcsWithoutPower);
         this.disconnectedLoadActivePower = 0.0;
         this.disconnectedGenerationActivePower = 0.0;
         this.disconnectedElementIds = new HashSet<>();
@@ -57,8 +60,8 @@ public class LfContingency {
         for (LfBus bus : disabledNetwork.getBuses()) {
             disconnectedLoadActivePower += bus.getLoadTargetP();
             disconnectedGenerationActivePower += bus.getGenerationTargetP();
-            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.toList()));
-            disconnectedElementIds.addAll(bus.getLoads().stream().flatMap(l -> l.getOriginalIds().stream()).collect(Collectors.toList()));
+            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).toList());
+            disconnectedElementIds.addAll(bus.getLoads().stream().flatMap(l -> l.getOriginalIds().stream()).toList());
             bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
             bus.getShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
         }
@@ -71,7 +74,7 @@ public class LfContingency {
             disconnectedGenerationActivePower += generator.getTargetP();
             disconnectedElementIds.add(generator.getOriginalId());
         }
-        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).collect(Collectors.toList()));
+        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).toList());
         // FIXME: shuntsShift has to be included in the disconnected elements.
     }
 
@@ -152,14 +155,15 @@ public class LfContingency {
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
             generator.setTargetP(0);
+            generator.setInitialTargetP(0);
             LfBus bus = generator.getBus();
             generatorBuses.add(bus);
             generator.setParticipating(false);
             generator.setDisabled(true);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
-                bus.getGeneratorVoltageControl().ifPresent(vc -> vc.updateReactiveKeys());
-                bus.getGeneratorReactivePowerControl().ifPresent(rc -> rc.updateReactiveKeys());
+                bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
+                bus.getGeneratorReactivePowerControl().ifPresent(GeneratorReactivePowerControl::updateReactiveKeys);
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
@@ -178,6 +182,10 @@ public class LfContingency {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
                 bus.setGeneratorReactivePowerControlEnabled(false);
             }
+        }
+        for (LfHvdc hvdc : hvdcsWithoutPower) {
+            hvdc.getConverterStation1().setTargetP(0.0);
+            hvdc.getConverterStation2().setTargetP(0.0);
         }
     }
 

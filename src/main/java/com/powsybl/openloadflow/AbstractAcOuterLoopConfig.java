@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
@@ -54,12 +55,15 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
-    protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.TransformerVoltageControlMode controlMode,
-                                                                                    int incrementalTransformerVoltageControlOuterLoopMaxTapShift) {
+    protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters,
+                                                                                    boolean useInitialTapPosition,
+                                                                                    OpenLoadFlowParameters.TransformerVoltageControlMode controlMode,
+                                                                                    int incrementalTransformerVoltageControlOuterLoopMaxTapShift,
+                                                                                    double generatorVoltageControlMinNominalVoltage) {
         if (parameters.isTransformerVoltageControlOn()) {
             AcOuterLoop outerLoop = switch (controlMode) {
                 case WITH_GENERATOR_VOLTAGE_CONTROL -> new SimpleTransformerVoltageControlOuterLoop();
-                case AFTER_GENERATOR_VOLTAGE_CONTROL -> new TransformerVoltageControlOuterLoop();
+                case AFTER_GENERATOR_VOLTAGE_CONTROL -> new TransformerVoltageControlOuterLoop(useInitialTapPosition, generatorVoltageControlMinNominalVoltage);
                 case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalTransformerVoltageControlOuterLoop(incrementalTransformerVoltageControlOuterLoopMaxTapShift);
             };
             return Optional.of(outerLoop);
@@ -69,8 +73,17 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return createTransformerVoltageControlOuterLoop(parameters,
+                                                        parametersExt.isTransformerVoltageControlUseInitialTapPosition(),
                                                         parametersExt.getTransformerVoltageControlMode(),
-                                                        parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+                                                        parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(),
+                                                        parametersExt.getGeneratorVoltageControlMinNominalVoltage());
+    }
+
+    protected static Optional<AcOuterLoop> createTransformerReactivePowerControlOuterLoop(OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isTransformerReactivePowerControl()) {
+            return Optional.of(new IncrementalTransformerReactivePowerControlOuterLoop(parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift()));
+        }
+        return Optional.empty();
     }
 
     protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode) {

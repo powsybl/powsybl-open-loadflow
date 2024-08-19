@@ -3,10 +3,11 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
@@ -16,6 +17,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -302,7 +304,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .stream()
                 .filter(e -> {
                     double newTargetV = e.getValue();
-                    return LfGenerator.isTargetVoltageNotPlausible(newTargetV, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+                    return !VoltageControl.isTargetVoltagePlausible(newTargetV, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
                 })
                 .map(e -> {
                     // convert target to Kv for better display
@@ -330,54 +332,9 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return Optional.of(adjustedZoneNames);
     }
 
-    private static void classifyControllerBuses(LfSecondaryVoltageControl control, List<LfBus> allControllerBuses,
-                                                List<LfBus> controllerBusesToMinQ, List<LfBus> controllerBusesToMaxQ) {
-        control.getControllerBuses()
-                .forEach(controllerBus -> {
-                    allControllerBuses.add(controllerBus);
-                    controllerBus.getQLimitType().ifPresent(qLimitType -> {
-                        if (qLimitType == LfBus.QLimitType.MIN_Q) {
-                            controllerBusesToMinQ.add(controllerBus);
-                        } else { // MAX_Q
-                            controllerBusesToMaxQ.add(controllerBus);
-                        }
-                    });
-                });
-    }
-
-    private static void tryToReEnableHelpfulControllerBuses(LfSecondaryVoltageControl control) {
-        List<LfBus> controllerBusesToMinQ = new ArrayList<>();
-        List<LfBus> controllerBusesToMaxQ = new ArrayList<>();
-        List<LfBus> allControllerBuses = new ArrayList<>();
-        classifyControllerBuses(control, allControllerBuses, controllerBusesToMinQ, controllerBusesToMaxQ);
-
-        var pilotBus = control.getPilotBus();
-        if (controllerBusesToMinQ.size() == allControllerBuses.size() && pilotBus.getV() < control.getTargetValue() // all controllers are to min q
-                || controllerBusesToMaxQ.size() == allControllerBuses.size() && pilotBus.getV() > control.getTargetValue()) { // all controllers are to max q
-            for (LfBus controllerBus : allControllerBuses) {
-                controllerBus.setGeneratorVoltageControlEnabled(true);
-                controllerBus.setQLimitType(null);
-            }
-            LOGGER.debug("Secondary voltage control of zone '{}': all to limit controller buses have been re-enabled because might help to reach pilot bus target",
-                    control.getZoneName());
-        } else {
-            List<LfBus> controllerBusesToLimit = new ArrayList<>(controllerBusesToMinQ.size() + controllerBusesToMaxQ.size());
-            controllerBusesToLimit.addAll(controllerBusesToMinQ);
-            controllerBusesToLimit.addAll(controllerBusesToMaxQ);
-            if (!controllerBusesToLimit.isEmpty() && controllerBusesToLimit.size() < allControllerBuses.size()) {
-                for (LfBus controllerBus : controllerBusesToLimit) {
-                    controllerBus.setGeneratorVoltageControlEnabled(true);
-                    controllerBus.setQLimitType(null);
-                }
-                LOGGER.debug("Secondary voltage control of zone '{}': controller buses {} have been re-enabled because might help to reach pilot bus target",
-                        control.getZoneName(), controllerBusesToLimit);
-            }
-        }
-    }
-
     private static void tryToReEnableHelpfulControllerBuses(LfNetwork network) {
         network.getEnabledSecondaryVoltageControls()
-                .forEach(SecondaryVoltageControlOuterLoop::tryToReEnableHelpfulControllerBuses);
+                .forEach(LfSecondaryVoltageControl::tryToReEnableHelpfulControllerBuses);
     }
 
     private static void logZonesWithAllBusControllersAtReactivePowerLimit(LfNetwork network) {
@@ -392,7 +349,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         LfNetwork network = context.getNetwork();
 
         // try to re-enable controller buses that have reached a reactive power limit (so bus switched to PQ) if they
@@ -409,7 +366,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .toList();
 
         if (secondaryVoltageControls.isEmpty()) {
-            return OuterLoopStatus.STABLE;
+            return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
 
         // compute target voltage sensitivities for all controlled buses
@@ -431,6 +388,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             }
         }
 
-        return status;
+        return new OuterLoopResult(this, status);
     }
 }

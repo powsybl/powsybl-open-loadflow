@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -26,6 +27,7 @@ public class BusState extends BusDcState {
     private final double controllerShuntG;
     private final double svcShuntB;
     private final Map<String, LfGenerator.GeneratorControlType> generatorsControlType;
+    private final LfBus.QLimitType qLimitType;
 
     private static class LoadState extends LoadDcState {
 
@@ -62,6 +64,7 @@ public class BusState extends BusDcState {
         LfShunt svcShunt = bus.getSvcShunt().orElse(null);
         svcShuntB = svcShunt != null ? svcShunt.getB() : Double.NaN;
         this.generatorsControlType = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getGeneratorControlType));
+        qLimitType = bus.getQLimitType().orElse(null);
     }
 
     @Override
@@ -96,6 +99,7 @@ public class BusState extends BusDcState {
             element.getSvcShunt().orElseThrow().setB(svcShuntB);
         }
         element.getGenerators().forEach(g -> g.setGeneratorControlType(generatorsControlType.get(g.getId())));
+        element.setQLimitType(qLimitType);
     }
 
     public static BusState save(LfBus bus) {

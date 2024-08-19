@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -32,10 +33,16 @@ public class PiModelArray implements PiModel {
 
     private LfBranch branch;
 
+    private final double minR1;
+
+    private final double maxR1;
+
     public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition) {
         this.models = Objects.requireNonNull(models);
         this.lowTapPosition = lowTapPosition;
         tapPositionIndex = tapPosition - lowTapPosition;
+        minR1 = this.models.stream().mapToDouble(PiModel::getMinR1).min().orElseThrow();
+        maxR1 = this.models.stream().mapToDouble(PiModel::getMaxR1).max().orElseThrow();
     }
 
     List<PiModel> getModels() {
@@ -387,6 +394,16 @@ public class PiModelArray implements PiModel {
             }
         }
         return this;
+    }
+
+    @Override
+    public double getMinR1() {
+        return minR1;
+    }
+
+    @Override
+    public double getMaxR1() {
+        return maxR1;
     }
 
     @Override

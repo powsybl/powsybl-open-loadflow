@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -216,5 +217,35 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         line.setMinZ(10); // for both AC and DC load flow model
         assertFalse(line.isZeroImpedance(LoadFlowModel.AC));
         assertFalse(line.isZeroImpedance(LoadFlowModel.DC));
+    }
+
+    @Test
+    void testDiscardGeneratorsWithTargetPOutsideActiveLimitsFromVoltageControl() {
+        LfNetworkParameters networkParameters = new LfNetworkParameters()
+                .setUseActiveLimits(true)
+                .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(true);
+
+        Network network = Network.create("test", "code");
+        Bus b = createBus(network, "b", 380);
+
+        // discarded from voltage control because targetP < minP (50 < 100)
+        Generator g1 = createGenerator(b, "g1", 50, 400);
+        g1.setMinP(100).setMaxP(200);
+
+        // discarded from voltage control because targetP > maxP (250 > 200)
+        Generator g2 = createGenerator(b, "g2", 250, 400);
+        g2.setMinP(100).setMaxP(200);
+
+        // kept
+        Generator g3 = createGenerator(b, "g3", 150, 400);
+        g3.setMinP(100).setMaxP(200);
+
+        List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        List<LfGenerator> generators = lfNetwork.getBus(0).getGenerators();
+
+        assertEquals(LfGenerator.GeneratorControlType.OFF, generators.get(0).getGeneratorControlType());
+        assertEquals(LfGenerator.GeneratorControlType.OFF, generators.get(1).getGeneratorControlType());
+        assertEquals(LfGenerator.GeneratorControlType.VOLTAGE, generators.get(2).getGeneratorControlType());
     }
 }

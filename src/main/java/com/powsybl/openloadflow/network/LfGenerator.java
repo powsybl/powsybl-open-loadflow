@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -13,7 +14,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface LfGenerator extends PropertyBag {
+public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     enum GeneratorControlType {
         OFF, REMOTE_REACTIVE_POWER, VOLTAGE, MONITORING_VOLTAGE
@@ -37,10 +38,6 @@ public interface LfGenerator extends PropertyBag {
         double minQ = generator.getMinQ();
         double maxQ = generator.getMaxQ();
         return (2 * q - maxQ - minQ) / (maxQ - minQ);
-    }
-
-    static boolean isTargetVoltageNotPlausible(double targetV, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
-        return targetV < minPlausibleTargetVoltage || targetV > maxPlausibleTargetVoltage;
     }
 
     String getId();
@@ -67,9 +64,29 @@ public interface LfGenerator extends PropertyBag {
 
     double getInitialTargetP();
 
+    void setInitialTargetP(double initialTargetP);
+
+    void setInitialTargetPToTargetP();
+
     double getTargetP();
 
     void setTargetP(double targetP);
+
+    /**
+     * The minimum target P for active power operations (can be different from minP if minTargetP is set in the ActivePowerControl extension)
+     * This limit is taken into account in the slack distribution.
+     */
+    default double getMinTargetP() {
+        return getMinP();
+    }
+
+    /**
+     * The maximum target P for active power operations (can be different from maxP if maxTargetP is set in the ActivePowerControl extension)
+     * This limit is taken into account in the slack distribution.
+     */
+    default double getMaxTargetP() {
+        return getMaxP();
+    }
 
     double getMinP();
 
@@ -99,7 +116,7 @@ public interface LfGenerator extends PropertyBag {
 
     void setCalculatedQ(double calculatedQ);
 
-    void updateState();
+    void updateState(LfNetworkStateUpdateParameters parameters);
 
     LfBus getControlledBus();
 

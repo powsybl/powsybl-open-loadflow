@@ -3,16 +3,19 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Line;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -20,11 +23,11 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisParameters;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
 import com.powsybl.security.*;
-import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +54,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     @BeforeEach
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters();
+        parameters = new LoadFlowParameters().setWriteSlackBus(false);
         parametersExt = OpenLoadFlowParameters.create(parameters);
     }
 
@@ -360,10 +363,11 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
-        SecurityAnalysisReport report = securityAnalysisProvider.run(network, network.getVariantManager().getWorkingVariantId(), new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(), LocalComputationManager.getDefault(), new SecurityAnalysisParameters(), provider, Collections.emptyList(),
-                Collections.emptyList(), Collections.emptyList(),
-                Collections.emptyList(), Reporter.NO_OP).join();
+        SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
+                .setFilter(new LimitViolationFilter())
+                .setComputationManager(LocalComputationManager.getDefault())
+                .setSecurityAnalysisParameters(new SecurityAnalysisParameters());
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network, network.getVariantManager().getWorkingVariantId(), provider, runParameters).join();
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(0).getStatus());
         assertEquals(PostContingencyComputationStatus.CONVERGED, report.getResult().getPostContingencyResults().get(1).getStatus());
     }
@@ -380,46 +384,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
      */
     @Test
     void securityAnalysisNotSameNumberOfVariablesAndEquationsIssueTest() {
-        Network network = Network.create("test", "code");
-        Bus b0 = createBus(network, "s", "b0");
-        Bus b1 = createBus(network, "s", "b1");
-        Bus b2 = createBus(network, "s", "b2");
-        Bus b3 = createBus(network, "s", "b3");
-        Bus b4 = createBus(network, "s", "b4");
-        Bus b5 = createBus(network, "s", "b5");
-        Generator g0 = createGenerator(b0, "g0", 2, 1); // 1 kV
-        createGenerator(b4, "g4", 2, 1.15); // 1.15 kV
-        createLoad(b5, "ld5", 4);
-        Line l01 = createLine(network, b0, b1, "l01", 0.1);
-        createLine(network, b1, b2, "l12", 0.0);
-        createLine(network, b2, b3, "l23", 0.0);
-        createLine(network, b1, b5, "l15", 0.1);
-        createLine(network, b5, b3, "l53", 0.1);
-        g0.setRegulatingTerminal(l01.getTerminal2()); // remote
-        TwoWindingsTransformer t34 = createTransformer(network, "s", b3, b4, "tr34", 0.15, 1);
-        t34.newRatioTapChanger()
-                .beginStep()
-                    .setRho(0.9)
-                .endStep()
-                .beginStep()
-                    .setRho(1)
-                .endStep()
-                .beginStep()
-                    .setRho(1.1)
-                .endStep()
-                .beginStep()
-                    .setRho(1.2)
-                .endStep()
-                .setTapPosition(1)
-                .setLoadTapChangingCapabilities(true)
-                .setRegulating(true)
-                .setTargetV(1.1)
-                .setRegulationTerminal(t34.getTerminal1())
-                .setTargetDeadband(0.01)
-                .add();
-
+        Network network = ZeroImpedanceNetworkFactory.createWithVoltageControl();
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l01"))));
-
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
                 .setDistributedSlack(false)
                 .setTransformerVoltageControlOn(true);
@@ -434,18 +400,15 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                 Set.of("tr34"),
                 Set.of("b0_vl", "b1_vl", "b2_vl", "b3_vl", "b4_vl", "b5_vl"),
                 Collections.emptySet()));
+        SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
+                .setFilter(new LimitViolationFilter())
+                .setComputationManager(LocalComputationManager.getDefault())
+                .setSecurityAnalysisParameters(securityAnalysisParameters)
+                .setMonitors(monitors);
         SecurityAnalysisResult result = provider.run(network,
                         network.getVariantManager().getWorkingVariantId(),
-                        new DefaultLimitViolationDetector(),
-                        new LimitViolationFilter(),
-                        LocalComputationManager.getDefault(),
-                        securityAnalysisParameters,
                         n -> contingencies,
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        monitors,
-                        Reporter.NO_OP)
+                        runParameters)
                 .join()
                 .getResult();
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());

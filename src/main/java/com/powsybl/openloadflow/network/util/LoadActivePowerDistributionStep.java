@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.util;
 
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,7 +43,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getLoads().stream())
                 .map(load -> new ParticipatingElement(load, getParticipationFactor(load)))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(LinkedList::new));
     }
 
     private double getParticipationFactor(LfLoad load) {
@@ -49,7 +51,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     }
 
     @Override
-    public ActivePowerDistribution.StepResult run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
+    public double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // loads might have reach zero and have been discarded.
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
@@ -83,7 +85,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} buses ({} at min consumption)",
                 -done * PerUnit.SB, -remainingMismatch * PerUnit.SB, iteration, modifiedBuses, loadsAtMin);
 
-        return new ActivePowerDistribution.StepResult(done, modifiedBuses != 0);
+        return done;
     }
 
     private static void ensurePowerFactorConstant(LfLoad load, double newLoadTargetP) {

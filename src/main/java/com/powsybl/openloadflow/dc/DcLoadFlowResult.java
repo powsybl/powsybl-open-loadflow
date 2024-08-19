@@ -3,9 +3,11 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -14,14 +16,26 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class DcLoadFlowResult extends AbstractLoadFlowResult {
 
-    private final boolean succeeded;
+    private final boolean success;
 
-    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, boolean succeeded) {
+    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, boolean success) {
         super(network, slackBusActivePowerMismatch);
-        this.succeeded = succeeded;
+        this.success = success;
     }
 
-    public boolean isSucceeded() {
-        return succeeded;
+    @Override
+    public boolean isSuccess() {
+        return success;
+    }
+
+    @Override
+    public Status toComponentResultStatus() {
+        if (network.getValidity() != LfNetwork.Validity.VALID) {
+            return new Status(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, network.getValidity().toString());
+        }
+        if (success) {
+            return new Status(LoadFlowResult.ComponentResult.Status.CONVERGED, "Converged");
+        }
+        return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Solver Failed");
     }
 }

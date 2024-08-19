@@ -3,10 +3,11 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -15,6 +16,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.lf.outerloop.AbstractPhaseControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.Direction;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -54,18 +56,18 @@ public class PhaseControlOuterLoop
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         if (context.getIteration() == 0) {
             // at first outer loop iteration:
             // branches with active power control are switched off and taps are rounded
             // branches with current limiter control will wait for second iteration
-            return firstIteration(context);
+            return new OuterLoopResult(this, firstIteration(context));
         } else if (context.getIteration() > 0) {
             // at second outer loop iteration:
             // flow of branches with fixed tap are recomputed
-            return nextIteration(context);
+            return new OuterLoopResult(this, nextIteration(context));
         }
-        return OuterLoopStatus.STABLE;
+        return new OuterLoopResult(this, OuterLoopStatus.STABLE);
     }
 
     private OuterLoopStatus firstIteration(AcOuterLoopContext context) {

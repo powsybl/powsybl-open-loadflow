@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -49,10 +50,11 @@ public interface LfBus extends LfElement {
     Optional<VoltageControl<?>> getVoltageControl(VoltageControl.Type type);
 
     /**
-     * Get the highest priority voltage control connected to a bus of the zero impedance subgraph to which this bus
-     * belong.
+     * Get the target voltage of the voltage control:
+     * - connected to a bus of the zero impedance subgraph to which this bus belongs to
+     * - with the highest priority for selection of target voltage
      */
-    Optional<VoltageControl<?>> getHighestPriorityMainVoltageControl();
+    OptionalDouble getHighestPriorityTargetV();
 
     // generator voltage control
     Optional<GeneratorVoltageControl> getGeneratorVoltageControl();
@@ -148,6 +150,8 @@ public interface LfBus extends LfElement {
     List<LfBranch> getBranches();
 
     void addBranch(LfBranch branch);
+
+    List<LfHvdc> getHvdcs();
 
     void addHvdc(LfHvdc hvdc);
 

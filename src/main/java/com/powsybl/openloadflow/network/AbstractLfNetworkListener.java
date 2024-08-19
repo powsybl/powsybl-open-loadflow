@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -32,6 +33,11 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
     public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
+        // empty
+    }
+
+    @Override
+    public void onTransformerVoltageControlTargetChange(TransformerVoltageControl transformerVoltageControl, double newTargetVoltage) {
         // empty
     }
 
@@ -97,6 +103,16 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
     public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
+        // empty
+    }
+
+    @Override
+    public void onSlackBusChange(LfBus bus, boolean slack) {
+        // empty
+    }
+
+    @Override
+    public void onReferenceBusChange(LfBus bus, boolean reference) {
         // empty
     }
 }
