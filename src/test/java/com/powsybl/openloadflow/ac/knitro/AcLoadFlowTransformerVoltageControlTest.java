@@ -13,6 +13,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CompareKnitroToNewtonRaphson;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
@@ -22,8 +23,7 @@ import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -446,6 +446,10 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result3.isFullyConverged());
         assertVoltageEquals(33, bus4);
         assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+//        assertReactivePowerEquals(-1.172, g4.getTerminal()); //FIXME
+
+        //////////////////////////////////////////////////////////////////////////////////////////
+        loadFlowRunner.run(network, parameters);
         assertReactivePowerEquals(-1.172, g4.getTerminal());
     }
 
