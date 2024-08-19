@@ -9,16 +9,17 @@
 package com.powsybl.openloadflow.ac.solver;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.VariableEquationTerm;
+import com.powsybl.openloadflow.equations.*;
 
 import java.util.*;
+
+import static com.powsybl.openloadflow.ac.solver.KnitroSolverUtils.getBinaryVariableCorrespondingToEquation;
 
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
 
-public final class SolverUtils {
+public final class KnitroEquationsUtils {
 
     // List of linear constraints for indirect formulation (Outer Loops are external)
     public static List<AcEquationType> linearConstraintsTypesIndirectFormulation = new ArrayList<>(Arrays.asList(
@@ -190,46 +191,43 @@ public final class SolverUtils {
     }
 
     //  Get variables and coefficients lists for quadratic constraints for indirect formulation
-    public List<VarAndCoefList> getQuadraticConstraintIndirectFormulation(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+    public List<VarAndCoefList> getQuadraticConstraintIndirectFormulation(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms, TargetVector targetVector, EquationSystem equationSystem) {
         return Arrays.asList(null,null);
     }
 
     //  Get variables and coefficients lists for quadratic constraints for direct formulation
-    public List<VarAndCoefList> getQuadraticConstraintDirectFormulation(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
-        VarAndCoefList varAndCoefListLin = null;
-        VarAndCoefList varAndCoefListQuadra = null;
-
+    public List<VarAndCoefList> getQuadraticConstraintDirectFormulation(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms, TargetVector targetVector, EquationSystem equationSystem, KnitroSolverParameters knitroParameters) {
+        VarAndCoefList varAndCoefListLin = new VarAndCoefList(new ArrayList<>(), new ArrayList<>());
+        VarAndCoefList varAndCoefListQuadra = new VarAndCoefList(new ArrayList<>(), new ArrayList<>());
         //TODO
-//        switch (typeEq) {
-//            case BUS_TARGET_V:
-//                int idVar = terms.get(0).getVariables().get(0).getRow();
-//                int idBinaryVar = getBinaryVariableCorrespondingToVariable(idVar); //TODO index du x correspondant
-//
-//                // Quadratic part
-//                varAndCoefListQuadra.listIdVar = Arrays.asList(idVar,idBinaryVar);
-//                varAndCoefListQuadra.listCoef = Collections.singletonList(1.0);
-//
-//                // Linear part
-//                double coefLinear = -1.0*target.get(idVar); //TODO pass target to argument
-//                varAndCoefListLin.listIdVar = Collections.singletonList(idBinaryVar);
-//                varAndCoefListLin.listCoef = Collections.singletonList(coefLinear);
-//        }
+        switch (typeEq) {
+            case BUS_TARGET_V:
+                int idVar = terms.get(0).getVariables().get(0).getRow();
+                int idBinaryVar = getBinaryVariableCorrespondingToEquation(terms, typeEq, equationSystem, knitroParameters); //TODO index du x correspondant
+                // Quadratic part
+                varAndCoefListQuadra.listIdVar = Arrays.asList(idVar,idBinaryVar);
+                varAndCoefListQuadra.listCoef = Collections.singletonList(1.0);
+
+                // Linear part
+                double coefLinear = -1.0*targetVector.getArray()[idVar]; //TODO pass target to argument
+                varAndCoefListLin.listIdVar = Collections.singletonList(idBinaryVar);
+                varAndCoefListLin.listCoef = Collections.singletonList(coefLinear);
+        }
         return Arrays.asList(varAndCoefListQuadra,varAndCoefListLin);
     }
 
-
     // Return lists of variables and coefficients to pass to Knitro for a quadratic constraint
-    public List<VarAndCoefList> getQuadraticConstraint(KnitroSolverParameters knitroParameters, AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+    public List<VarAndCoefList> getQuadraticConstraint(KnitroSolverParameters knitroParameters, AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms, TargetVector targetVector, EquationSystem equationSystem) {
         if (knitroParameters.isDirectOuterLoopsFormulation()) {
-            return getQuadraticConstraintDirectFormulation(typeEq,equationId,terms);
+            return getQuadraticConstraintDirectFormulation(typeEq,equationId,terms,targetVector, equationSystem, knitroParameters);
         } else {
-            return getQuadraticConstraintDirectFormulation(typeEq,equationId,terms);
+            return getQuadraticConstraintIndirectFormulation(typeEq,equationId,terms,targetVector, equationSystem);
         }
     }
 
     public static class VarAndCoefList {
-        private final List<Integer> listIdVar;
-        private final List<Double> listCoef;
+        private List<Integer> listIdVar;
+        private List<Double> listCoef;
 
         public VarAndCoefList(List<Integer> listIdVar, List<Double> listCoef) {
             this.listIdVar = listIdVar;

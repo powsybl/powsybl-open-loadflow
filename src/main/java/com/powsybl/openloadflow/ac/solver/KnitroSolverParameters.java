@@ -21,7 +21,7 @@ public class KnitroSolverParameters {
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
     public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
-    public static final boolean DIRECT_OUTER_LOOPS_FORMULATION = false; // knitro is used as a replacement for NR inner loops
+    public static final boolean DIRECT_OUTER_LOOPS_FORMULATION = true; // knitro is used as a replacement for NR inner loops
 
     public KnitroSolverParameters() {
     }

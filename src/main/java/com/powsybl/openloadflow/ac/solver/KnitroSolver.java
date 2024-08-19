@@ -22,8 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.google.common.primitives.Doubles.toArray;
+import static com.powsybl.openloadflow.ac.solver.KnitroSolverUtils.*;
+//import static com.powsybl.openloadflow.ac.solver.ExternalSolverUtils.getNumVariables;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
@@ -55,7 +60,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         TERMINATED_AT_INFEASIBLE_POINT,
         PROBLEM_UNBOUNDED,
         TERMINATED_DUE_TO_PRE_DEFINED_LIMIT,
-        INPUT_OR_NON_STANDARD_ERROR }
+        INPUT_OR_NON_STANDARD_ERROR
+    }
 
     // Get AcStatus equivalent from Knitro Status, and log Knitro Status
     public AcSolverStatus getAcStatusAndKnitroStatus(int knitroStatus) {
@@ -90,14 +96,16 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
         private final class CallbackEvalFC extends KNEvalFCCallback {
 
-            private final List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve;
+            private final EquationSystem equationSystem;
             private final LfNetwork lfNetwork;
-            private final List<Integer> listNonLinearConsts;
+            private final List<Integer> listNonLinearConstsInnerLoop;
+            private final List<Integer> listNonLinearConstsOuterLoop;
 
-            private CallbackEvalFC(List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve, LfNetwork lfNetwork, List<Integer> listNonLinearConsts) {
-                this.sortedEquationsToSolve = sortedEquationsToSolve;
+            private CallbackEvalFC(EquationSystem equationSystem, LfNetwork lfNetwork, List<Integer> listNonLinearConstsInnerLoop, List<Integer> listNonLinearConstsOuterLoop) {
+                this.equationSystem = equationSystem;
                 this.lfNetwork = lfNetwork;
-                this.listNonLinearConsts = listNonLinearConsts;
+                this.listNonLinearConstsInnerLoop = listNonLinearConstsInnerLoop;
+                this.listNonLinearConstsOuterLoop = listNonLinearConstsOuterLoop;
             }
 
             @Override
@@ -106,20 +114,33 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
                 // =============== Objective ===============
 
-                // =============== Non-linear constraints in P and Q ===============
+                // =============== Add non-linear constraints in P and Q ===============
 
-                // Update current state
+                // --- Update current state ---
                 StateVector currentState = new StateVector(toArray(x));
                 LOGGER.trace("Current state vector {}", currentState.get());
-                LOGGER.trace("Evaluating {} non-linear constraints", listNonLinearConsts.size());
+                LOGGER.trace("Evaluating {} non-linear inner loop constraints", listNonLinearConstsInnerLoop.size());
 
-                // Add non-linear constraints
-                int indexNonLinearCst = 0;
-                for (int equationId : listNonLinearConsts) {
-                    Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
+                // --- Utils ---
+                // Sorted equations to solve
+                List<Equation<AcVariableType, AcEquationType>> sortedInnerLoopEquationsToSolve = getSortedEquations(equationSystem, knitroParameters);
+                // List of buses that have an equation setting V
+                List<Integer> listVarVIndexes = new ArrayList<>(); // for every equation setting V, we store the index of the corresponding V variable
+                for (Equation equation : sortedInnerLoopEquationsToSolve) {
+                    if (equation.getType() == AcEquationType.BUS_TARGET_V) {
+                        int varVIndex = ((VariableEquationTerm) equation.getTerms().get(0)).getElementNum();
+                        listVarVIndexes.add(varVIndex);
+                    }
+                }
+
+                // --- Add non-linear constraints ---
+                // Inner loop constraints
+                int indexNonLinearInnerLoopCst = 0;
+                for (int equationId : listNonLinearConstsInnerLoop) {
+                    Equation<AcVariableType, AcEquationType> equation = sortedInnerLoopEquationsToSolve.get(equationId);
                     AcEquationType typeEq = equation.getType();
                     double valueConst = 0;
-                    if (!SolverUtils.getNonLinearConstraintsTypes(knitroParameters).contains(typeEq)) {
+                    if (!KnitroEquationsUtils.getNonLinearConstraintsTypes(knitroParameters).contains(typeEq)) {
                         LOGGER.debug("Equation of type {} is linear or quadratic, and should be considered in the main function of Knitro, not in the callback function", typeEq);
                         throw new IllegalArgumentException("Equation of type " + typeEq + " is linear or quadratic, and should be considered in the main function of Knitro, not in the callback function");
                     } else {
@@ -130,7 +151,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                             }
                         }
                         try {
-                            c.set(indexNonLinearCst, valueConst);
+                            c.set(indexNonLinearInnerLoopCst, valueConst);
                             LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
                         } catch (Exception e) {
                             LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
@@ -138,7 +159,58 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                             throw new PowsyblException("Exception found while trying to add non-linear constraint");
                         }
                     }
-                    indexNonLinearCst += 1;
+                    indexNonLinearInnerLoopCst += 1;
+                }
+
+                // Outer loop constraints
+                LOGGER.trace("Evaluating {} non-linear outer loop constraints", listNonLinearConstsOuterLoop.size());
+                int currentCbEqIndex = listNonLinearConstsInnerLoop.size(); // index of current equation to add in the callback structure (we start at the last constraint added in the inner loop +1)
+                for (int indexNonLinearOuterLoopCst : listNonLinearConstsOuterLoop) {
+                    int busId = listVarVIndexes.get((indexNonLinearOuterLoopCst - sortedInnerLoopEquationsToSolve.size())/5);
+
+                    // Compute sum of reactive power at bus
+                    double valueSumReactivePower = 0;
+                    Equation equation = (Equation) equationSystem.getEquation(busId, AcEquationType.BUS_TARGET_Q).get();
+                    List<EquationTerm> equationTerms = equation.getTerms();
+                    for (EquationTerm term : equationTerms) {
+                        if (term.isActive()) {
+                            valueSumReactivePower += term.eval();
+                        }
+                    }
+                    try {
+                        if ((indexNonLinearOuterLoopCst+1) % 3 == 0) {
+                            // 1) Q is within its bounds Q_lo and Q_up for all PV and PQ nodes
+                            // Inequality
+                            c.set(currentCbEqIndex, valueSumReactivePower);
+                        } else if ((indexNonLinearOuterLoopCst+1) % 3 == 1) {
+                            // 2) The node becomes PQ and q is set to its upper bound Q_up
+                            // Equality
+                            double valueConst = 0; // value of the constraint
+                            // term in valueSumReactivePower*y[i]
+                            int indexOfVarInList = listVarVIndexes.indexOf(busId);
+                            int indexBinaryVarY = getYVar(indexOfVarInList, equationSystem);
+                            valueConst = valueSumReactivePower*x.get(indexBinaryVarY);
+                            // term in Q_up*y[i]
+                            valueConst -= lfNetwork.getBus(busId).getMaxQ()*x.get(indexBinaryVarY);
+                            // add equation
+                            c.set(currentCbEqIndex, valueConst);
+
+                        } else if ((indexNonLinearOuterLoopCst+1) % 3 == 2) {
+                            // 4) The node becomes PQ and q is set to its lower bound Q_lo
+                            // Equality
+                            // term in valueSumReactivePower*(1- x[i] - y[i])
+                            // term in Q_lo*(1- x[i] - y[i])
+                            // add equation
+                            c.set(currentCbEqIndex, valueSumReactivePower);
+
+                        }
+                        LOGGER.trace("Adding non-linear outer loop constraint n° {}", indexNonLinearOuterLoopCst);
+                    } catch (Exception e) {
+                        LOGGER.error("Exception found while trying to add non-linear outer loop constraint n° {}", indexNonLinearOuterLoopCst);
+                        LOGGER.error(e.getMessage());
+                        throw new PowsyblException("Exception found while trying to add non-linear constraint");
+                    }
+                    currentCbEqIndex += 1;
                 }
             }
         }
@@ -270,61 +342,60 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         private KnitroProblem(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem, TargetVector targetVector, VoltageInitializer voltageInitializer, JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix, KnitroSolverParameters knitroParameters) throws KNException {
 
             // =============== Variables ===============
-            // Defining variables
-            //TODO A REPRENDRE POUR AJOUTER LES VARIABLES BINAIRES
-            super(equationSystem.getVariableSet().getVariables().size(), equationSystem.getIndex().getSortedEquationsToSolve().size());
-            int numVar = equationSystem.getVariableSet().getVariables().size();
-            List<Variable<AcVariableType>> sortedVariables = equationSystem.getIndex().getSortedVariablesToFind(); // ordering variables
-            LOGGER.info("Defining {} variables", numVar);
+            // ----- Defining variables -----
+            super(getNumAllVar(equationSystem, knitroParameters), getNumConstraints(equationSystem, knitroParameters));
+            int numVar = getNumAllVar(equationSystem, knitroParameters); // num of variables
+            int numConst = getNumConstraints(equationSystem, knitroParameters); // num of constraints (inner + outer loops)
+            List<Variable<AcVariableType>> sortedNonBinVar = getSortedNonBinaryVarList(equationSystem, knitroParameters); // ordering variables
+            LOGGER.info("Defining {} variables, including {} inner loop variables.", numVar, sortedNonBinVar.size());
 
-            // Types, bounds and initial states of variables
+            // ----- Types, bounds and initial states of variables -----
             // Types
-            List<Integer> listVarTypes = new ArrayList<>(Collections.nCopies(numVar, KNConstants.KN_VARTYPE_CONTINUOUS));
+            List<Integer> listVarTypes = getVariablesTypes(equationSystem, knitroParameters);
             setVarTypes(listVarTypes);
 
             // Bounds
-            List<Double> listVarLoBounds = new ArrayList<>(numVar);
-            List<Double> listVarUpBounds = new ArrayList<>(numVar);
-            double loBndV = knitroParameters.getMinRealisticVoltage();
-            double upBndV = knitroParameters.getMaxRealisticVoltage();
-            for (int var = 0; var < sortedVariables.size(); var++) {
-                Enum<AcVariableType> typeVar = sortedVariables.get(var).getType();
-                if (typeVar == AcVariableType.BUS_V) {
-                    listVarLoBounds.add(loBndV);
-                    listVarUpBounds.add(upBndV);
-                } else {
-                    listVarLoBounds.add(-KNConstants.KN_INFINITY);
-                    listVarUpBounds.add(KNConstants.KN_INFINITY);
-                }
-            }
-            setVarLoBnds(listVarLoBounds);
-            setVarUpBnds(listVarUpBounds);
+            // TODO A REPRENDRE -> bornes pour les variables binaires
+//            List<Double> listVarLoBounds = new ArrayList<>(numVar);
+//            List<Double> listVarUpBounds = new ArrayList<>(numVar);
+//            double loBndV = knitroParameters.getMinRealisticVoltage();
+//            double upBndV = knitroParameters.getMaxRealisticVoltage();
+//            for (int var = 0; var < sortedNonBinVar.size(); var++) {
+//                Enum<AcVariableType> typeVar = sortedNonBinVar.get(var).getType();
+//                if (typeVar == AcVariableType.BUS_V) {
+//                    listVarLoBounds.add(loBndV);
+//                    listVarUpBounds.add(upBndV);
+//                } else {
+//                    listVarLoBounds.add(-KNConstants.KN_INFINITY);
+//                    listVarUpBounds.add(KNConstants.KN_INFINITY);
+//                }
+//            }
+//            setVarLoBnds(listVarLoBounds);
+//            setVarUpBnds(listVarUpBounds);
 
             // Initial state
-            List<Double> listXInitial = new ArrayList<>(numVar);
             AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer); // Initialize state vector
-            for (int i = 0; i < numVar; i++) {
-                listXInitial.add(equationSystem.getStateVector().get(i));
-            }
+            List<Double> listXInitial = getInitialStateVector(equationSystem, knitroParameters);
             setXInitial(listXInitial);
             LOGGER.info("Initialization of variables : type of initialization {}", voltageInitializer);
 
             // =============== Constraints ==============
             // ----- Active constraints -----
             // Get active constraints and order them in same order as targets
-            List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+            List<Equation<AcVariableType, AcEquationType>> sortedInnerLoopEquationsToSolve = getSortedEquations(equationSystem, knitroParameters);
+            int numConstInnerLoop = sortedInnerLoopEquationsToSolve.size();
+            List<Integer> listNonLinearInnerLoopConsts = new ArrayList<>(); // list of indexes of inner loop non-linear constraints
+            List<Integer> listNonLinearOuterLoopConsts = new ArrayList<>(); // list of indexes of outer loop non-linear constraints
+            LOGGER.info("Defining {} active constraints, including {} inner loop constraints.", numConst, numConstInnerLoop);
 
-            int numConst = sortedEquationsToSolve.size();
-            List<Integer> listNonLinearConsts = new ArrayList<>(); // list of indexes of non-linear constraints
-            LOGGER.info("Defining {} active constraints", numConst);
-
-            // ----- Linear constraints -----
-            for (int equationId = 0; equationId < numConst; equationId++) {
-                Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
+            // ----- Linear and quadratic constraints -----
+            // -- Inner loop constraints --
+            for (int equationId = 0; equationId < numConstInnerLoop; equationId++) {
+                Equation<AcVariableType, AcEquationType> equation = sortedInnerLoopEquationsToSolve.get(equationId);
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
-                SolverUtils solverUtils = new SolverUtils();
-                if (SolverUtils.getLinearConstraintsTypes(knitroParameters).contains(typeEq)) {
+                KnitroEquationsUtils solverUtils = new KnitroEquationsUtils();
+                if (KnitroEquationsUtils.getLinearConstraintsTypes(knitroParameters).contains(typeEq)) {
                     // Linear constraints
                     List<Integer> listVar = new ArrayList<>();
                     List<Double> listCoef = new ArrayList<>();
@@ -336,102 +407,237 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     }
                     LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
 
-
-                } else if (SolverUtils.getQuadraticConstraintsTypes(knitroParameters).contains(typeEq)) {
+                } else if (KnitroEquationsUtils.getQuadraticConstraintsTypes(knitroParameters).contains(typeEq)) {
                     // Quadratic constraints
                     List<Integer> listVarQuadra = new ArrayList<>();
                     List<Double> listCoefQuadra = new ArrayList<>();
                     List<Integer> listVarLin = new ArrayList<>();
                     List<Double> listCoefLin = new ArrayList<>();
-                    listVarQuadra = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms).get(0).getListIdVar();
-                    listCoefQuadra = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms).get(0).getListCoef();
-                    listVarLin = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms).get(1).getListIdVar();
-                    listCoefLin = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms).get(1).getListCoef();
+                    listVarQuadra = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms, targetVector, equationSystem).get(0).getListIdVar();
+                    listCoefQuadra = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms, targetVector, equationSystem).get(0).getListCoef();
+                    listVarLin = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms, targetVector, equationSystem).get(1).getListIdVar();
+                    listCoefLin = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms, targetVector, equationSystem).get(1).getListCoef();
 
-                    // Quadratic part
-                    addConstraintQuadraticPart(equationId, listVarQuadra.get(0),  listVarQuadra.get(1), listCoefQuadra.get(0));
+                    // Quadratic part //TODO REPRENDRE CAR INDICES DES VAR QUADRA BIZARRES
+                    addConstraintQuadraticPart(equationId, listVarQuadra.get(0), listVarQuadra.get(1), listCoefQuadra.get(0));
                     // Linear part
                     addConstraintLinearPart(equationId, listVarLin.get(0), listCoefLin.get(0));
                     LOGGER.trace("Adding quadratic constraint n° {} of type {}", equationId, typeEq);
 
                 } else {
                     // Non-linear constraints
-                    listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
+                    listNonLinearInnerLoopConsts.add(equationId); // Add constraint number to list of non-linear constraintslogi
                 }
             }
 
+            // -- Outer loop constraints --
+            List<Double> targetOuterLoopEqualities = null; // target vector for outer loop equalities
+            List<Integer> equalitiesIndexesOuterLoop = new ArrayList<>(); // indexes of equalities
+            List<Integer> inequalitiesIndexes = new ArrayList<>(); // indexes of inequalities
+            List<Double> loBndsOuterLoopInequalities = new ArrayList<>(); // lower bound vector for outer loop inequalities
+            List<Double> upBndsOuterLoopInequalities = new ArrayList<>(); // upper bound vector for outer loop inequalities
+
+            // Build list of variables indexes corresponding to an equation setting V
+            List<Equation<AcVariableType, AcEquationType>> sortedEquations = getSortedEquations(equationSystem, knitroParameters); //TODO reprendre de manière + compacte
+            List<Integer> listVarVIndexes = new ArrayList<>(); // for every equation setting V, we store the index of the corresponding V variable
+            for (Equation equation : sortedEquations) {
+                if (equation.getType() == AcEquationType.BUS_TARGET_V) {
+                    int varVIndex = ((VariableEquationTerm) equation.getTerms().get(0)).getElementNum();
+                    listVarVIndexes.add(varVIndex);
+                }
+            }
+
+            // Adding outer loop constraints
+            if (knitroParameters.isDirectOuterLoopsFormulation()) {
+                // browse the list of buses that have an equation setting V
+                int currentEquationId = sortedEquations.size();
+                targetOuterLoopEqualities = new ArrayList<>();
+//                loBndsOuterLoopInequalities = new ArrayList<>();
+//                upBndsOuterLoopInequalities = new ArrayList<>();
+
+                for (Equation equation : sortedEquations) {
+                    if (equation.getType() == AcEquationType.BUS_TARGET_V) {
+                        // For each bus that has initially an equation setting V, we had 5 constraints
+
+                        // 1) Q is within its bounds Q_lo and Q_up for all PV and PQ nodes
+                        // Non-linear inequality
+                        listNonLinearOuterLoopConsts.add(currentEquationId); // Add constraint number to list of non-linear constraints
+                        // bounds
+                        Double Q_lo = lfNetwork.getBus(equation.getElementNum()).getMinQ();
+                        Double Q_up = lfNetwork.getBus(equation.getElementNum()).getMaxQ();
+                        loBndsOuterLoopInequalities.add(Q_lo);
+                        upBndsOuterLoopInequalities.add(Q_up);
+                        inequalitiesIndexes.add(currentEquationId);
+
+                        // 2) The node becomes PQ and q is set to its upper bound Q_up
+                        // Non-linear equality
+                        listNonLinearOuterLoopConsts.add(currentEquationId + 1); // Add constraint number to list of non-linear constraints
+                        targetOuterLoopEqualities.add(0.0);
+                        equalitiesIndexesOuterLoop.add(currentEquationId + 1);
+
+                        // 3) The node becomes PQ and V_i y_i - Vref_i y_i <= 0
+                        // Quadratic inequality
+                        int varVIndex = ((VariableEquationTerm) equation.getTerms().get(0)).getElementNum();
+                        int indexOfVarInList = listVarVIndexes.indexOf(varVIndex);
+                        int binaryVarYIndex = getYVar(indexOfVarInList, equationSystem);
+
+                        // add inequality
+                        addConstraintQuadraticPart(currentEquationId + 2, varVIndex, binaryVarYIndex, 1.0);
+                        addConstraintLinearPart(currentEquationId + 2, binaryVarYIndex, -targetVector.getArray()[varVIndex]);
+                        // bounds
+                        loBndsOuterLoopInequalities.add(-KNConstants.KN_INFINITY);
+                        upBndsOuterLoopInequalities.add(0.0);
+                        inequalitiesIndexes.add(currentEquationId + 2);
+
+                        // 4) The node becomes PQ and q is set to its lower bound Q_lo
+                        // Non-linear equality
+                        listNonLinearOuterLoopConsts.add(currentEquationId + 3); // Add constraint number to list of non-linear constraints
+                        targetOuterLoopEqualities.add(0.0);
+                        equalitiesIndexesOuterLoop.add(currentEquationId + 3);
+
+                        // 5) The node becomes PQ and Vref_i (1- x_i - y_i) - V_i (1- x_i - y_i) <= 0
+                        // That is to say + V_i + Vref_i*x_i + Vref_i*y_i - V_i*x_i - V_i*y_i <= + Vref_i
+                        // where V_i*x_i and V_i*y_i are quadratic parts of the constraints
+                        // Quadratic inequality
+
+                        // add inequality
+                        int binaryVarXIndex = getXVar(indexOfVarInList, equationSystem);
+                        addConstraintQuadraticPart(currentEquationId + 4, varVIndex, binaryVarXIndex, -1.0); // -V_i*x_i
+                        addConstraintQuadraticPart(currentEquationId + 4, varVIndex, binaryVarYIndex, -1.0); // -V_i*y_i
+                        addConstraintLinearPart(currentEquationId + 4, binaryVarXIndex, targetVector.getArray()[varVIndex]); // Vref_i*x_i
+                        addConstraintLinearPart(currentEquationId + 4, binaryVarYIndex, targetVector.getArray()[varVIndex]); // Vref_i*y_i
+                        addConstraintLinearPart(currentEquationId + 4, varVIndex, 1.0); // V_i
+                        // bounds
+                        loBndsOuterLoopInequalities.add(-KNConstants.KN_INFINITY);
+                        upBndsOuterLoopInequalities.add(targetVector.getArray()[varVIndex]);
+                        inequalitiesIndexes.add(currentEquationId + 4);
+
+                        // Update current equation number
+                        currentEquationId += 5  ;
+                    }
+                }
+            }
+
+
+//            if (knitroParameters.isDirectOuterLoopsFormulation()){
+//                for (int equationId = numConstInnerLoop ; equationId < numConst; equationId++) {
+//                    if ((equationId - numConstInnerLoop) % 5 == 0){
+//                        // q is within its bounds Q_lo and Q_up for all PV and PQ nodes
+//                        // Non-linear inequality
+//                        listNonLinearOuterLoopConsts.add(equationId); // Add constraint number to list of non-linear constraints
+//                    } else if ((equationId - numConstInnerLoop) % 5 == 1){
+//                        // The node becomes PQ and q is set to its upper bound Q_up
+//                        // Non-linear equality
+//                        listNonLinearOuterLoopConsts.add(equationId); // Add constraint number to list of non-linear constraints
+//                        //TODO for this equality, we need to pass a target of 0 to Knitro
+//                    } else if ((equationId - numConstInnerLoop) % 5 == 2){
+//                        // The node becomes PQ and V_i y_i - Vref_i y_i <= 0
+//                        // Quadratic inequality
+//
+//                     } else if ((equationId - numConstInnerLoop) % 5 == 3){
+//                        // The node becomes PQ and q is set to its lower bound Q_lo
+//                        // Non-linear equality
+//                        listNonLinearOuterLoopConsts.add(equationId); // Add constraint number to list of non-linear constraints
+//                        //TODO for this equality, we need to pass a target of 0 to Knitro
+//                    } else if ((equationId - numConstInnerLoop) % 5 == 4){
+//                        // The node becomes PQ and V_i y_i - Vref_i y_i >= 0
+//                        // Quadratic inequality
+//                    }
+//                }
+//            }
+
             // ----- Non-linear constraints -----
             // Callback
+            List<Integer> listNonLinearConsts = new ArrayList<>(listNonLinearInnerLoopConsts);
+            listNonLinearConsts.addAll(listNonLinearOuterLoopConsts); // concatenate lists of non-linear constraints
             setMainCallbackCstIndexes(listNonLinearConsts);
 
             // ----- RHS : targets -----
-            //TODO a modifier pour les équations de target en V => on met 0 comme target
-            setConEqBnds(Arrays.stream(targetVector.getArray()).boxed().toList());
+
+            // -- Equalitites targets --
+            // Concatenante targets for inner and outer loop
+            double[] concatenateTarget = targetVector.getArray();
+            List<Double> targetVectorAsList = Arrays.stream(targetVector.getArray())
+                    .boxed()
+                    .collect(Collectors.toList()); // convert target vector to list
+            List<Double> targetConstsEqualities = new ArrayList<>(targetOuterLoopEqualities); // concatenate the two lists
+            targetConstsEqualities.addAll(targetVectorAsList);
+            // Set target for equalities
+            List<Integer> listTargetEqualities = new ArrayList<>();
+            listTargetEqualities = IntStream.range(0, numConstInnerLoop).boxed().collect(Collectors.toList());;
+            listTargetEqualities.addAll(equalitiesIndexesOuterLoop);
+            setConEqBnds(listTargetEqualities, targetConstsEqualities);
+//            getConEqBnds().add(0, 56.0);
+//            getConLoBnds().add(1, 25.0);
+
+            // -- Inequalities bounds --
+            setConLoBnds(inequalitiesIndexes, loBndsOuterLoopInequalities);
+            setConUpBnds(inequalitiesIndexes, upBndsOuterLoopInequalities);
 
             // =============== Objective ==============
             setObjConstPart(0.0);
 
             // =============== Callback ==============
             // ----- Constraints -----
-            setObjEvalCallback(new CallbackEvalFC(sortedEquationsToSolve, lfNetwork, listNonLinearConsts));
+            setObjEvalCallback(new CallbackEvalFC(equationSystem, lfNetwork, listNonLinearInnerLoopConsts, listNonLinearOuterLoopConsts));
 
-            // ----- Jacobian matrix -----
-            // Non zero pattern
-
-            // FIRST METHOD : all non-linear constraints
-            List<Integer> listNonZerosCts = new ArrayList<>(); //list of constraints to pass to Knitro non-zero pattern
-            for (Integer idCt : listNonLinearConsts) {
-                for (int i = 0; i < numVar; i++) {
-                    listNonZerosCts.add(idCt);
-                }
-            }
-
-            List<Integer> listNonZerosVars = new ArrayList<>(); //list of variables to pass to Knitro non-zero pattern
-            List<Integer> listVars = new ArrayList<>();
-            for (int i = 0; i < numVar; i++) {
-                listVars.add(i);
-            }
-            for (int i = 0; i < listNonLinearConsts.size(); i++) {
-                listNonZerosVars.addAll(listVars);
-            }
-
-            // SECOND METHOD : only non-zero constraints
-            List<Integer> listNonZerosCts2 = new ArrayList<>();
-            List<Integer> listNonZerosVars2 = new ArrayList<>();
-            List<Integer> listVarChecker = new ArrayList<>();
-            for (Integer ct : listNonLinearConsts) {
-                Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(ct);
-                List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
-                List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
-
-                for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
-                    for (Variable variable : term.getVariables()) {
-                        listNonZerosVarsCurrentCt.add(variable.getRow());
-                    }
-                }
-                List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list
-                listNonZerosVars2.addAll(uniqueListVarsCurrentCt);
-                for (int var = 0; var < sortedVariables.size(); var++) {
-                    if (uniqueListVarsCurrentCt.contains(var)) {
-                        listVarChecker.add(var);
-                    } else {
-                        listVarChecker.add(-1);
-                    }
-                }
-
-                listNonZerosCts2.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
-            }
-
-            if (knitroParameters.getGradientComputationMode() == 1){ // User routine to compute the Jacobian
-                if (knitroParameters.getGradientUserRoutine() == 1) {
-                    setJacNnzPattern(listNonZerosCts, listNonZerosVars);
-                } else if (knitroParameters.getGradientUserRoutine() == 2) {
-                    setJacNnzPattern(listNonZerosCts2, listNonZerosVars2);}
-                setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCts, listNonZerosVars, listNonZerosCts2, listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
-            }
+//            // ----- Jacobian matrix ----- //TODO
+//            // Non zero pattern
+//            // FIRST METHOD : all non-linear constraints
+//            List<Integer> listNonZerosCts = new ArrayList<>(); //list of constraints to pass to Knitro non-zero pattern
+//            for (Integer idCt : listNonLinearInnerLoopConsts) {
+//                for (int i = 0; i < numVar; i++) {
+//                    listNonZerosCts.add(idCt);
+//                }
+//            }
+//
+//            List<Integer> listNonZerosVars = new ArrayList<>(); //list of variables to pass to Knitro non-zero pattern
+//            List<Integer> listVars = new ArrayList<>();
+//            for (int i = 0; i < numVar; i++) {
+//                listVars.add(i);
+//            }
+//            for (int i = 0; i < listNonLinearInnerLoopConsts.size(); i++) {
+//                listNonZerosVars.addAll(listVars);
+//            }
+//
+//            // SECOND METHOD : only non-zero constraints
+//            List<Integer> listNonZerosCts2 = new ArrayList<>();
+//            List<Integer> listNonZerosVars2 = new ArrayList<>();
+//            List<Integer> listVarChecker = new ArrayList<>();
+//            for (Integer ct : listNonLinearInnerLoopConsts) {
+//                Equation<AcVariableType, AcEquationType> equation = sortedInnerLoopEquationsToSolve.get(ct);
+//                List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
+//                List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
+//
+//                for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
+//                    for (Variable variable : term.getVariables()) {
+//                        listNonZerosVarsCurrentCt.add(variable.getRow());
+//                    }
+//                }
+//                List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list
+//                listNonZerosVars2.addAll(uniqueListVarsCurrentCt);
+//                for (int var = 0; var < sortedNonBinVar.size(); var++) {
+//                    if (uniqueListVarsCurrentCt.contains(var)) {
+//                        listVarChecker.add(var);
+//                    } else {
+//                        listVarChecker.add(-1);
+//                    }
+//                }
+//
+//                listNonZerosCts2.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
+//            }
+//
+//            if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
+//                if (knitroParameters.getGradientUserRoutine() == 1) {
+//                    setJacNnzPattern(listNonZerosCts, listNonZerosVars);
+//                } else if (knitroParameters.getGradientUserRoutine() == 2) {
+//                    setJacNnzPattern(listNonZerosCts2, listNonZerosVars2);
+//                }
+//                setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCts, listNonZerosVars, listNonZerosCts2, listNonZerosVars2, listNonLinearInnerLoopConsts, listVarChecker, lfNetwork, equationSystem));
+//            }
         }
-
     }
+
 
     private void setSolverParameters(KNSolver solver, KnitroSolverParameters knitroParameters) throws KNException {
         solver.setParam(KNConstants.KN_PARAM_GRADOPT, knitroParameters.getGradientComputationMode());
@@ -440,7 +646,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         solver.setParam(KNConstants.KN_PARAM_DERIVCHECK, 1);
         solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL, 0.0001);
 //        solver.setParam(KNConstants.KN_PARAM_MAXIT, 30);
-//        solver.setParam(KNConstants.KN_PARAM_OUTLEV,4);
+        solver.setParam(KNConstants.KN_PARAM_OUTLEV,4);
 //        solver.setParam(KNConstants.KN_PARAM_OUTMODE,2);
 //        solver.setParam(KNConstants.KN_PARAM_DEBUG ,1);
 
