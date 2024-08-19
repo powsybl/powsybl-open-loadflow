@@ -108,9 +108,11 @@ public class WoodburyEngine {
      * Calculate post-contingency states values using pre-contingency states values and some flow transfer factors (alphas).
      * @return an array of post-contingency voltage angle states.
      */
+    // TODO : add an action as parameter, the engine is defined for a set of contingencies, and then we can call on with actions
     public double[] run(double[] preContingencyStates) {
         Objects.requireNonNull(preContingencyStates);
         double[] postContingencyStates = new double[preContingencyStates.length];
+        // TODO : alpha are impacted by the adding of an action
         setAlphas(new DenseMatrix(preContingencyStates.length, 1, preContingencyStates), 0);
         for (int rowIndex = 0; rowIndex < preContingencyStates.length; rowIndex++) {
             double postContingencyValue = preContingencyStates[rowIndex];
@@ -118,6 +120,9 @@ public class WoodburyEngine {
                 postContingencyValue += contingencyElement.getAlphaForPostContingencyState()
                         * contingenciesStates.get(rowIndex, contingencyElement.getContingencyIndex());
             }
+            // TODO : sum also with actions that impact the calculation
+//            for ...
+//                postContingencyValue +=
             postContingencyStates[rowIndex] = postContingencyValue;
         }
         return postContingencyStates;

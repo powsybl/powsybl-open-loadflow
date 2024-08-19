@@ -145,6 +145,76 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     /**
+     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling and that do not
+     * update the state vector and the network at the end (because we don't need it to just evaluate a few equations)
+     */
+    public static double[] runDcLoadFlow(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork,
+                                         ReportNode reportNode, List<LfAction> lfActions) {
+        Collection<LfBus> remainingBuses;
+        if (disabledNetwork.getBuses().isEmpty()) {
+            remainingBuses = loadFlowContext.getNetwork().getBuses();
+        } else {
+            remainingBuses = new LinkedHashSet<>(loadFlowContext.getNetwork().getBuses());
+            remainingBuses.removeAll(disabledNetwork.getBuses());
+        }
+
+        DcLoadFlowParameters parameters = loadFlowContext.getParameters();
+        if (parameters.isDistributedSlack()) {
+            DcLoadFlowEngine.distributeSlack(remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
+        }
+
+        // we need to copy the target array because:
+        //  - in case of disabled buses or branches some elements could be overwritten to zero
+        //  - JacobianMatrix.solveTransposed take as an input the second member and reuse the array
+        //    to fill with the solution
+        // so we need to copy to later the target as it is and reusable for next run
+        var targetVectorArray = loadFlowContext.getTargetVector().getArray().clone();
+
+        if (!disabledNetwork.getBuses().isEmpty()) {
+            // set buses injections and transformers to 0
+            disabledNetwork.getBuses().stream()
+                    .flatMap(lfBus -> loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).stream())
+                    .map(Equation::getColumn)
+                    .forEach(column -> targetVectorArray[column] = 0);
+        }
+
+        if (!disabledNetwork.getBranches().isEmpty()) {
+            // set transformer phase shift to 0
+            disabledNetwork.getBranches().stream()
+                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
+                    .map(Equation::getColumn)
+                    .forEach(column -> targetVectorArray[column] = 0);
+        }
+
+        // TODO : remove this, just there to apply the action temporarily
+        NetworkState networkState = NetworkState.save(loadFlowContext.getNetwork());
+        if (!lfActions.isEmpty()) {
+            lfActions.forEach(lfAction -> {
+                LfAction.TapPositionChange tapPositionChange = lfAction.getTapPositionChange();
+                // TODO : remove this, just there to apply the action temporarily
+                lfAction.apply(loadFlowContext.getParameters().getNetworkParameters());
+                LfBranch lfBranch = tapPositionChange.branch();
+                loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).ifPresent(
+                    dcVariableTypeDcEquationTypeEquation -> {
+                        int column = dcVariableTypeDcEquationTypeEquation.getColumn();
+                        targetVectorArray[column] = lfBranch.getPiModel().getA1();
+                    }
+                );
+            });
+        }
+
+        boolean succeeded = DcLoadFlowEngine.solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reportNode);
+        if (!succeeded) {
+            throw new PowsyblException("DC solver failed");
+        }
+
+        // TODO : remove this, just there to apply the action temporarily
+        networkState.restore();
+
+        return targetVectorArray; // now contains dx
+    }
+
+    /**
      * Calculate flow and sensitivity values from pre-contingency states or post-contingency states.
      * Write the flow and sensitivity values for a LfSensitivityFactor in the SensitivityResultWriter.
      */
