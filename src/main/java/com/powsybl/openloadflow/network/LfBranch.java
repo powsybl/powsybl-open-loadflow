@@ -97,9 +97,7 @@ public interface LfBranch extends LfElement {
         return branchIndex;
     }
 
-    String getIdForLimitViolations();
-
-    Optional<ThreeSides> getOverriddenSideForLimitViolations();
+    Optional<ThreeSides> getOriginalSide();
 
     BranchType getBranchType();
 

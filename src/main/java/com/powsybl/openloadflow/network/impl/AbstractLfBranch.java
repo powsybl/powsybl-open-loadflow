@@ -77,12 +77,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public String getIdForLimitViolations() {
-        return getId();
-    }
-
-    @Override
-    public Optional<ThreeSides> getOverriddenSideForLimitViolations() {
+    public Optional<ThreeSides> getOriginalSide() {
         return Optional.empty();
     }
 
