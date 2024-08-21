@@ -15,6 +15,8 @@ import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.util.List;
+
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
@@ -23,4 +25,24 @@ public abstract class AbstractNonLinearExternalSolver extends AbstractAcSolver {
     protected AbstractNonLinearExternalSolver(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector, EquationVector<AcVariableType, AcEquationType> equationVector, boolean detailedReport) {
         super(network, equationSystem, j, targetVector, equationVector, detailedReport);
     }
+
+    // Solver
+    abstract void createVariables(int numVar, int numCt);
+
+    abstract void setVariablesType(List<Integer> listVarTypes);
+
+    abstract void setVariablesLowerBound(List<Double> listVarLoBnd);
+
+    abstract void setVariablesUpperBound(List<Double> listVarUpBnd);
+
+    abstract void setInitialState(List<Double> listXInitial);
+
+    abstract void addLinearConstraints(List );
+
+    abstract void addNonLinearConstraints();
+
+    abstract void solveProblem();
+
+    // Utils
+
 }

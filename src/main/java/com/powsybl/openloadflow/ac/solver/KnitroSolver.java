@@ -48,6 +48,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         return "Knitro Solver";
     }
 
+
     // List of all possible Knitro status
     public enum KnitroStatus {
     CONVERGED_TO_LOCAL_OPTIMUM,
