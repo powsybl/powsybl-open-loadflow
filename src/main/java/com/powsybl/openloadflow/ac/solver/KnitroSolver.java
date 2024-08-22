@@ -178,31 +178,35 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         }
                     }
                     try {
-                        if ((indexNonLinearOuterLoopCst+1) % 3 == 0) {
+                        if ((currentCbEqIndex - listNonLinearConstsInnerLoop.size()) % 3 == 0) {
                             // 1) Q is within its bounds Q_lo and Q_up for all PV and PQ nodes
                             // Inequality
                             c.set(currentCbEqIndex, valueSumReactivePower);
-                        } else if ((indexNonLinearOuterLoopCst+1) % 3 == 1) {
+                        } else if ((currentCbEqIndex - listNonLinearConstsInnerLoop.size()) % 3 == 1) {
                             // 2) The node becomes PQ and q is set to its upper bound Q_up
                             // Equality
                             double valueConst = 0; // value of the constraint
-                            // term in valueSumReactivePower*y[i]
                             int indexOfVarInList = listVarVIndexes.indexOf(busId);
                             int indexBinaryVarY = getYVar(indexOfVarInList, equationSystem);
+                            // term in valueSumReactivePower*y[i]
                             valueConst = valueSumReactivePower*x.get(indexBinaryVarY);
-                            // term in Q_up*y[i]
+                            // term in Qi_up*y[i]
                             valueConst -= lfNetwork.getBus(busId).getMaxQ()*x.get(indexBinaryVarY);
                             // add equation
                             c.set(currentCbEqIndex, valueConst);
-
-                        } else if ((indexNonLinearOuterLoopCst+1) % 3 == 2) {
+                        } else if ((currentCbEqIndex - listNonLinearConstsInnerLoop.size()) % 3 == 2) {
                             // 4) The node becomes PQ and q is set to its lower bound Q_lo
                             // Equality
+                            double valueConst = 0; // value of the constraint
+                            int indexOfVarInList = listVarVIndexes.indexOf(busId);
+                            int indexBinaryVarX = getXVar(indexOfVarInList, equationSystem);
+                            int indexBinaryVarY = getYVar(indexOfVarInList, equationSystem);
                             // term in valueSumReactivePower*(1- x[i] - y[i])
+                            valueConst = valueSumReactivePower*(1- x.get(indexBinaryVarX)- x.get(indexBinaryVarY));
                             // term in Q_lo*(1- x[i] - y[i])
+                            valueConst -= lfNetwork.getBus(busId).getMaxQ()*(1- x.get(indexBinaryVarX)- x.get(indexBinaryVarY));
                             // add equation
-                            c.set(currentCbEqIndex, valueSumReactivePower);
-
+                            c.set(currentCbEqIndex, valueConst);
                         }
                         LOGGER.trace("Adding non-linear outer loop constraint n° {}", indexNonLinearOuterLoopCst);
                     } catch (Exception e) {
