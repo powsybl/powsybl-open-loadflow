@@ -418,7 +418,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     listVarLin = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms, targetVector, equationSystem).get(1).getListIdVar();
                     listCoefLin = solverUtils.getQuadraticConstraint(knitroParameters, typeEq, equationId, terms, targetVector, equationSystem).get(1).getListCoef();
 
-                    // Quadratic part //TODO REPRENDRE CAR INDICES DES VAR QUADRA BIZARRES
+                    // Quadratic part
                     addConstraintQuadraticPart(equationId, listVarQuadra.get(0), listVarQuadra.get(1), listCoefQuadra.get(0));
                     // Linear part
                     addConstraintLinearPart(equationId, listVarLin.get(0), listCoefLin.get(0));
@@ -437,25 +437,25 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Double> loBndsOuterLoopInequalities = new ArrayList<>(); // lower bound vector for outer loop inequalities
             List<Double> upBndsOuterLoopInequalities = new ArrayList<>(); // upper bound vector for outer loop inequalities
 
-            // Build list of variables indexes corresponding to an equation setting V
-            List<Equation<AcVariableType, AcEquationType>> sortedEquations = getSortedEquations(equationSystem, knitroParameters); //TODO reprendre de manière + compacte
-            List<Integer> listVarVIndexes = new ArrayList<>(); // for every equation setting V, we store the index of the corresponding V variable
-            for (Equation equation : sortedEquations) {
+            // Build list of buses indexes for buses that have an equation setting V
+            List<Equation<AcVariableType, AcEquationType>> innerLoopSortedEquations = getSortedEquations(equationSystem, knitroParameters); //TODO reprendre de manière + compacte
+            List<Integer> listBusesWithVEq = new ArrayList<>(); // for every equation setting V, we store the index of the corresponding V variable
+            for (Equation equation : innerLoopSortedEquations) {
                 if (equation.getType() == AcEquationType.BUS_TARGET_V) {
                     int varVIndex = ((VariableEquationTerm) equation.getTerms().get(0)).getElementNum();
-                    listVarVIndexes.add(varVIndex);
+                    listBusesWithVEq.add(varVIndex);
                 }
             }
 
             // Adding outer loop constraints
             if (knitroParameters.isDirectOuterLoopsFormulation()) {
-                // browse the list of buses that have an equation setting V
-                int currentEquationId = sortedEquations.size();
+                int currentEquationId = innerLoopSortedEquations.size(); //we now add equations after the inner loop equations
                 targetOuterLoopEqualities = new ArrayList<>();
-//                loBndsOuterLoopInequalities = new ArrayList<>();
+//                loBndsOuterLoopInequalities = new ArrayList<>(); //TODO
 //                upBndsOuterLoopInequalities = new ArrayList<>();
 
-                for (Equation equation : sortedEquations) {
+                // Browse the list of buses that have an equation setting V
+                for (Equation equation : innerLoopSortedEquations) {
                     if (equation.getType() == AcEquationType.BUS_TARGET_V) {
                         // For each bus that has initially an equation setting V, we had 5 constraints
 
@@ -477,13 +477,13 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
                         // 3) The node becomes PQ and V_i y_i - Vref_i y_i <= 0
                         // Quadratic inequality
-                        int varVIndex = ((VariableEquationTerm) equation.getTerms().get(0)).getElementNum();
-                        int indexOfVarInList = listVarVIndexes.indexOf(varVIndex);
+                        int busIndex = ((VariableEquationTerm) equation.getTerms().get(0)).getElementNum();
+                        int indexOfVarInList = listBusesWithVEq.indexOf(busIndex);
                         int binaryVarYIndex = getYVar(indexOfVarInList, equationSystem);
 
                         // add inequality
-                        addConstraintQuadraticPart(currentEquationId + 2, varVIndex, binaryVarYIndex, 1.0);
-                        addConstraintLinearPart(currentEquationId + 2, binaryVarYIndex, -targetVector.getArray()[varVIndex]);
+                        addConstraintQuadraticPart(currentEquationId + 2, busIndex, binaryVarYIndex, 1.0); // V_i*y_i
+                        addConstraintLinearPart(currentEquationId + 2, binaryVarYIndex, -targetVector.getArray()[equation.getColumn()]); //- Vref_i*y_i
                         // bounds
                         loBndsOuterLoopInequalities.add(-KNConstants.KN_INFINITY);
                         upBndsOuterLoopInequalities.add(0.0);
@@ -496,20 +496,21 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         equalitiesIndexesOuterLoop.add(currentEquationId + 3);
 
                         // 5) The node becomes PQ and Vref_i (1- x_i - y_i) - V_i (1- x_i - y_i) <= 0
-                        // That is to say + V_i + Vref_i*x_i + Vref_i*y_i - V_i*x_i - V_i*y_i <= + Vref_i
-                        // where V_i*x_i and V_i*y_i are quadratic parts of the constraints
+                        // That is to say : - V_i - Vref_i*x_i - Vref_i*y_i + V_i*x_i + V_i*y_i <= - Vref_i
+                        // where + V_i*x_i and + V_i*y_i are quadratic parts of the constraints
+                        // and - V_i , - Vref_i*x_i and - Vref_i*y_i are linear parts of the constraints
                         // Quadratic inequality
 
-                        // add inequality
+                        // Add inequality
                         int binaryVarXIndex = getXVar(indexOfVarInList, equationSystem);
-                        addConstraintQuadraticPart(currentEquationId + 4, varVIndex, binaryVarXIndex, -1.0); // -V_i*x_i
-                        addConstraintQuadraticPart(currentEquationId + 4, varVIndex, binaryVarYIndex, -1.0); // -V_i*y_i
-                        addConstraintLinearPart(currentEquationId + 4, binaryVarXIndex, targetVector.getArray()[varVIndex]); // Vref_i*x_i
-                        addConstraintLinearPart(currentEquationId + 4, binaryVarYIndex, targetVector.getArray()[varVIndex]); // Vref_i*y_i
-                        addConstraintLinearPart(currentEquationId + 4, varVIndex, 1.0); // V_i
+                        addConstraintQuadraticPart(currentEquationId + 4, busIndex, binaryVarXIndex, 1.0); // + V_i*x_i
+                        addConstraintQuadraticPart(currentEquationId + 4, busIndex, binaryVarYIndex, 1.0); // + V_i*y_i
+                        addConstraintLinearPart(currentEquationId + 4, busIndex, -1.0); // - V_i
+                        addConstraintLinearPart(currentEquationId + 4, binaryVarXIndex, - targetVector.getArray()[equation.getColumn()]); // - Vref_i*x_i
+                        addConstraintLinearPart(currentEquationId + 4, binaryVarYIndex, - targetVector.getArray()[equation.getColumn()]); // - Vref_i*y_i
                         // bounds
                         loBndsOuterLoopInequalities.add(-KNConstants.KN_INFINITY);
-                        upBndsOuterLoopInequalities.add(targetVector.getArray()[varVIndex]);
+                        upBndsOuterLoopInequalities.add(- targetVector.getArray()[equation.getColumn()]); // - Vref_i
                         inequalitiesIndexes.add(currentEquationId + 4);
 
                         // Update current equation number
@@ -555,20 +556,23 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // ----- RHS : targets -----
 
             // -- Equalitites targets --
+            // Modify the inner loop target vector for V equations
+            List<Double> modifiedInnerLoopTargetVector = new ArrayList<>(numConstInnerLoop);
+            for (Equation equation : innerLoopSortedEquations) {
+                if (equation.getType() == AcEquationType.BUS_TARGET_V) {
+                    modifiedInnerLoopTargetVector.add(0.0);
+                } else {
+                    modifiedInnerLoopTargetVector.add(targetVector.getArray()[equation.getColumn()]);
+                }
+            }
             // Concatenante targets for inner and outer loop
-            double[] concatenateTarget = targetVector.getArray();
-            List<Double> targetVectorAsList = Arrays.stream(targetVector.getArray())
-                    .boxed()
-                    .collect(Collectors.toList()); // convert target vector to list
-            List<Double> targetConstsEqualities = new ArrayList<>(targetOuterLoopEqualities); // concatenate the two lists
-            targetConstsEqualities.addAll(targetVectorAsList);
+            List<Double> targetConstsEqualities = new ArrayList<>(modifiedInnerLoopTargetVector); // concatenate the two lists
+            targetConstsEqualities.addAll(targetOuterLoopEqualities);
             // Set target for equalities
             List<Integer> listTargetEqualities = new ArrayList<>();
             listTargetEqualities = IntStream.range(0, numConstInnerLoop).boxed().collect(Collectors.toList());;
             listTargetEqualities.addAll(equalitiesIndexesOuterLoop);
-            setConEqBnds(listTargetEqualities, targetConstsEqualities);
-//            getConEqBnds().add(0, 56.0);
-//            getConLoBnds().add(1, 25.0);
+            setConEqBnds(listTargetEqualities, targetConstsEqualities); //TODO IF DIRECT FORMULATION PASS MODIFIED VECTOR, ELSE PASS VECTOR
 
             // -- Inequalities bounds --
             setConLoBnds(inequalitiesIndexes, loBndsOuterLoopInequalities);

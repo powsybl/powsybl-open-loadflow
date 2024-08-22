@@ -209,7 +209,7 @@ public final class KnitroEquationsUtils {
                 varAndCoefListQuadra.listCoef = Collections.singletonList(1.0);
 
                 // Linear part
-                double coefLinear = -1.0*targetVector.getArray()[idVar]; //TODO pass target to argument
+                double coefLinear = -1.0*targetVector.getArray()[terms.get(0).getEquation().getColumn()]; //TODO pass target to argument
                 varAndCoefListLin.listIdVar = Collections.singletonList(idBinaryVar);
                 varAndCoefListLin.listCoef = Collections.singletonList(coefLinear);
         }
