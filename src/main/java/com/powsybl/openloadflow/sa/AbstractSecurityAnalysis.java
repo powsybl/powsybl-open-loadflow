@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Lists;
 import com.powsybl.action.*;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
@@ -49,7 +50,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -84,6 +88,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         this.reportNode = Objects.requireNonNull(reportNode);
     }
 
+    protected abstract LoadFlowModel getLoadFlowModel();
+
     protected static SecurityAnalysisResult createNoResult() {
         return new SecurityAnalysisResult(new LimitViolationsResult(Collections.emptyList()), LoadFlowResult.ComponentResult.Status.FAILED, Collections.emptyList());
     }
@@ -96,7 +102,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Objects.requireNonNull(contingenciesProvider);
         return CompletableFutureTask.runAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingVariantId);
-            return runSync(securityAnalysisParameters, contingenciesProvider, operatorStrategies, actions, limitReductions);
+            return runSync(securityAnalysisParameters, contingenciesProvider, operatorStrategies, actions, limitReductions, workingVariantId, computationManager.getExecutor());
         }, computationManager.getExecutor());
     }
 
@@ -107,7 +113,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected abstract P createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers);
 
     SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
-                                   List<OperatorStrategy> operatorStrategies, List<Action> actions, List<LimitReduction> limitReductions) {
+                                   List<OperatorStrategy> operatorStrategies, List<Action> actions, List<LimitReduction> limitReductions,
+                                   String workingVariantId, Executor executor) {
         var saReportNode = createSaRootReportNode();
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -115,6 +122,12 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
+
+        // load contingencies
+        List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
+
+        LOGGER.info("Running {} security analysis on {} contingencies on {} threads",
+                getLoadFlowModel() == LoadFlowModel.AC ? "AC" : "DC", contingencies.size(), securityAnalysisParametersExt.getThreadCount());
 
         // check actions validity
         checkActions(network, actions);
@@ -133,8 +146,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // tie lines and three windings transformers missing.
         findAllBranchesToClose(network, actions, topoConfig);
 
-        // load contingencies
-        List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
                 .setContingencyPropagation(securityAnalysisParametersExt.isContingencyPropagation())
@@ -142,23 +153,92 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation());
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
+        SecurityAnalysisResult result;
+        if (securityAnalysisParametersExt.getThreadCount() == 1) {
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
-        var parameters = createParameters(lfParameters, lfParametersExt, topoConfig.isBreaker());
+            var parameters = createParameters(lfParameters, lfParametersExt, topoConfig.isBreaker());
 
-        // create networks including all necessary switches
-        try (LfNetworkList lfNetworks = Networks.load(network, parameters.getNetworkParameters(), topoConfig, saReportNode)) {
-            // run simulation on largest network
-            SecurityAnalysisResult result = lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
-                    .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
-                    .orElse(createNoResult());
+            // create networks including all necessary switches
+            try (LfNetworkList lfNetworks = Networks.load(network, parameters.getNetworkParameters(), topoConfig, saReportNode)) {
+                // run simulation on largest network
+                result = lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
+                        .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
+                        .orElse(createNoResult());
+            }
+        } else {
+            if (!network.getVariantManager().isVariantMultiThreadAccessAllowed()) {
+                throw new PowsyblException("To run a security analysis on multiple threads (and so on variants), you need to set allowVariantMultiThreadAccess to true");
+            }
+            List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>());
+            List<LfNetworkList> lfNetworksList = new ArrayList<>();
 
-            stopwatch.stop();
-            LOGGER.info("Security analysis {} in {} ms", Thread.currentThread().isInterrupted() ? "cancelled" : "done",
-                    stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            int partitionSize = contingencies.size() / securityAnalysisParametersExt.getThreadCount();
+            var contingenciesPartitions = Lists.partition(contingencies, partitionSize);
 
-            return new SecurityAnalysisReport(result);
+            Lock networkLock = new ReentrantLock();
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            for (var contingenciesPartition : contingenciesPartitions) {
+                futures.add(CompletableFuture.runAsync(() -> {
+
+                    var partitionTopoConfig = new LfTopoConfig(topoConfig);
+
+                    //  we have to pay attention with IIDM network multi threading even when allowVariantMultiThreadAccess is set:
+                    //    - variant cloning and removal is not thread safe
+                    //    - we cannot read or write on an exising variant while another thread clone or remove a variant
+                    //    - be aware that even after LF network loading, though LF network we get access to original IIDM
+                    //      variant (for instance to get reactive capability curve), so allowVariantMultiThreadAccess mode
+                    //      is absolutely required
+                    //  so in order to be thread safe, we need to:
+                    //    - lock LF network creation (which create a working variant, see {@code LfNetworkList})
+                    //    - delay {@code LfNetworkList}) closing (which remove a working variant) out of worker thread
+                    LfNetworkList lfNetworks;
+                    List<PropagatedContingency> propagatedContingencies;
+                    P parameters;
+                    networkLock.lock();
+                    try {
+                        network.getVariantManager().setWorkingVariant(workingVariantId);
+
+                        propagatedContingencies = PropagatedContingency.createList(network, contingenciesPartition, partitionTopoConfig, creationParameters);
+
+                        parameters = createParameters(lfParameters, lfParametersExt, partitionTopoConfig.isBreaker());
+
+                        // create networks including all necessary switches
+                        lfNetworks = Networks.load(network, parameters.getNetworkParameters(), partitionTopoConfig, saReportNode);
+                        lfNetworksList.add(0, lfNetworks); // FIXME to workaround variant removal bug, to fix in core
+                    } finally {
+                        networkLock.unlock();
+                    }
+
+                    // run simulation on largest network
+                    partitionResults.add(lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
+                            .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
+                            .orElse(createNoResult()));
+                }, executor));
+            }
+
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .join();
+
+            for (var lfNetworks : lfNetworksList) {
+                lfNetworks.close();
+            }
+
+            // we just need to merge post contingency and operator strategy results, all pre contingency are the same
+            List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+            List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
+            for (var partitionResult : partitionResults) {
+                postContingencyResults.addAll(partitionResult.getPostContingencyResults());
+                operatorStrategyResults.addAll(partitionResult.getOperatorStrategyResults());
+            }
+            result = new SecurityAnalysisResult(partitionResults.get(0).getPreContingencyResult(), postContingencyResults, operatorStrategyResults);
         }
+
+        stopwatch.stop();
+        LOGGER.info("Security analysis {} in {} ms", Thread.currentThread().isInterrupted() ? "cancelled" : "done",
+                stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+        return new SecurityAnalysisReport(result);
     }
 
     protected abstract PostContingencyComputationStatus postContingencyStatusFromLoadFlowResult(R result);
