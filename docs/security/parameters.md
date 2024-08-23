@@ -40,7 +40,7 @@ transformers voltages (magnitude and angle):
 
 The default value is `false`.
 
-**threadCount**
+**threadCount**  
 The `threadCount` property defines the number of threads used to run the security analysis (for both AC and DC). 
 The parallelization is implemented at the contingency level, so the contingency list is split into `threadCount` chunks
 and each chunk is ran by a different thread. 
