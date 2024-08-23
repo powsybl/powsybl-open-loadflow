@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -10,6 +11,7 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -70,7 +72,7 @@ public final class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return getDanglingLine().getGeneration().getTargetQ() / PerUnit.SB;
+        return Networks.zeroIfNan(getDanglingLine().getGeneration().getTargetQ()) / PerUnit.SB;
     }
 
     @Override
@@ -89,7 +91,7 @@ public final class LfDanglingLineGenerator extends AbstractLfGenerator {
     }
 
     @Override
-    public void updateState() {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         // nothing to update
     }
 }

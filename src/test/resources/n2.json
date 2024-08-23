@@ -8,9 +8,12 @@
     "generators" : [ {
       "id" : "G1",
       "targetP" : 1.0,
+      "targetQ" : 0.0,
       "voltageControl" : true,
       "minP" : 0.5,
-      "maxP" : 1.5
+      "maxP" : 1.5,
+      "minTargetP" : 0.5,
+      "maxTargetP" : 1.5
     } ]
   }, {
     "id" : "VL2_0",

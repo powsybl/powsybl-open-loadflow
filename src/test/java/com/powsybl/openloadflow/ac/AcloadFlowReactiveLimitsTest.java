@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
@@ -156,5 +157,20 @@ class AcloadFlowReactiveLimitsTest {
         assertReactivePowerEquals(-164.315, gen.getTerminal());
         assertReactivePowerEquals(-120, gen2.getTerminal());
         assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
+    }
+
+    @Test
+    void testZeroReactiveRangeAndReactiveLimitsDisabled() {
+        parameters.setUseReactiveLimits(false);
+
+        gen2.newMinMaxReactiveLimits()
+                .setMinQ(0)
+                .setMaxQ(0)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(-109.228, gen.getTerminal());
+        assertReactivePowerEquals(-152.265, gen2.getTerminal());
+        assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
     }
 }

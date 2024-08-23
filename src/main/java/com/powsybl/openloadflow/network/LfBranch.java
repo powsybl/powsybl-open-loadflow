@@ -3,12 +3,16 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.util.LimitViolationUtils;
+import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
@@ -41,18 +45,21 @@ public interface LfBranch extends LfElement {
 
         private final double value;
 
-        public LfLimit(String name, int acceptableDuration, double value) {
+        private final double reduction;
+
+        public LfLimit(String name, int acceptableDuration, double value, double reduction) {
             this.name = name;
             this.acceptableDuration = acceptableDuration;
             this.value = value;
+            this.reduction = reduction;
         }
 
-        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double valuePerUnit) {
-            return new LfLimit(name, acceptableDuration, valuePerUnit);
+        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double originalValuePerUnit, Double reduction) {
+            return new LfLimit(name, acceptableDuration, originalValuePerUnit, reduction);
         }
 
-        public static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, valuePerUnit);
+        public static LfLimit createPermanentLimit(double originalValuePerUnit, Double reduction) {
+            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, originalValuePerUnit, reduction);
         }
 
         public String getName() {
@@ -67,8 +74,16 @@ public interface LfBranch extends LfElement {
             return value;
         }
 
+        public double getReducedValue() {
+            return value * reduction;
+        }
+
         public void setAcceptableDuration(int acceptableDuration) {
             this.acceptableDuration = acceptableDuration;
+        }
+
+        public double getReduction() {
+            return reduction;
         }
     }
 
@@ -161,17 +176,51 @@ public interface LfBranch extends LfElement {
 
     void setClosedI2(Evaluable closedI2);
 
-    List<LfLimit> getLimits1(LimitType type);
+    void addAdditionalOpenP1(Evaluable openP1);
 
-    default List<LfLimit> getLimits2(LimitType type) {
+    List<Evaluable> getAdditionalOpenP1();
+
+    void addAdditionalClosedP1(Evaluable closedP1);
+
+    List<Evaluable> getAdditionalClosedP1();
+
+    void addAdditionalOpenQ1(Evaluable openQ1);
+
+    List<Evaluable> getAdditionalOpenQ1();
+
+    void addAdditionalClosedQ1(Evaluable closedQ1);
+
+    List<Evaluable> getAdditionalClosedQ1();
+
+    void addAdditionalOpenP2(Evaluable openP2);
+
+    List<Evaluable> getAdditionalOpenP2();
+
+    void addAdditionalClosedP2(Evaluable closedP2);
+
+    List<Evaluable> getAdditionalClosedP2();
+
+    void addAdditionalOpenQ2(Evaluable openQ2);
+
+    List<Evaluable> getAdditionalOpenQ2();
+
+    void addAdditionalClosedQ2(Evaluable closedQ2);
+
+    List<Evaluable> getAdditionalClosedQ2();
+
+    List<LfLimit> getLimits1(LimitType type, LimitReductionManager limitReductionManager);
+
+    default List<LfLimit> getLimits2(LimitType type, LimitReductionManager limitReductionManager) {
         return Collections.emptyList();
     }
 
-    void updateState(LfNetworkStateUpdateParameters parameters);
+    double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits);
+
+    void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport);
 
     void updateFlows(double p1, double q1, double p2, double q2);
 
-    // phase control
+    // transformer phase control
 
     boolean hasPhaseControllerCapability();
 
@@ -187,7 +236,7 @@ public interface LfBranch extends LfElement {
 
     void setPhaseControlEnabled(boolean phaseControlEnabled);
 
-    // voltage control
+    // transformer voltage control
 
     Optional<TransformerVoltageControl> getVoltageControl();
 
@@ -199,7 +248,17 @@ public interface LfBranch extends LfElement {
 
     void setVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
-    BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
+    // transformer reactive power control
+
+    Optional<TransformerReactivePowerControl> getTransformerReactivePowerControl();
+
+    void setTransformerReactivePowerControl(TransformerReactivePowerControl transformerReactivePowerControl);
+
+    boolean isTransformerReactivePowerController();
+
+    boolean isTransformerReactivePowerControlled();
+
+    List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
 
     double computeApparentPower1();
 

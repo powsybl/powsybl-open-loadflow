@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -60,6 +61,13 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
         LOGGER.trace("onTransformerPhaseControlChange(controllerBranchId='{}', newPhaseControlEnabled={})",
                 controllerBranch.getId(), newPhaseControlEnabled);
         delegate.onTransformerPhaseControlChange(controllerBranch, newPhaseControlEnabled);
+    }
+
+    @Override
+    public void onTransformerVoltageControlTargetChange(TransformerVoltageControl transformerVoltageControl, double newTargetVoltage) {
+        LOGGER.trace("onTransformerVoltageControlTargetChange(controlledBusId='{}', newTargetVoltage={})",
+                transformerVoltageControl.getControlledBus().getId(), newTargetVoltage);
+        delegate.onTransformerVoltageControlTargetChange(transformerVoltageControl, newTargetVoltage);
     }
 
     @Override
@@ -146,5 +154,17 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     public void onBranchConnectionStatusChange(LfBranch branch, TwoSides side, boolean connected) {
         LOGGER.trace("onBranchConnectionStatusChange(branch={}, side={}, connected={})", branch, side, connected);
         delegate.onBranchConnectionStatusChange(branch, side, connected);
+    }
+
+    @Override
+    public void onSlackBusChange(LfBus bus, boolean slack) {
+        LOGGER.trace("onSlackBusChange(bus={}, slack={})", bus, slack);
+        delegate.onSlackBusChange(bus, slack);
+    }
+
+    @Override
+    public void onReferenceBusChange(LfBus bus, boolean reference) {
+        LOGGER.trace("onReferenceBusChange(bus={}, reference={})", bus, reference);
+        delegate.onReferenceBusChange(bus, reference);
     }
 }

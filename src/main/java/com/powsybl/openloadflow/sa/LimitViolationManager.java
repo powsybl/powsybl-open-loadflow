@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sa;
 
@@ -17,10 +18,11 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.SecurityAnalysisParameters;
+import com.powsybl.security.limitreduction.LimitReduction;
+import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
 
@@ -34,19 +36,23 @@ public class LimitViolationManager {
 
     private final LimitViolationManager reference;
 
+    private final LimitReductionManager limitReductionManager;
+
     private SecurityAnalysisParameters.IncreasedViolationsParameters parameters;
 
     private final Map<Object, LimitViolation> violations = new LinkedHashMap<>();
 
-    public LimitViolationManager(LimitViolationManager reference, SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
+    public LimitViolationManager(LimitViolationManager reference, List<LimitReduction> limitReductions,
+                                 SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
         this.reference = reference;
         if (reference != null) {
             this.parameters = Objects.requireNonNull(parameters);
         }
+        this.limitReductionManager = LimitReductionManager.create(limitReductions);
     }
 
-    public LimitViolationManager() {
-        this(null, null);
+    public LimitViolationManager(List<LimitReduction> limitReductions) {
+        this(null, limitReductions, null);
     }
 
     public List<LimitViolation> getLimitViolations() {
@@ -100,38 +106,38 @@ public class LimitViolationManager {
     }
 
     private void detectBranchSideViolations(LfBranch branch, LfBus bus,
-                                            BiFunction<LfBranch, LimitType, List<LfBranch.LfLimit>> limitsGetter,
+                                            TriFunction<LfBranch, LimitType, LimitReductionManager, List<LfBranch.LfLimit>> limitsGetter,
                                             Function<LfBranch, Evaluable> iGetter,
                                             Function<LfBranch, Evaluable> pGetter,
                                             ToDoubleFunction<LfBranch> sGetter,
                                             TwoSides side) {
-        List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT);
+        List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT, limitReductionManager);
         if (!limits.isEmpty()) {
             double i = iGetter.apply(branch).eval();
             limits.stream()
-                    .filter(temporaryLimit -> i > temporaryLimit.getValue())
+                    .filter(temporaryLimit -> i > temporaryLimit.getReducedValue())
                     .findFirst()
                     .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side))
                     .ifPresent(this::addBranchLimitViolation);
         }
 
-        limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER);
+        limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
         if (!limits.isEmpty()) {
             double p = pGetter.apply(branch).eval();
             limits.stream()
-                    .filter(temporaryLimit -> p > temporaryLimit.getValue())
+                    .filter(temporaryLimit -> Math.abs(p) > temporaryLimit.getReducedValue())
                     .findFirst()
                     .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side))
                     .ifPresent(this::addBranchLimitViolation);
         }
 
-        limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER);
+        limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
         if (!limits.isEmpty()) {
             //Apparent power is not relevant for fictitious branches and may be NaN
             double s = sGetter.applyAsDouble(branch);
             if (!Double.isNaN(s)) {
                 limits.stream()
-                        .filter(temporaryLimit -> s > temporaryLimit.getValue())
+                        .filter(temporaryLimit -> s > temporaryLimit.getReducedValue())
                         .findFirst()
                         .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side))
                         .ifPresent(this::addBranchLimitViolation);
@@ -160,7 +166,7 @@ public class LimitViolationManager {
                                                        TwoSides side) {
         return new LimitViolation(branch.getId(), type, temporaryLimit.getName(),
                 temporaryLimit.getAcceptableDuration(), temporaryLimit.getValue() * scale,
-                1f, value * scale, side);
+                temporaryLimit.getReduction(), value * scale, side);
     }
 
     /**
@@ -191,12 +197,12 @@ public class LimitViolationManager {
         double difference = limit.getTo().getAngle() - limit.getFrom().getAngle();
         if (!Double.isNaN(limit.getHighValue()) && difference > limit.getHighValue()) {
             LimitViolation limitViolation1 = new LimitViolation(limit.getId(), LimitViolationType.HIGH_VOLTAGE_ANGLE, Math.toDegrees(limit.getHighValue()),
-                    (float) 1., Math.toDegrees(difference));
+                    1., Math.toDegrees(difference));
             addVoltageAngleLimitViolation(limitViolation1, limit);
         }
         if (!Double.isNaN(limit.getLowValue()) && difference < limit.getLowValue()) {
             LimitViolation limitViolation2 = new LimitViolation(limit.getId(), LimitViolationType.LOW_VOLTAGE_ANGLE, Math.toDegrees(limit.getLowValue()),
-                    (float) 1., Math.toDegrees(difference));
+                    1., Math.toDegrees(difference));
             addVoltageAngleLimitViolation(limitViolation2, limit);
         }
     }

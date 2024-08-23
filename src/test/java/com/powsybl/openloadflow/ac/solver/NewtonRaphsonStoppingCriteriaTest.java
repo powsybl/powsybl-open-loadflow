@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlow;
@@ -15,10 +16,13 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.AsymmetricalLoadFlowTest;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -189,5 +193,29 @@ class NewtonRaphsonStoppingCriteriaTest {
 
         assertEquals(0.0, b1Q, 1E-2);
         assertEquals(0.0, b2Q, 1E-2);
+    }
+
+    @Test
+    void fourNodesAsymTestPerEqStoppingCriteria() {
+        network = AsymmetricalLoadFlowTest.fourNodescreate();
+        parameters
+                .setUseReactiveLimits(false)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAsymmetrical(true)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        Bus bus1 = network.getBusBreakerView().getBus("B1");
+        Bus bus2 = network.getBusBreakerView().getBus("B2");
+        Bus bus3 = network.getBusBreakerView().getBus("B3");
+        Bus bus4 = network.getBusBreakerView().getBus("B4");
+        assertVoltageEquals(100., bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.45937102112217, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.2070528211056, bus4); // balanced = 99.29252809145005
     }
 }

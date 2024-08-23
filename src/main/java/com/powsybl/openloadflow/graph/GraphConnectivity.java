@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.graph;
 
@@ -81,6 +82,11 @@ public interface GraphConnectivity<V, E> {
      * Return the connected component set of given vertex
      */
     Set<V> getConnectedComponent(V vertex);
+
+    /**
+     * Return the largest connected component
+     */
+    Set<V> getLargestConnectedComponent();
 
     /**
      * Return the vertices which were removed from main component by last temporary changes.

@@ -3,11 +3,12 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.util;
 
 import com.google.common.io.ByteStreams;
-import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -95,13 +96,13 @@ public final class LoadFlowAssert {
         }
     }
 
-    public static void assertReportEquals(String refResourceName, ReporterModel reporter) throws IOException {
-        assertReportEquals(LoadFlowAssert.class.getResourceAsStream(refResourceName), reporter);
+    public static void assertReportEquals(String refResourceName, ReportNode reportNode) throws IOException {
+        assertReportEquals(LoadFlowAssert.class.getResourceAsStream(refResourceName), reportNode);
     }
 
-    public static void assertReportEquals(InputStream ref, ReporterModel reporter) throws IOException {
+    public static void assertReportEquals(InputStream ref, ReportNode reportNode) throws IOException {
         StringWriter sw = new StringWriter();
-        reporter.export(sw);
+        reportNode.print(sw);
 
         String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(ref), StandardCharsets.UTF_8));
         String logExport = normalizeLineSeparator(sw.toString());

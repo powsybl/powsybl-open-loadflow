@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
@@ -41,7 +42,7 @@ public abstract class AbstractPhaseControlOuterLoop<V extends Enum<V> & Quantity
 
     protected static List<LfBranch> getControllerBranches(LfNetwork network) {
         return network.getBranches().stream()
-                .filter(branch -> !branch.isDisabled() && branch.isPhaseController())
+                .filter(branch -> !branch.isDisabled() && branch.isPhaseController() && branch.isConnectedAtBothSides())
                 .collect(Collectors.toList());
     }
 

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
@@ -45,6 +46,13 @@ public class LfShuntImpl extends AbstractLfShunt {
             }
             return direction;
         }
+
+        @Override
+        public void updateSectionB(int newPosition) {
+            super.updateSectionB(newPosition);
+            setG(controllers.stream().mapToDouble(Controller::getG).sum());
+            setB(controllers.stream().mapToDouble(Controller::getB).sum());
+        }
     }
 
     private final List<Ref<ShuntCompensator>> shuntCompensatorsRefs;
@@ -66,7 +74,7 @@ public class LfShuntImpl extends AbstractLfShunt {
     private double g;
 
     public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, LfBus bus, boolean voltageControlCapability,
-                       LfNetworkParameters parameters) {
+                       LfNetworkParameters parameters, LfTopoConfig topoConfig) {
         // if withVoltageControl equals to true, all shunt compensators that are listed must control voltage.
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
@@ -84,7 +92,9 @@ public class LfShuntImpl extends AbstractLfShunt {
         b = computeB(shuntCompensators, zb);
         g = computeG(shuntCompensators, zb);
 
-        if (voltageControlCapability) {
+        boolean keepSections = shuntCompensators.stream().map(ShuntCompensator::getId).anyMatch(id -> topoConfig.isOperatedShunt(id));
+
+        if (voltageControlCapability || keepSections) {
             shuntCompensatorsRefs.forEach(shuntCompensatorRef -> {
                 var shuntCompensator = shuntCompensatorRef.get();
                 List<Double> sectionsB = new ArrayList<>(1);

@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
@@ -31,6 +32,8 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         createPhaseControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // transformer voltage control
         createTransformerVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
+        // transformer reactive power control
+        createTransformerReactivePowerControlOuterLoop(parametersExt).ifPresent(outerLoops::add);
         // shunt compensator voltage control
         createShuntVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // automation system

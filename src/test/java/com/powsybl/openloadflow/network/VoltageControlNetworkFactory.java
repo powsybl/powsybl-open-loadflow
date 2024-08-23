@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
 
@@ -348,13 +349,14 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
     /**
      * A very small network to test with a T2wt.
-     *
+     *<pre>
      *     G1        LD2      LD3
      *     |    L12   |        |
      *     |  ------- |        |
      *     B1         B2      B3
      *                  \    /
      *                   T2WT
+     *</pre>
      */
     public static Network createNetworkWithT2wt() {
 
@@ -413,7 +415,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
     /**
      * A small network to test with two T2wt linked by a switch.
-     *
+     *<pre>
      *     G1        LD2      LD3           LD4     LD5
      *     |    L12   |        |             |       |
      *     |  ------- |        |   switch    |       |
@@ -422,6 +424,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
      *     |             T2WT                 T2WT2       |
      *     |                                              |
      *     |------------------L15-------------------------|
+     *</pre>
      */
     public static Network createNetworkWith2T2wtAndSwitch() {
 
@@ -622,13 +625,14 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
     /**
      * A very small network to test with two T2wt.
-     *
+     *<pre>
      *     G1        LD2        LD3
      *     |    L12   |  T2WT2   |
      *     |  ------- | /     \  |
      *     B1         B2       B3
      *                 \      /
      *                  T2WT1
+     *</pre>
      */
     public static Network createNetworkWith2T2wt() {
 
@@ -735,7 +739,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
     /**
      * A very small network to test with a T3wt.
-     *
+     *<pre>
      *     G1        LD2        LD3
      *     |    L12   |          |
      *     |  ------- |          |
@@ -750,10 +754,11 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
      *                      B4
      *                      |
      *                     LD4
+     *</pre>
      */
     public static Network createNetworkWithT3wt() {
 
-        Network network = VoltageControlNetworkFactory.createTransformerBaseNetwork("two-windings-transformer-control");
+        Network network = VoltageControlNetworkFactory.createTransformerBaseNetwork("three-windings-transformer-control");
 
         VoltageLevel vl4 = network.getSubstation("SUBSTATION").newVoltageLevel()
                 .setId("VL_4")
@@ -1042,12 +1047,13 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
     /**
      * SVC test case.
-     *
+     *<pre>
      * g1        ld1
      * |          |
      * b1---------b2
      *      l1    |
      *           svc1
+     *</pre>
      */
     public static Network createWithStaticVarCompensator() {
         Network network = Network.create("svc", "test");

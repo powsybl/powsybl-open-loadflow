@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow;
 
@@ -76,9 +77,9 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     }
 
     private double getLimitValueFromAcceptableDuration(LfBranch branch, int acceptableDuration, TwoSides side, LimitType type) {
-        return (side == TwoSides.ONE ? branch.getLimits1(type) : branch.getLimits2(type)).stream()
+        return (side == TwoSides.ONE ? branch.getLimits1(type, null) : branch.getLimits2(type, null)).stream()
                                                                                              .filter(l -> l.getAcceptableDuration() == acceptableDuration)
-                                                                                             .map(LfBranch.LfLimit::getValue)
+                                                                                             .map(LfBranch.LfLimit::getReducedValue)
                                                                                              .findFirst().orElse(Double.NaN);
     }
 
@@ -100,7 +101,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(0.173205, getLimitValueFromAcceptableDuration(branch, 1200, TwoSides.ONE, LimitType.CURRENT), DELTA);
         assertEquals(0.207846, getLimitValueFromAcceptableDuration(branch, 600, TwoSides.ONE, LimitType.CURRENT), DELTA);
         assertEquals(0.242487, getLimitValueFromAcceptableDuration(branch, 0, TwoSides.ONE, LimitType.CURRENT), DELTA);
-        assertTrue(branch.getLimits2(LimitType.CURRENT).isEmpty());
+        assertTrue(branch.getLimits2(LimitType.CURRENT, null).isEmpty());
     }
 
     @Test
@@ -119,8 +120,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(0.117, branch1.getI2().eval(), DELTA);
         assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch1, Integer.MAX_VALUE, TwoSides.ONE, LimitType.CURRENT), DELTA);
         assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch1, Integer.MAX_VALUE, TwoSides.TWO, LimitType.CURRENT), DELTA);
-        assertTrue(branch1.getLimits1(LimitType.CURRENT).isEmpty());
-        assertTrue(branch1.getLimits2(LimitType.CURRENT).isEmpty());
+        assertTrue(branch1.getLimits1(LimitType.CURRENT, null).isEmpty());
+        assertTrue(branch1.getLimits2(LimitType.CURRENT, null).isEmpty());
     }
 
     @Test

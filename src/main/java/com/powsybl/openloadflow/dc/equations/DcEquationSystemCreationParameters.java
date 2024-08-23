@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.dc.equations;
 
@@ -28,6 +29,8 @@ public class DcEquationSystemCreationParameters {
     private boolean useTransformerRatio = LoadFlowParameters.DEFAULT_DC_USE_TRANSFORMER_RATIO_DEFAULT;
 
     private DcApproximationType dcApproximationType = DC_APPROXIMATION_TYPE_DEFAULT_VALUE;
+
+    private double dcPowerFactor = LoadFlowParameters.DEFAULT_DC_POWER_FACTOR;
 
     public boolean isUpdateFlows() {
         return updateFlows;
@@ -63,6 +66,15 @@ public class DcEquationSystemCreationParameters {
     public DcEquationSystemCreationParameters setDcApproximationType(DcApproximationType dcApproximationType) {
         this.dcApproximationType = Objects.requireNonNull(dcApproximationType);
         return this;
+    }
+
+    public DcEquationSystemCreationParameters setDcPowerFactor(double dcPowerFactor) {
+        this.dcPowerFactor = dcPowerFactor;
+        return this;
+    }
+
+    public double getDcPowerFactor() {
+        return dcPowerFactor;
     }
 
     @Override

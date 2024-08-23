@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.equations;
 
@@ -96,7 +97,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 LfBus bus = (LfBus) element;
                 checkSlackBus(bus, disabled);
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_PHI)
-                        .ifPresent(eq -> eq.setActive(!bus.isDisabled()));
+                        .ifPresent(eq -> eq.setActive(!bus.isDisabled() && bus.isReference()));
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P)
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
                 // set voltage target equation inactive, various voltage control will set next to the correct value
@@ -134,10 +135,10 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                     .ifPresent(voltageControl -> creator.recreateReactivePowerDistributionEquations(voltageControl, creationContext));
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(voltageControl, creationContext));
+                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(network.getNetwork(), voltageControl, creationContext));
             bus.getShuntVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateShuntSusceptanceDistributionEquations(voltageControl, creationContext));
+                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateShuntSusceptanceDistributionEquations(network.getNetwork(), voltageControl, creationContext));
         }
     }
 
@@ -196,5 +197,20 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             branch.setQ2(EvaluableConstants.NAN);
             branch.setI2(EvaluableConstants.NAN);
         }
+    }
+
+    @Override
+    protected AcEquationType getTypeBusTargetP() {
+        return AcEquationType.BUS_TARGET_P;
+    }
+
+    @Override
+    protected AcEquationType getTypeBusTargetPhi() {
+        return AcEquationType.BUS_TARGET_PHI;
+    }
+
+    @Override
+    protected AcVariableType getTypeBusPhi() {
+        return AcVariableType.BUS_PHI;
     }
 }

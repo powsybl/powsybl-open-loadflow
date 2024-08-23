@@ -3,15 +3,18 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.action.*;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -24,13 +27,13 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.security.action.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -62,7 +65,7 @@ class LfActionTest extends AbstractSerDeTest {
                 loadFlowParameters, new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToOpen().add(network.getSwitch("C"));
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfAction.create(switchAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
             String loadId = "LOAD";
@@ -79,10 +82,10 @@ class LfActionTest extends AbstractSerDeTest {
             });
 
             assertTrue(LfAction.create(new SwitchAction("switchAction", "S", true), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
-            assertTrue(LfAction.create(new LineConnectionAction("A line action", "x", true), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
+            assertTrue(LfAction.create(new TerminalsConnectionAction("A line action", "x", true), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
             assertTrue(LfAction.create(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
-            var lineAction = new LineConnectionAction("A line action", "L1", true, false);
-            assertEquals("Line connection action: only open line at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers())).getMessage());
+            var lineAction = new TerminalsConnectionAction("A line action", "L1", ThreeSides.ONE, false);
+            assertEquals("Terminals connection action: only open or close branch at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers())).getMessage());
         }
     }
 
@@ -98,10 +101,10 @@ class LfActionTest extends AbstractSerDeTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
-            assertEquals("Generator action: configuration not supported yet.", e.getMessage());
+            assertEquals("Generator action on G : configuration not supported yet.", e.getMessage());
         }
     }
 
@@ -122,7 +125,7 @@ class LfActionTest extends AbstractSerDeTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
             lfAction.apply(acParameters.getNetworkParameters());
@@ -151,7 +154,7 @@ class LfActionTest extends AbstractSerDeTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(hvdcAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
             assertEquals("Hvdc action: line is already in AC emulation, not supported yet.", e.getMessage());
@@ -172,7 +175,7 @@ class LfActionTest extends AbstractSerDeTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(LfAction.create(hvdcAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
         }

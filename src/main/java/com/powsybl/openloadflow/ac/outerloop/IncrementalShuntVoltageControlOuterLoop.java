@@ -4,10 +4,11 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
@@ -17,15 +18,17 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
@@ -38,7 +41,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     public static final String NAME = "IncrementalShuntVoltageControl";
 
     // Maximum number of directional inversions for each controller during incremental outer loop
-    private static final int MAX_DIRECTION_CHANGE = 2;
+    private static final int MAX_DIRECTION_CHANGE = 3;
 
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
@@ -50,14 +53,14 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     public static List<LfBus> getControlledBusesOutOfDeadband(IncrementalContextData contextData) {
         return IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.SHUNT).stream()
                 .filter(bus -> isOutOfDeadband(bus.getShuntVoltageControl().orElseThrow()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static List<LfShunt> getControllerElementsOutOfDeadband(List<LfBus> controlledBusesOutOfDeadband) {
         return controlledBusesOutOfDeadband.stream()
                 .flatMap(bus -> bus.getShuntVoltageControl().orElseThrow().getMergedControllerElements().stream())
                 .filter(Predicate.not(LfShunt::isDisabled))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static List<LfShunt> getControllerElements(IncrementalContextData contextData) {
@@ -127,7 +130,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     }
 
     private void adjustB(ShuntVoltageControl voltageControl, List<LfShunt> sortedControllerShunts, LfBus controlledBus, IncrementalContextData contextData,
-                         SensitivityContext sensitivityContext, double diffV, MutableObject<OuterLoopStatus> status) {
+                         SensitivityContext sensitivityContext, double diffV, MutableObject<Integer> numAdjustedShunts) {
         // several shunts could control the same bus
         double remainingDiffV = diffV;
         boolean hasChanged = true;
@@ -148,7 +151,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                                 controllerContext.updateAllowedDirection(direction);
                                 remainingDiffV -= (controller.getB() - previousB) * sensitivity;
                                 hasChanged = true;
-                                status.setValue(OuterLoopStatus.UNSTABLE);
+                                numAdjustedShunts.setValue(numAdjustedShunts.getValue() + 1);
                             }
                         } else {
                             LOGGER.trace("Controller shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllerShunt.getId(),
@@ -161,7 +164,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     }
 
     private static double getDiffV(ShuntVoltageControl voltageControl) {
-        double targetV = voltageControl.getControlledBus().getHighestPriorityMainVoltageControl().orElseThrow().getTargetValue();
+        double targetV = voltageControl.getControlledBus().getHighestPriorityTargetV().orElseThrow();
         double v = voltageControl.getControlledBus().getV();
         return targetV - v;
     }
@@ -173,7 +176,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         if (outOfDeadband) {
             List<LfShunt> controllers = voltageControl.getMergedControllerElements().stream()
                     .filter(shunt -> !shunt.isDisabled())
-                    .collect(Collectors.toList());
+                    .toList();
             LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
                     voltageControl.getControlledBus().getId(), controllers.size(), halfTargetDeadband * voltageControl.getControlledBus().getNominalV(),
                     diffV * voltageControl.getControlledBus().getNominalV());
@@ -182,7 +185,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         LfNetwork network = context.getNetwork();
@@ -195,8 +198,10 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         // all shunts are within their deadbands
         if (controllerShuntsOutOfDeadband.isEmpty()) {
-            return status.getValue();
+            return new OuterLoopResult(this, status.getValue());
         }
+
+        MutableObject<Integer> numAdjustedShunts = new MutableObject<>(0);
 
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerShuntsOutOfDeadband,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
@@ -207,10 +212,17 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
             List<LfShunt> sortedControllers = voltageControl.getMergedControllerElements().stream()
                     .filter(shunt -> !shunt.isDisabled())
                     .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
-                    .collect(Collectors.toList());
-            adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, status);
+                    .toList();
+            adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, numAdjustedShunts);
         });
-        return status.getValue();
+
+        if (numAdjustedShunts.getValue() != 0) {
+            status.setValue(OuterLoopStatus.UNSTABLE);
+            ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+            Reports.reportShuntVoltageControlChangedSection(iterationReportNode, numAdjustedShunts.getValue());
+        }
+
+        return new OuterLoopResult(this, status.getValue());
     }
 
     protected static double getHalfTargetDeadband(ShuntVoltageControl voltageControl) {

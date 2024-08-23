@@ -3,19 +3,19 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.extensions.ActivePowerControl;
-import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
-import com.powsybl.iidm.network.extensions.GeneratorFortescue;
-import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
+import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,31 +35,33 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private boolean participating;
 
-    private double droop;
+    private final double droop;
 
-    private double participationFactor;
+    private final double participationFactor;
 
     private Double qPercent;
+
+    private final boolean forceVoltageControl;
+
+    private final double maxTargetP;
+
+    private final double minTargetP;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
-        participating = true;
-        droop = DEFAULT_DROOP;
+        // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
+        forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
+        var apcHelper = ActivePowerControlHelper.create(generator, generator.getMinP(), generator.getMaxP());
+        participating = apcHelper.participating();
+        participationFactor = apcHelper.participationFactor();
+        droop = apcHelper.droop();
+        minTargetP = apcHelper.minTargetP();
+        maxTargetP = apcHelper.maxTargetP();
 
-        // get participation factor and droop from extension
-        ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
-        if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate();
-            if (!Double.isNaN(activePowerControl.getDroop())) {
-                droop = activePowerControl.getDroop();
-            }
-            if (activePowerControl.getParticipationFactor() > 0) {
-                participationFactor = activePowerControl.getParticipationFactor();
-            }
-        }
+        setReferencePriority(ReferencePriority.get(generator));
 
-        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
+        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMaxP(), minTargetP, maxTargetP,
                 parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }
@@ -70,8 +72,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
 
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
-        if (reactivePowerControl != null && reactivePowerControl.isEnabled() && !generator.isVoltageRegulatorOn() && parameters.isReactivePowerRemoteControl()) {
-            setReactivePowerControl(reactivePowerControl.getRegulatingTerminal(), reactivePowerControl.getTargetQ());
+        if (reactivePowerControl != null && reactivePowerControl.isEnabled() && !generator.isVoltageRegulatorOn() && parameters.isGeneratorReactivePowerRemoteControl()) {
+            setRemoteReactivePowerControl(reactivePowerControl.getRegulatingTerminal(), reactivePowerControl.getTargetQ());
         }
 
         CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
@@ -151,7 +153,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return getGenerator().getTargetQ() / PerUnit.SB;
+        return Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
     }
 
     @Override
@@ -162,6 +164,16 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     public double getMaxP() {
         return getGenerator().getMaxP() / PerUnit.SB;
+    }
+
+    @Override
+    public double getMinTargetP() {
+        return minTargetP / PerUnit.SB;
+    }
+
+    @Override
+    public double getMaxTargetP() {
+        return maxTargetP / PerUnit.SB;
     }
 
     @Override
@@ -190,10 +202,23 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public void updateState() {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var generator = getGenerator();
         generator.getTerminal()
                 .setP(-targetP * PerUnit.SB)
-                .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ * PerUnit.SB);
+                .setQ(Double.isNaN(calculatedQ) ? -getTargetQ() * PerUnit.SB : -calculatedQ * PerUnit.SB);
+        if (parameters.isWriteReferenceTerminals() && isReference()) {
+            ReferenceTerminals.addTerminal(generator.getTerminal());
+        }
+    }
+
+    @Override
+    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
+        return forceVoltageControl || super.checkIfGeneratorStartedForVoltageControl(report);
+    }
+
+    @Override
+    protected boolean checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        return forceVoltageControl || super.checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
     }
 }

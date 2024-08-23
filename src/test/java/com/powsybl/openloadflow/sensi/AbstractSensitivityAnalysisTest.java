@@ -3,11 +3,12 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
@@ -197,6 +198,14 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         return createBranchIntensityPerPSTAngle(functionId, variableId, TwoSides.ONE);
     }
 
+    protected static SensitivityFactor createBusVoltagePerTargetQ(String functionId, String variableId, String contingencyId) {
+        return new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, functionId, SensitivityVariableType.INJECTION_REACTIVE_POWER, variableId, false, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
+    }
+
+    protected static SensitivityFactor createTargetQPerTargetV(String functionId, String variableId, String contingencyId) {
+        return new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, functionId, SensitivityVariableType.BUS_TARGET_VOLTAGE, variableId, false, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
+    }
+
     protected static SensitivityFactor createBusVoltagePerTargetV(String functionId, String variableId, String contingencyId) {
         return new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, functionId, SensitivityVariableType.BUS_TARGET_VOLTAGE, variableId, false, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
     }
@@ -211,12 +220,13 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
     }
 
     protected void runAcLf(Network network) {
-        runAcLf(network, Reporter.NO_OP);
+        runAcLf(network, ReportNode.NO_OP);
     }
 
-    protected void runAcLf(Network network, Reporter reporter) {
+    protected void runAcLf(Network network, ReportNode reportNode) {
+        LoadFlowParameters parameters = new LoadFlowParameters().setWriteSlackBus(false);
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
-                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters(), reporter)
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters, reportNode)
                 .join();
         if (!result.isFullyConverged()) {
             throw new PowsyblException("AC LF diverged");
@@ -224,13 +234,13 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
     }
 
     protected void runDcLf(Network network) {
-        runDcLf(network, Reporter.NO_OP);
+        runDcLf(network, ReportNode.NO_OP);
     }
 
-    protected void runDcLf(Network network, Reporter reporter) {
-        LoadFlowParameters parameters = new LoadFlowParameters().setDc(true);
+    protected void runDcLf(Network network, ReportNode reportNode) {
+        LoadFlowParameters parameters = new LoadFlowParameters().setWriteSlackBus(false).setDc(true);
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
-                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters, reporter)
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters, reportNode)
                 .join();
         if (!result.isFullyConverged()) {
             throw new PowsyblException("DC LF failed");
@@ -238,12 +248,12 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
     }
 
     protected void runLf(Network network, LoadFlowParameters loadFlowParameters) {
-        runLf(network, loadFlowParameters, Reporter.NO_OP);
+        runLf(network, loadFlowParameters, ReportNode.NO_OP);
     }
 
-    protected void runLf(Network network, LoadFlowParameters loadFlowParameters, Reporter reporter) {
+    protected void runLf(Network network, LoadFlowParameters loadFlowParameters, ReportNode reportNode) {
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
-                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, loadFlowParameters, reporter)
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, loadFlowParameters, reportNode)
                 .join();
         if (!result.isFullyConverged()) {
             throw new PowsyblException("LF failed");

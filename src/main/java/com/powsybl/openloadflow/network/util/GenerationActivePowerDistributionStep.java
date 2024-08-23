@@ -4,6 +4,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.util;
 
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -54,16 +56,27 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 .flatMap(bus -> bus.getGenerators().stream())
                 .filter(generator -> isParticipating(generator) && getParticipationFactor(generator) != 0)
                 .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(LinkedList::new));
     }
 
     @Override
-    public ActivePowerDistribution.StepResult run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
+    public double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // generators might have reach a limit and have been discarded
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
 
         double done = 0d;
+        double mismatch = remainingMismatch;
+        if (iteration == 0) {
+            // "undo" everything from targetP to go back to initialP
+            for (ParticipatingElement participatingGenerator : participatingElements) {
+                LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
+                done += generator.getInitialTargetP() - generator.getTargetP();
+                mismatch -= generator.getInitialTargetP() - generator.getTargetP();
+                generator.setTargetP(generator.getInitialTargetP());
+            }
+        }
+
         int modifiedBuses = 0;
         int generatorsAtMax = 0;
         int generatorsAtMin = 0;
@@ -73,24 +86,24 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
             LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
             double factor = participatingGenerator.getFactor();
 
-            double minP = useActiveLimits ? generator.getMinP() : -Double.MAX_VALUE;
-            double maxP = useActiveLimits ? generator.getMaxP() : Double.MAX_VALUE;
+            double minTargetP = useActiveLimits ? generator.getMinTargetP() : -Double.MAX_VALUE;
+            double maxTargetP = useActiveLimits ? generator.getMaxTargetP() : Double.MAX_VALUE;
             double targetP = generator.getTargetP();
 
             // we don't want to change the generation sign
             if (targetP < 0) {
-                maxP = Math.min(maxP, 0);
+                maxTargetP = Math.min(maxTargetP, 0);
             } else {
-                minP = Math.max(minP, 0);
+                minTargetP = Math.max(minTargetP, 0);
             }
 
-            double newTargetP = targetP + remainingMismatch * factor;
-            if (remainingMismatch > 0 && newTargetP > maxP) {
-                newTargetP = maxP;
+            double newTargetP = targetP + mismatch * factor;
+            if (mismatch > 0 && newTargetP > maxTargetP) {
+                newTargetP = maxTargetP;
                 generatorsAtMax++;
                 it.remove();
-            } else if (remainingMismatch < 0 && newTargetP < minP) {
-                newTargetP = minP;
+            } else if (mismatch < 0 && newTargetP < minTargetP) {
+                newTargetP = minTargetP;
                 generatorsAtMin++;
                 it.remove();
             }
@@ -105,18 +118,18 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         }
 
         LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} generators ({} at max power, {} at min power)",
-                done * PerUnit.SB, remainingMismatch * PerUnit.SB, iteration, modifiedBuses,
+                done * PerUnit.SB, mismatch * PerUnit.SB, iteration, modifiedBuses,
                 generatorsAtMax, generatorsAtMin);
 
-        return new ActivePowerDistribution.StepResult(done, modifiedBuses != 0);
+        return done;
     }
 
     private double getParticipationFactor(LfGenerator generator) {
         return switch (participationType) {
-            case MAX -> generator.getMaxP() / generator.getDroop();
+            case MAX -> generator.getMaxTargetP() / generator.getDroop();
             case TARGET -> Math.abs(generator.getTargetP());
             case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
-            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxP() - generator.getTargetP());
+            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxTargetP() - generator.getTargetP());
         };
     }
 

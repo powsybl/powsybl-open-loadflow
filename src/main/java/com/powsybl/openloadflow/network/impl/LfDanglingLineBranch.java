@@ -3,12 +3,16 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
@@ -65,24 +69,24 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
         // we follow the convention side 1 for network side and side 2 for boundary side.
         double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
-        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
-                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN);
+        return List.of(new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
+                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN));
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type) {
+    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         var danglingLine = getDanglingLine();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, danglingLine.getActivePowerLimits().orElse(null));
+                return getLimits1(type, danglingLine.getActivePowerLimits().orElse(null), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, danglingLine.getApparentPowerLimits().orElse(null));
+                return getLimits1(type, danglingLine.getApparentPowerLimits().orElse(null), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, danglingLine.getCurrentLimits().orElse(null));
+                return getLimits1(type, danglingLine.getCurrentLimits().orElse(null), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -90,7 +94,12 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters) {
+    public double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+        return new double[] {};
+    }
+
+    @Override
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
         updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
     }
 

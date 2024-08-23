@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.graph;
 
@@ -130,6 +131,13 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     public Set<V> getConnectedComponent(V vertex) {
         int componentNumber = getComponentNumber(vertex);
         return componentSets.get(componentNumber);
+    }
+
+    @Override
+    public Set<V> getLargestConnectedComponent() {
+        checkSavedContext();
+        updateComponents();
+        return componentSets.get(0);
     }
 
     protected Set<V> getNonConnectedVertices(V vertex) {

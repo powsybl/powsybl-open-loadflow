@@ -3,14 +3,16 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.extensions.VoltageRegulation;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -25,30 +27,33 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private boolean participating;
 
-    private double droop;
+    private final double droop;
 
-    private double participationFactor;
+    private final double participationFactor;
+
+    private final double maxTargetP;
+
+    private final double minTargetP;
 
     private LfBatteryImpl(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, battery.getTargetP() / PerUnit.SB);
         this.batteryRef = Ref.create(battery, parameters.isCacheEnabled());
-        participating = true;
-        droop = DEFAULT_DROOP;
-        // get participation factor from extension
-        ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
-        if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate();
-            if (!Double.isNaN(activePowerControl.getDroop())) {
-                droop = activePowerControl.getDroop();
-            }
-            if (activePowerControl.getParticipationFactor() > 0) {
-                participationFactor = activePowerControl.getParticipationFactor();
-            }
-        }
+        var apcHelper = ActivePowerControlHelper.create(battery, battery.getMinP(), battery.getMaxP());
+        participating = apcHelper.participating();
+        participationFactor = apcHelper.participationFactor();
+        droop = apcHelper.droop();
+        minTargetP = apcHelper.minTargetP();
+        maxTargetP = apcHelper.maxTargetP();
 
-        if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMinP(), battery.getMaxP(),
+        if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMaxP(), minTargetP, maxTargetP,
                 parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
+        }
+
+        // get voltage control from extension
+        VoltageRegulation voltageRegulation = battery.getExtension(VoltageRegulation.class);
+        if (voltageRegulation != null && voltageRegulation.isVoltageRegulatorOn()) {
+            setVoltageControl(voltageRegulation.getTargetV(), battery.getTerminal(), voltageRegulation.getRegulatingTerminal(), parameters, report);
         }
     }
 
@@ -85,6 +90,16 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public double getMinTargetP() {
+        return minTargetP / PerUnit.SB;
+    }
+
+    @Override
+    public double getMaxTargetP() {
+        return maxTargetP / PerUnit.SB;
+    }
+
+    @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(getBattery().getReactiveLimits());
     }
@@ -110,10 +125,10 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public void updateState() {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var battery = getBattery();
         battery.getTerminal()
                 .setP(-targetP * PerUnit.SB)
-                .setQ(-battery.getTargetQ());
+                .setQ(Double.isNaN(calculatedQ) ? -getTargetQ() * PerUnit.SB : -calculatedQ * PerUnit.SB);
     }
 }

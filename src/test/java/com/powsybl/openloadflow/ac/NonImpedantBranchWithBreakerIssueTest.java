@@ -3,6 +3,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.ac;
 
@@ -35,7 +36,7 @@ class NonImpedantBranchWithBreakerIssueTest {
             new AcloadFlowEngine(context)
                     .run();
         }
-        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION));
+        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, false, ReferenceBusSelectionMode.FIRST_SLACK, false));
         for (Bus bus : network.getBusView().getBuses()) {
             assertEquals(400, bus.getV(), 0);
             assertEquals(0, bus.getAngle(), 0);
@@ -56,7 +57,7 @@ class NonImpedantBranchWithBreakerIssueTest {
             new AcloadFlowEngine(context)
                     .run();
         }
-        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION));
+        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, false, ReferenceBusSelectionMode.FIRST_SLACK, false));
         assertEquals(-100, network.getGenerator("G1").getTerminal().getQ(), 0);
         assertEquals(-100, network.getGenerator("G2").getTerminal().getQ(), 0);
     }
