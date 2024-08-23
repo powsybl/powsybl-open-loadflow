@@ -170,15 +170,18 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (!network.getVariantManager().isVariantMultiThreadAccessAllowed()) {
                 throw new PowsyblException("To run a security analysis on multiple threads (and so on variants), you need to set allowVariantMultiThreadAccess to true");
             }
-            List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>());
-            List<LfNetworkList> lfNetworksList = new ArrayList<>();
 
             int partitionSize = contingencies.size() / securityAnalysisParametersExt.getThreadCount();
             var contingenciesPartitions = Lists.partition(contingencies, partitionSize);
 
+            List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), null)));
+            List<LfNetworkList> lfNetworksList = new ArrayList<>();
+
             Lock networkLock = new ReentrantLock();
             List<CompletableFuture<Void>> futures = new ArrayList<>();
-            for (var contingenciesPartition : contingenciesPartitions) {
+            for (int i = 0; i < contingenciesPartitions.size(); i++) {
+                final int partitionNum = i;
+                var contingenciesPartition = contingenciesPartitions.get(i);
                 futures.add(CompletableFuture.runAsync(() -> {
 
                     var partitionTopoConfig = new LfTopoConfig(topoConfig);
@@ -190,8 +193,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     //      variant (for instance to get reactive capability curve), so allowVariantMultiThreadAccess mode
                     //      is absolutely required
                     //  so in order to be thread safe, we need to:
-                    //    - lock LF network creation (which create a working variant, see {@code LfNetworkList})
-                    //    - delay {@code LfNetworkList}) closing (which remove a working variant) out of worker thread
+                    //    - lock LF network creation (which create a working variant, see {@code LfNetworkList}
+                    //    - delay {@code LfNetworkList} closing (which remove a working variant) out of worker thread
                     LfNetworkList lfNetworks;
                     List<PropagatedContingency> propagatedContingencies;
                     P parameters;
@@ -211,7 +214,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     }
 
                     // run simulation on largest network
-                    partitionResults.add(lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
+                    partitionResults.set(partitionNum, lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
                             .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
                             .orElse(createNoResult()));
                 }, executor));
