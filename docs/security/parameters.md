@@ -40,6 +40,19 @@ transformers voltages (magnitude and angle):
 
 The default value is `false`.
 
+**threadCount**
+The `threadCount` property defines the number of threads used to run the security analysis (for both AC and DC). 
+The parallelization is implemented at the contingency level, so the contingency list is split into `threadCount` chunks
+and each chunk is ran by a different thread. 
+
+To be able to run a multi-threads security analysis the `allowVariantMultiThreadAccess` mode has to be activated in the 
+variant manager [![Javadoc](https://img.shields.io/badge/-javadoc-blue.svg)](https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/VariantManager.html) 
+of the IIDM network.
+
+The thread pool used for getting threads is the one provided by the `ComputationManager` [![Javadoc](https://img.shields.io/badge/-javadoc-blue.svg)](https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/computation/ComputationManager.html) 
+(see `ComputationManager.getExecutor` method). By default, when using the local computation manager, this is the `ForkJoinPool` common pool which is used.
+
+The default value is 1.
 
 ## Configuration file example
 See below an extract of a config file that could help:
@@ -48,6 +61,7 @@ See below an extract of a config file that could help:
 open-security-analysis-default-parameters:
   contingencyPropagation: true
   createResultExtension: false
+  threadCount: 1
 ```
 
 At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.
