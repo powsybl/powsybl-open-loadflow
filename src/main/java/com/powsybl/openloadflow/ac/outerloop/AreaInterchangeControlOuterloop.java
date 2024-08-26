@@ -43,7 +43,6 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
      * The part of the total slack active power mismatch that should be added to the Area's net interchange mismatch, ie the part of the slack that should be distributed in the Area.
      */
 
-    private int slackBusCount = 1;
     private final Map<LfArea, Double> areaSlackDistributionParticipationFactor;
 
     public AreaInterchangeControlOuterloop(ActivePowerDistribution activePowerDistribution, double areaInterchangePMaxMismatch) {
@@ -62,7 +61,6 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
         var contextData = new DistributedSlackContextData();
         context.setData(contextData);
         LfNetwork network = context.getNetwork();
-        slackBusCount = network.getSlackBuses().size();
         allocateSlackDistributionParticipationFactors(network);
     }
 
