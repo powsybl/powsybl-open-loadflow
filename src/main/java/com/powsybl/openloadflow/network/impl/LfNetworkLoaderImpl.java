@@ -563,12 +563,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createAreas(LfNetwork network, LfNetworkParameters parameters, LoadingContext loadingContext) {
+    private static void createAreas(LfNetwork network, LfNetworkParameters parameters, LoadingContext loadingContext, List<LfNetworkLoaderPostProcessor> postProcessors) {
         if (parameters.isAreaInterchangeControl()) {
             loadingContext.areaBusMap.forEach((area, lfBuses) -> {
                 Set<LfArea.Boundary> boundaries = loadingContext.areaBoundaries.getOrDefault(area, new HashSet<>());
                 LfArea lfArea = LfAreaImpl.create(area, lfBuses, boundaries, network, parameters);
                 network.addArea(lfArea);
+                postProcessors.forEach(pp -> pp.onAreaAdded(area, lfArea));
             });
             checkBusesWithoutArea(network);
         }
@@ -890,7 +891,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, topoConfig, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
-        createAreas(lfNetwork, parameters, loadingContext);
+        createAreas(lfNetwork, parameters, loadingContext, postProcessors);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);
