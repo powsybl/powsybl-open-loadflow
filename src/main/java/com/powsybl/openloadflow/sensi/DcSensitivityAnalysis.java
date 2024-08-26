@@ -186,20 +186,21 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .forEach(column -> targetVectorArray[column] = 0);
         }
 
-        // TODO : remove this, just there to apply the action temporarily
-        NetworkState networkState = NetworkState.save(loadFlowContext.getNetwork());
         if (!lfActions.isEmpty()) {
             lfActions.forEach(lfAction -> {
                 LfAction.TapPositionChange tapPositionChange = lfAction.getTapPositionChange();
-                // TODO : remove this, just there to apply the action temporarily
-                lfAction.apply(loadFlowContext.getParameters().getNetworkParameters());
                 LfBranch lfBranch = tapPositionChange.branch();
+                int tapPosition = lfBranch.getPiModel().getTapPosition();
+                int value = tapPositionChange.value();
+                int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
+                lfBranch.getPiModel().setTapPosition(newTapPosition);
                 loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).ifPresent(
                     dcVariableTypeDcEquationTypeEquation -> {
                         int column = dcVariableTypeDcEquationTypeEquation.getColumn();
                         targetVectorArray[column] = lfBranch.getPiModel().getA1();
                     }
                 );
+                lfBranch.getPiModel().setTapPosition(tapPosition);
             });
         }
 
@@ -207,9 +208,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         if (!succeeded) {
             throw new PowsyblException("DC solver failed");
         }
-
-        // TODO : remove this, just there to apply the action temporarily
-        networkState.restore();
 
         return targetVectorArray; // now contains dx
     }
