@@ -169,19 +169,20 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     int busId = listVarVIndexes.get((indexNonLinearOuterLoopCst - sortedInnerLoopEquationsToSolve.size())/5);
 
                     // Compute sum of reactive power at bus
-                    double valueSumReactivePower = 0;
-                    Equation equation = (Equation) equationSystem.getEquation(busId, AcEquationType.BUS_TARGET_Q).get();
-                    List<EquationTerm> equationTerms = equation.getTerms();
-                    for (EquationTerm term : equationTerms) {
-                        if (term.isActive()) {
-                            valueSumReactivePower += term.eval();
-                        }
-                    }
+//                    double valueSumReactivePower = 0;
+//                    Equation equation = (Equation) equationSystem.getEquation(busId, AcEquationType.BUS_TARGET_Q).get();
+//                    List<EquationTerm> equationTerms = equation.getTerms();
+//                    for (EquationTerm term : equationTerms) {
+//                        if (term.isActive()) {
+//                            valueSumReactivePower += term.eval();
+//                        }
+//                    }
                     try {
                         if ((currentCbEqIndex - listNonLinearConstsInnerLoop.size()) % 3 == 0) {
                             // 1) Q is within its bounds Q_lo and Q_up for all PV and PQ nodes
                             // Inequality
-                            c.set(currentCbEqIndex, valueSumReactivePower);
+//                            c.set(currentCbEqIndex, valueSumReactivePower);
+                            c.set(currentCbEqIndex, lfNetwork.getBus(busId).getQ().eval());
                         } else if ((currentCbEqIndex - listNonLinearConstsInnerLoop.size()) % 3 == 1) {
                             // 2) The node becomes PQ and q is set to its upper bound Q_up
                             // Equality
@@ -189,9 +190,11 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                             int indexOfVarInList = listVarVIndexes.indexOf(busId);
                             int indexBinaryVarY = getYVar(indexOfVarInList, equationSystem);
                             // term in valueSumReactivePower*y[i]
-                            valueConst = valueSumReactivePower*x.get(indexBinaryVarY);
+//                            valueConst = valueSumReactivePower*x.get(indexBinaryVarY);
+                            valueConst = lfNetwork.getBus(busId).getQ().eval();
                             // term in Qi_up*y[i]
-                            valueConst -= lfNetwork.getBus(busId).getMaxQ()*x.get(indexBinaryVarY);
+                            valueConst -= lfNetwork.getBus(busId).getMaxQ();
+                            valueConst *= x.get(indexBinaryVarY);
                             // add equation
                             c.set(currentCbEqIndex, valueConst);
                         } else if ((currentCbEqIndex - listNonLinearConstsInnerLoop.size()) % 3 == 2) {
@@ -202,9 +205,11 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                             int indexBinaryVarX = getXVar(indexOfVarInList, equationSystem);
                             int indexBinaryVarY = getYVar(indexOfVarInList, equationSystem);
                             // term in valueSumReactivePower*(1- x[i] - y[i])
-                            valueConst = valueSumReactivePower*(1- x.get(indexBinaryVarX)- x.get(indexBinaryVarY));
+//                            valueConst = valueSumReactivePower*(1- x.get(indexBinaryVarX)- x.get(indexBinaryVarY));
+                            valueConst = lfNetwork.getBus(busId).getQ().eval();
                             // term in Q_lo*(1- x[i] - y[i])
-                            valueConst -= lfNetwork.getBus(busId).getMaxQ()*(1- x.get(indexBinaryVarX)- x.get(indexBinaryVarY));
+                            valueConst -= lfNetwork.getBus(busId).getMinQ();
+                            valueConst *= (1- x.get(indexBinaryVarX)- x.get(indexBinaryVarY));
                             // add equation
                             c.set(currentCbEqIndex, valueConst);
                         }
@@ -216,6 +221,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     }
                     currentCbEqIndex += 1;
                 }
+//                double valueQbus0 = lfNetwork.getBus(0).getQ().eval();
+//                c.set(currentCbEqIndex, valueQbus0);
             }
         }
 
@@ -380,7 +387,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // Initial state
             AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer); // Initialize state vector
             List<Double> listXInitial = getInitialStateVector(equationSystem, knitroParameters);
-            setXInitial(listXInitial);
+//            setXInitial(listXInitial);
+//            setXInitial(Arrays.asList(1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0)); //pq to pv test
+            setXInitial(Arrays.asList(1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0)); //knitro solver test
+
             LOGGER.info("Initialization of variables : type of initialization {}", voltageInitializer);
 
             // =============== Constraints ==============
@@ -455,8 +465,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             if (knitroParameters.isDirectOuterLoopsFormulation()) {
                 int currentEquationId = innerLoopSortedEquations.size(); //we now add equations after the inner loop equations
                 targetOuterLoopEqualities = new ArrayList<>();
-//                loBndsOuterLoopInequalities = new ArrayList<>(); //TODO
-//                upBndsOuterLoopInequalities = new ArrayList<>();
 
                 // Browse the list of buses that have an equation setting V
                 for (Equation equation : innerLoopSortedEquations) {
@@ -482,11 +490,12 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         // 3) The node becomes PQ and V_i y_i - Vref_i y_i <= 0
                         // Quadratic inequality
                         int busIndex = ((VariableEquationTerm) equation.getTerms().get(0)).getElementNum();
+                        int varVIndex = 2*busIndex;
                         int indexOfVarInList = listBusesWithVEq.indexOf(busIndex);
                         int binaryVarYIndex = getYVar(indexOfVarInList, equationSystem);
 
                         // add inequality
-                        addConstraintQuadraticPart(currentEquationId + 2, busIndex, binaryVarYIndex, 1.0); // V_i*y_i
+                        addConstraintQuadraticPart(currentEquationId + 2, varVIndex, binaryVarYIndex, 1.0); // V_i*y_i
                         addConstraintLinearPart(currentEquationId + 2, binaryVarYIndex, -targetVector.getArray()[equation.getColumn()]); //- Vref_i*y_i
                         // bounds
                         loBndsOuterLoopInequalities.add(-KNConstants.KN_INFINITY);
@@ -507,9 +516,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
                         // Add inequality
                         int binaryVarXIndex = getXVar(indexOfVarInList, equationSystem);
-                        addConstraintQuadraticPart(currentEquationId + 4, busIndex, binaryVarXIndex, 1.0); // + V_i*x_i
-                        addConstraintQuadraticPart(currentEquationId + 4, busIndex, binaryVarYIndex, 1.0); // + V_i*y_i
-                        addConstraintLinearPart(currentEquationId + 4, busIndex, -1.0); // - V_i
+                        addConstraintQuadraticPart(currentEquationId + 4, varVIndex, binaryVarXIndex, 1.0); // + V_i*x_i
+                        addConstraintQuadraticPart(currentEquationId + 4, varVIndex, binaryVarYIndex, 1.0); // + V_i*y_i
+                        addConstraintLinearPart(currentEquationId + 4, varVIndex, -1.0); // - V_i
                         addConstraintLinearPart(currentEquationId + 4, binaryVarXIndex, - targetVector.getArray()[equation.getColumn()]); // - Vref_i*x_i
                         addConstraintLinearPart(currentEquationId + 4, binaryVarYIndex, - targetVector.getArray()[equation.getColumn()]); // - Vref_i*y_i
                         // bounds
@@ -555,6 +564,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             // Callback
             List<Integer> listNonLinearConsts = new ArrayList<>(listNonLinearInnerLoopConsts);
             listNonLinearConsts.addAll(listNonLinearOuterLoopConsts); // concatenate lists of non-linear constraints
+//            listNonLinearConsts.add(18);
             setMainCallbackCstIndexes(listNonLinearConsts);
 
             // ----- RHS : targets -----
@@ -579,6 +589,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             setConEqBnds(listTargetEqualities, targetConstsEqualities); //TODO IF DIRECT FORMULATION PASS MODIFIED VECTOR, ELSE PASS VECTOR
 
             // -- Inequalities bounds --
+//            loBndsOuterLoopInequalities.add(-100.0);
+//            upBndsOuterLoopInequalities.add(0.9);
+//            inequalitiesIndexes.add(18);
             setConLoBnds(inequalitiesIndexes, loBndsOuterLoopInequalities);
             setConUpBnds(inequalitiesIndexes, upBndsOuterLoopInequalities);
 
