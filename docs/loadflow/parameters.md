@@ -76,6 +76,24 @@ The `slackBusCountryFilter` defines a list of countries where slack bus should b
 Countries are specified by their alpha 2 code (e.g. `FR`, `BE`, `DE`, ...).  
 The default value is an empty list (any country can be used for slack bus selection).
 
+**areaInterchangeControl**  
+The `areaInterchangeControl` property is an optional property that defines if the area interchange control outer loop is enabled. 
+If set to `true`, the area interchange control outer loop will be used instead of the slack distribution outer loop.  
+The outer loop performs an active power distribution in each one of the selected areas (for areas selection see `areaInterchangeControlAreaType`).
+The active power distributed in each area is given by :
+
+$$
+Distributed Power = Interchange - Interchange Target + Slack Injection
+$$
+
+where the "Slack Injection" is the active power mismatch of the slack bus(es) present in the area. If a slack bus is at the intersection of multiple areas its mismatch value will be equally split among the areas.
+
+The default value is `false`.
+
+**areaInterchangeControlAreaType**  
+Defines the `areaType` of the areas on which the area interchange control is applied.
+Only the areas of the input network that have this type will be converted and considered.
+
 **loadPowerFactorConstant**  
 The `loadPowerFactorConstant ` property is an optional boolean property. This property is used in the outer loop that distributes slack on loads if :
 - `distributedSlack` property is set to true in the [load flow default parameters](inv:powsyblcore:*:*#simulation/loadflow/configuration),
