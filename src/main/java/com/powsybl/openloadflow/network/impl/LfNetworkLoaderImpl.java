@@ -584,9 +584,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     // TODO add reports
 
     private static void checkBusesWithoutArea(LfNetwork network) {
-        Set<LfBus> busesWithoutArea = network.getBuses().stream()
+        List<LfBus> busesWithoutArea = network.getBuses().stream()
                 .filter(lfBus -> lfBus.getArea().isEmpty())
-                .collect(Collectors.toSet());
+                .toList();
 
         for (LfBus bus : busesWithoutArea) {
             Set<LfArea> connectedAreas = new HashSet<>();
@@ -607,7 +607,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void throwUnHandledBus(LfBus lfBus) {
-        throw new PowsyblException("Bus " + lfBus.getId() + " is not in any Area, and is not a boundary bus (connected tu buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network");
+        throw new PowsyblException("Bus " + lfBus.getId() + " is not in any Area, and is not a boundary bus (connected to buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network");
     }
 
     private static void createTransformersVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext,

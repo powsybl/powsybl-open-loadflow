@@ -126,7 +126,7 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.busNoArea1();
         LfNetworkParameters parameters = new LfNetworkParameters().setAreaInterchangeControl(true);
         Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, parameters));
-        assertEquals("Bus b3_vl_0 is not in any Area, and is not a boundary bus (connected tu buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network", e.getMessage());
+        assertEquals("Bus b3_vl_0 is not in any Area, and is not a boundary bus (connected to buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network", e.getMessage());
     }
 
     @Test
@@ -134,7 +134,7 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.busNoArea2();
         LfNetworkParameters parameters = new LfNetworkParameters().setAreaInterchangeControl(true);
         Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, parameters));
-        assertEquals("Bus b1_vl_0 is not in any Area, and is not a boundary bus (connected tu buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network", e.getMessage());
+        assertEquals("Bus b1_vl_0 is not in any Area, and is not a boundary bus (connected to buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network", e.getMessage());
     }
 
     @Test
