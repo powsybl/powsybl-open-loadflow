@@ -156,6 +156,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
 
     private static String mismatchesToString(Map<LfArea, Double> remainingMismatchMap) {
         return remainingMismatchMap.entrySet().stream()
+                .sorted(Comparator.comparing(entry -> entry.getKey().getId()))
                 .map(entry -> String.format(Locale.US, "%s: %.2f MW", entry.getKey().getId(), entry.getValue() * PerUnit.SB))
                 .collect(Collectors.joining(", "));
     }

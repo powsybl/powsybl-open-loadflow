@@ -145,7 +145,7 @@ public final class Reports {
 
     public static void reportAreaInterchangeControlFailure(ReportNode reportNode, String areaMismatchesString, int iterationCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("areaInterchangeControlFailure", "Failed to distribute interchange active power mismatch in ${iterationCount} iterations. Remaining mismatches: {areaMismatchesString}")
+                .withMessageTemplate("areaInterchangeControlFailure", "Failed to distribute interchange active power mismatch in ${iterationCount} iterations. Remaining mismatches: ${areaMismatchesString}")
                 .withUntypedValue("areaMismatchesString", areaMismatchesString)
                 .withUntypedValue("iterationCount", iterationCount)
                 .withSeverity(TypedValue.ERROR_SEVERITY)

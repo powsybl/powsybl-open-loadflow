@@ -217,4 +217,22 @@ class AcLoadFlowReportTest {
         LoadFlowAssert.assertReportEquals("/shuntVoltageControlDiscarded.txt", reportNode);
     }
 
+    @Test
+    void areaVoltageControlOuterloop() throws IOException {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setAreaInterchangeControl(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/areaInterchangeControlOuterloop.txt", reportNode);
+    }
+
 }

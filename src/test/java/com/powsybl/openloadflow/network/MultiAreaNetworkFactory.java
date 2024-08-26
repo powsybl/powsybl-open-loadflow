@@ -161,7 +161,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("a1")
                 .setName("Area 1")
                 .setAreaType("ControlArea")
-                .setInterchangeTarget(-110)
+                .setInterchangeTarget(-50)
                 .addVoltageLevel(network.getVoltageLevel("vl1"))
                 .addVoltageLevel(network.getVoltageLevel("vl2"))
                 .add();
@@ -169,7 +169,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("a2")
                 .setName("Area 2")
                 .setAreaType("ControlArea")
-                .setInterchangeTarget(110)
+                .setInterchangeTarget(50)
                 .addVoltageLevel(network.getVoltageLevel("vl3"))
                 .add();
         return network;
