@@ -32,6 +32,11 @@ public abstract class AbstractElement extends AbstractPropertyBag implements LfE
         return List.of(getId());
     }
 
+    @Override
+    public String getMainOriginalId() {
+        return getOriginalIds().get(0);
+    }
+
     public int getNum() {
         return num;
     }
