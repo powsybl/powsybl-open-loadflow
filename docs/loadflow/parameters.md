@@ -80,13 +80,23 @@ The default value is an empty list (any country can be used for slack bus select
 The `areaInterchangeControl` property is an optional property that defines if the area interchange control outer loop is enabled. 
 If set to `true`, the area interchange control outer loop will be used instead of the slack distribution outer loop.  
 The outer loop performs an active power distribution in each one of the selected areas (for areas selection see `areaInterchangeControlAreaType`).
-The active power distributed in each area is given by :
+The active power is distributed separately in each area to compensate its mismatch that is given by:
 
 $$
-Distributed Power = Interchange - Interchange Target + Slack Injection
+Area Active Mismatch = Interchange - Interchange Target + Slack Injection
 $$
 
-where the "Slack Injection" is the active power mismatch of the slack bus(es) present in the area. If a slack bus is at the intersection of multiple areas its mismatch value will be equally split among the areas.
+"Interchange" is the sum of the power flows at the boundaries of the area (load sign convention i.e. counted positive for imports). 
+"Interchange Target" is the interchange target parameter of the area.  
+"Slack Injection" is the active power mismatch of the slack bus(es) present in the area. If a slack bus is at the intersection of multiple areas its mismatch value will be equally split among the areas.
+
+If the active power has been correctly distributed, interchange mismatch is computed for all areas:
+
+$$
+Interchange Mismatch = Interchange - Interchange Target
+$$
+
+The outer loop is stable if both mismatches are below `slackBusPMaxMismatch`, meaning that the interchanges are correct and the slack bus active power is distributed.
 
 The default value is `false`.
 
