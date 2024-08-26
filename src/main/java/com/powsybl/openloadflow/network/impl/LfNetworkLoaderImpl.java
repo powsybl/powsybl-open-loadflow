@@ -563,9 +563,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createAreas(LfNetwork network, LfNetworkParameters parameters, LoadingContext loadingContext, List<LfNetworkLoaderPostProcessor> postProcessors) {
+    private static void createAreas(int numCC, int numSC, LoadingContext loadingContext, List<LfNetworkLoaderPostProcessor> postProcessors, LfNetworkParameters parameters, LfNetwork network) {
         if (parameters.isAreaInterchangeControl()) {
             loadingContext.areaBusMap.forEach((area, lfBuses) -> {
+                checkBoundariesComponent(area, numCC, numSC);
                 Set<LfArea.Boundary> boundaries = loadingContext.areaBoundaries.getOrDefault(area, new HashSet<>());
                 LfArea lfArea = LfAreaImpl.create(area, lfBuses, boundaries, network, parameters);
                 network.addArea(lfArea);
@@ -573,6 +574,24 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             });
             checkBusesWithoutArea(network);
         }
+    }
+
+    private static void checkBoundariesComponent(Area area, int numCC, int numSC) {
+        area.getAreaBoundaryStream().forEach(boundary -> {
+            Bus bus;
+            if (boundary.getTerminal().isPresent()) {
+                Terminal terminal = boundary.getTerminal().get();
+                bus = terminal.getBusBreakerView().getConnectableBus();
+            } else if (boundary.getBoundary().isPresent()) {
+                DanglingLine danglingLine = boundary.getBoundary().get().getDanglingLine();
+                bus = danglingLine.getTerminal().getBusBreakerView().getConnectableBus();
+            } else {
+                return;
+            }
+            if (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC) {
+                throw new PowsyblException("Area " + area.getId() + " does not have all its boundary buses in the same connected component or synchronous component. Area interchange control cannot be performed on this network");
+            }
+        });
     }
 
     /**
@@ -891,7 +910,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, topoConfig, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
-        createAreas(lfNetwork, parameters, loadingContext, postProcessors);
+        createAreas(numCC, numSC, loadingContext, postProcessors, parameters, lfNetwork);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);
@@ -1158,19 +1177,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    static void checkDuplicatedAreas(List<LfNetwork> lfNetworks) {
-        List<String> duplicatedAreas = lfNetworks.stream()
-                .flatMap(lfNetwork -> lfNetwork.getAreas().stream())
-                .collect(Collectors.groupingBy(LfArea::getId, Collectors.counting()))
-                .entrySet().stream()
-                .filter(e -> e.getValue() > 1)
-                .map(Map.Entry::getKey)
-                .toList();
-        if (!duplicatedAreas.isEmpty()) {
-            throw new PowsyblException("Areas with ids " + duplicatedAreas + " are present in more than one LfNetwork. Load flow computation with area interchange control is not supported in this case.");
-        }
-    }
-
     @Override
     public List<LfNetwork> load(Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         Objects.requireNonNull(network);
@@ -1222,10 +1228,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                             parameters, Reports.createRootLfNetworkReportNode(numCc, numSc));
                 })
                 .collect(Collectors.toList());
-
-        if (parameters.isAreaInterchangeControl()) {
-            checkDuplicatedAreas(lfNetworks);
-        }
 
         stopwatch.stop();
 

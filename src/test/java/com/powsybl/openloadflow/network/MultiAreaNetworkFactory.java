@@ -408,6 +408,20 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    public static Network areaTwoComponents() {
+        Network network = threeBuses();
+        createLine(network, network.getBusBreakerView().getBus("b1"), network.getBusBreakerView().getBus("b2"), "l12", 1);
+        network.newArea()
+                .setId("a1")
+                .setName("Area 1")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(0)
+                .addVoltageLevel(network.getVoltageLevel("b1_vl"))
+                .addVoltageLevel(network.getVoltageLevel("b2_vl"))
+                .add();
+        return network;
+    }
+
     /**
      *      b1 --- b3
      *             |

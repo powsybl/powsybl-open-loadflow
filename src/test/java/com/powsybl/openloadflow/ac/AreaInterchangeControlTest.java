@@ -174,19 +174,20 @@ class AreaInterchangeControlTest {
 
     @Test
     void duplicateArea() {
-        Network network = MultiAreaNetworkFactory.threeBuses();
-        network.newArea()
-                .setId("a1")
-                .setName("Area 1")
-                .setAreaType("ControlArea")
-                .addVoltageLevel(network.getVoltageLevel("b1_vl"))
-                .addVoltageLevel(network.getVoltageLevel("b2_vl"))
-                .setInterchangeTarget(20)
-                .add();
+        Network network = MultiAreaNetworkFactory.areaTwoComponents();
         LfNetworkParameters parameters = new LfNetworkParameters()
                 .setAreaInterchangeControl(true).setComputeMainConnectedComponentOnly(false);
+        Networks.load(network, parameters);
+        network.getArea("a1").newAreaBoundary()
+                .setTerminal(network.getLine("l12").getTerminal1())
+                .setAc(true)
+                .add();
+        network.getArea("a1").newAreaBoundary()
+                .setTerminal(network.getGenerator("g3").getTerminal())
+                .setAc(true)
+                .add();
         Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, parameters));
-        assertEquals("Areas with ids [a1] are present in more than one LfNetwork. Load flow computation with area interchange control is not supported in this case.", e.getMessage());
+        assertEquals("Area a1 does not have all its boundary buses in the same connected component or synchronous component. Area interchange control cannot be performed on this network", e.getMessage());
     }
 
     private LoadFlowResult runLfTwoAreas(Network network, double interchangeTarget1, double interchangeTarget2, double expectedDistributedP, int expectedIterationCount) {
