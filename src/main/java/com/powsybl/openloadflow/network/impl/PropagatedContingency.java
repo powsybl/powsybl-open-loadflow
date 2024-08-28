@@ -541,6 +541,13 @@ public class PropagatedContingency {
                            connectivityLossImpact.hvdcsWithoutPower()));
     }
 
+    /**
+     * Clean the propagated contingencies, by:
+     *  - Removing branches connected to one side or switches from branches to open.
+     *  - Removing slack bus from buses lost by the contingencies.
+     *  - Adding branches connected to buses lost by contingencies in branches to open.
+     * This clean should be applied before conducting a {@link com.powsybl.openloadflow.sensi.ConnectivityBreakAnalysis}.
+     */
     public static void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         for (PropagatedContingency contingency : contingencies) {
             // Elements have already been checked and found in PropagatedContingency, so there is no need to
