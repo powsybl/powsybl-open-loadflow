@@ -257,7 +257,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates);
 
-        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
+        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
             DenseMatrix newFlowStates = flowStates;
             // we need to recompute the factor states because the connectivity changed
             if (rhsChangedAfterConnectivityBreak) {
@@ -307,7 +307,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             .collect(Collectors.toList());
                     normalizeParticipationFactors(newParticipatingElements);
                     participatingElementsChanged = true;
-                } else if (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty()) {
+                } else if (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLose().isEmpty()) {
                     newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
                     participatingElementsChanged = true;
                 }
