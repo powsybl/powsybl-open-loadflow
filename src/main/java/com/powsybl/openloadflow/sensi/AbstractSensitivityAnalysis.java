@@ -101,10 +101,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         void setFunctionReference(double functionReference);
 
-        double getBaseSensitivityValue();
-
-        void setBaseCaseSensitivityValue(double baseCaseSensitivityValue);
-
         Status getStatus();
 
         void setStatus(Status status);
@@ -141,8 +137,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         private Double functionPredefinedResult = null;
 
         private double functionReference = 0d;
-
-        private double baseCaseSensitivityValue = Double.NaN; // the sensitivity value on pre contingency network, that needs to be recomputed if the stack distribution change
 
         protected Status status = Status.VALID;
 
@@ -261,16 +255,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         @Override
         public void setFunctionReference(double functionReference) {
             this.functionReference = functionReference;
-        }
-
-        @Override
-        public double getBaseSensitivityValue() {
-            return baseCaseSensitivityValue;
-        }
-
-        @Override
-        public void setBaseCaseSensitivityValue(double baseCaseSensitivityValue) {
-            this.baseCaseSensitivityValue = baseCaseSensitivityValue;
         }
 
         @Override

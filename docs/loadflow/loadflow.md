@@ -2,7 +2,7 @@
 
 ## Grid modelling
 
-OpenLoadFlow computes power flows from IIDM grid model in bus/view topology. From the view, a very simple network, composed
+Open Load Flow computes power flows from IIDM grid model in bus/view topology. From the view, a very simple network, composed
 of only buses and branches is created. In the graph vision, we rely on a $$\Pi$$ model for branches (lines, transformers, dangling lines, etc.):
 
 - $R$ and $X$ are respectively the real part (resistance) and the imaginary part (reactance) of the complex impedance ;  
@@ -14,7 +14,8 @@ of only buses and branches is created. In the graph vision, we rely on a $$\Pi$$
 As the $\Pi$ model is created from IIDM grid modelling that locates its ratio and phase tap changers in side 1, $A_2$ and $\rho_2$ are always
 equal to zero and $1$. In case of a branch with voltage or phase control, the $\Pi$ model becomes an array. See below our model:
 
-![Pi model](pi-model.svg)
+![Pi model](pi-model.svg){class="only-light"}
+![Pi model](pi-model-dark-mode.svg){class="only-dark"}
 
 (ac-flow-computing)=
 ## AC flows computing
@@ -27,7 +28,7 @@ Moreover, at the slack bus, the active balance equation is removed and replaced 
 
 Let $v_i$ be the unknown voltage magnitude at bus $i$. Let $\theta_i$ be the unknown voltage phase angle at bus $i$. Equation fixing voltage magnitude to a reference (also called target) is simply written $v_i = V^{ref}_i$. Equation fixing voltage phase angle at slack bus $i$ is: $\phi_i = 0$
 
-To build the active and reactive balance equations, OpenLoadFlow first expresses active and reactive power flowing from a bus to another through a line:
+To build the active and reactive balance equations, Open Load Flow first expresses active and reactive power flowing from a bus to another through a line:
 
 $$p_{i,j}= \rho_iv_i(G_i\rho_iv_i + Y\rho_iv_i\text{sin}(\Xi) - Y\rho_jv_j\text{sin}(\theta))$$
 
