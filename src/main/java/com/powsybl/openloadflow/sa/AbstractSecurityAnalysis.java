@@ -100,10 +100,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
-        return CompletableFutureTask.runAsync(() -> {
-            network.getVariantManager().setWorkingVariant(workingVariantId);
-            return runSync(securityAnalysisParameters, contingenciesProvider, operatorStrategies, actions, limitReductions, workingVariantId, computationManager.getExecutor());
-        }, computationManager.getExecutor());
+        return CompletableFutureTask.runAsync(() -> runSync(securityAnalysisParameters, contingenciesProvider, operatorStrategies, actions, limitReductions, workingVariantId, computationManager.getExecutor()), computationManager.getExecutor());
     }
 
     protected abstract ReportNode createSaRootReportNode();
@@ -122,6 +119,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
+
+        network.getVariantManager().setWorkingVariant(workingVariantId);
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
