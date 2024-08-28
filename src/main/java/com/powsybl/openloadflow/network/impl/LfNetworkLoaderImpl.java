@@ -322,7 +322,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<ShuntCompensator> shuntCompensators = new ArrayList<>();
 
-        updateArea(bus, lfBus, parameters, loadingContext, report);
+        updateArea(bus, lfBus, parameters, loadingContext);
 
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
@@ -514,7 +514,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void updateArea(Bus bus, LfBus lfBus, LfNetworkParameters parameters, LoadingContext loadingContext, LfNetworkLoadingReport report) {
+    private static void updateArea(Bus bus, LfBus lfBus, LfNetworkParameters parameters, LoadingContext loadingContext) {
         if (parameters.isAreaInterchangeControl()) {
             // Consider only the area type that should be used for area interchange control
             Optional<Area> areaOpt = bus.getVoltageLevel().getArea(parameters.getAreaInterchangeControlAreaType());
@@ -601,7 +601,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
      * However, it is possible that the flow through this bus is not considered for the interchange flow of some of the areas it is connected to.
      * In this case, the slack injection of this bus will be shared between those areas to ensure a correct balancing
      */
-    // TODO add reports
 
     private static void checkBusesWithoutArea(LfNetwork network) {
         List<LfBus> busesWithoutArea = network.getBuses().stream()

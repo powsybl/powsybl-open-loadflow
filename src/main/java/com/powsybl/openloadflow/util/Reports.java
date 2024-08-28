@@ -22,6 +22,7 @@ public final class Reports {
     private static final String NETWORK_NUM_CC = "networkNumCc";
     private static final String NETWORK_NUM_SC = "networkNumSc";
     private static final String ITERATION = "iteration";
+    private static final String ITERATION_COUNT = "iterationCount";
     private static final String NETWORK_ID = "networkId";
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
 
@@ -138,25 +139,25 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("mismatchDistributionSuccess", "Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
                 .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                .withUntypedValue("iterationCount", iterationCount)
+                .withUntypedValue(ITERATION_COUNT, iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
 
-    public static void reportAreaInterchangeControlFailure(ReportNode reportNode, String areaMismatchesString, int iterationCount) {
+    public static void reportAreaMismatchDistributionFailure(ReportNode reportNode, String areaMismatchesString, int iterationCount) {
         reportNode.newReportNode()
                 .withMessageTemplate("areaInterchangeControlFailure", "Failed to distribute interchange active power mismatch in ${iterationCount} iterations. Remaining mismatches: ${areaMismatchesString}")
                 .withUntypedValue("areaMismatchesString", areaMismatchesString)
-                .withUntypedValue("iterationCount", iterationCount)
+                .withUntypedValue(ITERATION_COUNT, iterationCount)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
 
-    public static void reportAreaInterchangeControlSuccess(ReportNode reportNode, String mismatches, int areasCount, int iterationCount) {
+    public static void reportAreaMismatchDistributionSuccess(ReportNode reportNode, String mismatches, int areasCount, int iterationCount) {
         reportNode.newReportNode()
                 .withMessageTemplate("areaInterchangeControlSuccess", "Area Interchange mismatches [${mismatches}] distributed in ${iterationCount} distribution iteration(s)")
                 .withUntypedValue("areasCount", areasCount)
-                .withUntypedValue("iterationCount", iterationCount)
+                .withUntypedValue(ITERATION_COUNT, iterationCount)
                 .withUntypedValue("mismatches", mismatches)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();

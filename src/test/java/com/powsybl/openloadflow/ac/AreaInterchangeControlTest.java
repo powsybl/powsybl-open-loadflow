@@ -118,22 +118,22 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createOneAreaBase();
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
         CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertTrue(thrown.getCause().getMessage().equals("Failed to distribute interchange active power mismatch. Remaining mismatches: [a1: -20.00 MW]"));
+        assertEquals("Failed to distribute interchange active power mismatch. Remaining mismatches: [a1: -20.00 MW]", thrown.getCause().getMessage());
     }
 
     @Test
     void busNoArea1() {
         Network network = MultiAreaNetworkFactory.busNoArea1();
-        LfNetworkParameters parameters = new LfNetworkParameters().setAreaInterchangeControl(true);
-        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, parameters));
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters().setAreaInterchangeControl(true);
+        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, lfNetworkParameters));
         assertEquals("Bus b3_vl_0 is not in any Area, and is not a boundary bus (connected to buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network", e.getMessage());
     }
 
     @Test
     void busNoArea2() {
         Network network = MultiAreaNetworkFactory.busNoArea2();
-        LfNetworkParameters parameters = new LfNetworkParameters().setAreaInterchangeControl(true);
-        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, parameters));
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters().setAreaInterchangeControl(true);
+        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, lfNetworkParameters));
         assertEquals("Bus b1_vl_0 is not in any Area, and is not a boundary bus (connected to buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network", e.getMessage());
     }
 
@@ -175,9 +175,9 @@ class AreaInterchangeControlTest {
     @Test
     void duplicateArea() {
         Network network = MultiAreaNetworkFactory.areaTwoComponents();
-        LfNetworkParameters parameters = new LfNetworkParameters()
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setAreaInterchangeControl(true).setComputeMainConnectedComponentOnly(false);
-        Networks.load(network, parameters);
+        Networks.load(network, lfNetworkParameters);
         network.getArea("a1").newAreaBoundary()
                 .setTerminal(network.getLine("l12").getTerminal1())
                 .setAc(true)
@@ -186,7 +186,7 @@ class AreaInterchangeControlTest {
                 .setTerminal(network.getGenerator("g3").getTerminal())
                 .setAc(true)
                 .add();
-        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, parameters));
+        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, lfNetworkParameters));
         assertEquals("Area a1 does not have all its boundary buses in the same connected component or synchronous component. Area interchange control cannot be performed on this network", e.getMessage());
     }
 
