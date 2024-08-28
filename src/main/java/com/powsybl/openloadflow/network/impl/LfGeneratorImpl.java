@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -34,33 +35,33 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private boolean participating;
 
-    private double droop;
+    private final double droop;
 
-    private double participationFactor;
+    private final double participationFactor;
 
     private Double qPercent;
+
+    private final boolean forceVoltageControl;
+
+    private final double maxTargetP;
+
+    private final double minTargetP;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
-        participating = true;
-        droop = DEFAULT_DROOP;
+        // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
+        forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
+        var apcHelper = ActivePowerControlHelper.create(generator, generator.getMinP(), generator.getMaxP());
+        participating = apcHelper.participating();
+        participationFactor = apcHelper.participationFactor();
+        droop = apcHelper.droop();
+        minTargetP = apcHelper.minTargetP();
+        maxTargetP = apcHelper.maxTargetP();
 
         setReferencePriority(ReferencePriority.get(generator));
 
-        // get participation factor and droop from extension
-        ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
-        if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate();
-            if (!Double.isNaN(activePowerControl.getDroop())) {
-                droop = activePowerControl.getDroop();
-            }
-            if (activePowerControl.getParticipationFactor() > 0) {
-                participationFactor = activePowerControl.getParticipationFactor();
-            }
-        }
-
-        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
+        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMaxP(), minTargetP, maxTargetP,
                 parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }
@@ -166,6 +167,16 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public double getMinTargetP() {
+        return minTargetP / PerUnit.SB;
+    }
+
+    @Override
+    public double getMaxTargetP() {
+        return maxTargetP / PerUnit.SB;
+    }
+
+    @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(getGenerator().getReactiveLimits());
     }
@@ -199,5 +210,15 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         if (parameters.isWriteReferenceTerminals() && isReference()) {
             ReferenceTerminals.addTerminal(generator.getTerminal());
         }
+    }
+
+    @Override
+    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
+        return forceVoltageControl || super.checkIfGeneratorStartedForVoltageControl(report);
+    }
+
+    @Override
+    protected boolean checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        return forceVoltageControl || super.checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
     }
 }

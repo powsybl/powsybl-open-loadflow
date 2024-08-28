@@ -419,7 +419,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public double getMaxP() {
-        return generators.stream().mapToDouble(LfGenerator::getMaxP).sum();
+        return generators.stream().mapToDouble(LfGenerator::getMaxTargetP).sum();
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {

@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class BusDcState extends ElementState<LfBus> {
 
     private final Map<String, Double> generatorsTargetP;
+    private final Map<String, Double> generatorsInitialTargetP;
     private final Map<String, Boolean> participatingGenerators;
     private final Map<String, Boolean> disablingStatusGenerators;
     private final List<LoadDcState> loadStates;
@@ -45,6 +46,7 @@ public class BusDcState extends ElementState<LfBus> {
     public BusDcState(LfBus bus) {
         super(bus);
         this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
+        this.generatorsInitialTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getInitialTargetP));
         this.participatingGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isParticipating));
         this.disablingStatusGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isDisabled));
         loadStates = bus.getLoads().stream().map(load -> createLoadState().save(load)).toList();
@@ -58,6 +60,7 @@ public class BusDcState extends ElementState<LfBus> {
     public void restore() {
         super.restore();
         element.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
+        element.getGenerators().forEach(g -> g.setInitialTargetP(generatorsInitialTargetP.get(g.getId())));
         element.getGenerators().forEach(g -> g.setParticipating(participatingGenerators.get(g.getId())));
         element.getGenerators().forEach(g -> g.setDisabled(disablingStatusGenerators.get(g.getId())));
         for (int i = 0; i < loadStates.size(); i++) {

@@ -619,4 +619,31 @@ class AcLoadFlowWithCachingTest {
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
     }
+
+    @Test
+    void testCacheInvalidationIssueWhenChangeNotInSameComponent() {
+        var network = EurostagTutorialExample1Factory.create();
+        var gen = network.getGenerator("GEN");
+        var vlgen = network.getVoltageLevel("VLGEN");
+        vlgen.getBusBreakerView().newBus()
+                .setId("NEW_BUS")
+                .add();
+        var newGen = vlgen.newGenerator()
+                .setId("NEW_GEN")
+                .setBus("NEW_BUS")
+                .setTargetP(10)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(24)
+                .setMinP(0)
+                .setMaxP(1000)
+                .add();
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        gen.setTargetV(gen.getTargetV() + 0.1);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        newGen.setTargetV(newGen.getTargetV() + 0.1);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+    }
 }

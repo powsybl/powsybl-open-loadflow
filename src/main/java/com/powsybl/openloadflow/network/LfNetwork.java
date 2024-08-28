@@ -28,7 +28,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -527,6 +526,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         jsonGenerator.writeBooleanField("voltageControl", generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE);
         jsonGenerator.writeNumberField("minP", generator.getMinP());
         jsonGenerator.writeNumberField("maxP", generator.getMaxP());
+        jsonGenerator.writeNumberField("minTargetP", generator.getMinTargetP());
+        jsonGenerator.writeNumberField("maxTargetP", generator.getMaxTargetP());
     }
 
     public void writeJson(Writer writer) {
@@ -539,7 +540,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
             jsonGenerator.writeFieldName("buses");
             jsonGenerator.writeStartArray();
-            List<LfBus> sortedBuses = busesById.values().stream().sorted(Comparator.comparing(LfBus::getId)).collect(Collectors.toList());
+            List<LfBus> sortedBuses = busesById.values().stream().sorted(Comparator.comparing(LfBus::getId)).toList();
             for (LfBus bus : sortedBuses) {
                 jsonGenerator.writeStartObject();
 
@@ -558,7 +559,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     }
                 });
 
-                List<LfGenerator> sortedGenerators = bus.getGenerators().stream().sorted(Comparator.comparing(LfGenerator::getId)).collect(Collectors.toList());
+                List<LfGenerator> sortedGenerators = bus.getGenerators().stream().sorted(Comparator.comparing(LfGenerator::getId)).toList();
                 if (!sortedGenerators.isEmpty()) {
                     jsonGenerator.writeFieldName("generators");
                     jsonGenerator.writeStartArray();
@@ -578,7 +579,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
             jsonGenerator.writeFieldName("branches");
             jsonGenerator.writeStartArray();
-            List<LfBranch> sortedBranches = branches.stream().sorted(Comparator.comparing(LfBranch::getId)).collect(Collectors.toList());
+            List<LfBranch> sortedBranches = branches.stream().sorted(Comparator.comparing(LfBranch::getId)).toList();
             for (LfBranch branch : sortedBranches) {
                 jsonGenerator.writeStartObject();
 
@@ -698,12 +699,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     lfNetwork.reportSize(networkReport);
                     lfNetwork.reportBalance(networkReport);
                     Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfNetwork.getReferenceBus().getId(), lfNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
-                    lfNetwork.setReportNode(Reports.createLfNetworkReportNode(reportNode, lfNetwork.getReportNode(), lfNetwork.getNumCC(), lfNetwork.getNumCC()));
+                    lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }
                 case INVALID_NO_GENERATOR_VOLTAGE_CONTROL -> {
                     LOGGER.info("Network {} is invalid, no calculation will be done", lfNetwork);
                     // we want to report this
-                    lfNetwork.setReportNode(Reports.createLfNetworkReportNode(reportNode, lfNetwork.getReportNode(), lfNetwork.getNumCC(), lfNetwork.getNumCC()));
+                    lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }
                 case INVALID_NO_GENERATOR -> deadComponentsCount++; // will be reported later on altogether
             }
@@ -870,7 +871,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 .flatMap(bus -> bus.getVoltageControl(type).orElseThrow().getMergedControllerElements().stream())
                 .filter(Predicate.not(LfElement::isDisabled))
                 .map(element -> (E) element)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<LfBus> getControlledBuses(VoltageControl.Type type) {
@@ -878,7 +879,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 .filter(bus -> bus.isVoltageControlled(type))
                 .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public void addOverloadManagementSystem(LfOverloadManagementSystem overloadManagementSystem) {
@@ -887,6 +888,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfOverloadManagementSystem> getOverloadManagementSystems() {
         return overloadManagementSystems;
+    }
+
+    public void setGeneratorsInitialTargetPToTargetP() {
+        getBuses().stream().flatMap(b -> b.getGenerators().stream()).forEach(LfGenerator::setInitialTargetPToTargetP);
     }
 
     @Override
