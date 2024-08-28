@@ -39,8 +39,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.run;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
-import static com.powsybl.openloadflow.sensi.WoodburyEngine.runDcLoadFlow;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -85,7 +85,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .collect(Collectors.toSet()), BusState::save);
         }
 
-        double[] dx = runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
+        double[] dx = run(loadFlowContext, disabledNetwork, reportNode);
 
         if (parameters.isDistributedSlack()) {
             ElementState.restore(busStates);
