@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.run;
 import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanContingencies;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 
