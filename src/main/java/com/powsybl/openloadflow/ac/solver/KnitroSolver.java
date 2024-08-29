@@ -12,6 +12,7 @@ import com.artelys.knitro.api.callbacks.*;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.math.matrix.SparseMatrix;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -177,8 +178,11 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 AcSolverUtil.updateNetwork(network, equationSystem);
                 oldMatrix.forceUpdate();
                 DenseMatrix denseOldMatrix = oldMatrix.getMatrix().toDense();
-
-                // Get non-linear Jacobian from original Jacobian
+                SparseMatrix sparseOldMatrix = oldMatrix.getMatrix().toSparse();
+                // For sparse matrix, get values, and row and column structure
+                int[] columnStart = sparseOldMatrix.getColumnStart();
+                int[] rowIndices = sparseOldMatrix.getRowIndices();
+                double[] values = sparseOldMatrix.getValues();
 
                 if (knitroParameters.getGradientUserRoutine() == 1) {
                     // FIRST METHOD
@@ -186,7 +190,21 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     for (int ct : listNonLinearConsts) {
                         for (int var = 0; var < getNumVars(); var++) { //TODO CHANGER getNumVars()
                             try {
-                                jac.set(id, denseOldMatrix.get(var, ct)); // Jacobian needs to be transposed
+                                // Start and end index in the values array for column ct
+                                int colStart = columnStart[ct];
+                                int colEnd = columnStart[ct + 1];
+                                double valueSparse = 0.0;
+
+                                // Iterate through the column range
+                                for (int i = colStart; i < colEnd; i++) {
+                                    // Check if the row index matches var
+                                    if (rowIndices[i] == var) {
+                                        // Get the corresponding value
+                                        valueSparse = values[i];
+                                        break;  // Exit loop since the value is found
+                                    }
+                                }
+                                jac.set(id, valueSparse);
                                 id += 1;
                             } catch (Exception e) {
                                 LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", var, ct);
@@ -201,8 +219,22 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         try {
                             int var = listNonZerosVars2.get(index);
                             int ct = listNonZerosCts2.get(index);
-                            double value = denseOldMatrix.get(var, ct); // Jacobian needs to be transposed
-                            jac.set(index, value);
+
+                            // Start and end index in the values array for column ct
+                            int colStart = columnStart[ct];
+                            int colEnd = columnStart[ct + 1];
+                            double valueSparse = 0.0;
+
+                            // Iterate through the column range
+                            for (int i = colStart; i < colEnd; i++) {
+                                // Check if the row index matches var
+                                if (rowIndices[i] == var) {
+                                    // Get the corresponding value
+                                    valueSparse = values[i];
+                                    break;  // Exit loop since the value is found
+                                }
+                            }
+                            jac.set(index, valueSparse);
                         } catch (Exception e) {
                             LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars2.get(index), listNonZerosCts2.get(index));
                             LOGGER.error(e.getMessage());
@@ -402,23 +434,23 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 listNonZerosCts2.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
             }
 
-            if (knitroParameters.getGradientComputationMode() == 1){ // User routine to compute the Jacobian
+            if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
                 if (knitroParameters.getGradientUserRoutine() == 1) {
                     setJacNnzPattern(listNonZerosCts, listNonZerosVars);
                 } else if (knitroParameters.getGradientUserRoutine() == 2) {
-                    setJacNnzPattern(listNonZerosCts2, listNonZerosVars2);}
+                    setJacNnzPattern(listNonZerosCts2, listNonZerosVars2);
+                }
                 setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCts, listNonZerosVars, listNonZerosCts2, listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
             }
         }
-
     }
 
     private void setSolverParameters(KNSolver solver, KnitroSolverParameters knitroParameters) throws KNException {
         solver.setParam(KNConstants.KN_PARAM_GRADOPT, knitroParameters.getGradientComputationMode());
         DefaultKnitroSolverStoppingCriteria knitroSolverStoppingCriteria = (DefaultKnitroSolverStoppingCriteria) knitroParameters.getStoppingCriteria();
         solver.setParam(KNConstants.KN_PARAM_FEASTOL, knitroSolverStoppingCriteria.convEpsPerEq);
-        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK, 1);
-        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL, 0.0001);
+//        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK, 1);
+//        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL, 0.0001);
 //        solver.setParam(KNConstants.KN_PARAM_MAXIT, 30);
 //        solver.setParam(KNConstants.KN_PARAM_OUTLEV,4);
 //        solver.setParam(KNConstants.KN_PARAM_OUTMODE,2);
@@ -436,6 +468,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         int nbIter = -1;
 
         AcSolverStatus acStatus = null;
+
         try {
             // Create instance of problem
             KnitroProblem instance = new KnitroProblem(network, equationSystem, targetVector, voltageInitializer, j, knitroParameters);
@@ -457,14 +490,14 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             LOGGER.info("Feasibility violation    = {}", solver.getAbsFeasError());
             LOGGER.info("Optimality violation     = {}", solver.getAbsOptError());
 
-            LOGGER.debug("Optimal x");
-            for (int i = 0; i < solution.getX().size(); i++) {
-                LOGGER.debug(" x[{}] = {}", i, solution.getX().get(i));
-            }
-            LOGGER.debug("Optimal constraint values (with corresponding multiplier)");
-            for (int i = 0; i < instance.getNumCons(); i++) {
-                LOGGER.debug(" c[{}] = {} (lambda = {} )", i, constraintValues.get(i), solution.getLambda().get(i));
-            }
+//            LOGGER.debug("Optimal x");
+//            for (int i = 0; i < solution.getX().size(); i++) {
+//                LOGGER.debug(" x[{}] = {}", i, solution.getX().get(i));
+//            }
+//            LOGGER.debug("Optimal constraint values (with corresponding multiplier)");
+//            for (int i = 0; i < instance.getNumCons(); i++) {
+//                LOGGER.debug(" c[{}] = {} (lambda = {} )", i, constraintValues.get(i), solution.getLambda().get(i));
+//            }
 
             // Load results in the network
 
@@ -479,7 +512,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 //            if (acStatus == AcSolverStatus.CONVERGED && knitroParameters.is(reportNode)) {
 //                status = AcSolverStatus.UNREALISTIC_STATE;
 //            }
-
 
         } catch (KNException e) {
             LOGGER.error("Exception found while trying to solve with Knitro");

@@ -6,7 +6,7 @@ import com.powsybl.iidm.network.NetworkFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.matpower.converter.MatpowerImporter;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -36,10 +36,9 @@ public class MatPowerTest {
     void setUp() {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
-                .setAcSolverType(AcSolverType.KNITRO)
-                ;
+                .setAcSolverType(AcSolverType.KNITRO);
         // Sparse matrix solver only
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
         // No OLs
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parameters.setDistributedSlack(false)
@@ -102,13 +101,13 @@ public class MatPowerTest {
         // We want base voltages to be taken into account
         properties.put("matpower.import.ignore-base-voltage", false);
         Network network = new MatpowerImporter().importData(
-                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case1888rte" +
+                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case6495rte" +
                         ""),
                 NetworkFactory.findDefault(), properties);
-        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case1888rte" +
+        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case6495rte" +
                 ""));
-//        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-//        parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE);
+        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE);
         parametersExt.setGradientComputationModeKnitro(1) //user routine
                 .setGradientUserRoutineKnitro(2); // jac 2
 
