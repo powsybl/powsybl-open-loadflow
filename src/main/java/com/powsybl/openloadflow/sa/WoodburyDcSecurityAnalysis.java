@@ -14,6 +14,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
+import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -21,7 +22,6 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.sensi.ComputedContingencyElement;
 import com.powsybl.openloadflow.sensi.ConnectivityBreakAnalysis;
-import com.powsybl.openloadflow.sensi.DcSensitivityAnalysis;
 import com.powsybl.openloadflow.sensi.WoodburyEngine;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -40,7 +40,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.updateNetwork;
-import static com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.cleanContingencies;
+import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanContingencies;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
@@ -90,7 +90,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // if a phase tap changer is lost or if the connectivity have changed, we must recompute load flows
             if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty()) {
-                newFlowStates = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
+                newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode);
             }
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
@@ -100,7 +100,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             contingency.toLfContingency(lfNetwork)
                     .ifPresent(lfContingency -> lfContingency.apply(lfParameters.getBalanceType()));
 
-            newFlowStates = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
+            newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode);
             networkState.restore();
         }
 
@@ -202,7 +202,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             filterPropagatedContingencies(lfNetwork, propagatedContingencies);
             cleanContingencies(lfNetwork, propagatedContingencies);
 
-            double[] preContingencyStates = DcSensitivityAnalysis.runDcLoadFlow(context, new DisabledNetwork(), reportNode);
+            double[] preContingencyStates = DcLoadFlowEngine.run(context, new DisabledNetwork(), reportNode);
 
             // set pre contingency angle states as state vector of equation system
             context.getEquationSystem().getStateVector().set(preContingencyStates);
