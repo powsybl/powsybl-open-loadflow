@@ -160,6 +160,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         logContingency(lfNetwork, lfContingency);
 
         loadFlowContext.getEquationSystem().getStateVector().set(postContingencyStates);
+        // FIXME : seems to need an update of the network here
+//        updateNetwork(lfNetwork, loadFlowContext.getEquationSystem(), postContingencyStates);
 
         // update network result
         var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency.getContingency());
@@ -199,8 +201,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             lfNetwork.setReportNode(preContSimReportNode);
 
             // prepare contingencies for connectivity analysis and Woodbury engine
-            filterPropagatedContingencies(lfNetwork, propagatedContingencies);
             cleanContingencies(lfNetwork, propagatedContingencies);
+            filterPropagatedContingencies(lfNetwork, propagatedContingencies);
 
             double[] preContingencyStates = DcLoadFlowEngine.run(context, new DisabledNetwork(), reportNode);
 
