@@ -542,11 +542,14 @@ public class PropagatedContingency {
     }
 
     /**
-     * Clean the propagated contingencies, by:
-     *  - Removing branches connected to one side or switches from branches to open.
-     *  - Removing slack bus from buses lost by the contingencies.
-     *  - Adding branches connected to buses lost by contingencies in branches to open.
-     * This clean should be applied before conducting a {@link com.powsybl.openloadflow.sensi.ConnectivityBreakAnalysis}.
+     * In general, a {@link PropagatedContingency} is translated to a {@link LfContingency}. During the translation,
+     * cleans are performed to deal with branches connected at one side and slack bus loss. But in some fast DC computations,
+     * we don't want to use {@link LfContingency} object, so a dedicated clean method directly available on a {@link PropagatedContingency}
+     * is needed. It contains:
+     *  - Removing branches out of this synchronous component from branches to open.
+     *  - Removing branches connected at one side from branches to open.
+     *  - Removing slack bus from buses lost (not supported yet).
+     *  - Adding branches connected to buses lost in branches to open.
      */
     public static void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         for (PropagatedContingency contingency : contingencies) {
