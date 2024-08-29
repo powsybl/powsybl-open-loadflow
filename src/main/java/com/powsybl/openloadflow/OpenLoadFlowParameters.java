@@ -311,6 +311,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String PER_UNIT_CATEGORY_KEY = "PerUnit";
 
+    public static final String PERFORMANCE_CATEGORY_KEY = "Performance";
+
     public static final Map<String, String> BASE_PARAMETERS_CATEGORY = ImmutableMap.<String, String>builder()
             .put("dc", MODEL_CATEGORY_KEY)
             .put("twtSplitShuntAdmittance", MODEL_CATEGORY_KEY)
@@ -327,6 +329,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             .put("phaseShifterRegulationOn", PHASE_CONTROL_CATEGORY_KEY)
             .put("voltageInitMode", VOLTAGE_INIT_CATEGORY_KEY)
             .put("hvdcAcEmulation", HVDC_CATEGORY_KEY)
+            .put("computedConnectedComponentScope", PERFORMANCE_CATEGORY_KEY)
             .build();
 
     public static final List<Parameter> SPECIFIC_PARAMETERS = List.of(
