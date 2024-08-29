@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
@@ -95,6 +96,8 @@ public interface LfBranch extends LfElement {
         }
         return branchIndex;
     }
+
+    Optional<ThreeSides> getOriginalSide();
 
     BranchType getBranchType();
 
