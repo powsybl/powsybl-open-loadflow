@@ -1336,6 +1336,30 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testWithNonImpedantLineConnectedToSlackBusDc() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine("L1-2-1").setR(0).setX(0);
+        network.getLine("L4-5-1").setR(0).setX(0);
+
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
+
+        List<StateMonitor> monitors = Collections.emptyList();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setDc(true);
+        OpenLoadFlowParameters.create(lfParameters);
+//                        .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        assertEquals(20, result.getPostContingencyResults().size()); // assert there is no contingency simulation failure
+    }
+
+    @Test
     void testHvdcAcEmulation() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)

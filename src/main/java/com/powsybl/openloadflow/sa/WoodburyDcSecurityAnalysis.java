@@ -10,9 +10,11 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.action.Action;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -55,6 +57,20 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     @Override
     protected ReportNode createSaRootReportNode() {
         return Reports.createWoodburyDcSecurityAnalysis(reportNode, network.getId());
+    }
+
+    // TODO : check if necessary there
+    @Override
+    protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
+        var dcParameters = OpenLoadFlowParameters.createDcParameters(network, lfParameters,
+                lfParametersExt, matrixFactory, connectivityFactory, false);
+        dcParameters.getNetworkParameters()
+                .setBreakers(breakers)
+                .setMinImpedance(true) // Woodbury does not handle zero impedance lines
+                .setCacheEnabled(false) // force not caching as not supported in secu analysis
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
+        dcParameters.getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true); // Needed to force at 0 a PST shifting angle when a PST is lost
+        return dcParameters;
     }
 
     /**
@@ -161,7 +177,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         loadFlowContext.getEquationSystem().getStateVector().set(postContingencyStates);
         // FIXME : seems to need an update of the network here
-//        updateNetwork(lfNetwork, loadFlowContext.getEquationSystem(), postContingencyStates);
+        updateNetwork(lfNetwork, loadFlowContext.getEquationSystem(), postContingencyStates);
 
         // update network result
         var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency.getContingency());
@@ -193,8 +209,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
         // Override parameters to use Woodbury engine
-        dcParameters.getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true); // Needed to force at 0 a PST shifting angle when a PST is lost
-        dcParameters.getNetworkParameters().setMinImpedance(true); // Needed because Woodbury does not handle zero impedance lines
+        // FIXME : should remove these
+//        dcParameters.getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true); // Needed to force at 0 a PST shifting angle when a PST is lost
+//        dcParameters.getNetworkParameters().setMinImpedance(true); // Needed because Woodbury does not handle zero impedance lines
         try (DcLoadFlowContext context = createLoadFlowContext(lfNetwork, dcParameters)) {
             ReportNode networkReportNode = lfNetwork.getReportNode();
             ReportNode preContSimReportNode = Reports.createPreContingencySimulation(networkReportNode);
