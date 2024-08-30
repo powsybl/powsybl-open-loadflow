@@ -99,11 +99,6 @@ public class KnitroSolverTest {
         Bus b2 = network.getBusBreakerView().getBus("b2");
         Bus b3 = network.getBusBreakerView().getBus("b3");
         List<Bus> busList = network.getBusView().getBusStream().toList();
-//        Generator generator = network.getGenerator("g1");
-//        generator.newMinMaxReactiveLimits().setMinQ(1.0);
-//        generator.newMinMaxReactiveLimits().setMaxQ(0.5);
-//        b1.getGeneratorStream().toList().get(0).newMinMaxReactiveLimits().setMinQ(1.0);
-//        network.getGenerator("g1").getTerminal().setQ(0.9);
 
         LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
 
