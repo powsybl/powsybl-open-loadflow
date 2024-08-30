@@ -12,15 +12,12 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.CompareKnitroToNewtonRaphson;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
-import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.BoundaryFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
-import org.checkerframework.checker.units.qual.N;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -58,8 +55,7 @@ class AcLoadFlowBoundaryTest {
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setGradientComputationModeKnitro(2)
-                .setAcSolverType(AcSolverType.KNITRO)
-        ;
+                .setAcSolverType(AcSolverType.KNITRO);
     }
 
     @Test

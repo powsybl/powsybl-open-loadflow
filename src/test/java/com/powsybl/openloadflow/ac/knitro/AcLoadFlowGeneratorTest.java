@@ -40,8 +40,7 @@ class AcLoadFlowGeneratorTest {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setGradientComputationModeKnitro(2)
-                .setAcSolverType(AcSolverType.KNITRO)
-        ;
+                .setAcSolverType(AcSolverType.KNITRO);
     }
 
     @Test
@@ -75,7 +74,7 @@ class AcLoadFlowGeneratorTest {
         assertAngleEquals(-1.4523745, b4);
         assertReactivePowerEquals(0.0, g1Bis.getTerminal());
         assertReactivePowerEquals(-0.571, g1.getTerminal());
-        LoadFlowResult resultNR = CompareKnitroToNewtonRaphson.RunComparison(loadFlowRunner, parameters, parametersExt, network);
+        LoadFlowResult resultNR = CompareKnitroToNewtonRaphson.runComparison(loadFlowRunner, parameters, parametersExt, network);
         assertKnitroComparisonToNewtonRaphson(resultNR);
 
     }

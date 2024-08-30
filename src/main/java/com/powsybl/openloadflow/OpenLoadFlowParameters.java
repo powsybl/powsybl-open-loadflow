@@ -259,7 +259,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME = "gradientComputationModeKnitro";
 
     public static final String GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME = "gradientUserRoutineKnitro";
-;
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -2056,8 +2056,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
                     .setVoltageTargetPriorities(extension.getVoltageTargetPriorities())
                     .setGradientComputationModeKnitro(extension.getGradientComputationModeKnitro())
-                    .setGradientUserRoutineKnitro(extension.getGradientUserRoutineKnitro())
-                    ;
+                    .setGradientUserRoutineKnitro(extension.getGradientUserRoutineKnitro());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

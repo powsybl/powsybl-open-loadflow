@@ -94,7 +94,6 @@ public class MatPowerTest {
 
     @Test
     void caseImported() {
-        Instant start = Instant.now();
 
         // Load network from .mat file
         Properties properties = new Properties();
@@ -111,11 +110,12 @@ public class MatPowerTest {
         parametersExt.setGradientComputationModeKnitro(1) //user routine
                 .setGradientUserRoutineKnitro(2); // jac 2
 
+        Instant start = Instant.now();
         LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
+        Instant end = Instant.now();
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
 
-        Instant end = Instant.now();
         Duration duration = Duration.between(start, end);
         double durationInSeconds = duration.toSeconds();
         System.out.println("Loadflow took " + durationInSeconds + " seconds");

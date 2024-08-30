@@ -5,12 +5,6 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfTopoConfig;
-import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-
 
 public class CompareKnitroToNewtonRaphson {
 
@@ -26,15 +20,10 @@ public class CompareKnitroToNewtonRaphson {
         this.network = network;
     }
 
-    public static LoadFlowResult RunComparison(LoadFlow.Runner loadFlowRunner, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Network network) {
+    public static LoadFlowResult runComparison(LoadFlow.Runner loadFlowRunner, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Network network) {
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
         parametersExt.setAcSolverType(AcSolverType.NEWTON_RAPHSON);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         return result;
     }
-
-
-
-
-
 }

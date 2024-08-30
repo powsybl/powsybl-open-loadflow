@@ -20,7 +20,7 @@
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.10.0-SNAPSHOT</version>
+    <version>1.10.0-Jeanne</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
@@ -153,6 +153,11 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-commons</artifactId>
         </dependency>
+        <dependency>
+            <scope>compile</scope>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-matpower-converter</artifactId>
+        </dependency>
 
         <!-- Runtime dependencies -->
 
@@ -219,14 +224,18 @@
             <artifactId>powsybl-psse-converter</artifactId>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.4</version>
+        </dependency>
 <!--    TODO : Resolve these dependencies-->
         <dependency>
             <groupId>com.artelys</groupId>
             <artifactId>knitro-interfaces</artifactId>
             <version>14.0.0</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/../libs/knitro.jar</systemPath>
+            <systemPath>${project.basedir}/../libs/Knitro-Interfaces-2.5-KN_14.0.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.artelys</groupId>
@@ -234,6 +243,13 @@
             <version>0.7.0</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/../libs/bridj-0.7.0.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>org.coinor</groupId>
+            <artifactId>ipopt</artifactId>
+            <version>3.4.16</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/../libs/org.coinor.ipopt.jar</systemPath>
         </dependency>
     </dependencies>
 </project>

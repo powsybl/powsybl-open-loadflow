@@ -54,13 +54,12 @@ public class KnitroSolverParameters {
     }
 
     public KnitroSolverParameters setGradientUserRoutine(int gradientUserRoutine) {
-        if (gradientUserRoutine < 1 || gradientUserRoutine > 2){
+        if (gradientUserRoutine < 1 || gradientUserRoutine > 2) {
             throw new IllegalArgumentException("User routine must be between 1 and 2");
         }
         this.gradientUserRoutine = gradientUserRoutine;
         return this;
     }
-
 
     public double getMinRealisticVoltage() {
         return minRealisticVoltage;

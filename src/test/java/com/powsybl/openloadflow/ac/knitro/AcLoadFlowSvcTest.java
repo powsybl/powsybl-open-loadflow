@@ -14,7 +14,6 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.CompareKnitroToNewtonRaphson;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
@@ -71,8 +70,7 @@ class AcLoadFlowSvcTest {
                 .setVoltagePerReactivePowerControl(false)
                 .setSvcVoltageMonitoring(false)
                 .setGradientComputationModeKnitro(2)
-                .setAcSolverType(AcSolverType.KNITRO)
-        ;
+                .setAcSolverType(AcSolverType.KNITRO);
     }
 
     @Test
