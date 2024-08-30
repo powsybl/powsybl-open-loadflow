@@ -170,7 +170,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 throw new PowsyblException("To run a security analysis on multiple threads (and so on variants), you need to set allowVariantMultiThreadAccess to true");
             }
 
-            int partitionSize = contingencies.size() / securityAnalysisParametersExt.getThreadCount();
+            int partitionSize = Math.max(1, contingencies.size() / securityAnalysisParametersExt.getThreadCount());
             var contingenciesPartitions = Lists.partition(contingencies, partitionSize);
 
             List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), null)));

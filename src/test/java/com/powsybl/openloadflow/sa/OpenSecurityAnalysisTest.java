@@ -3299,4 +3299,21 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(resultOneThread.getPostContingencyResults().size(), resultTwoThreads.getPostContingencyResults().size());
         assertEquals(resultOneThread.getOperatorStrategyResults().size(), resultTwoThreads.getOperatorStrategyResults().size());
     }
+
+    @Test
+    void testMultiThreadsWhenLessContingenciesThanThreads() {
+        Network network = createNodeBreakerNetwork();
+        network.getVariantManager().allowVariantMultiThreadAccess(true);
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        OpenSecurityAnalysisParameters securityAnalysisParametersExt = new OpenSecurityAnalysisParameters()
+                .setThreadCount(2);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, securityAnalysisParametersExt);
+
+        List<Contingency> contingencies = Stream.of("L1")
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .toList();
+
+        assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters));
+    }
 }
