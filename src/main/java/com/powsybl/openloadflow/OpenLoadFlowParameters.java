@@ -301,13 +301,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String DEBUG_CATEGORY_KEY = "Debug";
 
+    public static final String REPORTING_CATEGORY_KEY = "Reporting";
+
     public static final String VOLTAGE_INIT_CATEGORY_KEY = "VoltageInit";
 
     public static final String HVDC_CATEGORY_KEY = "HVDC";
 
     public static final String AUTOMATION_CATEGORY_KEY = "Automation";
-
-    public static final String PER_UNIT_CATEGORY_KEY = "PerUnit";
 
     public static final String PERFORMANCE_CATEGORY_KEY = "Performance";
 
@@ -372,7 +372,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class), ParameterScope.FUNCTIONAL, PHASE_CONTROL_CATEGORY_KEY),
         new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, DEBUG_CATEGORY_KEY),
         new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class), ParameterScope.FUNCTIONAL, DEBUG_CATEGORY_KEY),
+        new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class), ParameterScope.FUNCTIONAL, REPORTING_CATEGORY_KEY),
         new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slack bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE), getEnumPossibleValues(Country.class), ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE), ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
         new Parameter(ACTIONABLE_TRANSFORMERS_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable transformers IDs (used with fast restart for tap position change)", new ArrayList<>(ACTIONABLE_TRANSFORMERS_IDS_DEFAULT_VALUE), ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
@@ -386,7 +386,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, ParameterType.DOUBLE, "Step fold for the line search state vector scaling", LineSearchStateVectorScaling.DEFAULT_STEP_FOLD, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
         new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, ParameterType.DOUBLE, "Max voltage magnitude change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
         new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, ParameterType.DOUBLE, "Max voltage angle change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(LINE_PER_UNIT_MODE_PARAM_NAME, ParameterType.STRING, "Line per unit mode", LinePerUnitMode.IMPEDANCE.name(), getEnumPossibleValues(LinePerUnitMode.class), ParameterScope.FUNCTIONAL, PER_UNIT_CATEGORY_KEY),
+        new Parameter(LINE_PER_UNIT_MODE_PARAM_NAME, ParameterType.STRING, "Line per unit mode", LinePerUnitMode.IMPEDANCE.name(), getEnumPossibleValues(LinePerUnitMode.class), ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
         new Parameter(USE_LOAD_MODEL_PARAM_NAME, ParameterType.BOOLEAN, "Use load model (with voltage dependency) for simulation", LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
         new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class), ParameterScope.FUNCTIONAL, DC_CATEGORY_KEY),
         new Parameter(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, ParameterType.BOOLEAN, "Automation systems simulation", LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, AUTOMATION_CATEGORY_KEY),
