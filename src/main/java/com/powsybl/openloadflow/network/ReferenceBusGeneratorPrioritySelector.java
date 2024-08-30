@@ -21,6 +21,8 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
     private static final Logger LOGGER = LoggerFactory.getLogger(ReferenceBusGeneratorPrioritySelector.class);
     private static final String METHOD_NAME = "Generator Reference Priority";
 
+    private static final ReferenceBusSelector FALLBACK_SELECTOR = new ReferenceBusFirstSlackSelector();
+
     @Override
     public SelectedReferenceBus select(LfNetwork lfNetwork) {
         Objects.requireNonNull(lfNetwork);
@@ -44,8 +46,15 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
         LfGenerator referenceGenerator = lfGenerators.stream()
                 .filter(g -> g.getReferencePriority() == priority)
                 .min(Comparator.comparingDouble(LfGenerator::getMaxTargetP).reversed().thenComparing(LfGenerator::getId)
-                ).orElseThrow(() -> new IllegalStateException("No reference Generator for network " + lfNetwork));
-        LfBus referenceBus = referenceGenerator.getBus();
-        return new SelectedGeneratorReferenceBus(referenceBus, METHOD_NAME, referenceGenerator);
+                ).orElse(null);
+        if (referenceGenerator != null) {
+            LfBus referenceBus = referenceGenerator.getBus();
+            return new SelectedGeneratorReferenceBus(referenceBus, METHOD_NAME, referenceGenerator);
+        } else {
+            // E.g. an island with only Vsc Hvdc Converter and/or only Static Var Compensator.
+            // In this case the island doesn't have any reference generator, only a reference bus.
+            // Note that SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR will fail on such islands.
+            return FALLBACK_SELECTOR.select(lfNetwork);
+        }
     }
 }
