@@ -3280,7 +3280,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testMultiThreads() {
         Network network = createNodeBreakerNetwork();
-        network.getVariantManager().allowVariantMultiThreadAccess(true);
+        assertFalse(network.getVariantManager().isVariantMultiThreadAccessAllowed());
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         setSlackBusId(lfParameters, "VL1_1");
@@ -3296,6 +3296,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult resultOneThread = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
         securityAnalysisParametersExt.setThreadCount(2);
         SecurityAnalysisResult resultTwoThreads = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        assertFalse(network.getVariantManager().isVariantMultiThreadAccessAllowed());
         assertEquals(resultOneThread.getPostContingencyResults().size(), resultTwoThreads.getPostContingencyResults().size());
         assertEquals(resultOneThread.getOperatorStrategyResults().size(), resultTwoThreads.getOperatorStrategyResults().size());
     }
@@ -3303,7 +3304,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testMultiThreadsWhenLessContingenciesThanThreads() {
         Network network = createNodeBreakerNetwork();
-        network.getVariantManager().allowVariantMultiThreadAccess(true);
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = new OpenSecurityAnalysisParameters()

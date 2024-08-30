@@ -166,61 +166,63 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         .orElse(createNoResult());
             }
         } else {
-            if (!network.getVariantManager().isVariantMultiThreadAccessAllowed()) {
-                throw new PowsyblException("To run a security analysis on multiple threads (and so on variants), you need to set allowVariantMultiThreadAccess to true");
-            }
-
             int partitionSize = Math.max(1, contingencies.size() / securityAnalysisParametersExt.getThreadCount());
             var contingenciesPartitions = Lists.partition(contingencies, partitionSize);
 
             List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), null)));
             List<LfNetworkList> lfNetworksList = new ArrayList<>();
 
-            Lock networkLock = new ReentrantLock();
-            List<CompletableFuture<Void>> futures = new ArrayList<>();
-            for (int i = 0; i < contingenciesPartitions.size(); i++) {
-                final int partitionNum = i;
-                var contingenciesPartition = contingenciesPartitions.get(i);
-                futures.add(CompletableFuture.runAsync(() -> {
+            boolean oldAllowVariantMultiThreadAccess = network.getVariantManager().isVariantMultiThreadAccessAllowed();
+            network.getVariantManager().allowVariantMultiThreadAccess(true);
+            try {
+                Lock networkLock = new ReentrantLock();
+                List<CompletableFuture<Void>> futures = new ArrayList<>();
+                for (int i = 0; i < contingenciesPartitions.size(); i++) {
+                    final int partitionNum = i;
+                    var contingenciesPartition = contingenciesPartitions.get(i);
+                    futures.add(CompletableFuture.runAsync(() -> {
 
-                    var partitionTopoConfig = new LfTopoConfig(topoConfig);
+                        var partitionTopoConfig = new LfTopoConfig(topoConfig);
 
-                    //  we have to pay attention with IIDM network multi threading even when allowVariantMultiThreadAccess is set:
-                    //    - variant cloning and removal is not thread safe
-                    //    - we cannot read or write on an exising variant while another thread clone or remove a variant
-                    //    - be aware that even after LF network loading, though LF network we get access to original IIDM
-                    //      variant (for instance to get reactive capability curve), so allowVariantMultiThreadAccess mode
-                    //      is absolutely required
-                    //  so in order to be thread safe, we need to:
-                    //    - lock LF network creation (which create a working variant, see {@code LfNetworkList}
-                    //    - delay {@code LfNetworkList} closing (which remove a working variant) out of worker thread
-                    LfNetworkList lfNetworks;
-                    List<PropagatedContingency> propagatedContingencies;
-                    P parameters;
-                    networkLock.lock();
-                    try {
-                        network.getVariantManager().setWorkingVariant(workingVariantId);
+                        //  we have to pay attention with IIDM network multi threading even when allowVariantMultiThreadAccess is set:
+                        //    - variant cloning and removal is not thread safe
+                        //    - we cannot read or write on an exising variant while another thread clone or remove a variant
+                        //    - be aware that even after LF network loading, though LF network we get access to original IIDM
+                        //      variant (for instance to get reactive capability curve), so allowVariantMultiThreadAccess mode
+                        //      is absolutely required
+                        //  so in order to be thread safe, we need to:
+                        //    - lock LF network creation (which create a working variant, see {@code LfNetworkList}
+                        //    - delay {@code LfNetworkList} closing (which remove a working variant) out of worker thread
+                        LfNetworkList lfNetworks;
+                        List<PropagatedContingency> propagatedContingencies;
+                        P parameters;
+                        networkLock.lock();
+                        try {
+                            network.getVariantManager().setWorkingVariant(workingVariantId);
 
-                        propagatedContingencies = PropagatedContingency.createList(network, contingenciesPartition, partitionTopoConfig, creationParameters);
+                            propagatedContingencies = PropagatedContingency.createList(network, contingenciesPartition, partitionTopoConfig, creationParameters);
 
-                        parameters = createParameters(lfParameters, lfParametersExt, partitionTopoConfig.isBreaker());
+                            parameters = createParameters(lfParameters, lfParametersExt, partitionTopoConfig.isBreaker());
 
-                        // create networks including all necessary switches
-                        lfNetworks = Networks.load(network, parameters.getNetworkParameters(), partitionTopoConfig, saReportNode);
-                        lfNetworksList.add(0, lfNetworks); // FIXME to workaround variant removal bug, to fix in core
-                    } finally {
-                        networkLock.unlock();
-                    }
+                            // create networks including all necessary switches
+                            lfNetworks = Networks.load(network, parameters.getNetworkParameters(), partitionTopoConfig, saReportNode);
+                            lfNetworksList.add(0, lfNetworks); // FIXME to workaround variant removal bug, to fix in core
+                        } finally {
+                            networkLock.unlock();
+                        }
 
-                    // run simulation on largest network
-                    partitionResults.set(partitionNum, lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
-                            .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
-                            .orElse(createNoResult()));
-                }, executor));
+                        // run simulation on largest network
+                        partitionResults.set(partitionNum, lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
+                                .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
+                                .orElse(createNoResult()));
+                    }, executor));
+                }
+
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                        .join();
+            } finally {
+                network.getVariantManager().allowVariantMultiThreadAccess(oldAllowVariantMultiThreadAccess);
             }
-
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                    .join();
 
             for (var lfNetworks : lfNetworksList) {
                 lfNetworks.close();

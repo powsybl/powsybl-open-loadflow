@@ -45,10 +45,6 @@ The `threadCount` property defines the number of threads used to run the securit
 The parallelization is implemented at the contingency level, so the contingency list is split into `threadCount` chunks
 and each chunk is ran by a different thread. 
 
-To be able to run a multi-threads security analysis the `allowVariantMultiThreadAccess` mode has to be activated in the 
-variant manager [![Javadoc](https://img.shields.io/badge/-javadoc-blue.svg)](https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/VariantManager.html) 
-of the IIDM network.
-
 The thread pool used for getting threads is the one provided by the `ComputationManager` [![Javadoc](https://img.shields.io/badge/-javadoc-blue.svg)](https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/computation/ComputationManager.html) 
 (see `ComputationManager.getExecutor` method). By default, when using the local computation manager, this is the `ForkJoinPool` common pool which is used.
 
