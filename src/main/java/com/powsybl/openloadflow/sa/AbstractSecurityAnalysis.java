@@ -180,7 +180,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 for (int i = 0; i < contingenciesPartitions.size(); i++) {
                     final int partitionNum = i;
                     var contingenciesPartition = contingenciesPartitions.get(i);
-                    futures.add(CompletableFuture.runAsync(() -> {
+                    futures.add(CompletableFutureTask.runAsync(() -> {
 
                         var partitionTopoConfig = new LfTopoConfig(topoConfig);
 
@@ -215,6 +215,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         partitionResults.set(partitionNum, lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
                                 .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
                                 .orElse(createNoResult()));
+
+                        return null;
                     }, executor));
                 }
 
