@@ -177,7 +177,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 equationSystem.getStateVector().set(toArray(x));
                 AcSolverUtil.updateNetwork(network, equationSystem);
                 oldMatrix.forceUpdate();
-                DenseMatrix denseOldMatrix = oldMatrix.getMatrix().toDense();
                 SparseMatrix sparseOldMatrix = oldMatrix.getMatrix().toSparse();
                 // For sparse matrix, get values, and row and column structure
                 int[] columnStart = sparseOldMatrix.getColumnStart();
@@ -389,49 +388,54 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             // ----- Jacobian matrix -----
             // Non zero pattern
-
-            // FIRST METHOD : all non-linear constraints
             List<Integer> listNonZerosCts = new ArrayList<>(); //list of constraints to parse to Knitro non-zero pattern
-            for (Integer idCt : listNonLinearConsts) {
-                for (int i = 0; i < numVar; i++) {
-                    listNonZerosCts.add(idCt);
-                }
-            }
-
             List<Integer> listNonZerosVars = new ArrayList<>(); //list of variables to pass to Knitro non-zero pattern
-            List<Integer> listVars = new ArrayList<>();
-            for (int i = 0; i < numVar; i++) {
-                listVars.add(i);
-            }
-            for (int i = 0; i < listNonLinearConsts.size(); i++) {
-                listNonZerosVars.addAll(listVars);
-            }
-
-            // SECOND METHOD : only non-zero constraints
             List<Integer> listNonZerosCts2 = new ArrayList<>();
             List<Integer> listNonZerosVars2 = new ArrayList<>();
             List<Integer> listVarChecker = new ArrayList<>();
-            for (Integer ct : listNonLinearConsts) {
-                Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(ct);
-                List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
-                List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
 
-                for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
-                    for (Variable variable : term.getVariables()) {
-                        listNonZerosVarsCurrentCt.add(variable.getRow());
+            // FIRST METHOD : all non-linear constraints
+            if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
+                if (knitroParameters.getGradientUserRoutine() == 1) {
+                    for (Integer idCt : listNonLinearConsts) {
+                        for (int i = 0; i < numVar; i++) {
+                            listNonZerosCts.add(idCt);
+                        }
+                    }
+
+                    List<Integer> listVars = new ArrayList<>();
+                    for (int i = 0; i < numVar; i++) {
+                        listVars.add(i);
+                    }
+                    for (int i = 0; i < listNonLinearConsts.size(); i++) {
+                        listNonZerosVars.addAll(listVars);
+                    }
+                } else if (knitroParameters.getGradientUserRoutine() == 2) {
+                    // SECOND METHOD : only non-zero constraints
+                    for (Integer ct : listNonLinearConsts) {
+                        Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(ct);
+                        List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
+                        List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
+
+                        for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
+                            for (Variable variable : term.getVariables()) {
+                                listNonZerosVarsCurrentCt.add(variable.getRow());
+                            }
+                        }
+                        List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list
+                        listNonZerosVars2.addAll(uniqueListVarsCurrentCt);
+
+                        //                for (int var = 0; var < sortedVariables.size(); var++) {
+                        //                    if (uniqueListVarsCurrentCt.contains(var)) {
+                        //                        listVarChecker.add(var);
+                        //                    } else {
+                        //                        listVarChecker.add(-1);
+                        //                    }
+                        //                }
+
+                        listNonZerosCts2.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
                     }
                 }
-                List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list
-                listNonZerosVars2.addAll(uniqueListVarsCurrentCt);
-                for (int var = 0; var < sortedVariables.size(); var++) {
-                    if (uniqueListVarsCurrentCt.contains(var)) {
-                        listVarChecker.add(var);
-                    } else {
-                        listVarChecker.add(-1);
-                    }
-                }
-
-                listNonZerosCts2.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
             }
 
             if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
