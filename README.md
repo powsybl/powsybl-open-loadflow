@@ -19,23 +19,25 @@ within the energy and electricity sectors.
 
 Read more at https://www.powsybl.org !
 
-This project and everyone participating in it is under the [Linux Foundation Energy governance principles](https://www.powsybl.org/pages/overview/governance) and must respect the [PowSyBl Code of Conduct](https://github.com/powsybl/.github/blob/main/CODE_OF_CONDUCT.md).
+This project and everyone participating in it is under the [Linux Foundation Energy governance principles](https://www.powsybl.org/pages/project/governance.html) and must respect the [PowSyBl Code of Conduct](https://github.com/powsybl/.github/blob/main/CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code. Please report unacceptable behavior to [powsybl-tsc@lists.lfenergy.org](mailto:powsybl-tsc@lists.lfenergy.org).
 
 ## PowSyBl vs PowSyBl Open Load Flow
 
 PowSyBl Open Load Flow provides:
-- An open-source implementation of the [LoadFlow API from PowSyBl Core](https://www.powsybl.org/pages/documentation/simulation/powerflow/), supporting DC and AC calculations.
-- An open-source implementation of the [SecurityAnalysis API from PowSyBl Core](https://www.powsybl.org/pages/documentation/simulation/securityanalysis/), supporting DC and AC calculations.
-- An open-source implementation of the [SensitivityAnalysis API from PowSyBl Core](https://www.powsybl.org/pages/documentation/simulation/sensitivity/), supporting DC and AC calculations.
+- An open-source implementation of the [LoadFlow API from PowSyBl Core](https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/simulation/loadflow/index.html), supporting DC and AC calculations.
+- An open-source implementation of the [SecurityAnalysis API from PowSyBl Core](https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/simulation/security/index.html), supporting DC and AC calculations.
+- An open-source implementation of the [SensitivityAnalysis API from PowSyBl Core](https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/simulation/sensitivity/index.html), supporting DC and AC calculations.
 
 Most of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) sparse linear solver. Linux, Windows and MacOS are supported. KLU is distributed with license LGPL-2.1+.
+
+Let's visit our work-in-progress [functional documentation](https://powsybl.readthedocs.io/projects/powsybl-open-loadflow/en/latest/loadflow/parameters.html)! 
 
 ### Common features
 
 The AC calculations are based on full Newton-Raphson algorithm. The DC calculations are based on direct current linear approximation. Open Load Flow relies on:
  - Fast and robust convergence, based on [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) sparse solver.
- - Distributed slack (on generators, on loads, or on conform loads); Manual or automatic slack bus selection as explained [here](https://www.powsybl.org/pages/documentation/simulation/powerflow/openlf.html#parameters).
+ - Distributed slack (on generators, on loads, or on conform loads); Manual or automatic slack bus selection as explained [here](https://powsybl.readthedocs.io/projects/powsybl-open-loadflow/en/latest/loadflow/parameters.html).
  - Support of generators' active and reactive power limits, including the support of reactive capability curves.
  - 5 voltage initialization modes: flat, warm, angles-only based on a DC load flow, magnitude-only initialization based on a specific initializer, or both voltages angle and magnitude initialization based on the two previous methods.
  - Support of zero impedance branches, including complex zero impedance subnetworks, particularly important in case of voltage controls and topology changes involved in contingencies or in remedial actions.
