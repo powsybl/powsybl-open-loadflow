@@ -50,7 +50,7 @@ The AC calculations are based on full Newton-Raphson algorithm. The DC calculati
 
  Open Load Flow supports:
  - Generator and static var compensator voltage remote control through PQV bus modelling. It supports any kind of shared voltage control between controllers that can be generators, static var compensators, or VSC converter stations.
- - Static var compensator local voltage control with a slope (support the powsybl-core extension [```VoltagePerReactivePowerControl```](https://www.powsybl.org/pages/documentation/grid/model/extensions.html).
+ - Static var compensator local voltage control with a slope (support the powsybl-core extension [```VoltagePerReactivePowerControl```](https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/grid_model/extensions.html).
  - Local and remote phase control: phase tap changers can regulate active power flows or limit currents at given terminals.
  - Local and remote voltage control by transformers, including shared controls.
  - Local and remote voltage control by shunts, including shared controls.
@@ -72,7 +72,7 @@ Heterogeneous voltage controls management has become a key feature. All well-mod
 
 ### Sensitivity analysis implementation 
 
- Open Load Flow both supports both AC and DC calculations. Even though it comes from the same powsybl-core API, the calculations behind are radically different. The AC post-contingency sensitivities calculation is based on the same principles than the AC security analysis. The DC post-contingency sensitivities calculation is highly optimized and fully documented [here](https://www.powsybl.org/pages/documentation/simulation/sensitivity/openlf.html).
+ Open Load Flow both supports both AC and DC calculations. Even though it comes from the same powsybl-core API, the calculations behind are radically different. The AC post-contingency sensitivities calculation is based on the same principles than the AC security analysis. The DC post-contingency sensitivities calculation is highly optimized and fully documented [here](https://powsybl.readthedocs.io/projects/powsybl-open-loadflow/en/latest/sensitivity/index.html).
 
 It supports all types of sensitivity factors that can be found in the API: 
 - Variables: injection increase, phase angle shift, HVDC set point increase. For AC calculations only: voltage target increase of generator, static var compensator, transformers or shunt.
