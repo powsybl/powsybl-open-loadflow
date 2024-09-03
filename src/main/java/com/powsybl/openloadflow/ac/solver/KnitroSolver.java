@@ -49,7 +49,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         return "Knitro Solver";
     }
 
-
     // List of all possible Knitro status
     public enum KnitroStatus {
     CONVERGED_TO_LOCAL_OPTIMUM,
@@ -62,27 +61,35 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
     // Get AcStatus equivalent from Knitro Status, and log Knitro Status
     public AcSolverStatus getAcStatusAndKnitroStatus(int knitroStatus) {
         if (knitroStatus == 0) {
-            LOGGER.info("Knitro Status : {}", KnitroStatus.CONVERGED_TO_LOCAL_OPTIMUM);
+            logKnitroStatus(KnitroStatus.CONVERGED_TO_LOCAL_OPTIMUM);
             return AcSolverStatus.CONVERGED;
-        } else if (-199 <= knitroStatus & knitroStatus <= -100) {
-            LOGGER.info("Knitro Status : {}", KnitroStatus.CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION);
+        } else if (isInRange(knitroStatus, -199, -100)) {
+            logKnitroStatus(KnitroStatus.CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION);
             return AcSolverStatus.CONVERGED;
-        } else if (-299 <= knitroStatus & knitroStatus <= -200) {
-            LOGGER.info("Knitro Status : {}", KnitroStatus.TERMINATED_AT_INFEASIBLE_POINT);
+        } else if (isInRange(knitroStatus, -299, -200)) {
+            logKnitroStatus(KnitroStatus.TERMINATED_AT_INFEASIBLE_POINT);
             return AcSolverStatus.SOLVER_FAILED;
-        } else if (-399 <= knitroStatus & knitroStatus <= -300) {
-            LOGGER.info("Knitro Status : {}", KnitroStatus.PROBLEM_UNBOUNDED);
+        } else if (isInRange(knitroStatus, -399, -300)) {
+            logKnitroStatus(KnitroStatus.PROBLEM_UNBOUNDED);
             return AcSolverStatus.SOLVER_FAILED;
-        } else if (-499 <= knitroStatus & knitroStatus <= -400) {
-            LOGGER.info("Knitro Status : {}", KnitroStatus.TERMINATED_DUE_TO_PRE_DEFINED_LIMIT);
+        } else if (isInRange(knitroStatus, -499, -400)) {
+            logKnitroStatus(KnitroStatus.TERMINATED_DUE_TO_PRE_DEFINED_LIMIT);
             return AcSolverStatus.MAX_ITERATION_REACHED;
-        } else if (-599 <= knitroStatus & knitroStatus <= -500) {
-            LOGGER.info("Knitro Status : {}", KnitroStatus.INPUT_OR_NON_STANDARD_ERROR);
+        } else if (isInRange(knitroStatus, -599, -500)) {
+            logKnitroStatus(KnitroStatus.INPUT_OR_NON_STANDARD_ERROR);
             return AcSolverStatus.NO_CALCULATION;
         } else {
-            LOGGER.info("Knitro Status : unknown");
+            LOGGER.info("Knitro Status: unknown");
             throw new IllegalArgumentException("Unknown Knitro Status");
         }
+    }
+
+    private void logKnitroStatus(KnitroStatus status) {
+        LOGGER.info("Knitro Status: {}", status);
+    }
+
+    private boolean isInRange(int value, int min, int max) {
+        return value >= min && value <= max;
     }
 
     private static final class KnitroProblem extends KNProblem {
@@ -106,8 +113,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             public void evaluateFC(final List<Double> x, final List<Double> obj, final List<Double> c) {
                 LOGGER.trace("============ Knitro evaluating callback function ============");
 
-                // =============== Objective ===============
-
                 // =============== Non-linear constraints in P and Q ===============
 
                 // Update current state
@@ -122,7 +127,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     AcEquationType typeEq = equation.getType();
                     double valueConst = 0;
                     if (!SolverUtils.getNonLinearConstraintsTypes().contains(typeEq)) {
-                        LOGGER.debug("Equation of type {} is linear, and should be considered in the main function of Knitro, not in the callback function", typeEq);
                         throw new IllegalArgumentException("Equation of type " + typeEq + " is linear, and should be considered in the main function of Knitro, not in the callback function");
                     } else {
                         for (EquationTerm term : equation.getTerms()) {
@@ -135,9 +139,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                             c.set(indexNonLinearCst, valueConst);
                             LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
                         } catch (Exception e) {
-                            LOGGER.error("Exception found while trying to add non-linear constraint n° {}", equationId);
-                            LOGGER.error(e.getMessage());
-                            throw new PowsyblException("Exception found while trying to add non-linear constraint");
+                            throw new PowsyblException("Exception found while trying to add non-linear constraint n° " + equationId, e);
                         }
                     }
                     indexNonLinearCst += 1;
@@ -206,9 +208,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                                 jac.set(id, valueSparse);
                                 id += 1;
                             } catch (Exception e) {
-                                LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", var, ct);
-                                LOGGER.error(e.getMessage());
-                                throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
+                                throw new PowsyblException("Exception found while trying to add Jacobian term " + var + " in non-linear constraint " + ct, e);
                             }
                         }
                     }
@@ -518,8 +518,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 //            }
 
         } catch (KNException e) {
-            LOGGER.error("Exception found while trying to solve with Knitro");
-            LOGGER.error(e.toString(), e);
             acStatus = AcSolverStatus.NO_CALCULATION;
             throw new PowsyblException("Exception found while trying to solve with Knitro");
         }
