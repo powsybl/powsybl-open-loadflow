@@ -167,6 +167,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             int partitionSize = Math.max(1, contingencies.size() / securityAnalysisParametersExt.getThreadCount());
             var contingenciesPartitions = Lists.partition(contingencies, partitionSize);
 
+            // we pre-allocate the results so that threads can set result in a stable order (using the partition number)
+            // so that we always get results in the same order whatever threads completion order is.
             List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), createNoResult()))); // init to no result in case of cancel
             List<LfNetworkList> lfNetworksList = new ArrayList<>();
 
@@ -189,7 +191,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         //      variant (for instance to get reactive capability curve), so allowVariantMultiThreadAccess mode
                         //      is absolutely required
                         //  so in order to be thread safe, we need to:
-                        //    - lock LF network creation (which create a working variant, see {@code LfNetworkList}
+                        //    - lock LF network creation (which create a working variant, see {@code LfNetworkList})
                         //    - delay {@code LfNetworkList} closing (which remove a working variant) out of worker thread
                         LfNetworkList lfNetworks;
                         List<PropagatedContingency> propagatedContingencies;
@@ -220,8 +222,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                 try {
                     CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                            .get();
+                            .get(); // we need to use get instead of join to get an interruption exception
                 } catch (InterruptedException e) {
+                    // also interrupt worker threads
                     for (var future : futures) {
                         future.cancel(true);
                     }
