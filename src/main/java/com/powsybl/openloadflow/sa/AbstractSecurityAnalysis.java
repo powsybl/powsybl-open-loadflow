@@ -49,9 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -111,7 +109,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
                                    List<OperatorStrategy> operatorStrategies, List<Action> actions, List<LimitReduction> limitReductions,
-                                   String workingVariantId, Executor executor) {
+                                   String workingVariantId, Executor executor) throws ExecutionException {
         var saReportNode = createSaRootReportNode();
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -169,7 +167,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             int partitionSize = Math.max(1, contingencies.size() / securityAnalysisParametersExt.getThreadCount());
             var contingenciesPartitions = Lists.partition(contingencies, partitionSize);
 
-            List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), null)));
+            List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), createNoResult()))); // init to no result in case of cancel
             List<LfNetworkList> lfNetworksList = new ArrayList<>();
 
             boolean oldAllowVariantMultiThreadAccess = network.getVariantManager().isVariantMultiThreadAccessAllowed();
@@ -220,8 +218,15 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     }, executor));
                 }
 
-                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                        .join();
+                try {
+                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                            .get();
+                } catch (InterruptedException e) {
+                    for (var future : futures) {
+                        future.cancel(true);
+                    }
+                    Thread.currentThread().interrupt();
+                }
             } finally {
                 network.getVariantManager().allowVariantMultiThreadAccess(oldAllowVariantMultiThreadAccess);
             }
