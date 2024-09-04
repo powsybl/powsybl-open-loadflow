@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Area;
+import com.powsybl.iidm.network.AreaBoundary;
+import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -16,11 +18,15 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.outerloop.AreaInterchangeControlOuterloop;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
@@ -35,6 +41,8 @@ class AreaInterchangeControlTest {
     private LoadFlowParameters parameters;
 
     private OpenLoadFlowParameters parametersExt;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AreaInterchangeControlOuterloop.class);
 
     @BeforeEach
     void setUp() {
@@ -205,6 +213,35 @@ class AreaInterchangeControlTest {
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
         return result;
+    }
+
+    @Test
+    void testData() {
+        Network network = Network.read(Path.of("D:\\1_PROJETS\\CoRNet\\Test-data\\AIC tests\\20220227_0030_FO7_UX0_withIcTargets_oneSc_noUa.xiidm"));
+
+        LoadFlowParameters params
+                = new LoadFlowParameters()
+                .setTransformerVoltageControlOn(false)
+                .setPhaseShifterRegulationOn(false)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+                .setReadSlackBus(false)
+                .setDistributedSlack(false)
+                .setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        OpenLoadFlowParameters.create(params)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
+                .setSlackBusPMaxMismatch(0.1)
+                .setAreaInterchangeControl(true);
+
+        var result = LoadFlow.run(network, params);
+
+        assertTrue(result.isFullyConverged());
+
+        for (Area area : network.getAreas()) {
+            LOGGER.info("Area {} interchange target: {} MW, actual interchange: {} MW, diff: {} MW ", area.getId(), area.getInterchangeTarget().getAsDouble(), area.getInterchange(), area.getInterchangeTarget().getAsDouble() - area.getInterchange());
+            assertEquals(area.getInterchangeTarget().getAsDouble(), area.getInterchange(), 0.1);
+        }
+
+        int a = 2;
     }
 
 }
