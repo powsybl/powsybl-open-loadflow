@@ -50,7 +50,7 @@ The AC calculations are based on full Newton-Raphson algorithm. The DC calculati
 
  Open Load Flow supports:
  - Generator and static var compensator voltage remote control through PQV bus modelling. It supports any kind of shared voltage control between controllers that can be generators, static var compensators, or VSC converter stations.
- - Static var compensator local voltage control with a slope (support the powsybl-core extension [```VoltagePerReactivePowerControl```](https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/grid_model/extensions.html).
+ - Static var compensator local voltage control with a slope (support the powsybl-core extension [```VoltagePerReactivePowerControl```](https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/grid_model/extensions.html#voltage-per-reactive-power-control).
  - Local and remote phase control: phase tap changers can regulate active power flows or limit currents at given terminals.
  - Local and remote voltage control by transformers, including shared controls.
  - Local and remote voltage control by shunts, including shared controls.
