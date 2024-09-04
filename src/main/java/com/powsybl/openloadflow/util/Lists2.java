@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -24,6 +25,7 @@ public final class Lists2 {
      * partition sizes.
      */
     public static <E> List<List<E>> partition(List<E> list, int partitionCount) {
+        Objects.requireNonNull(list);
         if (partitionCount == 0) {
             throw new IllegalArgumentException("Partition count should be > 0");
         }
