@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.extensions.ReferencePriorities;
 import com.powsybl.iidm.network.extensions.ReferencePriority;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -45,6 +46,7 @@ class DistributedSlackOnGenerationTest {
     private Generator g4;
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
@@ -57,7 +59,7 @@ class DistributedSlackOnGenerationTest {
         // Note that in core, default balance type is proportional to generation Pmax
         parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(true);
-        OpenLoadFlowParameters.create(parameters)
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
     }
@@ -577,12 +579,59 @@ class DistributedSlackOnGenerationTest {
         // generator | targetP | maxP
         // ----------|---------|-------
         //   g1      |  100    |  110  --> expected to hit limit 110MW with 10MW distributed
-        //   g2      |   90    |  300  --> expected to pick up the remaining slack 70.1976 MW
+        //   g2      |  200    |  300  --> expected to pick up the remaining slack 70.1976 MW
         //   g3      |   90    |  110  --> expected to hit limit 110MW with 20MW distributed
         //   g4      |   90    |  110  --> expected to hit limit 110MW with 20MW distributed
         assertActivePowerEquals(-110.000, g1.getTerminal());
         assertActivePowerEquals(-270.1976, g2.getTerminal());
         assertActivePowerEquals(-110.000, g3.getTerminal());
         assertActivePowerEquals(-110.000, g4.getTerminal());
+    }
+
+    @Test
+    void testSlackMismatchChangingSignReferenceGenerator() {
+        parameters.setUseReactiveLimits(true).getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
+
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR);
+        parametersExt
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        for (var g : network.getGenerators()) {
+            ActivePowerControl<Generator> ext = g.getExtension(ActivePowerControl.class);
+            if (g.getId().equals("g1")) {
+                ext.setParticipationFactor(1.0);
+            } else {
+                ext.setParticipationFactor(0.0);
+            }
+        }
+        ReferencePriorities.delete(network);
+        ReferencePriority.set(g2, 1);
+
+        g1.setMaxP(110.0);
+        g3.setMaxP(110.0);
+        g4.setMaxP(110.0);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
+        assertEquals(120.2055, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
+        assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // Only g1 gets slack "normally" distributed, and g2 being reference generator picks up the remaining slack
+        // generator | targetP | Participation Factor | Reference
+        // ----------|---------|----------------------|-----------
+        //   g1      |  100    |         1.0          |           --> expected to hit limit 110MW with 10MW distributed
+        //   g2      |  200    |          -           |     X     --> expected to pick up the remaining slack 110.2055 MW
+        //   g3      |   90    |          -           |           --> unchanged
+        //   g4      |   90    |          -           |           --> unchanged
+        assertActivePowerEquals(-97.732, g1.getTerminal()); // FIXME should be -110
+        assertActivePowerEquals(-322.4728, g2.getTerminal()); // FIXME should be -310
+        assertActivePowerEquals(-90.000, g3.getTerminal());
+        assertActivePowerEquals(-90.000, g4.getTerminal());
     }
 }
