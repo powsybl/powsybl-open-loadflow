@@ -90,6 +90,7 @@ public final class ActivePowerDistribution {
     }
 
     public static Step getStep(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits) {
+        Objects.requireNonNull(balanceType);
         return switch (balanceType) {
             case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD ->
                     new LoadActivePowerDistributionStep(loadPowerFactorConstant);
