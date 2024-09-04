@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Collection;
@@ -50,16 +51,22 @@ public final class ActivePowerDistribution {
     }
 
     public Result run(LfNetwork network, double activePowerMismatch) {
-        return run(network.getBuses(), activePowerMismatch);
+        return run(network.getReferenceGenerator(), network.getBuses(), activePowerMismatch);
     }
 
-    public Result run(Collection<LfBus> buses, double activePowerMismatch) {
+    public Result run(LfGenerator referenceGenerator, Collection<LfBus> buses, double activePowerMismatch) {
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
         final Map<ParticipatingElement, Double> initialP = participatingElements.stream()
                 .collect(Collectors.toUnmodifiableMap(Function.identity(), ParticipatingElement::getTargetP));
 
         int iteration = 0;
         double remainingMismatch = activePowerMismatch;
+
+        if (referenceGenerator != null) {
+            remainingMismatch -= referenceGenerator.getInitialTargetP() - referenceGenerator.getTargetP();
+            referenceGenerator.setTargetP(referenceGenerator.getInitialTargetP());
+        }
+
         while (!participatingElements.isEmpty()
                 && Math.abs(remainingMismatch) > P_RESIDUE_EPS) {
 

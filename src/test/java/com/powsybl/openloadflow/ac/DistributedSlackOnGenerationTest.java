@@ -619,18 +619,18 @@ class DistributedSlackOnGenerationTest {
         assertTrue(result.isFullyConverged());
 
         var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
-        assertEquals(120.2055, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
+        assertEquals(120.2021, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
         assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
 
         // Only g1 gets slack "normally" distributed, and g2 being reference generator picks up the remaining slack
         // generator | targetP | Participation Factor | Reference
         // ----------|---------|----------------------|-----------
         //   g1      |  100    |         1.0          |           --> expected to hit limit 110MW with 10MW distributed
-        //   g2      |  200    |          -           |     X     --> expected to pick up the remaining slack 110.2055 MW
+        //   g2      |  200    |          -           |     X     --> expected to pick up the remaining slack 110.2021 MW
         //   g3      |   90    |          -           |           --> unchanged
         //   g4      |   90    |          -           |           --> unchanged
-        assertActivePowerEquals(-97.732, g1.getTerminal()); // FIXME should be -110
-        assertActivePowerEquals(-322.4728, g2.getTerminal()); // FIXME should be -310
+        assertActivePowerEquals(-110.000, g1.getTerminal());
+        assertActivePowerEquals(-310.2021, g2.getTerminal());
         assertActivePowerEquals(-90.000, g3.getTerminal());
         assertActivePowerEquals(-90.000, g4.getTerminal());
     }
