@@ -75,7 +75,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
                 .filter(entry -> {
                     double areaActivePowerMismatch = entry.getValue();
                     double absMismatch = Math.abs(areaActivePowerMismatch);
-                    return absMismatch > this.areaInterchangePMaxMismatch / PerUnit.SB && absMismatch > ActivePowerDistribution.P_RESIDUE_EPS;
+                    return absMismatch > this.areaInterchangePMaxMismatch / areas.size() / PerUnit.SB && absMismatch > ActivePowerDistribution.P_RESIDUE_EPS;
                 })
                 .map(Map.Entry::getKey)
                 .toList();
@@ -84,16 +84,16 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
         if (!shouldBalance) {
             // Balancing takes the slack mismatch of the Areas into account. Now that the balancing is done, we check only the interchange power flow mismatch.
             // Doing this we make sure that the Areas' interchange targets have been reached and that the slack is correctly distributed.
-            Map<LfArea, Double> interchangeMismatches = areas.stream().filter(area -> {
+            Map<LfArea, Double> remainingMismatches = areas.stream().filter(area -> {
                 double areaInterchangeMismatch = getInterchangeMismatch(area);
                 double absMismatch = Math.abs(areaInterchangeMismatch);
                 return absMismatch > this.areaInterchangePMaxMismatch / PerUnit.SB && absMismatch > ActivePowerDistribution.P_RESIDUE_EPS;
             }).collect(Collectors.toMap(area -> area, this::getInterchangeMismatch));
 
-            if (interchangeMismatches.isEmpty()) {
+            if (remainingMismatches.isEmpty()) {
                 LOGGER.debug("Already balanced");
             } else {
-                interchangeMismatches.forEach((area, mismatch) ->
+                remainingMismatches.forEach((area, mismatch) ->
                         LOGGER.error("Failed area interchange control: Area {} is not balanced, remains {} MW mismatch", area.getId(), mismatch * PerUnit.SB));
             }
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
