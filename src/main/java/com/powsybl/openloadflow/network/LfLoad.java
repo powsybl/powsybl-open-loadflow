@@ -46,7 +46,7 @@ public interface LfLoad extends PropertyBag {
 
     List<String> getOriginalIds();
 
-    double getOriginalLoadCount();
+    int getOriginalLoadCount();
 
     boolean isOriginalLoadDisabled(String originalId);
 

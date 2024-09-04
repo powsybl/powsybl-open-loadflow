@@ -3281,10 +3281,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testWithFictitiousLoad() {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        network.getLoad("l1").setFictitious(true);
-        network.getLoad("l4").setFictitious(true);
+        network.getLoad("l1").setFictitious(true); // single load on bus
+        network.getLoad("l4").setFictitious(true); // one load amongst many on the bus
 
-        List<Contingency> contingencies = List.of(new Contingency("l4", new LoadContingency("l4")));
+        List<Contingency> contingencies = List.of(new Contingency("l1", new LoadContingency("l1")),
+                new Contingency("l4", new LoadContingency("l4")));
 
         LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(true)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
@@ -3294,7 +3295,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
 
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
-        assertEquals(1, result.getPostContingencyResults().size());
+        assertEquals(2, result.getPostContingencyResults().size());
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
     }
 }

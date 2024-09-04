@@ -76,6 +76,9 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     @Override
     public boolean isFictitious() {
+        if (loadsRefs.isEmpty()) {
+            return false;
+        }
         // all Loads must be fictitious to return true
         for (Ref<Load> loadRef : loadsRefs) {
             Load load = loadRef.get();
@@ -185,7 +188,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
-    public double getOriginalLoadCount() {
+    public int getOriginalLoadCount() {
         return loadsRefs.size();
     }
 
