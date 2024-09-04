@@ -63,6 +63,7 @@ public final class ActivePowerDistribution {
         double remainingMismatch = activePowerMismatch;
 
         if (referenceGenerator != null) {
+            // "undo" everything from targetP to go back to initialP for reference generator
             remainingMismatch -= referenceGenerator.getInitialTargetP() - referenceGenerator.getTargetP();
             referenceGenerator.setTargetP(referenceGenerator.getInitialTargetP());
         }
