@@ -7,10 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.DanglingLine;
-import com.powsybl.iidm.network.LimitType;
-import com.powsybl.iidm.network.LoadingLimits;
-import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -18,6 +15,7 @@ import com.powsybl.security.results.BranchResult;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -38,8 +36,22 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(parameters);
-        double zb = PerUnit.zb(danglingLine.getTerminal().getVoltageLevel().getNominalV());
+
+        Optional<TieLine> tlOpt = danglingLine.getTieLine();
+        double r1 = 1;
+        double nominalV;
+        if (tlOpt.isPresent()) {
+            TieLine tl = tlOpt.get();
+            if (tl.getDanglingLine1() == danglingLine) {
+                r1 = 1 / Transformers.getRatioPerUnitBase(tl);
+            }
+            nominalV = tl.getDanglingLine1().getTerminal().getVoltageLevel().getNominalV();
+        } else {
+            nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
+        }
+        double zb = PerUnit.zb(nominalV);
         PiModel piModel = new SimplePiModel()
+                .setR1(r1)
                 .setR(danglingLine.getR() / zb)
                 .setX(danglingLine.getX() / zb)
                 .setG1(danglingLine.getG() / 2 * zb)
@@ -72,9 +84,21 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
         // we follow the convention side 1 for network side and side 2 for boundary side.
+        // we also create a branch result for the tie line if it exists.
         double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
-        return List.of(new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
-                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN));
+        var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
+                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN);
+
+        if (getDanglingLine().getTieLine().isPresent() && getDanglingLine().getTieLine().get().getDanglingLine1() == getDanglingLine()) {
+            TieLine tieLine = getDanglingLine().getTieLine().get();
+            LfBranch danglingLine2 = getNetwork().getBranchById(tieLine.getDanglingLine2().getId());
+            double currentScale2 = PerUnit.ib(tieLine.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV());
+            var tielineResult = new BranchResult(tieLine.getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
+                    danglingLine2.getP1().eval() * PerUnit.SB, danglingLine2.getQ1().eval() * PerUnit.SB, currentScale2 * danglingLine2.getI1().eval(), Double.NaN);
+            return List.of(tielineResult, branchResult);
+        } else {
+            return List.of(branchResult);
+        }
     }
 
     @Override

@@ -778,7 +778,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     private static LfBranch checkAndGetBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
         Branch<?> branch = network.getBranch(branchId);
         if (branch != null) {
-            return lfNetwork.getBranchById(branchId);
+            LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+            if (lfBranch != null || network.getTieLine(branchId) == null) {
+                return lfBranch;
+            }
         }
         DanglingLine danglingLine = network.getDanglingLine(branchId);
         if (danglingLine != null && !danglingLine.isPaired()) {
@@ -790,7 +793,21 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
         TieLine line = network.getTieLine(branchId);
         if (line != null) {
-            return lfNetwork.getBranchById(branchId);
+            LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+            if (lfBranch == null && fType.getSide().isPresent()) {
+                switch (fType.getSide().getAsInt()) {
+                    case 1 -> danglingLine = line.getDanglingLine1();
+                    case 2 -> danglingLine = line.getDanglingLine2();
+                    default -> {
+                        return null;
+                    }
+                }
+                if (danglingLine != null) {
+                    return lfNetwork.getBranchById(danglingLine.getId());
+                }
+            } else {
+                return null;
+            }
         }
         throw new PowsyblException("Branch, tie line, dangling line or leg of '" + branchId + NOT_FOUND);
     }

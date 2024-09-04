@@ -444,14 +444,35 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
             danglingLine.getTieLine().ifPresentOrElse(tieLine -> {
                 if (!visitedDanglingLinesIds.contains(danglingLine.getId())) {
-                    LfBus lfBus1 = getLfBus(tieLine.getDanglingLine1().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBus lfBus2 = getLfBus(tieLine.getDanglingLine2().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
-                    addBranch(lfNetwork, lfBranch, report);
-                    addTieLineAreaBoundaries(tieLine, lfBranch, loadingContext);
-                    postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
-                    visitedDanglingLinesIds.add(tieLine.getDanglingLine1().getId());
-                    visitedDanglingLinesIds.add(tieLine.getDanglingLine2().getId());
+                    DanglingLine danglingLine1 = tieLine.getDanglingLine1();
+                    DanglingLine danglingLine2 = tieLine.getDanglingLine2();
+                    LfBus lfBus1 = getLfBus(danglingLine1.getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBus lfBus2 = getLfBus(danglingLine2.getTerminal(), lfNetwork, parameters.isBreakers());
+                    if (parameters.isAreaInterchangeControl()) {
+                        LfTieLineBus lfTieLineBus = new LfTieLineBus(lfNetwork, tieLine, parameters, report);
+                        lfNetwork.addBus(lfTieLineBus);
+                        lfBuses.add(lfTieLineBus);
+                        if (lfBus1 != null) {
+                            LfBranch lfBranch1 = LfDanglingLineBranch.create(danglingLine1, lfNetwork, lfBus1, lfTieLineBus, parameters);
+                            addDanglingLineAreaBoundary(danglingLine1, lfBranch1, loadingContext);
+                            addBranch(lfNetwork, lfBranch1, report);
+                            postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch1));
+                        }
+                        if (lfBus2 != null) {
+                            LfBranch lfBranch2 = LfDanglingLineBranch.create(danglingLine2, lfNetwork, lfBus2, lfTieLineBus, parameters);
+                            addDanglingLineAreaBoundary(danglingLine2, lfBranch2, loadingContext);
+                            addBranch(lfNetwork, lfBranch2, report);
+                            postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch2));
+                        }
+                        postProcessors.forEach(pp -> pp.onBusAdded(tieLine, lfTieLineBus));
+                    } else {
+                        LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
+                        addBranch(lfNetwork, lfBranch, report);
+                        addTieLineAreaBoundaries(tieLine, lfBranch, loadingContext);
+                        postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
+                    }
+                    visitedDanglingLinesIds.add(danglingLine1.getId());
+                    visitedDanglingLinesIds.add(danglingLine2.getId());
                 }
             }, () -> {
                     LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
@@ -541,11 +562,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     /**
      * Adds the dangling lines' active power to the calculation of their Area's interchange (load convention) if they are boundaries.
-     * The tie lines are modeled as one single lfBranch, so the equivalent injection for each dangling line is the active power of the opposite side of the tie line lfBranch model.
+     * The tie lines are modeled as two branches connected by a boundary bus.
      */
-    private static void addTieLineAreaBoundaries(TieLine tieLine, LfBranch lfTieLineBranch, LoadingContext loadingContext) {
-        addAreaBoundary(tieLine.getTerminal1(), lfTieLineBranch, TwoSides.TWO, loadingContext);
-        addAreaBoundary(tieLine.getTerminal2(), lfTieLineBranch, TwoSides.ONE, loadingContext);
+    private static void addTieLineAreaBoundaries(TieLine tieLine, LfBranch lfBranch, LoadingContext loadingContext) {
+        addAreaBoundary(tieLine.getTerminal1(), lfBranch, TwoSides.ONE, loadingContext);
+        addAreaBoundary(tieLine.getTerminal2(), lfBranch, TwoSides.TWO, loadingContext);
     }
 
     /**
@@ -588,7 +609,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             } else {
                 return;
             }
-            if (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC) {
+            if (bus.getConnectedComponent() != null && bus.getSynchronousComponent() != null && (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC)) {
                 throw new PowsyblException("Area " + area.getId() + " does not have all its boundary buses in the same connected component or synchronous component. Area interchange control cannot be performed on this network");
             }
         });
@@ -609,19 +630,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         for (LfBus bus : busesWithoutArea) {
             Set<LfArea> connectedAreas = new HashSet<>();
-            bus.getBranches().forEach(branch ->
-                    List.of(branch.getBus1(), branch.getBus2()).forEach(connectedBus -> {
-                        if (connectedBus == null) {
+            bus.getBranches().forEach(branch -> {
+                if (branch.getBus1() == null || branch.getBus2() == null) {
+                    throwUnHandledBus(bus);
+                }
+                List.of(branch.getBus1(), branch.getBus2()).forEach(connectedBus -> {
+                    if (connectedBus != bus) {
+                        Optional<LfArea> area = connectedBus.getArea();
+                        if (area.isEmpty() || !connectedAreas.add(area.get())) {
                             throwUnHandledBus(bus);
                         }
-                        if (connectedBus != bus) {
-                            Optional<LfArea> area = connectedBus.getArea();
-                            if (area.isEmpty() || !connectedAreas.add(area.get())) {
-                                throwUnHandledBus(bus);
-                            }
-                        }
-                    })
-            );
+                    }
+                });
+            });
         }
     }
 
