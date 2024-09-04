@@ -90,27 +90,17 @@ public final class ActivePowerDistribution {
     }
 
     public static Step getStep(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits) {
-        Step step;
-        switch (balanceType) {
-            case PROPORTIONAL_TO_LOAD,
-                 PROPORTIONAL_TO_CONFORM_LOAD:
-                step = new LoadActivePowerDistributionStep(loadPowerFactorConstant);
-                break;
-            case PROPORTIONAL_TO_GENERATION_P_MAX:
-                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX, useActiveLimits);
-                break;
-            case PROPORTIONAL_TO_GENERATION_P:
-                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET, useActiveLimits);
-                break;
-            case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR:
-                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.PARTICIPATION_FACTOR, useActiveLimits);
-                break;
-            case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN:
-                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.REMAINING_MARGIN, useActiveLimits);
-                break;
-            default:
-                throw new UnsupportedOperationException("Unknown balance type mode: " + balanceType);
-        }
-        return step;
+        return switch (balanceType) {
+            case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD ->
+                    new LoadActivePowerDistributionStep(loadPowerFactorConstant);
+            case PROPORTIONAL_TO_GENERATION_P_MAX ->
+                    new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX, useActiveLimits);
+            case PROPORTIONAL_TO_GENERATION_P ->
+                    new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET, useActiveLimits);
+            case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR ->
+                    new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.PARTICIPATION_FACTOR, useActiveLimits);
+            case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN ->
+                    new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.REMAINING_MARGIN, useActiveLimits);
+        };
     }
 }

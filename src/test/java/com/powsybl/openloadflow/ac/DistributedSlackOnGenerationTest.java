@@ -216,7 +216,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void maxTestActivePowerLimitDisabled() {
-        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        parametersExt.setUseActiveLimits(false);
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         // Because we disabled active power limits, g1 will exceed max
         g1.setMaxP(105);
@@ -231,7 +231,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void minTestActivePowerLimitDisabled() {
-        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        parametersExt.setUseActiveLimits(false);
         // increase g1 min limit power and global load so that distributed slack algo reach the g1 min
         // Because we disabled active power limits, g1 will exceed min
         g1.setMinP(95);
@@ -246,7 +246,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void targetBelowMinAndActivePowerLimitDisabled() {
-        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        parametersExt.setUseActiveLimits(false);
         g1.setMinP(100); // was 0
         g1.setTargetP(80);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -260,7 +260,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void targetAboveMaxAndActivePowerLimitDisabled() {
-        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        parametersExt.setUseActiveLimits(false);
         g1.setTargetP(240); // max is 200
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -336,7 +336,7 @@ class DistributedSlackOnGenerationTest {
     @Test
     void notEnoughActivePowerFailTest() {
         network.getLoad("l1").setP0(1000);
-        parameters.getExtension(OpenLoadFlowParameters.class).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertFalse(result.isFullyConverged());
@@ -349,7 +349,7 @@ class DistributedSlackOnGenerationTest {
     @Test
     void notEnoughActivePowerLeaveOnSlackBusTest() {
         network.getLoad("l1").setP0(1000);
-        parameters.getExtension(OpenLoadFlowParameters.class).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isFullyConverged());
@@ -363,7 +363,7 @@ class DistributedSlackOnGenerationTest {
         network.getLoad("l1").setP0(1000);
         ReferencePriority.set(g1, 1);
         g1.setMaxP(200.);
-        parameters.getExtension(OpenLoadFlowParameters.class)
+        parametersExt
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -387,7 +387,7 @@ class DistributedSlackOnGenerationTest {
         g1.setMaxP(200.);
         // We request to distribute on reference generator, but ReferenceBusSelectionMode is FIRST_SLACK.
         // FIRST_SLACK mode does not select a reference generator, therefore internally we switch to FAIL mode.
-        parameters.getExtension(OpenLoadFlowParameters.class)
+        parametersExt
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.FIRST_SLACK)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

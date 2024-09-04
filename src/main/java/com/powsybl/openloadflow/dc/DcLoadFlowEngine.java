@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -219,7 +218,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
                     return new DcLoadFlowResult(n, getActivePowerMismatch(n.getBuses()), false);
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
