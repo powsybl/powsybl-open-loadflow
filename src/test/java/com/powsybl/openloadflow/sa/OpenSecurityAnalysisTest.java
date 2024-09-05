@@ -1274,6 +1274,27 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testViolationOnThreeWindingsTransformersLeg() {
+        Network network = T3wtFactory.create();
+        network.getThreeWindingsTransformer("3wt").getLeg2().newCurrentLimits()
+                .setPermanentLimit(400.)
+                .beginTemporaryLimit()
+                .setName("60'")
+                .setAcceptableDuration(60)
+                .setValue(500.)
+                .endTemporaryLimit()
+                .add();
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(), new LoadFlowParameters());
+        assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        LimitViolation expected = new LimitViolation("3wt", null, LimitViolationType.CURRENT, "permanent",
+                60, 400., 1.0F, 435.0831773201809, TwoSides.TWO);
+        int compare = LimitViolations.comparator().compare(expected,
+                result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0));
+        assertEquals(0, compare);
+    }
+
+    @Test
     void testPhaseShifterNecessaryForConnectivity() {
         Network network = PhaseControlFactory.createNetworkWithT2wt();
 
@@ -1311,6 +1332,30 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<StateMonitor> monitors = Collections.emptyList();
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+        assertEquals(20, result.getPostContingencyResults().size()); // assert there is no contingency simulation failure
+    }
+
+    @Test
+    void testWithNonImpedantLineConnectedToSlackBusDc() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine("L1-2-1").setR(0).setX(0);
+        network.getLine("L4-5-1").setR(0).setX(0);
+
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
+
+        List<StateMonitor> monitors = Collections.emptyList();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setDc(true);
+        OpenLoadFlowParameters.create(lfParameters);
+//                        .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
         assertEquals(20, result.getPostContingencyResults().size()); // assert there is no contingency simulation failure
     }
 
@@ -1842,6 +1887,137 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(3.0, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower());
         assertEquals(2.0, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower());
         assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().containsAll(List.of("d4", "d5", "g6", "l46", "l34", "l45", "l56")));
+    }
+
+//    @Test
+//    void testConnectivityResultOnSplitDc() {
+//        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+//        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+//        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34")));
+//        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+//
+//        //Test DC fast
+//        parameters.getLoadFlowParameters().setDc(true);
+//        parameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
+////        parameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.NONE);
+//        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+//
+//        //Test DC slow
+//        openSecurityAnalysisParameters.setDcFastMode(false);
+//        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
+//        openSecurityAnalysisParameters.setDcFastMode(true);
+//        parameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+//        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
+//
+//        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+//        PostContingencyResult postContingencyResult2 = result2.getPostContingencyResults().get(0);
+//        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+//        assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+//        assertEquals(3.0, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower());
+//        assertEquals(2.0, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower());
+//        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().containsAll(List.of("d4", "d5", "g6", "l46", "l34", "l45", "l56")));
+//
+//    }
+//
+//    @Test
+//    void testConnectivityResultOnSplitFastDcResults() {
+//        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+//        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+//        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34")));
+//        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+//
+//        //Test DC fast
+//        parameters.getLoadFlowParameters().setDc(true);
+//        parameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
+//        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+//        openSecurityAnalysisParameters.setDcFastMode(true);
+//        parameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+//
+//        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
+//
+//        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+//        for (BranchResult br : postContingencyResult.getNetworkResult().getBranchResults()) {
+//            System.out.println("For Line " + br.getBranchId());
+//            System.out.println("Active power flow on side 1 = " + br.getP1());
+//        }
+//    }
+//
+//    @Test
+//    void testConnectivityResultOnSplitSlowDcResults() {
+//        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+//        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+//        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34")));
+//        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+//
+//        //Test DC fast
+//        parameters.getLoadFlowParameters().setDc(true);
+//        parameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
+//        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+//        openSecurityAnalysisParameters.setDcFastMode(false);
+//        parameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+//
+//        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
+//
+//        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+//        for (BranchResult br : postContingencyResult.getNetworkResult().getBranchResults()) {
+//            System.out.println("For Line " + br.getBranchId());
+//            System.out.println("Active power flow on side 1 = " + br.getP1());
+//        }
+//    }
+//
+//    @Test
+//    void testWithLf() {
+//        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+//
+//        // apply contingency by hand to verify the results
+//        network.getLine("l34").disconnect();
+//
+//        LoadFlowParameters parameters = new LoadFlowParameters()
+//                .setDc(true);
+//        LoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new SparseMatrixFactory());
+//        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
+//        loadFlowRunner.run(network, parameters);
+//
+//        for (Line line : network.getLines()) {
+//            if (!Double.isNaN(line.getTerminal1().getP())) {
+//                System.out.println("For Line " + line.getId());
+//                System.out.println("Active power flow on side 1 = " + line.getTerminal1().getP());
+//            }
+//        }
+//    }
+//
+@Test
+void testDistributedMismatchDueToContingencyFastDcSa() {
+    Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
+    List<StateMonitor> monitors = createAllBranchesMonitors(network);
+    List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l48")));
+
+    // Test DC fast
+    SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+    parameters.getLoadFlowParameters().setDc(true);
+    OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+    openSecurityAnalysisParameters.setDcFastMode(true);
+    parameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+    SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
+    int x = 0;
+}
+
+    @Test
+    void testDistributedMismatchDueToContingencyFastDcSa2() {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("g10", new GeneratorContingency("g10")));
+
+        // Test DC fast
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        parameters.getLoadFlowParameters().setDc(true);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(true);
+        parameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
+        int x = 0;
     }
 
     @Test

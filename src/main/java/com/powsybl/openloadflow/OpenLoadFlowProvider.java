@@ -104,7 +104,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
         try {
             // update network state
-            if (atLeastOneComponentHasToBeUpdated || parametersExt.isAlwaysUpdateNetwork()) {
+            if (atLeastOneComponentHasToBeUpdated && result.isSuccess()
+                    || parametersExt.isAlwaysUpdateNetwork()) {
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
