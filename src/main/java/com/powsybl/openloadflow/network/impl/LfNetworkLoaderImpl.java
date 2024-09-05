@@ -586,19 +586,24 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createAreas(int numCC, int numSC, LoadingContext loadingContext, List<LfNetworkLoaderPostProcessor> postProcessors, LfNetworkParameters parameters, LfNetwork network) {
         if (parameters.isAreaInterchangeControl()) {
-            loadingContext.areaBusMap.forEach((area, lfBuses) -> {
-                checkBoundariesComponent(area, numCC, numSC);
-                Set<LfArea.Boundary> boundaries = loadingContext.areaBoundaries.getOrDefault(area, new HashSet<>());
-                LfArea lfArea = LfAreaImpl.create(area, lfBuses, boundaries, network, parameters);
-                network.addArea(lfArea);
-                postProcessors.forEach(pp -> pp.onAreaAdded(area, lfArea));
-            });
-            checkBusesWithoutArea(network);
+            loadingContext.areaBusMap
+                    .entrySet()
+                    .stream()
+                    .filter(e -> checkBoundariesComponent(e.getKey(), numCC, numSC))
+                    .forEach(e -> {
+                        Area area = e.getKey();
+                        Set<LfBus> lfBuses = e.getValue();
+                        Set<LfArea.Boundary> boundaries = loadingContext.areaBoundaries.getOrDefault(area, new HashSet<>());
+                        LfArea lfArea = LfAreaImpl.create(area, lfBuses, boundaries, network, parameters);
+                        network.addArea(lfArea);
+                        postProcessors.forEach(pp -> pp.onAreaAdded(area, lfArea));
+                    });
         }
     }
 
-    private static void checkBoundariesComponent(Area area, int numCC, int numSC) {
-        area.getAreaBoundaryStream().forEach(boundary -> {
+    private static boolean checkBoundariesComponent(Area area, int numCC, int numSC) {
+        boolean allBoundariesInSameComponent = true;
+        for (AreaBoundary boundary : area.getAreaBoundaryStream().toList()) {
             Bus bus;
             if (boundary.getTerminal().isPresent()) {
                 Terminal terminal = boundary.getTerminal().get();
@@ -607,12 +612,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 DanglingLine danglingLine = boundary.getBoundary().get().getDanglingLine();
                 bus = danglingLine.getTerminal().getBusBreakerView().getConnectableBus();
             } else {
-                return;
+                continue;
             }
             if (bus.getConnectedComponent() != null && bus.getSynchronousComponent() != null && (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC)) {
-                throw new PowsyblException("Area " + area.getId() + " does not have all its boundary buses in the same connected component or synchronous component. Area interchange control cannot be performed on this network");
+                LOGGER.warn("Area {} does not have all its boundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", area.getId());
+                allBoundariesInSameComponent = false;
+                break;
             }
-        });
+        }
+        return allBoundariesInSameComponent;
     }
 
     /**
