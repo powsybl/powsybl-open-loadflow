@@ -7,10 +7,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Area;
-import com.powsybl.iidm.network.AreaBoundary;
-import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -20,7 +17,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.outerloop.AreaInterchangeControlOuterloop;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -130,33 +126,6 @@ class AreaInterchangeControlTest {
     }
 
     @Test
-    void busNoArea1() {
-        Network network = MultiAreaNetworkFactory.busNoArea1();
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters().setAreaInterchangeControl(true);
-        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, lfNetworkParameters));
-        assertEquals("Bus b3_vl_0 is not in any Area, and is not a boundary bus (connected to buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network", e.getMessage());
-    }
-
-    @Test
-    void busNoArea2() {
-        Network network = MultiAreaNetworkFactory.busNoArea2();
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters().setAreaInterchangeControl(true);
-        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, lfNetworkParameters));
-        assertEquals("Bus b1_vl_0 is not in any Area, and is not a boundary bus (connected to buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network", e.getMessage());
-    }
-
-    @Test
-    void busNoArea3() {
-        Network network = MultiAreaNetworkFactory.busNoArea3();
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters().setAreaInterchangeControl(true);
-
-        // the tests shows that this does not throw, but it needs to be improved
-        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters);
-        assertEquals(1, lfNetworks.size());
-
-    }
-
-    @Test
     void slackBusOnBoundaryBus() {
         // The slack bus is on a boundary bus, and the flow though this boundary bus is considered in the area interchange
         Network network = MultiAreaNetworkFactory.createTwoAreasWithTwoXNodes();
@@ -181,21 +150,45 @@ class AreaInterchangeControlTest {
     }
 
     @Test
-    void duplicateArea() {
+    void networkWithoutAreas() {
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        parametersExt.setAreaInterchangeControl(false);
+        var result = loadFlowRunner.run(network, parameters);
+        var componentResult = result.getComponentResults().get(0);
+        assertEquals(1.998, componentResult.getDistributedActivePower(), 1e-3);
+        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+    }
+
+    @Test
+    void halfNetworkWithoutArea() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
+        network.getArea("a2").remove();
+
+        Area area1 = network.getArea("a1");
+        var result = loadFlowRunner.run(network, parameters);
+
+        var componentResult = result.getComponentResults().get(0);
+        assertEquals(area1.getInterchangeTarget().getAsDouble(), area1.getInterchange(), 1e-3);
+        assertEquals(-30, componentResult.getDistributedActivePower(), 1e-3);
+        assertEquals(3, componentResult.getIterationCount());
+        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+    }
+
+    @Test
+    void fragmentedArea() {
         Network network = MultiAreaNetworkFactory.areaTwoComponents();
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
-                .setAreaInterchangeControl(true).setComputeMainConnectedComponentOnly(false);
-        Networks.load(network, lfNetworkParameters);
-        network.getArea("a1").newAreaBoundary()
-                .setTerminal(network.getLine("l12").getTerminal1())
-                .setAc(true)
-                .add();
-        network.getArea("a1").newAreaBoundary()
-                .setTerminal(network.getGenerator("g3").getTerminal())
-                .setAc(true)
-                .add();
-        Throwable e = assertThrows(PowsyblException.class, () -> Networks.load(network, lfNetworkParameters));
-        assertEquals("Area a1 does not have all its boundary buses in the same connected component or synchronous component. Area interchange control cannot be performed on this network", e.getMessage());
+        Area area1 = network.getArea("a1");
+        Area area2 = network.getArea("a2");
+
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        var result = loadFlowRunner.run(network, parameters);
+
+        var componentResult = result.getComponentResults().get(0);
+        assertEquals(area1.getInterchangeTarget().getAsDouble(), area1.getInterchange(), 1e-3);
+        assertEquals(51.1, area2.getInterchange(), 1e-3); // has been ignored by area interchange control beacuse all boundaries are not in the same component
+        assertEquals(-30, componentResult.getDistributedActivePower(), 1e-3);
+        assertEquals(3, componentResult.getIterationCount());
+        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
 
     private LoadFlowResult runLfTwoAreas(Network network, double interchangeTarget1, double interchangeTarget2, double expectedDistributedP, int expectedIterationCount) {
