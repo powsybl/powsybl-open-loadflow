@@ -46,7 +46,7 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
 
     @Test
     void specificParametersNamesTest() {
-        assertEquals(List.of("createResultExtension", "contingencyPropagation"), provider.getSpecificParametersNames());
+        assertEquals(List.of("createResultExtension", "contingencyPropagation", "threadCount"), provider.getSpecificParametersNames());
     }
 
     @Test
