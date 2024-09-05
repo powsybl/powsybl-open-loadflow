@@ -24,22 +24,28 @@ public class LfTopoConfig {
 
     private final Set<String> busIdsToLose;
 
-    private final Set<String> branchIdsWithPtcToRetain = new HashSet<>();
+    private final Set<String> branchIdsWithPtcToRetain;
 
-    private final Set<String> branchIdsWithRtcToRetain = new HashSet<>();
+    private final Set<String> branchIdsWithRtcToRetain;
 
-    private final Set<String> shuntIdsToOperate = new HashSet();
+    private final Set<String> shuntIdsToOperate;
 
-    private final Set<String> branchIdsOpenableSide1 = new HashSet<>();
+    private final Set<String> branchIdsOpenableSide1;
 
-    private final Set<String> branchIdsOpenableSide2 = new HashSet<>();
+    private final Set<String> branchIdsOpenableSide2;
 
-    private final Set<String> branchIdsToClose = new HashSet<>();
+    private final Set<String> branchIdsToClose;
 
     public LfTopoConfig() {
         switchesToOpen = new HashSet<>();
         switchesToClose = new HashSet<>();
         busIdsToLose = new HashSet<>();
+        branchIdsWithPtcToRetain = new HashSet<>();
+        branchIdsWithRtcToRetain = new HashSet<>();
+        shuntIdsToOperate = new HashSet<>();
+        branchIdsOpenableSide1 = new HashSet<>();
+        branchIdsOpenableSide2 = new HashSet<>();
+        branchIdsToClose = new HashSet<>();
     }
 
     public LfTopoConfig(LfTopoConfig other) {
@@ -47,6 +53,12 @@ public class LfTopoConfig {
         this.switchesToOpen = new HashSet<>(other.switchesToOpen);
         this.switchesToClose = new HashSet<>(other.switchesToClose);
         this.busIdsToLose = new HashSet<>(other.busIdsToLose);
+        this.branchIdsWithPtcToRetain = new HashSet<>(other.branchIdsWithPtcToRetain);
+        this.branchIdsWithRtcToRetain = new HashSet<>(other.branchIdsWithRtcToRetain);
+        this.shuntIdsToOperate = new HashSet<>(other.shuntIdsToOperate);
+        this.branchIdsOpenableSide1 = new HashSet<>(other.branchIdsOpenableSide1);
+        this.branchIdsOpenableSide2 = new HashSet<>(other.branchIdsOpenableSide2);
+        this.branchIdsToClose = new HashSet<>(other.branchIdsToClose);
     }
 
     public Set<Switch> getSwitchesToOpen() {
