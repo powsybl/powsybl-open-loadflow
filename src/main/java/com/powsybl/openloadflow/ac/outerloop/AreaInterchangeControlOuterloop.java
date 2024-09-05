@@ -109,34 +109,6 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
         Map<String, Pair<Set<LfBus>, Double>> areasMap = areasToBalance.stream()
                 .collect(Collectors.toMap(LfArea::getId, area -> Pair.of(area.getBuses(), getInterchangeMismatchWithSlack(area, slackBusActivePowerMismatch))));
         return distributeActivePowerMismatches(areasMap, context, reportNode);
-//        double totalDistributedActivePower = 0.0;
-//        int totalIterations = 0;
-//        boolean movedBuses = false;
-//        Map<LfArea, Double> remainingMismatchMap = new HashMap<>();
-//        for (LfArea area : areasToBalance) {
-//            double areaActivePowerMismatch = getInterchangeMismatchWithSlack(area, slackBusActivePowerMismatch);
-//            ActivePowerDistribution.Result result = activePowerDistribution.run(area.getBuses(), areaActivePowerMismatch);
-//            double remainingMismatch = result.remainingMismatch();
-//            double distributedActivePower = areaActivePowerMismatch - remainingMismatch;
-//            totalDistributedActivePower += distributedActivePower;
-//            movedBuses |= result.movedBuses();
-//            totalIterations += result.iteration();
-//            if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
-//                remainingMismatchMap.put(area, remainingMismatch);
-//            }
-//        }
-//
-//        ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
-//        DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
-//        contextData.addDistributedActivePower(totalDistributedActivePower);
-//        if (!remainingMismatchMap.isEmpty()) {
-//            String areaMismatchesString = mismatchesToString(remainingMismatchMap);
-//            Reports.reportAreaMismatchDistributionFailure(iterationReportNode, areaMismatchesString, totalIterations);
-//            return distributionFailureResult(context, areaMismatchesString, movedBuses, contextData, totalDistributedActivePower);
-//        } else {
-//            reportAndLogSuccess(iterationReportNode, areaInterchangeMismatches, areasToBalance.size(), totalIterations);
-//            return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
-//        }
     }
 
     private OuterLoopResult distributionFailureResult(AcOuterLoopContext context, String areaMismatchesString, boolean movedBuses, DistributedSlackContextData contextData, double totalDistributedActivePower) {
