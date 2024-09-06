@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -51,10 +50,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         return context;
     }
 
-    public static void distributeSlack(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, boolean useActiveLimits) {
+    public static void distributeSlack(LfNetwork network, Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, boolean useActiveLimits) {
         double mismatch = getActivePowerMismatch(buses);
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
-        activePowerDistribution.run(buses, mismatch);
+        activePowerDistribution.run(network.getReferenceGenerator(), buses, mismatch);
     }
 
     public static double getActivePowerMismatch(Collection<LfBus> buses) {
@@ -174,7 +173,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         if (parameters.isDistributedSlack()) {
-            distributeSlack(network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
+            distributeSlack(network, network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
 
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
@@ -219,7 +218,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
                     return new DcLoadFlowResult(n, getActivePowerMismatch(n.getBuses()), false);
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -237,7 +236,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
         if (parameters.isDistributedSlack()) {
-            distributeSlack(remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
+            distributeSlack(loadFlowContext.getNetwork(), remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
 
         // we need to copy the target array because:
