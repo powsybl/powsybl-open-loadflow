@@ -121,14 +121,15 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 LOGGER.trace("Evaluating {} non-linear constraints", listNonLinearConsts.size());
 
                 // Add non-linear constraints
-                int indexNonLinearCst = 0;
+                int indexNonLinearCst = 0; // callback index of current constraint added
                 for (int equationId : listNonLinearConsts) {
                     Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                     AcEquationType typeEq = equation.getType();
                     double valueConst = 0;
-                    if (!SolverUtils.getNonLinearConstraintsTypes().contains(typeEq)) {
+                    if (!SolverUtils.getNonLinearConstraintsTypes().contains(typeEq)) { // check that the constraint is really non-linear
                         throw new IllegalArgumentException("Equation of type " + typeEq + " is linear, and should be considered in the main function of Knitro, not in the callback function");
                     } else {
+                        // we evaluate the equation with respect to the current state
                         for (EquationTerm term : equation.getTerms()) {
                             term.setStateVector(currentState);
                             if (term.isActive()) {
@@ -136,13 +137,13 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                             }
                         }
                         try {
-                            c.set(indexNonLinearCst, valueConst);
+                            c.set(indexNonLinearCst, valueConst); // adding the constraint
                             LOGGER.trace("Adding non-linear constraint n° {}, of type {} and of value {}", equationId, typeEq, valueConst);
                         } catch (Exception e) {
                             throw new PowsyblException("Exception found while trying to add non-linear constraint n° " + equationId, e);
                         }
                     }
-                    indexNonLinearCst += 1;
+                    indexNonLinearCst += 1; // we move on to the next constraint
                 }
             }
         }
@@ -179,65 +180,51 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 equationSystem.getStateVector().set(toArray(x));
                 AcSolverUtil.updateNetwork(network, equationSystem);
                 oldMatrix.forceUpdate();
+                // For sparse matrix, get values, row and column structure
                 SparseMatrix sparseOldMatrix = oldMatrix.getMatrix().toSparse();
-                // For sparse matrix, get values, and row and column structure
                 int[] columnStart = sparseOldMatrix.getColumnStart();
                 int[] rowIndices = sparseOldMatrix.getRowIndices();
                 double[] values = sparseOldMatrix.getValues();
 
+                // Number of constraints evaluated in callback
+                int numCbCts = 0 ;
                 if (knitroParameters.getGradientUserRoutine() == 1) {
-                    // FIRST METHOD
-                    int id = 0;
-                    for (int ct : listNonLinearConsts) {
-                        for (int var = 0; var < getNumVars(); var++) { //TODO CHANGER getNumVars()
-                            try {
-                                // Start and end index in the values array for column ct
-                                int colStart = columnStart[ct];
-                                int colEnd = columnStart[ct + 1];
-                                double valueSparse = 0.0;
-
-                                // Iterate through the column range
-                                for (int i = colStart; i < colEnd; i++) {
-                                    // Check if the row index matches var
-                                    if (rowIndices[i] == var) {
-                                        // Get the corresponding value
-                                        valueSparse = values[i];
-                                        break;  // Exit loop since the value is found
-                                    }
-                                }
-                                jac.set(id, valueSparse);
-                                id += 1;
-                            } catch (Exception e) {
-                                throw new PowsyblException("Exception found while trying to add Jacobian term " + var + " in non-linear constraint " + ct, e);
-                            }
-                        }
-                    }
+                    numCbCts = listNonZerosCts.size();
                 } else if (knitroParameters.getGradientUserRoutine() == 2) {
-                    //SECOND METHOD
-                    for (int index = 0; index < listNonZerosCts2.size(); index++) {
-                        try {
-                            int var = listNonZerosVars2.get(index);
-                            int ct = listNonZerosCts2.get(index);
+                    numCbCts = listNonZerosCts2.size();
+                }
 
-                            // Start and end index in the values array for column ct
-                            int colStart = columnStart[ct];
-                            int colEnd = columnStart[ct + 1];
-                            double valueSparse = 0.0;
-
-                            // Iterate through the column range
-                            for (int i = colStart; i < colEnd; i++) {
-                                // Check if the row index matches var
-                                if (rowIndices[i] == var) {
-                                    // Get the corresponding value
-                                    valueSparse = values[i];
-                                    break;  // Exit loop since the value is found
-                                }
-                            }
-                            jac.set(index, valueSparse);
-                        } catch (Exception e) {
-                            LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars2.get(index), listNonZerosCts2.get(index));
-                            LOGGER.error(e.getMessage());
+                // Pass coefficients of Jacobian matrix to Knitro
+                for (int index = 0; index < numCbCts; index++) {
+                    try {
+                        int var = 0 ;
+                        int ct = 0 ;
+                        if (knitroParameters.getGradientUserRoutine() == 1) {
+                            var = listNonZerosVars.get(index);
+                            ct = listNonZerosCts.get(index);
+                        } else if (knitroParameters.getGradientUserRoutine() == 2) {
+                            var = listNonZerosVars2.get(index);
+                            ct = listNonZerosCts2.get(index);
                         }
+
+                        // Start and end index in the values array for column ct
+                        int colStart = columnStart[ct];
+                        int colEnd = columnStart[ct + 1];
+                        double valueSparse = 0.0;
+
+                        // Iterate through the column range
+                        for (int i = colStart; i < colEnd; i++) {
+                            // Check if the row index matches var
+                            if (rowIndices[i] == var) {
+                                // Get the corresponding value
+                                valueSparse = values[i];
+                                break;  // Exit loop since the value is found
+                            }
+                        }
+                        jac.set(index, valueSparse);
+                    } catch (Exception e) {
+                        LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars2.get(index), listNonZerosCts2.get(index));
+                        LOGGER.error(e.getMessage());
                     }
                 }
 
