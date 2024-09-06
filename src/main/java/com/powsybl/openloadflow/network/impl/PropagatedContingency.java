@@ -541,8 +541,8 @@ public class PropagatedContingency {
         }
 
         return Optional.of(new LfContingency(contingency.getId(), index, connectivityLossImpact.createdSynchronousComponents,
-                new DisabledNetwork(busesToLost, branchesToOpen, lostHvdcs), shunts, loads, generators,
-                connectivityLossImpact.hvdcsWithoutPower()));
+                           new DisabledNetwork(busesToLost, branchesToOpen, lostHvdcs), shunts, loads, generators,
+                           connectivityLossImpact.hvdcsWithoutPower()));
     }
 
     /**
