@@ -3421,4 +3421,44 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertActivePowerEquals(50.0, network.getBranch("L3").getTerminal1());
         assertActivePowerEquals(0.0, network.getBranch("L4").getTerminal1());
     }
+
+    @Test
+    void testMultiThreads() {
+        Network network = createNodeBreakerNetwork();
+        assertFalse(network.getVariantManager().isVariantMultiThreadAccessAllowed());
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "VL1_1");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        OpenSecurityAnalysisParameters securityAnalysisParametersExt = new OpenSecurityAnalysisParameters();
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, securityAnalysisParametersExt);
+
+        List<Contingency> contingencies = Stream.of("L1", "L2")
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .toList();
+
+        SecurityAnalysisResult resultOneThread = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        securityAnalysisParametersExt.setThreadCount(2);
+        SecurityAnalysisResult resultTwoThreads = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        assertFalse(network.getVariantManager().isVariantMultiThreadAccessAllowed());
+        assertEquals(resultOneThread.getPostContingencyResults().size(), resultTwoThreads.getPostContingencyResults().size());
+        assertEquals(resultOneThread.getOperatorStrategyResults().size(), resultTwoThreads.getOperatorStrategyResults().size());
+    }
+
+    @Test
+    void testMultiThreadsWhenLessContingenciesThanThreads() {
+        Network network = createNodeBreakerNetwork();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        OpenSecurityAnalysisParameters securityAnalysisParametersExt = new OpenSecurityAnalysisParameters()
+                .setThreadCount(2);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, securityAnalysisParametersExt);
+
+        List<Contingency> contingencies = Stream.of("L1")
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .toList();
+
+        assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters));
+    }
 }
