@@ -83,6 +83,22 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
+    void testTargetP() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var gen = network.getGenerator("GEN");
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+
+        System.out.println(gen.getTargetP());
+        gen.setTargetP(620);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+
+        result = loadFlowRunner.run(network, parameters);
+    }
+
+    @Test
     void testParameterChange() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 

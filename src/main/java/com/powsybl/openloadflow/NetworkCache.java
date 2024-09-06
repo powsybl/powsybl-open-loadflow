@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -174,6 +175,14 @@ public enum NetworkCache {
                     }
                     context.getNetwork().validate(LoadFlowModel.AC, null);
                     return CacheUpdateResult.elementUpdated(context);
+                } else if (attribute.equals("targetP")) {
+                    double valueShift = (double) newValue - (double) oldValue;
+                    LfGenerator lfGenerator = lfBus.getNetwork().getGeneratorById(generator.getId());
+                    double newTargetP = lfGenerator.getTargetP() + valueShift / PerUnit.SB;
+                    lfGenerator.setTargetP(newTargetP);
+                    lfGenerator.setInitialTargetP(newTargetP);
+                    lfGenerator.reApplyActivePowerControlChecks(context.getParameters().getNetworkParameters(), null);
+                    return CacheUpdateResult.elementUpdated(context);
                 }
                 return CacheUpdateResult.unsupportedUpdate();
             });
@@ -277,7 +286,7 @@ public enum NetworkCache {
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
-                        if (attribute.equals("targetV")) {
+                        if (attribute.equals("targetV") || attribute.equals("targetP")) {
                             result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {

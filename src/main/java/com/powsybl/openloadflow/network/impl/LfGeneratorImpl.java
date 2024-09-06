@@ -33,6 +33,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private final Ref<Generator> generatorRef;
 
+    private final boolean initialParticipating;
+
     private boolean participating;
 
     private final double droop;
@@ -53,7 +55,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
         forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
         var apcHelper = ActivePowerControlHelper.create(generator, generator.getMinP(), generator.getMaxP());
-        participating = apcHelper.participating();
+        initialParticipating = apcHelper.participating();
+        participating = initialParticipating;
         participationFactor = apcHelper.participationFactor();
         droop = apcHelper.droop();
         minTargetP = apcHelper.minTargetP();
@@ -84,6 +87,16 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             } else {
                 qPercent = coordinatedReactiveControl.getQPercent();
             }
+        }
+    }
+
+    @Override
+    public void reApplyActivePowerControlChecks(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        participating = initialParticipating;
+        var generator = getGenerator();
+        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMaxP(), minTargetP, maxTargetP,
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
+            participating = false;
         }
     }
 
