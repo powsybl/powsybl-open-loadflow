@@ -144,23 +144,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 connectivityAnalysisResult.getPartialDisabledBranches());
     }
 
-//    /**
-//     * Filter the contingencies applied on the given network.
-//     * Contingencies on switch are not yet supported in {@link WoodburyDcSecurityAnalysis}.
-//     */
-//    private void filterPropagatedContingencies(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies) {
-//
-//        // contingencies on switch not yet supported
-//        propagatedContingencies.stream()
-//                .flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream())
-//                .map(branchId -> lfNetwork.getBranchById(branchId).getBranchType())
-//                .filter(branchType -> branchType == LfBranch.BranchType.SWITCH)
-//                .findAny()
-//                .ifPresent(e -> {
-//                    throw new IllegalArgumentException("Contingencies on switch not yet supported in fast DC Security Analysis");
-//                });
-//    }
-
     private PostContingencyResult computePostContingencyResult(DcLoadFlowContext loadFlowContext, SecurityAnalysisParameters securityAnalysisParameters,
                                                                LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
                                                                PropagatedContingency contingency, double[] postContingencyStates,
@@ -212,9 +195,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // prepare contingencies for connectivity analysis and Woodbury engine
             // note that contingencies on branches connected only on one side are removed,
-            // this is different from dc security analysis
+            // this is a difference with dc security analysis
             cleanContingencies(lfNetwork, propagatedContingencies);
-//            filterPropagatedContingencies(lfNetwork, propagatedContingencies);
 
             double[] preContingencyStates = DcLoadFlowEngine.run(context, new DisabledNetwork(), reportNode);
 
