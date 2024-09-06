@@ -112,7 +112,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // save base state for later restoration after each contingency
             DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
             NetworkState networkState = NetworkState.save(lfNetwork);
-            contingency.toLfContingency(lfNetwork)
+            contingency.toLfContingency(lfNetwork, false)
                     .ifPresent(lfContingency -> lfContingency.apply(lfParameters.getBalanceType()));
             newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode);
             postContingencyStates = engine.run(newFlowStates);
@@ -229,7 +229,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
             LOGGER.info("Processing post contingency results for contingencies with no connectivity break");
             connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()
-                    .forEach(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork)
+                    .forEach(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork, false) // Woodbury does not support slack relocation
                         .ifPresent(lfContingency -> { // only process contingencies that impact the network
                             ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
                             lfNetwork.setReportNode(postContSimReportNode);
@@ -256,7 +256,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             connectivityBreakAnalysisResults.connectivityAnalysisResults()
                     .forEach(connectivityAnalysisResult -> {
                         PropagatedContingency propagatedContingency = connectivityAnalysisResult.getPropagatedContingency();
-                        propagatedContingency.toLfContingency(lfNetwork)
+                        propagatedContingency.toLfContingency(lfNetwork, false) // Woodbury does not support slack relocation
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
                                 ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
                                 lfNetwork.setReportNode(postContSimReportNode);
