@@ -28,7 +28,6 @@ import java.util.stream.IntStream;
 
 import static com.google.common.primitives.Doubles.toArray;
 import static com.powsybl.openloadflow.ac.solver.KnitroSolverUtils.*;
-//import static com.powsybl.openloadflow.ac.solver.ExternalSolverUtils.getNumVariables;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
@@ -118,12 +117,12 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
                 // --- Update current state ---
                 StateVector currentState = new StateVector(toArray(x));
-                List<Double> listInnerLoopVar = x.subList(0, Math.min(getNumNonBinaryVar(equationSystem,knitroParameters), x.size()));
+                List<Double> listInnerLoopVar = x.subList(0, Math.min(getNumNonBinaryVar(equationSystem,knitroParameters), x.size())); // get current state for non-binary variables
                 double[] arrayInnerLoopVar = new double[listInnerLoopVar.size()]; // convert list to array
                 for (int i = 0; i < listInnerLoopVar.size(); i++) {
-                    arrayInnerLoopVar[i] = listInnerLoopVar.get(i); // Unboxing Double to double
+                    arrayInnerLoopVar[i] = listInnerLoopVar.get(i); // unboxing Double to double
                 }
-                equationSystem.getStateVector().set(arrayInnerLoopVar);
+                equationSystem.getStateVector().set(arrayInnerLoopVar); // update network state
 
 //                LOGGER.trace("Current state vector {}", currentState.get());
 //                LOGGER.trace("Evaluating {} non-linear inner loop constraints", listNonLinearConstsInnerLoop.size());
@@ -172,12 +171,13 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 // Outer loop constraints
 //                LOGGER.trace("Evaluating {} non-linear outer loop constraints", listNonLinearConstsOuterLoop.size());
                 int currentCbEqIndex = listNonLinearConstsInnerLoop.size(); // index of current equation to add in the callback structure (we start at the last constraint added in the inner loop +1)
+                // We browse the list of non-linear outer loop constraints
                 for (int indexNonLinearOuterLoopCst : listNonLinearConstsOuterLoop) {
-                    int busId = listVarVIndexes.get((indexNonLinearOuterLoopCst - sortedInnerLoopEquationsToSolve.size())/5);
-
+                    // Get current bus index
+                    int busId = listVarVIndexes.get((indexNonLinearOuterLoopCst - sortedInnerLoopEquationsToSolve.size())/5); // we add
                     // Compute sum of reactive power at bus
                     double valueSumReactivePower = lfNetwork.getBus(busId).getQ().eval();
-
+                    // Add constraint
                     try {
                         if ((currentCbEqIndex - listNonLinearConstsInnerLoop.size()) % 3 == 0) {
                             // 1) Q is within its bounds Q_lo and Q_up for all PV and PQ nodes
@@ -367,10 +367,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Integer> listVarTypes = getVariablesTypes(equationSystem, knitroParameters);
             setVarTypes(listVarTypes);
 
-            // Bounds
+            // Bounds for non-binary variables
             List<Double> listVarLoBounds = new ArrayList<>(numVar);
             List<Double> listVarUpBounds = new ArrayList<>(numVar);
-            double loBndV = knitroParameters.getMinRealisticVoltage();
+            double loBndV = knitroParameters.getMinRealisticVoltage(); //TODO check if it can be done directly with buses realistic bounds
             double upBndV = knitroParameters.getMaxRealisticVoltage();
             for (int var = 0; var < sortedNonBinVar.size(); var++) {
                 Enum<AcVariableType> typeVar = sortedNonBinVar.get(var).getType();
@@ -382,10 +382,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     listVarUpBounds.add(KNConstants.KN_INFINITY);
                 }
             }
-            List<Integer> nonBinaryBarIndexes = IntStream.rangeClosed(0, sortedNonBinVar.size()-1).boxed().collect(Collectors.toList());
+            List<Integer> nonBinaryVarIndexes = IntStream.rangeClosed(0, sortedNonBinVar.size()-1).boxed().collect(Collectors.toList()); // list of inner loop variables indexes
 
-            setVarLoBnds(nonBinaryBarIndexes, listVarLoBounds);
-            setVarUpBnds(nonBinaryBarIndexes, listVarUpBounds);
+            setVarLoBnds(nonBinaryVarIndexes, listVarLoBounds);
+            setVarUpBnds(nonBinaryVarIndexes, listVarUpBounds);
 
             // Initial state
             AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer); // Initialize state vector in newtork
@@ -422,7 +422,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 //                    LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
 
                 } else if (KnitroEquationsUtils.getQuadraticConstraintsTypes(knitroParameters).contains(typeEq)) {
-                    // Quadratic constraints
+                    // Quadratic constraints V_i x_i - Vref_i x_i = 0
                     List<Integer> listVarQuadra = new ArrayList<>();
                     List<Double> listCoefQuadra = new ArrayList<>();
                     List<Integer> listVarLin = new ArrayList<>();
@@ -466,10 +466,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             // Adding outer loop constraints
             if (knitroParameters.isDirectOuterLoopsFormulation()) {
-                int currentEquationId = innerLoopSortedEquations.size(); //we now add equations after the inner loop equations
-                targetOuterLoopEqualities = new ArrayList<>();
-//                loBndsOuterLoopInequalities = new ArrayList<>(); //TODO
-//                upBndsOuterLoopInequalities = new ArrayList<>();
+                int currentEquationId = innerLoopSortedEquations.size(); // the outer loop equations are added after inner loop equations
+                targetOuterLoopEqualities = new ArrayList<>(); // target vector for outer loop equalities
 
                 // Browse the list of buses that have an equation setting V
                 for (Equation equation : innerLoopSortedEquations) {
@@ -543,34 +541,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 }
             }
 
-
-//            if (knitroParameters.isDirectOuterLoopsFormulation()){
-//                for (int equationId = numConstInnerLoop ; equationId < numConst; equationId++) {
-//                    if ((equationId - numConstInnerLoop) % 5 == 0){
-//                        // q is within its bounds Q_lo and Q_up for all PV and PQ nodes
-//                        // Non-linear inequality
-//                        listNonLinearOuterLoopConsts.add(equationId); // Add constraint number to list of non-linear constraints
-//                    } else if ((equationId - numConstInnerLoop) % 5 == 1){
-//                        // The node becomes PQ and q is set to its upper bound Q_up
-//                        // Non-linear equality
-//                        listNonLinearOuterLoopConsts.add(equationId); // Add constraint number to list of non-linear constraints
-//                        //TODO for this equality, we need to pass a target of 0 to Knitro
-//                    } else if ((equationId - numConstInnerLoop) % 5 == 2){
-//                        // The node becomes PQ and V_i y_i - Vref_i y_i <= 0
-//                        // Quadratic inequality
-//
-//                     } else if ((equationId - numConstInnerLoop) % 5 == 3){
-//                        // The node becomes PQ and q is set to its lower bound Q_lo
-//                        // Non-linear equality
-//                        listNonLinearOuterLoopConsts.add(equationId); // Add constraint number to list of non-linear constraints
-//                        //TODO for this equality, we need to pass a target of 0 to Knitro
-//                    } else if ((equationId - numConstInnerLoop) % 5 == 4){
-//                        // The node becomes PQ and V_i y_i - Vref_i y_i >= 0
-//                        // Quadratic inequality
-//                    }
-//                }
-//            }
-
             // ----- Non-linear constraints -----
             // Callback
             List<Integer> listNonLinearConsts = new ArrayList<>(listNonLinearInnerLoopConsts);
@@ -578,7 +548,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             setMainCallbackCstIndexes(listNonLinearConsts);
 
             // ----- RHS : targets -----
-
             // -- Equalitites targets --
             // Modify the inner loop target vector for V equations
             List<Double> modifiedInnerLoopTargetVector = new ArrayList<>(numConstInnerLoop);
@@ -596,11 +565,17 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Integer> listTargetEqualities = new ArrayList<>();
             listTargetEqualities = IntStream.range(0, numConstInnerLoop).boxed().collect(Collectors.toList());;
             listTargetEqualities.addAll(equalitiesIndexesOuterLoop);
-            setConEqBnds(listTargetEqualities, targetConstsEqualities); //TODO IF DIRECT FORMULATION PASS MODIFIED VECTOR, ELSE PASS VECTOR
+            if (knitroParameters.isDirectOuterLoopsFormulation()) {
+                setConEqBnds(listTargetEqualities, targetConstsEqualities);
+            } else {
+                setConEqBnds(Arrays.stream(targetVector.getArray()).boxed().toList());
+            }
 
             // -- Inequalities bounds --
-            setConLoBnds(inequalitiesIndexes, loBndsOuterLoopInequalities);
-            setConUpBnds(inequalitiesIndexes, upBndsOuterLoopInequalities);
+            if (knitroParameters.isDirectOuterLoopsFormulation()) {
+                setConLoBnds(inequalitiesIndexes, loBndsOuterLoopInequalities);
+                setConUpBnds(inequalitiesIndexes, upBndsOuterLoopInequalities);
+            }
 
             // =============== Objective ==============
             setObjConstPart(0.0);
