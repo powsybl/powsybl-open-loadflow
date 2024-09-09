@@ -120,26 +120,22 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 // FIXME : when i use the following line, the results are the same than slow dc sa...
                 // FIXME : understand why, this is probably a hint
                 lfActions.forEach(lfAction -> lfAction.apply(loadFlowContext.getParameters().getNetworkParameters()));
-                newFlowStates = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode, lfActions); // TODO : run dc lf taking action into account
+                newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode, lfActions); // TODO : run dc lf taking action into account
             }
             postContingencyStates = engine.run(newFlowStates);
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
-            // nothing to do for actions as they only apply on pst
             DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
             NetworkState networkState = NetworkState.save(lfNetwork);
             contingency.toLfContingency(lfNetwork, false)
                     .ifPresent(lfContingency -> lfContingency.apply(lfParameters.getBalanceType()));
-            newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode);
+            // TODO : add lf action in calculation here
+            newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode, new ArrayList<>());
             postContingencyStates = engine.run(newFlowStates);
             networkState.restore();
         }
 
-//        NetworkState networkState = NetworkState.save(lfNetwork);
-//        lfActions.forEach(action -> action.apply(loadFlowContext.getParameters().getNetworkParameters()));
-//        DenseMatrix actionsStates = calculateActionsStates(loadFlowContext, actionElements);
-//        networkState.restore();
         return postContingencyStates;
     }
 
@@ -308,7 +304,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             cleanContingencies(lfNetwork, propagatedContingencies);
             filterActions(actions);
 
-            double[] preContingencyStates = DcLoadFlowEngine.run(context, new DisabledNetwork(), reportNode);
+            double[] preContingencyStates = DcLoadFlowEngine.run(context, new DisabledNetwork(), reportNode, new ArrayList<>());
 
             // set pre contingency angle states as state vector of equation system
             context.getEquationSystem().getStateVector().set(preContingencyStates);
