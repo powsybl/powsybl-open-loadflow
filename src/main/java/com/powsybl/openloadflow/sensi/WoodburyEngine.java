@@ -106,8 +106,14 @@ public class WoodburyEngine {
             for (ComputedActionElement actionElement : actionElements) {
                 LfBranch lfBranch = actionElement.getLfBranch();
                 ClosedBranchSide1DcFlowEquationTerm p1 = actionElement.getLfBranchEquation();
+                int oldTapPosition = lfBranch.getPiModel().getTapPosition();
+                LfAction.TapPositionChange tapPositionChange = actionElement.getAction().getTapPositionChange();
+                int newTapPosition = tapPositionChange.isRelative() ? oldTapPosition + tapPositionChange.value() : tapPositionChange.value();
+                tapPositionChange.branch().getPiModel().setTapPosition(newTapPosition);
+                double newAlpha = lfBranch.getPiModel().getA1();
+                tapPositionChange.branch().getPiModel().setTapPosition(oldTapPosition);
                 rhs.set(contingencyElements.size() + actionElement.getLocalIndex(), 0, states.get(p1.getPh1Var().getRow(), columnState)
-                        - states.get(p1.getPh2Var().getRow(), columnState)
+                        - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha
                 );
 
                 // loop on contingencies to fill down-left part of the small matrix
@@ -121,9 +127,9 @@ public class WoodburyEngine {
                 for (ComputedActionElement actionElement2 : actionElements) {
                     double value = 0d;
                     if (actionElement.equals(actionElement2)) {
-                        int oldTapPosition = lfBranch.getPiModel().getTapPosition();
-                        LfAction.TapPositionChange tapPositionChange = actionElement.getAction().getTapPositionChange();
-                        int newTapPosition = tapPositionChange.isRelative() ? oldTapPosition + tapPositionChange.value() : tapPositionChange.value();
+//                        int oldTapPosition = lfBranch.getPiModel().getTapPosition();
+//                        LfAction.TapPositionChange tapPositionChange = actionElement.getAction().getTapPositionChange();
+//                        int newTapPosition = tapPositionChange.isRelative() ? oldTapPosition + tapPositionChange.value() : tapPositionChange.value();
                         tapPositionChange.branch().getPiModel().setTapPosition(newTapPosition);
                         double powerAfterModif = calculatePower(lfBranch);
                         tapPositionChange.branch().getPiModel().setTapPosition(oldTapPosition);
