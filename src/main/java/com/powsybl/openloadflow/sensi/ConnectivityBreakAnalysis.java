@@ -123,7 +123,7 @@ public final class ConnectivityBreakAnalysis {
             for (ComputedContingencyElement element2 : contingencyElements) {
                 LfBranch branch = lfNetwork.getBranchById(element2.getElement().getId());
                 ClosedBranchSide1DcFlowEquationTerm p = equationSystem.getEquationTerm(ElementType.BRANCH, branch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-                double value = Math.abs(p.calculateSensi(contingenciesStates, element.getContingencyIndex()));
+                double value = Math.abs(p.calculateSensi(contingenciesStates, element.getComputedElementIndex()));
                 sum += value;
             }
             if (sum > 1d - CONNECTIVITY_LOSS_THRESHOLD) {
@@ -228,7 +228,7 @@ public final class ConnectivityBreakAnalysis {
                                 (existing, replacement) -> existing,
                                 LinkedHashMap::new
                         ));
-        ComputedContingencyElement.setContingencyIndexes(contingencyElementByBranch.values());
+        ComputedContingencyElement.setComputedContingencyIndexes(contingencyElementByBranch.values());
         return contingencyElementByBranch;
     }
 
@@ -266,15 +266,15 @@ public final class ConnectivityBreakAnalysis {
             LfBus bus2 = lfBranch.getBus2();
             if (bus1.isSlack()) {
                 Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getContingencyIndex(), -1);
+                rhs.set(p.getColumn(), element.getComputedElementIndex(), -1);
             } else if (bus2.isSlack()) {
                 Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getContingencyIndex(), 1);
+                rhs.set(p.getColumn(), element.getComputedElementIndex(), 1);
             } else {
                 Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p1.getColumn(), element.getContingencyIndex(), 1);
-                rhs.set(p2.getColumn(), element.getContingencyIndex(), -1);
+                rhs.set(p1.getColumn(), element.getComputedElementIndex(), 1);
+                rhs.set(p2.getColumn(), element.getComputedElementIndex(), -1);
             }
         }
     }

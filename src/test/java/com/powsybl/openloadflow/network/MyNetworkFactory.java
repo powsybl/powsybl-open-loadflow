@@ -14,7 +14,11 @@ import com.powsybl.iidm.network.*;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 
-public class MyNetworkFactory {
+public final class MyNetworkFactory {
+
+    private MyNetworkFactory() {
+
+    }
 
     public static Network create() {
         return create(NetworkFactory.findDefault());

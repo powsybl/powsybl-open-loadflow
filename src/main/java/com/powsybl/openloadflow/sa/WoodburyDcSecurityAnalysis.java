@@ -200,15 +200,15 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             LfBus bus2 = lfBranch.getBus2();
             if (bus1.isSlack()) {
                 Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getActionIndex(), -1);
+                rhs.set(p.getColumn(), element.getComputedElementIndex(), -1);
             } else if (bus2.isSlack()) {
                 Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getActionIndex(), 1);
+                rhs.set(p.getColumn(), element.getComputedElementIndex(), 1);
             } else {
                 Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p1.getColumn(), element.getActionIndex(), 1);
-                rhs.set(p2.getColumn(), element.getActionIndex(), -1);
+                rhs.set(p1.getColumn(), element.getComputedElementIndex(), 1);
+                rhs.set(p2.getColumn(), element.getComputedElementIndex(), -1);
             }
         }
     }
@@ -375,7 +375,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                 .map(action -> new ComputedActionElement(action, lfNetwork, context.getEquationSystem()))
                                                 .filter(element -> element.getLfBranchEquation() != null)
                                                 .collect(Collectors.toList());
-                                ComputedActionElement.setActionIndexes(actionElements);
+                                ComputedActionElement.setComputedActionIndexes(actionElements);
                                 DenseMatrix actionsStates = calculateActionsStates(context, actionElements);
 
                                 double[] postContingencyAndActionsStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), preContingencyStates, propagatedContingency,
@@ -428,9 +428,5 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),
                     postContingencyResults, operatorStrategyResults);
         }
-    }
-
-    DenseMatrix getActionsStates() {
-
     }
 }

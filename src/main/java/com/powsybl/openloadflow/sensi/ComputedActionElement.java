@@ -1,19 +1,25 @@
+/**
+ * Copyright (c) 2024, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
 package com.powsybl.openloadflow.sensi;
-
 
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.LfAction;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Collection;
 
-public class ComputedActionElement {
+public final class ComputedActionElement extends ComputedElement {
 
-    private int actionIndex = -1; // index of the element in the rhs for +1-1
-    private int localIndex = -1; // local index of the element : index of the element in the matrix used in the setAlphas method
-    private double alphaForPostContingencyAndActionState = Double.NaN;
     private final LfAction action;
     private final LfBranch lfBranch;
     private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
@@ -22,30 +28,6 @@ public class ComputedActionElement {
         this.action = action;
         lfBranch = action.getTapPositionChange().branch();
         branchEquation = equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-    }
-
-    public int getActionIndex() {
-        return actionIndex;
-    }
-
-    public void setActionIndex(final int index) {
-        this.actionIndex = index;
-    }
-
-    public int getLocalIndex() {
-        return localIndex;
-    }
-
-    private void setLocalIndex(final int index) {
-        this.localIndex = index;
-    }
-
-    public double getAlphaForPostContingencyAndActionState() {
-        return alphaForPostContingencyAndActionState;
-    }
-
-    public void setAlphaForPostContingencyAndActionState(double alphaForPostContingencyAndActionState) {
-        this.alphaForPostContingencyAndActionState = alphaForPostContingencyAndActionState;
     }
 
     public LfAction getAction() {
@@ -60,10 +42,10 @@ public class ComputedActionElement {
         return branchEquation;
     }
 
-    public static void setActionIndexes(Collection<ComputedActionElement> elements) {
+    public static void setComputedActionIndexes(Collection<ComputedActionElement> elements) {
         int index = 0;
-        for (ComputedActionElement element : elements) {
-            element.setActionIndex(index++);
+        for (ComputedElement element : elements) {
+            element.setComputedElementIndex(index++);
         }
     }
 
