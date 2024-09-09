@@ -83,19 +83,26 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
-    void testTargetP() {
+    void testGeneratorTargetP() {
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var gen = network.getGenerator("GEN");
+        var load = network.getLoad("LOAD");
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(-607.0, gen.getTerminal());
+        assertActivePowerEquals(601.44, load.getTerminal());
 
-        System.out.println(gen.getTargetP());
         gen.setTargetP(620);
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(-620, gen.getTerminal());
+        assertActivePowerEquals(614.389, load.getTerminal());
     }
 
     @Test
