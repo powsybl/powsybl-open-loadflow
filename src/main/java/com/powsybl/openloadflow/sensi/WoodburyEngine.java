@@ -31,21 +31,23 @@ public class WoodburyEngine {
 
     private final DenseMatrix contingenciesStates;
 
-    private final List<ComputedActionElement> actionElements;
+    private List<ComputedActionElement> actionElements;
 
-    private final DenseMatrix actionsStates;
+    private DenseMatrix actionsStates;
 
     public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
                           DenseMatrix contingenciesStates) {
-        this(creationParameters, contingencyElements, contingenciesStates, List.of(), new DenseMatrix(0, 0));
-    }
-
-    public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
-                          DenseMatrix contingenciesStates, List<ComputedActionElement> actionELements, DenseMatrix actionsStates) {
         this.creationParameters = Objects.requireNonNull(creationParameters);
         this.contingencyElements = Objects.requireNonNull(contingencyElements);
         this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
-        this.actionElements = Objects.requireNonNull(actionELements);
+    }
+
+    public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
+                          DenseMatrix contingenciesStates, List<ComputedActionElement> actionElements, DenseMatrix actionsStates) {
+        this.creationParameters = Objects.requireNonNull(creationParameters);
+        this.contingencyElements = Objects.requireNonNull(contingencyElements);
+        this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
+        this.actionElements = Objects.requireNonNull(actionElements);
         this.actionsStates = Objects.requireNonNull(actionsStates);
     }
 
@@ -57,8 +59,9 @@ public class WoodburyEngine {
     /**
      * Compute the flow transfer factors needed to calculate the post-contingency state values.
      */
+    // TODO : for now, only works if there is a contingency to be computed in woodbury engine
     private void setAlphas(DenseMatrix states, int columnState) {
-        if (contingencyElements.size() == 1 && actionElements.isEmpty()) {
+        if (contingencyElements.size() == 1 && actionElements.isEmpty()) { // TODO : modify to use same logic when there is only 1 action
             ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
@@ -68,51 +71,53 @@ public class WoodburyEngine {
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState);
             element.setAlphaForWoodburyState(b / a);
         } else {
+            // set local indexes of computed elements to use them in small matrix computation
             ComputedContingencyElement.setLocalIndexes(contingencyElements);
             ComputedActionElement.setLocalIndexes(actionElements);
             int size = contingencyElements.size() + actionElements.size();
             DenseMatrix rhs = new DenseMatrix(size, 1);
             DenseMatrix matrix = new DenseMatrix(size, size);
-            // fill first part of the matrix
-            for (ComputedContingencyElement element : contingencyElements) {
-                LfBranch lfBranch = element.getLfBranch();
-                ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
-                rhs.set(element.getLocalIndex(), 0, states.get(p1.getPh1Var().getRow(), columnState)
+
+            for (ComputedContingencyElement contingencyElement : contingencyElements) {
+                LfBranch lfBranch = contingencyElement.getLfBranch();
+                ClosedBranchSide1DcFlowEquationTerm p1 = contingencyElement.getLfBranchEquation();
+                rhs.set(contingencyElement.getLocalIndex(), 0, states.get(p1.getPh1Var().getRow(), columnState)
                         - states.get(p1.getPh2Var().getRow(), columnState)
                 );
-                // go on contingencies to fill part 1 of the matrix
-                for (ComputedContingencyElement element2 : contingencyElements) {
+                // loop on contingencies to fill up-left part of the small matrix
+                for (ComputedContingencyElement contingencyElement2 : contingencyElements) {
                     double value = 0d;
-                    if (element.equals(element2)) {
+                    if (contingencyElement.equals(contingencyElement2)) {
                         value = 1d / calculatePower(lfBranch);
                     }
-                    value = value - (contingenciesStates.get(p1.getPh1Var().getRow(), element2.getComputedElementIndex())
-                            - contingenciesStates.get(p1.getPh2Var().getRow(), element2.getComputedElementIndex()));
-                    matrix.set(element.getLocalIndex(), element2.getLocalIndex(), value);
+                    value = value - (contingenciesStates.get(p1.getPh1Var().getRow(), contingencyElement2.getComputedElementIndex())
+                            - contingenciesStates.get(p1.getPh2Var().getRow(), contingencyElement2.getComputedElementIndex()));
+                    matrix.set(contingencyElement.getLocalIndex(), contingencyElement2.getLocalIndex(), value);
                 }
 
-                // go on lf actions to fill part 2 of the matrix
+                // loop on actions to fill up-right part of the matrix
                 for (ComputedActionElement actionElement : actionElements) {
                     double value = -(actionsStates.get(p1.getPh1Var().getRow(), actionElement.getComputedElementIndex())
                             - actionsStates.get(p1.getPh2Var().getRow(), actionElement.getComputedElementIndex()));
-                    matrix.set(element.getLocalIndex(), actionElement.getLocalIndex() + contingencyElements.size(), value);
+                    matrix.set(contingencyElement.getLocalIndex(), actionElement.getLocalIndex() + contingencyElements.size(), value);
                 }
             }
-            // fill second part of the matrix
-            for (ComputedActionElement actionElement : actionElements) {
-                LfBranch lfBranch = actionElement.getLfBranch(); // TODO : with is this unused ?
-                ClosedBranchSide1DcFlowEquationTerm p1 = actionElement.getLfBranchEquation();
-                rhs.set(contingencyElements.size() + actionElement.getLocalIndex(), 0,
-                        states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState));
 
-                // go on contingencies to fill part 3 of the matrix
-                for (ComputedContingencyElement element : contingencyElements) {
-                    double value = -(contingenciesStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
-                            - contingenciesStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
-                    matrix.set(actionElement.getLocalIndex() + contingencyElements.size(), element.getLocalIndex(), value);
+            for (ComputedActionElement actionElement : actionElements) {
+                LfBranch lfBranch = actionElement.getLfBranch();
+                ClosedBranchSide1DcFlowEquationTerm p1 = actionElement.getLfBranchEquation();
+                rhs.set(contingencyElements.size() + actionElement.getLocalIndex(), 0, states.get(p1.getPh1Var().getRow(), columnState)
+                        - states.get(p1.getPh2Var().getRow(), columnState)
+                );
+
+                // loop on contingencies to fill down-left part of the small matrix
+                for (ComputedContingencyElement contingencyElement : contingencyElements) {
+                    double value = -(contingenciesStates.get(p1.getPh1Var().getRow(), contingencyElement.getComputedElementIndex())
+                            - contingenciesStates.get(p1.getPh2Var().getRow(), contingencyElement.getComputedElementIndex()));
+                    matrix.set(actionElement.getLocalIndex() + contingencyElements.size(), contingencyElement.getLocalIndex(), value);
                 }
 
-                // go on lf actions to fill part 4 of the matrix
+                // loop on actions to fill down-right part of the matrix
                 for (ComputedActionElement actionElement2 : actionElements) {
                     double value = 0d;
                     if (actionElement.equals(actionElement2)) {
@@ -162,9 +167,8 @@ public class WoodburyEngine {
 
     /**
      * Calculate post-contingency states values using pre-contingency states values and some flow transfer factors (alphas).
-     * @return an array of post-contingency voltage angle states.
+     * @return an array of post-contingency voltage angle states. // TODO : update
      */
-    // TODO : add an action as parameter, the engine is defined for a set of contingencies, and then we can call on with actions
     public double[] run(double[] preContingencyStates) {
         Objects.requireNonNull(preContingencyStates);
         double[] postContingencyStates = new double[preContingencyStates.length];
