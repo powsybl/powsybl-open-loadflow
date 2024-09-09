@@ -11,15 +11,12 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
 import com.powsybl.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -30,21 +27,11 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.sensi.*;
-import com.powsybl.openloadflow.network.util.ParticipatingElement;
-import com.powsybl.openloadflow.sensi.ComputedActionElement;
-import com.powsybl.openloadflow.sensi.ComputedContingencyElement;
-import com.powsybl.openloadflow.sensi.ConnectivityBreakAnalysis;
-import com.powsybl.openloadflow.sensi.WoodburyEngine;
-import com.powsybl.openloadflow.sensi.ComputedActionElement;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.LimitViolationsResult;
@@ -53,11 +40,7 @@ import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
-import com.powsybl.security.results.ConnectivityResult;
-import com.powsybl.security.results.PostContingencyResult;
-import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.results.*;
-import com.powsybl.security.results.OperatorStrategyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.*;
@@ -134,6 +117,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // if a phase tap changer is lost or if the connectivity have changed, we must recompute load flows
             // same with there is an action, as they are only on pst for now
             if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || !lfActions.isEmpty()) {
+                // FIXME : when i use the following line, the results are the same than slow dc sa...
+                // FIXME : understand why, this is probably a hint
+                lfActions.forEach(lfAction -> lfAction.apply(loadFlowContext.getParameters().getNetworkParameters()));
                 newFlowStates = DcSensitivityAnalysis.runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode, lfActions); // TODO : run dc lf taking action into account
             }
             postContingencyStates = engine.run(newFlowStates);
@@ -270,6 +256,35 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 connectivityResult);
     }
 
+    private OperatorStrategyResult computeOperatorStrategyResult(OperatorStrategy operatorStrategy,
+                                                                 DcLoadFlowContext loadFlowContext, SecurityAnalysisParameters securityAnalysisParameters,
+                                                                 List<LfAction> operatorStrategyLfActions, PropagatedContingency contingency, double[] postContingencyAndActionsStates,
+                                                                 LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
+                                                                 List<LimitReduction> limitReductions, boolean createResultExtension) {
+        LfNetwork lfNetwork = loadFlowContext.getNetwork();
+        loadFlowContext.getEquationSystem().getStateVector().set(postContingencyAndActionsStates);
+        updateNetwork(lfNetwork, loadFlowContext.getEquationSystem(), postContingencyAndActionsStates);
+
+        LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElseThrow(); // the contingency can not be null
+        lfContingency.apply(loadFlowContext.getParameters().getBalanceType());
+        operatorStrategyLfActions.forEach(lfAction -> lfAction.apply(loadFlowContext.getParameters().getNetworkParameters()));
+//        LfAction.apply(operatorStrategyLfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters());
+
+        // update network result
+        var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
+        postActionsNetworkResult.update();
+
+        // detect violations
+        var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
+        postActionsViolationManager.detectViolations(lfNetwork);
+
+        return new OperatorStrategyResult(operatorStrategy, PostContingencyComputationStatus.CONVERGED,
+                new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
+                new NetworkResult(postActionsNetworkResult.getBranchResults(),
+                        postActionsNetworkResult.getBusResults(),
+                        postActionsNetworkResult.getThreeWindingsTransformerResults()));
+    }
+
     @Override
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters dcParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
@@ -333,7 +348,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             Stopwatch stopwatch = Stopwatch.createStarted();
 
                             double[] postContingencyStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), preContingencyStates, propagatedContingency,
-                                    connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), reportNode, Collections.emptySet());
+                                    connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), reportNode, Collections.emptySet(), List.of(), new DenseMatrix(0, 0));
                             // compute post contingency result with post contingency states
                             PostContingencyResult postContingencyResult = computePostContingencyResult(context, propagatedContingency.getContingency(),
                                     lfContingency, preContingencyLimitViolationManager, preContingencyNetworkResult, createResultExtension,
@@ -346,9 +361,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             networkState.restore();
 
                             // TODO : remove, just to test something
-                            List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(contingency.getContingency().getId()); // TODO : check if the ID is the same here
+                            List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId()); // TODO : check if the ID is the same here
                             for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-//                                lfNetwork.setGeneratorsInitialTargetPToTargetP();
+                                lfNetwork.setGeneratorsInitialTargetPToTargetP();
 //                                List<String> actionIds = checkCondition(operatorStrategy, postContingencyResult.getLimitViolationsResult());
 //                                List<LfAction> operatorStrategyLfActions = actionIds.stream()
 //                                        .map(lfActionById::get)
@@ -376,11 +391,11 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                 .collect(Collectors.toList());
                                 ComputedActionElement.setActionIndexes(actionElements);
                                 DenseMatrix actionsStates = calculateActionsStates(context, actionElements);
-                                double[] postContingencyAndActionsStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), preContingencyStates, contingency,
+                                double[] postContingencyAndActionsStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), preContingencyStates, propagatedContingency,
                                         connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), reportNode,
                                         Collections.emptySet(), operatorStrategyLfActions, actionsStates);
                                 OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResult(operatorStrategy, context, securityAnalysisParameters,
-                                        operatorStrategyLfActions, contingency, postContingencyAndActionsStates, preContingencyLimitViolationManager, preContingencyNetworkResult,
+                                        operatorStrategyLfActions, propagatedContingency, postContingencyAndActionsStates, preContingencyLimitViolationManager, preContingencyNetworkResult,
                                         limitReductions, createResultExtension);
                                 operatorStrategyResults.add(operatorStrategyResult);
                                 networkState.restore();
