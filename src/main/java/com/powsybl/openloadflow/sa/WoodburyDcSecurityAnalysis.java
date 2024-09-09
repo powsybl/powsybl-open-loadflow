@@ -112,10 +112,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // if a phase tap changer is lost or if the connectivity have changed, we must recompute load flows
             // same with there is an action, as they are only on pst for now
             if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || !lfActions.isEmpty()) {
-                // FIXME : when i use the following line, the results are the same than slow dc sa...
-                // FIXME : understand why, this is probably a hint
-//                lfActions.forEach(lfAction -> lfAction.apply(loadFlowContext.getParameters().getNetworkParameters()));
-                newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode, lfActions); // TODO : run dc lf taking action into account
+                newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode, lfActions);
             }
             postContingencyStates = engine.run(newFlowStates);
 
@@ -254,7 +251,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                                  List<LfAction> operatorStrategyLfActions, PropagatedContingency contingency, double[] postContingencyAndActionsStates,
                                                                  LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
                                                                  List<LimitReduction> limitReductions, boolean createResultExtension) {
-        // TODO : check this function. Doesn't seem to work...
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
         loadFlowContext.getEquationSystem().getStateVector().set(postContingencyAndActionsStates);
         updateNetwork(lfNetwork, loadFlowContext.getEquationSystem(), postContingencyAndActionsStates);
@@ -287,8 +283,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
         Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, dcParameters.getNetworkParameters()); // only convert needed actions
 
-        LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
-        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
@@ -361,7 +355,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                 ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
                                 lfNetwork.setReportNode(osSimReportNode);
 
-//                                lfNetwork.setGeneratorsInitialTargetPToTargetP(); // FIXME : is this line useful ?
                                 List<String> actionIds = checkCondition(operatorStrategy, postContingencyResult.getLimitViolationsResult());
                                 List<LfAction> operatorStrategyLfActions = actionIds.stream()
                                         .map(lfActionById::get)
