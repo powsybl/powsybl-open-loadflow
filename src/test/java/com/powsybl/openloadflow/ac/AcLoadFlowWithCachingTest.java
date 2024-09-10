@@ -102,10 +102,11 @@ class AcLoadFlowWithCachingTest {
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(-130.0, g1.getTerminal()); // 100 -> 134.285
-        assertActivePowerEquals(-230.0, g2.getTerminal()); // 200 -> 234.285
-        assertActivePowerEquals(-120.0, g3.getTerminal()); // 90 -> 124.285
-        assertActivePowerEquals(-120.0, g4.getTerminal()); // 90 -> 124.285
+        // mismatch 120 -> + 30 each
+        assertActivePowerEquals(-130.0, g1.getTerminal()); // 100 -> 130
+        assertActivePowerEquals(-230.0, g2.getTerminal()); // 200 -> 230
+        assertActivePowerEquals(-120.0, g3.getTerminal()); // 90 -> 120
+        assertActivePowerEquals(-120.0, g4.getTerminal()); // 90 -> 120
 
         g1.setTargetP(120); // 100 -> 120
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
@@ -113,10 +114,15 @@ class AcLoadFlowWithCachingTest {
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(2, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(-167.5, g1.getTerminal());
-        assertActivePowerEquals(-217.5, g2.getTerminal());
-        assertActivePowerEquals(-107.5, g3.getTerminal());
-        assertActivePowerEquals(-107.5, g4.getTerminal());
+        // mismatch 100 -> + 25 each
+        System.out.println(g1.getTerminal().getP());
+        System.out.println(g2.getTerminal().getP());
+        System.out.println(g3.getTerminal().getP());
+        System.out.println(g4.getTerminal().getP());
+        assertActivePowerEquals(-145.0, g1.getTerminal()); // 120 -> 125
+        assertActivePowerEquals(-225.0, g2.getTerminal()); // 220 -> 225
+        assertActivePowerEquals(-115.0, g3.getTerminal()); // 90 -> 115
+        assertActivePowerEquals(-115.0, g4.getTerminal()); // 90 -> 115
     }
 
     @Test

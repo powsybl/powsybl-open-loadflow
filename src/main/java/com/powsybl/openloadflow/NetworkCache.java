@@ -178,7 +178,7 @@ public enum NetworkCache {
                 } else if (attribute.equals("targetP")) {
                     double valueShift = (double) newValue - (double) oldValue;
                     LfGenerator lfGenerator = lfBus.getNetwork().getGeneratorById(generator.getId());
-                    double newTargetP = lfGenerator.getTargetP() + valueShift / PerUnit.SB;
+                    double newTargetP = lfGenerator.getInitialTargetP() + valueShift / PerUnit.SB;
                     lfGenerator.setTargetP(newTargetP);
                     lfGenerator.setInitialTargetP(newTargetP);
                     lfGenerator.reApplyActivePowerControlChecks(context.getParameters().getNetworkParameters(), null);
