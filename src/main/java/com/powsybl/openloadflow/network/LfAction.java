@@ -8,7 +8,11 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.action.*;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Load;
+import com.powsybl.iidm.network.LoadType;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Terminal;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
@@ -31,7 +35,7 @@ public final class LfAction {
     private record TapPositionChange(LfBranch branch, int value, boolean isRelative) {
     }
 
-    private record LoadShift(Load load, LfLoad lfLoad, PowerShift powerShift) {
+    private record LoadShift(String loadId, boolean loadIsFictitious, LfLoad lfLoad, PowerShift powerShift) {
     }
 
     private record GeneratorChange(LfGenerator generator, double activePowerValue, boolean isRelative) {
@@ -149,7 +153,7 @@ public final class LfAction {
             PowerShift powerShift = new PowerShift(activePowerShift / PerUnit.SB, activePowerShift / PerUnit.SB, reactivePowerShift / PerUnit.SB);
             LfLoad lfLoad = lfNetwork.getLoadById(load.getId());
             if (lfLoad != null) {
-                return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(load, lfLoad, powerShift), null, null, null));
+                return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(load.getId(), load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType()), lfLoad, powerShift), null, null, null));
             }
         }
         return Optional.empty(); // could be in another component or in contingency.
@@ -316,18 +320,19 @@ public final class LfAction {
     }
 
     private void applyLoadShift() {
-        Load load = loadShift.load();
+        String loadId = loadShift.loadId();
+        boolean loadIsFictitious = loadShift.loadIsFictitious();
         LfLoad lfLoad = loadShift.lfLoad();
-        if (!lfLoad.isOriginalLoadDisabled(load.getId())) {
+        if (!lfLoad.isOriginalLoadDisabled(loadId)) {
             PowerShift shift = loadShift.powerShift();
             lfLoad.setTargetP(lfLoad.getTargetP() + shift.getActive());
             lfLoad.setTargetQ(lfLoad.getTargetQ() + shift.getReactive());
-            lfLoad.setAbsVariableTargetP(lfLoad.getAbsVariableTargetP() + getUpdatedLoadAbsVariableTargetP(load, shift));
+            lfLoad.setAbsVariableTargetP(lfLoad.getAbsVariableTargetP() + getUpdatedLoadAbsVariableTargetP(loadIsFictitious, shift));
         }
     }
 
-    private static double getUpdatedLoadAbsVariableTargetP(Load load, PowerShift shift) {
-        return load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType()) ? 0.0 : Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive());
+    private static double getUpdatedLoadAbsVariableTargetP(boolean loadIsFictitious, PowerShift shift) {
+        return loadIsFictitious ? 0.0 : Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive());
     }
 
     private void applyGeneratorChange(LfNetworkParameters networkParameters) {
