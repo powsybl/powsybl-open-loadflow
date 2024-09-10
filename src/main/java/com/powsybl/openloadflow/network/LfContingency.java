@@ -149,7 +149,7 @@ public class LfContingency {
             PowerShift shift = lostLoad.getPowerShift();
             load.setTargetP(load.getTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive()));
             load.setTargetQ(load.getTargetQ() - shift.getReactive());
-            load.setAbsVariableTargetP(load.getAbsVariableTargetP() - getUpdatedLoadAbsVariableTargetP(load, shift.getVariableActive()));
+            load.setAbsVariableTargetP(load.getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
             lostLoad.getOriginalIds().forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
         }
         Set<LfBus> generatorBuses = new HashSet<>();
@@ -199,10 +199,6 @@ public class LfContingency {
             }
         }
         return initialP0 + (load.getTargetP() - load.getInitialTargetP()) * factor;
-    }
-
-    private static double getUpdatedLoadAbsVariableTargetP(LfLoad load, double initialVariableActivePower) {
-        return load.isFictitious() ? 0.0 : Math.abs(initialVariableActivePower);
     }
 
     public Set<LfBus> getLoadAndGeneratorBuses() {
