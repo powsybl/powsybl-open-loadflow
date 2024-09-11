@@ -84,7 +84,7 @@ public class WoodburyEngine {
                 rhs.set(contingencyElement.getLocalIndex(), 0, states.get(p1.getPh1Var().getRow(), columnState)
                         - states.get(p1.getPh2Var().getRow(), columnState)
                 );
-                // loop on contingencies to fill up-left part of the small matrix
+                // loop on contingencies to fill up-left part of the matrix
                 for (ComputedContingencyElement contingencyElement2 : contingencyElements) {
                     double value = 0d;
                     if (contingencyElement.equals(contingencyElement2)) {
@@ -99,7 +99,7 @@ public class WoodburyEngine {
                 for (ComputedActionElement actionElement : actionElements) {
                     double value = -(actionsStates.get(p1.getPh1Var().getRow(), actionElement.getComputedElementIndex())
                             - actionsStates.get(p1.getPh2Var().getRow(), actionElement.getComputedElementIndex()));
-                    matrix.set(contingencyElement.getLocalIndex(), actionElement.getLocalIndex() + contingencyElements.size(), value);
+                    matrix.set(contingencyElement.getLocalIndex(), contingencyElements.size() + actionElement.getLocalIndex(), value);
                 }
             }
 
@@ -120,32 +120,29 @@ public class WoodburyEngine {
                 for (ComputedContingencyElement contingencyElement : contingencyElements) {
                     double value = -(contingenciesStates.get(p1.getPh1Var().getRow(), contingencyElement.getComputedElementIndex())
                             - contingenciesStates.get(p1.getPh2Var().getRow(), contingencyElement.getComputedElementIndex()));
-                    matrix.set(actionElement.getLocalIndex() + contingencyElements.size(), contingencyElement.getLocalIndex(), value);
+                    matrix.set(contingencyElements.size() + actionElement.getLocalIndex(), contingencyElement.getLocalIndex(), value);
                 }
 
                 // loop on actions to fill down-right part of the matrix
                 for (ComputedActionElement actionElement2 : actionElements) {
                     double value = 0d;
                     if (actionElement.equals(actionElement2)) {
-//                        int oldTapPosition = lfBranch.getPiModel().getTapPosition();
-//                        LfAction.TapPositionChange tapPositionChange = actionElement.getAction().getTapPositionChange();
-//                        int newTapPosition = tapPositionChange.isRelative() ? oldTapPosition + tapPositionChange.value() : tapPositionChange.value();
                         tapPositionChange.branch().getPiModel().setTapPosition(newTapPosition);
                         double powerAfterModif = calculatePower(lfBranch);
                         tapPositionChange.branch().getPiModel().setTapPosition(oldTapPosition);
                         double powerBeforeModif = calculatePower(lfBranch);
-                        value = 1d / (powerBeforeModif - powerAfterModif); // TODO : update 0 for the new value of Y...
+                        value = 1d / (powerBeforeModif - powerAfterModif);
                     }
                     value = value - (actionsStates.get(p1.getPh1Var().getRow(), actionElement2.getComputedElementIndex())
                             - actionsStates.get(p1.getPh2Var().getRow(), actionElement2.getComputedElementIndex()));
-                    matrix.set(actionElement.getLocalIndex() + contingencyElements.size(), actionElement2.getLocalIndex() + contingencyElements.size(), value);
+                    matrix.set(contingencyElements.size() + actionElement.getLocalIndex(), contingencyElements.size() + actionElement2.getLocalIndex(), value);
                 }
             }
             try (LUDecomposition lu = matrix.decomposeLU()) {
                 lu.solve(rhs); // rhs now contains state matrix
             }
             contingencyElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(element.getLocalIndex(), 0)));
-            actionElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(element.getLocalIndex() + contingencyElements.size(), 0)));
+            actionElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(contingencyElements.size() + element.getLocalIndex(), 0)));
         }
     }
 
@@ -172,8 +169,8 @@ public class WoodburyEngine {
     }
 
     /**
-     * Calculate post-contingency states values using pre-contingency states values and some flow transfer factors (alphas).
-     * @return an array of post-contingency voltage angle states. // TODO : update
+     * Calculate post-contingency and post-actions states values, using pre-contingency states values and some flow transfer factors (alphas).
+     * @return an array of post-contingency and post-actions voltage angle states.
      */
     public double[] run(double[] preContingencyStates) {
         Objects.requireNonNull(preContingencyStates);
