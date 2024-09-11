@@ -143,7 +143,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     /**
      * Calculate post contingency states for a contingency breaking connectivity.
      */
-    // TODO : add case with actions
     private double[] calculatePostContingencyStatesForAContingencyBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
                                                                                       Map<String, ComputedContingencyElement> contingencyElementByBranch, double[] flowStates, DenseMatrix contingenciesStates,
                                                                                       ReportNode reportNode, List<LfAction> lfActions, DenseMatrix actionsStates, List<ComputedActionElement> actionElements) {
@@ -185,7 +184,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         DenseMatrix rhs = new DenseMatrix(equationCount, actionElements.size());
         fillRhsAction(lfNetwork, equationSystem, actionElements, rhs);
-//        rhs.set(2, 0, -1);
         return rhs;
     }
 
@@ -357,7 +355,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             logPostContingencyEnd(lfNetwork, lfContingency, stopwatch);
 
                             postContingencyResults.add(postContingencyResult);
-                            networkState.restore(); // TODO : check if I should save another time the state of the network here, or not
+                            networkState.restore();
 
                             List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId()); // TODO : check if the ID is the same here
                             for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
@@ -397,8 +395,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             }
                         })
                 );
-
-            // TODO : add actions handling for contingencies breaking connectivity
+            
             LOGGER.info("Processing post contingency results for contingencies breaking connectivity");
             connectivityBreakAnalysisResults.connectivityAnalysisResults()
                     .forEach(connectivityAnalysisResult -> {
