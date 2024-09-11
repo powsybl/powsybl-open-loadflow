@@ -67,10 +67,5 @@ public class ParticipatingElement {
             return null;
         }
     }
-
-    @Override
-    public String toString() {
-        return "ParticipatingElement(element=" + element + ", factor=" + factor + ")";
-    }
 }
 
