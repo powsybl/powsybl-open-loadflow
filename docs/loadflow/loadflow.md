@@ -99,28 +99,41 @@ Where $s$ is the slope of the static var compensator.
 
 #### LCC converters
 
-TODO
+LCC converters can be assimilated to loads in the loadflow. Indeed, on one side of the line is the rectifier station, and on the other side of the line is the inverter station. 
+The active power flow from the rectifier station to the inverter station is fixed and equals to a target value $P$ (AC side). The active power flow at each station at AC side is given by:
+  - $P_{rectifier}= P$
+  - $P_{inverter}= (1 - loss_{inverter}) * ((1 - loss_{rectifier}) * (P - P_{LineLoss}))$
+
+Power flows are in load convention, the power at the rectifer side is positive and the power at the inverter side is negative. The losses are described in the paragraph below.
+
+The reactive power flow on each side of the line (AC side) is determined by the power factor of the converter (the power factor is the ratio between active power $P$ and apparent power $S$). For each converter, its target reactive power is given by:
+  - $Q=\mid P*\tan(\cos(powerfactor))\mid$
 
 #### VSC converters
 
 VSC converters are self-commutated converters that can be assimilated to generators in the loadflow. There can be two main modes to control active power flow through the line:
-- In **Active Power setpoint** mode, on one side of the line is the rectifier station, and on the other side of the line is the inverter station. The active power flows
-from the rectifier station to the inverter station is fixed and equal to a target value $P$ (AC side). The active power flow at each station at AC side is given by:
+- In **Active Power setpoint** mode, as for LCC converters, on one side of the line is the rectifier station, and on the other side of the line is the inverter station. The active power flow
+from the rectifier station to the inverter station is fixed and equals to a target value $P$ (AC side). The active power flow at each station at AC side is given by the formula below (losses are described in the next paragraph):
   - $P_{rectifier}= P$
   - $P_{inverter}= (1 - loss_{inverter}) * ((1 - loss_{rectifier}) * (P - P_{LineLoss}))$
 
 - In **AC emulation** mode, the active power flow between both stations is given by: $P = P_0 + k~(\theta_1 - \theta_2)$ 
 with $\theta_1$ and $\theta_2$ being the voltage angles at the bus connection for each converter station, and $P_0$ and $k$ being fixed parameters for the HVDC line. 
 If $P$ is positive, the converter station 1 is controller, else it is converter station 2. For example, if station 1 is controller, the
-active power flow at each station is given by:
+active power flow at each station is given by the formula below (losses are described in the next paragraph):
   - $P_{controller} = P_0 + k~(\theta_1 - \theta_2)$
   - $P_{noncontroller} = (1 - loss_{noncontroller}) * ((1 - loss_{controller}) * (P_0 + k~(\theta_1 - \theta_2) - P_{LineLoss}))$
 
-In both control modes, the power flows are impacted by losses of the converter stations. In addition, Joule effect (due to resistance in cable) implies line loss in the HVDC line.
+In both cases the target value $P$ (either in active power setpoint mode or in AC emulation mode) is bounded by a maximum active power $P_{max}$ that can possibly be different from one direction to another.
+
+The reactive power flow on each side of the line depends on the enabling of voltage regulation of the converters. If the voltage regulation is enabled, then the VSC converter acts as a generator regulating the voltage. 
+Otherwise, reactive power of the converter at AC side is given by its reactive power setpoint.
+
+#### Computing loss in the HVDC line
+
+In both cases of LCC and VSC, the power flows are impacted by losses of the converter stations. In addition, Joule effect (due to resistance in cable) implies line loss in the HVDC line.
 This line loss is calculated with the nominal voltage: $P_{LineLoss} = Ri^2$ with $i = P_1 / V$ with $R$ being the cable resistance, $P_1$ being the active power at the output of the controller
 station and $V$ being the HVDC nominal voltage (equals 1 per unit).
-
-In addition, in both cases the target value $P$ (either in active power setpoint mode or in AC emulation mode) is bounded by a maximum active power $P_{max}$ that can possibly be different from one direction to another.
 
 ## DC flows computing
 
