@@ -94,7 +94,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     public void reApplyActivePowerControlChecks(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         participating = initialParticipating;
         var generator = getGenerator();
-        if (!checkActivePowerControl(generator.getId(), targetP, generator.getMaxP(), minTargetP, maxTargetP,
+        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMaxP(), minTargetP, maxTargetP,
                 parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }

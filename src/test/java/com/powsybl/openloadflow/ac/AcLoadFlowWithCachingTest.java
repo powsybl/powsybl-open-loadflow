@@ -115,14 +115,21 @@ class AcLoadFlowWithCachingTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(2, result.getComponentResults().get(0).getIterationCount());
         // mismatch 100 -> + 25 each
-        System.out.println(g1.getTerminal().getP());
-        System.out.println(g2.getTerminal().getP());
-        System.out.println(g3.getTerminal().getP());
-        System.out.println(g4.getTerminal().getP());
         assertActivePowerEquals(-145.0, g1.getTerminal()); // 120 -> 125
         assertActivePowerEquals(-225.0, g2.getTerminal()); // 220 -> 225
         assertActivePowerEquals(-115.0, g3.getTerminal()); // 90 -> 115
         assertActivePowerEquals(-115.0, g4.getTerminal()); // 90 -> 115
+
+        // check that if target_p > map_p the generator is discarded from active power control
+        g1.setTargetP(310);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(2, result.getComponentResults().get(0).getIterationCount());
+        // mismatch 90 -> + 60 each
+        assertActivePowerEquals(-310.0, g1.getTerminal()); // unchanged
+        assertActivePowerEquals(-170.0, g2.getTerminal()); // 200 -> 170
+        assertActivePowerEquals(-60.0, g3.getTerminal()); // 90 -> 60
+        assertActivePowerEquals(-60.0, g4.getTerminal()); // 90 -> 60
     }
 
     @Test
