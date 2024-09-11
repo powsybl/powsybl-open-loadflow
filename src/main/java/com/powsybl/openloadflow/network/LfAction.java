@@ -13,7 +13,6 @@ import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfShuntImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -335,11 +334,7 @@ public final class LfAction {
             double newTargetP = generatorChange.isRelative() ? generator.getTargetP() + generatorChange.activePowerValue() : generatorChange.activePowerValue();
             generator.setTargetP(newTargetP);
             generator.setInitialTargetP(newTargetP);
-            // FIXME should be use generator.reApplyActivePowerControlChecks() instead ?
-            if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMaxP(), generator.getMinTargetP(), generator.getMaxTargetP(),
-                    networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
-                generator.setParticipating(false);
-            }
+            generator.reApplyActivePowerControlChecks(networkParameters, null);
         }
     }
 

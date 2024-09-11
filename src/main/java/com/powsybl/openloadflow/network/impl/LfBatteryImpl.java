@@ -139,7 +139,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     public void reApplyActivePowerControlChecks(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         participating = initialParticipating;
         var battery = getBattery();
-        if (!checkActivePowerControl(battery.getId(), battery.getTargetP(), battery.getMaxP(), minTargetP, maxTargetP,
+        if (!checkActivePowerControl(battery.getId(), targetP * PerUnit.SB, battery.getMaxP(), minTargetP, maxTargetP,
                 parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
             participating = false;
         }
