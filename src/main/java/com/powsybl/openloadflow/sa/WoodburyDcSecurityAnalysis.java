@@ -31,10 +31,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.sensi.ComputedActionElement;
-import com.powsybl.openloadflow.sensi.ComputedContingencyElement;
-import com.powsybl.openloadflow.sensi.ConnectivityBreakAnalysis;
-import com.powsybl.openloadflow.sensi.WoodburyEngine;
+import com.powsybl.openloadflow.sensi.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.LimitViolationsResult;
@@ -356,7 +353,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // compute states with +1 -1 to model the actions in Woodbury engine
             Map<String, ComputedActionElement> computedActionElements = lfActionById.values().stream()
-                    .map(lfAction -> new ComputedActionElement(lfAction, lfNetwork, context.getEquationSystem()))
+                    .map(lfAction -> new ComputedActionElement(lfAction, context.getEquationSystem()))
                     .filter(computedActionElement -> computedActionElement.getLfBranchEquation() != null)
                     .collect(Collectors.toMap(
                             computedActionElement -> computedActionElement.getAction().getTapPositionChange().branch().getId(),
@@ -364,7 +361,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             (existing, replacement) -> existing,
                             LinkedHashMap::new
                     ));
-            ComputedActionElement.setComputedActionIndexes(computedActionElements.values());
+            ComputedElement.setComputedElementIndexes(computedActionElements.values());
             DenseMatrix actionsStates = calculateActionsStates(context, computedActionElements.values());
 
             // save base state for later restoration after each contingency

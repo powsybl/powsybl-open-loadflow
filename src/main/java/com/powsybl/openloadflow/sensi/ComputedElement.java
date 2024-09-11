@@ -7,6 +7,11 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
+import com.powsybl.openloadflow.network.LfBranch;
+
+import java.util.Collection;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
@@ -14,7 +19,14 @@ package com.powsybl.openloadflow.sensi;
 public class ComputedElement {
     private int computedElementIndex = -1; // index of the element in the rhs for +1-1
     private int localIndex = -1; // local index of the element : index of the element in the matrix used in the setAlphas method
-    private double alphaForWoodburyState = Double.NaN;
+    private double alphaForWoodburyComputation = Double.NaN;
+    private final LfBranch lfBranch;
+    private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
+
+    public ComputedElement(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm branchEquation) {
+        this.lfBranch = lfBranch;
+        this.branchEquation = branchEquation;
+    }
 
     public int getComputedElementIndex() {
         return computedElementIndex;
@@ -32,11 +44,33 @@ public class ComputedElement {
         this.localIndex = index;
     }
 
-    public double getAlphaForWoodburyState() {
-        return alphaForWoodburyState;
+    public double getAlphaForWoodburyComputation() {
+        return alphaForWoodburyComputation;
     }
 
-    public void setAlphaForWoodburyState(double alphaForPostContingencyStates) {
-        this.alphaForWoodburyState = alphaForPostContingencyStates;
+    public void setAlphaForWoodburyComputation(double alphaForPostContingencyStates) {
+        this.alphaForWoodburyComputation = alphaForPostContingencyStates;
+    }
+
+    public LfBranch getLfBranch() {
+        return lfBranch;
+    }
+
+    public ClosedBranchSide1DcFlowEquationTerm getLfBranchEquation() {
+        return branchEquation;
+    }
+
+    public static void setComputedElementIndexes(Collection<? extends ComputedElement> elements) {
+        int index = 0;
+        for (ComputedElement element : elements) {
+            element.setComputedElementIndex(index++);
+        }
+    }
+
+    public static void setLocalIndexes(Collection<? extends ComputedElement> elements) {
+        int index = 0;
+        for (ComputedElement element : elements) {
+            element.setLocalIndex(index++);
+        }
     }
 }

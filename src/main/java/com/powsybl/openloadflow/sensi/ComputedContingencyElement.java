@@ -27,39 +27,16 @@ import java.util.Collection;
 public final class ComputedContingencyElement extends ComputedElement {
 
     private final ContingencyElement element;
-    private final LfBranch lfBranch;
-    private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
 
+    // TODO : refactor this
     public ComputedContingencyElement(final ContingencyElement element, LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        super(lfNetwork.getBranchById(element.getId()),
+                equationSystem.getEquationTerm(ElementType.BRANCH, lfNetwork.getBranchById(element.getId()).getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
         this.element = element;
-        lfBranch = lfNetwork.getBranchById(element.getId());
-        branchEquation = equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
     }
 
     public ContingencyElement getElement() {
         return element;
-    }
-
-    public LfBranch getLfBranch() {
-        return lfBranch;
-    }
-
-    public ClosedBranchSide1DcFlowEquationTerm getLfBranchEquation() {
-        return branchEquation;
-    }
-
-    public static void setComputedContingencyIndexes(Collection<ComputedContingencyElement> elements) {
-        int index = 0;
-        for (ComputedElement element : elements) {
-            element.setComputedElementIndex(index++);
-        }
-    }
-
-    public static void setLocalIndexes(Collection<ComputedContingencyElement> elements) {
-        int index = 0;
-        for (ComputedContingencyElement element : elements) {
-            element.setLocalIndex(index++);
-        }
     }
 
     public static void applyToConnectivity(LfNetwork lfNetwork, GraphConnectivity<LfBus, LfBranch> connectivity, Collection<ComputedContingencyElement> breakingConnectivityElements) {

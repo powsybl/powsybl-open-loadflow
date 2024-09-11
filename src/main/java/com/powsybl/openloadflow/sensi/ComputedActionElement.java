@@ -13,46 +13,18 @@ import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfAction;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
-
-import java.util.Collection;
 
 public final class ComputedActionElement extends ComputedElement {
 
     private final LfAction action;
-    private final LfBranch lfBranch;
-    private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
 
-    public ComputedActionElement(final LfAction action, LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+    // TODO : refactor this
+    public ComputedActionElement(final LfAction action, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        super(action.getTapPositionChange().branch(), equationSystem.getEquationTerm(ElementType.BRANCH, action.getTapPositionChange().branch().getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
         this.action = action;
-        lfBranch = action.getTapPositionChange().branch();
-        branchEquation = equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
     }
 
     public LfAction getAction() {
         return action;
-    }
-
-    public LfBranch getLfBranch() {
-        return lfBranch;
-    }
-
-    public ClosedBranchSide1DcFlowEquationTerm getLfBranchEquation() {
-        return branchEquation;
-    }
-
-    public static void setComputedActionIndexes(Collection<ComputedActionElement> elements) {
-        int index = 0;
-        for (ComputedElement element : elements) {
-            element.setComputedElementIndex(index++);
-        }
-    }
-
-    public static void setLocalIndexes(Collection<ComputedActionElement> elements) {
-        int index = 0;
-        for (ComputedActionElement element : elements) {
-            element.setLocalIndex(index++);
-        }
     }
 }

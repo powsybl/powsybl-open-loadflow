@@ -69,7 +69,7 @@ public class WoodburyEngine {
             double a = 1d / calculatePower(lfBranch) - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
                     - contingenciesStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState);
-            element.setAlphaForWoodburyState(b / a);
+            element.setAlphaForWoodburyComputation(b / a);
         } else {
             // set local indexes of computed elements to use them in small matrix computation
             ComputedContingencyElement.setLocalIndexes(contingencyElements);
@@ -144,8 +144,8 @@ public class WoodburyEngine {
             try (LUDecomposition lu = matrix.decomposeLU()) {
                 lu.solve(rhs); // rhs now contains state matrix
             }
-            contingencyElements.forEach(element -> element.setAlphaForWoodburyState(rhs.get(element.getLocalIndex(), 0)));
-            actionElements.forEach(element -> element.setAlphaForWoodburyState(rhs.get(element.getLocalIndex() + contingencyElements.size(), 0)));
+            contingencyElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(element.getLocalIndex(), 0)));
+            actionElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(element.getLocalIndex() + contingencyElements.size(), 0)));
         }
     }
 
@@ -162,7 +162,7 @@ public class WoodburyEngine {
             for (int rowIndex = 0; rowIndex < preContingencyStates.getRowCount(); rowIndex++) {
                 double postContingencyValue = preContingencyStates.get(rowIndex, columnIndex);
                 for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                    postContingencyValue += contingencyElement.getAlphaForWoodburyState()
+                    postContingencyValue += contingencyElement.getAlphaForWoodburyComputation()
                             * contingenciesStates.get(rowIndex, contingencyElement.getComputedElementIndex());
                 }
                 postContingencyStates.set(rowIndex, columnIndex, postContingencyValue);
@@ -182,11 +182,11 @@ public class WoodburyEngine {
         for (int rowIndex = 0; rowIndex < preContingencyStates.length; rowIndex++) {
             double postContingencyValue = preContingencyStates[rowIndex];
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                postContingencyValue += contingencyElement.getAlphaForWoodburyState()
+                postContingencyValue += contingencyElement.getAlphaForWoodburyComputation()
                         * contingenciesStates.get(rowIndex, contingencyElement.getComputedElementIndex());
             }
             for (ComputedActionElement actionElement : actionElements) {
-                postContingencyValue += actionElement.getAlphaForWoodburyState()
+                postContingencyValue += actionElement.getAlphaForWoodburyComputation()
                         * actionsStates.get(rowIndex, actionElement.getComputedElementIndex());
             }
             postContingencyStates[rowIndex] = postContingencyValue;

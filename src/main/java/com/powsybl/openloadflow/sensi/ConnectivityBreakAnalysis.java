@@ -228,7 +228,7 @@ public final class ConnectivityBreakAnalysis {
                                 (existing, replacement) -> existing,
                                 LinkedHashMap::new
                         ));
-        ComputedContingencyElement.setComputedContingencyIndexes(contingencyElementByBranch.values());
+        ComputedElement.setComputedElementIndexes(contingencyElementByBranch.values());
         return contingencyElementByBranch;
     }
 
