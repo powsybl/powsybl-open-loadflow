@@ -124,4 +124,10 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
             station.getTerminal().setP(-getTargetP() * PerUnit.SB);
         }
     }
+
+    @Override
+    public int getReferencePriority() {
+        // never selected
+        return -1;
+    }
 }
