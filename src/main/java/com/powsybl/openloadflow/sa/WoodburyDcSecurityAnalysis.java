@@ -142,8 +142,12 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
             NetworkState networkState = NetworkState.save(lfNetwork);
             contingency.toLfContingency(lfNetwork, false)
-                    .ifPresent(lfContingency -> lfContingency.apply(lfParameters.getBalanceType()));
-            newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode, new ArrayList<>());
+                    .ifPresent(lfContingency -> {
+                        lfContingency.apply(lfParameters.getBalanceType());
+//                        LfAction.apply(lfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters());
+                    });
+
+            newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode, lfActions);
             postContingencyStates = engine.run(newFlowStates);
             networkState.restore();
         }
@@ -392,32 +396,34 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             postContingencyResults.add(postContingencyResult);
                             networkState.restore();
 
-                            List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId()); // TODO : check if the ID is the same here
-                            for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-                                ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
-                                lfNetwork.setReportNode(osSimReportNode);
+                            List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId());
+                            if (operatorStrategiesForThisContingency != null) {// TODO : check if the ID is the same here
+                                for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
+                                    ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
+                                    lfNetwork.setReportNode(osSimReportNode);
 
-                                List<String> actionIds = checkCondition(operatorStrategy, postContingencyResult.getLimitViolationsResult());
-                                List<LfAction> operatorStrategyLfActions = actionIds.stream()
-                                        .map(lfActionById::get)
-                                        .filter(Objects::nonNull)
-                                        .toList();
+                                    List<String> actionIds = checkCondition(operatorStrategy, postContingencyResult.getLimitViolationsResult());
+                                    List<LfAction> operatorStrategyLfActions = actionIds.stream()
+                                            .map(lfActionById::get)
+                                            .filter(Objects::nonNull)
+                                            .toList();
 
-                                LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
-                                        operatorStrategy.getContingencyContext().getContingencyId(), network);
+                                    LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
+                                            operatorStrategy.getContingencyContext().getContingencyId(), network);
 
-                                double[] postContingencyAndActionsStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), preContingencyStates, propagatedContingency,
-                                        connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
-                                        operatorStrategyLfActions, computedActionElements, actionsStates, reportNode);
-                                OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResult(operatorStrategy, context, securityAnalysisParameters,
-                                        operatorStrategyLfActions, propagatedContingency, postContingencyAndActionsStates, preContingencyLimitViolationManager, preContingencyNetworkResult,
-                                        limitReductions, createResultExtension);
+                                    double[] postContingencyAndActionsStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), preContingencyStates, propagatedContingency,
+                                            connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
+                                            operatorStrategyLfActions, computedActionElements, actionsStates, reportNode);
+                                    OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResult(operatorStrategy, context, securityAnalysisParameters,
+                                            operatorStrategyLfActions, propagatedContingency, postContingencyAndActionsStates, preContingencyLimitViolationManager, preContingencyNetworkResult,
+                                            limitReductions, createResultExtension);
 
-                                LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
-                                        operatorStrategy.getContingencyContext().getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                                    LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
+                                            operatorStrategy.getContingencyContext().getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-                                operatorStrategyResults.add(operatorStrategyResult);
-                                networkState.restore();
+                                    operatorStrategyResults.add(operatorStrategyResult);
+                                    networkState.restore();
+                                }
                             }
                         })
                 );
@@ -450,6 +456,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                 postContingencyResults.add(postContingencyResult);
                                 networkState.restore();
 
+                                // TODO : only if operator strategies is not null...
                                 List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId()); // TODO : check if the ID is the same here
                                 for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
                                     ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());

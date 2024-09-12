@@ -129,7 +129,7 @@ public final class MyNetworkFactory {
                 .setB(0.0)
                 .endStep()
                 .beginStep()
-                .setAlpha(0.1)
+                .setAlpha(0.0)
                 .setRho(1.0)
                 .setR(0.0)
                 .setX(100)

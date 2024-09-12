@@ -40,6 +40,7 @@ public class WoodburyEngine {
         this.creationParameters = Objects.requireNonNull(creationParameters);
         this.contingencyElements = Objects.requireNonNull(contingencyElements);
         this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
+        this.actionElements = List.of();
     }
 
     public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
@@ -69,6 +70,26 @@ public class WoodburyEngine {
             double a = 1d / calculatePower(lfBranch) - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
                     - contingenciesStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState);
+            element.setAlphaForWoodburyComputation(b / a);
+        } else if (contingencyElements.isEmpty() && actionElements.size() == 1) {
+            ComputedActionElement element = actionElements.iterator().next();
+            LfBranch lfBranch = element.getLfBranch();
+            ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
+
+            // TODO : remove this after refactoring
+            int oldTapPosition = lfBranch.getPiModel().getTapPosition();
+            LfAction.TapPositionChange tapPositionChange = element.getAction().getTapPositionChange();
+            int newTapPosition = tapPositionChange.isRelative() ? oldTapPosition + tapPositionChange.value() : tapPositionChange.value();
+            tapPositionChange.branch().getPiModel().setTapPosition(newTapPosition);
+            double powerAfterModif = calculatePower(lfBranch);
+            double newAlpha = lfBranch.getPiModel().getA1();
+            tapPositionChange.branch().getPiModel().setTapPosition(oldTapPosition);
+            double powerBeforeModif = calculatePower(lfBranch);
+            double value = 1d / (powerBeforeModif - powerAfterModif);
+
+            double a = value - (actionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
+                    - actionsStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
+            double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
             element.setAlphaForWoodburyComputation(b / a);
         } else {
             // set local indexes of computed elements to use them in small matrix computation
