@@ -141,7 +141,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .setShuntCompensatorVoltageControlOn(isShuntCompensatorVoltageControlOn(lfParameters))
                 .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation())
-                .setAreaInterchangeControlOn(lfParametersExt.isAreaInterchangeControl());
+                .setAreaInterchangeControl(lfParametersExt.isAreaInterchangeControl());
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 

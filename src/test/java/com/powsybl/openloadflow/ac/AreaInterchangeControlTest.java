@@ -116,7 +116,7 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createOneAreaBase();
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
         CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("Failed to distribute interchange active power mismatch. Remaining mismatches: [a1: -20.00 MW]", thrown.getCause().getMessage());
+        assertEquals("Failed to distribute interchange active power mismatch. Remaining mismatches (with iterations): [a1: -20.00 MW (1 it.)]", thrown.getCause().getMessage());
     }
 
     @Test

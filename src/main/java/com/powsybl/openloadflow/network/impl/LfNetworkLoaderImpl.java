@@ -592,6 +592,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     .entrySet()
                     .stream()
                     .filter(e -> checkBoundariesComponent(e.getKey(), numCC, numSC))
+                    .filter(e -> {
+                        if (e.getKey().getInterchangeTarget().isEmpty()) {
+                            LOGGER.warn("Area {} does not have an interchange target. The area will not be considered for area interchange control", e.getKey().getId());
+                            return false;
+                        }
+                        return true;
+                    })
                     .forEach(e -> {
                         Area area = e.getKey();
                         Set<LfBus> lfBuses = e.getValue();
@@ -616,7 +623,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             } else {
                 continue;
             }
-            if (bus.getConnectedComponent() != null && bus.getSynchronousComponent() != null && (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC)) {
+            if (bus.getConnectedComponent() != null && (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC)) {
                 LOGGER.warn("Area {} does not have all its boundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", area.getId());
                 allBoundariesInSameComponent = false;
                 break;

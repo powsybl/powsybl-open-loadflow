@@ -8,7 +8,7 @@
             Slack bus: bx1_vl_0
          + Outer loop AreaInterchangeControl
             + Outer loop iteration 1
-               Area Interchange mismatches [a1: 10.00 MW, a2: -40.00 MW] distributed in 2 distribution iteration(s)
+               Distributed area interchange mismatches (with iterations) : [a1: 10.00 MW (1 it.), a2: -40.00 MW (1 it.)]
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop AreaInterchangeControl

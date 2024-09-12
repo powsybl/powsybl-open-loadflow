@@ -220,7 +220,7 @@ class AcLoadFlowReportTest {
     }
 
     @Test
-    void areaVoltageControlOuterloop() throws IOException {
+    void areaInterchangeControl() throws IOException {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("testReport", "Test Report")

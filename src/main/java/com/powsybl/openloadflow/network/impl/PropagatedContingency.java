@@ -208,7 +208,7 @@ public class PropagatedContingency {
                 case DANGLING_LINE:
                     DanglingLine dl = (DanglingLine) connectable;
                     // as we terminal is only on network side, we open both sides in LF network
-                    if (dl.isPaired() && !creationParameters.isAreaInterchangeControlOn()) {
+                    if (dl.isPaired() && !creationParameters.isAreaInterchangeControl()) {
                         addBranchToOpen(dl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     } else {
                         addBranchToOpen(dl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
