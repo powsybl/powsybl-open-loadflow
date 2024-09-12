@@ -23,7 +23,7 @@ public class LfTieLineBus extends AbstractLfBus {
 
     private final double nominalV;
 
-    public LfTieLineBus(LfNetwork network, TieLine tieLine, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    public LfTieLineBus(LfNetwork network, TieLine tieLine, LfNetworkParameters parameters) {
         super(network, Networks.getPropertyV(tieLine.getDanglingLine1()), Math.toRadians(Networks.getPropertyAngle(tieLine.getDanglingLine1())), false);
         this.tieLineRef = Ref.create(tieLine, parameters.isCacheEnabled());
         double nominalV1 = tieLine.getDanglingLine1().getTerminal().getVoltageLevel().getNominalV();

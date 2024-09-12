@@ -449,7 +449,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBus lfBus1 = getLfBus(danglingLine1.getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBus lfBus2 = getLfBus(danglingLine2.getTerminal(), lfNetwork, parameters.isBreakers());
                     if (parameters.isAreaInterchangeControl()) {
-                        LfTieLineBus lfTieLineBus = new LfTieLineBus(lfNetwork, tieLine, parameters, report);
+                        // If area interchange control is activated, a precise value of the tie-flows is needed
+                        // this is why are created a branch for each dangling line and a boundary bus
+                        LfTieLineBus lfTieLineBus = new LfTieLineBus(lfNetwork, tieLine, parameters);
                         lfNetwork.addBus(lfTieLineBus);
                         lfBuses.add(lfTieLineBus);
                         if (lfBus1 != null) {
@@ -621,41 +623,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
         return allBoundariesInSameComponent;
-    }
-
-    /**
-     * If we perform Area Interchange Control, we need all buses to have an Area or to be boundary buses
-     * A boundary bus is connected to one or multiple buses that are all in areas different from each other
-     * If a bus is not in any area, and is not a boundary bus, the area interchange control could not be performed and an exception will be thrown
-     * However, it is possible that the flow through this bus is not considered for the interchange flow of some of the areas it is connected to.
-     * In this case, the slack injection of this bus will be shared between those areas to ensure a correct balancing
-     */
-
-    private static void checkBusesWithoutArea(LfNetwork network) {
-        List<LfBus> busesWithoutArea = network.getBuses().stream()
-                .filter(lfBus -> lfBus.getArea().isEmpty())
-                .toList();
-
-        for (LfBus bus : busesWithoutArea) {
-            Set<LfArea> connectedAreas = new HashSet<>();
-            bus.getBranches().forEach(branch -> {
-                if (branch.getBus1() == null || branch.getBus2() == null) {
-                    throwUnHandledBus(bus);
-                }
-                List.of(branch.getBus1(), branch.getBus2()).forEach(connectedBus -> {
-                    if (connectedBus != bus) {
-                        Optional<LfArea> area = connectedBus.getArea();
-                        if (area.isEmpty() || !connectedAreas.add(area.get())) {
-                            throwUnHandledBus(bus);
-                        }
-                    }
-                });
-            });
-        }
-    }
-
-    private static void throwUnHandledBus(LfBus lfBus) {
-        throw new PowsyblException("Bus " + lfBus.getId() + " is not in any Area, and is not a boundary bus (connected to buses that are all in Areas that are different from each other). Area interchange control cannot be performed on this network");
     }
 
     private static void createTransformersVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext,
