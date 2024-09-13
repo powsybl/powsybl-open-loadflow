@@ -35,7 +35,7 @@ public final class LfAction {
     private record TapPositionChange(LfBranch branch, int value, boolean isRelative) {
     }
 
-    private record LoadShift(String loadId, boolean loadIsFictitious, LfLoad lfLoad, PowerShift powerShift) {
+    private record LoadShift(String loadId, LfLoad lfLoad, PowerShift powerShift) {
     }
 
     private record GeneratorChange(LfGenerator generator, double activePowerValue, boolean isRelative) {
@@ -148,15 +148,23 @@ public final class LfAction {
             if (reactivePowerValue.isPresent()) {
                 reactivePowerShift = action.isRelativeValue() ? reactivePowerValue.getAsDouble() : reactivePowerValue.getAsDouble() - load.getQ0();
             }
-            // In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
-            // of P0 that could be described in a LoadDetail extension.
-            PowerShift powerShift = new PowerShift(activePowerShift / PerUnit.SB, activePowerShift / PerUnit.SB, reactivePowerShift / PerUnit.SB);
             LfLoad lfLoad = lfNetwork.getLoadById(load.getId());
             if (lfLoad != null) {
-                return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(load.getId(), load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType()), lfLoad, powerShift), null, null, null));
+                PowerShift powerShift = getLoadPowerShift(load, activePowerShift, reactivePowerShift);
+                return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(load.getId(), lfLoad, powerShift), null, null, null));
             }
         }
         return Optional.empty(); // could be in another component or in contingency.
+    }
+
+    private static PowerShift getLoadPowerShift(Load load, double activePowerShift, double reactivePowerShift) {
+        // - In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
+        //   of P0 that could be described in a LoadDetail extension.
+        // - Fictitious loads have no variable active power shift
+        double variableActivePower = load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType()) ? 0.0 : activePowerShift;
+        return new PowerShift(activePowerShift / PerUnit.SB,
+                variableActivePower / PerUnit.SB,
+                reactivePowerShift / PerUnit.SB);
     }
 
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
@@ -321,18 +329,13 @@ public final class LfAction {
 
     private void applyLoadShift() {
         String loadId = loadShift.loadId();
-        boolean loadIsFictitious = loadShift.loadIsFictitious();
         LfLoad lfLoad = loadShift.lfLoad();
         if (!lfLoad.isOriginalLoadDisabled(loadId)) {
             PowerShift shift = loadShift.powerShift();
             lfLoad.setTargetP(lfLoad.getTargetP() + shift.getActive());
             lfLoad.setTargetQ(lfLoad.getTargetQ() + shift.getReactive());
-            lfLoad.setAbsVariableTargetP(lfLoad.getAbsVariableTargetP() + getUpdatedLoadAbsVariableTargetP(loadIsFictitious, shift));
+            lfLoad.setAbsVariableTargetP(lfLoad.getAbsVariableTargetP() + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
         }
-    }
-
-    private static double getUpdatedLoadAbsVariableTargetP(boolean loadIsFictitious, PowerShift shift) {
-        return loadIsFictitious ? 0.0 : Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive());
     }
 
     private void applyGeneratorChange(LfNetworkParameters networkParameters) {

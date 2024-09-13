@@ -3321,21 +3321,44 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     void testWithFictitiousLoad() {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         network.getLoad("l1").setFictitious(true); // single load on bus
-        network.getLoad("l4").setFictitious(true); // one load amongst many on the bus
+        network.getLoad("l4").setLoadType(LoadType.FICTITIOUS); // one load amongst many on the bus
 
-        List<Contingency> contingencies = List.of(new Contingency("l1", new LoadContingency("l1")),
+        List<Contingency> contingencies = List.of(
+                new Contingency("l1", new LoadContingency("l1")),
                 new Contingency("l4", new LoadContingency("l4")));
+
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.all(), Set.of("l14", "l24", "l34"), emptySet(), emptySet())
+        );
 
         LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(true)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
 
-        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
         assertEquals(2, result.getPostContingencyResults().size());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
+
+        // contingency 1
+        network.getLoad("l1").getTerminal().disconnect();
+        loadFlowRunner.run(network, parameters);
+        NetworkResult networkResultContingency1 = result.getPostContingencyResults().get(0).getNetworkResult();
+        assertEquals(network.getLine("l24").getTerminal1().getP(), networkResultContingency1.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), networkResultContingency1.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), networkResultContingency1.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        network.getLoad("l1").getTerminal().connect();
+
+        // contingency 2
+        network.getLoad("l4").getTerminal().disconnect();
+        loadFlowRunner.run(network, parameters);
+        NetworkResult networkResultContingency2 = result.getPostContingencyResults().get(1).getNetworkResult();
+        assertEquals(network.getLine("l24").getTerminal1().getP(), networkResultContingency2.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), networkResultContingency2.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), networkResultContingency2.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        network.getLoad("l4").getTerminal().connect();
     }
 }
