@@ -3324,6 +3324,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getLoad("l4").setLoadType(LoadType.FICTITIOUS); // one load amongst many on the bus
 
         List<Contingency> contingencies = List.of(
+                new Contingency("l5", new LoadContingency("l5")),
                 new Contingency("l1", new LoadContingency("l1")),
                 new Contingency("l4", new LoadContingency("l4")));
 
@@ -3339,23 +3340,33 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
-        assertEquals(2, result.getPostContingencyResults().size());
+        assertEquals(3, result.getPostContingencyResults().size());
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(2).getStatus());
 
-        // contingency 1
+        // contingency 0: normal load (not fictitious)
+        network.getLoad("l5").getTerminal().disconnect();
+        loadFlowRunner.run(network, parameters);
+        NetworkResult networkResultContingency0 = result.getPostContingencyResults().get(0).getNetworkResult();
+        assertEquals(network.getLine("l24").getTerminal1().getP(), networkResultContingency0.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), networkResultContingency0.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), networkResultContingency0.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        network.getLoad("l5").getTerminal().connect();
+
+        // contingency 1: only fictitious load on bus
         network.getLoad("l1").getTerminal().disconnect();
         loadFlowRunner.run(network, parameters);
-        NetworkResult networkResultContingency1 = result.getPostContingencyResults().get(0).getNetworkResult();
+        NetworkResult networkResultContingency1 = result.getPostContingencyResults().get(1).getNetworkResult();
         assertEquals(network.getLine("l24").getTerminal1().getP(), networkResultContingency1.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l14").getTerminal1().getP(), networkResultContingency1.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l34").getTerminal1().getP(), networkResultContingency1.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         network.getLoad("l1").getTerminal().connect();
 
-        // contingency 2
+        // contingency 2: only fictitious load amongst many on the bus
         network.getLoad("l4").getTerminal().disconnect();
         loadFlowRunner.run(network, parameters);
-        NetworkResult networkResultContingency2 = result.getPostContingencyResults().get(1).getNetworkResult();
+        NetworkResult networkResultContingency2 = result.getPostContingencyResults().get(2).getNetworkResult();
         assertEquals(network.getLine("l24").getTerminal1().getP(), networkResultContingency2.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l14").getTerminal1().getP(), networkResultContingency2.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l34").getTerminal1().getP(), networkResultContingency2.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
