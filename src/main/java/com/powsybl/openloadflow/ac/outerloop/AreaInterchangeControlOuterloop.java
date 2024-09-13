@@ -110,7 +110,8 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
 
         for (Map.Entry<String, Pair<Set<LfBus>, Double>> e : areas.entrySet()) {
             double areaActivePowerMismatch = e.getValue().getRight();
-            ActivePowerDistribution.Result result = activePowerDistribution.run(e.getValue().getLeft(), areaActivePowerMismatch);
+            LfGenerator referenceGenerator = getReferenceGenerator(e.getValue().getKey());
+            ActivePowerDistribution.Result result = activePowerDistribution.run(referenceGenerator, e.getValue().getLeft(), areaActivePowerMismatch);
             double remainingMismatch = result.remainingMismatch();
             double distributedActivePower = areaActivePowerMismatch - remainingMismatch;
             totalDistributedActivePower += distributedActivePower;
@@ -134,6 +135,15 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
             return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
         }
 
+    }
+
+    private static LfGenerator getReferenceGenerator(Set<LfBus> buses) {
+        return buses.stream()
+                .filter(LfBus::isReference)
+                .flatMap(lfBus -> lfBus.getGenerators().stream())
+                .filter(LfGenerator::isReference)
+                .findFirst()
+                .orElse(null);
     }
 
     private OuterLoopResult distributionFailureResult(AcOuterLoopContext context, String areaMismatchesString, boolean movedBuses, DistributedSlackContextData contextData, double totalDistributedActivePower) {
