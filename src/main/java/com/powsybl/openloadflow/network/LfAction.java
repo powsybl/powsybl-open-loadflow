@@ -10,12 +10,12 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.action.*;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Load;
-import com.powsybl.iidm.network.LoadType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
+import com.powsybl.openloadflow.network.impl.LfLoadImpl;
 import com.powsybl.openloadflow.network.impl.LfShuntImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -161,7 +161,7 @@ public final class LfAction {
         // - In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
         //   of P0 that could be described in a LoadDetail extension.
         // - Fictitious loads have no variable active power shift
-        double variableActivePower = load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType()) ? 0.0 : activePowerShift;
+        double variableActivePower = LfLoadImpl.isLoadFictitious(load) ? 0.0 : activePowerShift;
         return new PowerShift(activePowerShift / PerUnit.SB,
                 variableActivePower / PerUnit.SB,
                 reactivePowerShift / PerUnit.SB);

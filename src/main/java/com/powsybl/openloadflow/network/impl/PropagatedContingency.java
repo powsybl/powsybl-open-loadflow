@@ -87,7 +87,7 @@ public class PropagatedContingency {
 
     private static PowerShift getLoadPowerShift(Load load, boolean slackDistributionOnConformLoad) {
         double variableActivePower;
-        if (load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType())) {
+        if (LfLoadImpl.isLoadFictitious(load)) {
             variableActivePower = 0.0;
         } else if (slackDistributionOnConformLoad) {
             LoadDetail loadDetail = load.getExtension(LoadDetail.class);

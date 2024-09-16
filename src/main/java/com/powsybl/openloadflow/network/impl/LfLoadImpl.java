@@ -274,7 +274,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
     }
 
-    private static boolean isLoadFictitious(Load load) {
+    public static boolean isLoadFictitious(Load load) {
         return load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType());
     }
 

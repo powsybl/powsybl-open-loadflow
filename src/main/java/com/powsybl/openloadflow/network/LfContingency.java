@@ -189,16 +189,16 @@ public class LfContingency {
         }
     }
 
-    private static double getUpdatedLoadP0(LfLoad load, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower) {
+    private static double getUpdatedLoadP0(LfLoad lfLoad, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower) {
         double factor = 0;
-        if (!load.isFictitious() && load.getOriginalLoadCount() > 0) {
+        if (!lfLoad.isFictitious() && lfLoad.getOriginalLoadCount() > 0) {
             if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-                factor = Math.abs(initialP0) / load.getAbsVariableTargetP();
+                factor = Math.abs(initialP0) / lfLoad.getAbsVariableTargetP();
             } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-                factor = initialVariableActivePower / load.getAbsVariableTargetP();
+                factor = initialVariableActivePower / lfLoad.getAbsVariableTargetP();
             }
         }
-        return initialP0 + (load.getTargetP() - load.getInitialTargetP()) * factor;
+        return initialP0 + (lfLoad.getTargetP() - lfLoad.getInitialTargetP()) * factor;
     }
 
     public Set<LfBus> getLoadAndGeneratorBuses() {
