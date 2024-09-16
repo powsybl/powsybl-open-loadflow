@@ -510,8 +510,10 @@ public class PropagatedContingency {
             LfLoad load = network.getLoadById(loadId);
             if (load != null) { // could be in another component
                 LfLostLoad lostLoad = loads.computeIfAbsent(load, k -> new LfLostLoad());
-                lostLoad.getPowerShift().add(powerShift);
+                boolean isOriginalLoadFictitious = load.isOriginalLoadFictitious(loadId);
+                lostLoad.getPowerShift().add(powerShift, isOriginalLoadFictitious);
                 lostLoad.getOriginalIds().add(loadId);
+                lostLoad.addInitialFictitiousP0(isOriginalLoadFictitious, powerShift);
             }
         }
 

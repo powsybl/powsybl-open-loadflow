@@ -19,8 +19,8 @@ import java.util.Set;
 public class LfLostLoad {
 
     private final PowerShift powerShift = new PowerShift();
-
     private final Set<String> ids = new LinkedHashSet<>();
+    private double initialFictitiousP0 = 0.0;
 
     public PowerShift getPowerShift() {
         return powerShift;
@@ -28,6 +28,17 @@ public class LfLostLoad {
 
     public Set<String> getOriginalIds() {
         return ids;
+    }
+
+    public void addInitialFictitiousP0(boolean isOriginalLoadFictitious, PowerShift powerShift) {
+        if (!isOriginalLoadFictitious) {
+            return;
+        }
+        initialFictitiousP0 += Math.abs(powerShift.getActive());
+    }
+
+    public double getInitialFictitiousP0() {
+        return initialFictitiousP0;
     }
 
     @Override

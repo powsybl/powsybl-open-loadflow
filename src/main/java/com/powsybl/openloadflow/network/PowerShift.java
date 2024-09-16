@@ -49,6 +49,13 @@ public class PowerShift {
         reactive += other.getReactive();
     }
 
+    public void add(PowerShift other, boolean isLoadFictitious) {
+        Objects.requireNonNull(other);
+        active += other.getActive();
+        variableActive += isLoadFictitious ? 0.0 : other.getVariableActive();
+        reactive += other.getReactive();
+    }
+
     @Override
     public String toString() {
         return "PowerShift("

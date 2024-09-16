@@ -3335,7 +3335,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(true)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxActivePowerMismatch(1e-3)
+                .setMaxReactivePowerMismatch(1e-3);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
 
@@ -3371,5 +3374,41 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(network.getLine("l14").getTerminal1().getP(), networkResultContingency2.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l34").getTerminal1().getP(), networkResultContingency2.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         network.getLoad("l4").getTerminal().connect();
+    }
+
+    @Test
+    void testWithFictitiousLoad2() {
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+        network.getLoad("l4").setLoadType(LoadType.FICTITIOUS); // one load amongst many on the bus
+
+        // contigency on two loads on the same bus: one is fictitious and one is not
+        List<Contingency> contingencies = List.of(new Contingency("l4_and_l5", List.of(new LoadContingency("l5"), new LoadContingency("l4"))));
+
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.all(), Set.of("l14", "l24", "l34"), emptySet(), emptySet())
+        );
+
+        LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxActivePowerMismatch(1e-3)
+                .setMaxReactivePowerMismatch(1e-3);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(1, result.getPostContingencyResults().size());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+
+        // contingency 0: lost loads l4 (fictitious) and l5 (not fictitious)
+        network.getLoad("l4").getTerminal().disconnect();
+        network.getLoad("l5").getTerminal().disconnect();
+        loadFlowRunner.run(network, parameters);
+        NetworkResult networkResultContingency0 = result.getPostContingencyResults().get(0).getNetworkResult();
+        assertEquals(network.getLine("l24").getTerminal1().getP(), networkResultContingency0.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), networkResultContingency0.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), networkResultContingency0.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 }

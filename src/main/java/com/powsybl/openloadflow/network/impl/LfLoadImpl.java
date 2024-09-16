@@ -30,7 +30,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private final LfLoadModel loadModel;
 
-    private final List<Ref<Load>> loadsRefs = new ArrayList<>();
+    private final Map<String, Ref<Load>> loadsRefs = new LinkedHashMap<>();
 
     private final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
 
@@ -64,7 +64,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     @Override
     public List<String> getOriginalIds() {
-        return Stream.concat(loadsRefs.stream().map(r -> r.get().getId()),
+        return Stream.concat(loadsRefs.values().stream().map(r -> r.get().getId()),
                              lccCsRefs.stream().map(r -> r.get().getId()))
                 .toList();
     }
@@ -80,7 +80,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
             return false;
         }
         // all Loads must be fictitious to return true
-        for (Ref<Load> loadRef : loadsRefs) {
+        for (Ref<Load> loadRef : loadsRefs.values()) {
             Load load = loadRef.get();
             if (!isLoadFictitious(load)) {
                 return false;
@@ -90,12 +90,20 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
+    public boolean isOriginalLoadFictitious(String originalId) {
+        if (loadsRefs.get(originalId) == null) {
+            return false;
+        }
+        return isLoadFictitious(loadsRefs.get(originalId).get());
+    }
+
+    @Override
     public Optional<LfLoadModel> getLoadModel() {
         return Optional.ofNullable(loadModel);
     }
 
     void add(Load load, LfNetworkParameters parameters) {
-        loadsRefs.add(Ref.create(load, parameters.isCacheEnabled()));
+        loadsRefs.put(load.getId(), Ref.create(load, parameters.isCacheEnabled()));
         loadsDisablingStatus.put(load.getId(), false);
         double p0 = load.getP0();
         double q0 = load.getQ0();
@@ -218,14 +226,16 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         double pv = p == EvaluableConstants.NAN ? 1 : calculateP() / targetP; // extract part of p that is dependent to voltage
         double qv = q == EvaluableConstants.NAN ? 1 : calculateQ() / targetQ;
         double diffLoadTargetP = targetP - initialTargetP;
-        for (int i = 0; i < loadsRefs.size(); i++) {
-            Load load = loadsRefs.get(i).get();
+        int i = 0;
+        for (Ref<Load> refLoad : loadsRefs.values()) {
+            Load load = refLoad.get();
             double diffP0 = diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB;
             double updatedP0 = load.getP0() + diffP0;
             double updatedQ0 = load.getQ0() + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
             load.getTerminal()
                     .setP(updatedP0 * pv)
                     .setQ(updatedQ0 * qv);
+            i++;
         }
 
         // update lcc converter station power
@@ -242,10 +252,12 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     @Override
     public double calculateNewTargetQ(double diffTargetP) {
         double newLoadTargetQ = 0;
-        for (int i = 0; i < loadsRefs.size(); i++) {
-            Load load = loadsRefs.get(i).get();
+        int i = 0;
+        for (Ref<Load> refLoad : loadsRefs.values()) {
+            Load load = refLoad.get();
             double updatedQ0 = load.getQ0() / PerUnit.SB + getPowerFactor(load) * diffTargetP * getParticipationFactor(i);
             newLoadTargetQ += updatedQ0;
+            i++;
         }
         return newLoadTargetQ;
     }

@@ -24,6 +24,8 @@ public interface LfLoad extends PropertyBag {
 
     boolean isFictitious();
 
+    boolean isOriginalLoadFictitious(String originalId);
+
     Optional<LfLoadModel> getLoadModel();
 
     double getInitialTargetP();
