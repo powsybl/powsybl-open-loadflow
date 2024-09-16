@@ -3319,6 +3319,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testWithFictitiousLoad() {
+        testWithFictitiousLoad(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        testWithFictitiousLoad(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+    }
+
+    private void testWithFictitiousLoad(LoadFlowParameters.BalanceType balanceType) {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         network.getLoad("l1").setFictitious(true); // single load on bus
         network.getLoad("l4").setLoadType(LoadType.FICTITIOUS); // one load amongst many on the bus
@@ -3333,7 +3338,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         );
 
         LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(true)
-                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+                .setBalanceType(balanceType);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
@@ -3378,6 +3383,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testWithFictitiousLoad2() {
+        testWithFictitiousLoad2(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        testWithFictitiousLoad2(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+    }
+
+    private void testWithFictitiousLoad2(LoadFlowParameters.BalanceType balanceType) {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         network.getLoad("l4").setLoadType(LoadType.FICTITIOUS); // one load amongst many on the bus
 
@@ -3389,7 +3399,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         );
 
         LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(true)
-                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+                .setBalanceType(balanceType);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
