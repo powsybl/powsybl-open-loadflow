@@ -456,4 +456,9 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     public void setReference(boolean reference) {
         this.reference = reference;
     }
+
+    @Override
+    public void reApplyActivePowerControlChecks(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        // nothing to do
+    }
 }
