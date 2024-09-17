@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import net.jafama.DoubleWrapper;
 
 import java.util.Objects;
 
@@ -56,6 +57,8 @@ public class NewtonKrylov extends AbstractAcSolver {
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         // initialize state vector
         AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
+        DoubleWrapper errorWrapper = new DoubleWrapper();
+        errorWrapper.value = -1;
 
         KinsolParameters kinsolParameters = new KinsolParameters()
                 .setMaxIters(parameters.getMaxIterations())
@@ -74,6 +77,6 @@ public class NewtonKrylov extends AbstractAcSolver {
         if (result.getStatus() == KinsolStatus.KIN_SUCCESS) {
             AcSolverUtil.updateNetwork(network, equationSystem);
         }
-        return new AcSolverResult(getStatus(result.getStatus()), (int) result.getIterations(), 0);
+        return new AcSolverResult(getStatus(result.getStatus()), (int) result.getIterations(), 0, errorWrapper, -1);
     }
 }

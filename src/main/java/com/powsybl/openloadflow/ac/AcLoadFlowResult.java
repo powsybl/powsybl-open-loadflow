@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
+import net.jafama.DoubleWrapper;
 
 import java.util.Objects;
 
@@ -22,7 +23,7 @@ import java.util.Objects;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE, Double.NaN, Double.NaN);
+        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE, Double.NaN, Double.NaN, new DoubleWrapper(), -1);
     }
 
     private final int outerLoopIterations;
@@ -35,15 +36,21 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     private final double distributedActivePower;
 
+    private final DoubleWrapper error;
+
+    private final double initialError;
+
     public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int solverIterations,
                             AcSolverStatus solverStatus, OuterLoopStatus outerLoopStatus,
-                            double slackBusActivePowerMismatch, double distributedActivePower) {
+                            double slackBusActivePowerMismatch, double distributedActivePower, DoubleWrapper error, double initialError) {
         super(network, slackBusActivePowerMismatch);
         this.outerLoopIterations = outerLoopIterations;
         this.solverIterations = solverIterations;
         this.solverStatus = Objects.requireNonNull(solverStatus);
         this.outerLoopStatus = Objects.requireNonNull(outerLoopStatus);
         this.distributedActivePower = distributedActivePower;
+        this.error = error;
+        this.initialError = initialError;
     }
 
     public int getOuterLoopIterations() {
@@ -64,6 +71,14 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public double getDistributedActivePower() {
         return distributedActivePower;
+    }
+
+    public DoubleWrapper getError() {
+        return error;
+    }
+
+    public double getInitialError() {
+        return initialError;
     }
 
     @Override
@@ -101,6 +116,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
                 + ", outerLoopStatus=" + outerLoopStatus
                 + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
                 + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
+                + ", error=" + error
                 + ")";
     }
 }

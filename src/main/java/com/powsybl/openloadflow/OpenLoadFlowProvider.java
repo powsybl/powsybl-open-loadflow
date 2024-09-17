@@ -180,12 +180,16 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         for (AcLoadFlowResult result : results) {
             updateAcState(network, parameters, parametersExt, result, acParameters, atLeastOneComponentHasToBeUpdated);
 
+            Map<String, String> metricsMap = new HashMap<>();
+            metricsMap.put("error", Double.toString(result.getError().value));
+            metricsMap.put("initialError", Double.toString(result.getInitialError()));
+
             ReferenceBusAndSlackBusesResults referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
                     result.getNetwork().getNumSC(),
                     result.toComponentResultStatus(),
                     result.toComponentResultStatus().name(), // statusText: can do better later on
-                    Collections.emptyMap(), // metrics: can do better later on
+                    metricsMap, // Collections.emptyMap(), // metrics: can do better later on
                     result.getSolverIterations(),
                     referenceBusAndSlackBusesResults.referenceBusId(),
                     referenceBusAndSlackBusesResults.slackBusResultList(),

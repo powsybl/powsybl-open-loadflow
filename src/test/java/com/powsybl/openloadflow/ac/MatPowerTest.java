@@ -36,7 +36,7 @@ public class MatPowerTest {
     void setUp() {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
-                .setAcSolverType(AcSolverType.KNITRO);
+                    .setAcSolverType(AcSolverType.KNITRO);
         // Sparse matrix solver only
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
         // No OLs
@@ -45,6 +45,10 @@ public class MatPowerTest {
                 .setUseReactiveLimits(false);
         parameters.getExtension(OpenLoadFlowParameters.class)
                 .setSvcVoltageMonitoring(false);
+        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE);
+        parametersExt.setGradientComputationModeKnitro(1) //user routine
+                .setGradientUserRoutineKnitro(2); // jac 2
     }
 
     @Test
@@ -93,28 +97,56 @@ public class MatPowerTest {
     }
 
     @Test
-    void caseImported() {
+    void caseImportedFromMatFile() {
 
         // Load network from .mat file
         Properties properties = new Properties();
         // We want base voltages to be taken into account
         properties.put("matpower.import.ignore-base-voltage", false);
         Network network = new MatpowerImporter().importData(
-                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case6495rte" +
+                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case13659pegase" +
                         ""),
                 NetworkFactory.findDefault(), properties);
-        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case6495rte" +
+        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case13659pegase" +
                 ""));
-        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE);
-        parametersExt.setGradientComputationModeKnitro(1) //user routine
-                .setGradientUserRoutineKnitro(2); // jac 2
+
 
         Instant start = Instant.now();
         LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
         Instant end = Instant.now();
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
+
+        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+//        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.NONE);
+        parametersExt.setAcSolverType(AcSolverType.NEWTON_RAPHSON);
+        LoadFlowResult nrResult = loadFlowRunner.run(network, parameters);
+
+        Duration duration = Duration.between(start, end);
+        double durationInSeconds = duration.toSeconds();
+        System.out.println("Loadflow took " + durationInSeconds + " seconds");
+    }
+
+
+    @Test
+    void caseImportedFromXIIDMFile() {
+
+        // Load network from .XIIDM file
+        String situ = "C:\\Users\\jarchambault\\Desktop\\IGM\\20260613T1330Z_1D_FR_.xiidm";
+        Network network = Network.read(situ);
+
+        Instant start = Instant.now();
+        LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
+        Instant end = Instant.now();
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
+
+        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+//        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.NONE);
+        parametersExt.setAcSolverType(AcSolverType.NEWTON_RAPHSON);
+        LoadFlowResult nrResult = loadFlowRunner.run(network, parameters);
 
         Duration duration = Duration.between(start, end);
         double durationInSeconds = duration.toSeconds();

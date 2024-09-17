@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import net.jafama.DoubleWrapper;
+
 import java.util.Objects;
 
 /**
@@ -20,13 +22,19 @@ public class AcSolverResult {
 
     private final double slackBusActivePowerMismatch;
 
-    public AcSolverResult(AcSolverStatus status, int iterations, double slackBusActivePowerMismatch) {
+    private final DoubleWrapper error;
+
+    private final double initialError;
+
+    public AcSolverResult(AcSolverStatus status, int iterations, double slackBusActivePowerMismatch, DoubleWrapper error, double initialError) {
         if (iterations < 0) {
             throw new IllegalArgumentException("Invalid iteration value: " + iterations);
         }
         this.status = Objects.requireNonNull(status);
         this.iterations = iterations;
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
+        this.error = error;
+        this.initialError = initialError;
     }
 
     public AcSolverStatus getStatus() {
@@ -39,5 +47,13 @@ public class AcSolverResult {
 
     public double getSlackBusActivePowerMismatch() {
         return slackBusActivePowerMismatch;
+    }
+
+    public DoubleWrapper getError() {
+        return error;
+    }
+
+    public double getInitialError() {
+        return initialError;
     }
 }

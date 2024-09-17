@@ -11,7 +11,6 @@ import com.artelys.knitro.api.*;
 import com.artelys.knitro.api.callbacks.*;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.SparseMatrix;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -19,6 +18,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import net.jafama.DoubleWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -187,7 +187,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 double[] values = sparseOldMatrix.getValues();
 
                 // Number of constraints evaluated in callback
-                int numCbCts = 0 ;
+                int numCbCts = 0;
                 if (knitroParameters.getGradientUserRoutine() == 1) {
                     numCbCts = listNonZerosCts.size();
                 } else if (knitroParameters.getGradientUserRoutine() == 2) {
@@ -197,8 +197,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 // Pass coefficients of Jacobian matrix to Knitro
                 for (int index = 0; index < numCbCts; index++) {
                     try {
-                        int var = 0 ;
-                        int ct = 0 ;
+                        int var = 0;
+                        int ct = 0;
                         if (knitroParameters.getGradientUserRoutine() == 1) {
                             var = listNonZerosVars.get(index);
                             ct = listNonZerosCts.get(index);
@@ -451,12 +451,16 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 //        solver.setParam(KNConstants.KN_PARAM_MS_NUMTHREADS, 1);
 //        solver.setParam(KNConstants.KN_PARAM_CONCURRENT_EVALS, 0); //pas d'évaluations de callbacks concurrentes
 //        solver.setParam(KNConstants.KN_PARAM_NUMTHREADS, 8);
+//        solver.setParam(KNConstants.KN_PARAM_LINSOLVER_SCALING, ); // scaling for linear systems
     }
 
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         AcSolverStatus status;
         int nbIter = -1;
+        DoubleWrapper errorWrapper = new DoubleWrapper();
+        errorWrapper.value = -1;
+        double initialError = -1; //TODO
 
         AcSolverStatus acStatus = null;
 
@@ -475,6 +479,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Double> constraintValues = solver.getConstraintValues();
             acStatus = getAcStatusAndKnitroStatus(solution.getStatus());
             nbIter = solver.getNumberIters();
+            errorWrapper.value = solver.getAbsFeasError();
 
             // Log solution
             LOGGER.info("Optimal objective value  = {}", solution.getObjValue());
@@ -510,6 +515,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new AcSolverResult(acStatus, nbIter, slackBusActivePowerMismatch);
+        return new AcSolverResult(acStatus, nbIter, slackBusActivePowerMismatch, errorWrapper, initialError);
     }
 }

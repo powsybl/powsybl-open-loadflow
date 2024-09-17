@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
+import net.jafama.DoubleWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,7 +120,7 @@ public class AcLoadFlowFromCache {
             context.setNetworkUpdated(false);
             return result;
         }
-        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE, 0d, 0d);
+        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE, 0d, 0d, new DoubleWrapper(), -1);
     }
 
     public List<AcLoadFlowResult> run() {

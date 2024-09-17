@@ -39,6 +39,7 @@ import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
+import net.jafama.DoubleWrapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -1709,7 +1710,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     private AcLoadFlowResult buildTestAcLoadFlowResult(AcSolverStatus solverStatus, OuterLoopStatus outerLoopStatus) {
         LfNetwork lfNetwork = Mockito.mock(LfNetwork.class);
-        return new AcLoadFlowResult(lfNetwork, 0, 0, solverStatus, outerLoopStatus, 0d, 0d);
+        return new AcLoadFlowResult(lfNetwork, 0, 0, solverStatus, outerLoopStatus, 0d, 0d, new DoubleWrapper(), -1);
     }
 
     @Test

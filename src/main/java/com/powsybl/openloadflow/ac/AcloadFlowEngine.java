@@ -210,8 +210,10 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                                                        runningContext.lastSolverResult.getStatus(),
                                                        outerLoopFinalStatus,
                                                        runningContext.lastSolverResult.getSlackBusActivePowerMismatch(),
-                                                       distributedActivePower
-                                                       );
+                                                       distributedActivePower,
+                                                       runningContext.lastSolverResult.getError(),
+                                                       runningContext.lastSolverResult.getInitialError()
+        );
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
