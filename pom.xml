@@ -220,6 +220,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <scope>compile</scope>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-matpower-converter</artifactId>
+        </dependency>
+
 <!--    TODO : Resolve these dependencies-->
         <dependency>
             <groupId>com.artelys</groupId>
