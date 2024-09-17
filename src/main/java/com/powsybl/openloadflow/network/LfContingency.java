@@ -147,7 +147,7 @@ public class LfContingency {
             LfLoad load = e.getKey();
             LfLostLoad lostLoad = e.getValue();
             PowerShift shift = lostLoad.getPowerShift();
-            load.setTargetP(load.getTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive(), lostLoad.getInitialFictitiousP0()));
+            load.setTargetP(load.getTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive(), lostLoad.getPassiveLoadP0()));
             load.setTargetQ(load.getTargetQ() - shift.getReactive());
             load.setAbsVariableTargetP(load.getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
             lostLoad.getOriginalIds().forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
@@ -191,11 +191,12 @@ public class LfContingency {
 
     private static double getUpdatedLoadP0(LfLoad lfLoad, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower, double initialFictitiousP0) {
         double factor = 0;
-        if (!lfLoad.isFictitious() && lfLoad.getOriginalLoadCount() > 0) {
+        double loadVariableTargetP = lfLoad.getAbsVariableTargetP();
+        if (loadVariableTargetP != 0 && lfLoad.getOriginalLoadCount() > 0) {
             if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-                factor = (Math.abs(initialP0) - Math.abs(initialFictitiousP0)) / lfLoad.getAbsVariableTargetP();
+                factor = (Math.abs(initialP0) - Math.abs(initialFictitiousP0)) / loadVariableTargetP;
             } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-                factor = initialVariableActivePower / lfLoad.getAbsVariableTargetP();
+                factor = initialVariableActivePower / loadVariableTargetP;
             }
         }
         return initialP0 + (lfLoad.getTargetP() - lfLoad.getInitialTargetP()) * factor;

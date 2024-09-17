@@ -14,7 +14,6 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
-import com.powsybl.openloadflow.network.impl.LfLoadImpl;
 import com.powsybl.openloadflow.network.impl.LfShuntImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -137,33 +136,13 @@ public final class LfAction {
         Terminal terminal = load.getTerminal();
         Bus bus = Networks.getBus(terminal, breakers);
         if (bus != null) {
-            double activePowerShift = 0;
-            double reactivePowerShift = 0;
-            OptionalDouble activePowerValue = action.getActivePowerValue();
-            OptionalDouble reactivePowerValue = action.getReactivePowerValue();
-            if (activePowerValue.isPresent()) {
-                activePowerShift = action.isRelativeValue() ? activePowerValue.getAsDouble() : activePowerValue.getAsDouble() - load.getP0();
-            }
-            if (reactivePowerValue.isPresent()) {
-                reactivePowerShift = action.isRelativeValue() ? reactivePowerValue.getAsDouble() : reactivePowerValue.getAsDouble() - load.getQ0();
-            }
             LfLoad lfLoad = lfNetwork.getLoadById(load.getId());
             if (lfLoad != null) {
-                PowerShift powerShift = getLoadPowerShift(load, activePowerShift, reactivePowerShift);
+                PowerShift powerShift = PowerShift.makeLoadPowerShift(load, action);
                 return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(load.getId(), lfLoad, powerShift), null, null, null));
             }
         }
         return Optional.empty(); // could be in another component or in contingency.
-    }
-
-    private static PowerShift getLoadPowerShift(Load load, double activePowerShift, double reactivePowerShift) {
-        // - In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
-        //   of P0 that could be described in a LoadDetail extension.
-        // - Fictitious loads have no variable active power shift
-        double variableActivePower = LfLoadImpl.isLoadFictitious(load) ? 0.0 : activePowerShift;
-        return new PowerShift(activePowerShift / PerUnit.SB,
-                variableActivePower / PerUnit.SB,
-                reactivePowerShift / PerUnit.SB);
     }
 
     private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {

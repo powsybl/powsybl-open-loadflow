@@ -75,26 +75,11 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
-    public boolean isFictitious() {
-        if (loadsRefs.isEmpty()) {
+    public boolean isIidmLoadPassive(String iidmLoadId) {
+        if (loadsRefs.get(iidmLoadId) == null) {
             return false;
         }
-        // all Loads must be fictitious to return true
-        for (Ref<Load> loadRef : loadsRefs.values()) {
-            Load load = loadRef.get();
-            if (!isLoadFictitious(load)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public boolean isOriginalLoadFictitious(String originalId) {
-        if (loadsRefs.get(originalId) == null) {
-            return false;
-        }
-        return isLoadFictitious(loadsRefs.get(originalId).get());
+        return isLoadPassive(loadsRefs.get(iidmLoadId).get());
     }
 
     @Override
@@ -121,7 +106,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         if (p0 < 0 || hasVariableActivePower || reactiveOnlyLoad) {
             ensurePowerFactorConstantByLoad = true;
         }
-        double absTargetP = getAbsVariableTargetP(load);
+        double absTargetP = getAbsVariableTargetPPerUnit(load, distributedOnConformLoad);
         loadsAbsVariableTargetP.add(absTargetP);
         absVariableTargetP += absTargetP;
     }
@@ -182,8 +167,8 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         this.absVariableTargetP = absVariableTargetP;
     }
 
-    private double getAbsVariableTargetP(Load load) {
-        if (isLoadFictitious(load)) {
+    public static double getAbsVariableTargetPPerUnit(Load load, boolean distributedOnConformLoad) {
+        if (isLoadPassive(load)) {
             return 0.0;
         }
         double varP;
@@ -286,7 +271,13 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
     }
 
-    public static boolean isLoadFictitious(Load load) {
+    /**
+     * Returns true if the load does not participate to compensation
+     * @param load
+     * @return
+     */
+    public static boolean isLoadPassive(Load load) {
+        // Fictive loads do not participate to compensation
         return load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType());
     }
 

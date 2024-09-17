@@ -12,7 +12,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
@@ -83,21 +82,6 @@ public class PropagatedContingency {
         this.switchesToOpen = Objects.requireNonNull(switchesToOpen);
         this.terminalsToDisconnect = Objects.requireNonNull(terminalsToDisconnect);
         this.busIdsToLose = Objects.requireNonNull(busIdsToLose);
-    }
-
-    private static PowerShift getLoadPowerShift(Load load, boolean slackDistributionOnConformLoad) {
-        double variableActivePower;
-        if (LfLoadImpl.isLoadFictitious(load)) {
-            variableActivePower = 0.0;
-        } else if (slackDistributionOnConformLoad) {
-            LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-            variableActivePower = loadDetail == null ? 0.0 : Math.abs(loadDetail.getVariableActivePower());
-        } else {
-            variableActivePower = Math.abs(load.getP0());
-        }
-        return new PowerShift(load.getP0() / PerUnit.SB,
-                              variableActivePower / PerUnit.SB,
-                              load.getQ0() / PerUnit.SB); // ensurePowerFactorConstant is not supported.
     }
 
     public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, LfTopoConfig topoConfig,
@@ -225,7 +209,7 @@ public class PropagatedContingency {
 
                 case LOAD:
                     Load load = (Load) connectable;
-                    loadIdsToLose.put(load.getId(), getLoadPowerShift(load, creationParameters.isSlackDistributionOnConformLoad()));
+                    loadIdsToLose.put(load.getId(), PowerShift.makeLoadPowerShift(load, creationParameters.isSlackDistributionOnConformLoad()));
                     break;
 
                 case SHUNT_COMPENSATOR:
@@ -510,10 +494,9 @@ public class PropagatedContingency {
             LfLoad load = network.getLoadById(loadId);
             if (load != null) { // could be in another component
                 LfLostLoad lostLoad = loads.computeIfAbsent(load, k -> new LfLostLoad());
-                boolean isOriginalLoadFictitious = load.isOriginalLoadFictitious(loadId);
-                lostLoad.getPowerShift().add(powerShift, isOriginalLoadFictitious);
+                lostLoad.getPowerShift().add(powerShift);
                 lostLoad.getOriginalIds().add(loadId);
-                lostLoad.addInitialFictitiousP0(isOriginalLoadFictitious, powerShift);
+                lostLoad.updatePassiveLoad(load, loadId, powerShift);
             }
         }
 

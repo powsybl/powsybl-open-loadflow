@@ -20,7 +20,7 @@ public class LfLostLoad {
 
     private final PowerShift powerShift = new PowerShift();
     private final Set<String> ids = new LinkedHashSet<>();
-    private double initialFictitiousP0 = 0.0;
+    private double passiveLoadP0 = 0.0;
 
     public PowerShift getPowerShift() {
         return powerShift;
@@ -30,15 +30,21 @@ public class LfLostLoad {
         return ids;
     }
 
-    public void addInitialFictitiousP0(boolean isOriginalLoadFictitious, PowerShift powerShift) {
-        if (!isOriginalLoadFictitious) {
-            return;
+    /**
+     * Updates the contribution of loads that do not participate to compensation
+     */
+    public void updatePassiveLoad(LfLoad load, String iidmLoadId, PowerShift powerShift) {
+        if (load.isIidmLoadPassive(iidmLoadId)) {
+            passiveLoadP0 += Math.abs(powerShift.getActive());
         }
-        initialFictitiousP0 += Math.abs(powerShift.getActive());
     }
 
-    public double getInitialFictitiousP0() {
-        return initialFictitiousP0;
+    /**
+     * Returns the contribution of loads that do not participate to compensation
+     * @return
+     */
+    public double getPassiveLoadP0() {
+        return passiveLoadP0;
     }
 
     @Override

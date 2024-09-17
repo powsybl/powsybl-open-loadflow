@@ -22,9 +22,7 @@ public interface LfLoad extends PropertyBag {
 
     LfBus getBus();
 
-    boolean isFictitious();
-
-    boolean isOriginalLoadFictitious(String originalId);
+    boolean isIidmLoadPassive(String originalId);
 
     Optional<LfLoadModel> getLoadModel();
 
