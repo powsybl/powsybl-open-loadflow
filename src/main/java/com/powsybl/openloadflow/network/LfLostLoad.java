@@ -33,8 +33,8 @@ public class LfLostLoad {
     /**
      * Updates the contribution of loads that do not participate to compensation
      */
-    public void updatePassiveLoad(LfLoad load, String iidmLoadId, PowerShift powerShift) {
-        if (load.isIidmLoadPassive(iidmLoadId)) {
+    public void updatePassiveLoad(LfLoad load, String originalLoadId, PowerShift powerShift) {
+        if (load.isOriginalLoadPassive(originalLoadId)) {
             passiveLoadP0 += Math.abs(powerShift.getActive());
         }
     }

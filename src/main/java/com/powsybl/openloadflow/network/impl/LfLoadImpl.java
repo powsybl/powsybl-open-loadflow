@@ -75,11 +75,11 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
-    public boolean isIidmLoadPassive(String iidmLoadId) {
-        if (loadsRefs.get(iidmLoadId) == null) {
+    public boolean isOriginalLoadPassive(String originalLoadId) {
+        if (loadsRefs.get(originalLoadId) == null) {
             return false;
         }
-        return isLoadPassive(loadsRefs.get(iidmLoadId).get());
+        return isLoadPassive(loadsRefs.get(originalLoadId).get());
     }
 
     @Override
