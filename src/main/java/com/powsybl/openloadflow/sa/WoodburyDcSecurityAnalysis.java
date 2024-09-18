@@ -189,7 +189,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
-        try (DcLoadFlowContext context = createLoadFlowContext(lfNetwork, dcParameters)) {
+        try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters, false)) {
             ReportNode networkReportNode = lfNetwork.getReportNode();
             ReportNode preContSimReportNode = Reports.createPreContingencySimulation(networkReportNode);
             lfNetwork.setReportNode(preContSimReportNode);
