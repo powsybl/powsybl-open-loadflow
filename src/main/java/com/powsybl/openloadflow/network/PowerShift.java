@@ -87,7 +87,7 @@ public class PowerShift {
         //   In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
         //   of P0 that could be described in a LoadDetail extension.
         //   Fictitious loads have no variable active power shift
-        double variableActivePower = LfLoadImpl.isLoadPassive(load) ? 0.0 : activePowerShift;
+        double variableActivePower = LfLoadImpl.isLoadNotParticipating(load) ? 0.0 : activePowerShift;
         return new PowerShift(activePowerShift / PerUnit.SB,
                 variableActivePower / PerUnit.SB,
                 reactivePowerShift / PerUnit.SB);

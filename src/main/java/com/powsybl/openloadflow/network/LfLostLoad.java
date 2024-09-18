@@ -20,7 +20,7 @@ public class LfLostLoad {
 
     private final PowerShift powerShift = new PowerShift();
     private final Set<String> ids = new LinkedHashSet<>();
-    private double passiveLoadP0 = 0.0;
+    private double notParticipatingLoadP0 = 0.0;
 
     public PowerShift getPowerShift() {
         return powerShift;
@@ -33,9 +33,9 @@ public class LfLostLoad {
     /**
      * Updates the contribution of loads that do not participate to compensation
      */
-    public void updatePassiveLoad(LfLoad load, String originalLoadId, PowerShift powerShift) {
-        if (load.isOriginalLoadPassive(originalLoadId)) {
-            passiveLoadP0 += Math.abs(powerShift.getActive());
+    public void updateNotParticipatingLoad(LfLoad load, String originalLoadId, PowerShift powerShift) {
+        if (load.isOriginalLoadNotParticipating(originalLoadId)) {
+            notParticipatingLoadP0 += Math.abs(powerShift.getActive());
         }
     }
 
@@ -43,8 +43,8 @@ public class LfLostLoad {
      * Returns the contribution of loads that do not participate to compensation
      * @return
      */
-    public double getPassiveLoadP0() {
-        return passiveLoadP0;
+    public double getNotParticipatingLoadP0() {
+        return notParticipatingLoadP0;
     }
 
     @Override

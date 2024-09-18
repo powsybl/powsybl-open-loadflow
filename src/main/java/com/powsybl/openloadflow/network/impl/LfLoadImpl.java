@@ -75,11 +75,11 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
-    public boolean isOriginalLoadPassive(String originalLoadId) {
+    public boolean isOriginalLoadNotParticipating(String originalLoadId) {
         if (loadsRefs.get(originalLoadId) == null) {
             return false;
         }
-        return isLoadPassive(loadsRefs.get(originalLoadId).get());
+        return isLoadNotParticipating(loadsRefs.get(originalLoadId).get());
     }
 
     @Override
@@ -168,7 +168,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     public static double getAbsVariableTargetPPerUnit(Load load, boolean distributedOnConformLoad) {
-        if (isLoadPassive(load)) {
+        if (isLoadNotParticipating(load)) {
             return 0.0;
         }
         double varP;
@@ -276,7 +276,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
      * @param load
      * @return
      */
-    public static boolean isLoadPassive(Load load) {
+    public static boolean isLoadNotParticipating(Load load) {
         // Fictive loads do not participate to compensation
         return load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType());
     }
