@@ -31,7 +31,7 @@ public class LfLostLoad {
     }
 
     /**
-     * Updates the contribution of loads that do not participate to compensation
+     * Updates the contribution of loads that do not participate to slack distribution
      */
     public void updateNotParticipatingLoad(LfLoad load, String originalLoadId, PowerShift powerShift) {
         if (load.isOriginalLoadNotParticipating(originalLoadId)) {

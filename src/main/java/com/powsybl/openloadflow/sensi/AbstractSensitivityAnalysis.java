@@ -555,7 +555,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     double balanceDiff = mainComponentWeights.values().stream().mapToDouble(x -> x).sum();
                     for (Map.Entry<LfBus, Double> lfBusAndParticipationFactor : participationByBus.entrySet()) {
                         LfBus lfBus = lfBusAndParticipationFactor.getKey();
-                        double injection = lfBusAndParticipationFactor.getValue() * balanceDiff; // adapt the sign of the compensation depending on the injection
+                        double injection = lfBusAndParticipationFactor.getValue() * balanceDiff; // adapt the sign of the slack distribution depending on the injection
                         addBusInjection(rhs, lfBus, injection);
                     }
                     // add the injections on the side of the hvdc
