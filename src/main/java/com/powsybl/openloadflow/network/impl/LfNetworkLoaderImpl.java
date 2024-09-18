@@ -612,19 +612,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static boolean checkBoundariesComponent(Area area, int numCC, int numSC) {
         boolean allBoundariesInSameComponent = true;
-        for (AreaBoundary boundary : area.getAreaBoundaryStream().toList()) {
-            Bus bus;
-            if (boundary.getTerminal().isPresent()) {
-                Terminal terminal = boundary.getTerminal().get();
-                bus = terminal.getBusBreakerView().getConnectableBus();
-            } else if (boundary.getBoundary().isPresent()) {
-                DanglingLine danglingLine = boundary.getBoundary().get().getDanglingLine();
-                bus = danglingLine.getTerminal().getBusBreakerView().getConnectableBus();
-            } else {
-                continue;
-            }
-            if (bus.getConnectedComponent() != null && (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC)) {
-                LOGGER.warn("Area {} does not have all its boundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", area.getId());
+        for (AreaBoundary areaBoundary : area.getAreaBoundaries()) {
+            // boundary may be defined either by a terminal or by a DanglingLine boundary
+            final Terminal terminal = areaBoundary.getTerminal()
+                    .orElseGet(() -> areaBoundary.getBoundary().orElseThrow().getDanglingLine().getTerminal());
+            // this bus is in the same component as the boundary
+            final Bus bus = terminal.getBusView().getBus();
+
+            if (bus != null && bus.getConnectedComponent() != null && (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC)) {
+                LOGGER.warn("Area {} does not have all its areaBoundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", area.getId());
                 allBoundariesInSameComponent = false;
                 break;
             }
