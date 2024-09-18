@@ -40,8 +40,7 @@ public class LfLostLoad {
     }
 
     /**
-     * Returns the contribution of loads that do not participate to compensation
-     * @return
+     * Returns the contribution of loads that do not participate to slack distribution
      */
     public double getNotParticipatingLoadP0() {
         return notParticipatingLoadP0;

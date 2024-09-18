@@ -189,12 +189,12 @@ public class LfContingency {
         }
     }
 
-    private static double getUpdatedLoadP0(LfLoad lfLoad, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower, double notParticipatinLoagP0) {
+    private static double getUpdatedLoadP0(LfLoad lfLoad, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower, double notParticipatingLoadP0) {
         double factor = 0;
         double loadVariableTargetP = lfLoad.getAbsVariableTargetP();
         if (loadVariableTargetP != 0 && lfLoad.getOriginalLoadCount() > 0) {
             if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-                factor = (Math.abs(initialP0) - Math.abs(notParticipatinLoagP0)) / loadVariableTargetP;
+                factor = (Math.abs(initialP0) - Math.abs(notParticipatingLoadP0)) / loadVariableTargetP;
             } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
                 factor = initialVariableActivePower / loadVariableTargetP;
             }

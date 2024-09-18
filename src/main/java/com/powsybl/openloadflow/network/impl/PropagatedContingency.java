@@ -209,7 +209,7 @@ public class PropagatedContingency {
 
                 case LOAD:
                     Load load = (Load) connectable;
-                    loadIdsToLose.put(load.getId(), PowerShift.makeLoadPowerShift(load, creationParameters.isSlackDistributionOnConformLoad()));
+                    loadIdsToLose.put(load.getId(), PowerShift.createPowerShift(load, creationParameters.isSlackDistributionOnConformLoad()));
                     break;
 
                 case SHUNT_COMPENSATOR:

@@ -138,7 +138,7 @@ public final class LfAction {
         if (bus != null) {
             LfLoad lfLoad = lfNetwork.getLoadById(load.getId());
             if (lfLoad != null) {
-                PowerShift powerShift = PowerShift.makeLoadPowerShift(load, action);
+                PowerShift powerShift = PowerShift.createPowerShift(load, action);
                 return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(load.getId(), lfLoad, powerShift), null, null, null));
             }
         }

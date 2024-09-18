@@ -272,12 +272,10 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     /**
-     * Returns true if the load does not participate to compensation
-     * @param load
-     * @return
+     * Returns true if the load does not participate to slack distribution
      */
     public static boolean isLoadNotParticipating(Load load) {
-        // Fictive loads do not participate to compensation
+        // Fictitious loads that do not participate to slack distribution.
         return load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType());
     }
 

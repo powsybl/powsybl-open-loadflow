@@ -63,12 +63,9 @@ public class PowerShift {
     }
 
     /**
-     * Returns the poawer shift for a complete loss of a load
-     * @param load
-     * @param slackDistributionOnConformLoad
-     * @return
+     * Returns the power shift for a complete loss of a load
      */
-    public static PowerShift makeLoadPowerShift(Load load, boolean slackDistributionOnConformLoad) {
+    public static PowerShift createPowerShift(Load load, boolean slackDistributionOnConformLoad) {
         double variableActivePower = Math.abs(LfLoadImpl.getAbsVariableTargetPPerUnit(load, slackDistributionOnConformLoad));
         return new PowerShift(load.getP0() / PerUnit.SB,
                 variableActivePower,
@@ -76,17 +73,15 @@ public class PowerShift {
     }
 
     /**
-     * Returns the poawer shift for a modification of a load
-     * @return
+     * Returns the power shift for a load action.
      */
-    public static PowerShift makeLoadPowerShift(Load load, LoadAction loadAction) {
-
+    public static PowerShift createPowerShift(Load load, LoadAction loadAction) {
         double activePowerShift = loadAction.getActivePowerValue().stream().map(a -> loadAction.isRelativeValue() ? a : a - load.getP0()).findAny().orElse(0);
         double reactivePowerShift = loadAction.getReactivePowerValue().stream().map(r -> loadAction.isRelativeValue() ? r : r - load.getQ0()).findAny().orElse(0);
 
-        //   In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
-        //   of P0 that could be described in a LoadDetail extension.
-        //   Fictitious loads have no variable active power shift
+        // In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
+        // of P0 that could be described in a LoadDetail extension.
+        // Note that fictitious loads have a zero variable active power shift.
         double variableActivePower = LfLoadImpl.isLoadNotParticipating(load) ? 0.0 : activePowerShift;
         return new PowerShift(activePowerShift / PerUnit.SB,
                 variableActivePower / PerUnit.SB,
