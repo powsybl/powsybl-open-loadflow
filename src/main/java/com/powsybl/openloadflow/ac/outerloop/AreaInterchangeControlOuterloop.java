@@ -72,7 +72,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
                 .filter(entry -> {
                     double areaActivePowerMismatch = entry.getValue();
                     double absMismatch = Math.abs(areaActivePowerMismatch);
-                    return absMismatch > this.areaInterchangePMaxMismatch / areas.size() / PerUnit.SB && absMismatch > ActivePowerDistribution.P_RESIDUE_EPS;
+                    return absMismatch > this.areaInterchangePMaxMismatch / PerUnit.SB && absMismatch > ActivePowerDistribution.P_RESIDUE_EPS;
                 })
                 .map(Map.Entry::getKey)
                 .toList();
@@ -93,34 +93,37 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
                 Map<String, Pair<Set<LfBus>, Double>> remainingMismatchMap = new HashMap<>();
                 Set<LfBus> busesWithoutArea = ((AreaInterchangeControlContextData) context.getData()).getBusesWithoutArea();
                 remainingMismatchMap.put(DEFAULT_NO_AREA_NAME, Pair.of(busesWithoutArea, remainingMismatchToDistribute));
-                return distributeActivePowerMismatches(remainingMismatchMap, context, reportNode);
+                Map<String, ActivePowerDistribution.Result> resultByArea = distributeActivePower(remainingMismatchMap);
+                remainingMismatchToDistribute = resultByArea.get(DEFAULT_NO_AREA_NAME).remainingMismatch();
+
+                if (Math.abs(remainingMismatchToDistribute) <= this.areaInterchangePMaxMismatch / PerUnit.SB && Math.abs(remainingMismatchToDistribute) <= ActivePowerDistribution.P_RESIDUE_EPS || areas.isEmpty()){
+                    return buildOuterLoopResult(remainingMismatchMap, resultByArea, reportNode, context);
+                } else {
+                    double mismatchToSplit = remainingMismatchToDistribute;
+                    remainingMismatchMap = areas.stream().collect(Collectors.toMap(area -> area.getId(), area -> Pair.of(area.getBuses(), mismatchToSplit / areas.size())));
+                    resultByArea = distributeActivePower(remainingMismatchMap);
+                    return buildOuterLoopResult(remainingMismatchMap, resultByArea, reportNode, context);
+                }
+
             }
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
         Map<String, Pair<Set<LfBus>, Double>> areasMap = areasToBalance.stream()
                 .collect(Collectors.toMap(LfArea::getId, area -> Pair.of(area.getBuses(), getInterchangeMismatchWithSlack(area, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor))));
-        return distributeActivePowerMismatches(areasMap, context, reportNode);
+        Map<String, ActivePowerDistribution.Result> resultByArea = distributeActivePower(areasMap);
+        return buildOuterLoopResult(areasMap, resultByArea, reportNode, context);
     }
 
     private OuterLoopResult distributeActivePowerMismatches(Map<String, Pair<Set<LfBus>, Double>> areas, AcOuterLoopContext context, ReportNode reportNode) {
-        double totalDistributedActivePower = 0.0;
-        boolean movedBuses = false;
-        Map<String, Double> remainingMismatchByArea = new HashMap<>();
-        Map<String, Integer> iterationsByArea = new HashMap<>();
+        Map<String, ActivePowerDistribution.Result> resultByArea = distributeActivePower(areas);
+        return buildOuterLoopResult(areas, resultByArea, reportNode, context);
+    }
 
-        for (Map.Entry<String, Pair<Set<LfBus>, Double>> e : areas.entrySet()) {
-            double areaActivePowerMismatch = e.getValue().getRight();
-            LfGenerator referenceGenerator = getReferenceGenerator(e.getValue().getKey());
-            ActivePowerDistribution.Result result = activePowerDistribution.run(referenceGenerator, e.getValue().getLeft(), areaActivePowerMismatch);
-            double remainingMismatch = result.remainingMismatch();
-            double distributedActivePower = areaActivePowerMismatch - remainingMismatch;
-            totalDistributedActivePower += distributedActivePower;
-            movedBuses |= result.movedBuses();
-            iterationsByArea.put(e.getKey(), result.iteration());
-            if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
-                remainingMismatchByArea.put(e.getKey(), remainingMismatch);
-            }
-        }
+    private OuterLoopResult buildOuterLoopResult(Map<String, Pair<Set<LfBus>, Double>> areas, Map<String, ActivePowerDistribution.Result> resultByArea, ReportNode reportNode, AcOuterLoopContext context) {
+        Map<String, Double> remainingMismatchByArea = resultByArea.entrySet().stream().filter(e -> Math.abs(e.getValue().remainingMismatch()) > ActivePowerDistribution.P_RESIDUE_EPS).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().remainingMismatch()));
+        double totalDistributedActivePower = resultByArea.entrySet().stream().mapToDouble(e -> areas.get(e.getKey()).getRight() - e.getValue().remainingMismatch()).sum();
+        boolean movedBuses = resultByArea.values().stream().map(ActivePowerDistribution.Result::movedBuses).reduce(false, (a, b) -> a || b);
+        Map<String, Integer> iterationsByArea = resultByArea.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().iteration()));
 
         ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
@@ -134,7 +137,17 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
             reportAndLogSuccess(iterationReportNode, interchangeMismatchesById, areas.size(), iterationsByArea);
             return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
         }
+    }
 
+    private Map<String, ActivePowerDistribution.Result> distributeActivePower(Map<String, Pair<Set<LfBus>, Double>> areas) {
+        Map<String, ActivePowerDistribution.Result> resultByArea = new HashMap<>();
+        for (Map.Entry<String, Pair<Set<LfBus>, Double>> e : areas.entrySet()) {
+            double areaActivePowerMismatch = e.getValue().getRight();
+            LfGenerator referenceGenerator = getReferenceGenerator(e.getValue().getKey());
+            ActivePowerDistribution.Result result = activePowerDistribution.run(referenceGenerator, e.getValue().getLeft(), areaActivePowerMismatch);
+            resultByArea.put(e.getKey(), result);
+        }
+        return resultByArea;
     }
 
     private static LfGenerator getReferenceGenerator(Set<LfBus> buses) {
