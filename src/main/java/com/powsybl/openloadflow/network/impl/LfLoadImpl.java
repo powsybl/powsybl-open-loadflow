@@ -30,7 +30,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private final LfLoadModel loadModel;
 
-    private final Map<String, Ref<Load>> loadsRefs = new LinkedHashMap<>();
+    private final Map<String, Ref<Load>> loadsRefs = new HashMap<>();
 
     private final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
 
@@ -38,7 +38,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private boolean ensurePowerFactorConstantByLoad = false;
 
-    private final List<Double> loadsAbsVariableTargetP = new ArrayList<>();
+    private final HashMap<String, Double> loadsAbsVariableTargetP = new HashMap<>();
 
     private double absVariableTargetP = 0;
 
@@ -107,7 +107,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
             ensurePowerFactorConstantByLoad = true;
         }
         double absTargetP = getAbsVariableTargetPPerUnit(load, distributedOnConformLoad);
-        loadsAbsVariableTargetP.add(absTargetP);
+        loadsAbsVariableTargetP.put(load.getId(), absTargetP);
         absVariableTargetP += absTargetP;
     }
 
@@ -185,13 +185,13 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         return loadsRefs.size();
     }
 
-    private double getParticipationFactor(int i) {
+    private double getParticipationFactor(String originalLoadId) {
         // FIXME
         // After a load contingency or a load action, only the global variable targetP is updated.
         // The list loadsAbsVariableTargetP never changes. It is not an issue for security analysis as the network is
         // never updated. Excepted if loadPowerFactorConstant is true, the new targetQ could be wrong after a load contingency
         // or a load action.
-        return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(i) / absVariableTargetP : 0;
+        return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(originalLoadId) / absVariableTargetP : 0;
     }
 
     private double calculateP() {
@@ -211,16 +211,14 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         double pv = p == EvaluableConstants.NAN ? 1 : calculateP() / targetP; // extract part of p that is dependent to voltage
         double qv = q == EvaluableConstants.NAN ? 1 : calculateQ() / targetQ;
         double diffLoadTargetP = targetP - initialTargetP;
-        int i = 0;
         for (Ref<Load> refLoad : loadsRefs.values()) {
             Load load = refLoad.get();
-            double diffP0 = diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB;
+            double diffP0 = diffLoadTargetP * getParticipationFactor(load.getId()) * PerUnit.SB;
             double updatedP0 = load.getP0() + diffP0;
             double updatedQ0 = load.getQ0() + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
             load.getTerminal()
                     .setP(updatedP0 * pv)
                     .setQ(updatedQ0 * qv);
-            i++;
         }
 
         // update lcc converter station power
@@ -237,12 +235,10 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     @Override
     public double calculateNewTargetQ(double diffTargetP) {
         double newLoadTargetQ = 0;
-        int i = 0;
         for (Ref<Load> refLoad : loadsRefs.values()) {
             Load load = refLoad.get();
-            double updatedQ0 = load.getQ0() / PerUnit.SB + getPowerFactor(load) * diffTargetP * getParticipationFactor(i);
+            double updatedQ0 = load.getQ0() / PerUnit.SB + getPowerFactor(load) * diffTargetP * getParticipationFactor(load.getId());
             newLoadTargetQ += updatedQ0;
-            i++;
         }
         return newLoadTargetQ;
     }
