@@ -29,7 +29,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         if (parameters.isDistributedSlack()) {
             if (parametersExt.isAreaInterchangeControl()) {
-                LOGGER.warn("DistributedSlack and AreaInterchangeControl outerloops are both enabled. DistributedSlack outerloop will be disabled. Slack will be distributed by the AreaInterchangeControl outerloop.");
+                LOGGER.info("DistributedSlack and AreaInterchangeControl outer loops are both enabled. DistributedSlack outerloop will not be created, slack will be distributed by the AreaInterchangeControl outerloop.");
             } else {
                 ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
                 return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));

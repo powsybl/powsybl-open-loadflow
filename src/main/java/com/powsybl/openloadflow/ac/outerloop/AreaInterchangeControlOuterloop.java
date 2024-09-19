@@ -64,7 +64,8 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         List<LfArea> areas = context.getNetwork().getAreas();
         double slackBusActivePowerMismatch = context.getLastSolverResult().getSlackBusActivePowerMismatch();
-        Map<String, Double> areaSlackDistributionParticipationFactor = ((AreaInterchangeControlContextData) context.getData()).getAreaSlackDistributionParticipationFactor();
+        AreaInterchangeControlContextData contextData = (AreaInterchangeControlContextData) context.getData();
+        Map<String, Double> areaSlackDistributionParticipationFactor = contextData.getAreaSlackDistributionParticipationFactor();
 
         Map<LfArea, Double> areaInterchangeWithSlackMismatches = areas.stream()
                 .collect(Collectors.toMap(area -> area, area -> getInterchangeMismatchWithSlack(area, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor)));
@@ -91,7 +92,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
             } else {
                 double remainingMismatchToDistribute = -areaInterchangeMismatches.values().stream().mapToDouble(m -> m).sum() + getSlackInjection(DEFAULT_NO_AREA_NAME, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor);
                 Map<String, Pair<Set<LfBus>, Double>> remainingMismatchMap = new HashMap<>();
-                Set<LfBus> busesWithoutArea = ((AreaInterchangeControlContextData) context.getData()).getBusesWithoutArea();
+                Set<LfBus> busesWithoutArea = contextData.getBusesWithoutArea();
                 remainingMismatchMap.put(DEFAULT_NO_AREA_NAME, Pair.of(busesWithoutArea, remainingMismatchToDistribute));
                 return distributeActivePowerMismatches(remainingMismatchMap, context, reportNode);
             }

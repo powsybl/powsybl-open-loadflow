@@ -96,15 +96,10 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
 
         @Override
         public double getP() {
-            switch (side) {
-                case ONE:
-                    return branch.getP1().eval();
-                case TWO:
-                    return branch.getP2().eval();
-                default:
-                    return 0.0;
-            }
+            return switch (side) {
+                case ONE -> branch.getP1().eval();
+                case TWO -> branch.getP2().eval();
+            };
         }
     }
-
 }
