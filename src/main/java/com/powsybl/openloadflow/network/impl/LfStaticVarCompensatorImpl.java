@@ -200,4 +200,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     public void setStandByAutomatonShunt(LfShunt standByAutomatonShunt) {
         this.standByAutomatonShunt = standByAutomatonShunt;
     }
+
+    @Override
+    public int getReferencePriority() {
+        // never selected
+        return -1;
+    }
 }

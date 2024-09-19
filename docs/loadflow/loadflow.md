@@ -14,7 +14,8 @@ of only buses and branches is created. In the graph vision, we rely on a $$\Pi$$
 As the $\Pi$ model is created from IIDM grid modelling that locates its ratio and phase tap changers in side 1, $A_2$ and $\rho_2$ are always
 equal to zero and $1$. In case of a branch with voltage or phase control, the $\Pi$ model becomes an array. See below our model:
 
-![Pi model](pi-model.svg)
+![Pi model](pi-model.svg){class="only-light"}
+![Pi model](pi-model-dark-mode.svg){class="only-dark"}
 
 ### HVDC line
 

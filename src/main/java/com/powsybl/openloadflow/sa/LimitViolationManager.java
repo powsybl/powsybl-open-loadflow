@@ -164,9 +164,10 @@ public class LimitViolationManager {
     private static LimitViolation createLimitViolation(LfBranch branch, LfBranch.LfLimit temporaryLimit,
                                                        LimitViolationType type, double scale, double value,
                                                        TwoSides side) {
-        return new LimitViolation(branch.getId(), type, temporaryLimit.getName(),
+        return new LimitViolation(branch.getMainOriginalId(), null, type, temporaryLimit.getName(),
                 temporaryLimit.getAcceptableDuration(), temporaryLimit.getValue() * scale,
-                temporaryLimit.getReduction(), value * scale, side);
+                temporaryLimit.getReduction(), value * scale,
+                branch.getOriginalSide().orElse(side.toThreeSides()));
     }
 
     /**
