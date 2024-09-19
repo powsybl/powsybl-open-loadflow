@@ -87,7 +87,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
                 return absMismatch > this.areaInterchangePMaxMismatch / PerUnit.SB && absMismatch > ActivePowerDistribution.P_RESIDUE_EPS;
             }).collect(Collectors.toMap(LfArea::getId, this::getInterchangeMismatch));
 
-            if (areaInterchangeMismatches.isEmpty() && getSlackInjection(DEFAULT_NO_AREA_NAME, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor) < areaInterchangePMaxMismatch / PerUnit.SB) {
+            if (areaInterchangeMismatches.isEmpty() && Math.abs(getSlackInjection(DEFAULT_NO_AREA_NAME, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor)) < areaInterchangePMaxMismatch / PerUnit.SB) {
                 LOGGER.debug("Already balanced");
             } else {
                 double remainingMismatchToDistribute = -areaInterchangeMismatches.values().stream().mapToDouble(m -> m).sum() + getSlackInjection(DEFAULT_NO_AREA_NAME, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor);
