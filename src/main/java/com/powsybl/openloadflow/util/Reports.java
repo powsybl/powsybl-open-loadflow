@@ -144,20 +144,18 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAreaMismatchDistributionFailure(ReportNode reportNode, String areaMismatchesString, int iterationCount) {
+    public static void reportAreaMismatchDistributionFailure(ReportNode reportNode, String areaMismatchesString) {
         reportNode.newReportNode()
-                .withMessageTemplate("areaInterchangeControlFailure", "Failed to distribute interchange active power mismatch in ${iterationCount} iterations. Remaining mismatches: ${areaMismatchesString}")
+                .withMessageTemplate("areaInterchangeControlFailure", "Failed to distribute interchange active power mismatch. Remaining mismatches (with iterations) : ${areaMismatchesString}")
                 .withUntypedValue("areaMismatchesString", areaMismatchesString)
-                .withUntypedValue(ITERATION_COUNT, iterationCount)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
 
-    public static void reportAreaMismatchDistributionSuccess(ReportNode reportNode, String mismatches, int areasCount, int iterationCount) {
+    public static void reportAreaMismatchDistributionSuccess(ReportNode reportNode, String mismatches, int areasCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("areaInterchangeControlSuccess", "Area Interchange mismatches [${mismatches}] distributed in ${iterationCount} distribution iteration(s)")
+                .withMessageTemplate("areaInterchangeControlSuccess", "Distributed area interchange mismatches (with iterations) : [${mismatches}]")
                 .withUntypedValue("areasCount", areasCount)
-                .withUntypedValue(ITERATION_COUNT, iterationCount)
                 .withUntypedValue("mismatches", mismatches)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();

@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -31,7 +30,7 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
     protected LfAreaImpl(Area area, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network, LfNetworkParameters parameters) {
         this.network = network;
         this.areaRef = Ref.create(area, parameters.isCacheEnabled());
-        this.interchangeTarget = area.getInterchangeTarget().orElseThrow(() -> new PowsyblException("Area " + area.getId() + " does not have a net position target.")) / PerUnit.SB;
+        this.interchangeTarget = area.getInterchangeTarget().orElse(0.0) / PerUnit.SB;
         this.buses = buses;
         this.boundaries = boundaries;
     }

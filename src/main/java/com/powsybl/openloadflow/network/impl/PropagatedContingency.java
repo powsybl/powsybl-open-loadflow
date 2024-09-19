@@ -208,7 +208,7 @@ public class PropagatedContingency {
                 case DANGLING_LINE:
                     DanglingLine dl = (DanglingLine) connectable;
                     // as we terminal is only on network side, we open both sides in LF network
-                    if (dl.isPaired() && !creationParameters.isAreaInterchangeControlOn()) {
+                    if (dl.isPaired() && !creationParameters.isAreaInterchangeControl()) {
                         addBranchToOpen(dl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     } else {
                         addBranchToOpen(dl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
@@ -539,5 +539,59 @@ public class PropagatedContingency {
         return Optional.of(new LfContingency(contingency.getId(), index, connectivityLossImpact.createdSynchronousComponents,
                            new DisabledNetwork(busesToLost, branchesToOpen, lostHvdcs), shunts, loads, generators,
                            connectivityLossImpact.hvdcsWithoutPower()));
+    }
+
+    /**
+     * In general, a {@link PropagatedContingency} is translated to a {@link LfContingency}. During the translation,
+     * cleans are performed to deal with branches connected at one side and slack bus loss. But in some fast DC computations,
+     * we don't want to use {@link LfContingency} object, so a dedicated clean method directly available on a {@link PropagatedContingency}
+     * is needed. It contains:
+     *  - Removing branches out of this synchronous component from branches to open.
+     *  - Removing branches connected at one side from branches to open.
+     *  - Removing slack bus from buses lost (not supported yet).
+     *  - Adding branches connected to buses lost in branches to open.
+     */
+    public static void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        for (PropagatedContingency contingency : contingencies) {
+            // Elements have already been checked and found in PropagatedContingency, so there is no need to
+            // check them again
+            Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
+            for (String branchId : contingency.getBranchIdsToOpen().keySet()) {
+                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+                if (lfBranch == null) {
+                    branchesToRemove.add(branchId); // disconnected branch
+                    continue;
+                }
+                if (!lfBranch.isConnectedAtBothSides()) {
+                    branchesToRemove.add(branchId); // branch connected only on one side
+                }
+            }
+            branchesToRemove.forEach(branchToRemove -> contingency.getBranchIdsToOpen().remove(branchToRemove));
+
+            // update branches to open connected with buses in contingency. This is an approximation:
+            // these branches are indeed just open at one side.
+            String slackBusId = null;
+            for (String busId : contingency.getBusIdsToLose()) {
+                LfBus bus = lfNetwork.getBusById(busId);
+                if (bus != null) {
+                    if (bus.isSlack()) {
+                        // slack bus disabling is not supported in DC because the relocation is done from propagated contingency
+                        // to LfContingency
+                        // we keep the slack bus enabled and the connected branches
+                        LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
+                        slackBusId = busId;
+                    } else {
+                        bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().put(branch.getId(), DisabledBranchStatus.BOTH_SIDES));
+                    }
+                }
+            }
+            if (slackBusId != null) {
+                contingency.getBusIdsToLose().remove(slackBusId);
+            }
+
+            if (contingency.hasNoImpact()) {
+                LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
+            }
+        }
     }
 }

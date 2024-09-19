@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.extensions.ReferencePriorities;
 import com.powsybl.iidm.network.extensions.ReferencePriority;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -45,6 +46,7 @@ class DistributedSlackOnGenerationTest {
     private Generator g4;
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
@@ -57,7 +59,7 @@ class DistributedSlackOnGenerationTest {
         // Note that in core, default balance type is proportional to generation Pmax
         parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(true);
-        OpenLoadFlowParameters.create(parameters)
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
     }
@@ -214,7 +216,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void maxTestActivePowerLimitDisabled() {
-        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        parametersExt.setUseActiveLimits(false);
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         // Because we disabled active power limits, g1 will exceed max
         g1.setMaxP(105);
@@ -229,7 +231,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void minTestActivePowerLimitDisabled() {
-        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        parametersExt.setUseActiveLimits(false);
         // increase g1 min limit power and global load so that distributed slack algo reach the g1 min
         // Because we disabled active power limits, g1 will exceed min
         g1.setMinP(95);
@@ -244,7 +246,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void targetBelowMinAndActivePowerLimitDisabled() {
-        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        parametersExt.setUseActiveLimits(false);
         g1.setMinP(100); // was 0
         g1.setTargetP(80);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -258,7 +260,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void targetAboveMaxAndActivePowerLimitDisabled() {
-        parameters.getExtension(OpenLoadFlowParameters.class).setUseActiveLimits(false);
+        parametersExt.setUseActiveLimits(false);
         g1.setTargetP(240); // max is 200
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -334,7 +336,7 @@ class DistributedSlackOnGenerationTest {
     @Test
     void notEnoughActivePowerFailTest() {
         network.getLoad("l1").setP0(1000);
-        parameters.getExtension(OpenLoadFlowParameters.class).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertFalse(result.isFullyConverged());
@@ -347,7 +349,7 @@ class DistributedSlackOnGenerationTest {
     @Test
     void notEnoughActivePowerLeaveOnSlackBusTest() {
         network.getLoad("l1").setP0(1000);
-        parameters.getExtension(OpenLoadFlowParameters.class).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isFullyConverged());
@@ -361,7 +363,7 @@ class DistributedSlackOnGenerationTest {
         network.getLoad("l1").setP0(1000);
         ReferencePriority.set(g1, 1);
         g1.setMaxP(200.);
-        parameters.getExtension(OpenLoadFlowParameters.class)
+        parametersExt
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -385,7 +387,7 @@ class DistributedSlackOnGenerationTest {
         g1.setMaxP(200.);
         // We request to distribute on reference generator, but ReferenceBusSelectionMode is FIRST_SLACK.
         // FIRST_SLACK mode does not select a reference generator, therefore internally we switch to FAIL mode.
-        parameters.getExtension(OpenLoadFlowParameters.class)
+        parametersExt
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.FIRST_SLACK)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -577,12 +579,59 @@ class DistributedSlackOnGenerationTest {
         // generator | targetP | maxP
         // ----------|---------|-------
         //   g1      |  100    |  110  --> expected to hit limit 110MW with 10MW distributed
-        //   g2      |   90    |  300  --> expected to pick up the remaining slack 70.1976 MW
+        //   g2      |  200    |  300  --> expected to pick up the remaining slack 70.1976 MW
         //   g3      |   90    |  110  --> expected to hit limit 110MW with 20MW distributed
         //   g4      |   90    |  110  --> expected to hit limit 110MW with 20MW distributed
         assertActivePowerEquals(-110.000, g1.getTerminal());
         assertActivePowerEquals(-270.1976, g2.getTerminal());
         assertActivePowerEquals(-110.000, g3.getTerminal());
         assertActivePowerEquals(-110.000, g4.getTerminal());
+    }
+
+    @Test
+    void testSlackMismatchChangingSignReferenceGenerator() {
+        parameters.setUseReactiveLimits(true).getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
+
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR);
+        parametersExt
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        for (var g : network.getGenerators()) {
+            ActivePowerControl<Generator> ext = g.getExtension(ActivePowerControl.class);
+            if (g.getId().equals("g1")) {
+                ext.setParticipationFactor(1.0);
+            } else {
+                ext.setParticipationFactor(0.0);
+            }
+        }
+        ReferencePriorities.delete(network);
+        ReferencePriority.set(g2, 1);
+
+        g1.setMaxP(110.0);
+        g3.setMaxP(110.0);
+        g4.setMaxP(110.0);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
+        assertEquals(120.2021, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
+        assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // Only g1 gets slack "normally" distributed, and g2 being reference generator picks up the remaining slack
+        // generator | targetP | Participation Factor | Reference
+        // ----------|---------|----------------------|-----------
+        //   g1      |  100    |         1.0          |           --> expected to hit limit 110MW with 10MW distributed
+        //   g2      |  200    |          -           |     X     --> expected to pick up the remaining slack 110.2021 MW
+        //   g3      |   90    |          -           |           --> unchanged
+        //   g4      |   90    |          -           |           --> unchanged
+        assertActivePowerEquals(-110.000, g1.getTerminal());
+        assertActivePowerEquals(-310.2021, g2.getTerminal());
+        assertActivePowerEquals(-90.000, g3.getTerminal());
+        assertActivePowerEquals(-90.000, g4.getTerminal());
     }
 }

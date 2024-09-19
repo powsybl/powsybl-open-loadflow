@@ -25,7 +25,7 @@ public class PropagatedContingencyCreationParameters {
 
     private boolean hvdcAcEmulation = LoadFlowParameters.DEFAULT_HVDC_AC_EMULATION_ON;
 
-    private boolean areaInterchangeControlOn = OpenLoadFlowParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
+    private boolean areaInterchangeControl = OpenLoadFlowParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
 
     public boolean isContingencyPropagation() {
         return contingencyPropagation;
@@ -63,12 +63,12 @@ public class PropagatedContingencyCreationParameters {
         return this;
     }
 
-    public boolean isAreaInterchangeControlOn() {
-        return areaInterchangeControlOn;
+    public boolean isAreaInterchangeControl() {
+        return areaInterchangeControl;
     }
 
-    public PropagatedContingencyCreationParameters setAreaInterchangeControlOn(boolean areaInterchangeControlOn) {
-        this.areaInterchangeControlOn = areaInterchangeControlOn;
+    public PropagatedContingencyCreationParameters setAreaInterchangeControl(boolean areaInterchangeControl) {
+        this.areaInterchangeControl = areaInterchangeControl;
         return this;
     }
 }
