@@ -206,7 +206,10 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     }
 
     private Set<LfBus> listBusesWithoutArea(LfNetwork network) {
-        return network.getBuses().stream().filter(b -> b.getArea().isEmpty()).collect(Collectors.toSet());
+        return network.getBuses().stream()
+                .filter(b -> b.getArea().isEmpty())
+                .filter(b -> !b.isFictitious())
+                .collect(Collectors.toSet());
     }
 
     private Map<String, Double> allocateSlackDistributionParticipationFactors(LfNetwork lfNetwork) {
