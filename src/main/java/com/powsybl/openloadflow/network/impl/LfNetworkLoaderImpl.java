@@ -449,8 +449,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBus lfBus1 = getLfBus(danglingLine1.getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBus lfBus2 = getLfBus(danglingLine2.getTerminal(), lfNetwork, parameters.isBreakers());
                     if (parameters.isAreaInterchangeControl()) {
-                        // If area interchange control is activated, a precise value of the tie-flows is needed
-                        // this is why are created a branch for each dangling line and a boundary bus
+                        // If area interchange control is activated, a precise value of the tie-flows at the boundary is needed.
+                        // We create a boundary bus and two branches for the two dangling lines.
                         LfTieLineBus lfTieLineBus = new LfTieLineBus(lfNetwork, tieLine, parameters);
                         lfNetwork.addBus(lfTieLineBus);
                         lfBuses.add(lfTieLineBus);
@@ -470,7 +470,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     } else {
                         LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
                         addBranch(lfNetwork, lfBranch, report);
-                        addTieLineAreaBoundaries(tieLine, lfBranch, loadingContext);
                         postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
                     }
                     visitedDanglingLinesIds.add(danglingLine1.getId());
@@ -560,15 +559,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void addBranchAreaBoundaries(Branch<?> branch, LfBranch lfBranch, LoadingContext loadingContext) {
         addAreaBoundary(branch.getTerminal1(), lfBranch, TwoSides.ONE, loadingContext);
         addAreaBoundary(branch.getTerminal2(), lfBranch, TwoSides.TWO, loadingContext);
-    }
-
-    /**
-     * Adds the dangling lines' active power to the calculation of their Area's interchange (load convention) if they are boundaries.
-     * The tie lines are modeled as two branches connected by a boundary bus.
-     */
-    private static void addTieLineAreaBoundaries(TieLine tieLine, LfBranch lfBranch, LoadingContext loadingContext) {
-        addAreaBoundary(tieLine.getTerminal1(), lfBranch, TwoSides.ONE, loadingContext);
-        addAreaBoundary(tieLine.getTerminal2(), lfBranch, TwoSides.TWO, loadingContext);
     }
 
     /**
