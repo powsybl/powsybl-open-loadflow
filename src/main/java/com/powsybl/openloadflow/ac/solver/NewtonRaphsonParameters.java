@@ -14,6 +14,13 @@ import java.util.Objects;
  */
 public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaphsonParameters> {
 
+    public enum UnrealisticVoltageCheckBehavior {
+        FAIL_AT_UNREALISTIC_STATE_IN_ANY_ITERATION,
+        FAIL_AT_UNREALISTIC_STATE_IN_FINAL_ITERATION_ONLY
+    }
+
+    public static final UnrealisticVoltageCheckBehavior DEFAULT_UNREALISTIC_VOLTAGE_CHECK_BEHAVIOR = UnrealisticVoltageCheckBehavior.FAIL_AT_UNREALISTIC_STATE_IN_ANY_ITERATION;
+
     public static final int DEFAULT_MAX_ITERATIONS = 15;
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 2;
@@ -23,6 +30,8 @@ public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaph
     public NewtonRaphsonParameters() {
         super(DEFAULT_MAX_ITERATIONS);
     }
+
+    private UnrealisticVoltageCheckBehavior unrealisticVoltageCheckBehavior;
 
     private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
 
@@ -41,6 +50,15 @@ public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaph
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
     private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
+
+    public UnrealisticVoltageCheckBehavior getUnrealisticVoltageCheckBehavior() {
+        return unrealisticVoltageCheckBehavior;
+    }
+
+    public NewtonRaphsonParameters setUnrealisticVoltageCheckBehavior(UnrealisticVoltageCheckBehavior unrealisticVoltageCheckBehavior) {
+        this.unrealisticVoltageCheckBehavior = unrealisticVoltageCheckBehavior;
+        return this;
+    }
 
     public double getMinRealisticVoltage() {
         return minRealisticVoltage;
@@ -128,6 +146,7 @@ public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaph
     public String toString() {
         return "NewtonRaphsonParameters(" +
                 "maxIterations=" + maxIterations +
+                ", unrealisticVoltageCheckBehavior=" + unrealisticVoltageCheckBehavior +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +

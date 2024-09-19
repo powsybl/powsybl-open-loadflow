@@ -27,10 +27,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -108,11 +105,25 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 outerLoopIteration.increment();
             }
         } while (outerLoopResult.status() == OuterLoopStatus.UNSTABLE
-                && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
+                && lastResultStatusAcceptable(runningContext, context.getParameters().getNewtonRaphsonParameters())
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
 
         if (outerLoopResult.status() != OuterLoopStatus.STABLE) {
             Reports.reportUnsuccessfulOuterLoop(olReportNode, outerLoopResult.status().name());
+        }
+    }
+
+    private static boolean lastResultStatusAcceptable(RunningContext runningContext, NewtonRaphsonParameters nrParameters) {
+        switch (runningContext.lastSolverResult.getStatus()) {
+            case CONVERGED -> {
+                return true;
+            }
+            case UNREALISTIC_STATE -> {
+                return nrParameters.getUnrealisticVoltageCheckBehavior() == NewtonRaphsonParameters.UnrealisticVoltageCheckBehavior.FAIL_AT_UNREALISTIC_STATE_IN_FINAL_ITERATION_ONLY;
+            }
+            default -> {
+                return false;
+            }
         }
     }
 
@@ -159,7 +170,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
 
         // continue with outer loops only if solver succeed
-        if (runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED) {
+        if (lastResultStatusAcceptable(runningContext, context.getParameters().getNewtonRaphsonParameters())) {
 
             // re-run all outer loops until solver failed or no more solver iterations are needed
             int oldNrTotalIterations;
@@ -174,14 +185,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     // - last solver run succeed,
                     // - last OuterLoopStatus is not FAILED
                     // - we have not reached max number of outer loop iteration
-                    if (runningContext.lastSolverResult.getStatus() != AcSolverStatus.CONVERGED
+                    if (!lastResultStatusAcceptable(runningContext, context.getParameters().getNewtonRaphsonParameters())
                             || runningContext.lastOuterLoopResult.status() == OuterLoopStatus.FAILED
                             || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
                         break;
                     }
                 }
             } while (runningContext.nrTotalIterations.getValue() > oldNrTotalIterations
-                    && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
+                    && lastResultStatusAcceptable(runningContext, context.getParameters().getNewtonRaphsonParameters())
                     && runningContext.lastOuterLoopResult.status() != OuterLoopStatus.FAILED
                     && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
         }
