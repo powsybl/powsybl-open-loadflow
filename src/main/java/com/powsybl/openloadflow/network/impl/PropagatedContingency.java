@@ -496,7 +496,7 @@ public class PropagatedContingency {
                 LfLostLoad lostLoad = loads.computeIfAbsent(load, k -> new LfLostLoad());
                 lostLoad.getPowerShift().add(powerShift);
                 lostLoad.getOriginalIds().add(loadId);
-                lostLoad.updateNotParticipatingLoad(load, loadId, powerShift);
+                lostLoad.updateNotParticipatingLoadP0(load, loadId, powerShift);
             }
         }
 
