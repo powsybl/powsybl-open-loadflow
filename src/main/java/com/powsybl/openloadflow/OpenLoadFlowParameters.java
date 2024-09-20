@@ -1696,7 +1696,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), parametersExt.getDcApproximationType(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), parametersExt.getDcApproximationType(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
@@ -1714,7 +1714,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             case FULL_VOLTAGE:
                 return new FullVoltageInitializer(new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold()),
                         new DcValueVoltageInitializer(networkParameters,
-                                                      parameters.isDistributedSlack(),
+                                                      parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl(),
                                                       parameters.getBalanceType(),
                                                       parameters.isDcUseTransformerRatio(),
                                                       parametersExt.getDcApproximationType(),
@@ -1741,7 +1741,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
-                .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(parameters.isTransformerVoltageControlOn())
                 .setVoltagePerReactivePowerControl(parametersExt.isVoltagePerReactivePowerControl())
@@ -1885,7 +1885,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
-                .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(false)
                 .setVoltagePerReactivePowerControl(false)

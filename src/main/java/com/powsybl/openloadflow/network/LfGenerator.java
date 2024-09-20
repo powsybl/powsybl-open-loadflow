@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoadingReport;
 
 import java.util.OptionalDouble;
 
@@ -143,4 +144,6 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
     LfAsymGenerator getAsym();
 
     void setAsym(LfAsymGenerator asym);
+
+    void reApplyActivePowerControlChecks(LfNetworkParameters parameters, LfNetworkLoadingReport report);
 }

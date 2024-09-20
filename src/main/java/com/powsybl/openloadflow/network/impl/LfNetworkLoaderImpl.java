@@ -449,8 +449,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBus lfBus1 = getLfBus(danglingLine1.getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBus lfBus2 = getLfBus(danglingLine2.getTerminal(), lfNetwork, parameters.isBreakers());
                     if (parameters.isAreaInterchangeControl()) {
-                        // If area interchange control is activated, a precise value of the tie-flows is needed
-                        // this is why are created a branch for each dangling line and a boundary bus
+                        // If area interchange control is activated, a precise value of the tie-flows at the boundary is needed.
+                        // We create a boundary bus and two branches for the two dangling lines.
                         LfTieLineBus lfTieLineBus = new LfTieLineBus(lfNetwork, tieLine, parameters);
                         lfNetwork.addBus(lfTieLineBus);
                         lfBuses.add(lfTieLineBus);
@@ -470,7 +470,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     } else {
                         LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
                         addBranch(lfNetwork, lfBranch, report);
-                        addTieLineAreaBoundaries(tieLine, lfBranch, loadingContext);
                         postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
                     }
                     visitedDanglingLinesIds.add(danglingLine1.getId());
@@ -563,15 +562,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     /**
-     * Adds the dangling lines' active power to the calculation of their Area's interchange (load convention) if they are boundaries.
-     * The tie lines are modeled as two branches connected by a boundary bus.
-     */
-    private static void addTieLineAreaBoundaries(TieLine tieLine, LfBranch lfBranch, LoadingContext loadingContext) {
-        addAreaBoundary(tieLine.getTerminal1(), lfBranch, TwoSides.ONE, loadingContext);
-        addAreaBoundary(tieLine.getTerminal2(), lfBranch, TwoSides.TWO, loadingContext);
-    }
-
-    /**
      * Adds the active power of the terminal of the dangling line to the calculation of the Area's interchange (load convention) if it is a boundary.
      * The equivalent injection of the dangling line lfBranch model is P2;
      */
@@ -612,19 +602,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static boolean checkBoundariesComponent(Area area, int numCC, int numSC) {
         boolean allBoundariesInSameComponent = true;
-        for (AreaBoundary boundary : area.getAreaBoundaryStream().toList()) {
-            Bus bus;
-            if (boundary.getTerminal().isPresent()) {
-                Terminal terminal = boundary.getTerminal().get();
-                bus = terminal.getBusBreakerView().getConnectableBus();
-            } else if (boundary.getBoundary().isPresent()) {
-                DanglingLine danglingLine = boundary.getBoundary().get().getDanglingLine();
-                bus = danglingLine.getTerminal().getBusBreakerView().getConnectableBus();
-            } else {
-                continue;
-            }
-            if (bus.getConnectedComponent() != null && (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC)) {
-                LOGGER.warn("Area {} does not have all its boundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", area.getId());
+        for (AreaBoundary areaBoundary : area.getAreaBoundaries()) {
+            // boundary may be defined either by a terminal or by a DanglingLine boundary
+            final Terminal terminal = areaBoundary.getTerminal()
+                    .orElseGet(() -> areaBoundary.getBoundary().orElseThrow().getDanglingLine().getTerminal());
+            // this bus is in the same component as the boundary
+            final Bus bus = terminal.getBusView().getBus();
+
+            if (bus != null && bus.getConnectedComponent() != null && (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC)) {
+                LOGGER.warn("Area {} does not have all its areaBoundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", area.getId());
                 allBoundariesInSameComponent = false;
                 break;
             }
