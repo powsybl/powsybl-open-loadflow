@@ -66,7 +66,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
         double slackBusActivePowerMismatch = context.getLastSolverResult().getSlackBusActivePowerMismatch();
         Map<String, Double> areaSlackDistributionParticipationFactor = ((AreaInterchangeControlContextData) context.getData()).getAreaSlackDistributionParticipationFactor();
 
-        // Fisrt, we balance the areas that have a mismatch in their interchange power flow, and take the slack mismatch into account.
+        // First, we balance the areas that have a mismatch in their interchange power flow, and take the slack mismatch into account.
         Map<LfArea, Double> areaInterchangeWithSlackMismatches = areas.stream()
                 .collect(Collectors.toMap(area -> area, area -> getInterchangeMismatchWithSlack(area, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor)));
         List<LfArea> areasToBalance = areaInterchangeWithSlackMismatches.entrySet().stream()
