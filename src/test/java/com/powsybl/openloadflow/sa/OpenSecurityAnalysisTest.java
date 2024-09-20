@@ -1886,6 +1886,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(3.0, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower());
         assertEquals(2.0, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower());
         assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().containsAll(List.of("d4", "d5", "g6", "l46", "l34", "l45", "l56")));
+
+        // FIXME : if i'm not wrong, active power is not at equilibrium after slow dc sa. Flow on l12 = -1.33, flow on l13 = 0.33, flow on l23 = 1.66. 3 is produced but 2 is consumed.
+        assertEquals(-1.0, postContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
+        assertEquals(1.0, postContingencyResult.getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
     }
 
     @Test
