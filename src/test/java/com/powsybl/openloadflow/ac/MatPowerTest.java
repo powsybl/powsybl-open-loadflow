@@ -8,6 +8,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.matpower.converter.MatpowerImporter;
+import com.powsybl.openloadflow.CompareKnitroToNewtonRaphson;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
@@ -104,18 +105,20 @@ public class MatPowerTest {
         // We want base voltages to be taken into account
         properties.put("matpower.import.ignore-base-voltage", false);
         Network network = new MatpowerImporter().importData(
-                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case13659pegase" +
+                new FileDataSource(Path.of("C:", "Users", "jarchambault", "Downloads"), "case57" +
                         ""),
                 NetworkFactory.findDefault(), properties);
-        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case13659pegase" +
+        network.write("XIIDM", new Properties(), Path.of("C:", "Users", "jarchambault", "Downloads", "case57" +
                 ""));
-
 
         Instant start = Instant.now();
         LoadFlowResult knitroResult = loadFlowRunner.run(network, parameters);
         Instant end = Instant.now();
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResult.getComponentResults().get(0).getStatus());
+        parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.NONE);
+
+        LoadFlowResult resultCompare = CompareKnitroToNewtonRaphson.runComparison(loadFlowRunner, parameters, parametersExt, network);
 
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
 //        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
@@ -128,9 +131,8 @@ public class MatPowerTest {
         System.out.println("Loadflow took " + durationInSeconds + " seconds");
     }
 
-
     @Test
-    void caseImportedFromXIIDMFile() {
+    void caseImportedFromXiidmFile() {
 
         // Load network from .XIIDM file
         String situ = "C:\\Users\\jarchambault\\Desktop\\IGM\\20260613T1330Z_1D_FR_.xiidm";
