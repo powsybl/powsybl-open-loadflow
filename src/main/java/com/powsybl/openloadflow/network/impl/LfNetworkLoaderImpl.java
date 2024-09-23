@@ -640,6 +640,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (FastMath.abs(vc.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
                 LOGGER.warn("Controlled bus '{}' already has a transformer voltage control with a different target voltage: {} and {}",
                         controlledBus.getId(), vc.getTargetValue(), targetValue);
+                Reports.reportTransformerControlAlreadyExistsWithDifferentTargetV(controlledBus.getNetwork().getReportNode(), controlledBus.getId(),
+                        controlledBus.getNominalV() * vc.getTargetValue(), controlledBus.getNominalV() * targetValue);
             }
             vc.addControllerElement(controllerBranch);
             controllerBranch.setVoltageControl(vc);

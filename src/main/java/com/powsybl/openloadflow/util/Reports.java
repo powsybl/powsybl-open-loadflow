@@ -210,6 +210,16 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String controlledBusId, double vcTargetValue, double targetValue) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlAlreadyExistsWithDifferentTargetV", "Controlled bus ${controlledBusId} already has a transformer voltage control with a different target voltage: ${vcTargetValue}kV and ${targetValue}kV")
+                .withUntypedValue("controlledBusId", controlledBusId)
+                .withUntypedValue("vcTargetValue", vcTargetValue)
+                .withUntypedValue("targetValue", targetValue)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
     public static void reportTransformerControlBusesOutsideDeadband(ReportNode reportNode, int numTransformerControlBusesOutsideDeadband) {
         reportNode.newReportNode()
                 .withMessageTemplate("transformerControlBusesOutsideDeadband", "${numTransformerControlBusesOutsideDeadband} voltage-controlled buses are outside of their target deadbands")
