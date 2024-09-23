@@ -213,7 +213,7 @@ public final class Reports {
     public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String controlledBusId, double vcTargetValue, double targetValue) {
         reportNode.newReportNode()
                 .withMessageTemplate("transformerControlAlreadyExistsWithDifferentTargetV", "Controlled bus ${controlledBusId} already has a transformer voltage control with a different target voltage: ${vcTargetValue}kV and ${targetValue}kV")
-                .withUntypedValue("controlledBusId", controlledBusId)
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
                 .withUntypedValue("vcTargetValue", vcTargetValue)
                 .withUntypedValue("targetValue", targetValue)
                 .withSeverity(TypedValue.WARN_SEVERITY)
