@@ -222,8 +222,7 @@ class AcLoadFlowReportTest {
     @Test
     void testTransformerControlAlreadyExistsWithDifferentTargetV() throws IOException {
         Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
-        var t2wt = network.getTwoWindingsTransformer("T2wT2");
-        t2wt.getRatioTapChanger().setTargetV(34.5);
+        network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger().setTargetV(34.5).setTargetDeadband(3.0);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();

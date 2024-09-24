@@ -1,7 +1,8 @@
 + Test Report
    + Load flow on network 'two-windings-transformer-control'
       + Network CC0 SC0
-         Controlled bus VL_3_0 already has a transformer voltage control with a different target voltage: 34.0kV and 34.5kV
+         Transformers T2wT and T2wT2 control voltage at bus VL_3_0 with different target voltages: 34.0kV (kept) and 34.5kV (rejected)
+         Transformers T2wT and T2wT2 control voltage at bus VL_3_0 with different deadbands, thinnest will be kept: 3.0kV (kept) and ---kV (rejected)
          + Network info
             Network has 3 buses and 3 branches
             Network balance: active generation=25.0 MW, active load=16.2 MW, reactive generation=0.0 MVar, reactive load=7.5 MVar
