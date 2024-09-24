@@ -22,6 +22,8 @@ public interface LfLoad extends PropertyBag {
 
     LfBus getBus();
 
+    boolean isOriginalLoadNotParticipating(String originalId);
+
     Optional<LfLoadModel> getLoadModel();
 
     double getInitialTargetP();
@@ -44,7 +46,7 @@ public interface LfLoad extends PropertyBag {
 
     List<String> getOriginalIds();
 
-    double getOriginalLoadCount();
+    int getOriginalLoadCount();
 
     boolean isOriginalLoadDisabled(String originalId);
 
