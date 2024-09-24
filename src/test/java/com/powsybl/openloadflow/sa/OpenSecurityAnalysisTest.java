@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.google.common.collect.ImmutableList;
 import com.powsybl.action.Action;
+import com.powsybl.action.LoadActionBuilder;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
@@ -3618,7 +3619,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void multiComponentSaTestContingencyBothComponents() {
+    void multiComponentSaTestContingencyBothComponentsAndOperatorStrategy() {
 
         Network network = FourBusNetworkFactory.createWithTwoScs();
         // Add a load on small component
@@ -3635,14 +3636,18 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         securityAnalysisParameters.getLoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
 
         // This contingency should impact both components
-        List<Contingency> contingencies = List.of(new Contingency("l13", List.of(new BranchContingency("l13"), new LoadContingency("dummyLoad"))));
+        List<Contingency> contingencies = List.of(new Contingency("compositeContingency", List.of(new BranchContingency("l13"), new LoadContingency("dummyLoad"))));
 
         // Monitor branch in both components
         List<StateMonitor> monitors = List.of(
                 new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "lc12", "lc12Bis"), emptySet(), emptySet())
         );
 
-        SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        List<Action> actions = List.of(new TerminalsConnectionAction("open_l13", "l13", true),
+                new LoadActionBuilder().withId("dc2").withLoadId("dc2").withRelativeValue(false).withActivePowerValue(1).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("compositeContingency"), new TrueCondition(), List.of("open_l13", "dc2")));
+
+        SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP);
         NetworkResult preContingencyResults = results.getPreContingencyResult().getNetworkResult();
 
         // Result for base case is available for all components
@@ -3661,5 +3666,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1.310, postContingencyResults.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.498, postContingencyResults.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.498, postContingencyResults.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        NetworkResult operatorStrategyResult = results.getOperatorStrategyResults().get(0).getNetworkResult();
+
+        // Operator strategy is applied on both network and result should be merged and available
+        assertEquals(1.022, operatorStrategyResult.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(2.311, operatorStrategyResult.getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.311, operatorStrategyResult.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 }
