@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.Load;
+import com.powsybl.iidm.network.LoadType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
@@ -327,5 +328,51 @@ class DistributedSlackOnLoadTest {
         }
         assertEquals(0.0, sumP, pTol);
         assertEquals(0.0, sumQ, qTol);
+    }
+
+    @Test
+    void testFictitiousLoadBoolean() {
+        l1.setFictitious(true);
+        l2.setFictitious(true);
+        l3.setFictitious(true);
+        l4.setFictitious(false);
+        l5.setFictitious(true);
+        l6.setFictitious(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(l1.getP0(), l1.getTerminal());
+        assertActivePowerEquals(l2.getP0(), l2.getTerminal());
+        assertActivePowerEquals(l3.getP0(), l3.getTerminal());
+        assertActivePowerEquals(l4.getP0() + 60, l4.getTerminal());
+        assertActivePowerEquals(l5.getP0(), l5.getTerminal());
+        assertActivePowerEquals(l6.getP0(), l6.getTerminal());
+        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
+                .addMetrics("3", "CONVERGED")
+                .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 4.0392134081912445E-9)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected, result);
+    }
+
+    @Test
+    void testFictitiousLoadType() {
+        l1.setLoadType(LoadType.AUXILIARY); // 30 MW
+        l2.setLoadType(LoadType.UNDEFINED); // 60 MW
+        l3.setLoadType(LoadType.FICTITIOUS); // 50 MW
+        l4.setLoadType(LoadType.AUXILIARY); // 140 MW
+        l5.setLoadType(LoadType.UNDEFINED); // 10 MW
+        l6.setLoadType(LoadType.FICTITIOUS); // -50 MW
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(l1.getP0() + 7.5, l1.getTerminal());
+        assertActivePowerEquals(l2.getP0() + 15, l2.getTerminal());
+        assertActivePowerEquals(l3.getP0(), l3.getTerminal());
+        assertActivePowerEquals(l4.getP0() + 35, l4.getTerminal());
+        assertActivePowerEquals(l5.getP0() + 2.5, l5.getTerminal());
+        assertActivePowerEquals(l6.getP0(), l6.getTerminal());
+        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
+                .addMetrics("3", "CONVERGED")
+                .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 4.0392134081912445E-9)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected, result);
     }
 }
